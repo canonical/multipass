@@ -617,6 +617,7 @@ struct DaemonLaunchTimeoutValueTestSuite : public Daemon,
 TEST_P(DaemonCreateLaunchTestSuite, createsVirtualMachines)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine);
@@ -626,24 +627,36 @@ TEST_P(DaemonCreateLaunchTestSuite, createsVirtualMachines)
 TEST_P(DaemonCreateLaunchTestSuite, onCreationHooksUpPlatformPrepareSourceImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault_ptr = mock_image_vault();
+    EXPECT_CALL(*mock_factory, prepare_source_image(_));
+    EXPECT_CALL(*mock_image_vault_ptr, fetch_image(_, _, _, _, _, _))
+        .WillOnce([](const mp::FetchType& f,
+                     const mp::Query& q,
+                     const mp::VMImageVault::PrepareAction& action,
+                     const mp::ProgressMonitor& pm,
+                     const std::optional<std::string>& opt,
+                     const mp::Path& path) -> mp::VMImage {
+            return action({"", {}, {}, {}, {}, {}});
+        });
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, prepare_source_image(_));
     send_command({GetParam()});
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, onCreationHooksUpPlatformPrepareInstanceImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _));
     send_command({GetParam()});
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, onCreationHandlesInstanceImagePreparationFailure)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     std::string cause = "motive";
@@ -662,6 +675,7 @@ TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProv
     const std::string expected_name{"pied-piper-valley"};
 
     config_builder.name_generator = std::make_unique<StubNameGenerator>(expected_name);
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -792,6 +806,7 @@ MATCHER_P(YAMLSequenceContainsStringMap, values, "")
 TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
@@ -819,6 +834,7 @@ TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
     auto mock_factory = use_a_mock_vm_factory();
     std::string expected_key{"thisitnotansshkeyactually"};
     config_builder.ssh_key_provider = std::make_unique<mpt::DummyKeyProvider>(expected_key);
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
@@ -847,6 +863,7 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
                      QSysInfo::productType(),
                      QSysInfo::productVersion(),
                      alias.empty() ? "default" : alias)}};
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
@@ -868,6 +885,7 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     const auto launch_args = GetParam();
@@ -911,6 +929,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     const auto test_params = GetParam();
@@ -991,6 +1010,7 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
 TEST_P(MinSpaceRespectedSuite, acceptsLaunchWithEnoughExplicitMemory)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     const auto param = GetParam();
@@ -1005,6 +1025,7 @@ TEST_P(MinSpaceRespectedSuite, acceptsLaunchWithEnoughExplicitMemory)
 TEST_P(MinSpaceViolatedSuite, refusesLaunchWithMemoryBelowThreshold)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -1028,14 +1049,13 @@ TEST_P(LaunchImgSizeSuite, launchesWithCorrectDiskSize)
     const auto& img_size_str = std::get<2>(param);
     const auto img_size = mp::MemorySize(img_size_str);
 
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_))
+    auto mock_image_vault_ptr = mock_image_vault();
+    ON_CALL(*mock_image_vault_ptr, minimum_image_size_for(_))
         .WillByDefault([&img_size_str](auto...) { return mp::MemorySize{img_size_str}; });
 
     EXPECT_CALL(mock_utils, filesystem_bytes_available(_))
         .WillRepeatedly(Return(default_total_bytes));
 
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
     std::vector<std::string> all_parameters{first_command_line_parameter};
@@ -1061,6 +1081,9 @@ TEST_P(LaunchImgSizeSuite, launchesWithCorrectDiskSize)
 TEST_P(LaunchStorageCheckSuite, launchWarnsWhenOvercommittingDisk)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    auto mock_image_vault_ptr = mock_image_vault();
+    EXPECT_CALL(*mock_image_vault_ptr, minimum_image_size_for(_))
+        .WillRepeatedly(Return(mp::MemorySize{}));
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(mock_utils, filesystem_bytes_available(_)).WillRepeatedly(Return(0));
@@ -1080,11 +1103,10 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
 
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_)).WillByDefault([](auto...) {
+    auto mock_image_vault_ptr = mock_image_vault();
+    ON_CALL(*mock_image_vault_ptr, minimum_image_size_for(_)).WillByDefault([](auto...) {
         return mp::MemorySize{"1"};
     });
-    config_builder.vault = std::move(mock_image_vault);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -1101,6 +1123,7 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
 {
     auto mock_factory = use_a_mock_vm_factory();
     config_builder.data_directory = QString("invalid_data_directory");
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     auto [mock_json_utils, guard] = mpt::MockJsonUtils::inject<StrictMock>();
@@ -1398,6 +1421,7 @@ TEST_P(RefuseBridging, oldImage)
     std::string full_image_name = remote.empty() ? image : remote + ":" + image;
 
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -1570,7 +1594,7 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
 TEST_P(ListIP, listsWithIp)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    (void)mock_image_vault();
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -1677,7 +1701,7 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
 TEST_F(Daemon, doesNotHoldOnToMacsWhenImagePreparationFails)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    mp::Daemon daemon{config_builder.build()};
+    (void)mock_image_vault();
 
     // fail the first prepare call, succeed the second one
     InSequence seq;
@@ -1685,8 +1709,8 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenImagePreparationFails)
         .WillOnce(Throw(std::exception{}))
         .WillOnce(DoDefault());
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(1);
-
     auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,name=wlan0"};
+    mp::Daemon daemon{config_builder.build()};
     send_command(cmd); // we cause this one to fail
     send_command(cmd); // and confirm we can repeat the same mac
 }
@@ -1694,6 +1718,7 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenImagePreparationFails)
 TEST_F(Daemon, releasesMacsWhenLaunchFails)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, create_virtual_machine)
@@ -1708,6 +1733,7 @@ TEST_F(Daemon, releasesMacsWhenLaunchFails)
 TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
 {
     auto mock_factory = use_a_mock_vm_factory();
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     auto mac1 = "52:54:00:73:76:28", mac2 = "52:54:00:bd:19:41", mac3 = "01:23:45:67:89:ab";
@@ -1739,7 +1765,7 @@ TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
 TEST_F(Daemon, launchesWithBridged)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
-
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, networks());
@@ -1751,7 +1777,7 @@ TEST_F(Daemon, launchesWithBridged)
 TEST_F(Daemon, refusesLaunchBridgedWithoutSetting)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
-
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillOnce(Return(""));
@@ -1767,7 +1793,7 @@ TEST_F(Daemon, refusesLaunchBridgedWithoutSetting)
 TEST_F(Daemon, refusesLaunchWithInvalidBridgedInterface)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
-
+    (void)mock_image_vault();
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, networks());
