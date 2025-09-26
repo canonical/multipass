@@ -32,7 +32,7 @@ There are two ways to proceed:
 
 ## Authenticating the user
 
-A user that is not authorised to connect to the Multipass service will fail when running `multipass` commands. An error will be displayed when this happens.
+A user that is not authorized to connect to the Multipass service will fail when running `multipass` commands. An error will be displayed when this happens.
 
 For example, if you try running the `multipass list` command:
 
@@ -66,7 +66,7 @@ At this time, the user will need to provide the previously set passphrase. This 
 
 Here you can find solutions and workarounds for common issues that may arise.
 
-### The user cannot be authorised and the passphrase cannot be set
+### The user cannot be authorized and the passphrase cannot be set
 
 It is possible that another user that is privileged to connect to the Multipass socket will
 connect first and make it seemingly impossible to set the `local.passphrase` and also `authorize`
