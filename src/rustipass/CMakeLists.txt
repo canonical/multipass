@@ -15,8 +15,15 @@
 # Set the crate directory (Corrosion is already available from root CMakeLists.txt)
 set(RUSTIPASS_CRATE_DIR ${CMAKE_SOURCE_DIR}/crates/rustipass)
 
-# Import the rustipass crate using Corrosion
-corrosion_import_crate(MANIFEST_PATH ${RUSTIPASS_CRATE_DIR}/Cargo.toml)
+# Configure Rust build profile based on CMAKE_BUILD_TYPE
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(RUST_PROFILE "release")
+else()
+    set(RUST_PROFILE "dev")
+endif()
+
+# Import the rustipass crate using Corrosion with the appropriate profile
+corrosion_import_crate(MANIFEST_PATH ${RUSTIPASS_CRATE_DIR}/Cargo.toml PROFILE ${RUST_PROFILE})
 
 # Add cxxbridge support for C++ interop
 corrosion_add_cxxbridge(rustipass_cxx
