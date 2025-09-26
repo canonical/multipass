@@ -16,7 +16,7 @@ After the first client connects with a user belonging to the socket's admin grou
 ````{group-tab} macOS
 Linux and macOS hosts currently use a Unix domain socket for client and daemon communication. Upon first use, this socket only allows a client to connect via a user belonging to the group that owns the socket. For example, this group could be `sudo`, `admin`, or `wheel` and the user needs to belong to this group or else permission will be denied when connecting.
 
-After the first client connects with a user belonging to the socket's admin group, the users's OpenSSL certificate will be accepted by the daemon and the socket will be then be open for all users to connect. Any other user trying to connect to the Multipass service will need to authenticate with the service using the previously set [`local.passphrase`](/reference/settings/local-passphrase).
+After the first client connects with a user belonging to the socket's admin group, the user's OpenSSL certificate will be accepted by the daemon and the socket will be then be open for all users to connect. Any other user trying to connect to the Multipass service will need to authenticate with the service using the previously set [`local.passphrase`](/reference/settings/local-passphrase).
 ````
 
 ````{group-tab} Windows
