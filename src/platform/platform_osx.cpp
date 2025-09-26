@@ -267,6 +267,23 @@ std::string mp::platform::Platform::bridge_nomenclature() const
     return br_nomenclature;
 }
 
+bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
+{
+    const auto ipstr = ip.as_string();
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ipstr.c_str(), "-c", "1", "-t", "1"});
+}
+
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
+}
+
+
+std::optional<mp::Subnet> mp::platform::Platform::virtual_switch_subnet(const QString& bridge_name) const
+{
+    throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = QStringLiteral("/var/root/Library/Preferences/");
