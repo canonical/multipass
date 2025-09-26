@@ -28,8 +28,6 @@ namespace test
 {
 struct MockFirewallConfig : public FirewallConfig
 {
-    using FirewallConfig::FirewallConfig;
-
     MOCK_METHOD(void, verify_firewall_rules, (), (override));
 };
 
