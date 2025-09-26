@@ -354,6 +354,77 @@ std::string mp::platform::Platform::bridge_nomenclature() const
     return br_nomenclature;
 }
 
+bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
+{
+    const auto ipstr = ip.as_string();
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ipstr.c_str(), "-c", "1", "-W", "1"});
+}
+
+// validation of the ip and cidr happen later, otherwise this regex would be massive.
+static const QRegularExpression subnet_regex(R"(((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
+
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    const auto output =
+        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
+
+    QRegularExpressionMatchIterator i = subnet_regex.globalMatch(output);
+
+    while (i.hasNext())
+    {
+        QRegularExpressionMatch match = i.next();
+
+        try
+        {
+            mp::Subnet found_net{match.captured(1).toStdString()};
+
+            // check for overlap
+            if (found_net.contains(subnet) || subnet.contains(found_net))
+            {
+                return true;
+            }
+        }
+        catch (const std::invalid_argument& e)
+        {
+            mpl::log(
+                mpl::Level::warning,
+                "network",
+                fmt::format("invalid subnet from ip command: {}", e.what()));
+        }
+    }
+    return false;
+}
+
+std::optional<mp::Subnet> mp::platform::Platform::virtual_switch_subnet(const QString& bridge_name) const
+{
+    const auto outputs =
+        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
+
+    for (const auto& line : outputs)
+    {
+        if (line.contains(bridge_name))
+        {
+            QRegularExpressionMatch match = subnet_regex.match(line);
+            if (!match.hasMatch())
+                continue;
+
+            try
+            {
+                return mp::Subnet{match.captured(1).toStdString()};
+            }
+            catch (const std::invalid_argument& e)
+            {
+                mpl::log(
+                    mpl::Level::warning,
+                    "network",
+                    fmt::format("invalid subnet from ip command: {}", e.what()));
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {
