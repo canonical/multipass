@@ -320,6 +320,15 @@ public:
             (std::string("critical,CA:") + (cert_type == CertType::Root ? "TRUE" : "FALSE"))
                 .c_str());
 
+        if (cert_type == CertType::Server)
+        {
+            add_extension(ctx, NID_ext_key_usage, "serverAuth");
+        }
+        else if (cert_type == CertType::Client)
+        {
+            add_extension(ctx, NID_ext_key_usage, "clientAuth");
+        }
+
         const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
 
         openssl_check(X509_sign(cert.get(), signing_key.get(), EVP_sha256()),
