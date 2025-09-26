@@ -21,8 +21,10 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_cert_provider.h"
+#include "mock_image_host.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
+#include "mock_vm_image_vault.h"
 #include "stub_cert_store.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
@@ -338,6 +340,20 @@ void mpt::DaemonTestFixture::SetUp()
         .WillRepeatedly(Return(
             "")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                      it gets reset at the end of each test (by VerifyAndClearExpectations) */
+}
+
+mpt::MockVMImageVault* mpt::DaemonTestFixture::mock_image_vault()
+{
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    EXPECT_CALL(*mock_image_vault, all_info_for(_))
+        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
+            std::pair<std::string, mp::VMImageInfo>{"default",
+                                                    mock_image_host->mock_bionic_image_info}}));
+
+    config_builder.vault = std::move(mock_image_vault);
+    return reinterpret_cast<mpt::MockVMImageVault*>(config_builder.image_hosts.back().get());
 }
 
 mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
