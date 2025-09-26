@@ -1658,20 +1658,18 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
         plant_instance_json(fake_json_contents(mac1, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    EXPECT_CALL(*mock_image_vault, fetch_image)
+    auto mock_image_vault_ptr = mock_image_vault();
+    EXPECT_CALL(*mock_image_vault_ptr, fetch_image)
         .WillOnce(Return(
             mp::VMImage{"/path/to/nowhere", "", "", "", "", {}})) // cause the Daemon's ctor to fail
                                                                   // verifying that the img exists
         .WillRepeatedly(DoDefault());
-    config_builder.vault = std::move(mock_image_vault);
 
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .Times(2); // no launch in ctor, two launch commands
 
     mp::Daemon daemon{config_builder.build()};
-
     for (const auto* mac : {&mac1, &mac2})
         send_command({"launch", "--network", fmt::format("name=eth0,mac={}", *mac)});
 }

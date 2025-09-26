@@ -348,12 +348,12 @@ mpt::MockVMImageVault* mpt::DaemonTestFixture::mock_image_vault()
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
+        .WillRepeatedly(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
             std::pair<std::string, mp::VMImageInfo>{"default",
                                                     mock_image_host->mock_bionic_image_info}}));
 
     config_builder.vault = std::move(mock_image_vault);
-    return reinterpret_cast<mpt::MockVMImageVault*>(config_builder.image_hosts.back().get());
+    return reinterpret_cast<mpt::MockVMImageVault*>(config_builder.vault.get());
 }
 
 mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
@@ -377,7 +377,7 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
                                                      {"wlan0", "wi-fi", "wireless adapter"}}));
 
     config_builder.factory = std::move(mock_factory);
-    return mock_factory_ptr;
+    return reinterpret_cast<MockVirtualMachineFactory*>(config_builder.factory.get());
 }
 
 void mpt::DaemonTestFixture::send_command(const std::vector<std::string>& command,
