@@ -1424,8 +1424,7 @@ INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless,
 
 TEST_F(Daemon, failsWithImageNotFoundAlsoIfImageIsAlsoNonBridgeable)
 {
-    (void)mock_image_vault();
-
+    // Here there should be no image in mocked vault.
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream err_stream;
