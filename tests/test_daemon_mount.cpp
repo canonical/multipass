@@ -136,8 +136,8 @@ TEST_F(TestDaemonMount, invalidTargetPathFails)
     entry->set_target_path(invalid_path);
 
     auto logger_scope = mpt::MockLogger::inject();
-    logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "Invalid target path: /dev/foo");
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Invalid target path: /dev/foo");
 
     auto status = call_daemon_slot(
         daemon,

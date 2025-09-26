@@ -2171,7 +2171,7 @@ try
 
         if (MP_UTILS.invalid_target_path(q_target_path))
         {
-            mpl::log(mpl::Level::error,
+            mpl::log(mpl::Level::warning,
                      category,
                      fmt::format("Invalid target path: {}", q_target_path.toStdString()));
             add_fmt_to(errors, "unable to mount to \"{}\"", target_path);
