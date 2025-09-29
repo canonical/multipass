@@ -16,31 +16,27 @@ Avoid the version of cmake supplied, we need a newer one (see later).
 
 ### Qt6
 
-#### Option 1: Using Qt official sources
+#### Installing Qt 6.2.4 using aqtinstall (recommended, matches CI)
 
-Install the latest stable version of Qt6 LTS (6.10.0 at the moment): <http://www.qt.io/download-open-source/>.
+Install aqtinstall and use it to download Qt 6.2.4, as done in CI:
 
-If it tells you that XCode 5.0.0 needs to be installed, go to XCode > Preferences > Locations and make a selection in
-the _Command Line Tools_ box.
+    pip3 install aqtinstall
+    python3 -m aqt install-qt mac desktop 6.2.4 --outputdir ~/Qt
 
-Add Qt6 to your PATH environment variable, adding to your `.bash_profile` file the following line:
+This will install Qt 6.2.4 to `~/Qt/6.2.4/macos`.
 
-    export PATH=$PATH:~/Qt/6.10.0/clang_64/bin
+Add Qt6 to your PATH environment variable by adding the following line to your `.bash_profile` (or `.zshrc`):
+
+    export PATH=$PATH:~/Qt/6.2.4/macos/bin
 
 Adjust accordingly if you customized the Qt install directory.
-
-#### Option 2: Using Homebrew
-
-Install Qt6:
-
-    brew install qt6
 
 ### Cmake/OpenSSL
 
 Building a Multipass package requires cmake 3.9 or greater. OpenSSL is also necessary at build time. The most convenient
 means to obtain these dependencies is with Homebrew <https://brew.sh/>.
 
-    brew install cmake openssl@3
+    brew install cmake openssl@3 glib
 
 Building
 ---------------------------------------
@@ -77,18 +73,9 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 ### Build Multipass
 
-To build with official Qt sources do:
+To build with Qt installed via aqtinstall:
 
     cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/clang_64
-
-Alternatively if using Qt6 from Homebrew, do
-
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt6
-
-or, if on Apple silicon, brew will store the Qt binaries in a different location. Additionally, OpenSSL will be in a
-similar location; `/opt/homebrew/Cellar/openssl@3`, which can be set in the project level `CMakeLists.txt` file.
-
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt6
 
 Then start the build with:
 
