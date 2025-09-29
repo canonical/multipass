@@ -16,18 +16,14 @@ Avoid the version of cmake supplied, we need a newer one (see later).
 
 ### Qt6
 
-#### Installing Qt 6.2.4 using aqtinstall (recommended, matches CI)
+#### Installing Qt 6.2.4 using aqtinstall (recommended)
 
-Install aqtinstall and use it to download Qt 6.2.4, as done in CI:
+Install aqtinstall and use it to download Qt 6.2.4:
 
     pip3 install aqtinstall
     python3 -m aqt install-qt mac desktop 6.2.4 --outputdir ~/Qt
 
 This will install Qt 6.2.4 to `~/Qt/6.2.4/macos`.
-
-Add Qt6 to your PATH environment variable by adding the following line to your `.bash_profile` (or `.zshrc`):
-
-    export PATH=$PATH:~/Qt/6.2.4/macos/bin
 
 Adjust accordingly if you customized the Qt install directory.
 
@@ -42,7 +38,7 @@ Install Qt6:
 Building a Multipass package requires cmake 3.9 or greater. The most convenient
 means to obtain cmake is with Homebrew <https://brew.sh/>.
 
-    brew install cmake
+    brew install cmake glib pixman
 
 Building
 ---------------------------------------
@@ -81,7 +77,7 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 To build with Qt installed via aqtinstall:
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/clang_64
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.2.4/macos/lib/cmake
 
 Alternatively if using Qt6 from Homebrew, do
 
