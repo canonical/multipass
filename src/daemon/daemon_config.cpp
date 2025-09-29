@@ -45,8 +45,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto manifest_ttl = std::chrono::minutes{5};
-
 std::string server_name_from(const std::string& server_address)
 {
     auto tokens = mp::utils::split(server_address, ":");
