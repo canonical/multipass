@@ -62,6 +62,12 @@ If you encounter errors about missing `pkg-config` or `ninja`, install them with
 
 This is required for CMake to find all necessary build tools and dependencies.
 
+#### Dylibbundler
+
+Dylibbundler is required to make Multipass packages:
+
+    brew install dylibbundler
+
 #### QEMU Configuration
 
 QEMU is required to build the Multipass tests:
@@ -125,6 +131,8 @@ This is as simple as running
 or
 
     cpack
+
+Make sure you have dylibbundler installed!
 
 Once it is complete, you will have a Multipass.pkg file in the build directory.
 
