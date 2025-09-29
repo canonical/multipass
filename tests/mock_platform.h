@@ -68,7 +68,6 @@ public:
     MOCK_METHOD(std::string, bridge_nomenclature, (), (const, override));
     MOCK_METHOD(bool, can_reach_gateway, (IPAddress), (const, override));
     MOCK_METHOD(bool, subnet_used_locally, (Subnet), (const, override));
-    MOCK_METHOD(std::optional<Subnet>, virtual_switch_subnet, (const QString&), (const, override));
     MOCK_METHOD(std::filesystem::path, get_root_cert_dir, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
