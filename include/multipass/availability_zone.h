@@ -19,6 +19,7 @@
 #define MULTIPASS_AVAILABILITY_ZONE_H
 
 #include "disabled_copy_move.h"
+#include "subnet.h"
 #include "virtual_machine.h"
 
 #include <memory>
@@ -34,7 +35,7 @@ public:
     virtual ~AvailabilityZone() = default;
 
     [[nodiscard]] virtual const std::string& get_name() const = 0;
-    [[nodiscard]] virtual const std::string& get_subnet() const = 0;
+    [[nodiscard]] virtual const Subnet& get_subnet() const = 0;
     [[nodiscard]] virtual bool is_available() const = 0;
     virtual void set_available(bool new_available) = 0;
     virtual void add_vm(VirtualMachine& vm) = 0;
