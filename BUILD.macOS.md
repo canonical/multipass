@@ -116,14 +116,6 @@ Then start the build with:
 Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about
 missing Qt6.
 
-Building in QtCreator
----------------------
-QtCreator will be missing all the environment adjustments made above. To get cmake to successfully configure, open the
-project and adjust the Build Environment (click the "Projects" icon of the left pane, scroll down). Then add the entries
-to the $PATH as above, and add the variables reported by `opem config env`. CMake should now succeed, and QtCreator
-allow you to edit the project files.
-
-
 Creating a Package
 ------------------
 This is as simple as running
