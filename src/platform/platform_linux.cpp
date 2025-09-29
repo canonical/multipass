@@ -361,7 +361,7 @@ bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
 }
 
 // validation of the ip and cidr happen later, otherwise this regex would be massive.
-static const QRegularExpression subnet_regex(R"(((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
+const QRegularExpression subnet_regex(R"(((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
 {
