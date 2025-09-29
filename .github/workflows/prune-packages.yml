@@ -6,6 +6,9 @@ on:
   # 04:11 UTC on the first day of each month
   - cron: '11 4 1 * *'
 
+permissions:
+  packages: write
+
 jobs:
   list-packages:
     runs-on: ubuntu-latest
@@ -19,23 +22,37 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            core.info(`Listing packages for org: ${owner}`);
+
             // Fetch all container packages in this org/user
             const response = await github.paginate(
               "GET /orgs/{org}/packages",
-              { org: context.repo.owner, package_type: "container", per_page: 100 }
+              { org: context.repo.owner, package_type: "nuget", per_page: 100 }
             );
-            // Extract unique names
-            const names = [...new Set(response.map(p => p.name))];
-            // Build matrix: one entry per package-name
+            core.info(`Fetched ${response.length} nuget packages`);
+
+            const repoPackages = response.filter(p =>
+              p.repository && p.repository.full_name === `${owner}/${repo}`
+            );
+            core.info(`Found ${repoPackages.length} packages associated with ${owner}/${repo}`);
+
+            const names = [...new Set(repoPackages.map(p => p.name))];
             const matrix = { include: names.map(n => ({ "package-name": n })) };
+
             core.setOutput("matrix", JSON.stringify(matrix));
 
   prune:
     needs: list-packages
     runs-on: ubuntu-latest
 
+    permissions:
+      packages: write
+
     strategy:
       matrix: ${{ fromJSON(needs.list-packages.outputs.matrix) }}
+      fail-fast: false
       max-parallel: 4
 
     steps:
@@ -45,3 +62,19 @@ jobs:
           package-name: ${{ matrix.package-name }}
           package-type: nuget
           min-versions-to-keep: 1
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [list-packages, prune]
+    if: ${{ !success() }}
+    steps:
+      - name: Report workflow failure
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: multipass
+          TEXT: |
+            :red_circle: @mp
+            Scheduled [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+          MATTERMOST_USERNAME: ${{ github.actor }}
+          MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
