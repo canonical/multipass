@@ -22,10 +22,10 @@
 
 #include <qemu_platform.h>
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/path.h>
 
 #include <unordered_map>
-#include <utility>
 
 namespace multipass
 {
@@ -33,7 +33,7 @@ namespace multipass
 class QemuPlatformDetail : public QemuPlatform
 {
 public:
-    explicit QemuPlatformDetail(const Path& data_dir);
+    explicit QemuPlatformDetail(const Path& data_dir, const AvailabilityZoneManager::Zones& zones);
     virtual ~QemuPlatformDetail();
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
@@ -48,23 +48,23 @@ public:
 private:
     // explicitly naming DisabledCopyMove since the private one derived from QemuPlatform takes
     // precedence in lookup
-    struct BridgeSubnet : private multipass::DisabledCopyMove
+    struct Bridge : private multipass::DisabledCopyMove
     {
         const QString bridge_name;
         const Subnet subnet;
         FirewallConfig::UPtr firewall_config;
 
-        BridgeSubnet(const Path& network_dir, const std::string& name);
-        ~BridgeSubnet();
+        Bridge(const Subnet& subnet, const std::string& name);
+        ~Bridge();
     };
-    using BridgeSubnets = std::unordered_map<std::string, BridgeSubnet>;
+    using Bridges = std::unordered_map<std::string, Bridge>;
 
-    [[nodiscard]] static BridgeSubnets get_subnets(const Path& network_dir);
+    [[nodiscard]] static Bridges get_bridges(const AvailabilityZoneManager::Zones& zones);
 
-    [[nodiscard]] static BridgeSubnetList get_subnets_list(const BridgeSubnets&);
+    [[nodiscard]] static BridgeSubnetList get_bridge_list(const Bridges&);
 
     const Path network_dir;
-    const BridgeSubnets subnets;
+    const Bridges bridges;
     DNSMasqServer::UPtr dnsmasq_server;
     std::unordered_map<std::string, std::tuple<QString, std::string, QString>>
         name_to_net_device_map;

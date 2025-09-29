@@ -33,10 +33,12 @@ public:
     using UPtr = std::unique_ptr<AvailabilityZoneManager>;
     using ShPtr = std::shared_ptr<AvailabilityZoneManager>;
 
+    using Zones = std::vector<std::reference_wrapper<const AvailabilityZone>>;
+
     virtual ~AvailabilityZoneManager() = default;
 
     virtual AvailabilityZone& get_zone(const std::string& name) = 0;
-    virtual std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() = 0;
+    virtual Zones get_zones() = 0;
     // this returns a computed zone name, using an algorithm e.g. round-robin
     // not to be confused with [get_default_zone_name]
     virtual std::string get_automatic_zone_name() = 0;
