@@ -37,7 +37,9 @@ constexpr auto logging_category = "libvirt factory";
 auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::string& bridge_name)
 {
     auto network_dir = MP_UTILS.make_dir(QDir(data_dir), "network");
-    auto subnet = MP_SUBNET_UTILS.get_subnet(network_dir, QString::fromStdString(bridge_name));
+
+    // doing this since we're removing libvirt soon
+    auto subnet = MP_SUBNET_UTILS.generate_random_subnet();
 
     const auto range_start = subnet.min_address() + 1;
     const auto range_end = subnet.max_address();

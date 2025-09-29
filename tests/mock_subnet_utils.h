@@ -28,7 +28,6 @@ struct MockSubnetUtils : public SubnetUtils
     using SubnetUtils::SubnetUtils;
 
     MOCK_METHOD(Subnet, generate_random_subnet, (uint8_t cidr, Subnet range), (const, override));
-    MOCK_METHOD(Subnet, get_subnet, (const Path& network_dir, const QString& bridge_name), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockSubnetUtils, SubnetUtils);
 };

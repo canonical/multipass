@@ -212,27 +212,3 @@ mp::Subnet mp::SubnetUtils::generate_random_subnet(uint8_t cidr, Subnet range) c
 
     throw std::runtime_error("Could not determine a subnet for networking.");
 }
-
-mp::Subnet mp::SubnetUtils::get_subnet(const mp::Path& network_dir, const QString& bridge_name) const
-{
-    if (auto subnet = MP_PLATFORM.virtual_switch_subnet(bridge_name))
-        return *subnet;
-
-    QFile subnet_file{network_dir + "/multipass_subnet_" + bridge_name};
-    MP_FILEOPS.open(subnet_file, QIODevice::ReadWrite | QIODevice::Text);
-    if (MP_FILEOPS.size(subnet_file) > 0)
-    {
-        const auto content = MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
-        if (content.find('/') != std::string::npos)
-        {
-            return Subnet{content};
-        }
-        // assume CIDR of 24 is missing (for backwards compatability)
-        return Subnet{IPAddress{content}, 24};
-    }
-
-    auto new_subnet = MP_SUBNET_UTILS.generate_random_subnet();
-    const auto subnet_str = new_subnet.as_string();
-    MP_FILEOPS.write(subnet_file, subnet_str.data(), subnet_str.size());
-    return new_subnet;
-}
