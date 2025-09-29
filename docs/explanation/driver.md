@@ -43,7 +43,6 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 
 There are two exceptions to the above:
 
-  <!-- - On Linux, QEMU and libvirt (deprecated) share the same driver scope. -->
   - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 or later (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
 
 (driver-feature-disparities)=
