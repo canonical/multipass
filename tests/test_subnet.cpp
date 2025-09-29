@@ -268,7 +268,6 @@ struct SubnetUtils : public Test
     {
         ON_CALL(*mock_platform, subnet_used_locally).WillByDefault(Return(false));
         ON_CALL(*mock_platform, can_reach_gateway).WillByDefault(Return(false));
-        ON_CALL(*mock_platform, virtual_switch_subnet).WillByDefault(Return(std::nullopt));
     }
 
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<StrictMock>()};
