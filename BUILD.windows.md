@@ -6,8 +6,8 @@
 
 Install chocolatey, a package manager, to download the rest of the dependencies: <https://chocolatey.org/>.
 
-Press Windows Key+X and Run Windows PowerShell(Admin) then follow the chocolatey instructions to
-"Install with Powershell.exe".
+Press Windows Key+X and Run Windows PowerShell(Admin) or Terminal(Admin) then follow the chocolatey
+instructions to "Install with Powershell.exe".
 
 ### Dependencies
 
@@ -152,7 +152,7 @@ To create an installer, run `cmake --build . --target package`.
 Before starting `multipassd`, you'll have to enable the Hyper-V functionality in Windows 10/11 Pro.
 See: [Install Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)
 
-Press Windows Key + X, Select Windows PowerShell (Admin)and run:
+Press Windows Key + X, Select Windows PowerShell (Admin) or Terminal(Admin) and run:
 
 ```[pwsh]
 Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
@@ -160,7 +160,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
 
 ### Start the daemon (`multipassd`)
 
-1. Press Windows Key + X, Select Windows PowerShell (Admin)
+1. Press Windows Key + X, Select Windows PowerShell (Admin) or Terminal(Admin)
 2. Run `multipassd` (for example: `multipassd --logger=stderr`)
 3. Alternatively, you can install `multipassd` as a Windows Service (Run `multipassd /install` in a
    Powershell(Admin)). Installing `multipassd` as a Windows Service is a must for Windows 11
@@ -170,7 +170,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
 
 With the `multipassd` daemon now running on another shell (or as a windows service) you can now run `multipass`.
 
-1. Press Windows Key + X, Select Windows PowerShell, or alternatively run cmd.exe on the search bar.
+1. Press Windows Key + X, Select Windows PowerShell, or Terminal.
 2. Then, try `multipass help`.
 
 ### Permissions/privileges for `multipassd`
