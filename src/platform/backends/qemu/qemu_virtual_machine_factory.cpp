@@ -38,7 +38,7 @@ constexpr auto category = "qemu factory";
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir,
                                                          AvailabilityZoneManager& az_manager)
-    : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir),
+    : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir, az_manager.get_zones()),
                                 data_dir,
                                 az_manager}
 {
