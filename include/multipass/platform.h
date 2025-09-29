@@ -80,7 +80,6 @@ public:
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     [[nodiscard]] virtual bool can_reach_gateway(IPAddress ip) const;
     [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
-    [[nodiscard]] virtual std::optional<Subnet> virtual_switch_subnet(const QString& bridge_name) const;
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
 

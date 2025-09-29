@@ -395,36 +395,6 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     return false;
 }
 
-std::optional<mp::Subnet> mp::platform::Platform::virtual_switch_subnet(const QString& bridge_name) const
-{
-    const auto outputs =
-        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"})).split('\n');
-
-    for (const auto& line : outputs)
-    {
-        if (line.contains(bridge_name))
-        {
-            QRegularExpressionMatch match = subnet_regex.match(line);
-            if (!match.hasMatch())
-                continue;
-
-            try
-            {
-                return mp::Subnet{match.captured(1).toStdString()};
-            }
-            catch (const std::invalid_argument& e)
-            {
-                mpl::log(
-                    mpl::Level::warning,
-                    "network",
-                    fmt::format("invalid subnet from ip command: {}", e.what()));
-            }
-        }
-    }
-
-    return std::nullopt;
-}
-
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>
 {

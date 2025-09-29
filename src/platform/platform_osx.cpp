@@ -278,12 +278,6 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
 }
 
-
-std::optional<mp::Subnet> mp::platform::Platform::virtual_switch_subnet(const QString& bridge_name) const
-{
-    throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
-}
-
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = QStringLiteral("/var/root/Library/Preferences/");
