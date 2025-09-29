@@ -27,7 +27,18 @@ This will install Qt 6.2.4 to `~/Qt/6.2.4/macos`.
 
 Adjust accordingly if you customized the Qt install directory.
 
-#### Option 2: Using Homebrew
+### CocoaPods
+
+CocoaPods is required to build the Flutter GUI
+
+    sudo gem install cocoapods
+
+You may need to update your version of Ruby first. You can do so with RVM:
+
+    rvm install 3.1.0 && rvm --default use 3.1.0
+
+**Important: RVM/Ruby may require OpenSSL v1, while building Multipass requires OpenSSL v3. Make sure to switch to the right version of OpenSSL as necessary with `brew link`**
+
 
 Install Qt6:
 
@@ -51,11 +62,21 @@ If you encounter errors about missing `pkg-config` or `ninja`, install them with
 
 This is required for CMake to find all necessary build tools and dependencies.
 
+#### QEMU Configuration
+
+QEMU is required to build the Multipass tests:
+
+    brew install qemu
+
 If you encounter Python errors about missing `tomli` during the QEMU build step, install it with:
 
     pip3 install tomli
 
 This is required for Python-based build scripts.
+
+You may need additional libraries and packages during the configuration process:
+
+    brew install glib pixman
 
 #### Xcode setup
 
