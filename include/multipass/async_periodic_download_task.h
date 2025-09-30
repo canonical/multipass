@@ -65,7 +65,7 @@ public:
         // mess with the mock_logger in the unit tests.
 
         // TODO, remove the launch_msg parameter once we have better class separation.
-        mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
+        mpl::log_message(mpl::Level::debug, "async task", std::string(launch_msg));
         future = QtConcurrent::run(std::forward<Callable>(func), std::forward<Args>(args)...);
 
         auto event_handler_on_success_and_failure = [retry_start_delay_time, this]() -> void {
@@ -99,7 +99,7 @@ public:
             // skip it if the previous one is still running
             if (future.isFinished())
             {
-                mpl::log(mpl::Level::debug, "async task", std::string(launch_msg));
+                mpl::log_message(mpl::Level::debug, "async task", std::string(launch_msg));
                 future = QtConcurrent::run(func, args...);
                 future_watcher.setFuture(future);
             }

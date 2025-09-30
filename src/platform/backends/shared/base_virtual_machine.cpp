@@ -84,7 +84,7 @@ mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
                                        mpl::Level log_level = mpl::Level::trace)
 {
     assert(vm);
-    mpl::log(log_level, vm->vm_name, e.what());
+    mpl::log_message(log_level, vm->vm_name, e.what());
     return mp::utils::TimeoutAction::retry;
 };
 
@@ -305,7 +305,7 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
         }
         catch (const std::exception& e) // transitioning away from catching generic runtime errors
         {                               // TODO remove once we're confident this is an anomaly
-            mpl::log(mpl::Level::warning, vm_name, e.what());
+            mpl::log_message(mpl::Level::warning, vm_name, e.what());
             return mp::utils::TimeoutAction::retry;
         }
     };

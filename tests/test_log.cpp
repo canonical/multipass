@@ -103,35 +103,3 @@ TEST_F(LogTests, testLogTraceFunction)
     logger_scope.mock_logger->expect_log(mpl::Level::trace, "with formatting 1");
     mpl::trace("test_category", "with formatting {}", 1);
 }
-
-// ------------------------------------------------------------------------------
-
-TEST_F(LogTests, testLogErrorFunctionNoargs)
-{
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "without formatting {}");
-    mpl::error("test_category", "without formatting {}");
-}
-
-TEST_F(LogTests, testLogWarnFunctionNoargs)
-{
-    logger_scope.mock_logger->expect_log(mpl::Level::warning, "without formatting {}");
-    mpl::warn("test_category", "without formatting {}");
-}
-
-TEST_F(LogTests, testLogInfoFunctionNoargs)
-{
-    logger_scope.mock_logger->expect_log(mpl::Level::info, "without formatting {}");
-    mpl::info("test_category", "without formatting {}");
-}
-
-TEST_F(LogTests, testLogDebugFunctionNoargs)
-{
-    logger_scope.mock_logger->expect_log(mpl::Level::debug, "without formatting {}");
-    mpl::debug("test_category", "without formatting {}");
-}
-
-TEST_F(LogTests, testLogTraceFunctionNoargs)
-{
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "without formatting {}");
-    mpl::trace("test_category", "without formatting {}");
-}

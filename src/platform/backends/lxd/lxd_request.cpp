@@ -169,13 +169,13 @@ try
 }
 catch (const LXDNetworkError& e)
 {
-    mpl::log(mpl::Level::warning, request_category, e.what());
+    mpl::log_message(mpl::Level::warning, request_category, e.what());
 
     throw;
 }
 catch (const LXDRuntimeError& e)
 {
-    mpl::log(mpl::Level::error, request_category, e.what());
+    mpl::log_message(mpl::Level::error, request_category, e.what());
 
     throw;
 }
@@ -197,7 +197,7 @@ try
 }
 catch (const LXDRuntimeError& e)
 {
-    mpl::log(mpl::Level::error, request_category, e.what());
+    mpl::log_message(mpl::Level::error, request_category, e.what());
 
     throw;
 }
@@ -244,7 +244,7 @@ try
 }
 catch (const LXDRuntimeError& e)
 {
-    mpl::log(mpl::Level::error, request_category, e.what());
+    mpl::log_message(mpl::Level::error, request_category, e.what());
 
     throw;
 }

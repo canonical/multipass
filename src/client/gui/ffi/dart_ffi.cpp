@@ -43,7 +43,7 @@ char* generate_petname()
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }
@@ -63,7 +63,7 @@ char* get_server_address()
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }
@@ -90,7 +90,7 @@ struct KeyCertificatePair get_cert_pair()
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return KeyCertificatePair{nullptr, nullptr};
     }
 }
@@ -133,7 +133,7 @@ char* settings_file()
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }
@@ -253,7 +253,7 @@ long long memory_in_bytes(char* value)
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return -1;
     }
 }
@@ -292,7 +292,7 @@ char* default_mount_target(char* source)
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }

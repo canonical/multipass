@@ -257,7 +257,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
         }
         catch (VirtualBoxNetworkException& e)
         {
-            mpl::log(mpl::Level::warning, log_category, e.what());
+            mpl::log_message(mpl::Level::warning, log_category, e.what());
         }
     }
 

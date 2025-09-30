@@ -500,7 +500,7 @@ mp::Query mp::DefaultVMBlueprintProvider::blueprint_from_file(const std::string&
         auto error_message = fmt::format("Invalid Blueprint name \'{}\': must be a valid host name",
                                          file_info.baseName());
 
-        mpl::log(mpl::Level::error, category, error_message);
+        mpl::log_message(mpl::Level::error, category, error_message);
 
         throw InvalidBlueprintException(error_message);
     }

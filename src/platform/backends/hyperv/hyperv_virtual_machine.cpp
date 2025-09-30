@@ -363,7 +363,7 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
     catch (const VMStateIdempotentException& e)
     {
-        mpl::log(mpl::Level::info, vm_name, e.what());
+        mpl::log_message(mpl::Level::info, vm_name, e.what());
         return;
     }
 

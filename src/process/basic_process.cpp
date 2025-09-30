@@ -86,9 +86,9 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec)
         process.setReadChannel(QProcess::StandardError);
         QByteArray data = process.peek(process.bytesAvailable());
         process.setReadChannel(original);
-        mpl::log(process_spec->error_log_level(),
-                 qUtf8Printable(process_spec->program()),
-                 qUtf8Printable(data));
+        mpl::log_message(process_spec->error_log_level(),
+                         qUtf8Printable(process_spec->program()),
+                         qUtf8Printable(data));
     });
 }
 
@@ -208,9 +208,9 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
     if (!process.waitForStarted(timeout) || !process.waitForFinished(timeout) ||
         process.exitStatus() != QProcess::NormalExit)
     {
-        mpl::log(mpl::Level::error,
-                 qUtf8Printable(process_spec->program()),
-                 qUtf8Printable(process.errorString()));
+        mpl::log_message(mpl::Level::error,
+                         qUtf8Printable(process_spec->program()),
+                         qUtf8Printable(process.errorString()));
         exit_state.error = mp::ProcessState::Error{process.error(), error_string()};
         return exit_state;
     }
