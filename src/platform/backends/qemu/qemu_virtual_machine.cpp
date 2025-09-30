@@ -44,6 +44,8 @@
 #include <QTemporaryFile>
 
 #include <cassert>
+#include <chrono>
+#include <thread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -114,9 +116,15 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
                        const QStringList& platform_args)
 {
-    if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
-    {
+    if (!QFile::exists(desc.image.image_path))
         throw std::runtime_error("cannot start VM without an image");
+
+    // Brief delay to handle filesystem sync (#4396)
+    if (!QFile::exists(desc.cloud_init_iso))
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (!QFile::exists(desc.cloud_init_iso))
+            throw std::runtime_error("cannot start VM without cloud-init ISO");
     }
 
     std::optional<mp::QemuVMProcessSpec::ResumeData> resume_data;

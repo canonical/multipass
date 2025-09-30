@@ -328,4 +328,51 @@ TEST_F(BaseFactory, factoryHasDefaultSuspendSupport)
     MockBaseFactory factory;
     EXPECT_NO_THROW(factory.mp::BaseVirtualMachineFactory::require_suspend_support());
 }
+
+// Regression test for #4396 - verify cloud-init ISO is immediately accessible
+TEST_F(BaseFactory, cloudInitIsoIsImmediatelyAccessible)
+{
+    MockBaseFactory factory;
+    auto name = "pied-piper-valley";
+    auto metadata = YAML::Node{};
+    auto user_data = YAML::Load("#cloud-config\npackages:\n  - git\n");
+    auto vendor_data{metadata}, network_data{metadata};
+
+    mp::VMImage image;
+    image.image_path =
+        QString("%1/%2").arg(factory.tmp_dir->path()).arg(QString::fromStdString(name));
+
+    mp::VirtualMachineDescription vm_desc{2,
+                                          mp::MemorySize{"3M"},
+                                          mp::MemorySize{}, // not used
+                                          name,
+                                          "00:16:3e:fe:f2:b9",
+                                          {},
+                                          "yoda",
+                                          image,
+                                          "",
+                                          metadata,
+                                          user_data,
+                                          vendor_data,
+                                          network_data};
+
+    factory.configure(vm_desc);
+
+    // Verify ISO exists immediately after configure()
+    ASSERT_FALSE(vm_desc.cloud_init_iso.isEmpty());
+    EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
+    
+    // Verify ISO is immediately readable
+    QFile iso_file(vm_desc.cloud_init_iso);
+    EXPECT_TRUE(iso_file.open(QIODevice::ReadOnly));
+    
+    // Verify we can read data immediately
+    auto data = iso_file.read(512);
+    EXPECT_FALSE(data.isEmpty());
+    iso_file.close();
+    
+    // Verify ISO is not empty
+    QFileInfo file_info(vm_desc.cloud_init_iso);
+    EXPECT_GT(file_info.size(), 0);
+}
 } // namespace
