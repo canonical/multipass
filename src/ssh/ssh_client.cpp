@@ -153,27 +153,30 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
                             cmd_line.c_str());
 
     handle_ssh_events();
-    
+
     uint32_t exit_status = static_cast<uint32_t>(-1);
     char* exit_signal_status = nullptr;
     int core_dumped = 0;
-    
-    int result = ssh_channel_get_exit_state(channel.get(), 
-                                           &exit_status, 
-                                           &exit_signal_status, 
-                                           &core_dumped);
-    
-    if (result == SSH_OK) {
-        if (exit_signal_status != nullptr) {
-            fprintf(stderr, "[ssh client] Process terminated by signal: %s%s\n", 
-                   exit_signal_status, core_dumped ? " (core dumped)" : "");
-            
+
+    int result =
+        ssh_channel_get_exit_state(channel.get(), &exit_status, &exit_signal_status, &core_dumped);
+
+    if (result == SSH_OK)
+    {
+        if (exit_signal_status != nullptr)
+        {
+            fprintf(stderr,
+                    "[ssh client] Process terminated by signal: %s%s\n",
+                    exit_signal_status,
+                    core_dumped ? " (core dumped)" : "");
+
             ssh_string_free_char(exit_signal_status);
         }
         return static_cast<int>(exit_status);
     }
-    
-    if (exit_signal_status != nullptr) {
+
+    if (exit_signal_status != nullptr)
+    {
         ssh_string_free_char(exit_signal_status);
     }
     return -1;

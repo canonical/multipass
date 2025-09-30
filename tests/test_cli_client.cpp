@@ -1777,11 +1777,11 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
 {
     const int failure_code{GetParam()};
 
-    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
 
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
+    REPLACE(ssh_channel_get_exit_state, [&failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) { *val=failure_code;return failure_code==-1?-1:SSH_OK; });
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
             [&response](grpc::ServerContext* context,
@@ -1799,11 +1799,11 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
 {
     const int failure_code{GetParam()};
 
-    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
 
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
+    REPLACE(ssh_channel_get_exit_state, [&failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) { *val=failure_code;return failure_code==-1?-1:SSH_OK; });
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
             [&response](grpc::ServerContext* context,
@@ -1824,6 +1824,7 @@ TEST_F(Client, execCmdWithDirPrependsCd)
     std::string dir{"/home/ubuntu/"};
     std::string cmd{"pwd"};
 
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) { std::cout<<"HA";*val=0;return SSH_OK; });
     REPLACE(ssh_channel_request_exec, ([&dir, &cmd](ssh_channel, const char* raw_cmd) {
                 EXPECT_THAT(raw_cmd, StartsWith("cd " + dir));
                 EXPECT_THAT(raw_cmd, HasSubstr("&&"));
@@ -1856,6 +1857,7 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
     for (size_t i = 1; i < cmds.size(); ++i)
         cmds_string += " " + cmds[i];
 
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) { std::cout<<"HA";*val=0;return SSH_OK; });
     REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string](ssh_channel, const char* raw_cmd) {
                 // The test expects this exact command format
                 // The issue is that when using sudo -u user, the AppArmor context is not preserved
@@ -4625,6 +4627,7 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
 
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, "map"}}});
 
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) { std::cout<<"HA";*val=0;return SSH_OK; });
     REPLACE(ssh_channel_request_exec, ([&target_dir, &cmd](ssh_channel, const char* raw_cmd) {
                 EXPECT_THAT(raw_cmd, StartsWith("cd " + target_dir + "/"));
                 EXPECT_THAT(raw_cmd, HasSubstr("&&"));
@@ -4673,6 +4676,7 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
     populate_db_file(
         AliasesVector{{alias_name, {instance_name, cmd, map_dir ? "map" : "default"}}});
 
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) { *val=0;return SSH_OK; });
     REPLACE(ssh_channel_request_exec, ([&cmd](ssh_channel, const char* raw_cmd) {
                 EXPECT_THAT(raw_cmd, Not(StartsWith("cd ")));
                 EXPECT_THAT(raw_cmd, Not(HasSubstr("&&")));
