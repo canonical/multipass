@@ -54,8 +54,7 @@ struct QemuPlatformDetail : public Test
         {
             EXPECT_CALL(*mock_firewall_config_factory,
                         make_firewall_config(vswitch.bridge_name, vswitch.subnet))
-                .WillOnce(
-                    [&vswitch](auto...) { return std::move(vswitch.mock_firewall_config); });
+                .WillOnce([&vswitch](auto...) { return std::move(vswitch.mock_firewall_config); });
 
             EXPECT_CALL(
                 *mock_utils,
@@ -115,17 +114,14 @@ struct QemuPlatformDetail : public Test
     static inline const mp::Subnet zone1_subnet{"192.168.64.0/24"};
     static inline const mp::Subnet zone2_subnet{"192.168.96.0/24"};
     static inline const mp::Subnet zone3_subnet{"192.168.128.0/24"};
-    const std::vector<Switch> switches{
-        {"mpqemubrzone1", "52:54:00:6f:29:7e", zone1_subnet, "foo"},
-        {"mpqemubrzone2", "52:54:00:6f:29:7f", zone2_subnet, "bar"},
-        {"mpqemubrzone3", "52:54:00:6f:29:80", zone3_subnet, "baz"}};
+    const std::vector<Switch> switches{{"mpqemubrzone1", "52:54:00:6f:29:7e", zone1_subnet, "foo"},
+                                       {"mpqemubrzone2", "52:54:00:6f:29:7f", zone2_subnet, "bar"},
+                                       {"mpqemubrzone3", "52:54:00:6f:29:80", zone3_subnet, "baz"}};
 
     mpt::MockAvailabilityZone mock_zone1;
     mpt::MockAvailabilityZone mock_zone2;
     mpt::MockAvailabilityZone mock_zone3;
-    const multipass::AvailabilityZoneManager::Zones mock_zones{
-        mock_zone1, mock_zone2, mock_zone3
-    };
+    const multipass::AvailabilityZoneManager::Zones mock_zones{mock_zone1, mock_zone2, mock_zone3};
 
     mpt::TempDir data_dir;
 

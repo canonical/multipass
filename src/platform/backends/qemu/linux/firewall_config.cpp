@@ -234,45 +234,45 @@ void set_firewall_rules(const QString& firewall,
                       nat,
                       POSTROUTING,
                       QStringList()
-                          << source << cidr_str << destination << QStringLiteral("224.0.0.0/24") << jump
-                          << RETURN << comment_option);
+                          << source << cidr_str << destination << QStringLiteral("224.0.0.0/24")
+                          << jump << RETURN << comment_option);
 
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
-                      QStringList()
-                          << source << cidr_str << destination << QStringLiteral("255.255.255.255/32")
-                          << jump << RETURN << comment_option);
+                      QStringList() << source << cidr_str << destination
+                                    << QStringLiteral("255.255.255.255/32") << jump << RETURN
+                                    << comment_option);
 
     // Masquerade all packets going from VMs to the LAN/Internet
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
                       QStringList()
-                          << source << cidr_str << negate << destination << cidr_str << protocol << tcp
-                          << jump << MASQUERADE << to_ports << port_range << comment_option);
+                          << source << cidr_str << negate << destination << cidr_str << protocol
+                          << tcp << jump << MASQUERADE << to_ports << port_range << comment_option);
 
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
                       QStringList()
-                          << source << cidr_str << negate << destination << cidr_str << protocol << udp
-                          << jump << MASQUERADE << to_ports << port_range << comment_option);
+                          << source << cidr_str << negate << destination << cidr_str << protocol
+                          << udp << jump << MASQUERADE << to_ports << port_range << comment_option);
 
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
-                      QStringList() << source << cidr_str << negate << destination << cidr_str << jump
-                                    << MASQUERADE << comment_option);
+                      QStringList() << source << cidr_str << negate << destination << cidr_str
+                                    << jump << MASQUERADE << comment_option);
 
     // Allow established traffic to the private subnet
-    add_firewall_rule(firewall,
-                      filter,
-                      FORWARD,
-                      QStringList() << destination << cidr_str << out_interface << bridge_name << match
-                                    << QStringLiteral("conntrack") << QStringLiteral("--ctstate")
-                                    << QStringLiteral("RELATED,ESTABLISHED") << jump << ACCEPT
-                                    << comment_option);
+    add_firewall_rule(
+        firewall,
+        filter,
+        FORWARD,
+        QStringList() << destination << cidr_str << out_interface << bridge_name << match
+                      << QStringLiteral("conntrack") << QStringLiteral("--ctstate")
+                      << QStringLiteral("RELATED,ESTABLISHED") << jump << ACCEPT << comment_option);
 
     // Allow outbound traffic from the private subnet
     add_firewall_rule(firewall,
