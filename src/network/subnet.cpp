@@ -45,7 +45,8 @@ try
 
         return mp::Subnet(addr, cidr);
     }
-    throw std::invalid_argument(fmt::format("CIDR address {} does not contain '/' seperator", cidr_string));
+    throw std::invalid_argument(
+        fmt::format("CIDR address {} does not contain '/' seperator", cidr_string));
 }
 catch (const std::out_of_range& e)
 {
@@ -98,7 +99,9 @@ mp::Subnet generate_random_subnet(uint8_t cidr, mp::Subnet range)
         throw std::invalid_argument(fmt::format(large_CIDR_err_fmt, cidr));
 
     if (cidr < range.CIDR())
-        throw std::logic_error(fmt::format("A subnet with cidr {} cannot be contained by {}", cidr, range.as_string()));
+        throw std::logic_error(fmt::format("A subnet with cidr {} cannot be contained by {}",
+                                           cidr,
+                                           range.as_string()));
 
     // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
     const size_t possibleSubnets = std::size_t{1} << (cidr - range.CIDR());
@@ -190,7 +193,6 @@ bool mp::Subnet::operator<(const Subnet& other) const
     // note cidr comparison is flipped, smaller is bigger
     return id < other.id || (id == other.id && cidr > other.cidr);
 }
-
 
 mp::Subnet mp::SubnetUtils::generate_random_subnet(uint8_t cidr, Subnet range) const
 {

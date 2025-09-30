@@ -212,7 +212,7 @@ TEST(Subnet, containsWorksOnUnContainedSubnets)
 
     container = mp::Subnet{"172.1.0.0/16"};
     EXPECT_FALSE(subnet.contains(container));
-    
+
     // subset
     container = mp::Subnet{"0.0.0.0/0"};
     EXPECT_FALSE(subnet.contains(container));
@@ -281,7 +281,7 @@ TEST_F(SubnetUtils, generateRandomSubnetTriviallyWorks)
 {
     const mp::Subnet range{"10.1.2.0/24"};
 
-    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(Invoke([](auto a, auto b){ 
+    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(Invoke([](auto a, auto b) {
         EXPECT_EQ(a, b);
         return a;
     }));
@@ -304,7 +304,8 @@ TEST_F(SubnetUtils, generateRandomSubnetFailsOnBadCIDR)
 {
     mp::Subnet range{"0.0.0.0/0"};
 
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(31, range), std::invalid_argument);
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(31, range),
+                 std::invalid_argument);
     EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(32, range),
                  std::invalid_argument);
     EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(33, range),
@@ -316,12 +317,10 @@ TEST_F(SubnetUtils, generateRandomSubnetFailsOnBadCIDR)
 TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
 {
     mp::Subnet range("192.168.0.0/16");
- 
+
     auto [mock_utils, guard] = mpt::MockUtils::inject();
 
-    EXPECT_CALL(*mock_utils, random_int(_, _))
-        .WillOnce(ReturnArg<0>())
-        .WillOnce(ReturnArg<1>());
+    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(ReturnArg<0>()).WillOnce(ReturnArg<1>());
 
     auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(24, range);
     auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(24, range);
@@ -337,9 +336,7 @@ TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
 {
     mp::Subnet range("0.0.0.0/0");
 
-    EXPECT_CALL(*mock_utils, random_int(_, _))
-        .WillOnce(ReturnArg<0>())
-        .WillOnce(ReturnArg<1>());
+    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(ReturnArg<0>()).WillOnce(ReturnArg<1>());
 
     auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(30, range);
     auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(30, range);
@@ -355,12 +352,11 @@ TEST_F(SubnetUtils, generateRandomSubnetGivesUp)
 {
     mp::Subnet range("0.0.0.0/0");
 
-    EXPECT_CALL(*mock_utils, random_int(_, _))
-        .WillRepeatedly(ReturnArg<0>());
+    EXPECT_CALL(*mock_utils, random_int(_, _)).WillRepeatedly(ReturnArg<0>());
 
-    EXPECT_CALL(*mock_platform, subnet_used_locally)
-        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, subnet_used_locally).WillRepeatedly(Return(true));
 
     MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(24, range),
-        std::runtime_error, mpt::match_what(HasSubstr("subnet")));
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("subnet")));
 }

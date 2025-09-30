@@ -46,8 +46,8 @@ catch (const std::ios_base::failure& e)
 }
 
 [[nodiscard]] multipass::Subnet deserialize_subnet(const QJsonObject& json,
-                                             const multipass::fs::path& file_path,
-                                             const std::string& name)
+                                                   const multipass::fs::path& file_path,
+                                                   const std::string& name)
 {
     if (const auto json_subnet = json[subnet_key].toString().toStdString(); !json_subnet.empty())
         return json_subnet;

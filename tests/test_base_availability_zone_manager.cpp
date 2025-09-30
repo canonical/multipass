@@ -70,7 +70,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
     }
 
     EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
-        .Times(expected_zone_count).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
+        .Times(expected_zone_count)
+        .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
     // Manager file gets written with default zone (once in constructor and once in
     // get_automatic_zone_name)
@@ -107,7 +108,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
     }
 
     EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
-        .Times(AnyNumber()).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
+        .Times(AnyNumber())
+        .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
     // Manager file will be written multiple times
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
@@ -156,7 +158,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
     }
 
     EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
-        .Times(AnyNumber()).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
+        .Times(AnyNumber())
+        .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
 
@@ -184,7 +187,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
     }
 
     EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
-        .Times(AnyNumber()).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
+        .Times(AnyNumber())
+        .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
 

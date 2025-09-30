@@ -100,7 +100,8 @@ void set_ip_forward()
     }
 }
 
-mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir, const mp::BridgeSubnetList& subnets)
+mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir,
+                                         const mp::BridgeSubnetList& subnets)
 {
     set_ip_forward();
     return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(network_dir, subnets);
@@ -159,7 +160,8 @@ mp::QemuPlatformDetail::Bridge::~Bridge()
     return out;
 }
 
-mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir, const AvailabilityZoneManager::Zones& zones)
+mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir,
+                                           const AvailabilityZoneManager::Zones& zones)
     : network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
       bridges{get_bridges(zones)},
       dnsmasq_server{init_nat_network(network_dir, get_bridge_list(bridges))}
@@ -260,7 +262,9 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     return opts;
 }
 
-mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir, const mp::AvailabilityZoneManager::Zones& zones) const
+mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(
+    const Path& data_dir,
+    const mp::AvailabilityZoneManager::Zones& zones) const
 {
     return std::make_unique<mp::QemuPlatformDetail>(data_dir, zones);
 }

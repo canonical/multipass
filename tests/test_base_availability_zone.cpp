@@ -71,27 +71,27 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
 }
 
 TEST_F(BaseAvailabilityZoneTest, loads_existing_zone_file)
- {
+{
     const mp::Subnet test_subnet{"10.0.0.0/24"};
-     const bool test_available = false;
+    const bool test_available = false;
 
-     QJsonObject json{{"subnet", QString::fromStdString(test_subnet.as_string())}, {"available",
-     test_available}};
+    QJsonObject json{{"subnet", QString::fromStdString(test_subnet.as_string())},
+                     {"available", test_available}};
 
-     EXPECT_CALL(*mock_json_utils_guard.first,
-     read_object_from_file(az_file)).WillOnce(Return(json));
+    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(az_file))
+        .WillOnce(Return(json));
 
-     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
-     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_,
-     QString::fromStdString(az_file.u8string())));
+    EXPECT_CALL(*mock_json_utils_guard.first,
+                write_json(_, QString::fromStdString(az_file.u8string())));
 
-     mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir};
 
-     EXPECT_EQ(zone.get_name(), az_name);
-     EXPECT_EQ(zone.get_subnet(), test_subnet);
-     EXPECT_FALSE(zone.is_available());
- }
+    EXPECT_EQ(zone.get_name(), az_name);
+    EXPECT_EQ(zone.get_subnet(), test_subnet);
+    EXPECT_FALSE(zone.is_available());
+}
 
 TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
 {

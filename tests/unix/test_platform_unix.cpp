@@ -344,7 +344,10 @@ TEST_F(TestPlatformUnix, canReachGatewayRunsPingWithIP)
 
     auto [mock_utils, guard] = mpt::MockUtils::inject<StrictMock>();
 
-    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), Contains(QString::fromStdString(testIPstr)), _)).WillOnce(Return(true)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ping"), Contains(QString::fromStdString(testIPstr)), _))
+        .WillOnce(Return(true))
+        .WillOnce(Return(false));
 
     EXPECT_TRUE(MP_PLATFORM.can_reach_gateway(testIP));
     EXPECT_FALSE(MP_PLATFORM.can_reach_gateway(testIP));

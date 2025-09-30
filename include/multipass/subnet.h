@@ -31,7 +31,7 @@ class Subnet
 public:
     Subnet(IPAddress ip, uint8_t cidr);
     Subnet(const std::string& cidr_string);
-    
+
     [[nodiscard]] IPAddress min_address() const;
     [[nodiscard]] IPAddress max_address() const;
     [[nodiscard]] uint32_t address_count() const;
@@ -49,6 +49,7 @@ public:
 
     [[nodiscard]] bool operator==(const Subnet& other) const;
     [[nodiscard]] bool operator<(const Subnet& other) const;
+
 private:
     IPAddress id;
     uint8_t cidr;
@@ -62,4 +63,3 @@ struct SubnetUtils : Singleton<SubnetUtils>
                                                         Subnet range = Subnet{"10.0.0.0/8"}) const;
 };
 } // namespace multipass
-
