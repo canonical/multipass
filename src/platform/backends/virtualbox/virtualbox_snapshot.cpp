@@ -84,8 +84,7 @@ void multipass::VirtualBoxSnapshot::erase_impl()
                                     "Could not delete snapshot: {}",
                                     vm_name);
     else
-        mpl::log(
-            mpl::Level::warning,
+        mpl::warn(
             vm_name.toStdString(),
             fmt::format("Could not find underlying VirtualBox snapshot for \"{}\". Ignoring...",
                         get_name()));

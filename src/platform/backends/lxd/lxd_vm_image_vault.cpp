@@ -229,9 +229,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
     }
     catch (const LocalSocketConnectionException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} - returning blank image info", e.what()));
+        mpl::warn(category, fmt::format("{} - returning blank image info", e.what()));
         return VMImage{};
     }
     catch (const std::exception&)
@@ -370,9 +368,7 @@ void mp::LXDVMImageVault::remove(const std::string& name)
     }
     catch (const LXDNotFoundException&)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Instance \'{}\' does not exist: not removing", name));
+        mpl::warn(category, fmt::format("Instance \'{}\' does not exist: not removing", name));
     }
 }
 
@@ -393,9 +389,8 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
     }
     catch (const LocalSocketConnectionException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} - Unable to determine if \'{}\' exists", e.what(), name));
+        mpl::warn(category,
+                  fmt::format("{} - Unable to determine if \'{}\' exists", e.what(), name));
         // Assume instance exists until it knows for sure
         return true;
     }
@@ -445,10 +440,9 @@ void mp::LXDVMImageVault::prune_expired_images()
             std::chrono::time_point_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now()))
         {
-            mpl::log(mpl::Level::info,
-                     category,
-                     fmt::format("Source image \'{}\' is expired. Removing it…",
-                                 image_info["properties"].toObject()["release"].toString()));
+            mpl::info(category,
+                      fmt::format("Source image \'{}\' is expired. Removing it…",
+                                  image_info["properties"].toObject()["release"].toString()));
 
             try
             {
@@ -470,7 +464,7 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type,
                                         const PrepareAction& prepare,
                                         const ProgressMonitor& monitor)
 {
-    mpl::log(mpl::Level::debug, category, "Checking for images to update…");
+    mpl::debug(category, "Checking for images to update…");
 
     auto images = retrieve_image_list();
 
@@ -494,9 +488,8 @@ void mp::LXDVMImageVault::update_images(const FetchType& fetch_type,
 
                 if (info->id != id)
                 {
-                    mpl::log(mpl::Level::info,
-                             category,
-                             fmt::format("Updating {} source image to latest", query.release));
+                    mpl::info(category,
+                              fmt::format("Updating {} source image to latest", query.release));
 
                     lxd_download_image(*info,
                                        query,

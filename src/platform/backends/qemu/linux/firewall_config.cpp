@@ -324,9 +324,8 @@ void clear_firewall_rules_for(const QString& firewall,
             }
             catch (const FirewallException& e)
             {
-                mpl::log(mpl::Level::error,
-                         category,
-                         fmt::format("Error deleting firewall rule '{}': {}", rule, e.what()));
+                mpl::error(category,
+                           fmt::format("Error deleting firewall rule '{}': {}", rule, e.what()));
             }
         }
     }
@@ -360,18 +359,14 @@ bool kernel_supports_nftables()
 
         if (!kernel_supported)
         {
-            mpl::log(mpl::Level::warning,
-                     category,
-                     "Kernel version does not meet minimum requirement of 5.2");
+            mpl::warn(category, "Kernel version does not meet minimum requirement of 5.2");
         }
 
         return kernel_supported;
     }
     catch (version::Parse_error&)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Cannot parse kernel version \'{}\'", kernel_version));
+        mpl::warn(category, fmt::format("Cannot parse kernel version \'{}\'", kernel_version));
         return false;
     }
 }
@@ -392,9 +387,7 @@ QString detect_firewall()
         mpl::log_message(mpl::Level::warning, category, e.what());
     }
 
-    mpl::log(mpl::Level::info,
-             category,
-             fmt::format("Using {} for firewall rules.", firewall_exec));
+    mpl::info(category, fmt::format("Using {} for firewall rules.", firewall_exec));
 
     return firewall_exec;
 }

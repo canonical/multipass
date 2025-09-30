@@ -133,15 +133,9 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
         std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data);
     auto process = mp::platform::make_process(std::move(process_spec));
 
-    mpl::log(mpl::Level::debug,
-             desc.vm_name,
-             fmt::format("process working dir '{}'", process->working_directory()));
-    mpl::log(mpl::Level::info,
-             desc.vm_name,
-             fmt::format("process program '{}'", process->program()));
-    mpl::log(mpl::Level::info,
-             desc.vm_name,
-             fmt::format("process arguments '{}'", process->arguments().join(", ")));
+    mpl::debug(desc.vm_name, fmt::format("process working dir '{}'", process->working_directory()));
+    mpl::info(desc.vm_name, fmt::format("process program '{}'", process->program()));
+    mpl::info(desc.vm_name, fmt::format("process arguments '{}'", process->arguments().join(", ")));
     return process;
 }
 
@@ -296,7 +290,7 @@ void mp::QemuVirtualMachine::start()
 
     if (state == State::suspended)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
+        mpl::info(vm_name, fmt::format("Resuming from a suspended state"));
 
         update_shutdown_status = true;
         is_starting_from_suspend = true;
@@ -324,19 +318,17 @@ void mp::QemuVirtualMachine::start()
         auto process_state = vm_process->process_state();
         if (process_state.error)
         {
-            mpl::log(mpl::Level::error,
-                     vm_name,
-                     fmt::format("Qemu failed to start: {}", process_state.error->message));
+            mpl::error(vm_name,
+                       fmt::format("Qemu failed to start: {}", process_state.error->message));
             throw std::runtime_error(
                 fmt::format("failed to start qemu instance: {}", process_state.error->message));
         }
         else if (process_state.exit_code)
         {
-            mpl::log(mpl::Level::error,
-                     vm_name,
-                     fmt::format("Qemu quit unexpectedly with exit code {} and with output:\n{}",
-                                 process_state.exit_code.value(),
-                                 vm_process->read_all_standard_error()));
+            mpl::error(vm_name,
+                       fmt::format("Qemu quit unexpectedly with exit code {} and with output:\n{}",
+                                   process_state.exit_code.value(),
+                                   vm_process->read_all_standard_error()));
             throw std::runtime_error(
                 fmt::format("qemu quit unexpectedly with exit code {}, check logs for more details",
                             process_state.exit_code.value()));
@@ -363,11 +355,11 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
-        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+        mpl::info(vm_name, "Forcing shutdown");
 
         if (vm_process)
         {
-            mpl::log(mpl::Level::info, vm_name, "Killing process");
+            mpl::info(vm_name, "Killing process");
             force_shutdown = true;
             lock.unlock();
             vm_process->kill();
@@ -380,19 +372,19 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         }
         else
         {
-            mpl::log(mpl::Level::debug, vm_name, "No process to kill");
+            mpl::debug(vm_name, "No process to kill");
         }
 
         const auto has_suspend_snapshot =
             mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag);
         if (has_suspend_snapshot != (state == State::suspended)) // clang-format off
-            mpl::log(mpl::Level::warning, vm_name, fmt::format("Image has {} suspension snapshot, but the state is {}",
+            mpl::warn(vm_name, fmt::format("Image has {} suspension snapshot, but the state is {}",
                                                                has_suspend_snapshot ? "a" : "no",
                                                                static_cast<short>(state))); // clang-format on
 
         if (has_suspend_snapshot)
         {
-            mpl::log(mpl::Level::info, vm_name, "Deleting suspend image");
+            mpl::info(vm_name, "Deleting suspend image");
             mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
         }
 
@@ -441,9 +433,7 @@ void mp::QemuVirtualMachine::suspend()
     }
     else if (state == State::off || state == State::suspended)
     {
-        mpl::log(mpl::Level::info,
-                 vm_name,
-                 fmt::format("Ignoring suspend issued while stopped/suspended"));
+        mpl::info(vm_name, fmt::format("Ignoring suspend issued while stopped/suspended"));
         monitor->on_suspend();
     }
 }
@@ -594,13 +584,13 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
-        mpl::log(mpl::Level::info, vm_name, "process started");
+        mpl::info(vm_name, "process started");
         on_started();
     });
 
     QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
         auto qmp_output = vm_process->read_all_standard_output();
-        mpl::log(mpl::Level::debug, vm_name, fmt::format("QMP: {}", qmp_output));
+        mpl::debug(vm_name, fmt::format("QMP: {}", qmp_output));
         auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
         auto event = qmp_object["event"];
 
@@ -608,24 +598,24 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         {
             if (event.toString() == "RESET" && state != State::restarting)
             {
-                mpl::log(mpl::Level::info, vm_name, "VM restarting");
+                mpl::info(vm_name, "VM restarting");
                 on_restart();
             }
             else if (event.toString() == "POWERDOWN")
             {
-                mpl::log(mpl::Level::info, vm_name, "VM powering down");
+                mpl::info(vm_name, "VM powering down");
             }
             else if (event.toString() == "SHUTDOWN")
             {
-                mpl::log(mpl::Level::info, vm_name, "VM shut down");
+                mpl::info(vm_name, "VM shut down");
             }
             else if (event.toString() == "STOP")
             {
-                mpl::log(mpl::Level::info, vm_name, "VM suspending");
+                mpl::info(vm_name, "VM suspending");
             }
             else if (event.toString() == "RESUME")
             {
-                mpl::log(mpl::Level::info, vm_name, "VM suspended");
+                mpl::info(vm_name, "VM suspended");
                 if (state == State::suspending || state == State::running)
                 {
                     vm_process->kill();
@@ -644,9 +634,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         vm_process.get(),
         &Process::state_changed,
         [this](QProcess::ProcessState newState) {
-            mpl::log(mpl::Level::info,
-                     vm_name,
-                     fmt::format("process state changed to {}", utils::qenum_to_string(newState)));
+            mpl::info(vm_name,
+                      fmt::format("process state changed to {}", utils::qenum_to_string(newState)));
         });
 
     QObject::connect(vm_process.get(),
@@ -670,8 +659,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
         if (process_state.exit_code)
         {
-            mpl::log(
-                mpl::Level::info,
+            mpl::info(
                 vm_name,
                 fmt::format("process finished with exit code {}", process_state.exit_code.value()));
         }
@@ -682,7 +670,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             {
                 // when suspending, we ask Qemu to savevm. Once it confirms that's done, we kill it.
                 // Catch the "crash"
-                mpl::log(mpl::Level::debug, vm_name, "Suspended VM successfully stopped");
+                mpl::debug(vm_name, "Suspended VM successfully stopped");
             }
             else
             {
@@ -715,7 +703,7 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         &QemuVirtualMachine::on_delete_memory_snapshot,
         this,
         [this] {
-            mpl::log(mpl::Level::debug, vm_name, fmt::format("Deleted memory snapshot"));
+            mpl::debug(vm_name, fmt::format("Deleted memory snapshot"));
             vm_process->write(hmc_to_qmp_json(QString("delvm ") + suspend_tag));
             is_starting_from_suspend = false;
         },
@@ -728,7 +716,7 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         &QemuVirtualMachine::on_reset_network,
         this,
         [this] {
-            mpl::log(mpl::Level::debug, vm_name, fmt::format("Resetting the network"));
+            mpl::debug(vm_name, fmt::format("Resetting the network"));
 
             auto qmp = QJsonDocument::fromJson(qmp_execute_json("set_link")).object();
             QJsonObject args;
@@ -752,14 +740,12 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         [this]() {
             try
             {
-                mpl::log(mpl::Level::debug, vm_name, fmt::format("Syncing RTC clock"));
+                mpl::debug(vm_name, fmt::format("Syncing RTC clock"));
                 ssh_exec("sudo timedatectl set-local-rtc 0 --adjust-system-clock");
             }
             catch (const std::exception& e)
             {
-                mpl::log(mpl::Level::warning,
-                         vm_name,
-                         fmt::format("Failed to sync clock: {}", e.what()));
+                mpl::warn(vm_name, fmt::format("Failed to sync clock: {}", e.what()));
             }
         },
         Qt::QueuedConnection);

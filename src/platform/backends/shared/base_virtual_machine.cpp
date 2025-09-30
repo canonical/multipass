@@ -93,7 +93,7 @@ std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtu
                                                        const mp::SSHKeyProvider& key_provider)
 {
     static constexpr auto wait_step = 1s;
-    mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
+    mpl::debug(virtual_machine->vm_name, "Waiting for SSH to be up");
 
     std::optional<mp::SSHSession> session = std::nullopt;
     auto action = [virtual_machine, &key_provider, &session] {
@@ -342,9 +342,7 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
         }
         catch (const SSHException& e)
         {
-            mpl::log(mpl::Level::debug,
-                     vm_name,
-                     fmt::format("Error getting extra IP addresses: {}", e.what()));
+            mpl::debug(vm_name, fmt::format("Error getting extra IP addresses: {}", e.what()));
         }
     }
 
@@ -451,7 +449,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
     const auto [it, success] = snapshots.try_emplace(sname, nullptr);
     if (!success)
     {
-        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", sname));
+        mpl::warn(vm_name, fmt::format("Snapshot name taken: {}", sname));
         throw SnapshotNameTakenException{vm_name, sname};
     }
 
@@ -608,7 +606,7 @@ void mp::BaseVirtualMachine::delete_snapshot(const std::string& name)
     delete_snapshot_helper(snapshot);
 
     snapshots.erase(it); // doesn't throw
-    mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
+    mpl::debug(vm_name, fmt::format("Snapshot deleted: {}", name));
 }
 
 void mp::BaseVirtualMachine::load_snapshots()
@@ -683,7 +681,7 @@ void mp::BaseVirtualMachine::load_snapshot(const QString& filename)
 
     if (!success)
     {
-        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
+        mpl::warn(vm_name, fmt::format("Snapshot name taken: {}", name));
         throw SnapshotNameTakenException{vm_name, name};
     }
 }
@@ -842,7 +840,7 @@ void mp::BaseVirtualMachine::drop_ssh_session()
 {
     if (ssh_session)
     {
-        mpl::log(mpl::Level::debug, vm_name, "Dropping cached SSH session");
+        mpl::debug(vm_name, "Dropping cached SSH session");
         ssh_session.reset();
     }
 }

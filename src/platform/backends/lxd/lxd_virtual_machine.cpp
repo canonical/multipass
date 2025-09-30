@@ -55,9 +55,9 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
 {
     auto json_reply = lxd_request(manager, "GET", url);
     auto metadata = json_reply["metadata"].toObject();
-    mpl::log(mpl::Level::trace,
-             name.toStdString(),
-             fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
+    mpl::trace(
+        name.toStdString(),
+        fmt::format("Got LXD container state: {} is {}", name, metadata["status"].toString()));
 
     switch (metadata["status_code"].toInt(-1))
     {
@@ -79,11 +79,10 @@ auto instance_state_for(const QString& name, mp::NetworkAccessManager* manager, 
     case 112: // Error
         return mp::VirtualMachine::State::unknown;
     default:
-        mpl::log(mpl::Level::error,
-                 name.toStdString(),
-                 fmt::format("Got unexpected LXD state: {} ({})",
-                             metadata["status"].toString(),
-                             metadata["status_code"].toInt()));
+        mpl::error(name.toStdString(),
+                   fmt::format("Got unexpected LXD state: {} ({})",
+                               metadata["status"].toString(),
+                               metadata["status_code"].toInt()));
         return mp::VirtualMachine::State::unknown;
     }
 }
@@ -211,9 +210,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
     }
     catch (const LXDNotFoundException& e)
     {
-        mpl::log(mpl::Level::debug,
-                 name.toStdString(),
-                 fmt::format("Creating instance with image id: {}", desc.image.id));
+        mpl::debug(name.toStdString(),
+                   fmt::format("Creating instance with image id: {}", desc.image.id));
 
         QJsonObject virtual_machine{
             {"name", name},
@@ -263,7 +261,7 @@ mp::LXDVirtualMachine::~LXDVirtualMachine()
         }
         catch (const LXDNotFoundException& e)
         {
-            mpl::log(mpl::Level::debug, vm_name, fmt::format("LXD object not found"));
+            mpl::debug(vm_name, fmt::format("LXD object not found"));
         }
     });
 }
@@ -272,7 +270,7 @@ void mp::LXDVirtualMachine::start()
 {
     if (state == State::suspended)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
+        mpl::info(vm_name, fmt::format("Resuming from a suspended state"));
         request_state("unfreeze");
     }
     else
@@ -405,7 +403,7 @@ std::string mp::LXDVirtualMachine::management_ipv4()
         management_ip = get_ip_for(mac_addr, manager, network_leases_url());
         if (!management_ip)
         {
-            mpl::log(mpl::Level::trace, name.toStdString(), "IP address not found.");
+            mpl::trace(name.toStdString(), "IP address not found.");
             return "UNKNOWN";
         }
     }

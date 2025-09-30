@@ -420,15 +420,11 @@ void mp::SftpServer::process_message(sftp_client_message msg)
         ret = handle_extended(msg);
         break;
     default:
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("Unknown message: {}", static_cast<int>(type)));
+        mpl::trace(category, fmt::format("Unknown message: {}", static_cast<int>(type)));
         ret = reply_unsupported(msg);
     }
     if (ret != 0)
-        mpl::log(mpl::Level::error,
-                 category,
-                 fmt::format("error occurred when replying to client: {}", ret));
+        mpl::error(category, fmt::format("error occurred when replying to client: {}", ret));
 }
 
 void mp::SftpServer::run()
@@ -459,10 +455,9 @@ void mp::SftpServer::run()
 
             if (status != 0)
             {
-                mpl::log(mpl::Level::error,
-                         category,
-                         "sshfs in the instance appears to have exited unexpectedly.  Trying to "
-                         "recover.");
+                mpl::error(category,
+                           "sshfs in the instance appears to have exited unexpectedly.  Trying to "
+                           "recover.");
 
                 std::string mount_path = [this] {
                     auto proc = ssh_session.exec(
@@ -503,9 +498,7 @@ int mp::SftpServer::handle_close(sftp_client_message msg)
     const auto id = sftp_handle(sftp_server_session.get(), msg->handle);
     if (!open_file_handles.erase(id) && !open_dir_handles.erase(id))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: bad handle requested", __FUNCTION__));
+        mpl::trace(category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "close");
     }
 
@@ -518,9 +511,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
     const auto handle = get_handle<NamedFd>(msg);
     if (handle == nullptr)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: bad handle requested", __FUNCTION__));
+        mpl::trace(category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "fstat");
     }
 
@@ -540,12 +531,11 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path '{}' against source '{}'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path '{}' against source '{}'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
@@ -555,30 +545,27 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 
     if (!has_id_mappings_for(parent_dir))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format(
-                     "{}: cannot create path \'{}\' with permissions \'{}:{}\': permission denied",
-                     __FUNCTION__,
-                     parent_dir.ownerId(),
-                     parent_dir.groupId(),
-                     filename));
+        mpl::trace(
+            category,
+            fmt::format(
+                "{}: cannot create path \'{}\' with permissions \'{}:{}\': permission denied",
+                __FUNCTION__,
+                parent_dir.ownerId(),
+                parent_dir.groupId(),
+                filename));
         return reply_perm_denied(msg);
     }
 
     if (!dir.mkdir(filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: mkdir failed for '{}'", __FUNCTION__, filename));
+        mpl::trace(category, fmt::format("{}: mkdir failed for '{}'", __FUNCTION__, filename));
         return reply_failure(msg);
     }
 
     if (!MP_PLATFORM.set_permissions(filename, static_cast<fs::perms>(msg->attr->permissions)))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: set permissions failed for '{}'", __FUNCTION__, filename));
+        mpl::trace(category,
+                   fmt::format("{}: set permissions failed for '{}'", __FUNCTION__, filename));
         return reply_failure(msg);
     }
 
@@ -587,12 +574,11 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 
     if (MP_PLATFORM.chown(filename, rev_uid, rev_gid) < 0)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("failed to chown '{}' to owner:{} and group:{}",
-                             filename,
-                             rev_uid,
-                             rev_gid));
+        mpl::trace(category,
+                   fmt::format("failed to chown '{}' to owner:{} and group:{}",
+                               filename,
+                               rev_uid,
+                               rev_gid));
         return reply_failure(msg);
     }
 
@@ -604,23 +590,22 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path '{}' against source '{}'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path '{}' against source '{}'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     QFileInfo current_dir(filename);
     if (MP_FILEOPS.exists(current_dir) && !has_id_mappings_for(current_dir))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             filename));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        filename));
         return reply_perm_denied(msg);
     }
 
@@ -630,8 +615,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
 
     if (err)
     {
-        mpl::log(
-            mpl::Level::trace,
+        mpl::trace(
             category,
             fmt::format("{}: rmdir failed for '{}': {}", __FUNCTION__, filename, err.message()));
         return reply_failure(msg);
@@ -645,12 +629,11 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path '{}' against source '{}'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path '{}' against source '{}'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
@@ -658,9 +641,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     const auto status = MP_FILEOPS.symlink_status(filename, err);
     if (err && status.type() != fs::file_type::not_found)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("Cannot get status of '{}': {}", filename, err.message()));
+        mpl::trace(category, fmt::format("Cannot get status of '{}': {}", filename, err.message()));
         return reply_perm_denied(msg);
     }
     const auto exists = fs::is_symlink(status) || fs::is_regular_file(status);
@@ -670,11 +651,11 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     if ((exists && !has_id_mappings_for(file_info)) ||
         (!exists && !has_id_mappings_for(current_dir)))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             filename));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        filename));
         return reply_perm_denied(msg);
     }
 
@@ -709,9 +690,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     auto named_fd = MP_FILEOPS.open_fd(filename, mode, msg->attr ? msg->attr->permissions : 0);
     if (named_fd->fd == -1)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("Cannot open '{}': {}", filename, std::strerror(errno)));
+        mpl::trace(category, fmt::format("Cannot open '{}': {}", filename, std::strerror(errno)));
         return reply_failure(msg);
     }
 
@@ -722,12 +701,11 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
         if (MP_PLATFORM.chown(filename, new_uid, new_gid) < 0)
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("failed to chown '{}' to owner:{} and group:{}",
-                                 filename,
-                                 new_uid,
-                                 new_gid));
+            mpl::trace(category,
+                       fmt::format("failed to chown '{}' to owner:{} and group:{}",
+                                   filename,
+                                   new_uid,
+                                   new_gid));
             return reply_failure(msg);
         }
     }
@@ -736,7 +714,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
                                ssh_string_free};
     if (!sftp_handle)
     {
-        mpl::log(mpl::Level::trace, category, "Cannot allocate handle for open()");
+        mpl::trace(category, "Cannot allocate handle for open()");
         return reply_failure(msg);
     }
 
@@ -750,12 +728,11 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path '{}' against source '{}'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path '{}' against source '{}'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
@@ -765,28 +742,26 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
     if (err.value() == int(std::errc::no_such_file_or_directory) ||
         err.value() == int(std::errc::no_such_process))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("Cannot open directory '{}': {}", filename, err.message()));
+        mpl::trace(category,
+                   fmt::format("Cannot open directory '{}': {}", filename, err.message()));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
     }
 
     if (err.value() == int(std::errc::permission_denied))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("Cannot read directory '{}': {}", filename, err.message()));
+        mpl::trace(category,
+                   fmt::format("Cannot read directory '{}': {}", filename, err.message()));
         return reply_perm_denied(msg);
     }
 
     QFileInfo file_info{filename};
     if (!has_id_mappings_for(file_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             filename));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        filename));
         return reply_perm_denied(msg);
     }
 
@@ -794,7 +769,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
                                ssh_string_free};
     if (!sftp_handle)
     {
-        mpl::log(mpl::Level::trace, category, "Cannot allocate handle for opendir()");
+        mpl::trace(category, "Cannot allocate handle for opendir()");
         return reply_failure(msg);
     }
 
@@ -808,9 +783,7 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     const auto handle = get_handle<NamedFd>(msg);
     if (handle == nullptr)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: bad handle requested", __FUNCTION__));
+        mpl::trace(category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "read");
     }
 
@@ -818,12 +791,11 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
 
     if (MP_FILEOPS.lseek(file, msg->offset, SEEK_SET) == -1)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot seek to position {} in '{}'",
-                             __FUNCTION__,
-                             msg->offset,
-                             path.string()));
+        mpl::trace(category,
+                   fmt::format("{}: cannot seek to position {} in '{}'",
+                               __FUNCTION__,
+                               msg->offset,
+                               path.string()));
         return reply_failure(msg);
     }
 
@@ -836,12 +808,11 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     else if (r == 0)
         return sftp_reply_status(msg, SSH_FX_EOF, "End of file");
 
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("{}: read failed for '{}': {}",
-                         __FUNCTION__,
-                         path.string(),
-                         std::strerror(errno)));
+    mpl::trace(category,
+               fmt::format("{}: read failed for '{}': {}",
+                           __FUNCTION__,
+                           path.string(),
+                           std::strerror(errno)));
     return sftp_reply_status(msg, SSH_FX_FAILURE, std::strerror(errno));
 }
 
@@ -850,9 +821,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
     const auto handle = get_handle<DirIterator>(msg);
     if (handle == nullptr)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: bad handle requested", __FUNCTION__));
+        mpl::trace(category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "readdir");
     }
 
@@ -890,32 +859,29 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     auto link = QFile::symLinkTarget(filename);
     if (link.isEmpty())
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: invalid link for \'{}\'", __FUNCTION__, filename));
+        mpl::trace(category, fmt::format("{}: invalid link for \'{}\'", __FUNCTION__, filename));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
     }
 
     QFileInfo file_info{filename};
     if (!has_id_mappings_for(file_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             filename));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        filename));
         return reply_perm_denied(msg);
     }
 
@@ -929,23 +895,22 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
     auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     QFileInfo file_info{filename};
     if (!has_id_mappings_for(file_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             filename));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        filename));
         return reply_perm_denied(msg);
     }
 
@@ -958,23 +923,22 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     const auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path '{}' against source '{}'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path '{}' against source '{}'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     QFileInfo file_info{filename};
     if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             filename));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        filename));
         return reply_perm_denied(msg);
     }
 
@@ -984,9 +948,9 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
 
     if (err)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot remove '{}': {}", __FUNCTION__, filename, err.message()));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot remove '{}': {}", __FUNCTION__, filename, err.message()));
         return reply_failure(msg);
     }
 
@@ -998,54 +962,51 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     const auto source = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, source))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
-                             __FUNCTION__,
-                             source,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
+                               __FUNCTION__,
+                               source,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     QFileInfo source_info{source};
     if (!source_info.isSymLink() && !MP_FILEOPS.exists(source_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot rename \'{}\': no such file", __FUNCTION__, source));
+        mpl::trace(category,
+                   fmt::format("{}: cannot rename \'{}\': no such file", __FUNCTION__, source));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
     if (!has_id_mappings_for(source_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             source));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        source));
         return reply_perm_denied(msg);
     }
 
     const auto target = sftp_client_message_get_data(msg);
     if (!validate_path(source_path, target))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate target path \'{}\' against source \'{}\'",
-                             __FUNCTION__,
-                             target,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate target path \'{}\' against source \'{}\'",
+                               __FUNCTION__,
+                               target,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     QFileInfo target_info{target};
     if (MP_FILEOPS.exists(target_info) && !has_id_mappings_for(target_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             target));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        target));
         return reply_perm_denied(msg);
     }
 
@@ -1054,9 +1015,8 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     {
         if (!MP_FILEOPS.remove(target_file))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot remove \'{}\' for renaming", __FUNCTION__, target));
+            mpl::trace(category,
+                       fmt::format("{}: cannot remove \'{}\' for renaming", __FUNCTION__, target));
             return reply_failure(msg);
         }
     }
@@ -1064,9 +1024,9 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     QFile source_file{source};
     if (!MP_FILEOPS.rename(source_file, target))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: failed renaming \'{}\' to \'{}\'", __FUNCTION__, source, target));
+        mpl::trace(
+            category,
+            fmt::format("{}: failed renaming \'{}\' to \'{}\'", __FUNCTION__, source, target));
         return reply_failure(msg);
     }
 
@@ -1082,9 +1042,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         const auto handle = get_handle<NamedFd>(msg);
         if (handle == nullptr)
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: bad handle requested", __FUNCTION__));
+            mpl::trace(category, fmt::format("{}: bad handle requested", __FUNCTION__));
             return reply_bad_handle(msg, "setstat");
         }
 
@@ -1096,23 +1054,21 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         filename = sftp_client_message_get_filename(msg);
         if (!validate_path(source_path, filename.u8string()))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot validate path '{}' against source '{}'",
-                                 __FUNCTION__,
-                                 filename.u8string(),
-                                 source_path));
+            mpl::trace(category,
+                       fmt::format("{}: cannot validate path '{}' against source '{}'",
+                                   __FUNCTION__,
+                                   filename.u8string(),
+                                   source_path));
             return reply_perm_denied(msg);
         }
 
         QFileInfo file_info{QString::fromStdString(filename.u8string())};
         if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot setstat '{}': no such file",
-                                 __FUNCTION__,
-                                 filename.u8string()));
+            mpl::trace(category,
+                       fmt::format("{}: cannot setstat '{}': no such file",
+                                   __FUNCTION__,
+                                   filename.u8string()));
             return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
         }
     }
@@ -1120,11 +1076,11 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     QFileInfo file_info{QString::fromStdString(filename.u8string())};
     if (!has_id_mappings_for(file_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             filename.u8string()));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        filename.u8string()));
         return reply_perm_denied(msg);
     }
 
@@ -1133,9 +1089,8 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         QFile file{QString::fromStdString(filename.u8string())};
         if (!MP_FILEOPS.resize(file, msg->attr->size))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot resize '{}'", __FUNCTION__, filename.u8string()));
+            mpl::trace(category,
+                       fmt::format("{}: cannot resize '{}'", __FUNCTION__, filename.u8string()));
             return reply_failure(msg);
         }
     }
@@ -1144,11 +1099,10 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     {
         if (!MP_PLATFORM.set_permissions(filename, static_cast<fs::perms>(msg->attr->permissions)))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: set permissions failed for '{}'",
-                                 __FUNCTION__,
-                                 filename.u8string()));
+            mpl::trace(category,
+                       fmt::format("{}: set permissions failed for '{}'",
+                                   __FUNCTION__,
+                                   filename.u8string()));
             return reply_failure(msg);
         }
     }
@@ -1157,11 +1111,10 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     {
         if (MP_PLATFORM.utime(filename.u8string().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot set modification date for '{}'",
-                                 __FUNCTION__,
-                                 filename.u8string()));
+            mpl::trace(category,
+                       fmt::format("{}: cannot set modification date for '{}'",
+                                   __FUNCTION__,
+                                   filename.u8string()));
             return reply_failure(msg);
         }
     }
@@ -1171,11 +1124,10 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         if (!has_reverse_uid_mapping_for(msg->attr->uid) &&
             !has_reverse_gid_mapping_for(msg->attr->gid))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot set ownership for \'{}\' without id mapping",
-                                 __FUNCTION__,
-                                 filename.u8string()));
+            mpl::trace(category,
+                       fmt::format("{}: cannot set ownership for \'{}\' without id mapping",
+                                   __FUNCTION__,
+                                   filename.u8string()));
             return reply_perm_denied(msg);
         }
 
@@ -1183,11 +1135,10 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
                               reverse_uid_for(msg->attr->uid, msg->attr->uid),
                               reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot set ownership for '{}'",
-                                 __FUNCTION__,
-                                 filename.u8string()));
+            mpl::trace(category,
+                       fmt::format("{}: cannot set ownership for '{}'",
+                                   __FUNCTION__,
+                                   filename.u8string()));
             return reply_failure(msg);
         }
     }
@@ -1200,21 +1151,19 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
     auto filename = sftp_client_message_get_filename(msg);
     if (!validate_path(source_path, filename))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
-                             __FUNCTION__,
-                             filename,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
+                               __FUNCTION__,
+                               filename,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     QFileInfo file_info(filename);
     if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot stat \'{}\': no such file", __FUNCTION__, filename));
+        mpl::trace(category,
+                   fmt::format("{}: cannot stat \'{}\': no such file", __FUNCTION__, filename));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
@@ -1244,34 +1193,32 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
     if (!validate_path(source_path, new_name))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
-                             __FUNCTION__,
-                             new_name,
-                             source_path));
+        mpl::trace(category,
+                   fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
+                               __FUNCTION__,
+                               new_name,
+                               source_path));
         return reply_perm_denied(msg);
     }
 
     QFileInfo file_info{old_name};
     if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
-                             __FUNCTION__,
-                             old_name));
+        mpl::trace(
+            category,
+            fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
+                        __FUNCTION__,
+                        old_name));
         return reply_perm_denied(msg);
     }
 
     if (!MP_PLATFORM.symlink(old_name, new_name, QFileInfo(old_name).isDir()))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: failure creating symlink from \'{}\' to \'{}\'",
-                             __FUNCTION__,
-                             old_name,
-                             new_name));
+        mpl::trace(category,
+                   fmt::format("{}: failure creating symlink from \'{}\' to \'{}\'",
+                               __FUNCTION__,
+                               old_name,
+                               new_name));
         return reply_failure(msg);
     }
 
@@ -1283,9 +1230,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
     const auto handle = get_handle<NamedFd>(msg);
     if (handle == nullptr)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: bad handle requested", __FUNCTION__));
+        mpl::trace(category, fmt::format("{}: bad handle requested", __FUNCTION__));
         return reply_bad_handle(msg, "write");
     }
 
@@ -1293,12 +1238,11 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
 
     if (MP_FILEOPS.lseek(file, msg->offset, SEEK_SET) == -1)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: cannot seek to position {} in '{}'",
-                             __FUNCTION__,
-                             msg->offset,
-                             path.string()));
+        mpl::trace(category,
+                   fmt::format("{}: cannot seek to position {} in '{}'",
+                               __FUNCTION__,
+                               msg->offset,
+                               path.string()));
         return reply_failure(msg);
     }
 
@@ -1310,12 +1254,11 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
         const auto r = MP_FILEOPS.write(file, data_ptr, len);
         if (r == -1)
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: write failed for '{}': {}",
-                                 __FUNCTION__,
-                                 path.string(),
-                                 std::strerror(errno)));
+            mpl::trace(category,
+                       fmt::format("{}: write failed for '{}': {}",
+                                   __FUNCTION__,
+                                   path.string(),
+                                   std::strerror(errno)));
             return reply_failure(msg);
         }
 
@@ -1331,9 +1274,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     const auto submessage = sftp_client_message_get_submessage(msg);
     if (submessage == nullptr)
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}: invalid submesage requested", __FUNCTION__));
+        mpl::trace(category, fmt::format("{}: invalid submesage requested", __FUNCTION__));
         return reply_failure(msg);
     }
 
@@ -1345,20 +1286,18 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
 
         if (!validate_path(source_path, new_name))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
-                                 __FUNCTION__,
-                                 new_name,
-                                 source_path));
+            mpl::trace(category,
+                       fmt::format("{}: cannot validate path \'{}\' against source \'{}\'",
+                                   __FUNCTION__,
+                                   new_name,
+                                   source_path));
             return reply_perm_denied(msg);
         }
 
         QFileInfo file_info{old_name};
         if (!has_id_mappings_for(file_info))
         {
-            mpl::log(
-                mpl::Level::trace,
+            mpl::trace(
                 category,
                 fmt::format("{}: cannot access path \'{}\' without id mapping: permission denied",
                             __FUNCTION__,
@@ -1368,12 +1307,11 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
 
         if (!MP_PLATFORM.link(old_name, new_name))
         {
-            mpl::log(mpl::Level::trace,
-                     category,
-                     fmt::format("{}: failed creating link from \'{}\' to \'{}\'",
-                                 __FUNCTION__,
-                                 old_name,
-                                 new_name));
+            mpl::trace(category,
+                       fmt::format("{}: failed creating link from \'{}\' to \'{}\'",
+                                   __FUNCTION__,
+                                   old_name,
+                                   new_name));
             return reply_failure(msg);
         }
     }
@@ -1383,9 +1321,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     }
     else
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("Unhandled extended method requested: {}", method));
+        mpl::trace(category, fmt::format("Unhandled extended method requested: {}", method));
         return reply_unsupported(msg);
     }
 

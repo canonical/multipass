@@ -53,5 +53,5 @@ void mp::CommonVMImageHost::on_manifest_empty(const std::string& details)
 
 void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& details)
 {
-    mpl::log(mpl::Level::warning, category, fmt::format("Could not update manifest: {}", details));
+    mpl::warn(category, fmt::format("Could not update manifest: {}", details));
 }

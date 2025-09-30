@@ -129,13 +129,11 @@ QByteArray download(QNetworkAccessManager* manager,
         const auto error_string = reply->errorString().toStdString();
 
         // Log the original error message at debug level
-        mpl::log(
-            mpl::Level::debug,
+        mpl::debug(
             category,
             fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
 
-        mpl::log(
-            mpl::Level::debug,
+        mpl::debug(
             category,
             fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
 
@@ -148,17 +146,15 @@ QByteArray download(QNetworkAccessManager* manager,
         {
             on_error();
             // Log at error level since we are giving up
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("Failed to get {}: {}", adjusted_url.toString(), error_string));
+            mpl::error(category,
+                       fmt::format("Failed to get {}: {}", adjusted_url.toString(), error_string));
             throw mp::DownloadException{adjusted_url.toString().toStdString(), error_string};
         }
         // Log at warning level when we are going to retry
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Failed to get {}: {} - trying cache.",
-                             adjusted_url.toString(),
-                             error_string));
+        mpl::warn(category,
+                  fmt::format("Failed to get {}: {} - trying cache.",
+                              adjusted_url.toString(),
+                              error_string));
         return ::download(manager,
                           timeout,
                           adjusted_url,
@@ -169,11 +165,10 @@ QByteArray download(QNetworkAccessManager* manager,
                           QNetworkRequest::CacheLoadControl::AlwaysCache);
     }
 
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Found {} in cache: {}",
-                         url.toString(),
-                         reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()));
+    mpl::trace(category,
+               fmt::format("Found {} in cache: {}",
+                           url.toString(),
+                           reply->attribute(QNetworkRequest::SourceIsFromCacheAttribute).toBool()));
 
     return reply->readAll();
 }
@@ -200,22 +195,19 @@ auto get_header(QNetworkAccessManager* manager,
         const auto error_string = reply->errorString().toStdString();
 
         // Log the original error message at debug level
-        mpl::log(
-            mpl::Level::debug,
+        mpl::debug(
             category,
             fmt::format("Qt error {}: {}", mp::utils::qenum_to_string(error_code), error_string));
 
-        mpl::log(
-            mpl::Level::debug,
+        mpl::debug(
             category,
             fmt::format("download_timeout is {}active", download_timeout.isActive() ? "" : "in"));
 
         // Log at error level when we give up on getting headers
-        mpl::log(mpl::Level::error,
-                 category,
-                 fmt::format("Cannot retrieve headers for {}: {}",
-                             adjusted_url.toString(),
-                             error_string));
+        mpl::error(category,
+                   fmt::format("Cannot retrieve headers for {}: {}",
+                               adjusted_url.toString(),
+                               error_string));
 
         throw mp::DownloadException{adjusted_url.toString().toStdString(), error_string};
     }
@@ -298,9 +290,7 @@ void mp::URLDownloader::download_to(const QUrl& url,
 
         if (MP_FILEOPS.write(file, reply->readAll()) < 0)
         {
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("error writing image: {}", file.errorString()));
+            mpl::error(category, fmt::format("error writing image: {}", file.errorString()));
             abort_download = true;
             reply->abort();
         }

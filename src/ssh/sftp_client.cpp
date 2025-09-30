@@ -261,11 +261,10 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
         if (sftp_chmod(sftp.get(), path.u8string().c_str(), static_cast<mode_t>(perms)) !=
             SSH_FX_OK)
         {
-            mpl::log(mpl::Level::error,
-                     log_category,
-                     fmt::format("cannot set permissions for remote directory {}: {}",
-                                 path,
-                                 ssh_get_error(sftp->session)));
+            mpl::error(log_category,
+                       fmt::format("cannot set permissions for remote directory {}: {}",
+                                   path,
+                                   ssh_get_error(sftp->session)));
             success = false;
         }
     }
@@ -344,9 +343,8 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
         const auto& [path, perms] = *it;
         if (!MP_PLATFORM.set_permissions(path, static_cast<fs::perms>(perms)))
         {
-            mpl::log(mpl::Level::error,
-                     log_category,
-                     fmt::format("cannot set permissions for local directory {}", path));
+            mpl::error(log_category,
+                       fmt::format("cannot set permissions for local directory {}", path));
             success = false;
         }
     }

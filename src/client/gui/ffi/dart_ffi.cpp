@@ -38,7 +38,7 @@ char* generate_petname()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
         return nullptr;
     }
     catch (...)
@@ -58,7 +58,7 @@ char* get_server_address()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
         return nullptr;
     }
     catch (...)
@@ -85,7 +85,7 @@ struct KeyCertificatePair get_cert_pair()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
         return KeyCertificatePair{nullptr, nullptr};
     }
     catch (...)
@@ -128,7 +128,7 @@ char* settings_file()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
         return nullptr;
     }
     catch (...)
@@ -152,23 +152,19 @@ enum SettingResult get_setting(char* key, char** output)
     }
     catch (const mp::UnrecognizedSettingException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}': {}", error, key_string, e.what()));
+        mpl::warn(category, fmt::format("{} '{}': {}", error, key_string, e.what()));
         *output = nullptr;
         return SettingResult::KeyNotFound;
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}': {}", error, key_string, e.what()));
+        mpl::warn(category, fmt::format("{} '{}': {}", error, key_string, e.what()));
         *output = strdup(e.what());
         return SettingResult::UnexpectedError;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{} '{}'", error, key_string));
+        mpl::warn(category, fmt::format("{} '{}'", error, key_string));
         *output = strdup("unknown error");
         return SettingResult::UnexpectedError;
     }
@@ -190,33 +186,28 @@ enum SettingResult set_setting(char* key, char* value, char** output)
     }
     catch (const mp::UnrecognizedSettingException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
+        mpl::warn(category,
+                  fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
         *output = nullptr;
         return SettingResult::KeyNotFound;
     }
     catch (const mp::InvalidSettingException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
+        mpl::warn(category,
+                  fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
         *output = strdup(e.what());
         return SettingResult::InvalidValue;
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
+        mpl::warn(category,
+                  fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
         *output = strdup(e.what());
         return SettingResult::UnexpectedError;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}'", error, key_string, value_string));
+        mpl::warn(category, fmt::format("{} '{}'='{}'", error, key_string, value_string));
         *output = strdup("unknown error");
         return SettingResult::UnexpectedError;
     }
@@ -248,7 +239,7 @@ long long memory_in_bytes(char* value)
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
         return -1;
     }
     catch (...)
@@ -287,7 +278,7 @@ char* default_mount_target(char* source)
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, fmt::format("{}: {}", error, e.what()));
         return nullptr;
     }
     catch (...)
