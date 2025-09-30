@@ -380,13 +380,27 @@ TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
     EXPECT_EQ(subnetHigh.CIDR(), 30);
 }
 
-TEST_F(SubnetUtils, generateRandomSubnetGivesUp)
+TEST_F(SubnetUtils, generateRandomSubnetGivesUpUsedLocally)
 {
     mp::Subnet range("0.0.0.0/0");
 
     EXPECT_CALL(*mock_utils, random_int(_, _)).WillRepeatedly(ReturnArg<0>());
 
     EXPECT_CALL(*mock_platform, subnet_used_locally).WillRepeatedly(Return(true));
+
+    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(24, range),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("subnet")));
+}
+
+TEST_F(SubnetUtils, generateRandomSubnetGivesUpGatewayReached)
+{
+    mp::Subnet range("0.0.0.0/0");
+
+    EXPECT_CALL(*mock_utils, random_int(_, _)).WillRepeatedly(ReturnArg<0>());
+
+    EXPECT_CALL(*mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock_platform, can_reach_gateway).WillRepeatedly(Return(true));
 
     MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(24, range),
                          std::runtime_error,
