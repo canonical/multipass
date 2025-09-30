@@ -115,7 +115,9 @@ void mp::QemuPlatformDetail::set_authorization(std::vector<NetworkInterfaceInfo>
     // nothing to do here
 }
 
-mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
+mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(
+    const Path& data_dir,
+    const mp::AvailabilityZoneManager::Zones& zones) const
 {
     return std::make_unique<mp::QemuPlatformDetail>();
 }
