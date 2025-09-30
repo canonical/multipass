@@ -20,7 +20,7 @@ dependencies:
   fl_chart: ^1.0.0
   flutter:
     sdk: flutter
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.0.0
   flutter_svg: ^2.0.17
   fpdart: ^1.1.1
   grpc: ^4.0.1
