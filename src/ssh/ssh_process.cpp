@@ -174,20 +174,18 @@ std::string mp::SSHProcess::read_std_error()
 
 std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 {
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("{}:{} {}(type = {}, timeout = {}): ",
-                         __FILE__,
-                         __LINE__,
-                         __FUNCTION__,
-                         static_cast<int>(type),
-                         timeout));
+    mpl::trace(category,
+               fmt::format("{}:{} {}(type = {}, timeout = {}): ",
+                           __FILE__,
+                           __LINE__,
+                           __FUNCTION__,
+                           static_cast<int>(type),
+                           timeout));
     // If the channel is closed there's no output to read
     if (ssh_channel_is_closed(channel.get()))
     {
-        mpl::log(mpl::Level::trace,
-                 category,
-                 fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
+        mpl::trace(category,
+                   fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
         return std::string();
     }
 
@@ -202,8 +200,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                                              buffer.size(),
                                              is_std_err,
                                              timeout);
-        mpl::log(
-            mpl::Level::trace,
+        mpl::trace(
             category,
             fmt::format("{}:{} {}(): num_bytes = {}", __FILE__, __LINE__, __FUNCTION__, num_bytes));
         if (num_bytes < 0)
@@ -212,8 +209,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
             // returning 0 bytes
             if (ssh_channel_is_closed(channel.get()))
             {
-                mpl::log(
-                    mpl::Level::trace,
+                mpl::trace(
                     category,
                     fmt::format("{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__));
                 return output.str();

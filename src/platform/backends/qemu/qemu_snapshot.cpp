@@ -98,12 +98,11 @@ void mp::QemuSnapshot::erase_impl()
     if (backend::instance_image_has_snapshot(image_path, tag))
         mp::backend::checked_exec_qemu_img(make_delete_spec(tag, image_path));
     else
-        mpl::log(mpl::Level::warning,
-                 BaseSnapshot::get_name(),
-                 fmt::format("Could not find the underlying QEMU snapshot. Assuming it is already "
-                             "gone. Image: {}; tag: {}",
-                             image_path,
-                             tag));
+        mpl::warn(BaseSnapshot::get_name(),
+                  fmt::format("Could not find the underlying QEMU snapshot. Assuming it is already "
+                              "gone. Image: {}; tag: {}",
+                              image_path,
+                              tag));
 }
 
 void mp::QemuSnapshot::apply_impl()

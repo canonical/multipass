@@ -53,8 +53,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         }
         else
         {
-            mpl::log(
-                mpl::Level::info,
+            mpl::info(
                 desc.vm_name,
                 fmt::format("Cannot determine QEMU machine type. Falling back to system default."));
         }

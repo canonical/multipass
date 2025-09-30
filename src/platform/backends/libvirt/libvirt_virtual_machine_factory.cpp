@@ -214,6 +214,6 @@ QString mp::LibVirtVirtualMachineFactory::get_backend_version_string() const
         // Ignore
     }
 
-    mpl::log(mpl::Level::error, logging_category, "Failed to determine libvirtd version.");
+    mpl::error(logging_category, "Failed to determine libvirtd version.");
     return QString("libvirt-unknown");
 }

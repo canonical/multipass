@@ -89,17 +89,15 @@ void set_ip_forward()
     QFile ip_forward("/proc/sys/net/ipv4/ip_forward");
     if (!MP_FILEOPS.open(ip_forward, QFile::ReadWrite))
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Unable to open {}", qUtf8Printable(ip_forward.fileName())));
+        mpl::warn(category,
+                  fmt::format("Unable to open {}", qUtf8Printable(ip_forward.fileName())));
         return;
     }
 
     if (MP_FILEOPS.write(ip_forward, "1") < 0)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Failed to write to {}", qUtf8Printable(ip_forward.fileName())));
+        mpl::warn(category,
+                  fmt::format("Failed to write to {}", qUtf8Printable(ip_forward.fileName())));
     }
 }
 

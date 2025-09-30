@@ -64,9 +64,7 @@ auto instance_state_for(const QString& name)
     {
         auto state = vmstate_match.captured(1);
 
-        mpl::log(mpl::Level::trace,
-                 name.toStdString(),
-                 fmt::format("Got VMState: {}", state.toStdString()));
+        mpl::trace(name.toStdString(), fmt::format("Got VMState: {}", state.toStdString()));
 
         if (state == "starting" || state == "restoring")
         {
@@ -90,16 +88,14 @@ auto instance_state_for(const QString& name)
             return mp::VirtualMachine::State::stopped;
         }
 
-        mpl::log(mpl::Level::error,
-                 name.toStdString(),
-                 fmt::format("Failed to parse instance state: {}",
-                             vmstate_match.captured().toStdString()));
+        mpl::error(name.toStdString(),
+                   fmt::format("Failed to parse instance state: {}",
+                               vmstate_match.captured().toStdString()));
     }
     else if (vminfo.exitCode() == 0)
     {
-        mpl::log(mpl::Level::error,
-                 name.toStdString(),
-                 fmt::format("Failed to parse info output: {}", vminfo_output.toStdString()));
+        mpl::error(name.toStdString(),
+                   fmt::format("Failed to parse info output: {}", vminfo_output.toStdString()));
     }
 
     return mp::VirtualMachine::State::unknown;
@@ -384,7 +380,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
-        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+        mpl::info(vm_name, "Forcing shutdown");
         // virtualbox needs the discardstate command to shutdown in the suspend state, it discards
         // the saved state of the vm, which is akin to resetting it to the off state without a
         // proper shutdown process
@@ -443,7 +439,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
     }
     else if (present_state == State::stopped)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::info(vm_name, fmt::format("Ignoring suspend issued while stopped"));
     }
 
     monitor->on_suspend();

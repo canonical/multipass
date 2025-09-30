@@ -65,9 +65,7 @@ const QJsonObject lxd_request_common(const std::string& method,
 
     setup_lxd_url(url);
 
-    mpl::log(mpl::Level::trace,
-             request_category,
-             fmt::format("Requesting LXD: {} {}", method, url.toString()));
+    mpl::trace(request_category, fmt::format("Requesting LXD: {} {}", method, url.toString()));
     QNetworkRequest request{url};
 
     request.setHeader(QNetworkRequest::UserAgentHeader,
@@ -112,9 +110,7 @@ const QJsonObject lxd_request_common(const std::string& method,
                                              url.toString(),
                                              json_error.errorString())};
 
-        mpl::log(mpl::Level::debug,
-                 request_category,
-                 fmt::format("{}\n{}", error_string, bytearray_reply));
+        mpl::debug(request_category, fmt::format("{}\n{}", error_string, bytearray_reply));
         throw mp::LXDJsonParseError(error_string);
     }
 
@@ -122,15 +118,11 @@ const QJsonObject lxd_request_common(const std::string& method,
     {
         std::string error_string{fmt::format("Invalid LXD response for {}", url.toString())};
 
-        mpl::log(mpl::Level::debug,
-                 request_category,
-                 fmt::format("{}\n{}", error_string, bytearray_reply));
+        mpl::debug(request_category, fmt::format("{}\n{}", error_string, bytearray_reply));
         throw mp::LXDJsonParseError(error_string);
     }
 
-    mpl::log(mpl::Level::trace,
-             request_category,
-             fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
+    mpl::trace(request_category, fmt::format("Got reply: {}", QJsonDocument(json_reply).toJson()));
 
     if (reply->error() != QNetworkReply::NoError)
         throw mp::LXDNetworkError(fmt::format("Network error for {}: {} - {}",
@@ -159,7 +151,7 @@ try
             request.setHeader(QNetworkRequest::ContentLengthHeader,
                               QByteArray::number(data.size()));
 
-            mpl::log(mpl::Level::trace, request_category, fmt::format("Sending data: {}", data));
+            mpl::trace(request_category, fmt::format("Sending data: {}", data));
         }
 
         return manager->sendCustomRequest(request, verb, data);

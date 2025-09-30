@@ -97,10 +97,9 @@ auto virtual_switch_subnet(const QString& bridge_name)
 
     if (subnet.isNull())
     {
-        mpl::log(mpl::Level::info,
-                 "daemon",
-                 fmt::format("Unable to determine subnet for the {} subnet",
-                             qUtf8Printable(bridge_name)));
+        mpl::info("daemon",
+                  fmt::format("Unable to determine subnet for the {} subnet",
+                              qUtf8Printable(bridge_name)));
     }
     return subnet.toStdString();
 }
@@ -188,7 +187,7 @@ auto make_bridge_rollback_guard(std::string_view log_category,
     };
 
     return sg::make_scope_guard([rollback, log_category]() noexcept {
-        mpl::log(mpl::Level::info, log_category, "Rolling back bridge");
+        mpl::info(log_category, "Rolling back bridge");
         mp::top_catch_all(log_category, rollback);
     });
 }
@@ -235,9 +234,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
 
     auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
     auto child_name = parent_name + "-child";
-    mpl::log(mpl::Level::debug,
-             log_category_create,
-             fmt::format("Creating bridge: {}", parent_name));
+    mpl::debug(log_category_create, fmt::format("Creating bridge: {}", parent_name));
 
     // AddConnection expects the following DBus argument type: a{sa{sv}}
     const auto& [arg1, arg2] =
@@ -269,7 +266,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     rollback_guard.dismiss(); // we succeeded!
 
     auto ret = parent_name.toStdString();
-    mpl::log(mpl::Level::info, log_category_create, fmt::format("Created bridge: {}", ret));
+    mpl::info(log_category_create, fmt::format("Created bridge: {}", ret));
 
     return ret;
 }

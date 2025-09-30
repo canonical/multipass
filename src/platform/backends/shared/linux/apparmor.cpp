@@ -60,9 +60,8 @@ QStringList generate_extra_apparmor_args()
         }
         else
         {
-            mpl::log(mpl::Level::debug,
-                     "daemon",
-                     "Failed to create cache directory for AppArmor - disabling caching");
+            mpl::debug("daemon",
+                       "Failed to create cache directory for AppArmor - disabling caching");
         }
     }
     catch (const mp::SnapEnvironmentException&)
@@ -99,7 +98,7 @@ void mp::AppArmor::load_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::trace, "daemon", fmt::format("Loading AppArmor policy:\n{}", aa_policy));
+    mpl::trace("daemon", fmt::format("Loading AppArmor policy:\n{}", aa_policy));
 
     if (process.exitCode() != 0)
     {
@@ -119,7 +118,7 @@ void mp::AppArmor::remove_policy(const QByteArray& aa_policy) const
     process.closeWriteChannel();
     process.waitForFinished();
 
-    mpl::log(mpl::Level::trace, "daemon", fmt::format("Removing AppArmor policy:\n{}", aa_policy));
+    mpl::trace("daemon", fmt::format("Removing AppArmor policy:\n{}", aa_policy));
 
     if (process.exitCode() != 0)
     {

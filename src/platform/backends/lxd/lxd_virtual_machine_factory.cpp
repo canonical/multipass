@@ -115,14 +115,12 @@ mp::VirtualMachine::UPtr mp::LXDVirtualMachineFactory::create_virtual_machine(
 
 void mp::LXDVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("No further resources to remove for \"{}\"", name));
+    mpl::trace(category, fmt::format("No further resources to remove for \"{}\"", name));
 }
 
 auto mp::LXDVirtualMachineFactory::prepare_source_image(const VMImage& source_image) -> VMImage
 {
-    mpl::log(mpl::Level::trace, category, "No driver preparation required for source image");
+    mpl::trace(category, "No driver preparation required for source image");
     return source_image;
 }
 
@@ -130,12 +128,12 @@ void mp::LXDVirtualMachineFactory::prepare_instance_image(
     const mp::VMImage& /* instance_image */,
     const VirtualMachineDescription& /* desc */)
 {
-    mpl::log(mpl::Level::trace, category, "No driver preparation for instance image");
+    mpl::trace(category, "No driver preparation for instance image");
 }
 
 void mp::LXDVirtualMachineFactory::configure(VirtualMachineDescription& /*vm_desc*/)
 {
-    mpl::log(mpl::Level::trace, category, "No preliminary configure step in LXD driver");
+    mpl::trace(category, "No preliminary configure step in LXD driver");
 }
 
 void mp::LXDVirtualMachineFactory::hypervisor_health_check()
@@ -161,12 +159,11 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
 
     if (reply["metadata"].toObject()["auth"] != QStringLiteral("trusted"))
     {
-        mpl::log(mpl::Level::debug, category, "Failed to authenticate to LXD:");
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("{}: {}",
-                             base_url.toString(),
-                             QJsonDocument(reply).toJson(QJsonDocument::Compact)));
+        mpl::debug(category, "Failed to authenticate to LXD:");
+        mpl::debug(category,
+                   fmt::format("{}: {}",
+                               base_url.toString(),
+                               QJsonDocument(reply).toJson(QJsonDocument::Compact)));
         throw std::runtime_error("Failed to authenticate to LXD.");
     }
 
@@ -197,9 +194,7 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
                         QUrl(QString("%1/storage-pools/%2").arg(base_url.toString()).arg(pool)));
 
             storage_pool = pool;
-            mpl::log(mpl::Level::debug,
-                     category,
-                     fmt::format("Using the \'{}\' storage pool.", pool));
+            mpl::debug(category, fmt::format("Using the \'{}\' storage pool.", pool));
 
             break;
         }
@@ -213,7 +208,7 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     if (storage_pool.isEmpty())
     {
         storage_pool = "multipass";
-        mpl::log(mpl::Level::info, category, "No storage pool found for multpass: creating…");
+        mpl::info(category, "No storage pool found for multpass: creating…");
         QJsonObject pool_config{{"description", "Storage pool for Multipass"},
                                 {"name", storage_pool},
                                 {"driver", "dir"}};

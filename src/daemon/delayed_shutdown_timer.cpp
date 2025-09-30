@@ -40,9 +40,8 @@ void attempt_ssh_exec(mp::VirtualMachine& vm, const std::string& cmd)
     }
     catch (const mp::SSHException& e)
     {
-        mpl::log(mpl::Level::info,
-                 vm.vm_name,
-                 fmt::format("Could not broadcast shutdown message in VM: {}", e.what()));
+        mpl::info(vm.vm_name,
+                  fmt::format("Could not broadcast shutdown message in VM: {}", e.what()));
     }
 }
 
@@ -80,7 +79,7 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
         if (shutdown_timer.isActive())
         {
             shutdown_timer.stop();
-            mpl::log(mpl::Level::info, virtual_machine->vm_name, "Cancelling delayed shutdown");
+            mpl::info(virtual_machine->vm_name, "Cancelling delayed shutdown");
             virtual_machine->state = VirtualMachine::State::running;
             attempt_ssh_exec(*virtual_machine, "wall The system shutdown has been cancelled");
         }
@@ -96,12 +95,11 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
     if (delay > decltype(delay)(0))
     {
         auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(delay).count();
-        mpl::log(mpl::Level::info,
-                 virtual_machine->vm_name,
-                 fmt::format("Shutdown request delayed for {} minute{}", // TODO say "under a
-                                                                         // minute" if < 1 minute
-                             minutes_left,
-                             num_plural(minutes_left) ? "s" : ""));
+        mpl::info(virtual_machine->vm_name,
+                  fmt::format("Shutdown request delayed for {} minute{}", // TODO say "under a
+                                                                          // minute" if < 1 minute
+                              minutes_left,
+                              num_plural(minutes_left) ? "s" : ""));
         write_shutdown_message(*virtual_machine, delay);
 
         time_remaining = delay;

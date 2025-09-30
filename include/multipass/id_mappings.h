@@ -49,9 +49,8 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
 
         if (duplicate)
         {
-            mpl::log(mpl::Level::debug,
-                     "id_mappings",
-                     fmt::format("Dropping repeated mapping {}:{}", it->first, it->second));
+            mpl::debug("id_mappings",
+                       fmt::format("Dropping repeated mapping {}:{}", it->first, it->second));
             it = xid_mappings.erase(it);
         }
         else

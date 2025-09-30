@@ -41,10 +41,9 @@ public:
         connect(this, &AppArmoredProcess::state_changed, [this](QProcess::ProcessState state) {
             if (state == QProcess::Starting)
             {
-                mpl::log(mpl::Level::debug,
-                         "daemon",
-                         fmt::format("Applied AppArmor policy: {}",
-                                     process_spec->apparmor_profile_name()));
+                mpl::debug("daemon",
+                           fmt::format("Applied AppArmor policy: {}",
+                                       process_spec->apparmor_profile_name()));
             }
         });
     }
@@ -83,21 +82,19 @@ std::optional<mp::AppArmor> create_apparmor()
     {
         if (qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
         {
-            mpl::log(mpl::Level::warning, "apparmor", "AppArmor disabled by environment variable");
+            mpl::warn("apparmor", "AppArmor disabled by environment variable");
             return std::nullopt;
         }
     }
 
     try
     {
-        mpl::log(mpl::Level::info, "apparmor", "Using AppArmor support");
+        mpl::info("apparmor", "Using AppArmor support");
         return mp::AppArmor{};
     }
     catch (mp::AppArmorException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 "apparmor",
-                 fmt::format("Failed to enable AppArmor: {}", e.what()));
+        mpl::warn("apparmor", fmt::format("Failed to enable AppArmor: {}", e.what()));
         return std::nullopt;
     }
 }
