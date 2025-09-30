@@ -65,6 +65,10 @@ TEST(Subnet, throwsOnLargeCIDR)
                          std::invalid_argument,
                          mpt::match_what(HasSubstr(what)));
 
+    MP_EXPECT_THROW_THAT((mp::Subnet{mp::IPAddress{"192.168.0.0"}, 31}),
+                         std::invalid_argument,
+                         mpt::match_what(HasSubstr(what)));
+
     // valid but not supported
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/32"},
                          std::invalid_argument,
@@ -261,6 +265,34 @@ TEST(Subnet, containsWorksOnUnContainedIps)
     ip = mp::IPAddress{"192.168.1.72"};
     EXPECT_FALSE(subnet.contains(ip));
 }
+
+/* TODO C++20 uncomment
+TEST(Subnet, relationalComparisonsWorkAsExpected)
+{
+    const mp::Subnet low{"0.0.0.0/0"};
+    const mp::Subnet middle{"192.168.0.0/16"};
+    const mp::Subnet submiddle{middle.identifier(), 24};
+    const mp::Subnet high{"255.255.255.0/24"};
+
+    EXPECT_LT(low, middle);
+    EXPECT_LT(low, submiddle);
+    EXPECT_LT(low, high);
+    EXPECT_LE(low, low);
+    EXPECT_GE(low, low);
+
+    EXPECT_GT(high, low);
+    EXPECT_GT(high, submiddle);
+    EXPECT_GT(high, middle);
+
+    EXPECT_GT(middle, low);
+    EXPECT_GT(middle, submiddle);
+    EXPECT_LT(middle, high);
+
+    EXPECT_GT(submiddle, low);
+    EXPECT_LT(submiddle, middle);
+    EXPECT_LT(submiddle, high);
+}
+*/
 
 struct SubnetUtils : public Test
 {

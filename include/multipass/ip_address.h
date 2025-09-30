@@ -35,6 +35,8 @@ struct IPAddress
     std::string as_string() const;
     uint32_t as_uint32() const;
 
+    // TODO C++20 uncomment then remove other bool operators
+    // auto operator<=>(const IPAddress& other) const = default;
     bool operator==(const IPAddress& other) const;
     bool operator!=(const IPAddress& other) const;
     bool operator<(const IPAddress& other) const;
