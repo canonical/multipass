@@ -29,7 +29,7 @@ namespace logging
 {
 
 /**
- * Log a message.
+ * Log a preformatted message.
  *
  * It's safe to use this function with non-NUL terminated strings.
  *
@@ -37,7 +37,7 @@ namespace logging
  * @param [in] category Log category
  * @param [in] message The message
  */
-void log(Level level, std::string_view category, std::string_view message);
+void log_message(Level level, std::string_view category, std::string_view message);
 void set_logger(std::shared_ptr<Logger> logger);
 Level get_logging_level();
 Logger* get_logger(); // for tests, don't rely on it lasting
@@ -45,41 +45,26 @@ Logger* get_logger(); // for tests, don't rely on it lasting
 /**
  * Log with formatting support
  *
- * The old (legacy) log function and this overload are distinguished
- * via presence of a format argument. This is the reason why the 0th
- * argument is taken explicitly. The overload resolution rules of C++
- * makes it complicated to make it work reliably in the codebase, so
- * the code relies on explicity here.
- *
- * @ref https://en.cppreference.com/w/cpp/language/overload_resolution#Best_viable_function
  *
  * @tparam Arg0 Type of the first format argument
  * @tparam Args Type of the rest of the format arguments
  * @param [in] level Log level
  * @param [in] category Log category
  * @param [in] fmt Format string
- * @param [in] arg0 The first format argument
- * @param [in] args Rest of the format arguments
+ * @param [in] args The format arguments
  */
-template <typename Arg0, typename... Args>
+template <typename... Args>
 constexpr void log(Level level,
                    std::string_view category,
-                   fmt::format_string<Arg0, Args...> fmt,
-                   Arg0&& arg0,
+                   fmt::format_string<Args...> fmt,
                    Args&&... args)
 {
-    const auto formatted_log_msg =
-        fmt::format(fmt, std::forward<Arg0>(arg0), std::forward<Args>(args)...);
-    logging::log(level, category, formatted_log_msg);
+    const auto formatted_log_msg = fmt::format(fmt, std::forward<Args>(args)...);
+    logging::log_message(level, category, formatted_log_msg);
 }
 
 /**
  * Log function with templated log level.
- *
- * This function acts as an dispatch point for the templated
- * and non-templated log overloads, based on argument count.
- * We cannot simply use the templated overload since it requires
- * at least 1 arguments.
  *
  * @tparam level Log level
  * @tparam Args Format argument types
@@ -90,13 +75,7 @@ constexpr void log(Level level,
 template <Level level, typename... Args>
 constexpr void log(std::string_view category, fmt::format_string<Args...> fmt, Args&&... args)
 {
-    if constexpr (sizeof...(Args) > 0)
-    {
-        // Needs formatting
-        logging::log(level, category, fmt, std::forward<Args>(args)...);
-        return;
-    }
-    logging::log(level, category, std::string_view{fmt.get().data(), fmt.get().size()});
+    logging::log(level, category, fmt, std::forward<Args>(args)...);
 }
 
 /**

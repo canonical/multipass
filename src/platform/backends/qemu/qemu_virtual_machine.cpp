@@ -357,7 +357,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
     catch (const VMStateIdempotentException& e)
     {
-        mpl::log(mpl::Level::info, vm_name, e.what());
+        mpl::log_message(mpl::Level::info, vm_name, e.what());
         return;
     }
 
@@ -637,7 +637,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 
     QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {
         saved_error_msg = vm_process->read_all_standard_error().data();
-        mpl::log(mpl::Level::warning, vm_name, saved_error_msg);
+        mpl::log_message(mpl::Level::warning, vm_name, saved_error_msg);
     });
 
     QObject::connect(

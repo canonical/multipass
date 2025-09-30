@@ -48,7 +48,7 @@ void mp::CommonVMImageHost::update_manifests(const bool is_force_update_from_net
 
 void mp::CommonVMImageHost::on_manifest_empty(const std::string& details)
 {
-    mpl::log(mpl::Level::info, category, details);
+    mpl::log_message(mpl::Level::info, category, details);
 }
 
 void mp::CommonVMImageHost::on_manifest_update_failure(const std::string& details)

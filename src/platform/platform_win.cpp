@@ -596,16 +596,16 @@ void mp::platform::sync_winterm_profiles()
     catch (LesserWintermSyncException& e)
     {
         const auto level = winterm_setting == none ? mpl::Level::debug : mpl::Level::warning;
-        mpl::log(level, log_category, e.what());
+        mpl::log_message(level, log_category, e.what());
     }
     catch (ModerateWintermSyncException& e)
     {
         const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
-        mpl::log(level, log_category, e.what());
+        mpl::log_message(level, log_category, e.what());
     }
     catch (GreaterWintermSyncException& e)
     {
-        mpl::log(mpl::Level::error, log_category, e.what());
+        mpl::log_message(mpl::Level::error, log_category, e.what());
     }
 }
 

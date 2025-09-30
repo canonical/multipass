@@ -625,9 +625,9 @@ void mp::LXDVMImageVault::poll_download_operation(const QJsonObject& json_reply,
 
                 if (task_reply["error_code"].toInt(-1) != 0)
                 {
-                    mpl::log(mpl::Level::error,
-                             category,
-                             task_reply["error"].toString().toStdString());
+                    mpl::log_message(mpl::Level::error,
+                                     category,
+                                     task_reply["error"].toString().toStdString());
                     break;
                 }
 
@@ -751,7 +751,7 @@ QJsonArray mp::LXDVMImageVault::retrieve_image_list()
     }
     catch (const LocalSocketConnectionException& e)
     {
-        mpl::log(mpl::Level::warning, category, e.what());
+        mpl::log_message(mpl::Level::warning, category, e.what());
     }
 
     return image_list;

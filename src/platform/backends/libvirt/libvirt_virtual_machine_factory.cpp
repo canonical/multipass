@@ -106,7 +106,7 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
     }
     catch (const mp::BaseLibvirtException& e)
     {
-        mpl::log(mpl::Level::warning, logging_category, e.what());
+        mpl::log_message(mpl::Level::warning, logging_category, e.what());
         return mp::LibvirtWrapper::UPtr(nullptr);
     }
 }

@@ -399,7 +399,7 @@ void mp::LibVirtVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
     catch (const VMStateIdempotentException& e)
     {
-        mpl::log(mpl::Level::info, vm_name, e.what());
+        mpl::log_message(mpl::Level::info, vm_name, e.what());
         return;
     }
 
@@ -424,7 +424,7 @@ void mp::LibVirtVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             auto warning_string{fmt::format("Cannot shutdown '{}': {}",
                                             vm_name,
                                             libvirt_wrapper->virGetLastErrorMessage())};
-            mpl::log(mpl::Level::warning, vm_name, warning_string);
+            mpl::log_message(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
     }
@@ -448,7 +448,7 @@ void mp::LibVirtVirtualMachine::suspend()
             auto warning_string{fmt::format("Cannot suspend '{}': {}",
                                             vm_name,
                                             libvirt_wrapper->virGetLastErrorMessage())};
-            mpl::log(mpl::Level::warning, vm_name, warning_string);
+            mpl::log_message(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
 

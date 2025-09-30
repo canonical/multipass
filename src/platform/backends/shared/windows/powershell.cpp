@@ -117,7 +117,7 @@ mp::PowerShell::~PowerShell()
         if (!error.isEmpty())
             msg = fmt::format("{}: {}", msg, error);
 
-        mpl::log(mpl::Level::warning, name, msg);
+        mpl::log_message(mpl::Level::warning, name, msg);
         powershell_proc->kill();
     }
 }
@@ -186,7 +186,7 @@ bool mp::PowerShell::run(const QStringList& args,
                     if (cmdlet_exit_found)
                     {
                         *output = parsed_output.at(0).trimmed();
-                        mpl::log(mpl::Level::trace, name, output->toStdString());
+                        mpl::log_message(mpl::Level::trace, name, output->toStdString());
                     }
                 }
             }
@@ -260,7 +260,7 @@ bool mp::PowerShell::write(const QByteArray& data)
         if (written > 0)
             msg = fmt::format("{}. Only the first {} bytes were written", msg, written);
 
-        mpl::log(mpl::Level::warning, name, msg);
+        mpl::log_message(mpl::Level::warning, name, msg);
         return false;
     }
 

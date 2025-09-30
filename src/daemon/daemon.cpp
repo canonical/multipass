@@ -888,7 +888,7 @@ grpc::Status grpc_status_for_instance_trail(const InstanceTrail& trail,
         if (status_code)
             return grpc::Status{status_code, msg, ""};
 
-        mpl::log(mpl::Level::debug, category, msg);
+        mpl::log_message(mpl::Level::debug, category, msg);
     }
 
     return grpc::Status{status_code, "", ""};
@@ -2349,7 +2349,7 @@ try
                 fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
                             "Try to stop it first.",
                             name);
-            mpl::log(mpl::Level::warning, category, error_string);
+            mpl::log_message(mpl::Level::warning, category, error_string);
             fmt::format_to(std::back_inserter(start_errors), error_string);
             continue;
         }
@@ -3932,7 +3932,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                                            target,
                                            name,
                                            e.what());
-                    mpl::log(mpl::Level::warning, category, msg);
+                    mpl::log_message(mpl::Level::warning, category, msg);
                     fmt::format_to(std::back_inserter(warnings), msg);
                     invalid_mounts.push_back(target);
                 }

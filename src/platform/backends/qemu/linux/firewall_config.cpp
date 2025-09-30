@@ -389,7 +389,7 @@ QString detect_firewall()
     catch (const FirewallException& e)
     {
         firewall_exec = iptables;
-        mpl::log(mpl::Level::warning, category, e.what());
+        mpl::log_message(mpl::Level::warning, category, e.what());
     }
 
     mpl::log(mpl::Level::info,
@@ -413,7 +413,7 @@ mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string
     }
     catch (const FirewallException& e)
     {
-        mpl::log(mpl::Level::warning, category, e.what());
+        mpl::log_message(mpl::Level::warning, category, e.what());
         firewall_error = true;
         error_string = e.what();
     }

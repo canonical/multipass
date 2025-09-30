@@ -65,7 +65,7 @@ public:
         catch (const std::exception& e)
         {
             // It's not considered an error when an apparmor cannot be removed
-            mpl::log(mpl::Level::info, "apparmor", e.what());
+            mpl::log_message(mpl::Level::info, "apparmor", e.what());
         }
     }
 
@@ -122,7 +122,7 @@ std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(
         catch (const mp::AppArmorException& e)
         {
             // TODO: This won't fly in strict mode (#1074), since we'll be confined by snapd
-            mpl::log(mpl::Level::warning, "apparmor", e.what());
+            mpl::log_message(mpl::Level::warning, "apparmor", e.what());
             return std::make_unique<BasicProcess>(spec);
         }
     }

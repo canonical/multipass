@@ -102,7 +102,7 @@ try
 }
 catch (const SFTPError& e)
 {
-    mpl::log(mpl::Level::error, log_category, e.what());
+    mpl::log_message(mpl::Level::error, log_category, e.what());
     return false;
 }
 
@@ -135,7 +135,7 @@ try
 }
 catch (const SFTPError& e)
 {
-    mpl::log(mpl::Level::error, log_category, e.what());
+    mpl::log_message(mpl::Level::error, log_category, e.what());
     return false;
 }
 
@@ -250,7 +250,7 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
         }
         catch (const SFTPError& e)
         {
-            mpl::log(mpl::Level::error, log_category, e.what());
+            mpl::log_message(mpl::Level::error, log_category, e.what());
             success = false;
         }
     }
@@ -334,7 +334,7 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
         }
         catch (const SFTPError& e)
         {
-            mpl::log(mpl::Level::error, log_category, e.what());
+            mpl::log_message(mpl::Level::error, log_category, e.what());
             success = false;
         }
     }

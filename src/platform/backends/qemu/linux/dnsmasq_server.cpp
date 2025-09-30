@@ -187,7 +187,7 @@ void mp::DNSMasqServer::start_dnsmasq()
 
     finish_connection =
         QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](const ProcessState& state) {
-            mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_failure_msg(state));
+            mpl::log_message(mpl::Level::error, "dnsmasq", dnsmasq_failure_msg(state));
         });
 
     dnsmasq_cmd->start();
