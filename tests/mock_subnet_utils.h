@@ -1,5 +1,5 @@
 /*
-* Copyright (C) Canonical, Ltd.
+ * Copyright (C) Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *
  */
 
-#pragma  once
+#pragma once
 
 #include "mock_singleton_helpers.h"
 
@@ -32,4 +32,3 @@ struct MockSubnetUtils : public SubnetUtils
     MP_MOCK_SINGLETON_BOILERPLATE(MockSubnetUtils, SubnetUtils);
 };
 } // namespace multipass::test
-

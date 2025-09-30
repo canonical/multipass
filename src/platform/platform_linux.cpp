@@ -361,7 +361,8 @@ bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
 }
 
 // validation of the ip and cidr happen later, otherwise this regex would be massive.
-const QRegularExpression subnet_regex(R"(((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
+const QRegularExpression subnet_regex(
+    R"(((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
 {
@@ -386,10 +387,9 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
         }
         catch (const std::invalid_argument& e)
         {
-            mpl::log(
-                mpl::Level::warning,
-                "network",
-                fmt::format("invalid subnet from ip command: {}", e.what()));
+            mpl::log(mpl::Level::warning,
+                     "network",
+                     fmt::format("invalid subnet from ip command: {}", e.what()));
         }
     }
     return false;

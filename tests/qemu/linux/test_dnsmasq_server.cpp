@@ -96,7 +96,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     const mp::IPAddress expected_ip{"10.177.224.22"};
 
     [[nodiscard]] static mp::BridgeSubnetList make_subnets(const QString& bridge,
-                                                     const mp::Subnet& subnet)
+                                                           const mp::Subnet& subnet)
     {
         return {{bridge, subnet}};
     }
