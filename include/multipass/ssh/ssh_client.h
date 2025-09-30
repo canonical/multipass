@@ -51,6 +51,7 @@ public:
 private:
     void handle_ssh_events();
     int exec_string(const std::string& cmd_line);
+    int ssh_channel_get_exit_status(ssh_channel channel);
 
     SSHSessionUPtr ssh_session;
     ChannelUPtr channel;

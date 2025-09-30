@@ -53,6 +53,7 @@ TEST_F(SSHClient, standardCtorDoesNotThrow)
 
 TEST_F(SSHClient, execSingleCommandReturnsOKNoFailure)
 {
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) { *val=0;return SSH_OK; });
     auto client = make_ssh_client();
 
     EXPECT_EQ(client.exec({"foo"}), SSH_OK);
@@ -63,6 +64,7 @@ TEST_F(SSHClient, execMultipleCommandsReturnsOKNoFailure)
     auto client = make_ssh_client();
 
     std::vector<std::vector<std::string>> commands{{"ls", "-la"}, {"pwd"}};
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) { *val=0;return SSH_OK; });
     EXPECT_EQ(client.exec(commands), SSH_OK);
 }
 
@@ -71,7 +73,7 @@ TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
     const int failure_code{127};
     auto client = make_ssh_client();
 
-    REPLACE(ssh_channel_get_exit_status, [&failure_code](auto) { return failure_code; });
+    REPLACE(ssh_channel_get_exit_state, [&failure_code](ssh_channel_struct*, unsigned int*val, char**, int*) {*val=failure_code; return SSH_OK; });
 
     EXPECT_EQ(client.exec({"foo"}), failure_code);
 }
@@ -89,6 +91,7 @@ TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))
         return SSH_OK;
     };
 
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) { *val=0;return SSH_OK; });
     REPLACE(ssh_event_dopoll, event_dopoll);
 
     EXPECT_EQ(client.exec({"foo"}), SSH_OK);
