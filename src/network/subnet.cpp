@@ -122,8 +122,7 @@ mp::Subnet::Subnet(IPAddress ip, uint8_t cidr) : id(apply_mask(ip, cidr)), cidr(
 {
     if (cidr >= 31)
     {
-        throw std::invalid_argument(
-            fmt::format("CIDR value must be non-negative and less than 31: {}", cidr));
+        throw std::invalid_argument(fmt::format(large_CIDR_err_fmt, cidr));
     }
 }
 
@@ -188,11 +187,15 @@ bool mp::Subnet::operator==(const Subnet& other) const
     return id == other.id && cidr == other.cidr;
 }
 
-bool mp::Subnet::operator<(const Subnet& other) const
+/* TODO C++20 uncomment
+std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 {
-    // note cidr comparison is flipped, smaller is bigger
-    return id < other.id || (id == other.id && cidr > other.cidr);
+    const auto ip_res = id <=> other.id;
+
+    // note the cidr operands are purposely flipped
+    return (ip_res == 0) ? other.cidr <=> cidr : ip_res;
 }
+*/
 
 mp::Subnet mp::SubnetUtils::generate_random_subnet(uint8_t cidr, Subnet range) const
 {
