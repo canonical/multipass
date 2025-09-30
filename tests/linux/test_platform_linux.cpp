@@ -694,7 +694,7 @@ TEST_F(PlatformLinux, subnetUsedLocallyDetectsUnused)
     EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
 default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
-10.192.168.0/24 dev mpqemubr0 proto kernel scop link src 10.192.168.1 linkdown
+10.192.168.0/24 dev mpqemubr0 proto kernel scope link src 10.192.168.1 linkdown
 10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
 172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
 192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
@@ -713,7 +713,7 @@ TEST_F(PlatformLinux, subnetUsedLocallyDetectsOverlapping)
     EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
 default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
-10.192.168.0/24 dev mpqemubr0 proto kernel scop link src 10.192.168.1 linkdown
+10.192.168.0/24 dev mpqemubr0 proto kernel scope link src 10.192.168.1 linkdown
 10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
 172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
 192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
@@ -732,11 +732,30 @@ TEST_F(PlatformLinux, subnetUsedLocallyDetectsConflicting)
     EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
 default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
-10.192.168.0/24 dev mpqemubr0 proto kernel scop link src 10.192.168.1 linkdown
+10.192.168.0/24 dev mpqemubr0 proto kernel scope link src 10.192.168.1 linkdown
 10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
 172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
 192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
 192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
+)"));
+
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
+}
+
+TEST_F(PlatformLinux, subnetUsedLocallyHandlesBadSubnets)
+{
+    const mp::Subnet testSubnet{"10.255.19.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+(incomplete) dev lxdbr0 proto kernel scope link src (unknown)
+10.192.168.0/33 dev mpqemubr0 proto kernel scope link src 10.192.168.1
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+172.256.0.0/16 dev docker0 proto kernel scope link src 172.256.0.1 linkdown
+192.168.0.256/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+256.168.123.0/24 dev virbr0 proto kernel scope link src 256.168.123.1 linkdown
 )"));
 
     EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
