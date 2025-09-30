@@ -71,6 +71,7 @@ public:
     QemuPlatformFactory(const Singleton<QemuPlatformFactory>::PrivatePass& pass) noexcept
         : Singleton<QemuPlatformFactory>::Singleton{pass} {};
 
-    virtual QemuPlatform::UPtr make_qemu_platform(const Path& data_dir, const AvailabilityZoneManager::Zones& zones) const;
+    virtual QemuPlatform::UPtr
+    make_qemu_platform(const Path& data_dir, const AvailabilityZoneManager::Zones& zones) const;
 };
 } // namespace multipass
