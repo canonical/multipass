@@ -19,6 +19,7 @@
 #include "mock_file_ops.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
+#include "mock_subnet_utils.h"
 #include "mock_virtual_machine.h"
 
 #include <multipass/base_availability_zone.h>
@@ -41,11 +42,13 @@ struct BaseAvailabilityZoneTest : public Test
     const std::string az_name{"zone1"};
     const mp::fs::path az_dir{"/path/to/zones"};
     const mp::fs::path az_file = az_dir / (az_name + ".json");
-    const QString az_file_qstr{QString::fromStdU16String(az_file.u16string())};
+    const QString az_file_qstr{QString::fromStdU16tring(az_file.u16string())};
+    const mp::Subnet az_subnet{"192.168.1.0/24"};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockJsonUtils::GuardedMock mock_json_utils_guard{mpt::MockJsonUtils::inject()};
     mpt::MockLogger::Scope mock_logger{mpt::MockLogger::inject()};
+    mpt::MockSubnetUtils::GuardedMock mock_subnet_utils_guard{mpt::MockSubnetUtils::inject()};
 };
 
 TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
@@ -58,37 +61,37 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())));
 
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .WillOnce(Return(az_subnet));
+
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 
     EXPECT_EQ(zone.get_name(), az_name);
     EXPECT_TRUE(zone.is_available());
-    // TODO: Subnet generation is not yet implemented
-    // EXPECT_TRUE(zone.get_subnet().empty());
 }
 
-// TODO: Re-implement this test when subnet generation is implemented
-// TEST_F(TestBaseAvailabilityZone, loads_existing_zone_file)
-// {
-//     const std::string test_subnet = "10.0.0.0/24";
-//     const bool test_available = false;
-//
-//     QJsonObject json{{"subnet", QString::fromStdString(test_subnet)}, {"available",
-//     test_available}};
-//
-//     EXPECT_CALL(*mock_json_utils_guard.first,
-//     read_object_from_file(az_file)).WillOnce(Return(json));
-//
-//     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
-//
-//     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_,
-//     QString::fromStdString(az_file.u8string())));
-//
-//     mp::BaseAvailabilityZone zone{az_name, az_dir};
-//
-//     EXPECT_EQ(zone.get_name(), az_name);
-//     EXPECT_EQ(zone.get_subnet(), test_subnet);
-//     EXPECT_FALSE(zone.is_available());
-// }
+TEST_F(BaseAvailabilityZoneTest, loads_existing_zone_file)
+ {
+    const mp::Subnet test_subnet{"10.0.0.0/24"};
+     const bool test_available = false;
+
+     QJsonObject json{{"subnet", QString::fromStdString(test_subnet.as_string())}, {"available",
+     test_available}};
+
+     EXPECT_CALL(*mock_json_utils_guard.first,
+     read_object_from_file(az_file)).WillOnce(Return(json));
+
+     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
+
+     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_,
+     QString::fromStdString(az_file.u8string())));
+
+     mp::BaseAvailabilityZone zone{az_name, az_dir};
+
+     EXPECT_EQ(zone.get_name(), az_name);
+     EXPECT_EQ(zone.get_subnet(), test_subnet);
+     EXPECT_FALSE(zone.is_available());
+ }
 
 TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
 {
@@ -102,6 +105,9 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
+
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .WillOnce(Return(az_subnet));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 
@@ -125,6 +131,9 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())));
 
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .WillOnce(Return(az_subnet));
+
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 
     const std::string test_vm_name = "test-vm";
@@ -146,6 +155,9 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
+
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .WillOnce(Return(az_subnet));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 

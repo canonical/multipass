@@ -19,6 +19,7 @@
 #include "mock_file_ops.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
+#include "mock_subnet_utils.h"
 
 #include <multipass/base_availability_zone_manager.h>
 #include <multipass/constants.h>
@@ -46,6 +47,7 @@ struct BaseAvailabilityZoneManagerTest : public Test
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockJsonUtils::GuardedMock mock_json_utils_guard{mpt::MockJsonUtils::inject()};
     mpt::MockLogger::Scope mock_logger{mpt::MockLogger::inject()};
+    mpt::MockSubnetUtils::GuardedMock mock_subnet_utils_guard{mpt::MockSubnetUtils::inject()};
 };
 
 TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
@@ -66,6 +68,9 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
         EXPECT_CALL(*mock_json_utils_guard.first,
                     write_json(_, QString::fromStdU16String(zone_file.u16string())));
     }
+
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .Times(expected_zone_count).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
     // Manager file gets written with default zone (once in constructor and once in
     // get_automatic_zone_name)
@@ -100,6 +105,9 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
                     write_json(_, QString::fromStdU16String(zone_file.u16string())))
             .Times(AnyNumber());
     }
+
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .Times(AnyNumber()).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
     // Manager file will be written multiple times
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
@@ -147,6 +155,9 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
             .Times(AnyNumber());
     }
 
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .Times(AnyNumber()).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
+
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
@@ -171,6 +182,9 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
                     write_json(_, QString::fromStdU16String(zone_file.u16string())))
             .Times(AnyNumber());
     }
+
+    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+        .Times(AnyNumber()).WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
 
