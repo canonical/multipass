@@ -247,6 +247,77 @@ TEST_F(ImageVault, imageCloneSuccess)
     EXPECT_TRUE(vault.has_record_for(dest_name));
 }
 
+TEST_F(ImageVault, invalidFileURLThrows)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    const std::string invalid_url{"file://path/to/image"};
+    const mp::Query query{"", invalid_url, false, "", mp::Query::Type::LocalFile};
+
+    MP_EXPECT_THROW_THAT(
+        vault.fetch_image(mp::FetchType::ImageOnly,
+                          query,
+                          stub_prepare,
+                          stub_monitor,
+                          std::nullopt,
+                          save_dir.path()),
+        std::runtime_error,
+        mpt::match_what(
+            StrEq(fmt::format("Invalid file URL `{}`; did you forget a slash?", invalid_url))));
+}
+
+TEST_F(ImageVault, nonexistentLocalFileImageThrows)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    const std::string missing_file{"/foo"};
+    const mp::Query query{"",
+                          fmt::format("file://{}", missing_file),
+                          false,
+                          "",
+                          mp::Query::Type::LocalFile};
+
+    MP_EXPECT_THROW_THAT(
+        vault.fetch_image(mp::FetchType::ImageOnly,
+                          query,
+                          stub_prepare,
+                          stub_monitor,
+                          std::nullopt,
+                          save_dir.path()),
+        std::runtime_error,
+        mpt::match_what(StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
+}
+
+TEST_F(ImageVault, DISABLE_ON_UNIX(imageFileNameWithDriveLetter))
+{
+    mpt::TempFile file;
+    // Verify that our temp file has a drive letter.
+    EXPECT_TRUE(file.name().at(1) == u':');
+
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    const mp::Query query{"", file.url().toStdString(), false, "", mp::Query::Type::LocalFile};
+
+    EXPECT_NO_THROW(vault.fetch_image(mp::FetchType::ImageOnly,
+                                      query,
+                                      stub_prepare,
+                                      stub_monitor,
+                                      std::nullopt,
+                                      save_dir.path()));
+}
+
 TEST_F(ImageVault, imageCloneFailOnNonExistSrcImage)
 {
     mp::DefaultVMImageVault vault{hosts,

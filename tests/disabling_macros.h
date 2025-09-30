@@ -27,17 +27,20 @@
 #define DISABLE_ON_WINDOWS(testName) DISABLED_##testName
 #define DISABLE_ON_WINDOWS_AND_MACOS(testName) DISABLED_##testName
 #define DISABLE_ON_MACOS(testName) testName
+#define DISABLE_ON_UNIX(testName) testName
 
 #elif MULTIPASS_PLATFORM_APPLE
 
 #define DISABLE_ON_WINDOWS(testName) testName
 #define DISABLE_ON_WINDOWS_AND_MACOS(testName) DISABLED_##testName
 #define DISABLE_ON_MACOS(testName) DISABLED_##testName
+#define DISABLE_ON_UNIX(testName) DISABLED_##testName
 
 #else // Linux
 
 #define DISABLE_ON_WINDOWS(testName) testName
 #define DISABLE_ON_WINDOWS_AND_MACOS(testName) testName
 #define DISABLE_ON_MACOS(testName) testName
+#define DISABLE_ON_UNIX(testName) DISABLED_##testName
 
 #endif
