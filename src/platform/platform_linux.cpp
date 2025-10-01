@@ -385,9 +385,9 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
                 return true;
             }
         }
-        catch (const std::invalid_argument& e)
+        catch (const std::exception& e)
         {
-            mpl::warn(category, "invalid subnet from ip command: {}", e.what())
+            mpl::warn(category, "invalid subnet from ip command: {}", e.what());
         }
     }
     return false;

@@ -132,8 +132,8 @@ TEST_F(FirewallConfig, dtorDeletesKnownRules)
     const QByteArray base_rule{
         fmt::format("POSTROUTING -s {} ! -d {} -m comment --comment \"generated for "
                     "Multipass network {}\" -j MASQUERADE",
-                    subnet.as_string(),
-                    subnet.as_string(),
+                    subnet,
+                    subnet,
                     goodbr0)
             .data()};
     const QByteArray full_rule{"-A " + base_rule};
@@ -167,8 +167,8 @@ TEST_F(FirewallConfig, dtorDeleteErrorLogsErrorAndContinues)
     const QByteArray base_rule{
         fmt::format("POSTROUTING -s {} ! -d {} -m comment --comment \"generated for "
                     "Multipass network {}\" -j MASQUERADE",
-                    subnet.as_string(),
-                    subnet.as_string(),
+                    subnet,
+                    subnet,
                     goodbr0)
             .data()};
     const QByteArray full_rule{"-A " + base_rule};
