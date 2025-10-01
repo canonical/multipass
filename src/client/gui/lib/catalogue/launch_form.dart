@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch, ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
 
