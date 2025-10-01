@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import '../riverpod_compat.dart';
 
 import '../notifications.dart';
 import '../providers.dart';

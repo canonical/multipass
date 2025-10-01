@@ -11,7 +11,7 @@ import '../notifications.dart';
 
 String objectToString(Object? object) => object.toString();
 
-class NotificationsNotifier extends AutoDisposeNotifier<BuiltList<Widget>> {
+class NotificationsNotifier extends Notifier<BuiltList<Widget>> {
   @override
   BuiltList<Widget> build() => BuiltList();
 
