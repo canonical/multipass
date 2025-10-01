@@ -75,7 +75,7 @@ TEST_F(BaseAvailabilityZoneTest, loads_existing_zone_file)
     const mp::Subnet test_subnet{"10.0.0.0/24"};
     const bool test_available = false;
 
-    QJsonObject json{{"subnet", QString::fromStdString(test_subnet.as_string())},
+    QJsonObject json{{"subnet", QString::fromStdString(test_subnet.to_cidr())},
                      {"available", test_available}};
 
     EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(az_file))

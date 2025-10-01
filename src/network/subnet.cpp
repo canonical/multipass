@@ -46,6 +46,10 @@ try
     throw std::invalid_argument(
         fmt::format("CIDR {:?} does not contain '/' seperator", cidr_string));
 }
+catch (const mp::Subnet::PrefixLengthOutOfRange&)
+{
+    throw;
+}
 catch (const std::out_of_range& e)
 {
     throw mp::Subnet::PrefixLengthOutOfRange(e.what());
@@ -94,9 +98,10 @@ catch (const std::out_of_range& e)
 mp::Subnet generate_random_subnet(mp::Subnet::PrefixLength prefix_length, mp::Subnet range)
 {
     if (prefix_length < range.prefix_length())
-        throw std::logic_error(fmt::format("A subnet with cidr {} cannot be contained by {}",
-                                           uint8_t(prefix_length),
-                                           range.as_string()));
+        throw std::logic_error(
+            fmt::format("A subnet with prefix length {} cannot be contained by {}",
+                        prefix_length,
+                        range));
 
     // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
     const size_t possibleSubnets = std::size_t{1} << (prefix_length - range.prefix_length());
@@ -129,7 +134,7 @@ mp::IPAddress mp::Subnet::min_address() const
 
 mp::IPAddress mp::Subnet::max_address() const
 {
-    // identifier + 2^(32 - cidr) - 1 - 1
+    // identifier + 2^(32 - prefix) - 1 - 1
     return id + ((1ull << (32ull - prefix)) - 2ull);
 }
 
@@ -154,9 +159,9 @@ mp::IPAddress mp::Subnet::subnet_mask() const
 }
 
 // uses CIDR notation
-std::string mp::Subnet::as_string() const
+std::string mp::Subnet::to_cidr() const
 {
-    return fmt::format("{}/{}", id.as_string(), uint8_t(prefix));
+    return fmt::format("{}/{}", id.as_string(), prefix);
 }
 
 bool mp::Subnet::contains(Subnet other) const
@@ -184,8 +189,8 @@ std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 {
     const auto ip_res = id <=> other.id;
 
-    // note the cidr operands are purposely flipped
-    return (ip_res == 0) ? other.cidr <=> cidr : ip_res;
+    // note the prefix_length operands are purposely flipped
+    return (ip_res == 0) ? other.prefix_length <=> prefix_length : ip_res;
 }
 */
 

@@ -153,13 +153,13 @@ TEST(Subnet, getSubnetMaskReturnsSubnetMask)
 TEST(Subnet, canConvertToString)
 {
     mp::Subnet subnet{"192.168.0.1/24"};
-    EXPECT_EQ(subnet.as_string(), "192.168.0.0/24");
+    EXPECT_EQ(subnet.to_cidr(), "192.168.0.0/24");
 
     subnet = mp::Subnet{"255.0.255.0/8"};
-    EXPECT_EQ(subnet.as_string(), "255.0.0.0/8");
+    EXPECT_EQ(subnet.to_cidr(), "255.0.0.0/8");
 
     subnet = mp::Subnet{"255.0.255.0/0"};
-    EXPECT_EQ(subnet.as_string(), "0.0.0.0/0");
+    EXPECT_EQ(subnet.to_cidr(), "0.0.0.0/0");
 }
 
 TEST(Subnet, containsWorksOnContainedSubnets)

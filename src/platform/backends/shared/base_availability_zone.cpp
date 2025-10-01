@@ -178,7 +178,7 @@ void BaseAvailabilityZone::serialize() const
     const std::unique_lock lock{m.mutex};
 
     const QJsonObject json{
-        {subnet_key, QString::fromStdString(m.subnet.as_string())},
+        {subnet_key, QString::fromStdString(m.subnet.to_cidr())},
         {available_key, m.available},
     };
 

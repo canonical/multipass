@@ -71,8 +71,7 @@ public:
     [[nodiscard]] PrefixLength prefix_length() const;
     [[nodiscard]] IPAddress subnet_mask() const;
 
-    // uses CIDR notation
-    [[nodiscard]] std::string as_string() const;
+    [[nodiscard]] std::string to_cidr() const;
 
     // Subnets are either disjoint or the smaller is a subset of the larger
     [[nodiscard]] bool contains(Subnet other) const;
@@ -96,3 +95,38 @@ struct SubnetUtils : Singleton<SubnetUtils>
                                                         Subnet range = Subnet{"10.0.0.0/8"}) const;
 };
 } // namespace multipass
+
+namespace fmt
+{
+template <>
+struct formatter<multipass::Subnet>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::Subnet& subnet, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(), "{}", subnet.to_cidr());
+    }
+};
+
+template <>
+struct formatter<multipass::Subnet::PrefixLength>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::Subnet::PrefixLength& prefix, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(), "{}", uint8_t(prefix));
+    }
+};
+} // namespace fmt

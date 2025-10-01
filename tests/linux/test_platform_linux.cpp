@@ -752,8 +752,8 @@ TEST_F(PlatformLinux, subnetUsedLocallyHandlesBadSubnets)
 default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 (incomplete) dev lxdbr0 proto kernel scope link src (unknown)
 10.192.168.0/33 dev mpqemubr0 proto kernel scope link src 10.192.168.1
+172.256.0.0/16 dev docker0 proto kernel scope link src 172.256.0.1
 10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
-172.256.0.0/16 dev docker0 proto kernel scope link src 172.256.0.1 linkdown
 192.168.0.256/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
 256.168.123.0/24 dev virbr0 proto kernel scope link src 256.168.123.1 linkdown
 )"));
