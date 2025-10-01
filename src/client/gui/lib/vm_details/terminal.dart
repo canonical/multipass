@@ -17,6 +17,7 @@ import '../logger.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../riverpod_compat.dart';
 import '../vm_action.dart';
 
 final runningShellsProvider = StateProvider.autoDispose.family<int, String>((

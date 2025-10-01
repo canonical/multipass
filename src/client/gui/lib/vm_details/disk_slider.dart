@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../riverpod_compat.dart';
 
 import '../providers.dart';
 import '../tooltip.dart';

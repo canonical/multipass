@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fpdart/fpdart.dart' hide State;
+import '../riverpod_compat.dart';
 
 import '../notifications/notifications_provider.dart';
 import '../providers.dart';
