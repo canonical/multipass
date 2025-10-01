@@ -5,7 +5,6 @@ import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +17,10 @@ import 'logger.dart';
 export 'grpc_client.dart';
 
 late final ProviderContainer providerContainer;
+
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('SharedPreferences must be overridden');
+});
 
 final ffiAvailableProvider = Provider((ref) {
   return isFFIAvailable;
@@ -131,10 +134,12 @@ final vmInfosMapProvider = Provider((ref) {
   return {for (final i in ref.watch(vmInfosProvider)) i.name: i};
 });
 
-class VmInfoNotifier
-    extends AutoDisposeFamilyNotifier<DetailedInfoItem, String> {
+class VmInfoNotifier extends Notifier<DetailedInfoItem> {
+  VmInfoNotifier(this.arg);
+  final String arg;
+
   @override
-  DetailedInfoItem build(String arg) {
+  DetailedInfoItem build() {
     return ref.watch(vmInfosMapProvider)[arg] ?? DetailedInfoItem();
   }
 }
@@ -213,11 +218,13 @@ final isLaunchingProvider = Provider.autoDispose.family<bool, String>((
   return launchingVms.any((info) => info.name == name);
 });
 
-class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
+class ClientSettingNotifier extends Notifier<String> {
+  ClientSettingNotifier(this.arg);
+  final String arg;
   final file = File(settingsFile());
 
   @override
-  String build(String arg) {
+  String build() {
     file.parent.create(recursive: true).then(
           (dir) => dir
               .watch()
@@ -238,10 +245,12 @@ const primaryNameKey = 'client.primary-name';
 final clientSettingProvider = NotifierProvider.autoDispose
     .family<ClientSettingNotifier, String, String>(ClientSettingNotifier.new);
 
-class DaemonSettingNotifier
-    extends AutoDisposeFamilyAsyncNotifier<String, String> {
+class DaemonSettingNotifier extends AsyncNotifier<String> {
+  DaemonSettingNotifier(this.arg);
+  final String arg;
+
   @override
-  Future<String> build(String arg) async {
+  Future<String> build() async {
     return ref.watch(daemonAvailableProvider)
         ? await ref.watch(grpcClientProvider).get(arg)
         : state.valueOrNull ?? await Completer<String>().future;
@@ -277,10 +286,12 @@ enum VmResource { cpus, memory, disk, bridged }
 
 typedef VmResourceKey = ({String name, VmResource resource});
 
-class VmResourceNotifier
-    extends AutoDisposeFamilyAsyncNotifier<String, VmResourceKey> {
+class VmResourceNotifier extends AsyncNotifier<String> {
+  VmResourceNotifier(this.arg);
+  final VmResourceKey arg;
+
   @override
-  Future<String> build(VmResourceKey arg) async {
+  Future<String> build() async {
     final (:name, :resource) = arg;
     final launchingVm = ref.watch(
       launchingVmsProvider.select((infos) {
@@ -311,17 +322,18 @@ class VmResourceNotifier
 final vmResourceProvider = AsyncNotifierProvider.autoDispose
     .family<VmResourceNotifier, String, VmResourceKey>(VmResourceNotifier.new);
 
-class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
-  final SharedPreferences sharedPreferences;
-
-  GuiSettingNotifier(this.sharedPreferences);
+class GuiSettingNotifier extends Notifier<String?> {
+  GuiSettingNotifier(this.arg);
+  final String arg;
 
   @override
-  String? build(String arg) {
+  String? build() {
+    final sharedPreferences = ref.read(sharedPreferencesProvider);
     return sharedPreferences.getString(arg);
   }
 
   void set(String value) {
+    final sharedPreferences = ref.read(sharedPreferencesProvider);
     sharedPreferences.setString(arg, value);
     state = value;
   }
@@ -333,17 +345,15 @@ class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
 const onAppCloseKey = 'onAppClose';
 const hotkeyKey = 'hotkey';
 const askTerminalCloseKey = 'askTerminalClose';
-// this provider is set with a value obtained asynchronously in main.dart
 final guiSettingProvider = NotifierProvider.autoDispose
-    .family<GuiSettingNotifier, String?, String>(() {
-  throw UnimplementedError();
-});
+    .family<GuiSettingNotifier, String?, String>(GuiSettingNotifier.new);
 
-final networksProvider = Provider.autoDispose((ref) {
+final networksProvider = Provider.autoDispose<BuiltSet<String>>((ref) {
   final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;
   if (driver != null && ref.watch(daemonAvailableProvider)) {
     ref.watch(grpcClientProvider).networks().then((networks) {
-      ref.state = networks.map((n) => n.name).toBuiltSet();
+      // Trigger a rebuild by invalidating the provider
+      ref.invalidateSelf();
     }).ignore();
   }
   return BuiltSet<String>();

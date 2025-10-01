@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
 import '../platform/platform.dart';
 
@@ -10,7 +9,7 @@ final autostartProvider =
   mpPlatform.autostartNotifier,
 );
 
-abstract class AutostartNotifier extends AutoDisposeAsyncNotifier<bool> {
+abstract class AutostartNotifier extends AsyncNotifier<bool> {
   Future<void> set(bool value) async {
     try {
       await doSet(value);

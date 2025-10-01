@@ -106,7 +106,7 @@ class SelectAllCheckbox extends ConsumerWidget {
 
     void toggleSelectedAll(bool isSelected) {
       final newState = isSelected ? vmNames.toBuiltSet() : BuiltSet<String>();
-      ref.read(selectedVmsProvider.notifier).state = newState;
+      ref.read(selectedVmsProvider.notifier).set(newState);
     }
 
     return Center(
@@ -133,11 +133,7 @@ class SelectVmCheckbox extends ConsumerWidget {
     );
 
     void toggleSelected(bool isSelected) {
-      ref.read(selectedVmsProvider.notifier).update((state) {
-        return state.rebuild((set) {
-          isSelected ? set.add(name) : set.remove(name);
-        });
-      });
+      ref.read(selectedVmsProvider.notifier).toggle(name, isSelected);
     }
 
     return Center(

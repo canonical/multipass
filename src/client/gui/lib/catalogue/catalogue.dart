@@ -5,25 +5,28 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
-import '../riverpod_compat.dart';
 
 import '../providers.dart';
 import 'image_card.dart';
 import 'launch_form.dart';
 
 final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
-  if (ref.watch(daemonAvailableProvider)) {
-    final images = ref
-        .watch(grpcClientProvider)
-        .find()
-        .then((r) => sortImages(r.imagesInfo));
-    // artificial delay so that we can see the loading spinner a bit
-    // otherwise the reply arrives too quickly and we only see a flash of the spinner
-    await Future.delayed(1.seconds);
-    return await images;
+  if (!ref.watch(daemonAvailableProvider)) {
+    // When daemon is not available, return empty list
+    // The UI can handle this state appropriately
+    return [];
   }
 
-  return ref.state.valueOrNull ?? await Completer<List<ImageInfo>>().future;
+  final images = await ref
+      .watch(grpcClientProvider)
+      .find()
+      .then((r) => sortImages(r.imagesInfo));
+
+  // artificial delay so that we can see the loading spinner a bit
+  // otherwise the reply arrives too quickly and we only see a flash of the spinner
+  await Future.delayed(1.seconds);
+
+  return images;
 });
 
 // sorts the images in a more user-friendly way
