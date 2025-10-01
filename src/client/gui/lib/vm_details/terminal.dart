@@ -17,7 +17,6 @@ import '../logger.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
-import '../riverpod_compat.dart';
 import '../vm_action.dart';
 
 final runningShellsProvider = StateProvider.autoDispose.family<int, String>((
@@ -39,8 +38,10 @@ class ShellId {
 
 typedef TerminalIdentifier = ({String vmName, ShellId shellId});
 
-class TerminalNotifier
-    extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
+class TerminalNotifier extends Notifier<Terminal?> {
+  TerminalNotifier(this.arg);
+  final TerminalIdentifier arg;
+
   final lock = Lock();
   Isolate? isolate;
   late final vmStatusProvider = vmInfoProvider(arg.vmName).select((info) {
@@ -48,7 +49,7 @@ class TerminalNotifier
   });
 
   @override
-  Terminal? build(TerminalIdentifier arg) {
+  Terminal? build() {
     ref.onDispose(_dispose);
     if (arg.shellId.autostart) {
       lock.synchronized(_initShell).then((value) => state = value);
@@ -392,6 +393,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           final currentSize = ref.read(sessionTerminalFontSizeProvider);
           final newSize = min(currentSize + fontSizeStep, maxFontSize);
           ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+          return null;
         },
       ),
       DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
@@ -399,6 +401,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           final currentSize = ref.read(sessionTerminalFontSizeProvider);
           final newSize = max(currentSize - fontSizeStep, minFontSize);
           ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+          return null;
         },
       ),
       ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
@@ -406,6 +409,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           ref
               .read(sessionTerminalFontSizeProvider.notifier)
               .set(SessionTerminalFontSizeNotifier.defaultFontSize);
+          return null;
         },
       ),
       PasteTextIntent: CallbackAction<PasteTextIntent>(

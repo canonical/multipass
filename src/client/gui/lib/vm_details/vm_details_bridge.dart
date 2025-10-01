@@ -85,8 +85,9 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
 
     void configure() {
       setState(() => editing = true);
-      ref.read(activeEditPageProvider(widget.name).notifier).state =
-          ActiveEditPage.bridge;
+      ref
+          .read(activeEditPageProvider(widget.name).notifier)
+          .set(ActiveEditPage.bridge);
     }
 
     final configureButton = Tooltip(
@@ -102,7 +103,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       onPressed: () {
         formKey.currentState?.reset();
         setState(() => editing = false);
-        ref.read(activeEditPageProvider(widget.name).notifier).state = null;
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
       child: const Text('Cancel'),
     );

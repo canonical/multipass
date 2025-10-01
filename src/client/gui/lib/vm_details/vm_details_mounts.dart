@@ -58,8 +58,9 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     final configureButton = OutlinedButton(
       onPressed: () {
         setState(() => phase = MountDetailsPhase.configure);
-        ref.read(activeEditPageProvider(widget.name).notifier).state =
-            ActiveEditPage.mounts;
+        ref
+            .read(activeEditPageProvider(widget.name).notifier)
+            .set(ActiveEditPage.mounts);
       },
       child: const Text('Configure'),
     );
@@ -67,7 +68,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     final cancelButton = OutlinedButton(
       onPressed: () {
         setState(() => phase = MountDetailsPhase.idle);
-        ref.read(activeEditPageProvider(widget.name).notifier).state = null;
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
       child: const Text('Cancel'),
     );
@@ -75,8 +76,9 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     final addMountButton = OutlinedButton(
       onPressed: () {
         setState(() => phase = MountDetailsPhase.adding);
-        ref.read(activeEditPageProvider(widget.name).notifier).state =
-            ActiveEditPage.mounts;
+        ref
+            .read(activeEditPageProvider(widget.name).notifier)
+            .set(ActiveEditPage.mounts);
       },
       child: const Text('Add mount'),
     );
@@ -127,7 +129,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       onError: (error) => 'Failed to mount $description: $error',
     );
     setState(() => phase = MountDetailsPhase.idle);
-    ref.read(activeEditPageProvider(widget.name).notifier).state = null;
+    ref.read(activeEditPageProvider(widget.name).notifier).set(null);
   }
 
   void doUnmount(MountPaths mountPaths) {

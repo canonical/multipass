@@ -3,7 +3,6 @@ import 'package:built_collection/built_collection.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
 
@@ -17,9 +16,12 @@ typedef ShellIds = ({
   int currentIndex,
 });
 
-class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
+class ShellIdsNotifier extends Notifier<ShellIds> {
+  ShellIdsNotifier(this.arg);
+  final String arg;
+
   @override
-  ShellIds build(String arg) => (ids: [ShellId(1)].build(), currentIndex: 0);
+  ShellIds build() => (ids: [ShellId(1)].build(), currentIndex: 0);
 
   void add() {
     final ids = state.ids;

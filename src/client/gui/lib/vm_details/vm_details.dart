@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
 import '../providers.dart';
 import 'terminal_tabs.dart';
@@ -11,30 +10,58 @@ import 'vm_details_resources.dart';
 
 enum VmDetailsLocation { shells, details }
 
-final vmScreenLocationProvider =
-    StateProvider.autoDispose.family<VmDetailsLocation, String>((_, __) {
-  return VmDetailsLocation.shells;
-});
+final vmScreenLocationProvider = NotifierProvider.autoDispose
+    .family<VmScreenLocationNotifier, VmDetailsLocation, String>(
+  VmScreenLocationNotifier.new,
+);
+
+class VmScreenLocationNotifier extends Notifier<VmDetailsLocation> {
+  VmScreenLocationNotifier(this.arg);
+  final String arg;
+
+  @override
+  VmDetailsLocation build() {
+    return VmDetailsLocation.shells;
+  }
+
+  void set(VmDetailsLocation location) {
+    state = location;
+  }
+}
 
 enum ActiveEditPage { resources, bridge, mounts }
 
-final activeEditPageProvider =
-    StateProvider.autoDispose.family<ActiveEditPage?, String>((ref, name) {
-  ref.listen(
-    vmInfoProvider(name).select((info) => info.instanceStatus.status),
-    (_, status) {
-      final isBridgeOrResources = [
-        ActiveEditPage.bridge,
-        ActiveEditPage.resources,
-      ].contains(ref.controller.state);
+final activeEditPageProvider = NotifierProvider.autoDispose
+    .family<ActiveEditPageNotifier, ActiveEditPage?, String>(
+  ActiveEditPageNotifier.new,
+);
 
-      if (isBridgeOrResources && status != Status.STOPPED) {
-        ref.invalidateSelf();
-      }
-    },
-  );
-  return null;
-});
+class ActiveEditPageNotifier extends Notifier<ActiveEditPage?> {
+  ActiveEditPageNotifier(this.name);
+  final String name;
+
+  @override
+  ActiveEditPage? build() {
+    ref.listen(
+      vmInfoProvider(name).select((info) => info.instanceStatus.status),
+      (_, status) {
+        final isBridgeOrResources = [
+          ActiveEditPage.bridge,
+          ActiveEditPage.resources,
+        ].contains(state);
+
+        if (isBridgeOrResources && status != Status.STOPPED) {
+          ref.invalidateSelf();
+        }
+      },
+    );
+    return null;
+  }
+
+  void set(ActiveEditPage? page) {
+    state = page;
+  }
+}
 
 class VmDetailsScreen extends ConsumerWidget {
   final String name;
