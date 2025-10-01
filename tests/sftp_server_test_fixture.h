@@ -29,7 +29,7 @@ namespace test
 struct SftpServerTest : public testing::Test
 {
     SftpServerTest()
-        : free_sftp{mock_sftp_free, [](sftp_session sftp) {
+        : free_server_sftp{mock_sftp_server_free, [](sftp_session sftp) {
                         std::free(sftp->handles);
                         std::free(sftp);
                     }}
@@ -45,7 +45,7 @@ struct SftpServerTest : public testing::Test
     decltype(MOCK(sftp_get_client_message)) get_client_msg{MOCK(sftp_get_client_message)};
     decltype(MOCK(sftp_client_message_free)) msg_free{MOCK(sftp_client_message_free)};
     decltype(MOCK(sftp_handle)) handle_sftp{MOCK(sftp_handle)};
-    MockScope<decltype(mock_sftp_free)> free_sftp;
+    MockScope<decltype(mock_sftp_server_free)> free_server_sftp;
 
     MockSSHTestFixture mock_ssh_test_fixture;
 };
