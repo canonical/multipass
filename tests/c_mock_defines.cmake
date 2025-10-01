@@ -47,7 +47,7 @@ add_c_mocks(
   ssh_event_dopoll
   ssh_add_channel_callbacks
   sftp_server_new
-  sftp_free
+  sftp_server_free
   sftp_server_init
   sftp_reply_status
   sftp_reply_attr
