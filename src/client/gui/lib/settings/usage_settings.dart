@@ -4,6 +4,7 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:fpdart/fpdart.dart' hide State;
 
 import '../notifications/notifications_provider.dart';
