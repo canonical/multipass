@@ -23,6 +23,7 @@
 
 DECL_MOCK(sftp_server_new);
 DECL_MOCK(sftp_server_init);
+DECL_MOCK(sftp_server_free);
 DECL_MOCK(sftp_reply_status);
 DECL_MOCK(sftp_reply_attr);
 DECL_MOCK(sftp_reply_data);

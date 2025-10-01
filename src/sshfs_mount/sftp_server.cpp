@@ -52,17 +52,6 @@ enum Permissions
     exec_other = 01
 };
 
-auto make_sftp_session(ssh_session session, ssh_channel channel)
-{
-    mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
-                                                        sftp_free};
-    mp::SSH::throw_on_error(sftp_server_session,
-                            session,
-                            "[sftp] server init failed",
-                            sftp_server_init);
-    return sftp_server_session;
-}
-
 int reply_ok(sftp_client_message msg)
 {
     return sftp_reply_status(msg, SSH_FX_OK, nullptr);
@@ -254,6 +243,17 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
                : found->first;
 }
 } // namespace
+
+mp::SftpServer::SftpSessionUptr mp::SftpServer::make_sftp_session(::ssh_session session, ssh_channel channel)
+{
+    mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
+                                                        sftp_server_free};
+    mp::SSH::throw_on_error(sftp_server_session,
+                            session,
+                            "[sftp] server init failed",
+                            sftp_server_init);
+    return sftp_server_session;
+}
 
 mp::SftpServer::SftpServer(SSHSession&& session,
                            const std::string& source,
