@@ -31,7 +31,7 @@ TEST(Subnet, canInitializeFromIpCidrPair)
     mp::Subnet subnet{mp::IPAddress("192.168.0.0"), 24};
 
     EXPECT_EQ(subnet.identifier(), mp::IPAddress("192.168.0.0"));
-    EXPECT_EQ(subnet.CIDR(), 24);
+    EXPECT_EQ(subnet.prefix_length(), 24);
 }
 
 TEST(Subnet, canInitializeFromString)
@@ -39,7 +39,7 @@ TEST(Subnet, canInitializeFromString)
     mp::Subnet subnet{"192.168.0.0/24"};
 
     EXPECT_EQ(subnet.identifier(), mp::IPAddress("192.168.0.0"));
-    EXPECT_EQ(subnet.CIDR(), 24);
+    EXPECT_EQ(subnet.prefix_length(), 24);
 }
 
 TEST(Subet, throwsOnInvalidIP)
@@ -56,52 +56,41 @@ TEST(Subet, throwsOnInvalidIP)
                          mpt::match_what(HasSubstr("invalid IP octet")));
 }
 
-TEST(Subnet, throwsOnLargeCIDR)
+TEST(Subnet, throwsOnLargePrefixLength)
 {
-    static constexpr auto what = "CIDR value must be non-negative and less than 31";
-
     // valid but not supported
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/31"},
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+                         mp::Subnet::PrefixLengthOutOfRange,
+                         mpt::match_what(HasSubstr("31")));
 
     MP_EXPECT_THROW_THAT((mp::Subnet{mp::IPAddress{"192.168.0.0"}, 31}),
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+                         mp::Subnet::PrefixLengthOutOfRange,
+                         mpt::match_what(HasSubstr("31")));
 
     // valid but not supported
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/32"},
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+                         mp::Subnet::PrefixLengthOutOfRange,
+                         mpt::match_what(HasSubstr("32")));
 
     // boundary case
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/33"},
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+                         mp::Subnet::PrefixLengthOutOfRange,
+                         mpt::match_what(HasSubstr("33")));
 
     // at 8 bit limit
-    MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/255"},
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+    EXPECT_THROW(mp::Subnet{"192.168.0.0/255"}, mp::Subnet::PrefixLengthOutOfRange);
 
     // above 8 bit limit
-    MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/895231337"},
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+    EXPECT_THROW(mp::Subnet{"192.168.0.0/895231337"}, mp::Subnet::PrefixLengthOutOfRange);
 
     // extreme case
-    MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/895231337890712387952378952359871235987169601436"},
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+    EXPECT_THROW(mp::Subnet{"192.168.0.0/895231337890712387952378952359871235987169601436"},
+                 mp::Subnet::PrefixLengthOutOfRange);
 }
 
-TEST(Subnet, throwsOnNegativeCIDR)
+TEST(Subnet, throwsOnNegativePrefixLength)
 {
-    static constexpr auto what = "CIDR value must be non-negative and less than 31";
-
-    MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/-24"},
-                         std::invalid_argument,
-                         mpt::match_what(HasSubstr(what)));
+    EXPECT_THROW(mp::Subnet{"192.168.0.0/-24"}, mp::Subnet::PrefixLengthOutOfRange);
 }
 
 TEST(Subnet, givesCorrectRange)
@@ -321,7 +310,7 @@ TEST_F(SubnetUtils, generateRandomSubnetTriviallyWorks)
     mp::Subnet subnet = MP_SUBNET_UTILS.generate_random_subnet(24, range);
 
     EXPECT_EQ(subnet.identifier(), range.identifier());
-    EXPECT_EQ(subnet.CIDR(), 24);
+    EXPECT_EQ(subnet.prefix_length(), 24);
 }
 
 TEST_F(SubnetUtils, generateRandomSubnetFailsOnSmallRange)
@@ -332,18 +321,18 @@ TEST_F(SubnetUtils, generateRandomSubnetFailsOnSmallRange)
     EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(0, range), std::logic_error);
 }
 
-TEST_F(SubnetUtils, generateRandomSubnetFailsOnBadCIDR)
+TEST_F(SubnetUtils, generateRandomSubnetFailsOnBadPrefixLength)
 {
     mp::Subnet range{"0.0.0.0/0"};
 
     EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(31, range),
-                 std::invalid_argument);
+                 mp::Subnet::PrefixLengthOutOfRange);
     EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(32, range),
-                 std::invalid_argument);
+                 mp::Subnet::PrefixLengthOutOfRange);
     EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(33, range),
-                 std::invalid_argument);
+                 mp::Subnet::PrefixLengthOutOfRange);
     EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(255, range),
-                 std::invalid_argument);
+                 mp::Subnet::PrefixLengthOutOfRange);
 }
 
 TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
@@ -358,10 +347,10 @@ TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
     auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(24, range);
 
     EXPECT_EQ(subnetLow.identifier(), mp::IPAddress{"192.168.0.0"});
-    EXPECT_EQ(subnetLow.CIDR(), 24);
+    EXPECT_EQ(subnetLow.prefix_length(), 24);
 
     EXPECT_EQ(subnetHigh.identifier(), mp::IPAddress{"192.168.255.0"});
-    EXPECT_EQ(subnetHigh.CIDR(), 24);
+    EXPECT_EQ(subnetHigh.prefix_length(), 24);
 }
 
 TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
@@ -374,10 +363,10 @@ TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
     auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(30, range);
 
     EXPECT_EQ(subnetLow.identifier(), mp::IPAddress{"0.0.0.0"});
-    EXPECT_EQ(subnetLow.CIDR(), 30);
+    EXPECT_EQ(subnetLow.prefix_length(), 30);
 
     EXPECT_EQ(subnetHigh.identifier(), mp::IPAddress{"255.255.255.252"});
-    EXPECT_EQ(subnetHigh.CIDR(), 30);
+    EXPECT_EQ(subnetHigh.prefix_length(), 30);
 }
 
 TEST_F(SubnetUtils, generateRandomSubnetGivesUpUsedLocally)
