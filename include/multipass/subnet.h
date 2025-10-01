@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
 
@@ -29,7 +30,37 @@ namespace multipass
 class Subnet
 {
 public:
-    Subnet(IPAddress ip, uint8_t cidr);
+    struct PrefixLengthOutOfRange final : FormattedExceptionBase<std::out_of_range>
+    {
+        template <class T>
+        explicit PrefixLengthOutOfRange(const T& value)
+            : FormattedExceptionBase{
+                  "Subnet prefix length must be non-negative and less than 31: {}",
+                  value}
+        {
+        }
+    };
+
+    class PrefixLength
+    {
+    public:
+        constexpr PrefixLength(uint8_t value) : value(value)
+        {
+            if (value >= 31)
+                throw PrefixLengthOutOfRange{value};
+        }
+
+        constexpr operator uint8_t() const noexcept
+        {
+            return value;
+        }
+
+    private:
+        uint8_t value;
+    };
+
+    Subnet(IPAddress ip, PrefixLength prefix_length);
+
     Subnet(const std::string& cidr_string);
 
     [[nodiscard]] IPAddress min_address() const;
@@ -37,7 +68,7 @@ public:
     [[nodiscard]] uint32_t address_count() const;
 
     [[nodiscard]] IPAddress identifier() const;
-    [[nodiscard]] uint8_t CIDR() const;
+    [[nodiscard]] PrefixLength prefix_length() const;
     [[nodiscard]] IPAddress subnet_mask() const;
 
     // uses CIDR notation
@@ -54,14 +85,14 @@ public:
 
 private:
     IPAddress id;
-    uint8_t cidr;
+    PrefixLength prefix;
 };
 
 struct SubnetUtils : Singleton<SubnetUtils>
 {
     using Singleton<SubnetUtils>::Singleton;
 
-    [[nodiscard]] virtual Subnet generate_random_subnet(uint8_t cidr = 24,
+    [[nodiscard]] virtual Subnet generate_random_subnet(Subnet::PrefixLength prefix = 24,
                                                         Subnet range = Subnet{"10.0.0.0/8"}) const;
 };
 } // namespace multipass
