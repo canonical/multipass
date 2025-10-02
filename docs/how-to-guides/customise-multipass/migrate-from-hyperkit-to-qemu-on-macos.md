@@ -1,7 +1,7 @@
 (how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)=
 # Migrate from Hyperkit to QEMU on macOS
 
-> See also: [`set`](/explanation/driver), [local.driver](/explanation/driver), [Driver](/explanation/driver), [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver)
+> See also: [`set`](reference-command-line-interface-set), [local.driver](reference-settings-local-driver), [Driver](explanation-driver), [How to set up the driver](how-to-guides-customise-multipass-set-up-the-driver)
 
 As of Multipass 1.12, the Hyperkit driver is being deprecated. New installs will start with the QEMU driver set by default, but existing installs will retain the previous driver setting. Multipass will warn Hyperkit users of the deprecation and ask them to move to QEMU. To facilitate that, Multipass 1.12 will migrate Hyperkit instances to QEMU.
 

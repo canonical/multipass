@@ -28,7 +28,7 @@ Open a terminal (Windows Terminal or any other) and enable the integration with 
 multipass set client.apps.windows-terminal.profiles=primary
 ```
 
-For more information on this setting, see [`client.apps.windows-terminal.profiles`](/reference/settings/client-apps-windows-terminal-profiles). Until you modify it, Multipass will try to add the profile if it finds it missing. To remove the profile see {ref}`integrate-with-windows-terminal-revert` below.
+For more information on this setting, see [`client.apps.windows-terminal.profiles`](reference-settings-client-apps-windows-terminal-profiles). Until you modify it, Multipass will try to add the profile if it finds it missing. To remove the profile see {ref}`integrate-with-windows-terminal-revert` below.
 
 ## Open a Multipass tab
 
