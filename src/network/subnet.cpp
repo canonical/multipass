@@ -57,32 +57,8 @@ catch (const std::out_of_range& e)
 
 [[nodiscard]] mp::IPAddress get_subnet_mask(mp::Subnet::PrefixLength prefix_length)
 {
-    using Octects = decltype(mp::IPAddress::octets);
-    static constexpr auto value_size = sizeof(Octects::value_type) * 8;
-
-    Octects octets{};
-    std::fill(octets.begin(), octets.end(), std::numeric_limits<Octects::value_type>::max());
-
-    if (prefix_length > value_size * octets.size())
-        throw std::out_of_range("prefix length too large for address space");
-
-    const uint8_t start_octet = prefix_length / value_size;
-    const uint8_t remain = prefix_length % value_size;
-
-    for (size_t i = start_octet; i < octets.size(); ++i)
-    {
-        octets[i] = 0;
-    }
-
-    if (remain != 0)
-    {
-        assert(start_octet < octets.size()); // sanity
-
-        // remain = 5, 1 << (8 - 5) = 00001000 -> 00000111 -> 11111000
-        octets[start_octet] = ~((1u << (value_size - remain)) - 1u);
-    }
-
-    return mp::IPAddress{octets};
+    const uint32_t mask = (prefix_length == 0) ? 0 : ~uint32_t{0} << (32 - prefix_length);
+    return mp::IPAddress{mask};
 }
 
 [[nodiscard]] mp::IPAddress apply_mask(mp::IPAddress ip, mp::Subnet::PrefixLength prefix_length)
