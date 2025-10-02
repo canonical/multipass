@@ -212,15 +212,13 @@ auto name_from(const std::string& requested_name,
     }
     else
     {
-        // Create a Rust petname generator with 2 words and "-" separator
-        auto petname_generator = multipass::petname::new_petname(2, "-");
-        std::string name = std::string(multipass::petname::make_name(*petname_generator));
+        std::string name = name_generator.make_name();
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
             if (currently_used_names.find(name) != currently_used_names.end())
             {
-                name = std::string(multipass::petname::make_name(*petname_generator));
+                name = name_generator.make_name();
                 continue;
             }
             return name;
