@@ -3,7 +3,6 @@ import 'package:built_collection/built_collection.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide Table, Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
 import '../catalogue/catalogue.dart';
 import '../providers.dart';
@@ -16,7 +15,20 @@ import 'search_box.dart';
 import 'table.dart';
 import 'vm_table_headers.dart';
 
-final runningOnlyProvider = StateProvider((_) => false);
+class RunningOnlyNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
+
+  void set(bool value) {
+    state = value;
+  }
+}
+
+final runningOnlyProvider = NotifierProvider<RunningOnlyNotifier, bool>(
+  RunningOnlyNotifier.new,
+);
 
 final selectedVmsProvider =
     NotifierProvider<SelectedVmsNotifier, BuiltSet<String>>(
@@ -82,7 +94,7 @@ class Vms extends ConsumerWidget {
         Switch(
           label: 'Show running instances only',
           value: runningOnly,
-          onChanged: (v) => ref.read(runningOnlyProvider.notifier).state = v,
+          onChanged: (v) => ref.read(runningOnlyProvider.notifier).set(v),
         ),
         const Spacer(),
         const SearchBox(),

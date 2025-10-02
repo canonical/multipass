@@ -1,13 +1,24 @@
 import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'vm_table_headers.dart';
 
-final enabledHeadersProvider = StateProvider(
-  (_) => {for (final h in headers) h.name: true}.build(),
+class EnabledHeadersNotifier extends Notifier<BuiltMap<String, bool>> {
+  @override
+  BuiltMap<String, bool> build() {
+    return {for (final h in headers) h.name: true}.build();
+  }
+
+  void toggleHeader(String name, bool isSelected) {
+    state = state.rebuild((set) => set[name] = isSelected);
+  }
+}
+
+final enabledHeadersProvider =
+    NotifierProvider<EnabledHeadersNotifier, BuiltMap<String, bool>>(
+  EnabledHeadersNotifier.new,
 );
 
 class HeaderSelectionTile extends ConsumerWidget {
@@ -25,7 +36,7 @@ class HeaderSelectionTile extends ConsumerWidget {
       value: enabledHeaders[name],
       onChanged: (isSelected) => ref
           .read(enabledHeadersProvider.notifier)
-          .update((state) => state.rebuild((set) => set[name] = isSelected!)),
+          .toggleHeader(name, isSelected!),
     );
   }
 }
