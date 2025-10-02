@@ -71,7 +71,7 @@ catch (const std::out_of_range& e)
     return ip;
 }
 
-mp::Subnet generate_random_subnet(mp::Subnet::PrefixLength prefix_length, mp::Subnet range)
+mp::Subnet random_subnet_from_range(mp::Subnet::PrefixLength prefix_length, mp::Subnet range)
 {
     if (prefix_length < range.prefix_length())
         throw std::logic_error(
@@ -79,17 +79,20 @@ mp::Subnet generate_random_subnet(mp::Subnet::PrefixLength prefix_length, mp::Su
                         prefix_length,
                         range));
 
+    // a range with prefix /16 has 65536 prefix /32 networks,
+    // a range with prefix /24 has 256 prefix /32 networks,
+    // so a prefix /16 network can hold 65536 / 256 = 256 prefix /24 networks.
     // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
-    const size_t possibleSubnets = std::size_t{1} << (prefix_length - range.prefix_length());
+    const size_t possible_subnets = std::size_t{1} << (prefix_length - range.prefix_length());
 
     // narrowing conversion, possibleSubnets is guaranteed to be < 2^31 (4 bytes is safe)
-    static_assert(sizeof(decltype(MP_UTILS.random_int(0, possibleSubnets))) >= 4);
+    static_assert(sizeof(decltype(MP_UTILS.random_int(0, possible_subnets))) >= 4);
 
-    const auto subnet = static_cast<size_t>(MP_UTILS.random_int(0, possibleSubnets - 1));
+    const auto subnet_block_idx = static_cast<size_t>(MP_UTILS.random_int(0, possible_subnets - 1));
 
     // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
     mp::IPAddress id =
-        range.network_address() + (subnet * (std::size_t{1} << (32 - prefix_length)));
+        range.network_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
 
     return mp::Subnet{id, prefix_length};
 }
@@ -111,7 +114,9 @@ mp::IPAddress mp::Subnet::min_address() const
 
 mp::IPAddress mp::Subnet::max_address() const
 {
-    // identifier + 2^(32 - prefix) - 1 - 1
+    // address + 2^(32 - prefix) - 1 - 1
+    // address + 2^(32 - prefix) is the next subnet's network address for this prefix length
+    // subtracting 1 to stay in this subnet and another 1 to exclude the broadcast address
     return address + ((1ull << (32ull - prefix)) - 2ull);
 }
 
@@ -171,12 +176,13 @@ std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 }
 */
 
-mp::Subnet mp::SubnetUtils::generate_random_subnet(Subnet::PrefixLength prefix, Subnet range) const
+mp::Subnet mp::SubnetUtils::random_subnet_from_range(Subnet::PrefixLength prefix,
+                                                     Subnet range) const
 {
     // @TODO don't rely on pure randomness
     for (auto i = 0; i < 100; ++i)
     {
-        const auto subnet = ::generate_random_subnet(prefix, range);
+        const auto subnet = ::random_subnet_from_range(prefix, range);
         if (MP_PLATFORM.subnet_used_locally(subnet))
             continue;
 

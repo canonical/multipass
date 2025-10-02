@@ -53,7 +53,7 @@ catch (const std::ios_base::failure& e)
         return json_subnet;
 
     mpl::debug(name, "subnet missing from AZ file '{}', using default", file_path);
-    return MP_SUBNET_UTILS.generate_random_subnet();
+    return MP_SUBNET_UTILS.random_subnet_from_range();
 };
 
 [[nodiscard]] bool deserialize_available(const QJsonObject& json,

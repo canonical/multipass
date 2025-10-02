@@ -28,7 +28,7 @@ struct MockSubnetUtils : public SubnetUtils
     using SubnetUtils::SubnetUtils;
 
     MOCK_METHOD(Subnet,
-                generate_random_subnet,
+                random_subnet_from_range,
                 (Subnet::PrefixLength prefix, Subnet range),
                 (const, override));
 

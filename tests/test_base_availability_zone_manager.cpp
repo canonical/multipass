@@ -69,7 +69,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
                     write_json(_, QString::fromStdU16String(zone_file.u16string())));
     }
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .Times(expected_zone_count)
         .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
@@ -107,7 +107,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
             .Times(AnyNumber());
     }
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .Times(AnyNumber())
         .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
@@ -157,7 +157,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
             .Times(AnyNumber());
     }
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .Times(AnyNumber())
         .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
@@ -186,7 +186,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
             .Times(AnyNumber());
     }
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .Times(AnyNumber())
         .WillRepeatedly(Return(mp::Subnet{"192.168.1.0/24"}));
 
