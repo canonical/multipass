@@ -18,6 +18,7 @@
 #include <tests/common.h>
 #include <tests/mock_environment_helpers.h>
 #include <tests/mock_platform.h>
+#include <tests/mock_utils.h>
 #include <tests/temp_file.h>
 
 #include "mock_libc_functions.h"
@@ -333,4 +334,21 @@ TEST_F(TestPlatformUnix, quitWatchdogSignalsItselfAsynchronously)
     EXPECT_EQ(watchdog([&times] { return times.load(std::memory_order_acquire) < 10; }),
               std::nullopt);
     EXPECT_GE(times.load(std::memory_order_acquire), 10);
+}
+
+TEST_F(TestPlatformUnix, canReachGatewayRunsPingWithIP)
+{
+    // Linux and MacOS both use ping but with different flags
+    const mp::IPAddress testIP{"192.168.0.1"};
+    const auto testIPstr = testIP.as_string();
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject<StrictMock>();
+
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ping"), Contains(QString::fromStdString(testIPstr)), _))
+        .WillOnce(Return(true))
+        .WillOnce(Return(false));
+
+    EXPECT_TRUE(MP_PLATFORM.can_reach_gateway(testIP));
+    EXPECT_FALSE(MP_PLATFORM.can_reach_gateway(testIP));
 }

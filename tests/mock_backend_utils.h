@@ -30,7 +30,6 @@ public:
     using Backend::Backend;
 
     MOCK_METHOD(std::string, create_bridge_with, (const std::string&), (override));
-    MOCK_METHOD(std::string, get_subnet, (const Path&, const QString&), (const, override));
     MOCK_METHOD(void, check_for_kvm_support, (), (override));
     MOCK_METHOD(void, check_if_kvm_is_in_use, (), (override));
 

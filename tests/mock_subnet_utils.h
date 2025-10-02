@@ -17,30 +17,21 @@
 
 #pragma once
 
-#include "tests/common.h"
-#include "tests/mock_singleton_helpers.h"
+#include "mock_singleton_helpers.h"
 
-#include <src/platform/backends/qemu/linux/firewall_config.h>
+#include <multipass/subnet.h>
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
+struct MockSubnetUtils : public SubnetUtils
 {
-struct MockFirewallConfig : public FirewallConfig
-{
-    MOCK_METHOD(void, verify_firewall_rules, (), (override));
-};
+    using SubnetUtils::SubnetUtils;
 
-struct MockFirewallConfigFactory : public FirewallConfigFactory
-{
-    using FirewallConfigFactory::FirewallConfigFactory;
-
-    MOCK_METHOD(FirewallConfig::UPtr,
-                make_firewall_config,
-                (const QString&, const Subnet&),
+    MOCK_METHOD(Subnet,
+                random_subnet_from_range,
+                (Subnet::PrefixLength prefix, Subnet range),
                 (const, override));
 
-    MP_MOCK_SINGLETON_BOILERPLATE(MockFirewallConfigFactory, FirewallConfigFactory);
+    MP_MOCK_SINGLETON_BOILERPLATE(MockSubnetUtils, SubnetUtils);
 };
-} // namespace test
-} // namespace multipass
+} // namespace multipass::test
