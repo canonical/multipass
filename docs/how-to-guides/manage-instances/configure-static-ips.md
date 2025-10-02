@@ -1,7 +1,7 @@
 (how-to-guides-manage-instances-configure-static-ips)=
 # Configure static IPs
 
-> See also: [Instance](/explanation/instance)
+> See also: [Instance](explanation-instance)
 
 This guide explains how to create instances with static IPs in a new network, internal to the host. With this approach, instances get an extra IP that does not change with restarts. By using a separate, local network we avoid any IP conflicts. Instances retain the usual default interface with a DHCP-allocated IP, which gives them connectivity to the outside.
 
