@@ -61,7 +61,7 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())));
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .WillOnce(Return(az_subnet));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
@@ -106,7 +106,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
                 write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .WillOnce(Return(az_subnet));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
@@ -131,7 +131,7 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())));
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .WillOnce(Return(az_subnet));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
@@ -156,7 +156,7 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
                 write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
 
-    EXPECT_CALL(*mock_subnet_utils_guard.first, generate_random_subnet(_, _))
+    EXPECT_CALL(*mock_subnet_utils_guard.first, random_subnet_from_range(_, _))
         .WillOnce(Return(az_subnet));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};

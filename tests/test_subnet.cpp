@@ -307,7 +307,7 @@ TEST_F(SubnetUtils, generateRandomSubnetTriviallyWorks)
         return a;
     }));
 
-    mp::Subnet subnet = MP_SUBNET_UTILS.generate_random_subnet(24, range);
+    mp::Subnet subnet = MP_SUBNET_UTILS.random_subnet_from_range(24, range);
 
     EXPECT_EQ(subnet.network_address(), range.network_address());
     EXPECT_EQ(subnet.prefix_length(), 24);
@@ -317,21 +317,23 @@ TEST_F(SubnetUtils, generateRandomSubnetFailsOnSmallRange)
 {
     mp::Subnet range{"192.168.1.0/16"};
 
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(15, range), std::logic_error);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(0, range), std::logic_error);
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(15, range),
+                 std::logic_error);
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(0, range),
+                 std::logic_error);
 }
 
 TEST_F(SubnetUtils, generateRandomSubnetFailsOnBadPrefixLength)
 {
     mp::Subnet range{"0.0.0.0/0"};
 
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(31, range),
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(31, range),
                  mp::Subnet::PrefixLengthOutOfRange);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(32, range),
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(32, range),
                  mp::Subnet::PrefixLengthOutOfRange);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(33, range),
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(33, range),
                  mp::Subnet::PrefixLengthOutOfRange);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(255, range),
+    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(255, range),
                  mp::Subnet::PrefixLengthOutOfRange);
 }
 
@@ -343,8 +345,8 @@ TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
 
     EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(ReturnArg<0>()).WillOnce(ReturnArg<1>());
 
-    auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(24, range);
-    auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(24, range);
+    auto subnetLow = MP_SUBNET_UTILS.random_subnet_from_range(24, range);
+    auto subnetHigh = MP_SUBNET_UTILS.random_subnet_from_range(24, range);
 
     EXPECT_EQ(subnetLow.network_address(), mp::IPAddress{"192.168.0.0"});
     EXPECT_EQ(subnetLow.prefix_length(), 24);
@@ -359,8 +361,8 @@ TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
 
     EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(ReturnArg<0>()).WillOnce(ReturnArg<1>());
 
-    auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(30, range);
-    auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(30, range);
+    auto subnetLow = MP_SUBNET_UTILS.random_subnet_from_range(30, range);
+    auto subnetHigh = MP_SUBNET_UTILS.random_subnet_from_range(30, range);
 
     EXPECT_EQ(subnetLow.network_address(), mp::IPAddress{"0.0.0.0"});
     EXPECT_EQ(subnetLow.prefix_length(), 30);
@@ -377,7 +379,7 @@ TEST_F(SubnetUtils, generateRandomSubnetGivesUpUsedLocally)
 
     EXPECT_CALL(*mock_platform, subnet_used_locally).WillRepeatedly(Return(true));
 
-    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(24, range),
+    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(24, range),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("subnet")));
 }
@@ -391,7 +393,7 @@ TEST_F(SubnetUtils, generateRandomSubnetGivesUpGatewayReached)
     EXPECT_CALL(*mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
     EXPECT_CALL(*mock_platform, can_reach_gateway).WillRepeatedly(Return(true));
 
-    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.generate_random_subnet(24, range),
+    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(24, range),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("subnet")));
 }
