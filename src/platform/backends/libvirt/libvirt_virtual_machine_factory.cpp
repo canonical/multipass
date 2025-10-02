@@ -39,7 +39,7 @@ auto generate_libvirt_bridge_xml_config(const mp::Path& data_dir, const std::str
     auto network_dir = MP_UTILS.make_dir(QDir(data_dir), "network");
 
     // doing this since we're removing libvirt soon
-    auto subnet = MP_SUBNET_UTILS.generate_random_subnet();
+    auto subnet = MP_SUBNET_UTILS.random_subnet_from_range();
 
     const auto range_start = subnet.min_address() + 1;
     const auto range_end = subnet.max_address();

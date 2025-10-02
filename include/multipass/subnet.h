@@ -91,8 +91,9 @@ struct SubnetUtils : Singleton<SubnetUtils>
 {
     using Singleton<SubnetUtils>::Singleton;
 
-    [[nodiscard]] virtual Subnet generate_random_subnet(Subnet::PrefixLength prefix = 24,
-                                                        Subnet range = Subnet{"10.0.0.0/8"}) const;
+    [[nodiscard]] virtual Subnet random_subnet_from_range(Subnet::PrefixLength prefix = 24,
+                                                          Subnet range = Subnet{
+                                                              "10.0.0.0/8"}) const;
 };
 } // namespace multipass
 
