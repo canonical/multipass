@@ -22,11 +22,34 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ## In this documentation
 
-|                                                                                                      |                                                                                             |
-|------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [Tutorial](/tutorial/index)</br>  Get started - a hands-on introduction to Multipass for new users </br> | [How-to guides](/how-to-guides/index) </br> Step-by-step guides covering key operations and common tasks |
-| [Explanation](/explanation/index) </br> Concepts - discussion and clarification of key topics                   | [Reference](/reference/index) </br> Technical information - specifications, APIs, architecture       |
+````{grid} 1 1 2 2
 
+```{grid-item-card} [Tutorial](tutorial/index)
+
+**Get started:** a hands-on introduction to Multipass for new users
+```
+
+```{grid-item-card} [How-to guides](how-to-guides/index)
+
+**Step-by-step guides** covering key operations and common tasks
+```
+
+````
+
+````{grid} 1 1 2 2
+:reverse:
+
+```{grid-item-card} [Reference](reference/index)
+
+**Technical information** - specifications, APIs, architecture
+```
+
+```{grid-item-card} [Explanation](explanation/index)
+
+**Concepts** - discussion and clarification of key topics
+```
+
+````
 ---
 
 ## Project and community
@@ -34,7 +57,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 We value your input and contributions! Here are some ways you can join our community or get help with your Multipass questions:
 
 * Read our [Code of Conduct](https://ubuntu.com/community/code-of-conduct)
-* Read our quick guide: [Contribute to Multipass docs](./contribute-to-multipass-docs)
+* Read our quick guide: {ref}`contribute-to-multipass-docs`
 * Join the [Discourse forum](https://discourse.ubuntu.com/c/project/multipass/21/)
 * Report an issue or contribute to the code on [GitHub](https://github.com/canonical/multipass/issues)
 
