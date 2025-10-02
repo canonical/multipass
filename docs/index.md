@@ -41,7 +41,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{grid-item-card} [Reference](reference/index)
 
-**Technical information** - specifications, APIs, architecture 
+**Technical information** - specifications, APIs, architecture
 ```
 
 ```{grid-item-card} [Explanation](explanation/index)
