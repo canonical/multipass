@@ -232,18 +232,38 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- \
            sh -c "sudo sed -i \"s/use JSON::PP/use JSON::XS/\" \`which geninfo\`"
 
+        # Install cargo-llvm-cov for Rust coverage
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          source /root/.cargo/env && \
+          cargo install cargo-llvm-cov"
+
         # Create the directory for the coredumps
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+
+        # Generate C++ coverage
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
           ulimit -c unlimited && \
           env CTEST_OUTPUT_ON_FAILURE=1 \
             cmake --build /root/parts/multipass/build --target covreport"
+
+        # Generate Rust coverage in lcov format
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          source /root/.cargo/env && \
+          cargo llvm-cov --manifest-path /root/parts/multipass/src/Cargo.toml \
+            --lcov --output-path /root/parts/multipass/build/rust-coverage.lcov"
+
+        # Merge C++ and Rust coverage reports
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+          lcov -a /root/parts/multipass/build/coverage.cleaned \
+               -a /root/parts/multipass/build/rust-coverage.lcov \
+               -o /root/parts/multipass/build/combined-coverage.info"
 
     - name: Upload coverage
       if: ${{ matrix.build-type == 'Coverage' }}
       uses: codecov/codecov-action@v5
       with:
         directory: ${{ steps.coverage-setup.outputs.build }}
+        files: ./combined-coverage.info
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
