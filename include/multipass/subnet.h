@@ -65,9 +65,9 @@ public:
 
     [[nodiscard]] IPAddress min_address() const;
     [[nodiscard]] IPAddress max_address() const;
-    [[nodiscard]] uint32_t address_count() const;
+    [[nodiscard]] uint32_t usable_address_count() const;
 
-    [[nodiscard]] IPAddress identifier() const;
+    [[nodiscard]] IPAddress network_address() const;
     [[nodiscard]] PrefixLength prefix_length() const;
     [[nodiscard]] IPAddress subnet_mask() const;
 
@@ -83,7 +83,7 @@ public:
     [[nodiscard]] bool operator==(const Subnet& other) const;
 
 private:
-    IPAddress id;
+    IPAddress address;
     PrefixLength prefix;
 };
 
