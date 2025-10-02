@@ -112,14 +112,15 @@ mp::Subnet generate_random_subnet(mp::Subnet::PrefixLength prefix_length, mp::Su
     const auto subnet = static_cast<size_t>(MP_UTILS.random_int(0, possibleSubnets - 1));
 
     // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
-    mp::IPAddress id = range.identifier() + (subnet * (std::size_t{1} << (32 - prefix_length)));
+    mp::IPAddress id =
+        range.network_address() + (subnet * (std::size_t{1} << (32 - prefix_length)));
 
     return mp::Subnet{id, prefix_length};
 }
 } // namespace
 
 mp::Subnet::Subnet(IPAddress ip, PrefixLength prefix_length)
-    : id(apply_mask(ip, prefix_length)), prefix(prefix_length)
+    : address(apply_mask(ip, prefix_length)), prefix(prefix_length)
 {
 }
 
@@ -129,23 +130,23 @@ mp::Subnet::Subnet(const std::string& cidr_string) : Subnet(parse(cidr_string))
 
 mp::IPAddress mp::Subnet::min_address() const
 {
-    return id + 1;
+    return address + 1;
 }
 
 mp::IPAddress mp::Subnet::max_address() const
 {
     // identifier + 2^(32 - prefix) - 1 - 1
-    return id + ((1ull << (32ull - prefix)) - 2ull);
+    return address + ((1ull << (32ull - prefix)) - 2ull);
 }
 
-uint32_t mp::Subnet::address_count() const
+uint32_t mp::Subnet::usable_address_count() const
 {
     return max_address().as_uint32() - min_address().as_uint32() + 1;
 }
 
-mp::IPAddress mp::Subnet::identifier() const
+mp::IPAddress mp::Subnet::network_address() const
 {
-    return id;
+    return address;
 }
 
 mp::Subnet::PrefixLength mp::Subnet::prefix_length() const
@@ -161,7 +162,7 @@ mp::IPAddress mp::Subnet::subnet_mask() const
 // uses CIDR notation
 std::string mp::Subnet::to_cidr() const
 {
-    return fmt::format("{}/{}", id.as_string(), prefix);
+    return fmt::format("{}/{}", address.as_string(), prefix);
 }
 
 bool mp::Subnet::contains(Subnet other) const
@@ -170,24 +171,24 @@ bool mp::Subnet::contains(Subnet other) const
     if (other.prefix_length() < prefix)
         return false;
 
-    return contains(other.identifier());
+    return contains(other.network_address());
 }
 
 bool mp::Subnet::contains(IPAddress ip) const
 {
     // since get_max_address doesn't include the broadcast address add 1 to it.
-    return identifier() <= ip && (max_address() + 1) >= ip;
+    return address <= ip && (max_address() + 1) >= ip;
 }
 
 bool mp::Subnet::operator==(const Subnet& other) const
 {
-    return id == other.id && prefix == other.prefix;
+    return address == other.address && prefix == other.prefix;
 }
 
 /* TODO C++20 uncomment
 std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 {
-    const auto ip_res = id <=> other.id;
+    const auto ip_res = address <=> other.address;
 
     // note the prefix_length operands are purposely flipped
     return (ip_res == 0) ? other.prefix_length <=> prefix_length : ip_res;

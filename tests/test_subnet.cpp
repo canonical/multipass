@@ -30,7 +30,7 @@ TEST(Subnet, canInitializeFromIpCidrPair)
 {
     mp::Subnet subnet{mp::IPAddress("192.168.0.0"), 24};
 
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress("192.168.0.0"));
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress("192.168.0.0"));
     EXPECT_EQ(subnet.prefix_length(), 24);
 }
 
@@ -38,7 +38,7 @@ TEST(Subnet, canInitializeFromString)
 {
     mp::Subnet subnet{"192.168.0.0/24"};
 
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress("192.168.0.0"));
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress("192.168.0.0"));
     EXPECT_EQ(subnet.prefix_length(), 24);
 }
 
@@ -96,37 +96,37 @@ TEST(Subnet, throwsOnNegativePrefixLength)
 TEST(Subnet, givesCorrectRange)
 {
     mp::Subnet subnet{"192.168.0.0/24"};
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"192.168.0.0"});
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress{"192.168.0.0"});
     EXPECT_EQ(subnet.min_address(), mp::IPAddress{"192.168.0.1"});
     EXPECT_EQ(subnet.max_address(), mp::IPAddress{"192.168.0.254"});
-    EXPECT_EQ(subnet.address_count(), 254);
+    EXPECT_EQ(subnet.usable_address_count(), 254);
 
     subnet = mp::Subnet{"121.212.1.152/11"};
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"121.192.0.0"});
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress{"121.192.0.0"});
     EXPECT_EQ(subnet.min_address(), mp::IPAddress{"121.192.0.1"});
     EXPECT_EQ(subnet.max_address(), mp::IPAddress{"121,223.255.254"});
-    EXPECT_EQ(subnet.address_count(), 2097150);
+    EXPECT_EQ(subnet.usable_address_count(), 2097150);
 
     subnet = mp::Subnet{"0.0.0.0/0"};
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"0.0.0.0"});
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress{"0.0.0.0"});
     EXPECT_EQ(subnet.min_address(), mp::IPAddress{"0.0.0.1"});
     EXPECT_EQ(subnet.max_address(), mp::IPAddress{"255,255.255.254"});
-    EXPECT_EQ(subnet.address_count(), 4294967294);
+    EXPECT_EQ(subnet.usable_address_count(), 4294967294);
 }
 
 TEST(Subnet, convertsToMaskedIP)
 {
     mp::Subnet subnet{"192.168.255.52/24"};
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"192.168.255.0"});
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress{"192.168.255.0"});
 
     subnet = mp::Subnet{"255.168.1.152/8"};
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"255.0.0.0"});
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress{"255.0.0.0"});
 
     subnet = mp::Subnet{"192.168.1.152/0"};
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"0.0.0.0"});
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress{"0.0.0.0"});
 
     subnet = mp::Subnet{"255.212.1.152/13"};
-    EXPECT_EQ(subnet.identifier(), mp::IPAddress{"255.208.0.0"});
+    EXPECT_EQ(subnet.network_address(), mp::IPAddress{"255.208.0.0"});
 }
 
 TEST(Subnet, getSubnetMaskReturnsSubnetMask)
@@ -260,7 +260,7 @@ TEST(Subnet, relationalComparisonsWorkAsExpected)
 {
     const mp::Subnet low{"0.0.0.0/0"};
     const mp::Subnet middle{"192.168.0.0/16"};
-    const mp::Subnet submiddle{middle.identifier(), 24};
+    const mp::Subnet submiddle{middle.network_address(), 24};
     const mp::Subnet high{"255.255.255.0/24"};
 
     EXPECT_LT(low, middle);
@@ -309,7 +309,7 @@ TEST_F(SubnetUtils, generateRandomSubnetTriviallyWorks)
 
     mp::Subnet subnet = MP_SUBNET_UTILS.generate_random_subnet(24, range);
 
-    EXPECT_EQ(subnet.identifier(), range.identifier());
+    EXPECT_EQ(subnet.network_address(), range.network_address());
     EXPECT_EQ(subnet.prefix_length(), 24);
 }
 
@@ -346,10 +346,10 @@ TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
     auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(24, range);
     auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(24, range);
 
-    EXPECT_EQ(subnetLow.identifier(), mp::IPAddress{"192.168.0.0"});
+    EXPECT_EQ(subnetLow.network_address(), mp::IPAddress{"192.168.0.0"});
     EXPECT_EQ(subnetLow.prefix_length(), 24);
 
-    EXPECT_EQ(subnetHigh.identifier(), mp::IPAddress{"192.168.255.0"});
+    EXPECT_EQ(subnetHigh.network_address(), mp::IPAddress{"192.168.255.0"});
     EXPECT_EQ(subnetHigh.prefix_length(), 24);
 }
 
@@ -362,10 +362,10 @@ TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
     auto subnetLow = MP_SUBNET_UTILS.generate_random_subnet(30, range);
     auto subnetHigh = MP_SUBNET_UTILS.generate_random_subnet(30, range);
 
-    EXPECT_EQ(subnetLow.identifier(), mp::IPAddress{"0.0.0.0"});
+    EXPECT_EQ(subnetLow.network_address(), mp::IPAddress{"0.0.0.0"});
     EXPECT_EQ(subnetLow.prefix_length(), 30);
 
-    EXPECT_EQ(subnetHigh.identifier(), mp::IPAddress{"255.255.255.252"});
+    EXPECT_EQ(subnetHigh.network_address(), mp::IPAddress{"255.255.255.252"});
     EXPECT_EQ(subnetHigh.prefix_length(), 30);
 }
 
