@@ -161,8 +161,9 @@ int mp::SSHClient::ssh_channel_get_exit_status(ssh_channel channel)
 {
     uint32_t exit_status = (uint32_t)-1;
 
-    int return_code {ssh_channel_get_exit_state(channel, &exit_status, NULL, NULL)};
-    if (return_code != SSH_OK) {
+    int return_code{ssh_channel_get_exit_state(channel, &exit_status, NULL, NULL)};
+    if (return_code != SSH_OK)
+    {
         return SSH_ERROR;
     }
 
