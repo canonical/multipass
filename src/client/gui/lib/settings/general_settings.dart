@@ -1,7 +1,6 @@
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../riverpod_compat.dart';
 
 import '../dropdown.dart';
 import '../notifications.dart';
@@ -18,7 +17,11 @@ class GeneralSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final update = ref.watch(updateProvider);
-    final autostart = ref.watch(autostartProvider).valueOrNull ?? false;
+    final autostart = ref.watch(autostartProvider).when(
+          data: (data) => data,
+          loading: () => false,
+          error: (_, __) => false,
+        );
     final onAppClose = ref.watch(onAppCloseProvider);
 
     return Column(

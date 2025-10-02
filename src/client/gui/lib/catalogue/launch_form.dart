@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
-import '../riverpod_compat.dart';
 
 import '../ffi.dart';
 import '../notifications.dart';
@@ -69,8 +68,16 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final vmNames = ref.watch(vmNamesProvider);
     final deletedVms = ref.watch(deletedVmsProvider);
     final networksAsync = ref.watch(networksProvider);
-    final networks = networksAsync.valueOrNull ?? const <String>{};
-    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final networks = networksAsync.when(
+      data: (data) => data,
+      loading: () => const <String>{},
+      error: (_, __) => const <String>{},
+    );
+    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),

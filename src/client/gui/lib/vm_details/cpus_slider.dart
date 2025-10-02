@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../riverpod_compat.dart';
 
 import '../providers.dart';
 
@@ -55,7 +54,11 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
   @override
   Widget build(BuildContext context) {
     final daemonInfo = ref.watch(daemonInfoProvider);
-    final cores = daemonInfo.valueOrNull?.cpus ?? min;
+    final cores = daemonInfo.when(
+      data: (data) => data.cpus,
+      loading: () => min,
+      error: (_, __) => min,
+    );
     final max = math.max(widget.initialValue ?? min, cores);
     final divisions = math.max(1, max - min); // Ensure at least 1 division
 

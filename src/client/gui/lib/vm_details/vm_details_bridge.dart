@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-import '../riverpod_compat.dart';
 
 import '../notifications.dart';
 import '../providers.dart';
@@ -30,11 +29,23 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
   @override
   Widget build(BuildContext context) {
     final networksAsync = ref.watch(networksProvider);
-    final networks = networksAsync.valueOrNull ?? const <String>{};
-    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final networks = networksAsync.when(
+      data: (data) => data,
+      loading: () => const <String>{},
+      error: (_, __) => const <String>{},
+    );
+    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
     final bridged = ref.watch(
       bridgedProvider.select((value) {
-        return value.valueOrNull?.toBoolOption.toNullable();
+        return value.when(
+          data: (data) => data.toBoolOption.toNullable(),
+          loading: () => null,
+          error: (_, __) => null,
+        );
       }),
     );
     final stopped = ref.watch(
