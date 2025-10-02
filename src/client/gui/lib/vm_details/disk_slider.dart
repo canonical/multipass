@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../riverpod_compat.dart';
 
 import '../providers.dart';
 import '../tooltip.dart';
@@ -20,7 +19,11 @@ class DiskSlider extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final daemonInfo = ref.watch(daemonInfoProvider);
-    final disk = daemonInfo.valueOrNull?.availableSpace.toInt() ?? min;
+    final disk = daemonInfo.when(
+      data: (data) => data.availableSpace.toInt(),
+      loading: () => min,
+      error: (_, __) => min,
+    );
     final max = math.max(initialValue ?? 0, disk);
     final enabled = min != max;
 

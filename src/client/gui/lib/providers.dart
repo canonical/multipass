@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'riverpod_compat.dart';
 
 import 'ffi.dart';
 import 'grpc_client.dart';
@@ -104,7 +103,11 @@ final daemonInfoProvider = FutureProvider((ref) {
 class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
   @override
   List<DetailedInfoItem> build() {
-    return ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+    return ref.watch(vmInfosStreamProvider).when(
+          data: (data) => data,
+          loading: () => const [],
+          error: (_, __) => const [],
+        );
   }
 
   Future<void> update() async {
@@ -253,7 +256,11 @@ class DaemonSettingNotifier extends AsyncNotifier<String> {
   Future<String> build() async {
     return ref.watch(daemonAvailableProvider)
         ? await ref.watch(grpcClientProvider).get(arg)
-        : state.valueOrNull ?? await Completer<String>().future;
+        : state.when(
+            data: (data) => data,
+            loading: () => throw StateError('Daemon not available'),
+            error: (_, __) => throw StateError('Daemon not available'),
+          );
   }
 
   Future<void> set(String value) async {
@@ -350,7 +357,11 @@ final guiSettingProvider = NotifierProvider.autoDispose
 
 final networksProvider =
     FutureProvider.autoDispose<BuiltSet<String>>((ref) async {
-  final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;
+  final driver = ref.watch(daemonSettingProvider(driverKey)).when(
+        data: (data) => data,
+        loading: () => null,
+        error: (_, __) => null,
+      );
   if (driver != null && ref.watch(daemonAvailableProvider)) {
     final networks = await ref.watch(grpcClientProvider).networks();
     return BuiltSet<String>(networks);

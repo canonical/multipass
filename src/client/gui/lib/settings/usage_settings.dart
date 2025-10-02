@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fpdart/fpdart.dart' hide State;
-import '../riverpod_compat.dart';
 
 import '../notifications/notifications_provider.dart';
 import '../providers.dart';
@@ -26,12 +25,20 @@ class UsageSettings extends ConsumerWidget {
     final primaryName = ref.watch(primaryNameProvider);
     final hasPassphrase = ref.watch(
       passphraseProvider.select((value) {
-        return value.valueOrNull.isNotNullOrBlank;
+        return value.when(
+          data: (data) => data.isNotNullOrBlank,
+          loading: () => false,
+          error: (_, __) => false,
+        );
       }),
     );
     final privilegedMounts = ref.watch(
       privilegedMountsProvider.select((value) {
-        return value.valueOrNull?.toBoolOption.toNullable() ?? false;
+        return value.when(
+          data: (data) => data.toBoolOption.toNullable() ?? false,
+          loading: () => false,
+          error: (_, __) => false,
+        );
       }),
     );
     final hotkey = ref.watch(hotkeyProvider);

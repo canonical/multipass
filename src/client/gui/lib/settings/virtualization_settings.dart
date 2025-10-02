@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../riverpod_compat.dart';
 
 import '../dropdown.dart';
 import '../notifications/notifications_provider.dart';
@@ -15,10 +14,22 @@ class VirtualizationSettings extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final driver = ref.watch(driverProvider).valueOrNull;
-    final bridgedNetwork = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final driver = ref.watch(driverProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
+    final bridgedNetwork = ref.watch(bridgedNetworkProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
     final networksAsync = ref.watch(networksProvider);
-    final networks = networksAsync.valueOrNull ?? const <String>{};
+    final networks = networksAsync.when(
+      data: (data) => data,
+      loading: () => const <String>{},
+      error: (_, __) => const <String>{},
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,7 +48,7 @@ class VirtualizationSettings extends ConsumerWidget {
             if (value == driver) return;
             ref
                 .read(driverProvider.notifier)
-                .set(value!)
+                .set(value as String)
                 .onError(ref.notifyError((e) => 'Failed to set driver: $e'));
           },
         ),
