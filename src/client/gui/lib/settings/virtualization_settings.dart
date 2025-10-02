@@ -17,7 +17,8 @@ class VirtualizationSettings extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final driver = ref.watch(driverProvider).valueOrNull;
     final bridgedNetwork = ref.watch(bridgedNetworkProvider).valueOrNull;
-    final networks = ref.watch(networksProvider);
+    final networksAsync = ref.watch(networksProvider);
+    final networks = networksAsync.valueOrNull ?? const <String>{};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

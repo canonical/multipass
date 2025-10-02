@@ -348,13 +348,12 @@ const askTerminalCloseKey = 'askTerminalClose';
 final guiSettingProvider = NotifierProvider.autoDispose
     .family<GuiSettingNotifier, String?, String>(GuiSettingNotifier.new);
 
-final networksProvider = Provider.autoDispose<BuiltSet<String>>((ref) {
+final networksProvider =
+    FutureProvider.autoDispose<BuiltSet<String>>((ref) async {
   final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;
   if (driver != null && ref.watch(daemonAvailableProvider)) {
-    ref.watch(grpcClientProvider).networks().then((networks) {
-      // Trigger a rebuild by invalidating the provider
-      ref.invalidateSelf();
-    }).ignore();
+    final networks = await ref.watch(grpcClientProvider).networks();
+    return BuiltSet<String>(networks);
   }
   return BuiltSet<String>();
 });
