@@ -75,6 +75,12 @@ class TerminalNotifier extends Notifier<Terminal?> {
     return null;
   }
 
+  void _decrementShellCount() {
+    if (ref.mounted) {
+      ref.read(runningShellsProvider(arg.vmName).notifier).decrement();
+    }
+  }
+
   Future<Terminal?> _initShell() async {
     final currentState = stateOrNull;
     if (currentState != null) return currentState;
@@ -110,7 +116,11 @@ class TerminalNotifier extends Notifier<Terminal?> {
       receiver.close();
       errorReceiver.close();
       exitReceiver.close();
-      stop();
+      // Don't call stop() here - it will be handled by dispose
+      // Just clear the state to reflect that the connection is closed
+      if (ref.mounted) {
+        state = null;
+      }
     });
 
     receiver.listen((event) {
@@ -121,7 +131,10 @@ class TerminalNotifier extends Notifier<Terminal?> {
         case final String data:
           terminal.write(data);
         case null:
-          stop();
+          // Connection closed from remote side
+          if (ref.mounted) {
+            state = null;
+          }
       }
     });
 
@@ -154,7 +167,7 @@ class TerminalNotifier extends Notifier<Terminal?> {
   void _dispose() {
     isolate?.kill(priority: Isolate.immediate);
     if (isolate != null) {
-      ref.read(runningShellsProvider(arg.vmName).notifier).decrement();
+      _decrementShellCount();
     }
     isolate = null;
   }
