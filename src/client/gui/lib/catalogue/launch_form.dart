@@ -68,7 +68,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final randomName = ref.watch(randomNameProvider);
     final vmNames = ref.watch(vmNamesProvider);
     final deletedVms = ref.watch(deletedVmsProvider);
-    final networks = ref.watch(networksProvider);
+    final networksAsync = ref.watch(networksProvider);
+    final networks = networksAsync.valueOrNull ?? const <String>{};
     final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
 
     final closeButton = IconButton(

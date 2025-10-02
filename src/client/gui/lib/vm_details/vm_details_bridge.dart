@@ -29,7 +29,8 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
 
   @override
   Widget build(BuildContext context) {
-    final networks = ref.watch(networksProvider);
+    final networksAsync = ref.watch(networksProvider);
+    final networks = networksAsync.valueOrNull ?? const <String>{};
     final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
     final bridged = ref.watch(
       bridgedProvider.select((value) {
