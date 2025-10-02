@@ -31,7 +31,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{grid-item-card} [How-to guides](how-to-guides/index)
 
-**Step-by-step guides** guides covering key operations and common tasks
+**Step-by-step guides** covering key operations and common tasks
 ```
 
 ````
