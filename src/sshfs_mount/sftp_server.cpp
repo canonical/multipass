@@ -19,11 +19,16 @@
 
 #include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
+
 #include <multipass/utils.h>
+
+#include <libssh/priv.h>
+#include <libssh/sftp_priv.h>
 
 #include <QDir>
 #include <QFile>
@@ -56,10 +61,30 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
                                                         sftp_server_free};
-    mp::SSH::throw_on_error(sftp_server_session,
-                            session,
-                            "[sftp] server init failed",
-                            sftp_server_init);
+    ssh_session session = sftp_server_session->session;
+
+    /* handles setting the sftp->client_version */
+    sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
+    if (msg == NULL)
+    {
+        throw mp::SSHException("[sftp] server init failed: 'Null message'");
+    }
+
+    if (msg->type != SSH_FXP_INIT)
+    {
+        throw mp::SSHException(fmt::format(
+            "[sftp] server init failed: 'FATAL: Packet read of type {} instead of SSH_FXP_INIT'",
+            msg->type));
+    }
+
+    SSH_LOG(SSH_LOG_PACKET, "Received SSH_FXP_INIT");
+
+    if (sftp_reply_version(msg) != SSH_OK)
+    {
+        throw mp::SSHException(
+            "[sftp] server init failed: 'FATAL: Failed to process the SSH_FXP_INIT message'");
+    }
+
     return sftp_server_session;
 }
 
