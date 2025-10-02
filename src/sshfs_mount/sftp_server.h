@@ -57,7 +57,6 @@ public:
     using SSHFSProcUptr = std::unique_ptr<SSHProcess>;
 
 private:
-    SftpSessionUptr make_sftp_session(ssh_session session, ssh_channel channel);
     void process_message(sftp_client_message msg);
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
     int mapped_uid_for(const int uid);
