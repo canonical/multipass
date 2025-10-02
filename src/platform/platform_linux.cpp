@@ -31,7 +31,6 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/libvirt/libvirt_virtual_machine_factory.h"
-#include "backends/lxd/lxd_virtual_machine_factory.h"
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 
 #ifdef VIRTUALBOX_ENABLED
@@ -269,7 +268,7 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 #ifdef VIRTUALBOX_ENABLED
            backend == "virtualbox" ||
 #endif
-           backend == "libvirt" || backend == "lxd";
+           backend == "libvirt";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -413,9 +412,6 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
     if (driver == QStringLiteral("libvirt"))
         return std::make_unique<LibVirtVirtualMachineFactory>(data_dir);
-
-    if (driver == QStringLiteral("lxd"))
-        return std::make_unique<LXDVirtualMachineFactory>(data_dir);
 
 #if VIRTUALBOX_ENABLED
     if (driver == QStringLiteral("virtualbox"))

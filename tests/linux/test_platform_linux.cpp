@@ -29,7 +29,6 @@
 
 #include <src/platform/backends/libvirt/libvirt_virtual_machine_factory.h>
 #include <src/platform/backends/libvirt/libvirt_wrapper.h>
-#include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
 
 #include "tests/qemu/linux/mock_dnsmasq_server.h"
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
@@ -123,7 +122,7 @@ TEST_F(PlatformLinux, testEmptySyncWintermProfiles)
 
 TEST_F(PlatformLinux, testDefaultDriver)
 {
-    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "lxd"));
+    EXPECT_EQ(MP_PLATFORM.default_driver(), "qemu");
 }
 
 TEST_F(PlatformLinux, testDefaultPrivilegedMounts)
@@ -140,11 +139,6 @@ TEST_F(PlatformLinux, testLibvirtDriverProducesCorrectFactory)
 {
     auto test = [this] { aux_test_driver_factory<mp::LibVirtVirtualMachineFactory>("libvirt"); };
     with_minimally_mocked_libvirt(test);
-}
-
-TEST_F(PlatformLinux, testLxdDriverProducesCorrectFactory)
-{
-    aux_test_driver_factory<mp::LXDVirtualMachineFactory>("lxd");
 }
 
 TEST_F(PlatformLinux, testQemuInEnvVarIsIgnored)
