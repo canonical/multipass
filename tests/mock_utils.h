@@ -64,7 +64,7 @@ public:
     MOCK_METHOD(void, sleep_for, (const std::chrono::milliseconds&), (const, override));
     MOCK_METHOD(bool, is_ipv4_valid, (const std::string& ipv4), (const, override));
     MOCK_METHOD(Path, default_mount_target, (const Path& source), (const, override));
-    MOCK_METHOD(intmax_t, random_int, (intmax_t a, intmax_t b), (const, override));
+    MOCK_METHOD(long long, random_int, (long long a, long long b), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockUtils, Utils);
 };

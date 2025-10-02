@@ -255,7 +255,7 @@ public:
 
     virtual Path default_mount_target(const Path& source) const;
 
-    virtual intmax_t random_int(intmax_t a, intmax_t b) const;
+    virtual long long random_int(long long a, long long b) const;
 };
 } // namespace multipass
 
