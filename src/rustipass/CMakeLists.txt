@@ -38,11 +38,28 @@ if(APPLE)
     target_compile_options(rustipass_cxx PRIVATE -Wno-dollar-in-identifier-extension)
 endif()
 
-# Create an interface library that wraps the Rust library and cxx bindings
+# Add C++ wrapper for the Rust petname generator
+add_library(rustipass_cpp STATIC
+    rust_petname_generator.cpp
+)
+
+target_include_directories(rustipass_cpp
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(rustipass_cpp
+    PUBLIC rustipass rustipass_cxx
+)
+
+# Create an interface library that wraps everything together
 add_library(rustipass_lib INTERFACE)
 
-# Link the Rust static library (Corrosion automatically handles the target naming)
-target_link_libraries(rustipass_lib INTERFACE rustipass rustipass_cxx)
+# Link the Rust static library and C++ wrapper
+target_link_libraries(rustipass_lib INTERFACE rustipass_cpp rustipass rustipass_cxx)
 
 # On Windows, link required system libraries for Rust std
 if(WIN32)
