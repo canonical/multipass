@@ -60,16 +60,14 @@ class ImageCard extends ConsumerWidget {
                 OutlinedButton(
                   onPressed: () {
                     final name = ref.read(randomNameProvider);
-                    final aliasInfo = image.aliasesInfo.first;
                     final launchRequest = LaunchRequest(
                       instanceName: name,
-                      image: aliasInfo.alias,
+                      image: image.aliases.first,
                       numCores: defaultCpus,
                       memSize: '${defaultRam}B',
                       diskSpace: '${defaultDisk}B',
-                      remoteName: aliasInfo.hasRemoteName()
-                          ? aliasInfo.remoteName
-                          : null,
+                      remoteName:
+                          image.hasRemoteName() ? image.remoteName : null,
                     );
 
                     initiateLaunchFlow(ref, launchRequest);
