@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch, ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -20,7 +19,21 @@ import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
 
-final launchingImageProvider = StateProvider<ImageInfo>((_) => ImageInfo());
+class LaunchingImageNotifier extends Notifier<ImageInfo> {
+  @override
+  ImageInfo build() {
+    return ImageInfo();
+  }
+
+  void set(ImageInfo imageInfo) {
+    state = imageInfo;
+  }
+}
+
+final launchingImageProvider =
+    NotifierProvider<LaunchingImageNotifier, ImageInfo>(
+  LaunchingImageNotifier.new,
+);
 
 final randomNameProvider = Provider.autoDispose(
   (ref) => generatePetname(ref.watch(vmNamesProvider)),

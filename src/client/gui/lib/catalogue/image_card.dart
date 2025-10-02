@@ -79,7 +79,7 @@ class ImageCard extends ConsumerWidget {
                 const SizedBox(width: 16),
                 OutlinedButton(
                   onPressed: () {
-                    ref.read(launchingImageProvider.notifier).state = image;
+                    ref.read(launchingImageProvider.notifier).set(image);
                     Scaffold.of(context).openEndDrawer();
                   },
                   child: SvgPicture.asset(

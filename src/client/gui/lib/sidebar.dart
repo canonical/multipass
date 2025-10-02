@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'catalogue/catalogue.dart';
@@ -31,7 +30,7 @@ class SidebarKeyNotifier extends Notifier<String> {
 
   void set(String key) {
     if (key.sidebarVmName != null) {
-      ref.read(vmVisitedProvider(key).notifier).state = true;
+      ref.read(vmVisitedProvider(key).notifier).setVisited();
     }
     state = key;
   }
@@ -41,9 +40,55 @@ final sidebarKeyProvider = NotifierProvider<SidebarKeyNotifier, String>(
   SidebarKeyNotifier.new,
 );
 
-final vmVisitedProvider = StateProvider.family<bool, String>((_, __) => false);
-final sidebarExpandedProvider = StateProvider((_) => false);
-final sidebarPushContentProvider = StateProvider((_) => false);
+class VmVisitedNotifier extends Notifier<bool> {
+  VmVisitedNotifier(this.arg);
+  final String arg;
+
+  @override
+  bool build() {
+    return false;
+  }
+
+  void setVisited() {
+    state = true;
+  }
+}
+
+final vmVisitedProvider =
+    NotifierProvider.family<VmVisitedNotifier, bool, String>(
+  VmVisitedNotifier.new,
+);
+
+class SidebarExpandedNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
+
+  void setExpanded(bool value) {
+    state = value;
+  }
+}
+
+final sidebarExpandedProvider = NotifierProvider<SidebarExpandedNotifier, bool>(
+  SidebarExpandedNotifier.new,
+);
+
+class SidebarPushContentNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
+
+  void setPushContent(bool value) {
+    state = value;
+  }
+}
+
+final sidebarPushContentProvider =
+    NotifierProvider<SidebarPushContentNotifier, bool>(
+  SidebarPushContentNotifier.new,
+);
 Timer? sidebarExpandTimer;
 
 class SideBar extends ConsumerWidget {
@@ -113,7 +158,7 @@ class SideBar extends ConsumerWidget {
         ),
         onPressed: () => ref
             .read(sidebarPushContentProvider.notifier)
-            .update((state) => !state),
+            .setPushContent(!pushContent),
       ),
     );
 
@@ -169,13 +214,13 @@ class SideBar extends ConsumerWidget {
         if (pushContent) return;
         sidebarExpandTimer?.cancel();
         sidebarExpandTimer = Timer(const Duration(milliseconds: 200), () {
-          ref.read(sidebarExpandedProvider.notifier).state = true;
+          ref.read(sidebarExpandedProvider.notifier).setExpanded(true);
         });
       },
       onExit: (_) {
         if (pushContent) return;
         sidebarExpandTimer?.cancel();
-        ref.read(sidebarExpandedProvider.notifier).state = false;
+        ref.read(sidebarExpandedProvider.notifier).setExpanded(false);
       },
       child: AnimatedContainer(
         duration: SideBar.animationDuration,

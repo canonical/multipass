@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
-final searchNameProvider = StateProvider((_) => '');
+class SearchNameNotifier extends Notifier<String> {
+  @override
+  String build() {
+    return '';
+  }
+
+  void set(String value) {
+    state = value;
+  }
+}
+
+final searchNameProvider = NotifierProvider<SearchNameNotifier, String>(
+  SearchNameNotifier.new,
+);
 
 class SearchBox extends ConsumerWidget {
   const SearchBox({super.key});
@@ -16,7 +28,7 @@ class SearchBox extends ConsumerWidget {
           hintText: 'Search instances...',
           suffixIcon: Icon(Icons.search),
         ),
-        onChanged: (name) => ref.read(searchNameProvider.notifier).state = name,
+        onChanged: (name) => ref.read(searchNameProvider.notifier).set(name),
       ),
     );
   }

@@ -8,7 +8,6 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:xterm/xterm.dart';
@@ -19,12 +18,28 @@ import '../platform/platform.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 
-final runningShellsProvider = StateProvider.autoDispose.family<int, String>((
-  _,
-  __,
-) {
-  return 0;
-});
+class RunningShellsNotifier extends Notifier<int> {
+  RunningShellsNotifier(this.arg);
+  final String arg;
+
+  @override
+  int build() {
+    return 0;
+  }
+
+  void increment() {
+    state = state + 1;
+  }
+
+  void decrement() {
+    state = state - 1;
+  }
+}
+
+final runningShellsProvider =
+    NotifierProvider.autoDispose.family<RunningShellsNotifier, int, String>(
+  RunningShellsNotifier.new,
+);
 
 class ShellId {
   final int id;
@@ -123,9 +138,7 @@ class TerminalNotifier extends Notifier<Terminal?> {
       errorsAreFatal: true,
     );
 
-    ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
-      return state + 1;
-    });
+    ref.read(runningShellsProvider(arg.vmName).notifier).increment();
     return terminal;
   }
 
@@ -141,9 +154,7 @@ class TerminalNotifier extends Notifier<Terminal?> {
   void _dispose() {
     isolate?.kill(priority: Isolate.immediate);
     if (isolate != null) {
-      ref
-          .read(runningShellsProvider(arg.vmName).notifier)
-          .update((state) => state - 1);
+      ref.read(runningShellsProvider(arg.vmName).notifier).decrement();
     }
     isolate = null;
   }
