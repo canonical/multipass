@@ -205,7 +205,8 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 template <typename T>
 auto name_from(const std::string& requested_name,
                const std::string& blueprint_name,
-               const T& currently_used_names)
+               const T& currently_used_names,
+               mp::NameGenerator& name_generator)
 {
     if (!requested_name.empty())
     {
@@ -217,15 +218,13 @@ auto name_from(const std::string& requested_name,
     }
     else
     {
-        // Create a Rust petname generator with 2 words and "-" separator
-        auto petname_generator = multipass::petname::new_petname(2, "-");
-        std::string name = std::string(multipass::petname::make_name(*petname_generator));
+        std::string name = name_generator.make_name();
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
             if (currently_used_names.find(name) != currently_used_names.end())
             {
-                name = std::string(multipass::petname::make_name(*petname_generator));
+                name = name_generator.make_name();
                 continue;
             }
             return name;
@@ -3318,7 +3317,10 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         server->Write(reply);
     }
 
-    auto name = name_from(checked_args.instance_name, blueprint_name, operative_instances);
+    auto name = name_from(checked_args.instance_name,
+                          blueprint_name,
+                          operative_instances,
+                          *config->name_generator);
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,

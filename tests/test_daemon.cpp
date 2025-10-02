@@ -28,6 +28,7 @@
 #include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
+#include "mock_name_generator.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -679,19 +680,22 @@ TEST_P(DaemonCreateLaunchTestSuite, onCreationHandlesInstanceImagePreparationFai
 
 TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProvideOne)
 {
-    // Test now uses the actual Rust petname generation directly
-    // Since we can't control the exact name generated, we just check that a name is generated
+    // Create a mock name generator that returns a known name
+    auto mock_name_generator = std::make_unique<NiceMock<mpt::MockNameGenerator>>();
+    const std::string expected_name = "test-petname";
+
+    EXPECT_CALL(*mock_name_generator, make_name()).WillOnce(Return(expected_name));
+
+    config_builder.name_generator = std::move(mock_name_generator);
+
     use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
     send_command({GetParam()}, stream);
 
-    // The stream should contain some generated name output (not the exact name since we can't
-    // control Rust petname generation). We expect a pattern like "word-word"
-    // Use std::regex for proper cross-platform regex support instead of GoogleTest's limited regex
-    const std::regex petname_pattern(R"(\w+-\w+)");
-    EXPECT_TRUE(std::regex_search(stream.str(), petname_pattern));
+    // Now we can check for the exact name we expect
+    EXPECT_THAT(stream.str(), HasSubstr(expected_name));
 }
 
 MATCHER_P2(YAMLNodeContainsString, key, val, "")

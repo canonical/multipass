@@ -20,6 +20,8 @@
 #include "custom_image_host.h"
 #include "ubuntu_image_host.h"
 
+#include <rustipass/rust_petname_generator.h>
+
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/default_vm_blueprint_provider.h>
@@ -254,6 +256,9 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                   fs::perms::others_exec),
             server_name_from(server_address));
 
+    if (name_generator == nullptr)
+        name_generator = std::make_unique<RustPetnameGenerator>();
+
     return std::unique_ptr<const DaemonConfig>(new DaemonConfig{std::move(url_downloader),
                                                                 std::move(factory),
                                                                 std::move(image_hosts),
@@ -265,6 +270,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                                                 multiplexing_logger,
                                                                 std::move(network_proxy),
                                                                 std::move(blueprint_provider),
+                                                                std::move(name_generator),
                                                                 cache_directory,
                                                                 data_directory,
                                                                 server_address,
