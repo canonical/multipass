@@ -38,6 +38,7 @@
 
 #include <sstream>
 #include <string>
+#include <tuple>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -107,87 +108,56 @@ TEST(Utils, hostnameContainsSpecialCharacterIsInvalid)
 
 TEST(Utils, pathRootInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/")));
 }
 
 TEST(Utils, pathRootFooValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/foo")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/foo/")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("//foo")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/foo")));
 }
 
 TEST(Utils, pathDevInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//dev/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//dev//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/dev/foo")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/dev")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/dev/foo")));
 }
 
 TEST(Utils, pathDevpathValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath/")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/devpath/foo")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/devpath")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/devpath/foo")));
 }
 
 TEST(Utils, pathProcInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//proc/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//proc//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/proc/foo")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/proc")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/proc/foo")));
 }
 
 TEST(Utils, pathSysInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//sys/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//sys//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/sys/foo")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/sys")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/sys/foo")));
 }
 
 TEST(Utils, pathHomeProperInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/foo/..")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/home")));
 }
 
 TEST(Utils, pathHomeUbuntuInvalid)
 {
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home/ubuntu/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home//ubuntu/")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("//home//ubuntu//")));
-    EXPECT_TRUE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/..")));
+    EXPECT_TRUE(MP_UTILS.invalid_target_path(QString("/home/ubuntu")));
 }
 
 TEST(Utils, pathHomeFooValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/foo")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/foo/")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/foo/")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/home/foo")));
 }
 
 TEST(Utils, pathHomeUbuntuFooValid)
 {
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("/home/ubuntu/foo/")));
-    EXPECT_FALSE(mp::utils::invalid_target_path(QString("//home/ubuntu/foo")));
+    EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/home/ubuntu/foo")));
 }
 
 TEST(Utils, makeFileWithContentWorks)
@@ -671,3 +641,34 @@ TEST(Utils, checkFilesystemBytesAvailableReturnsNonNegative)
 
     EXPECT_GE(bytes_available, 0);
 }
+
+using NormalizeMountTargetParam = std::tuple<std::string, std::string>;
+
+class NormalizeMountTargetTest : public TestWithParam<NormalizeMountTargetParam>
+{
+};
+
+TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    auto result = MP_UTILS.normalize_mount_target(QString::fromStdString(input));
+    EXPECT_EQ(result.toStdString(), expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Utils,
+    NormalizeMountTargetTest,
+    Values(std::make_tuple("Documents", "/home/ubuntu/Documents"),
+           std::make_tuple("./folder", "/home/ubuntu/folder"),
+           std::make_tuple("../folder", "/home/folder"),
+           std::make_tuple("../..//folder", "/folder"),
+           std::make_tuple("/usr/local/bin//.././/.//bin/././", "/usr/local/bin"),
+           std::make_tuple("folder//subfolder", "/home/ubuntu/folder/subfolder"),
+           std::make_tuple("./Documents/../Downloads", "/home/ubuntu/Downloads"),
+           std::make_tuple("", "/home/ubuntu"),
+           std::make_tuple(".", "/home/ubuntu"),
+           std::make_tuple("..", "/home"),
+           std::make_tuple("folder/./subfolder", "/home/ubuntu/folder/subfolder"),
+           std::make_tuple("folder/../other-folder", "/home/ubuntu/other-folder"),
+           std::make_tuple("//", "/")));

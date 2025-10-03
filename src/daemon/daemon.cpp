@@ -2154,11 +2154,12 @@ try
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto q_target_path =
-            path_entry.target_path().empty()
+        auto q_target_path = QString::fromStdString(path_entry.target_path());
+        q_target_path =
+            q_target_path.isEmpty()
                 ? MP_UTILS.default_mount_target(QString::fromStdString(request->source_path()))
-                : QDir::cleanPath(QString::fromStdString(path_entry.target_path()));
-        const auto target_path = q_target_path.toStdString();
+                : MP_UTILS.normalize_mount_target(q_target_path);
+        auto target_path = q_target_path.toStdString();
 
         auto it = operative_instances.find(name);
         if (it == operative_instances.end())
@@ -2168,8 +2169,11 @@ try
         }
         auto& vm = it->second;
 
-        if (mp::utils::invalid_target_path(q_target_path))
+        if (MP_UTILS.invalid_target_path(q_target_path))
         {
+            mpl::log(mpl::Level::warning,
+                     category,
+                     fmt::format("Invalid target path: {}", q_target_path.toStdString()));
             add_fmt_to(errors, "unable to mount to \"{}\"", target_path);
             continue;
         }

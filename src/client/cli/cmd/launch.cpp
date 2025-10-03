@@ -228,8 +228,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         petenv_name.isEmpty()
             ? QString{"Name for the instance.\n%1"}.arg(valid_name_desc)
             : QString{"Name for the instance. If it is '%1' (the configured primary instance "
-                      "name), the user's home "
-                      "directory is mounted inside the newly launched instance, in '%2'.\n%3"}
+                      "name), the user's home directory is mounted inside the newly launched "
+                      "instance, in '%2'.\n%3"}
                   .arg(petenv_name, mp::home_automount_dir, valid_name_desc);
 
     QCommandLineOption nameOption({"n", "name"}, name_option_desc, "name");
@@ -251,9 +251,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
     QCommandLineOption mountOption(
         "mount",
-        "Mount a local directory inside the instance. If <target> is omitted, the "
-        "mount point will be under /home/ubuntu/<source-dir>, where <source-dir> is "
-        "the name of the <source> directory.",
+        QStringLiteral("Mount a local directory inside the instance. If <target> is omitted, the "
+                       "mount point will be under %1/<source-dir>, where <source-dir> is the name "
+                       "of the <source> directory.")
+            .arg(home_in_instance),
         "source>:<target");
 
     parser->addOptions({cpusOption,
