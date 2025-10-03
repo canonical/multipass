@@ -83,7 +83,6 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                                                      (A<const std::string&>()));
     }
 
-    MOCK_METHOD(void, require_snapshots_support, (), (const, override));
     MOCK_METHOD(std::shared_ptr<mp::Snapshot>,
                 make_specific_snapshot,
                 (const QString& filename),
@@ -118,12 +117,6 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     void simulate_cloud_init()
     {
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, wait_for_cloud_init, mp::BaseVirtualMachine);
-    }
-
-    void
-    simulate_no_snapshots_support() const // doing this here to access protected method on the base
-    {
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, require_snapshots_support, mp::BaseVirtualMachine);
     }
 };
 
@@ -207,11 +200,6 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
     void resize_disk(const mp::MemorySize&) override
     {
-    }
-
-    void require_snapshots_support() const override // pretend we support it here
-    {
-        // TODO: remove after LXD migration
     }
 
     std::unique_ptr<mpt::TempDir> tmp_dir;
@@ -390,14 +378,6 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(BaseVM, startsWithNoSnapshots)
 {
     EXPECT_EQ(vm.get_num_snapshots(), 0);
-}
-
-TEST_F(BaseVM, throwsOnSnapshotsRequestIfNotSupported)
-{
-    vm.simulate_no_snapshots_support();
-    MP_EXPECT_THROW_THAT(vm.get_num_snapshots(),
-                         mp::NotImplementedOnThisBackendException,
-                         mpt::match_what(HasSubstr("snapshots")));
 }
 
 TEST_F(BaseVM, takesSnapshots)

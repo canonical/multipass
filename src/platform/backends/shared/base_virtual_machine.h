@@ -88,7 +88,6 @@ public:
     int get_snapshot_count() const override;
 
 protected:
-    virtual void require_snapshots_support() const; // TODO: remove after LXD migration
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                              const std::string& comment,
@@ -172,18 +171,11 @@ private:
 
 inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 {
-    require_snapshots_support(); // TODO: remove after LXD migration
     return static_cast<int>(snapshots.size());
 }
 
 inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 {
-    require_snapshots_support(); // TODO: remove after LXD migration
     const std::unique_lock lock{snapshot_mutex};
     return snapshot_count;
-}
-
-inline void multipass::BaseVirtualMachine::require_snapshots_support() const
-{
-    throw NotImplementedOnThisBackendException{"snapshots"}; // TODO: remove after LXD migration
 }
