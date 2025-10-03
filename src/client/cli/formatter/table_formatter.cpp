@@ -549,6 +549,63 @@ std::string mp::TableFormatter::format(const VersionReply& reply,
     return fmt::to_string(buf);
 }
 
+std::string mp::TableFormatter::format(const ListDisksReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    const auto& block_devices = reply.block_devices();
+
+    if (block_devices.empty())
+        return "No disks found.\n";
+
+    const std::string name_col_header = "Name";
+    const std::string size_col_header = "Size";
+    const std::string attached_col_header = "Attached To";
+
+    const auto name_column_width = mp::format::column_width(
+        block_devices.begin(),
+        block_devices.end(),
+        [](const auto& device) -> int { return device.name().length(); },
+        name_col_header.length(),
+        20);
+
+    const auto size_column_width = 12;
+
+    const auto attached_column_width = mp::format::column_width(
+        block_devices.begin(),
+        block_devices.end(),
+        [](const auto& device) -> int {
+            return device.attached_to().empty() ? 2 : device.attached_to().length();
+        },
+        attached_col_header.length(),
+        20);
+
+    const auto row_format = "{:<{}}{:<{}}{:<{}}\n";
+
+    fmt::format_to(std::back_inserter(buf),
+                   row_format,
+                   name_col_header,
+                   name_column_width,
+                   size_col_header,
+                   size_column_width,
+                   attached_col_header,
+                   attached_column_width);
+
+    for (const auto& device : block_devices)
+    {
+        fmt::format_to(std::back_inserter(buf),
+                       row_format,
+                       device.name(),
+                       name_column_width,
+                       device.size(),
+                       size_column_width,
+                       device.attached_to().empty() ? "--" : device.attached_to(),
+                       attached_column_width);
+    }
+
+    return fmt::to_string(buf);
+}
+
 std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
 {
     fmt::memory_buffer buf;
