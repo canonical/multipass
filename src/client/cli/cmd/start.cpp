@@ -76,18 +76,17 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
             for (const auto& pair : start_error.instance_errors())
             {
-                const auto* err_fmt = unknown_error_fmt;
                 if (pair.second == mp::StartError::INSTANCE_DELETED)
-                    err_fmt = deleted_error_fmt;
+                    fmt::format_to(std::back_inserter(details), deleted_error_fmt, pair.first);
                 else if (pair.second == mp::StartError::DOES_NOT_EXIST)
                 {
                     if (pair.first != petenv_name.toStdString())
-                        err_fmt = absent_error_fmt;
+                        fmt::format_to(std::back_inserter(details), absent_error_fmt, pair.first);
                     else
                         continue;
                 }
-
-                fmt::format_to(std::back_inserter(details), err_fmt, pair.first);
+                else
+                    fmt::format_to(std::back_inserter(details), unknown_error_fmt, pair.first);
             }
 
             if (details.empty())

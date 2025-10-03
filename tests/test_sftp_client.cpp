@@ -55,7 +55,7 @@ sftp_attributes get_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR,
     auto attr =
         static_cast<sftp_attributes_struct*>(calloc(1, sizeof(struct sftp_attributes_struct)));
     attr->type = type;
-    attr->name = strdup(name.u8string().c_str());
+    attr->name = strdup(name.string().c_str());
     attr->permissions = perms;
     return attr;
 }
@@ -565,7 +565,7 @@ TEST_F(SFTPClient, pushDirFailDir)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot create remote directory \"{}\": {}",
-                                        target_path.u8string() + "/dir",
+                                        target_path.string() + "/dir",
                                         err));
     mock_logger->expect_log(
         mpl::Level::error,
@@ -674,7 +674,7 @@ TEST_F(SFTPClient, pushDirCannotCreateSymlink)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot create remote symlink \"{}\": {}",
-                                        target_path.u8string() + "/symlink",
+                                        target_path.string() + "/symlink",
                                         err));
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
@@ -709,7 +709,7 @@ TEST_F(SFTPClient, pushDirSymlinkOverDir)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot overwrite remote directory \"{}\" with non-directory",
-                    target_path.u8string() + "/symlink"));
+                    target_path.string() + "/symlink"));
     EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
@@ -951,7 +951,7 @@ TEST_F(SFTPClient, pullDirCannotReadSymlink)
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
         .WillOnce(Return(make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK,
-                                                     source_path.u8string() + "/symlink")));
+                                                     source_path.string() + "/symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return nullptr; });
     auto err = "SFTP server: Permission denied";
@@ -960,10 +960,9 @@ TEST_F(SFTPClient, pullDirCannotReadSymlink)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(mpl::Level::error,
-                            fmt::format("cannot read remote link \"{}\": {}",
-                                        source_path.u8string() + "/symlink",
-                                        err));
+    mock_logger->expect_log(
+        mpl::Level::error,
+        fmt::format("cannot read remote link \"{}\": {}", source_path.string() + "/symlink", err));
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
@@ -1041,14 +1040,14 @@ TEST_F(SFTPClient, pullDirUnknownFileType)
     EXPECT_CALL(*iter_p, hasNext).WillOnce(Return(true)).WillRepeatedly(Return(false));
     EXPECT_CALL(*iter_p, next)
         .WillOnce(Return(make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_UNKNOWN,
-                                                     source_path.u8string() + "/unknown")));
+                                                     source_path.string() + "/unknown")));
     EXPECT_CALL(mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
 
     auto sftp_client = make_sftp_client();
 
     mock_logger->expect_log(
         mpl::Level::error,
-        fmt::format("cannot copy \"{}\": not a regular file", source_path.u8string() + "/unknown"));
+        fmt::format("cannot copy \"{}\": not a regular file", source_path.string() + "/unknown"));
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 

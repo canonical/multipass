@@ -246,7 +246,7 @@ elsewhere).<br>
 
 #### C++ (CPP)
 
-**CPP1.** Stick to standard C++17, with the exception of `#pragma once`.<br>
+**CPP1.** Stick to standard C++20, with the exception of `#pragma once`.<br>
 **CPP2.** Prefer `#pragma once` to header guards<br>
 **CPP3.** Prefer enforcing correct usage (prevent misuse) at compilation time.<br>
 **CPP4.** If a type isn't meant to be copied or moved, inherit from `DisabledCopyMove` (either

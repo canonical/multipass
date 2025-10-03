@@ -32,6 +32,28 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+constexpr auto category = "ssh process";
+
+consteval std::string_view extract_filename(std::string_view path)
+{
+    auto pos = path.find_last_of("/\\");
+    return (pos == std::string_view::npos) ? path : path.substr(pos + 1);
+}
+
+void log_trace(const std::string_view message,
+               const std::source_location location = std::source_location::current())
+{
+    constexpr auto file = extract_filename(location.file_name());
+
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("{}:{} {}(): {}",
+                         file,
+                         location.line(),
+                         location.function_name(),
+                         message));
+}
+
 namespace
 {
 constexpr auto category = "ssh process";

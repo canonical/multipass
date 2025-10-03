@@ -31,7 +31,6 @@ class BaseQException : public QException
 public:
     BaseQException(const std::string& err) : error_string{err}
     {
-        // TODO@C++20, use concepts instead of static_assert + type traits to apply the constraint.
         static_assert(std::is_base_of_v<BaseQException, DerivedException>,
                       "DerivedException must be derived from BaseQException");
     }
