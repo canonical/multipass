@@ -29,27 +29,27 @@ namespace multipass::hyperv::hcs
  */
 struct HcsScsiDeviceType
 {
-    operator std::string_view() const
+    [[nodiscard]] operator std::string_view() const
     {
         return value;
     }
 
-    operator std::string() const
+    [[nodiscard]] operator std::string() const
     {
         return std::string{value};
     }
 
-    constexpr static auto Iso()
+    [[nodiscard]] constexpr static auto Iso()
     {
         return HcsScsiDeviceType{"Iso"};
     }
 
-    constexpr static auto VirtualDisk()
+    [[nodiscard]] constexpr static auto VirtualDisk()
     {
         return HcsScsiDeviceType{"VirtualDisk"};
     }
 
-    bool operator==(const HcsScsiDeviceType& rhs) const
+    [[nodiscard]] bool operator==(const HcsScsiDeviceType& rhs) const
     {
         return value == rhs.value;
     }
