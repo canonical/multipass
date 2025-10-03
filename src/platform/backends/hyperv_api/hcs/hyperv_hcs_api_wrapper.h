@@ -55,8 +55,9 @@ struct HCSWrapper : public HCSWrapperInterface
      *
      * @return auto UniqueHcsSystem non-nullptr on success.
      */
-    virtual OperationResult open_compute_system(const std::string& compute_system_name,
-                                                HcsSystemHandle& out_hcs_system) const override;
+    [[nodiscard]] virtual OperationResult open_compute_system(
+        const std::string& compute_system_name,
+        HcsSystemHandle& out_hcs_system) const override;
 
     // ---------------------------------------------------------
 
@@ -221,7 +222,7 @@ struct HCSWrapper : public HCSWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    virtual OperationResult set_compute_system_callback(
+    [[nodiscard]] virtual OperationResult set_compute_system_callback(
         const HcsSystemHandle& target_hcs_system,
         void* context,
         void (*callback)(void* hcs_event, void* context)) const override;
