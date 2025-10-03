@@ -27,7 +27,6 @@
 
 #include <multipass/utils.h>
 
-#include <libssh/priv.h>
 #include <libssh/sftp_priv.h>
 
 #include <QDir>
@@ -61,7 +60,6 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
                                                         sftp_server_free};
-    ssh_session session = sftp_server_session->session;
 
     /* handles setting the sftp->client_version */
     sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
@@ -76,8 +74,6 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
             "[sftp] server init failed: 'FATAL: Packet read of type {} instead of SSH_FXP_INIT'",
             msg->type));
     }
-
-    SSH_LOG(SSH_LOG_PACKET, "Received SSH_FXP_INIT");
 
     if (sftp_reply_version(msg) != SSH_OK)
     {
