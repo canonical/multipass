@@ -84,7 +84,7 @@ protected:
     {
     }
 
-    void require_snapshots_support() const override;
+    void require_snapshots_support() const override; // TODO: remove after LXD migration
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
@@ -121,4 +121,5 @@ private:
 
 inline void multipass::QemuVirtualMachine::require_snapshots_support() const
 {
+    // TODO: remove after LXD migration
 }

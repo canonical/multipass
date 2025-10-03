@@ -2,7 +2,7 @@
 # Driver
 
 ```{warning}
-Support for libvirt and LXD will be deprecated and removed in a future release.
+Support for LXD will be deprecated and removed in a future release.
 ```
 
 > See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [`local.driver`](/reference/settings/local-driver), [Instance](/explanation/instance), [Platform](/explanation/platform)
@@ -17,7 +17,7 @@ On some platforms, it is possible to select a driver during installation. Until 
 
 Different sets of drivers are available on different platforms:
 
-- On Linux, Multipass can be configured to use QEMU, LXD, and libvirt. As of Multipass version 1.16, LXD and libvirt are deprecated.
+- On Linux, Multipass can be configured to use QEMU and LXD. As of Multipass version 1.16, LXD is deprecated.
 - On macOS, the options are QEMU and VirtualBox. As of Multipass version 1.13, Hyperkit is no longer available.
 - On Windows, Multipass uses Hyper-V (only available on Windows Pro) or VirtualBox.
 
@@ -43,7 +43,6 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 
 There are two exceptions to the above:
 
-  - On Linux, QEMU and libvirt (deprecated) share the same driver scope.
   - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 or later (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
 
 (driver-feature-disparities)=
@@ -57,7 +56,7 @@ While we strive to offer a uniform interface across the board, not all features 
 | **Extra networks** | <ul><li>Hyper-V</li><li>LXD (deprecated)</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`networks`](/reference/command-line-interface/networks) command, as well as the `--network` and `--bridged` options in [`launch`](/reference/command-line-interface/launch). |
 | **Snapshots** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> |  |
 | **Clone** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> |  This affects the [`clone`](/reference/command-line-interface/clone) command.|
-| **VM suspension** | <ul><li>Hyper-V</li><li>libvirt</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
+| **VM suspension** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
 
 <!-- old formatting
 - **Native mounts** are supported only on Hyper-V, QEMU, and LXD. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).
