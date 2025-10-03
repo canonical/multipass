@@ -23,12 +23,11 @@ namespace mp = multipass;
 
 namespace
 {
-std::string format_images(
-    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-    std::string type)
+template <typename Dest>
+void format_images(Dest&& dest,
+                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                   std::string type)
 {
-    fmt::memory_buffer buf;
-
     for (const auto& image : images_info)
     {
         auto aliases = image.aliases_info();
@@ -39,7 +38,7 @@ std::string format_images(
                             ? aliases[0].alias()
                             : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
 
-        fmt::format_to(std::back_inserter(buf),
+        fmt::format_to(dest,
                        "{},{},{},{},{},{},{}\n",
                        image_id,
                        aliases[0].remote_name(),
@@ -49,27 +48,6 @@ std::string format_images(
                        image.version(),
                        type);
     }
-
-    return fmt::to_string(buf);
-}
-
-std::string format_mounts(const mp::MountInfo& mount_info)
-{
-    fmt::memory_buffer buf;
-    const auto& mount_paths = mount_info.mount_paths();
-
-    if (!mount_paths.size())
-        return {};
-
-    auto mount = mount_paths.cbegin();
-    for (; mount != --mount_paths.cend(); ++mount)
-        fmt::format_to(std::back_inserter(buf),
-                       "{} => {};",
-                       mount->source_path(),
-                       mount->target_path());
-    fmt::format_to(std::back_inserter(buf), "{} => {}", mount->source_path(), mount->target_path());
-
-    return fmt::to_string(buf);
 }
 
 std::string generate_snapshot_details(const mp::InfoReply reply)
@@ -85,17 +63,13 @@ std::string generate_snapshot_details(const mp::InfoReply reply)
         const auto& fundamentals = info.snapshot_info().fundamentals();
 
         fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},",
+                       "{},{},{},{},{},{},{},{},{},\"{}\"\n",
                        fundamentals.snapshot_name(),
                        info.name(),
                        info.cpu_count(),
                        info.disk_total(),
-                       info.memory_total());
-
-        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
-
-        fmt::format_to(std::back_inserter(buf),
-                       ",{},{},{},\"{}\"\n",
+                       info.memory_total(),
+                       info.mount_info(),
                        MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp()),
                        fundamentals.parent(),
                        fmt::join(info.snapshot_info().children(), ";"),
@@ -125,7 +99,7 @@ std::string generate_instance_details(const mp::InfoReply reply)
         const auto& instance_details = info.instance_info();
 
         fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},{},{},{},{},{},{},{},",
+                       "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
                        info.name(),
                        mp::format::status_string_for(info.instance_status()),
                        instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
@@ -137,17 +111,10 @@ std::string generate_instance_details(const mp::InfoReply reply)
                        instance_details.disk_usage(),
                        info.disk_total(),
                        instance_details.memory_usage(),
-                       info.memory_total());
-
-        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
-
-        fmt::format_to(std::back_inserter(buf),
-                       ",{},{}",
+                       info.memory_total(),
+                       info.mount_info(),
                        fmt::join(instance_details.ipv4(), ";"),
-                       info.cpu_count());
-
-        fmt::format_to(std::back_inserter(buf),
-                       "{}\n",
+                       info.cpu_count(),
                        have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots())
                                           : "");
     }
@@ -256,9 +223,8 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version,Type\n");
-    fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Cloud Image"));
-    fmt::format_to(std::back_inserter(buf),
-                   format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
+    format_images(std::back_inserter(buf), reply.images_info(), "Cloud Image");
+    format_images(std::back_inserter(buf), reply.blueprints_info(), "Blueprint (deprecated)");
 
     return fmt::to_string(buf);
 }

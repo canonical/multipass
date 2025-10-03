@@ -216,7 +216,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
 
 void SSHFSMountHandler::deactivate_impl(bool force)
 {
-    mpl::info(category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
+    mpl::info(category, "Stopping mount \"{}\" in instance '{}'", target, vm->vm_name);
     QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
 
     constexpr auto kProcessWaitTimeout = std::chrono::milliseconds{5000};

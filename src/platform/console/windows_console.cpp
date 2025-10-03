@@ -84,9 +84,7 @@ void mp::WindowsConsole::read_console()
 
     if (!ReadConsoleInput(input_handle, input_records.data(), chunk, &num_records_read))
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Could not read console input; error code: {}", GetLastError()));
+        mpl::warn(category, "Could not read console input; error code: {}", GetLastError());
     }
     else
     {

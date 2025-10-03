@@ -24,6 +24,8 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
+#include <fmt/base.h>
+
 #include <yaml-cpp/yaml.h>
 
 #include <chrono>
@@ -88,12 +90,12 @@ void check_and_create_config_file(const QString& config_file_path);
 std::string to_cmd(const std::vector<std::string>& args, QuoteType type);
 void process_throw_on_error(const QString& program,
                             const QStringList& arguments,
-                            const QString& message,
+                            fmt::format_string<std::string> message,
                             const QString& category = "utils",
                             const int timeout = 30000);
 bool process_log_on_error(const QString& program,
                           const QStringList& arguments,
-                          const QString& message,
+                          fmt::format_string<std::string> message,
                           const QString& category,
                           multipass::logging::Level level = multipass::logging::Level::debug,
                           const int timeout = 30000);

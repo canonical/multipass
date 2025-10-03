@@ -57,14 +57,12 @@ mp::ClientCertStore::ClientCertStore(const multipass::Path& data_dir)
     : cert_dir(MP_UTILS.make_dir(data_dir, mp::authenticated_certs_dir)),
       authenticated_client_certs{load_certs_from_file(cert_dir)}
 {
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Loading client certs from {}", cert_dir.absolutePath()));
+    mpl::trace(category, "Loading client certs from {}", cert_dir.absolutePath());
 }
 
 void mp::ClientCertStore::add_cert(const std::string& pem_cert)
 {
-    mpl::log(mpl::Level::trace, category, fmt::format("Adding cert:\n{}", pem_cert));
+    mpl::trace(category, "Adding cert:\n{}", pem_cert);
 
     QSslCertificate cert(QByteArray::fromStdString(pem_cert));
 
@@ -103,7 +101,7 @@ std::string mp::ClientCertStore::PEM_cert_chain() const
 
 bool mp::ClientCertStore::verify_cert(const std::string& pem_cert)
 {
-    mpl::log(mpl::Level::trace, category, fmt::format("Verifying cert:\n{}", pem_cert));
+    mpl::trace(category, "Verifying cert:\n{}", pem_cert);
 
     return verify_cert(QSslCertificate(QByteArray::fromStdString(pem_cert)));
 }

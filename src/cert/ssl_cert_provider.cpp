@@ -39,26 +39,29 @@ namespace mpl = mp::logging;
 namespace
 {
 constexpr auto kLogCategory = "ssl-cert-provider";
-// utility function for checking return code or raw pointer from openssl C-apis
-// TODO: constrain T to int or raw pointer once C++20 concepts is available
 template <typename T>
+concept pointer_like = requires(T t)
+{
+    *t;
+    t == nullptr;
+};
+
+// utility function for checking return code or raw pointer from openssl C-apis
+template <pointer_like T>
+void openssl_check(T&& result, const std::string& errorMessage)
+{
+    if (result == nullptr)
+    {
+        throw std::runtime_error(errorMessage);
+    }
+}
+
+template <std::integral T>
 void openssl_check(T result, const std::string& errorMessage)
 {
-    // TODO: expand std::is_pointer_v<T> check to cover all smart pointers as well
-    if constexpr (std::is_pointer_v<T>)
+    if (result <= 0)
     {
-        if (result == nullptr)
-        {
-            throw std::runtime_error(errorMessage);
-        }
-    }
-    else
-    {
-        if (result <= 0)
-        {
-            throw std::runtime_error(
-                fmt::format("{}, with the error code {}", errorMessage, result));
-        }
+        throw std::runtime_error(fmt::format("{}, with the error code {}", errorMessage, result));
     }
 }
 
@@ -84,7 +87,7 @@ private:
         std::filesystem::create_directories(file_path_std.parent_path());
         // make sure the parent directory exist
 
-        const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
+        const auto raw_fp = fopen(file_path_std.string().c_str(), "wb");
         openssl_check(
             raw_fp,
             fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));

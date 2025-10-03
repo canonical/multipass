@@ -23,7 +23,9 @@
 #include <multipass/yaml_node_utils.h>
 
 #include <array>
+#include <bit>
 #include <cctype>
+#include <span>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -104,21 +106,13 @@ std::array<uint8_t, 4> to_lsb(uint32_t value)
     return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u)}};
 }
 
-bool is_system_little_endian()
+uint32_t from_lsb_msb(std::span<const uint8_t, 8> bytes)
 {
-    uint32_t test_value = 1; // In memory: 01 00 00 00 (little endian) or 00 00 00 01 (big endian)
-    return *(reinterpret_cast<uint8_t*>(&test_value)) == 1; // Check the first byte
-}
-
-// std::array<uint8_t, 8> -> std::span<uint8_t, 8> when c++20 arrives
-uint32_t from_lsb_msb(const std::array<uint8_t, 8>& bytes)
-{
-    // replace the is_system_little_endian() function with std::endian::native ==
-    // std::endian::little when C++20 arrives
-    return is_system_little_endian() ? to_u32(bytes[0]) | to_u32(bytes[1]) << 8u |
-                                           to_u32(bytes[2]) << 16u | to_u32(bytes[3]) << 24u
-                                     : to_u32(bytes[4]) << 24u | to_u32(bytes[5]) << 16u |
-                                           to_u32(bytes[6]) << 8u | to_u32(bytes[7]);
+    return (std::endian::native == std::endian::little)
+               ? to_u32(bytes[0]) | to_u32(bytes[1]) << 8u | to_u32(bytes[2]) << 16u |
+                     to_u32(bytes[3]) << 24u
+               : to_u32(bytes[4]) << 24u | to_u32(bytes[5]) << 16u | to_u32(bytes[6]) << 8u |
+                     to_u32(bytes[7]);
 }
 
 template <typename T, typename SizeType, typename V>
@@ -672,12 +666,10 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         throw std::runtime_error("The root directory record data is malformed.");
     }
 
-    // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 8>
-    std::array<uint8_t, 8> root_dir_record_data_location_lsb_bytes;
     // location lsb_msb bytes starts from 2
-    std::copy_n(root_dir_record_data.cbegin() + 2u,
-                8,
-                root_dir_record_data_location_lsb_bytes.begin());
+    std::span<const uint8_t, 8> root_dir_record_data_location_lsb_bytes(
+        root_dir_record_data.begin() + 2u,
+        std::size_t(8));
     const uint32_t root_dir_record_data_location_by_blocks =
         from_lsb_msb(root_dir_record_data_location_lsb_bytes);
     const uint32_t file_records_start_pos =

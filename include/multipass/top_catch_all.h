@@ -76,15 +76,13 @@ void top_catch_all(
 inline void multipass::detail::error(std::string_view log_category, const std::exception& e)
 {
     namespace mpl = multipass::logging;
-    mpl::log(mpl::Level::error,
-             log_category,
-             fmt::format("Caught an unhandled exception: {}", e.what()));
+    mpl::error(log_category, "Caught an unhandled exception: {}", e.what());
 }
 
 inline void multipass::detail::error(std::string_view log_category)
 {
     namespace mpl = multipass::logging;
-    mpl::log(mpl::Level::error, log_category, "Caught an unknown exception");
+    mpl::error(log_category, "Caught an unknown exception");
 }
 
 template <typename T, typename Fun, typename... Args>

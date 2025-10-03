@@ -596,16 +596,16 @@ void mp::platform::sync_winterm_profiles()
     catch (LesserWintermSyncException& e)
     {
         const auto level = winterm_setting == none ? mpl::Level::debug : mpl::Level::warning;
-        mpl::log(level, log_category, e.what());
+        mpl::log_message(level, log_category, e.what());
     }
     catch (ModerateWintermSyncException& e)
     {
         const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
-        mpl::log(level, log_category, e.what());
+        mpl::log_message(level, log_category, e.what());
     }
     catch (GreaterWintermSyncException& e)
     {
-        mpl::log(mpl::Level::error, log_category, e.what());
+        mpl::log_message(mpl::Level::error, log_category, e.what());
     }
 }
 
@@ -799,8 +799,8 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     std::filesystem::permissions(path, perms, ec);
 
     // Rest handles ACLs
-    auto u8path = path.u8string();
-    LPSTR lpPath = u8path.data();
+    auto path_str = path.string();
+    LPSTR lpPath = path_str.data();
     auto success = true;
 
     auto newACL = new_ACL(lpPath);
@@ -838,8 +838,8 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    auto u8path = path.u8string();
-    LPSTR lpPath = u8path.data();
+    auto path_str = path.string();
+    LPSTR lpPath = path_str.data();
 
     return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) ==
            ERROR_SUCCESS;
