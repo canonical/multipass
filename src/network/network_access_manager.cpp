@@ -36,6 +36,7 @@ QNetworkReply* mp::NetworkAccessManager::createRequest(QNetworkAccessManager::Op
     // To support http requests over Unix sockets, the initial URL needs to be in the form of:
     // unix:///path/to/unix_socket@path/in/server (or 'local' instead of 'unix')
     //
+    // FIXME: New example? Is this relevant anymore?
     // For example, to get the general LXD configuration when LXD is installed as a snap:
     // unix:////var/snap/lxd/common/lxd/unix.socket@1.0
     if (scheme == "unix" || scheme == "local")
