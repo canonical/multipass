@@ -18,7 +18,7 @@
 #include "tests/common.h"
 #include "tests/mock_process_factory.h"
 
-#include <src/platform/backends/shared/qemu_img_utils/qemu_img_utils.h>
+#include <src/platform/backends/qemu/qemu_img_utils.h>
 
 #include <multipass/constants.h>
 #include <multipass/memory_size.h>
