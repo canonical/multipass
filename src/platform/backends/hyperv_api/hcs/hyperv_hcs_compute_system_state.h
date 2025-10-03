@@ -49,7 +49,8 @@ enum class ComputeSystemState : std::uint8_t
  * @param str
  * @return ComputeSystemState
  */
-inline std::optional<ComputeSystemState> compute_system_state_from_string(std::string str)
+[[nodiscard]] inline std::optional<ComputeSystemState> compute_system_state_from_string(
+    std::string str)
 {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) {
         return std::tolower(c);

@@ -62,12 +62,12 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
-    State current_state() override;
+    [[nodiscard]] State current_state() override;
     int ssh_port() override;
-    std::string ssh_hostname(std::chrono::milliseconds timeout = {}) override;
-    std::string ssh_username() override;
-    std::string management_ipv4() override;
-    std::string ipv6() override;
+    [[nodiscard]] std::string ssh_hostname(std::chrono::milliseconds timeout = {}) override;
+    [[nodiscard]] std::string ssh_username() override;
+    [[nodiscard]] std::string management_ipv4() override;
+    [[nodiscard]] std::string ipv6() override;
     void ensure_vm_is_running() override;
     void update_state() override;
     void update_cpus(int num_cores) override;
@@ -76,20 +76,22 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
-    std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
-                                                            const VMMount& mount) override;
+    [[nodiscard]] std::unique_ptr<MountHandler>
+    make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 protected:
     void require_snapshots_support() const override
     {
     }
 
-    std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
-    std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
-                                                     const std::string& comment,
-                                                     const std::string& instance_id,
-                                                     const VMSpecs& specs,
-                                                     std::shared_ptr<Snapshot> parent) override;
+    [[nodiscard]] std::shared_ptr<Snapshot> make_specific_snapshot(
+        const QString& filename) override;
+    [[nodiscard]] std::shared_ptr<Snapshot> make_specific_snapshot(
+        const std::string& snapshot_name,
+        const std::string& comment,
+        const std::string& instance_id,
+        const VMSpecs& specs,
+        std::shared_ptr<Snapshot> parent) override;
 
 private:
     VirtualMachineDescription description{};
@@ -101,7 +103,7 @@ private:
 
     hcs::HcsSystemHandle hcs_system{nullptr};
 
-    hcs::ComputeSystemState fetch_state_from_api();
+    [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api();
     void set_state(hcs::ComputeSystemState state);
 
     /**
@@ -110,12 +112,12 @@ private:
      * @return true The compute system was absent and created
      * @return false The compute system is already present
      */
-    bool maybe_create_compute_system() noexcept(false);
+    [[nodiscard]] bool maybe_create_compute_system() noexcept(false);
 
     /**
      * Retrieve path to the primary disk symbolic link
      */
-    std::filesystem::path get_primary_disk_path() const noexcept(false);
+    [[nodiscard]] std::filesystem::path get_primary_disk_path() const noexcept(false);
 
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
 
