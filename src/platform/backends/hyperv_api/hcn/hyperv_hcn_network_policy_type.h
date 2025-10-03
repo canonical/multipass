@@ -32,12 +32,12 @@ namespace multipass::hyperv::hcn
  */
 struct HcnNetworkPolicyType
 {
-    operator std::string_view() const
+    [[nodiscard]] operator std::string_view() const
     {
         return value;
     }
 
-    operator std::string() const
+    [[nodiscard]] operator std::string() const
     {
         return std::string{value};
     }
@@ -45,7 +45,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto SourceMacAddress()
+    [[nodiscard]] constexpr static auto SourceMacAddress()
     {
         return HcnNetworkPolicyType{"SourceMacAddress"};
     }
@@ -53,7 +53,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto NetAdapterName()
+    [[nodiscard]] constexpr static auto NetAdapterName()
     {
         return HcnNetworkPolicyType{"NetAdapterName"};
     }
@@ -61,7 +61,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto VSwitchExtension()
+    [[nodiscard]] constexpr static auto VSwitchExtension()
     {
         return HcnNetworkPolicyType{"VSwitchExtension"};
     }
@@ -69,7 +69,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto DrMacAddress()
+    [[nodiscard]] constexpr static auto DrMacAddress()
     {
         return HcnNetworkPolicyType{"DrMacAddress"};
     }
@@ -77,7 +77,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto AutomaticDNS()
+    [[nodiscard]] constexpr static auto AutomaticDNS()
     {
         return HcnNetworkPolicyType{"AutomaticDNS"};
     }
@@ -85,7 +85,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto InterfaceConstraint()
+    [[nodiscard]] constexpr static auto InterfaceConstraint()
     {
         return HcnNetworkPolicyType{"InterfaceConstraint"};
     }
@@ -93,7 +93,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto ProviderAddress()
+    [[nodiscard]] constexpr static auto ProviderAddress()
     {
         return HcnNetworkPolicyType{"ProviderAddress"};
     }
@@ -101,7 +101,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto RemoteSubnetRoute()
+    [[nodiscard]] constexpr static auto RemoteSubnetRoute()
     {
         return HcnNetworkPolicyType{"RemoteSubnetRoute"};
     }
@@ -109,7 +109,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto VxlanPort()
+    [[nodiscard]] constexpr static auto VxlanPort()
     {
         return HcnNetworkPolicyType{"VxlanPort"};
     }
@@ -117,7 +117,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto HostRoute()
+    [[nodiscard]] constexpr static auto HostRoute()
     {
         return HcnNetworkPolicyType{"HostRoute"};
     }
@@ -125,7 +125,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto SetPolicy()
+    [[nodiscard]] constexpr static auto SetPolicy()
     {
         return HcnNetworkPolicyType{"SetPolicy"};
     }
@@ -133,7 +133,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto NetworkL4Proxy()
+    [[nodiscard]] constexpr static auto NetworkL4Proxy()
     {
         return HcnNetworkPolicyType{"NetworkL4Proxy"};
     }
@@ -141,7 +141,7 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto LayerConstraint()
+    [[nodiscard]] constexpr static auto LayerConstraint()
     {
         return HcnNetworkPolicyType{"LayerConstraint"};
     }
@@ -149,12 +149,12 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    constexpr static auto NetworkACL()
+    [[nodiscard]] constexpr static auto NetworkACL()
     {
         return HcnNetworkPolicyType{"NetworkACL"};
     }
 
-    bool operator==(const HcnNetworkPolicyType& rhs) const
+    [[nodiscard]] bool operator==(const HcnNetworkPolicyType& rhs) const
     {
         return value == rhs.value;
     }

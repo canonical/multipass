@@ -25,22 +25,22 @@ namespace multipass::hyperv::hcn
 
 struct HcnIpamType
 {
-    operator std::string_view() const
+    [[nodiscard]] operator std::string_view() const
     {
         return value;
     }
 
-    operator std::string() const
+    [[nodiscard]] operator std::string() const
     {
         return std::string{value};
     }
 
-    static inline const auto Dhcp()
+    [[nodiscard]] static inline const auto Dhcp()
     {
         return HcnIpamType{"DHCP"};
     }
 
-    static inline const auto Static()
+    [[nodiscard]] static inline const auto Static()
     {
         return HcnIpamType{"static"};
     }

@@ -25,32 +25,32 @@ namespace multipass::hyperv::hcs
 
 struct HcsRequestType
 {
-    operator std::string_view() const
+    [[nodiscard]] operator std::string_view() const
     {
         return value;
     }
 
-    operator std::string() const
+    [[nodiscard]] operator std::string() const
     {
         return std::string{value};
     }
 
-    constexpr static auto Add()
+    [[nodiscard]] constexpr static auto Add()
     {
         return HcsRequestType{"Add"};
     }
 
-    constexpr static auto Remove()
+    [[nodiscard]] constexpr static auto Remove()
     {
         return HcsRequestType{"Remove"};
     }
 
-    constexpr static auto Update()
+    [[nodiscard]] constexpr static auto Update()
     {
         return HcsRequestType{"Update"};
     }
 
-    bool operator==(const HcsRequestType& rhs) const
+    [[nodiscard]] bool operator==(const HcsRequestType& rhs) const
     {
         return value == rhs.value;
     }

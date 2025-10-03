@@ -27,32 +27,32 @@ namespace multipass::hyperv::hcs
 
 struct HcsResourcePath
 {
-    operator std::string_view() const
+    [[nodiscard]] operator std::string_view() const
     {
         return value;
     }
 
-    operator const std::string&() const
+    [[nodiscard]] operator const std::string&() const
     {
         return value;
     }
 
-    static HcsResourcePath NetworkAdapters(const std::string& network_adapter_id)
+    [[nodiscard]] static HcsResourcePath NetworkAdapters(const std::string& network_adapter_id)
     {
         return fmt::format("VirtualMachine/Devices/NetworkAdapters/{{{0}}}", network_adapter_id);
     }
 
-    static HcsResourcePath Memory()
+    [[nodiscard]] static HcsResourcePath Memory()
     {
         return std::string{"VirtualMachine/ComputeTopology/Memory/SizeInMB"};
     }
 
-    static HcsResourcePath Plan9Shares()
+    [[nodiscard]] static HcsResourcePath Plan9Shares()
     {
         return std::string{"VirtualMachine/Devices/Plan9/Shares"};
     }
 
-    bool operator==(const HcsResourcePath& rhs) const
+    [[nodiscard]] bool operator==(const HcsResourcePath& rhs) const
     {
         return value == rhs.value;
     }

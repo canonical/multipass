@@ -33,16 +33,16 @@ struct universal_string_literal_helper
     std::wstring_view wide;
 
     template <typename Char>
-    auto as() const;
+    [[nodiscard]] auto as() const;
 
     template <>
-    auto as<std::string_view::value_type>() const
+    [[nodiscard]] auto as<std::string_view::value_type>() const
     {
         return narrow;
     }
 
     template <>
-    auto as<std::wstring_view::value_type>() const
+    [[nodiscard]] auto as<std::wstring_view::value_type>() const
     {
         return wide;
     }
@@ -54,12 +54,12 @@ struct maybe_widen
     {
     }
 
-    operator const std::string&() const
+    [[nodiscard]] operator const std::string&() const
     {
         return narrow;
     }
 
-    operator std::wstring() const
+    [[nodiscard]] operator std::wstring() const
     {
         return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(narrow);
     }

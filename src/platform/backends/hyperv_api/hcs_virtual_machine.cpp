@@ -97,9 +97,7 @@ auto resolve_ip_addresses(const std::string& hostname)
     // Wrap the raw addrinfo pointer so it's always destroyed properly.
     const auto& [result, addr_info] = [&]() {
         struct addrinfo* result = {nullptr};
-        struct addrinfo hints
-        {
-        };
+        struct addrinfo hints{};
         const auto r = getaddrinfo(hostname.c_str(), nullptr, nullptr, &result);
         return std::make_pair(
             r,
@@ -284,10 +282,14 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     auto attach_callback_handler = sg::make_scope_guard([this]() noexcept {
         assert(hcs_system);
         top_catch_all(kLogCategory, [this] {
-            hcs->set_compute_system_callback(hcs_system,
-                                             this,
-                                             HCSVirtualMachine::compute_system_event_callback);
-            // TODO: Log
+            if (!hcs->set_compute_system_callback(hcs_system,
+                                                  this,
+                                                  HCSVirtualMachine::compute_system_event_callback))
+            {
+                mpl::warn(kLogCategory,
+                          "Could not set compute system callback for VM: `{}`!",
+                          vm_name);
+            }
         });
     });
 
@@ -451,7 +453,10 @@ void HCSVirtualMachine::start()
     mpl::debug(kLogCategory, "start() -> Starting VM `{}`, current state {}", vm_name, state);
 
     // Create the compute system, if not created yet.
-    maybe_create_compute_system();
+    if (maybe_create_compute_system())
+        mpl::debug(kLogCategory,
+                   "start() -> VM `{}` was not present, created from scratch",
+                   vm_name);
 
     const auto prev_state = current_state();
     state = VirtualMachine::State::starting;
@@ -516,9 +521,9 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown for `{}`",
                    vm_name);
         // These are non-graceful variants. Just terminate the system immediately.
-        hcs->terminate_compute_system(hcs_system);
+        const auto r = hcs->terminate_compute_system(hcs_system);
+        mpl::debug(kLogCategory, "shutdown -> terminate_compute_system result: {}", r.code);
         drop_ssh_session();
-
         break;
     }
 

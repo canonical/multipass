@@ -36,23 +36,23 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
                                       hcn_sptr_t hcn,
                                       virtdisk_sptr_t virtdisk);
 
-    VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                const SSHKeyProvider& key_provider,
-                                                VMStatusMonitor& monitor) override;
+    [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
+                                                              const SSHKeyProvider& key_provider,
+                                                              VMStatusMonitor& monitor) override;
 
-    VMImage prepare_source_image(const VMImage& source_image) override;
+    [[nodiscard]] VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
                                 const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override
     {
     }
 
-    QString get_backend_version_string() const override
+    [[nodiscard]] QString get_backend_version_string() const override
     {
         return "hyperv_api";
     };
 
-    std::vector<NetworkInterfaceInfo> networks() const override;
+    [[nodiscard]] std::vector<NetworkInterfaceInfo> networks() const override;
 
     void require_snapshots_support() const override
     {
@@ -62,15 +62,15 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
     }
 
 protected:
-    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
+    [[nodiscard]] std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
     void remove_resources_for_impl(const std::string& name) override;
 
 private:
-    VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
-                                       const multipass::VMSpecs& src_vm_specs,
-                                       const VirtualMachineDescription& desc,
-                                       VMStatusMonitor& monitor,
-                                       const SSHKeyProvider& key_provider) override;
+    [[nodiscard]] VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
+                                                     const multipass::VMSpecs& src_vm_specs,
+                                                     const VirtualMachineDescription& desc,
+                                                     VMStatusMonitor& monitor,
+                                                     const SSHKeyProvider& key_provider) override;
 
     hcs_sptr_t hcs_sptr{nullptr};
     hcn_sptr_t hcn_sptr{nullptr};
@@ -79,6 +79,6 @@ private:
     /**
      * Retrieve a list of available network adapters.
      */
-    static std::vector<NetworkInterfaceInfo> get_adapters();
+    [[nodiscard]] static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass::hyperv

@@ -37,36 +37,40 @@ using HcsSystemHandle = std::shared_ptr<void>;
  */
 struct HCSWrapperInterface
 {
-
-    virtual OperationResult open_compute_system(const std::string& compute_system_name,
-                                                HcsSystemHandle& out_hcs_system) const = 0;
-
-    virtual OperationResult create_compute_system(const CreateComputeSystemParameters& params,
-                                                  HcsSystemHandle& out_hcs_system) const = 0;
-    virtual OperationResult start_compute_system(
+    [[nodiscard]] virtual OperationResult open_compute_system(
+        const std::string& compute_system_name,
+        HcsSystemHandle& out_hcs_system) const = 0;
+    [[nodiscard]] virtual OperationResult create_compute_system(
+        const CreateComputeSystemParameters& params,
+        HcsSystemHandle& out_hcs_system) const = 0;
+    [[nodiscard]] virtual OperationResult start_compute_system(
         const HcsSystemHandle& target_hcs_system) const = 0;
-    virtual OperationResult shutdown_compute_system(
+    [[nodiscard]] virtual OperationResult shutdown_compute_system(
         const HcsSystemHandle& target_hcs_system) const = 0;
-    virtual OperationResult pause_compute_system(
+    [[nodiscard]] virtual OperationResult pause_compute_system(
         const HcsSystemHandle& target_hcs_system) const = 0;
-    virtual OperationResult resume_compute_system(
+    [[nodiscard]] virtual OperationResult resume_compute_system(
         const HcsSystemHandle& target_hcs_system) const = 0;
-    virtual OperationResult terminate_compute_system(
+    [[nodiscard]] virtual OperationResult terminate_compute_system(
         const HcsSystemHandle& target_hcs_system) const = 0;
-    virtual OperationResult get_compute_system_properties(
+    [[nodiscard]] virtual OperationResult get_compute_system_properties(
         const HcsSystemHandle& target_hcs_system) const = 0;
-    virtual OperationResult grant_vm_access(const std::string& compute_system_name,
-                                            const std::filesystem::path& file_path) const = 0;
-    virtual OperationResult revoke_vm_access(const std::string& compute_system_name,
-                                             const std::filesystem::path& file_path) const = 0;
-    virtual OperationResult get_compute_system_state(const HcsSystemHandle& target_hcs_system,
-                                                     ComputeSystemState& state_out) const = 0;
-    virtual OperationResult modify_compute_system(const HcsSystemHandle& target_hcs_system,
-                                                  const HcsRequest& request) const = 0;
-    virtual OperationResult set_compute_system_callback(const HcsSystemHandle& target_hcs_system,
-                                                        void* context,
-                                                        void (*callback)(void* hcs_event,
-                                                                         void* context)) const = 0;
+    [[nodiscard]] virtual OperationResult grant_vm_access(
+        const std::string& compute_system_name,
+        const std::filesystem::path& file_path) const = 0;
+    [[nodiscard]] virtual OperationResult revoke_vm_access(
+        const std::string& compute_system_name,
+        const std::filesystem::path& file_path) const = 0;
+    [[nodiscard]] virtual OperationResult get_compute_system_state(
+        const HcsSystemHandle& target_hcs_system,
+        ComputeSystemState& state_out) const = 0;
+    [[nodiscard]] virtual OperationResult modify_compute_system(
+        const HcsSystemHandle& target_hcs_system,
+        const HcsRequest& request) const = 0;
+    [[nodiscard]] virtual OperationResult set_compute_system_callback(
+        const HcsSystemHandle& target_hcs_system,
+        void* context,
+        void (*callback)(void* hcs_event, void* context)) const = 0;
     virtual ~HCSWrapperInterface() = default;
 };
 } // namespace multipass::hyperv::hcs

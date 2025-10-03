@@ -76,7 +76,7 @@ public:
      * @param [in] ss The snapshot
      * @return std::string Filename for the snapshot
      */
-    static std::string make_snapshot_filename(const Snapshot& ss);
+    [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
 
     /**
      * Retrieve the path for a snapshot
@@ -84,14 +84,14 @@ public:
      * @param [in] ss The snapshot
      * @return std::filesystem::path The path that the snapshot is at
      */
-    std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
+    [[nodiscard]] std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
 
     /**
      * The name for the head disk
      *
      * @return std::string_view Head disk filename
      */
-    static constexpr std::string_view head_disk_name() noexcept
+    [[nodiscard]] static constexpr std::string_view head_disk_name() noexcept
     {
         return "head.avhdx";
     }
@@ -99,7 +99,7 @@ public:
     /**
      * Path for the head disk
      */
-    std::filesystem::path make_head_disk_path() const;
+    [[nodiscard]] std::filesystem::path make_head_disk_path() const;
 
 protected:
     void capture_impl() override;

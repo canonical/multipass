@@ -28,7 +28,7 @@ namespace multipass::hyperv::hcn
  */
 struct HcnNetworkType
 {
-    operator std::string_view() const
+    [[nodiscard]] operator std::string_view() const
     {
         return value;
     }
@@ -36,7 +36,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto Nat()
+    [[nodiscard]] constexpr static auto Nat()
     {
         return HcnNetworkType{"NAT"};
     }
@@ -44,7 +44,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto Ics()
+    [[nodiscard]] constexpr static auto Ics()
     {
         return HcnNetworkType{"ICS"};
     }
@@ -52,7 +52,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto Transparent()
+    [[nodiscard]] constexpr static auto Transparent()
     {
         return HcnNetworkType{"Transparent"};
     }
@@ -60,7 +60,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto L2Bridge()
+    [[nodiscard]] constexpr static auto L2Bridge()
     {
         return HcnNetworkType{"L2Bridge"};
     }
@@ -68,7 +68,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto L2Tunnel()
+    [[nodiscard]] constexpr static auto L2Tunnel()
     {
         return HcnNetworkType{"L2Tunnel"};
     }
@@ -76,7 +76,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto Overlay()
+    [[nodiscard]] constexpr static auto Overlay()
     {
         return HcnNetworkType{"Overlay"};
     }
@@ -84,7 +84,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto Private()
+    [[nodiscard]] constexpr static auto Private()
     {
         return HcnNetworkType{"Private"};
     }
@@ -92,7 +92,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    constexpr static auto Internal()
+    [[nodiscard]] constexpr static auto Internal()
     {
         return HcnNetworkType{"Internal"};
     }
@@ -100,7 +100,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.4
      */
-    constexpr static auto Mirrored()
+    [[nodiscard]] constexpr static auto Mirrored()
     {
         return HcnNetworkType{"Mirrored"};
     }
@@ -108,7 +108,7 @@ struct HcnNetworkType
     /**
      * @since Version 2.4
      */
-    constexpr static auto Infiniband()
+    [[nodiscard]] constexpr static auto Infiniband()
     {
         return HcnNetworkType{"Infiniband"};
     }
@@ -116,12 +116,12 @@ struct HcnNetworkType
     /**
      * @since Version 2.10
      */
-    constexpr static auto ConstrainedICS()
+    [[nodiscard]] constexpr static auto ConstrainedICS()
     {
         return HcnNetworkType{"ConstrainedICS"};
     }
 
-    bool operator==(const HcnNetworkType& rhs) const
+    [[nodiscard]] bool operator==(const HcnNetworkType& rhs) const
     {
         return value == rhs.value;
     }
