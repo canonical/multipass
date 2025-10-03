@@ -293,7 +293,6 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
 {
     YAML::Node find;
     find["errors"] = std::vector<YAML::Node>{};
-    find["blueprints (deprecated)"] = format_images(reply.blueprints_info());
     find["images"] = format_images(reply.images_info());
 
     return mpu::emit_yaml(find);

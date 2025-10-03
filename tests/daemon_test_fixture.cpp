@@ -21,15 +21,16 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_cert_provider.h"
+#include "mock_image_host.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
+#include "mock_vm_image_vault.h"
 #include "stub_cert_store.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
 #include "stub_ssh_key_provider.h"
 #include "stub_terminal.h"
 #include "stub_virtual_machine_factory.h"
-#include "stub_vm_blueprint_provider.h"
 #include "stub_vm_image_vault.h"
 
 #include <src/client/cli/client.h>
@@ -326,7 +327,6 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.client_cert_store = std::make_unique<StubCertStore>();
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
-    config_builder.blueprint_provider = std::make_unique<StubVMBlueprintProvider>();
 }
 
 void mpt::DaemonTestFixture::SetUp()
@@ -340,6 +340,20 @@ void mpt::DaemonTestFixture::SetUp()
         .WillRepeatedly(Return(
             "")); /* Avoid writing to Windows Terminal settings. We use an "expectation" so that
                      it gets reset at the end of each test (by VerifyAndClearExpectations) */
+}
+
+mpt::MockVMImageVault* mpt::DaemonTestFixture::mock_image_vault()
+{
+    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    EXPECT_CALL(*mock_image_vault, all_info_for(_))
+        .WillRepeatedly(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
+            std::pair<std::string, mp::VMImageInfo>{"default",
+                                                    mock_image_host->mock_bionic_image_info}}));
+
+    config_builder.vault = std::move(mock_image_vault);
+    return reinterpret_cast<mpt::MockVMImageVault*>(config_builder.vault.get());
 }
 
 mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
@@ -363,7 +377,7 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
                                                      {"wlan0", "wi-fi", "wireless adapter"}}));
 
     config_builder.factory = std::move(mock_factory);
-    return mock_factory_ptr;
+    return reinterpret_cast<MockVirtualMachineFactory*>(config_builder.factory.get());
 }
 
 void mpt::DaemonTestFixture::send_command(const std::vector<std::string>& command,
