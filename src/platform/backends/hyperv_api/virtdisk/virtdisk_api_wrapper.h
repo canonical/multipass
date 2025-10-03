@@ -112,8 +112,9 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    virtual OperationResult get_virtual_disk_info(const std::filesystem::path& vhdx_path,
-                                                  VirtualDiskInfo& vdinfo) const override;
+    [[nodiscard]] virtual OperationResult get_virtual_disk_info(
+        const std::filesystem::path& vhdx_path,
+        VirtualDiskInfo& vdinfo) const override;
 
     /**
      * List all the virtual disks in a virtual disk chain.
@@ -123,7 +124,7 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @param [in] max_depth Maximum depth to list (optional)
      * @return OperationResult
      */
-    virtual OperationResult list_virtual_disk_chain(
+    [[nodiscard]] virtual OperationResult list_virtual_disk_chain(
         const std::filesystem::path& vhdx_path,
         std::vector<std::filesystem::path>& chain,
         std::optional<std::size_t> max_depth = std::nullopt) const override;
