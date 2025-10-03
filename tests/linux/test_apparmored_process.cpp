@@ -45,7 +45,7 @@ class TestProcessSpec : public mp::ProcessSpec
 {
     QString program() const override
     {
-        return "test_prog";
+        return "mock_process";
     }
     QStringList arguments() const override
     {
@@ -319,7 +319,7 @@ TEST_F(ApparmoredProcessNoFactoryTest, logsAllExpectedMessagesOnStart)
     auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
 
     logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                         "Applied AppArmor policy: multipass.test_prog");
+                                         "Applied AppArmor policy: multipass.mock_process");
     logger_scope.mock_logger->expect_log(
         mpl::Level::trace,
         fmt::format("Removing AppArmor policy:\n{}", apparmor_profile_text));
