@@ -1341,21 +1341,6 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
-
-template <typename Reply, typename Request>
-void lxd_deprecation_warning(
-    grpc::ServerReaderWriterInterface<Reply, Request>& server) // TODO lxd migration, remove
-{
-#ifdef MULTIPASS_PLATFORM_LINUX
-    const auto current_driver = MP_SETTINGS.get(mp::driver_key);
-    if (current_driver == "lxd")
-    {
-        Reply reply{};
-        reply.set_log_line(deprecation_warning_message_driver_concatenated(current_driver));
-        server.Write(reply);
-    }
-#endif
-}
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1627,7 +1612,6 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         std::promise<grpc::Status>* status_promise)
 try
 {
-    lxd_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<LaunchReply, LaunchRequest> logger{
         mpl::level_from(request->verbosity_level()),
         *config->logger,
@@ -1785,7 +1769,6 @@ void mp::Daemon::info(const InfoRequest* request,
                       std::promise<grpc::Status>* status_promise)
 try
 {
-    lxd_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()),
                                                      *config->logger,
                                                      server};
@@ -1882,7 +1865,6 @@ void mp::Daemon::list(const ListRequest* request,
                       std::promise<grpc::Status>* status_promise)
 try
 {
-    lxd_deprecation_warning(*server); // TODO lxd and libvirt migration, remove
     mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()),
                                                      *config->logger,
                                                      server};
