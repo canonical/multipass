@@ -639,18 +639,3 @@ auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& ne
                      });
     return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
 }
-
-std::string deprecation_warning_message_driver_concatenated(
-    const QString driver_name) // TODO lxd migration, remove
-{
-    constexpr auto driver_deprecation_warning_template_common_part =
-        "*** Warning! The {0} driver is deprecated and will be removed in an future "
-        "release. ***\n\n";
-
-    constexpr auto driver_deprecation_warning_lxd_part =
-        "Instances will no longer be available in Multipass then, "
-        "but they will remain in LXD.\n\n";
-
-    return fmt::format(driver_deprecation_warning_template_common_part, driver_name) +
-           driver_deprecation_warning_lxd_part;
-}
