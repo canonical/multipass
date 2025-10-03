@@ -14,7 +14,7 @@
 
 include(FetchContent)
 
-# Declare and fetch fmt
+# Declare and fetch out_ptr
 FetchContent_Declare(
   out_ptr
   GIT_REPOSITORY https://github.com/soasis/out_ptr.git
