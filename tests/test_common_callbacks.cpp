@@ -76,6 +76,7 @@ struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks,
             break;
         default:
             assert(false && "shouldn't be here");
+            throw std::runtime_error{"unexpected callback type"};
         }
     }
 };

@@ -52,6 +52,15 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
     }
 
     vm_desc.cloud_init_iso = cloud_init_iso;
+
+    // Verify ISO file exists and is accessible (fixes race condition #4396)
+    QFile iso_file(vm_desc.cloud_init_iso);
+    if (!iso_file.open(QIODevice::ReadOnly))
+    {
+        throw std::runtime_error(
+            fmt::format("Cloud-init ISO not accessible for '{}'", vm_desc.vm_name));
+    }
+    iso_file.close();
 }
 
 void mp::BaseVirtualMachineFactory::prepare_networking(
