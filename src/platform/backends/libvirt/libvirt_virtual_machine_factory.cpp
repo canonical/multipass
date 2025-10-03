@@ -114,9 +114,11 @@ auto make_libvirt_wrapper(const std::string& libvirt_object_path)
 
 mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(
     const mp::Path& data_dir,
-    const std::string& libvirt_object_path)
+    const std::string& libvirt_object_path,
+    AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager),
       libvirt_wrapper{make_libvirt_wrapper(libvirt_object_path)},
       data_dir{data_dir},
       bridge_name{enable_libvirt_network(data_dir, libvirt_wrapper)},
@@ -124,8 +126,9 @@ mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(
 {
 }
 
-mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir)
-    : LibVirtVirtualMachineFactory(data_dir, "libvirt.so.0")
+mp::LibVirtVirtualMachineFactory::LibVirtVirtualMachineFactory(const mp::Path& data_dir,
+                                                               AvailabilityZoneManager& az_manager)
+    : LibVirtVirtualMachineFactory(data_dir, "libvirt.so.0", az_manager)
 {
 }
 
@@ -142,6 +145,7 @@ mp::VirtualMachine::UPtr mp::LibVirtVirtualMachineFactory::create_virtual_machin
                                                        monitor,
                                                        libvirt_wrapper,
                                                        key_provider,
+                                                       az_manager.get_zone(desc.zone),
                                                        get_instance_directory(desc.vm_name));
 }
 

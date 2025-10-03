@@ -55,7 +55,11 @@ Q_DECLARE_METATYPE(VariantMapMap) // for DBus
 
 namespace
 {
-std::default_random_engine gen;
+std::default_random_engine gen = [] {
+    // seed the rng with the time at initialization
+    auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+    return std::default_random_engine(seed);
+}();
 std::uniform_int_distribution<int> dist{0, 255};
 const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
 const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
@@ -75,7 +79,7 @@ bool subnet_used_locally(const std::string& subnet)
 
 bool can_reach_gateway(const std::string& ip)
 {
-    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "-1", "-W", "1"});
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "1", "-W", "1"});
 }
 
 auto virtual_switch_subnet(const QString& bridge_name)
@@ -197,7 +201,7 @@ auto make_bridge_rollback_guard(std::string_view log_category,
 
 std::string mp::backend::generate_random_subnet()
 {
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
+    // TODO don't rely on pure randomness
     for (auto i = 0; i < 100; ++i)
     {
         auto subnet = fmt::format("10.{}.{}", dist(gen), dist(gen));
@@ -280,7 +284,7 @@ std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& 
     if (!subnet.empty())
         return subnet;
 
-    QFile subnet_file{network_dir + "/multipass_subnet"};
+    QFile subnet_file{network_dir + "/multipass_subnet_" + bridge_name};
     MP_FILEOPS.open(subnet_file, QIODevice::ReadWrite | QIODevice::Text);
     if (MP_FILEOPS.size(subnet_file) > 0)
         return MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
