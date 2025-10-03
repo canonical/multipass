@@ -32,7 +32,6 @@ namespace multipass
 {
 constexpr auto release_remote = "release";
 constexpr auto daily_remote = "daily";
-constexpr auto appliance_remote = "appliance";
 
 class URLDownloader;
 class UbuntuVMImageRemote;

@@ -64,7 +64,7 @@ struct TestGlobalSettingsHandlers : public Test
     void inject_default_returning_mock_qsettings()
     {
         EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings)
-            .WillRepeatedly(WithArg<0>(Invoke(make_default_returning_mock_qsettings)));
+            .WillRepeatedly(WithArg<0>(make_default_returning_mock_qsettings));
     }
 
     void expect_setting_values(const std::map<QString, QString>& setting_values)
@@ -137,7 +137,7 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithClientFil
     mp::client::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
-        .WillOnce(WithArg<0>(Invoke(make_default_returning_mock_qsettings)));
+        .WillOnce(WithArg<0>(make_default_returning_mock_qsettings));
     handler->set(mp::petenv_key, "goo");
 }
 
@@ -223,7 +223,7 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFil
     mp::daemon::register_global_settings_handlers();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
-        .WillOnce(WithArg<0>(Invoke(make_default_returning_mock_qsettings)));
+        .WillOnce(WithArg<0>(make_default_returning_mock_qsettings));
     handler->set(mp::bridged_interface_key, "bridge");
 }
 

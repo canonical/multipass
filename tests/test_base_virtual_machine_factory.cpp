@@ -177,9 +177,9 @@ TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
 {
     MockBaseFactory factory;
 
-    EXPECT_CALL(factory, prepare_networking).WillOnce(Invoke([&factory](auto& nets) {
+    EXPECT_CALL(factory, prepare_networking).WillOnce([&factory](auto& nets) {
         factory.mp::BaseVirtualMachineFactory::prepare_networking(nets);
-    }));
+    });
 
     std::vector<mp::NetworkInterface> nets{{"asdf", "qwer", true}};
     const auto nets_copy = nets;

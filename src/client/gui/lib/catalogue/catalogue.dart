@@ -26,7 +26,7 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
 });
 
 // sorts the images in a more user-friendly way
-// the current LTS > other releases sorted by most recent > current devel > core images > appliances
+// the current LTS > other releases sorted by most recent > current devel > core images
 List<ImageInfo> sortImages(List<ImageInfo> images) {
   final ltsIndex = images.indexWhere((image) {
     return image.aliasesInfo.any((a) => a.alias == 'lts');
@@ -42,27 +42,19 @@ List<ImageInfo> sortImages(List<ImageInfo> images) {
     return image.aliasesInfo.any((a) => a.alias.contains('core'));
   }
 
-  bool applianceFilter(ImageInfo image) {
-    return image.aliasesInfo.any((a) => a.remoteName.contains('appliance'));
-  }
-
   int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
     return b.release.compareTo(a.release);
   }
 
-  final normalImages = images
-      .whereNot(coreFilter)
-      .whereNot(applianceFilter)
-      .sorted(decreasingReleaseSorter);
+  final normalImages =
+      images.whereNot(coreFilter).sorted(decreasingReleaseSorter);
   final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
-  final applianceImages = images.where(applianceFilter);
 
   return [
     if (lts != null) lts,
     ...normalImages,
     if (devel != null) devel,
     ...coreImages,
-    ...applianceImages,
   ];
 }
 
@@ -107,7 +99,7 @@ class CatalogueScreen extends ConsumerWidget {
           Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Text(
-              'Get an instant VM or Appliance in seconds. Multipass can launch and run virtual machines and configure them like a public cloud.',
+              'Get an instant VM in seconds. Multipass can launch and run virtual machines and configure them like a public cloud.',
               style: TextStyle(fontSize: 16),
             ),
           ),

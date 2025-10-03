@@ -345,11 +345,6 @@ core22                                        20230119         Ubuntu Core 22
 22.04                       jammy,lts         20230107         Ubuntu 22.04 LTS
 22.10                       kinetic           20230112         Ubuntu 22.10
 daily:23.04                 devel,lunar       20230125         Ubuntu 23.04
-appliance:adguard-home                        20200812         Ubuntu AdGuard Home Appliance
-appliance:mosquitto                           20200812         Ubuntu Mosquitto Appliance
-appliance:nextcloud                           20200812         Ubuntu Nextcloud Appliance
-appliance:openhab                             20200812         Ubuntu openHAB Home Appliance
-appliance:plexmediaserver                     20200812         Ubuntu Plex Media Server Appliance
 anbox-cloud-appliance                         latest           Anbox Cloud Appliance
 charm-dev                                     latest           A development and testing environment for charmers
 docker                                        0.4              A Docker environment with Portainer and related tools
