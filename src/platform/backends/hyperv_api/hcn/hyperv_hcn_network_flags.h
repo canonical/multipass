@@ -45,7 +45,7 @@ enum class HcnNetworkFlags : std::uint32_t
     enable_iov = 1 << 13,           ///< ??
 };
 
-inline HcnNetworkFlags operator|(HcnNetworkFlags lhs, HcnNetworkFlags rhs) noexcept
+[[nodiscard]] inline HcnNetworkFlags operator|(HcnNetworkFlags lhs, HcnNetworkFlags rhs) noexcept
 {
     using U = std::underlying_type_t<HcnNetworkFlags>;
     return static_cast<HcnNetworkFlags>(static_cast<U>(lhs) | static_cast<U>(rhs));

@@ -26,5 +26,5 @@ enum class HcsEventType
     SystemExited
 };
 
-HcsEventType parse_event(const void* hcs_event);
+[[nodiscard]] HcsEventType parse_event(const void* hcs_event);
 } // namespace multipass::hyperv::hcs
