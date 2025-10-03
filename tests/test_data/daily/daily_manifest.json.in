@@ -62,14 +62,6 @@
               "path": "zesty_newest.img",
               "sha256": "ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c",
               "size": 346882048
-            },
-            "lxd.tar.xz": {
-              "combined_squashfs_sha256": "f50337be60f7fce4ddd71397285490115e208aeb37565b8d77529cb352cdad05",
-              "ftype": "lxd.tar.xz",
-              "md5": "21a945923eff127e1553d581c8872bb6",
-              "path": "server/releases/zesty/release-20170619.1/ubuntu-17.04-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
-              "sha256": "c258ec70a733b5ea22c7b8a608d2b2e95fb1cf6ec01e0ffba367bd46baf1f8e1",
-              "size": 848
             }
           },
           "label": "release",
