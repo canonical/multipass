@@ -97,7 +97,13 @@ auto resolve_ip_addresses(const std::string& hostname)
     // Wrap the raw addrinfo pointer so it's always destroyed properly.
     const auto& [result, addr_info] = [&]() {
         struct addrinfo* result = {nullptr};
-        struct addrinfo hints{};
+        // clang-format off
+        // (xmkg): different behavior between clang-format versions.
+        struct addrinfo hints
+        {
+
+        };
+        // clang-format on
         const auto r = getaddrinfo(hostname.c_str(), nullptr, nullptr, &result);
         return std::make_pair(
             r,
