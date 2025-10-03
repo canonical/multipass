@@ -43,7 +43,7 @@ struct HcsPath
         value = std::forward<T>(v);
         return *this;
     }
-    const std::filesystem::path& get() const noexcept
+    [[nodiscard]] const std::filesystem::path& get() const noexcept
     {
         return value;
     }
