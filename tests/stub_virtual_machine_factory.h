@@ -92,12 +92,6 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return std::make_unique<StubVMImageVault>();
     }
 
-    void require_suspend_support() const override
-    {
-        // TODO: remove after LXD migration
-        throw NotImplementedOnThisBackendException{"suspend"};
-    }
-
     std::unique_ptr<TempDir> tmp_dir;
 };
 } // namespace test

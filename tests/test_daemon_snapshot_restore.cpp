@@ -153,23 +153,6 @@ TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnActiveInstance)
     EXPECT_THAT(status.error_message(), HasSubstr("stopped"));
 }
 
-TEST_F(TestDaemonSnapshot, failsIfBackendDoesNotSupportSnapshots)
-{
-    EXPECT_CALL(mock_factory, require_snapshots_support)
-        .WillRepeatedly(Throw(mp::NotImplementedOnThisBackendException{"snapshots"}));
-
-    mp::Daemon daemon{config_builder.build()};
-    auto status = call_daemon_slot(
-        daemon,
-        &mp::Daemon::snapshot,
-        mp::SnapshotRequest{},
-        StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
-
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
-    EXPECT_THAT(status.error_message(),
-                AllOf(HasSubstr("not implemented"), HasSubstr("snapshots")));
-}
-
 TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
 {
     mp::SnapshotRequest request{};
