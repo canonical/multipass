@@ -1,7 +1,9 @@
 (how-to-guides-manage-instances-share-data-with-an-instance)=
 # Share data with an instance
 
-> See also: [Instance](/explanation/instance), [Mount](/explanation/mount), [ID mapping](/explanation/id-mapping), [`launch`](/reference/command-line-interface/launch), [`mount`](/reference/command-line-interface/mount), [`umount`](/reference/command-line-interface/umount), [`transfer`](/reference/command-line-interface/transfer)
+``` {seealso}
+[Instance](explanation-instance), [Mount](explanation-mount), [ID mapping](explanation-id-mapping), [`launch`](reference-command-line-interface-launch), [`mount`](reference-command-line-interface-mount), [`umount`](reference-command-line-interface-umount), [`transfer`](reference-command-line-interface-transfer)
+```
 
 This guide explains how to share data between your host and an instance. There are two ways to accomplish this:
 * the `mount` command, that maps a local folder to a new or existing folder in the instance's filesystem
@@ -9,7 +11,7 @@ This guide explains how to share data between your host and an instance. There a
 
 ## Using `mount`
 
-You can use the [`mount`](/reference/command-line-interface/mount) command to share data between your host and an instance, by making specific folders in your host's filesystem available in your instance's filesystem, with read and write permissions. Mounted paths are persistent, meaning that they will remain available until they are explicitly unmounted.
+You can use the [`mount`](reference-command-line-interface-mount) command to share data between your host and an instance, by making specific folders in your host's filesystem available in your instance's filesystem, with read and write permissions. Mounted paths are persistent, meaning that they will remain available until they are explicitly unmounted.
 
 The basic syntax of the `mount` command is:
 
@@ -44,7 +46,7 @@ If the `/some/path` directory already exists in the instance's filesystem, its c
 For this reason, it is not possible to mount an external folder path over the instance's $HOME directory, because it also contains the SSH keys required to access the instance: by hiding them, you would no longer be able to shell into the instance.
 ```
 
-You can also define mounts when you create an instance, using the [`launch`](/reference/command-line-interface/launch) command with the `--mount` option:
+You can also define mounts when you create an instance, using the [`launch`](reference-command-line-interface-launch) command with the `--mount` option:
 
 ```{code-block} text
 multipass launch --mount /local/path:/instance/path
@@ -52,7 +54,7 @@ multipass launch --mount /local/path:/instance/path
 
 ### Unmounting shared directories
 
-To unmount previously mounted paths, use the [`umount`](/reference/command-line-interface/umount) command.
+To unmount previously mounted paths, use the [`umount`](reference-command-line-interface-umount) command.
 
 You can specify the folder path to unmount:
 
@@ -68,7 +70,7 @@ multipass umount keen-yak
 
 ## Using `transfer`
 
-You can also use the [`transfer`](/reference/command-line-interface/transfer) command to copy files from your local filesystem to the instance's filesystem, and vice versa.
+You can also use the [`transfer`](reference-command-line-interface-transfer) command to copy files from your local filesystem to the instance's filesystem, and vice versa.
 
 To indicate that a file is inside an instance, prefix its path with `<instance name>:`.
 
@@ -101,7 +103,7 @@ In this case, the output of the `ls -l /home/michal` command on the instance wil
 ...
 ```
 
-See also [ID mapping](/explanation/id-mapping) for more information on how the mount command maps user and group IDs between the host and the instance.
+See also [ID mapping](explanation-id-mapping) for more information on how the mount command maps user and group IDs between the host and the instance.
 
 <!-- Discourse contributors
 <small>**Contributors:** @saviq, @nhart, @andreitoterman, @ricab, @gzanchi </small>

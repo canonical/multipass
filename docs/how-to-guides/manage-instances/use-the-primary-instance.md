@@ -1,11 +1,11 @@
 (how-to-guides-manage-instances-use-the-primary-instance)=
 # Use the primary instance
 
-> See also: [Instance](/explanation/instance), [client.primary-name](/reference/settings/client-primary-name), [`shell`](/reference/command-line-interface/shell), [`mount`](/reference/command-line-interface/mount)
+> See also: [Instance](explanation-instance), [client.primary-name](reference-settings-client-primary-name), [`shell`](reference-command-line-interface-shell), [`mount`](reference-command-line-interface-mount)
 
-Multipass offers a quick way to access an Ubuntu instance via a simple `multipass shell` command. This is achieved via the so-called {ref}`primary-instance` that is also automatically created (if it doesn't exist) when the user runs the [`multipass start`](/reference/command-line-interface/start) or [`multipass shell`](/reference/command-line-interface/shell) commands without any arguments.
+Multipass offers a quick way to access an Ubuntu instance via a simple `multipass shell` command. This is achieved via the so-called {ref}`primary-instance` that is also automatically created (if it doesn't exist) when the user runs the [`multipass start`](reference-command-line-interface-start) or [`multipass shell`](reference-command-line-interface-shell) commands without any arguments.
 
-When automatically created, the primary instance gets the same properties as if [`launch`](/reference/command-line-interface/launch) was used with no arguments, except for the name (`primary` by default). In particular, this means that the instance will use the latest Ubuntu LTS image and will have the default CPU, disk and memory configuration.
+When automatically created, the primary instance gets the same properties as if [`launch`](reference-command-line-interface-launch) was used with no arguments, except for the name (`primary` by default). In particular, this means that the instance will use the latest Ubuntu LTS image and will have the default CPU, disk and memory configuration.
 
 You can also launch the primary instance with additional parameters, as you would do for any other instance. This provides one way to fine-tune its properties (e.g. `multipass launch --name primary --cpus 4 lts`). Alternatively, you can set another instance as primary, as explained in {ref}`changing-the-primary-instance` below.
 
@@ -22,8 +22,9 @@ In the command line, it is used as the default when no instance name is specifie
 When launching the primary instance, whether implicitly or explicitly, Multipass automatically mounts the user's home inside it, in the folder `Home`. As with any other mount, you can unmount it with `multipass umount`. For instance, `multipass umount primary` will unmount all mounts made by Multipass inside `primary`, including the auto-mounted `Home`.
 
 ```{note}
-On Windows mounts are disabled by default for security reasons. See [`set`](/reference/command-line-interface/set) and [local.privileged-mounts](/reference/settings/local-privileged-mounts) for information on how to enable them if needed.
+On Windows mounts are disabled by default for security reasons. See [`set`](reference-command-line-interface-set) and [local.privileged-mounts](reference-settings-local-privileged-mounts) for information on how to enable them if needed.
 ```
+
 (changing-the-primary-instance)=
 ## Changing the primary instance
 
