@@ -73,7 +73,6 @@ public:
                                                             const VMMount& mount) override;
 
 protected:
-    void require_snapshots_support() const override; // TODO: remove after LXD migration
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
@@ -100,8 +99,3 @@ private:
     bool update_suspend_status{true};
 };
 } // namespace multipass
-
-inline void multipass::HyperVVirtualMachine::require_snapshots_support() const
-{
-    // TODO: remove after LXD migration
-}

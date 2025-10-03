@@ -42,8 +42,6 @@ public:
     QString get_backend_version_string() const override;
     QString get_backend_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
-    void require_snapshots_support() const override; // TODO: remove after LXD migration
-    void require_clone_support() const override;     // TODO: remove after LXD migration
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
 
 protected:
@@ -61,13 +59,3 @@ private:
     QemuPlatform::UPtr qemu_platform;
 };
 } // namespace multipass
-
-inline void multipass::QemuVirtualMachineFactory::require_snapshots_support() const
-{
-    // TODO: remove after LXD migration
-}
-
-inline void multipass::QemuVirtualMachineFactory::require_clone_support() const
-{
-    // TODO: remove after LXD migration
-}
