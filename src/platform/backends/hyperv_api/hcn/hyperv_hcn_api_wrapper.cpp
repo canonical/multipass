@@ -93,7 +93,7 @@ auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
             return fmt::format(L"{{{}}}", guid_wstr);
         case kGUIDLengthWithBraces:
         {
-            if (*guid_wstr.begin() != L'{' || *std::prev(guid_wstr.end()) != L'}')
+            if (guid_wstr.front() != L'{' || guid_wstr.back() != L'}')
             {
                 throw GuidParseError{"GUID string either does not start or end with a brace."};
             }
