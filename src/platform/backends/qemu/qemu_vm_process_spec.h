@@ -35,7 +35,6 @@ public:
     {
         QString suspend_tag;
         QString machine_type;
-        bool use_cdrom_flag; // to be removed, should be replaced by "arguments"
         QStringList arguments;
     };
 
