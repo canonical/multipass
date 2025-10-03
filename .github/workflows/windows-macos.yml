@@ -137,7 +137,8 @@ jobs:
           pixman \
           pkg-config \
           python \
-          wget
+          wget \
+          rustup-init
 
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
@@ -154,7 +155,7 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v3
       with:
-        args: install --yes wget unzip
+        args: install --yes wget unzip rustup.install
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -255,6 +256,31 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: ilammy/msvc-dev-cmd@v1
 
+    - name: Initialize Rust toolchain
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          # On Windows, rustup.install from chocolatey should be available
+          if command -v rustup >/dev/null 2>&1; then
+            rustup default stable
+            rustup update
+          else
+            echo "Error: rustup not found. Please ensure it is installed and in the PATH."
+            exit 1
+          fi
+        elif [[ "${{ runner.os }}" == "macOS" ]]; then
+          # On macOS, initialize rustup-init
+          if command -v rustup-init >/dev/null 2>&1; then
+            rustup-init -y --default-toolchain stable
+            source ~/.cargo/env
+          else
+            echo "Error: rustup-init not found. Please ensure it is installed and in the PATH."
+            exit 1
+          fi
+        fi
+        # Add cargo bin to PATH for subsequent steps
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
     - name: Configure
       run: >
         ${{ env.ARCH_WRAPPER }}
@@ -276,9 +302,8 @@ jobs:
       run: ccache --show-stats --zero-stats
 
     - name: Test
-      working-directory: ${{ env.BUILD_DIR }}
       run: |
-        ${{ env.ARCH_WRAPPER }} bin/multipass_tests
+        ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }} --target all_tests
 
     - name: Package
       id: cmake-package

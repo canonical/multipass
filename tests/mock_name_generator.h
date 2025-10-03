@@ -13,16 +13,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#include "petname.h"
+#ifndef MULTIPASS_MOCK_NAME_GENERATOR_H
+#define MULTIPASS_MOCK_NAME_GENERATOR_H
+
 #include <multipass/name_generator.h>
 
-namespace mp = multipass;
+#include <gmock/gmock.h>
 
-mp::NameGenerator::UPtr mp::make_default_name_generator()
+namespace multipass::test
 {
-    return std::make_unique<mp::Petname>(mp::Petname::NumWords::TWO, "-");
-}
+
+class MockNameGenerator : public NameGenerator
+{
+public:
+    MOCK_METHOD(std::string, make_name, (), (override));
+};
+
+} // namespace multipass::test
+
+#endif // MULTIPASS_MOCK_NAME_GENERATOR_H
