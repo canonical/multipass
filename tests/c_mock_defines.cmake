@@ -48,7 +48,6 @@ add_c_mocks(
   ssh_add_channel_callbacks
   sftp_server_new
   sftp_server_free
-  sftp_server_init
   sftp_reply_status
   sftp_reply_attr
   sftp_reply_data
@@ -56,6 +55,7 @@ add_c_mocks(
   sftp_reply_names
   sftp_reply_names_add
   sftp_reply_handle
+  sftp_reply_version
   sftp_get_client_message
   sftp_client_message_free
   sftp_client_message_get_data
