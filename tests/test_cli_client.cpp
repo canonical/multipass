@@ -1831,7 +1831,6 @@ TEST_F(Client, execCmdWithDirPrependsCd)
     std::string cmd{"pwd"};
 
     REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        std::cout << "HA";
         *val = 0;
         return SSH_OK;
     });
@@ -1868,7 +1867,6 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
         cmds_string += " " + cmds[i];
 
     REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        std::cout << "HA";
         *val = 0;
         return SSH_OK;
     });
@@ -4642,7 +4640,6 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, "map"}}});
 
     REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        std::cout << "HA";
         *val = 0;
         return SSH_OK;
     });
