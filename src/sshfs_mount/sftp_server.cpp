@@ -65,7 +65,7 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
     sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
     if (msg == NULL)
     {
-        throw mp::SSHException("[sftp] server init failed: 'Null message'");
+        throw mp::SSHException("[sftp] server init failed: 'Null client message'");
     }
 
     if (msg->type != SSH_FXP_INIT)
@@ -74,6 +74,8 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
             "[sftp] server init failed: 'FATAL: Packet read of type {} instead of SSH_FXP_INIT'",
             msg->type));
     }
+
+    // Optional: Log the SSH_FXP_INIT reception like libssh does with SSH_LOG but with mp::log
 
     if (sftp_reply_version(msg) != SSH_OK)
     {
