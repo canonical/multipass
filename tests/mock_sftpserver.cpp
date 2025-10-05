@@ -19,7 +19,6 @@
 extern "C"
 {
 IMPL_MOCK_DEFAULT(2, sftp_server_new);
-IMPL_MOCK_DEFAULT(1, sftp_server_init);
 IMPL_MOCK_DEFAULT(1, sftp_server_free);
 IMPL_MOCK_DEFAULT(3, sftp_reply_status);
 IMPL_MOCK_DEFAULT(2, sftp_reply_attr);
@@ -35,4 +34,5 @@ IMPL_MOCK_DEFAULT(1, sftp_client_message_get_filename);
 IMPL_MOCK_DEFAULT(2, sftp_handle);
 IMPL_MOCK_DEFAULT(2, sftp_handle_alloc);
 IMPL_MOCK_DEFAULT(2, sftp_handle_remove);
+IMPL_MOCK_DEFAULT(1, sftp_reply_version);
 }

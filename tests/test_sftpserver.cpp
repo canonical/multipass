@@ -284,12 +284,14 @@ bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permiss
 
 TEST_F(SftpServer, throwsWhenFailedToInit)
 {
-    REPLACE(sftp_server_init, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
 }
 
 TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
 {
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
     bool invoked{false};
     auto request_exec = [this, &invoked](ssh_channel, const char* raw_cmd) {
         std::string cmd{raw_cmd};
@@ -346,17 +348,16 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     };
 
     REPLACE(ssh_channel_request_exec, request_exec);
-
-    auto sftp = make_sftpserver();
-
-    auto get_client_msg = [this, &num_calls](auto...) {
+    auto message{make_msg(SSH_FXP_INIT)};
+    auto get_client_msg = [this, &num_calls, &message, calls = 0](auto...) mutable {
         exit_status_mock.set_ssh_rc(SSH_OK);
         exit_status_mock.set_exit_status(num_calls == 1 ? exit_status_mock.failure_status
                                                         : exit_status_mock.success_status);
 
-        return nullptr;
+        return (calls++ & 1) ? nullptr : message.get();
     };
     REPLACE(sftp_get_client_message, get_client_msg);
+    auto sftp = make_sftpserver();
 
     sftp.run();
 
@@ -365,20 +366,22 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
 
 TEST_F(SftpServer, stopsAfterANullMessage)
 {
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
     auto sftp = make_sftpserver();
 
-    REPLACE(sftp_get_client_message, [](auto...) { return nullptr; });
     sftp.run();
 }
 
 TEST_F(SftpServer, freesMessage)
 {
-    auto sftp = make_sftpserver();
-
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_BAD_MESSAGE);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver();
     sftp.run();
 
     msg_free.expectCalled(1).withValues(msg.get());
@@ -388,8 +391,7 @@ TEST_F(SftpServer, handlesRealpath)
 {
     mpt::TempFile file;
     auto file_name = name_as_char_array(file.name().toStdString());
-
-    auto sftp = make_sftpserver(file.name().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_REALPATH);
     msg->filename = file_name.data();
 
@@ -405,6 +407,7 @@ TEST_F(SftpServer, handlesRealpath)
     REPLACE(sftp_reply_name, reply_name);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(file.name().toStdString());
     sftp.run();
 
     EXPECT_TRUE(invoked);
@@ -414,8 +417,7 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
 {
     mpt::TempFile file;
     auto file_name = name_as_char_array(file.name().toStdString());
-
-    auto sftp = make_sftpserver(file.name().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_REALPATH);
     msg->filename = file_name.data();
 
@@ -425,6 +427,7 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(file.name().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -433,8 +436,7 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
 TEST_F(SftpServer, handlesOpendir)
 {
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
-
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
 
@@ -444,13 +446,14 @@ TEST_F(SftpServer, handlesOpendir)
     REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     sftp.run();
 }
 
 TEST_F(SftpServer, opendirNotExistingFails)
 {
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
 
@@ -465,6 +468,7 @@ TEST_F(SftpServer, opendirNotExistingFails)
     REPLACE(sftp_reply_status,
             make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, no_such_file_calls));
 
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     sftp.run();
 
     EXPECT_EQ(no_such_file_calls, 1);
@@ -472,8 +476,8 @@ TEST_F(SftpServer, opendirNotExistingFails)
 
 TEST_F(SftpServer, opendirNotReadableFails)
 {
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
 
@@ -484,6 +488,8 @@ TEST_F(SftpServer, opendirNotReadableFails)
     });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
+
     int perm_denied_num_calls{0};
     REPLACE(sftp_reply_status,
             make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls));
@@ -503,8 +509,7 @@ TEST_F(SftpServer, opendirNotReadableFails)
 TEST_F(SftpServer, opendirNoHandleAllocatedFails)
 {
     auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
-
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
 
@@ -522,6 +527,7 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
 
     REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     int failure_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
@@ -540,7 +546,7 @@ TEST_F(SftpServer, opendirFailsWhenIdsAreNotMapped)
 {
     mpt::TempDir temp_dir;
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto open_dir_msg = make_msg(SFTP_OPENDIR);
     auto dir_name = name_as_char_array(temp_dir.path().toStdString());
     open_dir_msg->filename = dir_name.data();
@@ -552,6 +558,7 @@ TEST_F(SftpServer, opendirFailsWhenIdsAreNotMapped)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -563,9 +570,9 @@ TEST_F(SftpServer, handlesMkdir)
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
     auto new_dir_name = name_as_char_array(new_dir);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
+    auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
     msg->attr = &attr;
@@ -586,6 +593,7 @@ TEST_F(SftpServer, handlesMkdir)
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_OK, num_calls));
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_TRUE(QDir{new_dir_name.data()}.exists());
@@ -602,7 +610,7 @@ TEST_F(SftpServer, mkdirOnExistingDirFails)
     ASSERT_TRUE(dir.mkdir(new_dir_name.data()));
     ASSERT_TRUE(dir.exists());
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
     sftp_attributes_struct attr{};
@@ -614,6 +622,8 @@ TEST_F(SftpServer, mkdirOnExistingDirFails)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -642,9 +652,9 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
         return file.groupId();
     });
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
     msg->attr = &attr;
@@ -652,6 +662,8 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     int failure_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -675,7 +687,7 @@ TEST_F(SftpServer, mkdirChownFailureFails)
     EXPECT_CALL(*mock_platform, chown(_, _, _)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
     sftp_attributes_struct attr{};
@@ -687,6 +699,8 @@ TEST_F(SftpServer, mkdirChownFailureFails)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -705,7 +719,7 @@ TEST_F(SftpServer, mkdirFailsInDirThatsMissingMappedIds)
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
     auto new_dir_name = name_as_char_array(new_dir);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
     const auto msg = make_msg(SFTP_MKDIR);
@@ -717,6 +731,7 @@ TEST_F(SftpServer, mkdirFailsInDirThatsMissingMappedIds)
             make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls));
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_FALSE(QDir{new_dir_name.data()}.exists());
@@ -733,7 +748,7 @@ TEST_F(SftpServer, handlesRmdir)
     ASSERT_TRUE(dir.mkdir(new_dir_name.data()));
     ASSERT_TRUE(dir.exists());
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RMDIR);
     msg->filename = new_dir_name.data();
 
@@ -742,6 +757,7 @@ TEST_F(SftpServer, handlesRmdir)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_FALSE(dir.exists());
@@ -754,7 +770,7 @@ TEST_F(SftpServer, rmdirNonExistingFails)
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
     auto new_dir_name = name_as_char_array(new_dir);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RMDIR);
     msg->filename = new_dir_name.data();
 
@@ -763,6 +779,8 @@ TEST_F(SftpServer, rmdirNonExistingFails)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -785,7 +803,7 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
 
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(false));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RMDIR);
     msg->filename = new_dir_name.data();
 
@@ -794,6 +812,8 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -816,7 +836,7 @@ TEST_F(SftpServer, rmdirFailsToRemoveDirThatsMissingMappedIds)
     ASSERT_TRUE(dir.mkdir(new_dir_name.data()));
     ASSERT_TRUE(dir.exists());
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RMDIR);
     msg->filename = new_dir_name.data();
 
@@ -826,6 +846,7 @@ TEST_F(SftpServer, rmdirFailsToRemoveDirThatsMissingMappedIds)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_TRUE(dir.exists());
@@ -845,7 +866,7 @@ TEST_F(SftpServer, handlesReadlink)
     ASSERT_TRUE(QFile::exists(link_name));
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_READLINK);
     auto name = name_as_char_array(link_name.toStdString());
     msg->filename = name.data();
@@ -864,6 +885,7 @@ TEST_F(SftpServer, handlesReadlink)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(num_calls, Eq(1));
@@ -882,7 +904,7 @@ TEST_F(SftpServer, readlinkFailsWhenIdsAreNotMapped)
     ASSERT_TRUE(QFile::exists(link_name));
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_READLINK);
     auto name = name_as_char_array(link_name.toStdString());
     msg->filename = name.data();
@@ -893,6 +915,7 @@ TEST_F(SftpServer, readlinkFailsWhenIdsAreNotMapped)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -905,7 +928,7 @@ TEST_F(SftpServer, handlesSymlink)
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -923,6 +946,7 @@ TEST_F(SftpServer, handlesSymlink)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_THAT(num_calls, Eq(1));
@@ -937,7 +961,7 @@ TEST_F(SftpServer, symlinkInInvalidDirFails)
 {
     mpt::TempDir temp_dir;
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
     auto target = name_as_char_array("bar");
     msg->filename = target.data();
@@ -952,6 +976,7 @@ TEST_F(SftpServer, symlinkInInvalidDirFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
@@ -963,7 +988,7 @@ TEST_F(SftpServer, brokenSymlinkDoesNotFail)
     auto missing_file_name = temp_dir.path() + "/test-file";
     auto broken_link_name = temp_dir.path() + "/test-link";
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
     auto broken_target = name_as_char_array(missing_file_name.toStdString());
     msg->filename = broken_target.data();
@@ -981,6 +1006,7 @@ TEST_F(SftpServer, brokenSymlinkDoesNotFail)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_THAT(num_calls, Eq(1));
@@ -998,7 +1024,7 @@ TEST_F(SftpServer, symlinkFailureFails)
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -1015,6 +1041,8 @@ TEST_F(SftpServer, symlinkFailureFails)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -1036,7 +1064,7 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -1055,6 +1083,7 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     ASSERT_THAT(perm_denied_num_calls, Eq(1));
@@ -1071,7 +1100,7 @@ TEST_F(SftpServer, handlesRename)
     auto new_name = temp_dir.path() + "/test-renamed";
     mpt::make_file_with_content(old_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
     auto name = name_as_char_array(old_name.toStdString());
     msg->filename = name.data();
@@ -1084,6 +1113,7 @@ TEST_F(SftpServer, handlesRename)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_THAT(num_calls, Eq(1));
@@ -1099,7 +1129,7 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     mpt::make_file_with_content(old_name);
     mpt::make_file_with_content(new_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
     auto name = name_as_char_array(old_name.toStdString());
     msg->filename = name.data();
@@ -1125,6 +1155,8 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
@@ -1144,7 +1176,7 @@ TEST_F(SftpServer, renameFailureFails)
     auto new_name = temp_dir.path() + "/test-renamed";
     mpt::make_file_with_content(old_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
     auto name = name_as_char_array(old_name.toStdString());
     msg->filename = name.data();
@@ -1170,6 +1202,8 @@ TEST_F(SftpServer, renameFailureFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
@@ -1190,7 +1224,7 @@ TEST_F(SftpServer, renameInvalidTargetFails)
     auto invalid_target = name_as_char_array("/foo/bar");
     mpt::make_file_with_content(old_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
     auto name = name_as_char_array(old_name.toStdString());
     msg->filename = name.data();
@@ -1205,6 +1239,7 @@ TEST_F(SftpServer, renameInvalidTargetFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
@@ -1217,7 +1252,7 @@ TEST_F(SftpServer, renameFailsWhenSourceFileIdsAreNotMapped)
     auto new_name = temp_dir.path() + "/test-renamed";
     mpt::make_file_with_content(old_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
     auto name = name_as_char_array(old_name.toStdString());
     msg->filename = name.data();
@@ -1230,6 +1265,8 @@ TEST_F(SftpServer, renameFailsWhenSourceFileIdsAreNotMapped)
         make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(
@@ -1261,7 +1298,7 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
         .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
     auto name = name_as_char_array(old_name.toStdString());
     msg->filename = name.data();
@@ -1274,6 +1311,8 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
         make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(
@@ -1295,7 +1334,7 @@ TEST_F(SftpServer, handlesRemove)
 
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_REMOVE);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -1305,6 +1344,7 @@ TEST_F(SftpServer, handlesRemove)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_THAT(num_calls, Eq(1));
@@ -1318,7 +1358,7 @@ TEST_F(SftpServer, removeNonExistingFails)
 
     ASSERT_FALSE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_REMOVE);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -1328,6 +1368,8 @@ TEST_F(SftpServer, removeNonExistingFails)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -1348,7 +1390,7 @@ TEST_F(SftpServer, removeFailsWhenIdsAreNotMapped)
 
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_REMOVE);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -1360,6 +1402,7 @@ TEST_F(SftpServer, removeFailsWhenIdsAreNotMapped)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -1373,11 +1416,10 @@ TEST_F(SftpServer, openInWriteModeCreatesFile)
 
     ASSERT_FALSE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
     auto name = name_as_char_array(file_name.toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
     msg->attr = &attr;
@@ -1394,6 +1436,7 @@ TEST_F(SftpServer, openInWriteModeCreatesFile)
     REPLACE(sftp_reply_handle, reply_handle);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_TRUE(reply_handle_invoked);
@@ -1408,7 +1451,7 @@ TEST_F(SftpServer, openInTruncateModeTruncatesFile)
 
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE | SSH_FXF_TRUNC;
     auto name = name_as_char_array(file_name.toStdString());
@@ -1422,6 +1465,7 @@ TEST_F(SftpServer, openInTruncateModeTruncatesFile)
     REPLACE(sftp_reply_handle, reply_handle);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     QFile file(file_name);
@@ -1437,10 +1481,10 @@ TEST_F(SftpServer, openUnableToOpenFails)
 
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
     auto name = name_as_char_array(file_name.toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_READ | SSH_FXF_WRITE | SSH_FXF_APPEND | SSH_FXF_EXCL;
     msg->attr = &attr;
@@ -1472,6 +1516,7 @@ TEST_F(SftpServer, openUnableToOpenFails)
                     StrEq("sftp server"),
                     AllOf(HasSubstr("Cannot open"), HasSubstr(file_name.toStdString()))));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -1485,10 +1530,10 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
 
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
     auto name = name_as_char_array(file_name.toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_READ | SSH_FXF_WRITE | SSH_FXF_APPEND | SSH_FXF_EXCL;
     msg->attr = &attr;
@@ -1512,6 +1557,7 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
                     StrEq("sftp server"),
                     AllOf(HasSubstr("Cannot get status"), HasSubstr(file_name.toStdString()))));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -1526,7 +1572,7 @@ TEST_F(SftpServer, openChownFailureFails)
 
     EXPECT_CALL(*mock_platform, chown(_, _, _)).WillOnce(Return(-1));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
     sftp_attributes_struct attr{};
@@ -1547,6 +1593,7 @@ TEST_F(SftpServer, openChownFailureFails)
                     StrEq("sftp server"),
                     AllOf(HasSubstr("failed to chown"), HasSubstr(file_name.toStdString()))));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -1562,7 +1609,7 @@ TEST_F(SftpServer, openNoHandleAllocatedFails)
 
     ASSERT_FALSE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
     sftp_attributes_struct attr{};
@@ -1584,6 +1631,7 @@ TEST_F(SftpServer, openNoHandleAllocatedFails)
                     StrEq("sftp server"),
                     StrEq("Cannot allocate handle for open()")));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -1595,7 +1643,7 @@ TEST_F(SftpServer, openFailsWhenIdsAreNotMapped)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -1607,6 +1655,7 @@ TEST_F(SftpServer, openFailsWhenIdsAreNotMapped)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -1617,7 +1666,7 @@ TEST_F(SftpServer, openNonExistingFileFailsWhenDirIdsAreNotMapped)
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     auto name = name_as_char_array(file_name.toStdString());
     msg->filename = name.data();
@@ -1629,6 +1678,7 @@ TEST_F(SftpServer, openNonExistingFileFailsWhenDirIdsAreNotMapped)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -1652,8 +1702,7 @@ TEST_F(SftpServer, handlesReaddir)
                                     test_link.toStdString().c_str(),
                                     QFileInfo(test_file).isDir()));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto readdir_msg = make_msg(SFTP_READDIR);
     auto readdir_msg_final = make_msg(SFTP_READDIR);
 
@@ -1692,6 +1741,7 @@ TEST_F(SftpServer, handlesReaddir)
     REPLACE(sftp_reply_names_add, reply_names_add);
     REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(eof_num_calls, 1);
@@ -1711,8 +1761,7 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
         QFileDevice::WriteOwner | QFileDevice::ExeGroup | QFileDevice::ReadOther;
     QFile::setPermissions(test_file, expected_permissions);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto readdir_msg = make_msg(SFTP_READDIR);
     auto readdir_msg_final = make_msg(SFTP_READDIR);
 
@@ -1750,6 +1799,7 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
     REPLACE(sftp_reply_names_add, get_test_file_attributes);
     REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(eof_num_calls, 1);
@@ -1771,7 +1821,7 @@ TEST_F(SftpServer, handlesClose)
 {
     mpt::TempDir temp_dir;
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto open_dir_msg = make_msg(SFTP_OPENDIR);
     auto dir_name = name_as_char_array(temp_dir.path().toStdString());
     open_dir_msg->filename = dir_name.data();
@@ -1795,6 +1845,7 @@ TEST_F(SftpServer, handlesClose)
     REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
     REPLACE(sftp_handle_remove, [](auto...) {});
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(ok_num_calls, Eq(1));
@@ -1807,7 +1858,7 @@ TEST_F(SftpServer, handlesFstat)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name, content);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto open_msg = make_msg(SFTP_OPEN);
     auto name = name_as_char_array(file_name.toStdString());
     open_msg->filename = name.data();
@@ -1837,6 +1888,7 @@ TEST_F(SftpServer, handlesFstat)
     REPLACE(sftp_handle, [&id](auto...) { return id; });
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(num_calls, Eq(1));
@@ -1850,7 +1902,7 @@ TEST_F(SftpServer, handlesFsetstat)
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto open_msg = make_msg(SFTP_OPEN);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -1881,6 +1933,7 @@ TEST_F(SftpServer, handlesFsetstat)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     QFile file(file_name);
@@ -1898,7 +1951,7 @@ TEST_F(SftpServer, handlesSetstat)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -1917,6 +1970,7 @@ TEST_F(SftpServer, handlesSetstat)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     QFile file(file_name);
@@ -1933,7 +1987,7 @@ TEST_F(SftpServer, setstatCorrectlyModifiesFileTimestamp)
     QFileInfo orig_info{file_name};
     auto original_time = orig_info.lastModified().toSecsSinceEpoch();
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -1949,6 +2003,7 @@ TEST_F(SftpServer, setstatCorrectlyModifiesFileTimestamp)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_THAT(num_calls, Eq(1));
@@ -1964,7 +2019,7 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -1994,6 +2049,8 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
@@ -2011,13 +2068,13 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
     attr.size = 7777;
     attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_PERMISSIONS;
     attr.permissions = 0777;
 
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     msg->filename = name.data();
     msg->attr = &attr;
@@ -2041,6 +2098,8 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
     int failure_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(
         *logger_scope.mock_logger,
@@ -2059,9 +2118,7 @@ TEST_F(SftpServer, setstatChownFailureFails)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(),
-                                {{default_uid, -1}, {1001, 1001}},
-                                {{default_gid, -1}, {1001, 1001}});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -2086,6 +2143,10 @@ TEST_F(SftpServer, setstatChownFailureFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(),
+                                {{default_uid, -1}, {1001, 1001}},
+                                {{default_gid, -1}, {1001, 1001}});
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(
         *logger_scope.mock_logger,
@@ -2104,7 +2165,7 @@ TEST_F(SftpServer, setstatUtimeFailureFails)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -2127,6 +2188,8 @@ TEST_F(SftpServer, setstatUtimeFailureFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
@@ -2147,7 +2210,7 @@ TEST_F(SftpServer, setstatFailsWhenMissingMappedIds)
     QFile file(file_name);
     auto file_size = file.size();
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -2166,6 +2229,7 @@ TEST_F(SftpServer, setstatFailsWhenMissingMappedIds)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -2178,7 +2242,7 @@ TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -2200,6 +2264,7 @@ TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -2208,8 +2273,8 @@ TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
 TEST_F(SftpServer, handlesWrites)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto write_msg1 = make_msg(SFTP_WRITE);
     auto data1 = make_data("The answer is ");
     write_msg1->data = data1.get();
@@ -2245,6 +2310,7 @@ TEST_F(SftpServer, handlesWrites)
     };
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_EQ(num_calls, 2);
@@ -2254,8 +2320,8 @@ TEST_F(SftpServer, handlesWrites)
 TEST_F(SftpServer, writeCannotSeekFails)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto write_msg = make_msg(SFTP_WRITE);
     auto data1 = make_data("The answer is ");
     write_msg->data = data1.get();
@@ -2274,6 +2340,7 @@ TEST_F(SftpServer, writeCannotSeekFails)
     REPLACE(sftp_reply_status,
             make_reply_status(write_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -2282,8 +2349,8 @@ TEST_F(SftpServer, writeCannotSeekFails)
 TEST_F(SftpServer, writeFailureFails)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto write_msg = make_msg(SFTP_WRITE);
     auto data1 = make_data("The answer is ");
     write_msg->data = data1.get();
@@ -2303,6 +2370,7 @@ TEST_F(SftpServer, writeFailureFails)
     REPLACE(sftp_reply_status,
             make_reply_status(write_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -2311,9 +2379,9 @@ TEST_F(SftpServer, writeFailureFails)
 TEST_F(SftpServer, handlesReads)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     std::string given_data{"some text"};
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = given_data.size();
@@ -2347,6 +2415,7 @@ TEST_F(SftpServer, handlesReads)
     };
     REPLACE(sftp_reply_data, reply_data);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_EQ(num_calls, 1);
@@ -2355,10 +2424,10 @@ TEST_F(SftpServer, handlesReads)
 TEST_F(SftpServer, readCannotSeekFails)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     std::string given_data{"some text"};
     const int seek_pos{10};
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = seek_pos;
     read_msg->len = given_data.size();
@@ -2376,6 +2445,8 @@ TEST_F(SftpServer, readCannotSeekFails)
     REPLACE(sftp_reply_status,
             make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(mpl::Level::trace,
@@ -2391,9 +2462,9 @@ TEST_F(SftpServer, readCannotSeekFails)
 TEST_F(SftpServer, readReturnsFailureFails)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     std::string given_data{"some text"};
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = given_data.size();
@@ -2412,6 +2483,8 @@ TEST_F(SftpServer, readReturnsFailureFails)
     REPLACE(sftp_reply_status,
             make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
@@ -2426,8 +2499,8 @@ TEST_F(SftpServer, readReturnsFailureFails)
 TEST_F(SftpServer, readReturnsZeroEndOfFile)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = 10;
@@ -2445,6 +2518,7 @@ TEST_F(SftpServer, readReturnsZeroEndOfFile)
     int eof_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(read_msg.get(), SSH_FX_EOF, eof_num_calls));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_EQ(eof_num_calls, 1);
@@ -2457,7 +2531,7 @@ TEST_F(SftpServer, handleExtendedLink)
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("hardlink@openssh.com");
     msg->submessage = submessage.data();
@@ -2472,6 +2546,7 @@ TEST_F(SftpServer, handleExtendedLink)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_THAT(num_calls, Eq(1));
@@ -2485,7 +2560,7 @@ TEST_F(SftpServer, extendedLinkInInvalidDirFails)
 {
     mpt::TempDir temp_dir;
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("hardlink@openssh.com");
     msg->submessage = submessage.data();
@@ -2502,6 +2577,7 @@ TEST_F(SftpServer, extendedLinkInInvalidDirFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
@@ -2514,7 +2590,7 @@ TEST_F(SftpServer, extendedLinkFailureFails)
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("hardlink@openssh.com");
     msg->submessage = submessage.data();
@@ -2533,6 +2609,8 @@ TEST_F(SftpServer, extendedLinkFailureFails)
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -2554,7 +2632,7 @@ TEST_F(SftpServer, extendedLinkFailureFailsWhenSourceFileIdsAreNotMapped)
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("hardlink@openssh.com");
     msg->submessage = submessage.data();
@@ -2571,6 +2649,7 @@ TEST_F(SftpServer, extendedLinkFailureFailsWhenSourceFileIdsAreNotMapped)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
@@ -2586,7 +2665,7 @@ TEST_F(SftpServer, handleExtendedRename)
     auto new_name = temp_dir.path() + "/test-renamed";
     mpt::make_file_with_content(old_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("posix-rename@openssh.com");
     msg->submessage = submessage.data();
@@ -2601,6 +2680,7 @@ TEST_F(SftpServer, handleExtendedRename)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     ASSERT_THAT(num_calls, Eq(1));
@@ -2615,7 +2695,7 @@ TEST_F(SftpServer, extendedRenameFailsWhenMissingMappedIds)
     auto new_name = temp_dir.path() + "/test-renamed";
     mpt::make_file_with_content(old_name);
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("posix-rename@openssh.com");
     msg->submessage = submessage.data();
@@ -2631,6 +2711,7 @@ TEST_F(SftpServer, extendedRenameFailsWhenMissingMappedIds)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
 
     ASSERT_THAT(perm_denied_num_calls, Eq(1));
@@ -2642,7 +2723,7 @@ TEST_F(SftpServer, extendedRenameInInvalidDirFails)
 {
     mpt::TempDir temp_dir;
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("posix-rename@openssh.com");
     msg->submessage = submessage.data();
@@ -2656,6 +2737,7 @@ TEST_F(SftpServer, extendedRenameInInvalidDirFails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
@@ -2663,8 +2745,7 @@ TEST_F(SftpServer, extendedRenameInInvalidDirFails)
 
 TEST_F(SftpServer, invalidExtendedFails)
 {
-    auto sftp = make_sftpserver();
-
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("invalid submessage");
     msg->submessage = submessage.data();
@@ -2676,6 +2757,7 @@ TEST_F(SftpServer, invalidExtendedFails)
 
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver();
     sftp.run();
 
     EXPECT_THAT(num_calls, Eq(1));
@@ -2696,7 +2778,7 @@ TEST_P(Stat, handles)
     ASSERT_TRUE(QFile::exists(link_name));
     ASSERT_TRUE(QFile::exists(file_name));
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(msg_type);
 
     auto name = name_as_char_array(link_name.toStdString());
@@ -2716,6 +2798,7 @@ TEST_P(Stat, handles)
     };
     REPLACE(sftp_reply_attr, reply_attr);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(num_calls, Eq(1));
@@ -2726,7 +2809,7 @@ TEST_P(WhenInInvalidDir, fails)
     auto msg_type = GetParam();
     mpt::TempDir temp_dir;
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(msg_type);
     auto invalid_path = name_as_char_array("/foo/bar");
     msg->filename = invalid_path.data();
@@ -2738,6 +2821,7 @@ TEST_P(WhenInInvalidDir, fails)
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(perm_denied_num_calls, Eq(1));
@@ -2766,13 +2850,13 @@ INSTANTIATE_TEST_SUITE_P(SftpServer,
 TEST_P(WhenInvalidMessageReceived, repliesFailure)
 {
     mpt::TempDir temp_dir;
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
     auto params = GetParam();
 
     auto file_name = name_as_char_array(temp_dir.path().toStdString() + "this.does.not.exist");
     EXPECT_FALSE(QFile::exists(file_name.data()));
 
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(params.message_type);
     msg->filename = file_name.data();
 
@@ -2786,6 +2870,7 @@ TEST_P(WhenInvalidMessageReceived, repliesFailure)
 
     REPLACE(sftp_reply_status, reply_status);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(num_calls, Eq(1));
@@ -2825,8 +2910,8 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
 
     mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
     mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
 
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
     sftp_attributes_struct attr{};
@@ -2840,6 +2925,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
     EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();
 }
 
@@ -2851,8 +2937,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
 
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_MKDIR);
     msg->filename = new_dir_name.data();
     sftp_attributes_struct attr{};
@@ -2867,6 +2952,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
     EXPECT_CALL(*mock_platform, chown(_, parent_dir.ownerId(), parent_dir.groupId())).Times(1);
     EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 }
 
@@ -2884,7 +2970,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
 
     mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
     mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
     msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
     sftp_attributes_struct attr{};
@@ -2900,6 +2986,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
     EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();
 }
 
@@ -2916,7 +3003,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
 
     mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
     mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
+    auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
     auto name = name_as_char_array(file_name.toStdString());
     sftp_attributes_struct attr{};
@@ -2938,6 +3025,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
     EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
 
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();
 }
 } // namespace
