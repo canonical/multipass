@@ -1781,7 +1781,7 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
     REPLACE(ssh_channel_get_exit_state,
-            [&failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
+            [failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
                 *val = failure_code;
                 return failure_code == -1 ? -1 : SSH_OK;
             });
@@ -1806,7 +1806,7 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
     REPLACE(ssh_channel_get_exit_state,
-            [&failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
+            [failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
                 *val = failure_code;
                 return failure_code == -1 ? -1 : SSH_OK;
             });

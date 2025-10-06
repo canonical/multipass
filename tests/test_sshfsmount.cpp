@@ -470,7 +470,7 @@ TEST_F(SshfsMount, unblocksWhenSftpserverExits)
     mp::Signal client_message;
     auto sftp_get_client_message_lambda =
         [&client_message, message_ptr, calls = 0](sftp_session) mutable {
-            if (calls <= 0)
+            if (calls == 0)
             {
                 calls++;
                 return message_ptr;

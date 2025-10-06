@@ -80,7 +80,7 @@ TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
     auto client = make_ssh_client();
 
     REPLACE(ssh_channel_get_exit_state,
-            [&failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
+            [failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
                 *val = failure_code;
                 return SSH_OK;
             });
