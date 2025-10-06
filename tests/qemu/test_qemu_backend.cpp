@@ -1087,7 +1087,6 @@ TEST_F(QemuBackend, networksReturnsSupportedNetworks)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     const std::map<std::string, mp::NetworkInterfaceInfo> networks{
-        {"lxdbr0", {"lxdbr0", "bridge", "gobbledygook"}},
         {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
         {"virbr0", {"virbr0", "bridge", "gobbledygook"}},
         {"mpqemubr0", {"mpqemubr0", "bridge", "gobbledygook"}},

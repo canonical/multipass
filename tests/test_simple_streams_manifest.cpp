@@ -37,7 +37,6 @@ struct TestSimpleStreamsManifest : public Test
 {
     void SetUp() override
     {
-        // TODO parameterize driver (code branches for lxd)
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("emu"));
     }
 
