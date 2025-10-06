@@ -34,9 +34,15 @@ set(LIBSSH_INCLUDE_DIRS
 set(LIB_INSTALL_DIR lib)
 set(BIN_INSTALL_DIR bin)
 
-set(BUILD_SHARED_LIBS OFF)
-if(NOT MSVC)
+if(LINUX)
+    set(BUILD_SHARED_LIBS OFF)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+else()
+    # This applies to other platforms (e.g., Windows, macOS)
+    if(MSVC)
+      set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    endif()
+    set(BUILD_SHARED_LIBS ON)
 endif()
 
 # space instead of empty string because empty string restults in non-defined GLOBAL_CLIENT_CONFIG in config.h
