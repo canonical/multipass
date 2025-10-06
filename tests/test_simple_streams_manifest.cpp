@@ -141,28 +141,4 @@ TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
     }
 }
 
-TEST_F(TestSimpleStreamsManifest, lXDDriverReturnsExpectedData)
-{
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("lxd"));
-
-    auto json = mpt::load_test_file("lxd_test_manifest.json");
-    auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
-
-    EXPECT_EQ(manifest->products.size(), 2u);
-
-    const auto xenial_info = manifest->image_records["xenial"];
-
-    // combined_disk1-img_sha256 for xenial product
-    const QString expected_xenial_id{
-        "09d24fab15c6e1c86a47d3de2e7fb6d01a10f9ff2655a43f0959a672e03e7674"};
-    EXPECT_EQ(xenial_info->id, expected_xenial_id);
-
-    // combined_disk-img_sha256 despite -kvm being available (canonical/multipass#2491)
-    const auto bionic_info = manifest->image_records["bionic"];
-
-    const QString expected_bionic_id{
-        "09d24fab15c6e1c86a47d3de2e83d0d01a10f9ff2655a43f0959a672e03e7674"};
-    EXPECT_EQ(bionic_info->id, expected_bionic_id);
-}
-
 } // namespace

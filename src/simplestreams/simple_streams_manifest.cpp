@@ -164,27 +164,11 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
             QString sha256, image_location;
             int size = -1;
 
-            // TODO: make this a VM factory call with a preference list
-            if (driver == "lxd")
-            {
-                image = items["lxd.tar.xz"].toObject();
-
-                // Avoid kvm image due to canonical/multipass#2491
-                if (image.contains("combined_disk1-img_sha256"))
-                {
-                    sha256 = image["combined_disk1-img_sha256"].toString();
-                }
-                else
-                    continue;
-            }
-            else
-            {
-                const auto image_key = items.contains("uefi1.img") ? "uefi1.img" : "disk1.img";
-                image = items[image_key].toObject();
-                image_location = image["path"].toString();
-                sha256 = image["sha256"].toString();
-                size = image["size"].toInt(-1);
-            }
+            const auto image_key = items.contains("uefi1.img") ? "uefi1.img" : "disk1.img";
+            image = items[image_key].toObject();
+            image_location = image["path"].toString();
+            sha256 = image["sha256"].toString();
+            size = image["size"].toInt(-1);
 
             // Aliases always alias to the latest version
             const QStringList& aliases =
