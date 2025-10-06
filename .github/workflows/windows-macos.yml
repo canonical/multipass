@@ -344,7 +344,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-13
+    runs-on: macos-15
 
     steps:
     - name: Check out code
