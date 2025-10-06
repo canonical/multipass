@@ -448,8 +448,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
 
     auto rollback_on_failure = make_take_snapshot_rollback(it);
 
-    // get instance id from cloud-init file or lxd cloud init config and pass to
-    // make_specific_snapshot
+    // get instance id from cloud-init file and pass to make_specific_snapshot
     auto ret = head_snapshot = it->second =
         make_specific_snapshot(sname,
                                comment,
