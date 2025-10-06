@@ -32,6 +32,7 @@
 #include <src/sshfs_mount/sftp_server.h>
 
 #include <multipass/cli/client_platform.h>
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
@@ -282,9 +283,25 @@ bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permiss
 }
 } // namespace
 
+TEST_F(SftpServer, throwsWhenMessageNull)
+{
+    EXPECT_THROW(make_sftpserver(), mp::SSHException);
+}
+
+TEST_F(SftpServer, throwsWhenMessageNotFXPInit)
+{
+    auto init_msg = make_msg(SFTP_BAD_MESSAGE);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_THROW(make_sftpserver(), mp::SSHException);
+}
+
 TEST_F(SftpServer, throwsWhenFailedToInit)
 {
-    EXPECT_THROW(make_sftpserver(), std::runtime_error);
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto bad_reply_version = [](auto...) { return SSH_ERROR; };
+    REPLACE(sftp_reply_version, bad_reply_version);
+    EXPECT_THROW(make_sftpserver(), mp::SSHException);
 }
 
 TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
