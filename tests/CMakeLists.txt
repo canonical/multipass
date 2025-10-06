@@ -31,7 +31,6 @@ set(INSTALL_GTEST OFF CACHE BOOL "")
 FetchContent_MakeAvailable(googletest)
 
 add_executable(multipass_tests
-  blueprint_test_lambdas.cpp
   common.cpp
   daemon_test_fixture.cpp
   file_operations.cpp

@@ -15,7 +15,6 @@
  *
  */
 
-#include "blueprint_test_lambdas.h"
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "dummy_ssh_key_provider.h"
