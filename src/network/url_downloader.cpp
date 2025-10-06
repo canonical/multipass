@@ -241,7 +241,8 @@ mp::URLDownloader::URLDownloader(std::chrono::milliseconds timeout) : URLDownloa
 }
 
 mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::milliseconds timeout)
-    : cache_dir_path{QDir(cache_dir).filePath("network-cache")}, timeout{timeout}
+    : cache_dir_path{cache_dir.isEmpty() ? Path() : QDir(cache_dir).filePath("network-cache")},
+      timeout{timeout}
 {
 }
 
