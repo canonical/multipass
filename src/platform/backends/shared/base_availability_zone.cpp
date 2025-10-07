@@ -43,16 +43,15 @@ catch (const std::ios_base::failure& e)
     return QJsonObject{};
 }
 
-[[nodiscard]] std::string deserialize_subnet(const QJsonObject& json,
-                                             const multipass::fs::path& file_path,
-                                             const std::string& name)
+[[nodiscard]] multipass::Subnet deserialize_subnet(const QJsonObject& json,
+                                                   const multipass::fs::path& file_path,
+                                                   const std::string& name)
 {
     if (const auto json_subnet = json[subnet_key].toString().toStdString(); !json_subnet.empty())
         return json_subnet;
 
     mpl::debug(name, "subnet missing from AZ file '{}', using default", file_path);
-    // TODO GET ACTUAL SUBNET
-    return {};
+    return MP_SUBNET_UTILS.random_subnet_from_range();
 };
 
 [[nodiscard]] bool deserialize_available(const QJsonObject& json,
@@ -96,7 +95,7 @@ const std::string& BaseAvailabilityZone::get_name() const
     return m.name;
 }
 
-const std::string& BaseAvailabilityZone::get_subnet() const
+const Subnet& BaseAvailabilityZone::get_subnet() const
 {
     return m.subnet;
 }
@@ -146,7 +145,7 @@ void BaseAvailabilityZone::serialize() const
     const std::unique_lock lock{m.mutex};
 
     const QJsonObject json{
-        {subnet_key, QString::fromStdString(m.subnet)},
+        {subnet_key, QString::fromStdString(m.subnet.to_cidr())},
         {available_key, m.available},
     };
 

@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/disabled_copy_move.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/ip_address.h>
@@ -70,6 +71,7 @@ public:
     QemuPlatformFactory(const Singleton<QemuPlatformFactory>::PrivatePass& pass) noexcept
         : Singleton<QemuPlatformFactory>::Singleton{pass} {};
 
-    virtual QemuPlatform::UPtr make_qemu_platform(const Path& data_dir) const;
+    virtual QemuPlatform::UPtr
+    make_qemu_platform(const Path& data_dir, const AvailabilityZoneManager::Zones& zones) const;
 };
 } // namespace multipass

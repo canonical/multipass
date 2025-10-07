@@ -17,6 +17,7 @@ set(CMAKE_AUTOMOC ON)
 add_library(network STATIC
             local_socket_reply.cpp
             network_access_manager.cpp
+            subnet.cpp
             url_downloader.cpp
             ${CMAKE_SOURCE_DIR}/include/multipass/network_access_manager.h
             local_socket_reply.h)
