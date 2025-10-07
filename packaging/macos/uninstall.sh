@@ -58,6 +58,11 @@ rm -rfv "/var/root/Library/Caches/multipassd"
 # GUI Autostart
 rm -fv "$HOME/Library/LaunchAgents/com.canonical.multipass.gui.autostart.plist"
 
+# User-specific client certificates and GUI data
+rm -rfv "$HOME/Library/Application Support/multipass-client-certificate"
+rm -rfv "$HOME/Library/Application Support/com.canonical.multipassGui"
+rm -rfv "$HOME/Library/Preferences/multipass"
+
 # Bash completions
 rm -rfv "/usr/local/etc/bash_completion.d/multipass"
 rm -rf "/opt/local/share/bash-completion/completions/multipass"
