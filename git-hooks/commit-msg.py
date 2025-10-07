@@ -30,7 +30,7 @@ class CommitMsgRulesChecker:
         RULE6 =   "MSG6.  Do not end the subject line with a period."
         RULE8 =   "MSG8.  If adding a body, separate it from the subject with a blank line."
         RULE10 =  "MSG10. Do not include more than 1 consecutive blank line, except in quoted text."
-        RULE12 =  "MSG12. Wrap the body at 72 characters, except on quoted lines and references."
+        RULE12 =  "MSG12. Wrap the body at 72 characters, except on lines consisting only of blockquotes, references, or sign-offs."
         # fmt: on
 
     def __init__(self, msg):
@@ -57,7 +57,7 @@ class CommitMsgRulesChecker:
 
         self.errors = self.validate_all()
 
-    def should_ignore_line(self, line):
+    def is_inflexible_line(self, line):
         return bool(
             # Ignore quoted lines
             re.match("(>).*\n?", line)
@@ -103,7 +103,7 @@ class CommitMsgRulesChecker:
         return not any(both_blank(l1, l2) for l1, l2 in zip(self.body, self.body[1:]))
 
     def validate_rule12(self):
-        return all(len(line) <= 72 for line in self.body if not self.should_ignore_line(line))
+        return all(len(line) <= 72 for line in self.body if not self.is_inflexible_line(line))
 
 
 def validate(msg):
