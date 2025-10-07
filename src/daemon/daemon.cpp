@@ -136,7 +136,8 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
                                    const std::string& username,
                                    const std::string& backend_version_string,
-                                   const mp::CreateRequest* request)
+                                   const mp::CreateRequest* request,
+                                   const QNetworkProxy* network_proxy)                                   
 {
     auto ssh_key_line =
         fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
@@ -161,6 +162,39 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
     config["packages"].push_back("pollinate");
+
+    // Configure apt proxy if one is detected
+    if (network_proxy && network_proxy->type() == QNetworkProxy::HttpProxy)
+    {
+
+        auto proxy_host = network_proxy->hostName().toStdString();
+        auto proxy_port = network_proxy->port();
+
+        if (!proxy_host.empty() && proxy_port > 0)
+        {
+            std::string proxy_url;
+
+            // Build proxy URL with authentication if present
+            if (!network_proxy->user().isEmpty())
+            {
+                auto user = network_proxy->user().toStdString();
+                auto password = network_proxy->password().toStdString();
+                proxy_url = fmt::format("http://{}:{}@{}:{}/", user, password, proxy_host, proxy_port);
+            }
+            else
+            {
+                proxy_url = fmt::format("http://{}:{}/", proxy_host, proxy_port);
+            }
+
+            // Configure apt proxy
+            config["apt"]["proxy"] = proxy_url;
+            config["apt"]["http_proxy"] = proxy_url;
+            config["apt"]["https_proxy"] = proxy_url;
+
+            mpl::log(mpl::Level::info, category, 
+                    fmt::format("Configuring instance to use proxy: {}:{}", proxy_host, proxy_port));
+        }
+    }
 
     auto pollinate_user_agent_string =
         fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
@@ -3483,7 +3517,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     *config->ssh_key_provider,
                     config->ssh_username,
                     config->factory->get_backend_version_string().toStdString(),
-                    request),
+                    request,
+                    config->network_proxy.get()),
                 YAML::Node{}};
 
             ClientLaunchData client_launch_data;
