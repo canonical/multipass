@@ -39,6 +39,8 @@
 #include "mock_vm_image_vault.h"
 #include "path.h"
 #include "stub_virtual_machine.h"
+#include "stub_virtual_machine_factory.h"
+#include "stub_vm_image_vault.h"
 #include "tracking_url_downloader.h"
 
 #include <src/daemon/default_vm_image_vault.h>
@@ -163,6 +165,16 @@ a few more tests for `false`, since there are different portions of code dependi
         mpt::MockJsonUtils::inject<NiceMock>();
     mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
 };
+
+TEST_F(Daemon, buildsConfig)
+{
+    // Clear our stub image host so that DaemonConfigBuilder::build generates the default.
+    config_builder.image_hosts.clear();
+
+    auto config = config_builder.build();
+    EXPECT_EQ(config->ssh_username, "ubuntu");
+    EXPECT_THAT(config->image_hosts, Not(IsEmpty()));
+}
 
 TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
 {
@@ -824,7 +836,7 @@ TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce(Invoke([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
+        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
             EXPECT_THAT(desc.vendor_data_config, YAMLNodeContainsMap("growpart"));
 
             if (desc.vendor_data_config["growpart"])
@@ -838,7 +850,7 @@ TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
                 EXPECT_THAT(growpart_stanza,
                             YAMLNodeContainsString("ignore_growroot_disabled", "false"));
             }
-        }));
+        });
 
     send_command({GetParam()});
 }
@@ -851,12 +863,12 @@ TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce(Invoke([&expected_key](const multipass::VMImage&,
-                                         const mp::VirtualMachineDescription& desc) {
+        .WillOnce([&expected_key](const multipass::VMImage&,
+                                  const mp::VirtualMachineDescription& desc) {
             ASSERT_THAT(desc.vendor_data_config, YAMLNodeContainsSequence("ssh_authorized_keys"));
             auto const& ssh_keys_stanza = desc.vendor_data_config["ssh_authorized_keys"];
             EXPECT_THAT(ssh_keys_stanza, YAMLNodeContainsSubString(expected_key));
-        }));
+        });
 
     send_command({GetParam()});
 }
@@ -879,8 +891,8 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
     mp::Daemon daemon{config_builder.build()};
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce(Invoke([&expected_pollinate_map](const multipass::VMImage&,
-                                                   const mp::VirtualMachineDescription& desc) {
+        .WillOnce([&expected_pollinate_map](const multipass::VMImage&,
+                                            const mp::VirtualMachineDescription& desc) {
             EXPECT_THAT(desc.vendor_data_config, YAMLNodeContainsSequence("write_files"));
 
             if (desc.vendor_data_config["write_files"])
@@ -889,7 +901,7 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
 
                 EXPECT_THAT(write_stanza, YAMLSequenceContainsStringMap(expected_pollinate_map));
             }
-        }));
+        });
 
     send_command({command, alias});
 }
@@ -1457,8 +1469,6 @@ INSTANTIATE_TEST_SUITE_P(
            make_args({"hirsute", "--network", "name=eth0,mode=manual"}),
            make_args({"daily:21.04"}),
            make_args({"daily:21.04", "--network", "name=eth0,mode=manual"}),
-           make_args({"appliance:openhab", "--network", "name=eth0,mode=manual"}),
-           make_args({"appliance:nextcloud"}),
            make_args({"snapcraft:core18", "--network", "name=eth0,mode=manual"}),
            make_args({"snapcraft:core20"})));
 
@@ -1472,8 +1482,8 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
     const auto forbidden_names = test_params.second;
 
     EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce(Invoke([&args, &forbidden_names](const multipass::VMImage&,
-                                                   const mp::VirtualMachineDescription& desc) {
+        .WillOnce([&args, &forbidden_names](const multipass::VMImage&,
+                                            const mp::VirtualMachineDescription& desc) {
             EXPECT_THAT(desc.network_data_config, YAMLNodeContainsMap("ethernets"));
 
             EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("eth0"));
@@ -1513,7 +1523,7 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
                 EXPECT_THAT(desc.network_data_config["ethernets"],
                             Not(YAMLNodeContainsMap(forbidden)));
             }
-        }));
+        });
 
     std::vector<std::string> command(1, "launch");
 

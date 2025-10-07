@@ -32,14 +32,14 @@ void mpt::PowerShellTestHelper::mock_ps_exec(const std::optional<QByteArray>& ou
             if (output.has_value())
             {
                 auto emit_ready_read = [process] { emit process->ready_read_standard_output(); };
-                EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read));
+                EXPECT_CALL(*process, start).WillOnce(emit_ready_read);
                 EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(*output));
             }
 
             if (output_err.has_value())
             {
                 auto emit_ready_read_err = [process] { emit process->ready_read_standard_error(); };
-                EXPECT_CALL(*process, start).WillOnce(Invoke(emit_ready_read_err));
+                EXPECT_CALL(*process, start).WillOnce(emit_ready_read_err);
                 EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(*output_err));
             }
 
