@@ -241,7 +241,7 @@ parts:
     - PKG_CONFIG_PATH: ""
     source: https://github.com/canonical/qemu.git
     source-type: git
-    source-tag: multipass-10.0.3+9p-uid-gid-map
+    source-tag: v10.0.3+9p-uid-gid-map
     source-depth: 1
     source-submodules: []
     plugin: autotools
