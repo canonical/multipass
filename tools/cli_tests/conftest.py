@@ -258,7 +258,7 @@ def pytest_collection_modifyitems(config, items):
         if config.getoption("--driver") == "lxd":
             item.add_marker(
                 pytest.mark.skip(
-                    "Skipped -- LXD driver does not support the `clone` feature."
+                    "Skipped -- LXD driver does not support the `snapshot` feature."
                 )
             )
 

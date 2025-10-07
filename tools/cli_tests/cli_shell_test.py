@@ -16,6 +16,8 @@
 #
 #
 
+"""Multipass command line tests for the `shell` command."""
+
 import pytest
 
 from cli_tests.multipass import shell
@@ -26,8 +28,8 @@ from pexpect import EOF as pexpect_eof
 @pytest.mark.usefixtures("multipassd")
 class TestShell:
     def test_shell(self, instance):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to shell into it and execute some basic commands."""
+        """Launch an Ubuntu VM. Then, try to shell into it and execute some
+        basic commands."""
 
         with shell(instance) as vm_shell:
             vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)

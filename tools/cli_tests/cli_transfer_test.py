@@ -30,7 +30,7 @@ class TestTransfer:
     """Transfer command tests."""
 
     def test_transfer_single_file(self, instance):
-        """Try to list instances whilst there are none."""
+        """Transfer a single from the host to the guest."""
         with TempDirectory() as tmp:
             file = tmp / "testfile.txt"
             file.touch()
@@ -48,7 +48,8 @@ class TestTransfer:
             assert pull_file.read_text() == "hello from the other side"
 
     def test_transfer_single_file_create_parents(self, instance):
-        """Try to list instances whilst there are none."""
+        """Transfer a single file from the host to guest where the target is a
+        nested folder structure."""
         with TempDirectory() as tmp:
             file = tmp / "testfile.txt"
             file.touch()
@@ -81,7 +82,7 @@ class TestTransfer:
             assert pull_file.read_text() == "hello from the other side"
 
     def test_transfer_directory_recursive(self, instance):
-        """Try to list instances whilst there are none."""
+        """Recursively transfer everything from host source directory to guest."""
         with TempDirectory() as tmp:
             (tmp / "bar").mkdir()
             file1 = tmp / "testfile1.txt"
