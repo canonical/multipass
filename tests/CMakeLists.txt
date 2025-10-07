@@ -128,6 +128,7 @@ add_executable(multipass_tests
   test_permission_utils.cpp
   test_client_logger.cpp
   test_standard_logger.cpp
+  test_rust_petname_generator.cpp
 )
 
 target_include_directories(multipass_tests
