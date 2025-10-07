@@ -36,7 +36,12 @@ class TestAlias:
         indirect=True,
     )
     def test_create_alias(self, instance):
-        """Try to list instances whilst there are none."""
+        """Switch into the default alias context and try aliasing whoami.
+        Then verify that;
+        - the alias works as expected
+        - alias is listed correctly
+        - alias is removed correctly
+        """
         assert multipass("prefer", "default")
         assert multipass("alias", f"{instance}:whoami", "wai")
         assert multipass("wai") == "ubuntu"
@@ -62,7 +67,13 @@ class TestAlias:
         }
 
     def test_create_alias_in_another_context(self, instance):
-        """Try to list instances whilst there are none."""
+        """Switch into the non-default alias context (foo) and try aliasing
+        whoami and sudo.
+        Then verify that;
+        - the aliases work as expected
+        - aliases are listed correctly
+        - aliases are removed correctly
+        """
         assert multipass("prefer", "foo")
         assert multipass("alias", f"{instance}:whoami", "wai")
         assert multipass("prefer", "bar")
