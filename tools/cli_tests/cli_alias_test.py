@@ -20,9 +20,7 @@
 
 import pytest
 
-from cli_tests.multipass import (
-    multipass,
-)
+from cli_tests.multipass import multipass
 
 
 @pytest.mark.alias
