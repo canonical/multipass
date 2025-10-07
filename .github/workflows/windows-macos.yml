@@ -302,8 +302,8 @@ jobs:
       run: ccache --show-stats --zero-stats
 
     - name: Test
-      run: |
-        ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }} --target all_tests
+      run: |\
+        ${{ env.ARCH_WRAPPER }} ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
 
     - name: Package
       id: cmake-package

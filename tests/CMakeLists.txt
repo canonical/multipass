@@ -181,6 +181,21 @@ add_test(NAME multipass_tests
   COMMAND multipass_tests
 )
 
+# Platform-specific cargo path handling for Rust tests
+if(WIN32)
+  # Windows: cargo should be in PATH, but ensure we use CMD to avoid bash conflicts
+  set(RUST_TEST_COMMAND cmd /c "cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml")
+else()
+  # Unix-like: cargo should be available in PATH
+  set(RUST_TEST_COMMAND cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml)
+endif()
+
+# Register Rust tests with CTest
+add_test(NAME rust_tests
+  COMMAND ${CMAKE_COMMAND} -E env cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   string(TOUPPER ${BACKEND}_ENABLED DEF)
   target_compile_definitions(multipass_tests PRIVATE ${DEF})
@@ -239,29 +254,3 @@ endforeach()
 if (UNIX)
   add_subdirectory(unix)
 endif()
-
-# Add a unified test target that runs both C++ and Rust tests
-add_custom_target(all_tests
-  COMMENT "Running all tests (C++ and Rust)"
-  DEPENDS multipass_tests
-)
-
-# Platform-specific cargo path handling
-if(WIN32)
-  # Windows: cargo should be in PATH, but ensure we use CMD to avoid bash conflicts
-  set(RUST_TEST_COMMAND cmd /c "cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml")
-else()
-  # Unix-like: cargo should be available in PATH
-  set(RUST_TEST_COMMAND cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml)
-endif()
-
-# Custom command to run both test suites with proper error handling
-add_custom_command(TARGET all_tests POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E echo "=== Running Rust tests ==="
-  COMMAND ${RUST_TEST_COMMAND}
-  COMMAND ${CMAKE_COMMAND} -E echo "=== Running C++ tests ==="
-  COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/multipass_tests
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMAND ${CMAKE_COMMAND} -E echo "=== All tests passed successfully! ==="
-  COMMENT "Executing both C++ and Rust test suites"
-)
