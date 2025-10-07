@@ -49,7 +49,7 @@ pytest tools/cli_tests # or pass `--daemon-controller=winsvc` explicitly
 
 ### Standalone (all platforms)
 
-Standalone mode needs the additional `--bin-dir` option as it needs to know where to look for the `multipassd` and `multipass` binaries. The `--bin-dir` flag is used for speciying the path to look for the binaries, namely `multipassd` and `multipass`. The path must contain both.
+Standalone mode needs the additional `--bin-dir` option as it needs to know where to look for the `multipassd` and `multipass` binaries. The path must contain both.
 
 ```bash
 pytest tools/cli_tests/ --daemon-backend=standalone --bin-dir=build/bin
@@ -142,7 +142,7 @@ pytest tools/cli_tests/ --log-level=DEBUG # INFO, TRACE, WARN..
 # DEBUG    root:multipassd_governor.py:301 b'find failed: cannot connect to the multipass socket\n'
 # DEBUG    root:multipassd_governor.py:124 multipassd-governor :: monitor task exited (cancelled: False)
 # DEBUG    root:multipassd_governor.py:219 multipassd-governor :: stop called
-                                                                          0%           # [DEBUG] environment_setup :: teardown
+# [DEBUG] environment_setup :: teardown
 ```
 
 ### Other options
