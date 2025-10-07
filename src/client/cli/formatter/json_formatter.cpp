@@ -396,6 +396,28 @@ std::string mp::JsonFormatter::format(const VersionReply& reply,
     return MP_JSONUTILS.json_to_string(version_json);
 }
 
+std::string mp::JsonFormatter::format(const ListDisksReply& reply) const
+{
+    QJsonObject list_json;
+    QJsonArray devices;
+
+    for (const auto& device : reply.block_devices())
+    {
+        QJsonObject device_obj;
+        device_obj.insert("name", QString::fromStdString(device.name()));
+        device_obj.insert("size", QString::fromStdString(device.size()));
+        device_obj.insert(
+            "attached_to",
+            QString::fromStdString(device.attached_to().empty() ? "--" : device.attached_to()));
+
+        devices.append(device_obj);
+    }
+
+    list_json.insert("list", devices);
+
+    return MP_JSONUTILS.json_to_string(list_json);
+}
+
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
     return MP_JSONUTILS.json_to_string(aliases.to_json());

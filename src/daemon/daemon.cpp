@@ -624,6 +624,11 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
     QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_wait_ready, &daemon, &mp::Daemon::wait_ready);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_list_disks, &daemon, &mp::Daemon::list_disks);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_create_disk, &daemon, &mp::Daemon::create_disk);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_delete_disk, &daemon, &mp::Daemon::delete_disk);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_attach_disk, &daemon, &mp::Daemon::attach_disk);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_detach_disk, &daemon, &mp::Daemon::detach_disk);
 }
 
 enum class InstanceGroup
@@ -1416,7 +1421,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
       snapshot_mod_handler{register_snapshot_mod(operative_instances,
                                                  deleted_instances,
                                                  preparing_instances,
-                                                 *config->factory)}
+                                                 *config->factory)},
+      block_device_manager{create_rust_block_device_manager(config->data_directory.toStdString())}
 {
     using e_state = VirtualMachine::State;
 
@@ -4301,4 +4307,348 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                                          instance_name,
                                          preferred_net);
     }
+}
+
+void mp::Daemon::list_disks(
+    const ListDisksRequest* request,
+    grpc::ServerReaderWriterInterface<ListDisksReply, ListDisksRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<ListDisksReply, ListDisksRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    mpl::log(mpl::Level::trace, category, "list_disks: Starting");
+
+    ListDisksReply response;
+
+    if (!block_device_manager)
+    {
+        mpl::log(mpl::Level::warning, category, "Block device manager not initialized");
+        status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INTERNAL, "Block device manager not available", ""));
+        return;
+    }
+
+    try
+    {
+        mpl::log(mpl::Level::trace, category, "list_disks: About to call list_block_devices");
+        auto block_devices = block_device_manager->list_block_devices();
+        mpl::log(mpl::Level::trace,
+                 category,
+                 fmt::format("list_disks: Found {} devices", block_devices.size()));
+
+        for (const auto& device : block_devices)
+        {
+            auto block_device = response.add_block_devices();
+            block_device->set_name(device.name);
+            block_device->set_size(device.size);
+            block_device->set_path(device.path);
+            block_device->set_attached_to(device.attached_instance);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error,
+                 category,
+                 fmt::format("list_disks: Error listing devices: {}", e.what()));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+        return;
+    }
+
+    server->Write(response);
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::error, category, fmt::format("list_disks: Exception: {}", e.what()));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::create_disk(
+    const CreateDiskRequest* request,
+    grpc::ServerReaderWriterInterface<CreateDiskReply, CreateDiskRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<CreateDiskReply, CreateDiskRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    const auto& name = request->name();
+    const auto& size = request->size();
+
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("create_disk: Creating disk '{}' with size '{}'", name, size));
+
+    if (!block_device_manager)
+    {
+        mpl::log(mpl::Level::warning, category, "Block device manager not initialized");
+        status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INTERNAL, "Block device manager not available", ""));
+        return;
+    }
+
+    try
+    {
+        auto disk_id = block_device_manager->create_block_device(name, size);
+        mpl::log(mpl::Level::debug,
+                 category,
+                 fmt::format("create_disk: Created disk with ID '{}'", disk_id));
+
+        CreateDiskReply response;
+        response.set_disk_name(disk_id);
+        response.set_disk_size(size);
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error,
+                 category,
+                 fmt::format("create_disk: Error creating disk: {}", e.what()));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::error, category, fmt::format("create_disk: Exception: {}", e.what()));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::delete_disk(
+    const DeleteDiskRequest* request,
+    grpc::ServerReaderWriterInterface<DeleteDiskReply, DeleteDiskRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<DeleteDiskReply, DeleteDiskRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    const auto& name = request->name();
+
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("delete_disk: Request to delete disk '{}'", name));
+
+    if (!block_device_manager)
+    {
+        mpl::log(mpl::Level::warning, category, "Block device manager not initialized");
+        status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INTERNAL, "Block device manager not available", ""));
+        return;
+    }
+
+    try
+    {
+        // If no disk name is provided (empty string), delete all unattached disks
+        if (name.empty())
+        {
+            mpl::log(mpl::Level::trace,
+                     category,
+                     "delete_disk: No disk name provided, getting all disks");
+
+            auto block_devices = block_device_manager->list_block_devices();
+            std::vector<std::string> deleted_disks;
+            std::vector<std::string> attached_disks;
+
+            for (const auto& device : block_devices)
+            {
+                if (!device.attached_instance.empty())
+                {
+                    attached_disks.push_back(device.name);
+                    mpl::log(mpl::Level::debug,
+                             category,
+                             fmt::format("delete_disk: Skipping attached disk '{}'", device.name));
+                    continue;
+                }
+
+                try
+                {
+                    block_device_manager->delete_block_device(device.name);
+                    deleted_disks.push_back(device.name);
+                    mpl::log(mpl::Level::debug,
+                             category,
+                             fmt::format("delete_disk: Deleted disk '{}'", device.name));
+                }
+                catch (const std::exception& e)
+                {
+                    mpl::log(mpl::Level::error,
+                             category,
+                             fmt::format("delete_disk: Error deleting disk '{}': {}",
+                                         device.name,
+                                         e.what()));
+                }
+            }
+
+            if (!attached_disks.empty())
+            {
+                std::string attached_list =
+                    fmt::format("{}",
+                                fmt::join(attached_disks.begin(), attached_disks.end(), ", "));
+                mpl::log(mpl::Level::warning,
+                         category,
+                         fmt::format("delete_disk: Skipped attached disks: {}", attached_list));
+            }
+
+            if (deleted_disks.empty())
+            {
+                if (attached_disks.empty())
+                {
+                    mpl::log(mpl::Level::info, category, "delete_disk: No disks found to delete");
+                }
+                else
+                {
+                    mpl::log(mpl::Level::info,
+                             category,
+                             "delete_disk: No unattached disks found to delete");
+                }
+            }
+            else
+            {
+                std::string deleted_list =
+                    fmt::format("{}", fmt::join(deleted_disks.begin(), deleted_disks.end(), ", "));
+                mpl::log(mpl::Level::info,
+                         category,
+                         fmt::format("delete_disk: Deleted disks: {}", deleted_list));
+            }
+        }
+        else
+        {
+            // Delete specific disk
+            block_device_manager->delete_block_device(name);
+            mpl::log(mpl::Level::debug,
+                     category,
+                     fmt::format("delete_disk: Deleted disk '{}'", name));
+        }
+
+        DeleteDiskReply response;
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error, category, fmt::format("delete_disk: Error: {}", e.what()));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::error, category, fmt::format("delete_disk: Exception: {}", e.what()));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::attach_disk(
+    const AttachDiskRequest* request,
+    grpc::ServerReaderWriterInterface<AttachDiskReply, AttachDiskRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<AttachDiskReply, AttachDiskRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    const auto& disk_name = request->disk_name();
+    const auto& instance_name = request->instance_name();
+
+    mpl::log(
+        mpl::Level::trace,
+        category,
+        fmt::format("attach_disk: Attaching disk '{}' to instance '{}'", disk_name, instance_name));
+
+    if (!block_device_manager)
+    {
+        mpl::log(mpl::Level::warning, category, "Block device manager not initialized");
+        status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INTERNAL, "Block device manager not available", ""));
+        return;
+    }
+
+    try
+    {
+        block_device_manager->attach_block_device(disk_name, instance_name);
+        mpl::log(mpl::Level::debug,
+                 category,
+                 fmt::format("attach_disk: Attached disk '{}' to instance '{}'",
+                             disk_name,
+                             instance_name));
+
+        AttachDiskReply response;
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error,
+                 category,
+                 fmt::format("attach_disk: Error attaching disk: {}", e.what()));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::error, category, fmt::format("attach_disk: Exception: {}", e.what()));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::detach_disk(
+    const DetachDiskRequest* request,
+    grpc::ServerReaderWriterInterface<DetachDiskReply, DetachDiskRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<DetachDiskReply, DetachDiskRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    const auto& disk_name = request->disk_name();
+    const auto& instance_name = request->instance_name();
+
+    mpl::log(mpl::Level::trace,
+             category,
+             fmt::format("detach_disk: Detaching disk '{}' from instance '{}'",
+                         disk_name,
+                         instance_name));
+
+    if (!block_device_manager)
+    {
+        mpl::log(mpl::Level::warning, category, "Block device manager not initialized");
+        status_promise->set_value(
+            grpc::Status(grpc::StatusCode::INTERNAL, "Block device manager not available", ""));
+        return;
+    }
+
+    try
+    {
+        block_device_manager->detach_block_device(disk_name);
+        mpl::log(mpl::Level::debug,
+                 category,
+                 fmt::format("detach_disk: Detached disk '{}' from instance '{}'",
+                             disk_name,
+                             instance_name));
+
+        DetachDiskReply response;
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::log(mpl::Level::error,
+                 category,
+                 fmt::format("detach_disk: Error detaching disk: {}", e.what()));
+        status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    }
+}
+catch (const std::exception& e)
+{
+    mpl::log(mpl::Level::error, category, fmt::format("detach_disk: Exception: {}", e.what()));
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }

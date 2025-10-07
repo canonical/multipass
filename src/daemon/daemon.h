@@ -21,6 +21,7 @@
 #include "daemon_rpc.h"
 
 #include <multipass/async_periodic_download_task.h>
+#include <multipass/block_device_manager.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/format.h>
 #include <multipass/mount_handler.h>
@@ -172,6 +173,31 @@ public slots:
         grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
         std::promise<grpc::Status>* status_promise);
 
+    virtual void create_disk(
+        const CreateDiskRequest* request,
+        grpc::ServerReaderWriterInterface<CreateDiskReply, CreateDiskRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
+    virtual void delete_disk(
+        const DeleteDiskRequest* request,
+        grpc::ServerReaderWriterInterface<DeleteDiskReply, DeleteDiskRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
+    virtual void attach_disk(
+        const AttachDiskRequest* request,
+        grpc::ServerReaderWriterInterface<AttachDiskReply, AttachDiskRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
+    virtual void detach_disk(
+        const DetachDiskRequest* request,
+        grpc::ServerReaderWriterInterface<DetachDiskReply, DetachDiskRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
+    virtual void list_disks(
+        const ListDisksRequest* request,
+        grpc::ServerReaderWriterInterface<ListDisksReply, ListDisksRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
 private:
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
@@ -282,5 +308,6 @@ private:
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
+    std::unique_ptr<BlockDeviceManager> block_device_manager;
 };
 } // namespace multipass

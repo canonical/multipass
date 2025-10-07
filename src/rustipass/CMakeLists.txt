@@ -38,9 +38,10 @@ if(APPLE)
     target_compile_options(rustipass_cxx PRIVATE -Wno-dollar-in-identifier-extension)
 endif()
 
-# Add C++ wrapper for the Rust petname generator
+# Add C++ wrapper for the Rust petname generator and block device manager
 add_library(rustipass_cpp STATIC
     rust_petname_generator.cpp
+    rust_block_device_manager.cpp
 )
 
 target_include_directories(rustipass_cpp
@@ -52,7 +53,7 @@ target_include_directories(rustipass_cpp
 )
 
 target_link_libraries(rustipass_cpp
-    PUBLIC rustipass rustipass_cxx
+    PUBLIC rustipass rustipass_cxx Qt6::Core logger
 )
 
 # Create an interface library that wraps everything together
