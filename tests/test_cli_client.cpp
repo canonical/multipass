@@ -3369,6 +3369,7 @@ TEST_F(Client, waitReadyCmdPollsDaemonOk)
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(daemon_not_ready));
+    EXPECT_CALL(*mock_utils, sleep_for).Times(1);
     EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(grpc::Status::OK));
 
     EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::Ok));
@@ -3382,6 +3383,7 @@ TEST_F(Client, waitReadyCmdPollsOnImageServerConnectionFailure)
     InSequence seq;
     EXPECT_CALL(mock_daemon, wait_ready(_, _))
         .WillOnce(Return(daemon_not_connected_to_image_servers));
+    EXPECT_CALL(*mock_utils, sleep_for).Times(1);
     EXPECT_CALL(mock_daemon, wait_ready(_, _)).WillOnce(Return(grpc::Status::OK));
 
     EXPECT_THAT(send_command({"wait-ready"}), Eq(mp::ReturnCode::Ok));
