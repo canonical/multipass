@@ -1,14 +1,14 @@
 # Multipass CLI tests
 
-Multipass CLI tests test the user-facing CLI functionality by using `multipass` like an user would do.
+Multipass CLI tests test the user-facing CLI functionality by using `multipass` like a user would do.
 
-The tests are divided to separate suites based on the functionality/command.
+The tests are divided into separate suites based on the functionality/command.
 
 ## Installing the tests
 
-The tests are located in the Multipass repository, and would not require anything from the repository except for itself, i.e. the `tools/cli_tests` folder.
+The tests are located in the Multipass repository, and do not require anything from the repository except for itself, i.e. the `tools/cli_tests` folder.
 
-All the runtime dependencies for the tests are listed in the `pyproject.toml` file, under `project.dependencies`. The following command install the dependencies:
+All the runtime dependencies for the tests are listed in the `pyproject.toml` file, under `project.dependencies`. The following command installs the dependencies:
 
 ```bash
 sudo pip install -e ./tools/cli_tests/ --break-system-packages
@@ -16,7 +16,7 @@ sudo pip install -e ./tools/cli_tests/ --break-system-packages
 
 ## To run
 
-The tests support running on installed versions of Multipass on Linux (snap), macOS (package), Windows (MSI package). Additionally, the tests also support running on source-built version of Multipass, which is called as `standalone` mode.
+The tests support running on installed versions of Multipass on Linux (snap), macOS (package), Windows (MSI package). Additionally, the tests also support running on a source-built version of Multipass, which is referred to as `standalone` mode.
 
 The test suite has dedicated platform-specific code for interacting with the installed Multipass. These are referred as `daemon controller`s in the Multipass CLI test terminology. There are four daemon controllers at the moment, namely:
 
@@ -105,11 +105,11 @@ Append `--last-failed` to the test run command, like as follows:
 pytest tools/cli_tests --last-failed
 ```
 
-The runner will only run the tests that has failed in the last test run.
+The runner will only run the tests that failed in the last test run.
 
 ### Increasing verbosity
 
-By default, the tests would run silently and only report the PASS/FAIL status, unless a failure happens. The following additional flags can be used to selectively increase the verbosity of the output from the test run:
+By default, the tests run silently and only report the PASS/FAIL status, unless a failure happens. The following additional flags can be used to selectively increase the verbosity of the output from the test run:
 
 #### `--print-cli-output`
 
@@ -163,7 +163,7 @@ pytest tools/cli_tests/ --daemon-backend=winsvc --driver=virtualbox # Test the `
 
 Additionally, there's a convenience flag called `--remove-all-instances`. The test executor would remove the instance storage directories (including backend-specific ones), like `vault/instances`, `qemu/vault/instances`, `virtualbox/vault/instances` while keeping the image cache and other things intact. This would allow reuse of a `MULTIPASS_STORAGE_DIR` without having adverse effects on future test runs due to persisted instances.
 
-**Caution:** This flag would remove all the instances you have in the `MULTIPASS_STORAGE_DIR` for the daemon controller.
+**Caution:** This flag will remove all the instances you have in the `MULTIPASS_STORAGE_DIR` for the daemon controller.
 
 ```bash
 pytest tools/cli_tests/cli_tests.py --bin-dir build/bin/ --storage-dir=/tmp/multipass-test --remove-all-instances # would remove all instances in the `/tmp/multipass-test` before the test session.
@@ -180,7 +180,7 @@ By default, the default VM is a `noble` VM with `6G` disk, `1G` memory and `2` c
 
 ### Timeout and retry attempt counts for commands
 
-All commands have certain timeout values and retry attempts associated with them to provide a stable testing experience. This is to not to fail where a certain command may fail a couple of times before succeeding (e.g. `launch` may fail while the daemon is starting), and it's considered fine. While the test code preemptively and defensively tries to remedy these, the `timeout` and `retry` attempts are still useful as a safety net.
+All commands have certain timeout values and retry attempts associated with them to provide a stable testing experience. This is to not fail when a certain command may fail a couple of times before succeeding (e.g. `launch` may fail while the daemon is starting), and it's considered fine. While the test code preemptively and defensively tries to remedy these, the `timeout` and `retry` attempts are still useful as a safety net.
 
 #### Timeout values and `--cmd-timeout`
 
