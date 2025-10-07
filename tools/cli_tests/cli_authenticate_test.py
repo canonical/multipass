@@ -38,7 +38,7 @@ class TestAuthenticate:
         multipassd.wait_for_restart()
 
         with TempDirectory() as empty_home_dir:
-            # This will fail.
+            # Authentication must fail since we're using an empty dif as HOME.
 
             if config.daemon_controller == "standalone" and sys.platform != "win32":
                 # Overriding home for snap is convoluted, and QT in Windows does not
