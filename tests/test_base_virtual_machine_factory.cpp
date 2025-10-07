@@ -375,4 +375,45 @@ TEST_F(BaseFactory, cloudInitIsoIsImmediatelyAccessible)
     QFileInfo file_info(vm_desc.cloud_init_iso);
     EXPECT_GT(file_info.size(), 0);
 }
+
+// Test that configure() throws when cloud-init ISO can't be created/read
+TEST_F(BaseFactory, throwsWhenCloudInitIsoNotReadable)
+{
+    // Create a factory with a read-only temp dir to simulate ISO creation failure
+    auto tmp_dir = std::make_unique<mp::test::TempDir>();
+    auto tmp_path = tmp_dir->path();
+    
+    // Make directory read-only to prevent ISO creation
+    QFile::setPermissions(tmp_path, QFile::ReadOwner | QFile::ReadGroup | QFile::ReadOther);
+    
+    MockBaseFactory factory{std::move(tmp_dir)};
+    auto name = "test-vm";
+    auto metadata = YAML::Node{};
+    auto user_data = YAML::Load("#cloud-config\npackages:\n  - git\n");
+    auto vendor_data{metadata}, network_data{metadata};
+
+    mp::VMImage image;
+    image.image_path = QString("%1/%2").arg(tmp_path).arg(QString::fromStdString(name));
+
+    mp::VirtualMachineDescription vm_desc{2,
+                                          mp::MemorySize{"3M"},
+                                          mp::MemorySize{},
+                                          name,
+                                          "00:16:3e:fe:f2:b9",
+                                          {},
+                                          "yoda",
+                                          image,
+                                          "",
+                                          metadata,
+                                          user_data,
+                                          vendor_data,
+                                          network_data};
+
+    // Should throw because ISO can't be read
+    EXPECT_THROW(factory.configure(vm_desc), std::runtime_error);
+    
+    // Restore permissions for cleanup
+    QFile::setPermissions(tmp_path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner |
+                                    QFile::ReadGroup | QFile::WriteGroup | QFile::ExeGroup);
+}
 } // namespace
