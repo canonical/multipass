@@ -103,7 +103,7 @@ def determine_bin_dir():
     if config.daemon_controller == "launchd":
         return "/Library/Application Support/com.canonical.multipass/bin"
     if config.daemon_controller == "winsvc":
-        # Use environment
+        # No explicit path, rely on environment PATH
         return None
 
 
