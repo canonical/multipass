@@ -16,7 +16,7 @@
 #
 #
 
-"""Multipass command line tests for the VM lifecycle."""
+"""Multipass command line tests for the `authenticate` command."""
 
 import sys
 
