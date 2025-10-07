@@ -48,6 +48,6 @@ This command ensures that the daemon is ready before launching an instance.
 
 ## **Notes:**
 
-- `wait-ready` checks the daemon’s readiness via a gRPC endpoint.  
-- If the daemon is not running, `wait-ready` attempts to connect until it becomes available or the timeout elapses.  
+- `wait-ready` checks the daemon’s readiness via a gRPC endpoint.
+- If the daemon is not running, `wait-ready` attempts to connect until it becomes available or the timeout elapses.
 - The command exits with status `0` when the daemon is ready, and non-zero otherwise.
