@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+#
 #
 # Copyright (C) Canonical, Ltd.
 #
