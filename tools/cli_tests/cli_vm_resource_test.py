@@ -16,7 +16,7 @@
 #
 #
 
-"""Multipass command line e2e tests"""
+"""Multipass VM resource tests"""
 
 import pytest
 
@@ -28,85 +28,63 @@ from cli_tests.multipass import (
     get_disk_size,
     validate_list_output,
     multipass,
-    random_vm_name
 )
 
 
 @pytest.mark.resource
 @pytest.mark.usefixtures("multipassd")
 class TestVmResource:
+    """Virtual machine resource CLI tests."""
 
-    def test_modify_vm_while_running(self):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to shell into it and execute some basic commands."""
-        name = random_vm_name()
+    @pytest.mark.parametrize(
+        "instance",
+        [
+            {"cpus": 2, "memory": "1G", "disk": "6G", "image": "jammy"},
+        ],
+        indirect=True,
+    )
+    def test_modify_vm_while_running(self, instance):
+        """Launch a new instance and try changing its resources while the
+        instance is running."""
 
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            "jammy",
-            retry=3,
-        )
+        validate_list_output(instance, {"state": "Running"})
 
-        validate_list_output(name, {"state": "Running"})
+        assert is_within_tolerance(get_ram_size(instance), 1024)
+        assert is_within_tolerance(get_disk_size(instance), 6144)
+        assert get_core_count(instance) == 2
 
-        assert is_within_tolerance(get_ram_size(name), 1024)
-        assert is_within_tolerance(get_disk_size(name), 6144)
-        assert get_core_count(name) == 2
+        assert not multipass("set", f"local.{instance}.memory=2G")
+        assert not multipass("set", f"local.{instance}.disk=10G")
+        assert not multipass("set", f"local.{instance}.cpus=3")
 
-        assert not multipass("set", f"local.{name}.memory=2G")
-        assert not multipass("set", f"local.{name}.disk=10G")
-        assert not multipass("set", f"local.{name}.cpus=3")
+        assert is_within_tolerance(get_ram_size(instance), 1024)
+        assert is_within_tolerance(get_disk_size(instance), 6144)
+        assert get_core_count(instance) == 2
 
-        assert is_within_tolerance(get_ram_size(name), 1024)
-        assert is_within_tolerance(get_disk_size(name), 6144)
-        assert get_core_count(name) == 2
+    @pytest.mark.parametrize(
+        "instance",
+        [
+            {"cpus": 2, "memory": "1G", "disk": "6G", "image": "jammy"},
+        ],
+        indirect=True,
+    )
+    def test_modify_vm(self, instance):
+        """Launch a new instance and try changing its resources while the
+        instance is stopped."""
 
-        # Remove the instance.
-        assert multipass("delete", f"{name}")
+        validate_list_output(instance, {"state": "Running"})
 
-    def test_modify_vm(self):
-        """Launch an Ubuntu 22.04 VM with 2 CPUs 1GiB RAM and 6G disk.
-        Then, try to shell into it and execute some basic commands."""
-        name = random_vm_name()
+        assert is_within_tolerance(get_ram_size(instance), 1024)
+        assert is_within_tolerance(get_disk_size(instance), 6144)
+        assert get_core_count(instance) == 2
 
-        assert multipass(
-            "launch",
-            "--cpus",
-            "2",
-            "--memory",
-            "1G",
-            "--disk",
-            "6G",
-            "--name",
-            name,
-            "jammy",
-            retry=3,
-        )
+        assert multipass("stop", instance)
+        assert multipass("set", f"local.{instance}.memory=2G")
+        assert multipass("set", f"local.{instance}.disk=10G")
+        assert multipass("set", f"local.{instance}.cpus=3")
 
-        validate_list_output(name, {"state": "Running"})
+        assert multipass("start", instance)
 
-        assert is_within_tolerance(get_ram_size(name), 1024)
-        assert is_within_tolerance(get_disk_size(name), 6144)
-        assert get_core_count(name) == 2
-
-        assert multipass("stop", name)
-        assert multipass("set", f"local.{name}.memory=2G")
-        assert multipass("set", f"local.{name}.disk=10G")
-        assert multipass("set", f"local.{name}.cpus=3")
-
-        assert multipass("start", name)
-
-        assert is_within_tolerance(get_ram_size(name), 2048)
-        assert is_within_tolerance(get_disk_size(name), 10240)
-        assert get_core_count(name) == 3
-
-        # Remove the instance.
-        assert multipass("delete", f"{name}")
+        assert is_within_tolerance(get_ram_size(instance), 2048)
+        assert is_within_tolerance(get_disk_size(instance), 10240)
+        assert get_core_count(instance) == 3
