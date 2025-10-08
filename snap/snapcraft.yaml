@@ -127,7 +127,6 @@ parts:
     - qt6-qpa-plugins
     prime:
     - usr/lib/*/qt6/plugins/tls/*
-
   multipass:
     after: [ qt-ssl-plugin ]
     plugin: cmake
@@ -236,11 +235,11 @@ parts:
 
   qemu:
     build-environment:
+    - PYTHONPATH: ""
     - LD_LIBRARY_PATH: ""
     - XDG_DATA_DIRS: /root/stage/usr/share:/usr/share
     - PKG_CONFIG_PATH: ""
     - PYTHON: /usr/bin/python3
-    - PATH: "$CRAFT_PART_BUILD/pyvenv/bin:$PATH"
     source: https://github.com/canonical/qemu.git
     source-type: git
     source-tag: v10.0.3+9p-uid-gid-map
