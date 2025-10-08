@@ -19,7 +19,7 @@ choco install cmake ninja qemu openssl git wget unzip -yfd
 ```
 
 ```[pwsh]
-choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
+choco install visualstudio2019buildtools visualstudio2019-workload-vctools rustup.install -yfd
 ```
 
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any
