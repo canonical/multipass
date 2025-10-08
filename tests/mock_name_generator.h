@@ -15,8 +15,7 @@
  *
  */
 
-#ifndef MULTIPASS_MOCK_NAME_GENERATOR_H
-#define MULTIPASS_MOCK_NAME_GENERATOR_H
+#pragma once
 
 #include <multipass/name_generator.h>
 
@@ -32,5 +31,3 @@ public:
 };
 
 } // namespace multipass::test
-
-#endif // MULTIPASS_MOCK_NAME_GENERATOR_H
