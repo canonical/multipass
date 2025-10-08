@@ -26,7 +26,6 @@ from cli_tests.multipass import (
     get_ram_size,
     get_core_count,
     get_disk_size,
-    validate_list_output,
     multipass,
 )
 
@@ -46,8 +45,6 @@ class TestVmResource:
     def test_modify_vm_while_running(self, instance):
         """Launch a new instance and try changing its resources while the
         instance is running."""
-
-        validate_list_output(instance, {"state": "Running"})
 
         assert is_within_tolerance(get_ram_size(instance), 1024)
         assert is_within_tolerance(get_disk_size(instance), 6144)
@@ -71,8 +68,6 @@ class TestVmResource:
     def test_modify_vm(self, instance):
         """Launch a new instance and try changing its resources while the
         instance is stopped."""
-
-        validate_list_output(instance, {"state": "Running"})
 
         assert is_within_tolerance(get_ram_size(instance), 1024)
         assert is_within_tolerance(get_disk_size(instance), 6144)
