@@ -62,7 +62,7 @@ jobs:
               - "vcpkg.json"
               - "Cargo.toml"
               - "Cargo.lock"
-              - "build.rs"
+              - "crates/**"
             hooks:
               - "git-hooks/**"
 
