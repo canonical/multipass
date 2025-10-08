@@ -64,7 +64,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const inputs = context.payload.inputs;
+            const inputs = context.payload?.inputs || github.event?.inputs;
             const matrix = { include: [] };
 
             if (inputs['snap-channel'] !== '<undefined>') {
@@ -74,7 +74,8 @@ jobs:
                 'daemon-controller': 'snap',
                 'sudo-cmd': 'sudo',
                 'pkg-url': '',
-                'cmd-prologue': ''
+                'cmd-prologue': '',
+                'snap-channel': inputs['snap-channel']
               });
             }
 
@@ -139,14 +140,14 @@ jobs:
       - name: Check snap channel (Linux)
         if: runner.os == 'Linux'
         run: |
-          if [ -z "${{ inputs.snap-channel }}" ]; then
+          if [ -z "${{ matrix['snap-channel'] }}" ]; then
             echo "❌ snap-channel is empty"
             exit 1
           fi
 
       - name: Install package (Snap)
         if: runner.os == 'Linux'
-        run: ${{ matrix.cmd-prologue }}${{ matrix.sudo-cmd }} snap install multipass --channel=${{ inputs['snap-channel'] }}
+        run: ${{ matrix.cmd-prologue }}${{ matrix.sudo-cmd }} snap install multipass --channel=${{ matrix['snap-channel'] }}
 
       - name: Install package (macOS)
         if: runner.os == 'macOS'
