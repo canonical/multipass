@@ -239,12 +239,14 @@ parts:
     - LD_LIBRARY_PATH: ""
     - XDG_DATA_DIRS: /root/stage/usr/share:/usr/share
     - PKG_CONFIG_PATH: ""
+    - PYTHON: /usr/bin/python3
     source: https://github.com/canonical/qemu.git
     source-type: git
     source-tag: v10.0.3+9p-uid-gid-map
     source-depth: 1
     source-submodules: []
     plugin: autotools
+    
     autotools-configure-parameters:
     - --enable-virtfs
     - --disable-bochs
