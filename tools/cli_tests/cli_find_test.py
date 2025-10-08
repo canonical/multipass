@@ -19,13 +19,11 @@
 """Multipass command line tests for the find CLI command."""
 
 import logging
+from packaging import version
 
 import pytest
-import jq
 
-from cli_tests.multipass import (
-    multipass,
-)
+from cli_tests.multipass import multipass, multipass_version_has_feature
 
 supported_appliances = [
     "appliance:adguard-home",
@@ -83,11 +81,12 @@ class TestFind:
                 assert len(current_devel) == 1
                 logging.debug(f"Current devel is {current_devel}")
 
-                # Check appliances
-                appliances = output.jq(
-                    '.images | keys[] | select(startswith("appliance:"))'
-                ).all()
-                assert appliances == supported_appliances
+                if multipass_version_has_feature("appliances"):
+                    # Check appliances
+                    appliances = output.jq(
+                        '.images | keys[] | select(startswith("appliance:"))'
+                    ).all()
+                    assert appliances == supported_appliances
 
     @pytest.mark.parametrize(
         "param",
