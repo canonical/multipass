@@ -25,8 +25,11 @@ import subprocess
 import shutil
 import logging
 import threading
+import re
+import operator
 from contextlib import contextmanager, ExitStack
 from functools import partial
+from packaging import version
 
 import pytest
 from pytest import Session
@@ -51,6 +54,7 @@ from cli_tests.multipass import (
     determine_data_dir,
     get_multipass_path,
     get_multipassd_path,
+    get_multipass_version,
 )
 
 from cli_tests.config import config
@@ -266,6 +270,42 @@ def pytest_collection_modifyitems(config, items):
         maybe_skip_mount_test(item)
         maybe_skip_clone_test(item)
         maybe_skip_snapshot_test(item)
+
+
+def pytest_runtest_setup(item):
+    OPS = {
+        ">": operator.gt,
+        ">=": operator.ge,
+        "<": operator.lt,
+        "<=": operator.le,
+        "==": operator.eq,
+        "!=": operator.ne,
+    }
+    mark = item.get_closest_marker("requires_version")
+
+    if not mark:
+        return
+
+    cli_v, daemon_v = get_multipass_version()
+
+    assert cli_v == daemon_v
+
+    expr = mark.args[0]
+    match = re.match(r"(<=|>=|==|!=|<|>)(.+)", expr)
+    if not match:
+        raise ValueError(f"Invalid version spec: {expr}")
+
+    op_str, ver_str = match.groups()
+
+    current = version.parse(cli_v)
+    target = version.parse(ver_str)
+
+    op = OPS.get(op_str)
+    if not op:
+        raise ValueError(f"Invalid op in requires_version: {op_str}")
+
+    if not op(current, target):
+        pytest.skip(f"Version-gated test {item} skipped ({current} {op_str} {target})")
 
 
 def make_temporary_storage_dir(request):
@@ -495,6 +535,11 @@ def multipassd_impl():
 def multipassd(store_config):
     with multipassd_impl() as daemon:
         yield daemon
+
+
+@pytest.fixture(scope="session")
+def multipass_version():
+    yield get_multipass_version(require_daemon_version=True)
 
 
 @pytest.fixture
