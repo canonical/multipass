@@ -61,7 +61,7 @@ jobs:
               - "vcpkg.json"
               - "Cargo.toml"
               - "Cargo.lock"
-              - "build.rs"
+              - "crates/**"
 
   docs:
     name: Docs
