@@ -246,7 +246,6 @@ parts:
     source-depth: 1
     source-submodules: []
     plugin: autotools
-    
     autotools-configure-parameters:
     - --enable-virtfs
     - --disable-bochs
@@ -285,7 +284,6 @@ parts:
     - libglib2.0-dev
     - libpixman-1-dev
     - libseccomp-dev
-    - meson
     - python3-venv
     - gettext
     - python3-tomli
@@ -301,6 +299,7 @@ parts:
       usr/share/qemu/*: qemu/
     override-pull: |-
       [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+
 
       craftctl default
     override-build: |-
