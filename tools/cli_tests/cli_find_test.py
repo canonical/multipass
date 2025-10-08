@@ -19,7 +19,6 @@
 """Multipass command line tests for the find CLI command."""
 
 import logging
-from packaging import version
 
 import pytest
 
