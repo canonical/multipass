@@ -16,12 +16,12 @@
  */
 
 #include "qemu_virtual_machine.h"
+#include "qemu_img_utils.h"
 #include "qemu_mount_handler.h"
 #include "qemu_snapshot.h"
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
-#include <shared/qemu_img_utils/qemu_img_utils.h>
 #include <shared/shared_backend_utils.h>
 
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>

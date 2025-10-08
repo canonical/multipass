@@ -44,11 +44,6 @@ public:
         return "virtualbox";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
-    void require_clone_support() const override
-    {
-        // TODO: remove after LXD migration
-    }
-    void require_snapshots_support() const override; // TODO: remove after LXD migration
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
@@ -61,7 +56,3 @@ private:
                                        const SSHKeyProvider& key_provider) override;
 };
 } // namespace multipass
-
-inline void multipass::VirtualBoxVirtualMachineFactory::require_snapshots_support() const
-{
-}

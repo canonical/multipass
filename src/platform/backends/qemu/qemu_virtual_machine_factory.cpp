@@ -16,6 +16,7 @@
  */
 
 #include "qemu_virtual_machine_factory.h"
+#include "qemu_img_utils.h"
 #include "qemu_virtual_machine.h"
 
 #include <multipass/cloud_init_iso.h>
@@ -24,7 +25,6 @@
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/yaml_node_utils.h>
-#include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
 

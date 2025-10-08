@@ -16,8 +16,8 @@
  */
 
 #include "qemu_snapshot.h"
+#include "qemu_img_utils.h"
 #include "qemu_virtual_machine.h"
-#include "shared/qemu_img_utils/qemu_img_utils.h"
 
 #include <multipass/logging/log.h>
 #include <multipass/process/qemuimg_process_spec.h>

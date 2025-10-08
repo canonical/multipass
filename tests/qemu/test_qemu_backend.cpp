@@ -1002,7 +1002,6 @@ struct MockQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
     using mpt::MockVirtualMachineT<mp::QemuVirtualMachine>::MockVirtualMachineT;
     using mp::QemuVirtualMachine::make_specific_snapshot;
-    using mp::QemuVirtualMachine::require_snapshots_support; // TODO: remove after LXD migration
 
     MOCK_METHOD(void, drop_ssh_session, (), (override));
 };
@@ -1021,7 +1020,6 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
 TEST_F(QemuBackend, supportsSnapshots)
 {
     MockQemuVM vm{"asdf", key_provider};
-    EXPECT_NO_THROW(vm.require_snapshots_support()); // TODO: remove after LXD migration
 }
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
@@ -1089,7 +1087,6 @@ TEST_F(QemuBackend, networksReturnsSupportedNetworks)
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
     const std::map<std::string, mp::NetworkInterfaceInfo> networks{
-        {"lxdbr0", {"lxdbr0", "bridge", "gobbledygook"}},
         {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
         {"virbr0", {"virbr0", "bridge", "gobbledygook"}},
         {"mpqemubr0", {"mpqemubr0", "bridge", "gobbledygook"}},
