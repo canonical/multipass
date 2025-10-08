@@ -21,6 +21,8 @@ import sys
 import re
 import os
 from pathlib import Path
+from packaging import version
+from functools import lru_cache
 
 from .multipass_cmd import multipass
 
@@ -213,6 +215,16 @@ def get_mac_addr_of(name, interface_name):
     ) as result:
         assert result, f"Failed: {result.content} ({result.exitstatus})"
         return str(result).strip()
+
+
+@lru_cache(maxsize=None)
+def get_multipass_version():
+    with multipass("version") as version_output:
+        version_lines = version_output.content.splitlines()
+        assert len(version_lines) == 2
+        version_lines = [v.split()[1] for v in version_lines]
+        assert version_lines[0] == version_lines[1], f"{version_lines[0]} != {version_lines[1]}"
+        return version.parse(version_lines[0].strip())
 
 
 def default_driver_name():

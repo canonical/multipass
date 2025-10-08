@@ -49,6 +49,7 @@ from .helpers import (
     get_default_interface_name,
     get_mac_addr_of,
     get_cloudinit_instance_id,
+    get_multipass_version,
 )
 from .multipass_cmd import multipass
 from .snapshot import build_snapshot_tree, collapse_to_snapshot_tree, take_snapshot
@@ -62,3 +63,4 @@ from .imageutils import image_name_to_version
 from .launch import launch
 from .fileutils import nuke_all_instances
 from .nameutils import random_vm_name
+from .feature_versions import multipass_version_has_feature
