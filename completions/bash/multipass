@@ -463,8 +463,7 @@ _multipass_complete()
 
 # Check the Bash version. Bash < 4 does not have `compopt`, which we use for completing `launch --network`. We
 # disable some completions on that command based on this test.
-bash_major_version=${BASH_VERSION%%.*}
-if [[ $bash_major_version -gt 3 ]]; then
+if [[ ${BASH_VERSINFO[0]} -gt 3 ]]; then
     OLD_BASH=false
 else
     OLD_BASH=true
