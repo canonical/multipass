@@ -14,14 +14,17 @@ fn generates_the_requested_num_words() {
     let one_word_name = make_name(&mut gen1).expect("Should generate name");
     let tokens = split_name(&one_word_name, "-");
     assert_eq!(tokens.len(), 1);
+    assert!(tokens.iter().all(|t| !t.is_empty()));
 
     let two_word_name = make_name(&mut gen2).expect("Should generate name");
     let tokens = split_name(&two_word_name, "-");
     assert_eq!(tokens.len(), 2);
+    assert!(tokens.iter().all(|t| !t.is_empty()));
 
     let three_word_name = make_name(&mut gen3).expect("Should generate name");
     let tokens = split_name(&three_word_name, "-");
     assert_eq!(tokens.len(), 3);
+    assert!(tokens.iter().all(|t| !t.is_empty()));
 }
 
 #[test]
@@ -30,6 +33,7 @@ fn uses_custom_separator() {
     let name = make_name(&mut name_generator).expect("Should generate name");
     let tokens = split_name(&name, "_");
     assert_eq!(tokens.len(), 3);
+    assert!(tokens.iter().all(|t| !t.is_empty()));
     assert!(name.contains("_"));
 }
 
@@ -39,6 +43,7 @@ fn can_generate_two_token_name() {
     let name = make_name(&mut name_generator).expect("Should generate name");
     let tokens = split_name(&name, "-");
     assert_eq!(tokens.len(), 2);
+    assert!(tokens.iter().all(|t| !t.is_empty()));
 
     // Each token should be unique
     let unique_tokens: HashSet<_> = tokens.iter().collect();
