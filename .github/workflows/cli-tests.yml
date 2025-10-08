@@ -73,6 +73,10 @@ jobs:
             const {SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL, PYTEST_EXTRA_ARGS} = process.env
             const matrix = { include: [] };
 
+            for (const [name, value] of Object.entries({ SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL }))
+            if (value === '')
+              throw new Error(`${name.toLowerCase().replaceAll('_', '-')} set but empty!`);
+
             if (SNAP_CHANNEL !== '<undefined>') {
               matrix.include.push({
                 os: 'ubuntu-latest',
@@ -198,7 +202,7 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml ${{ env.pytest-extra-args }}
+        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
