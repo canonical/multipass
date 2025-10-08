@@ -49,6 +49,12 @@ permissions:
   actions: read
   checks: write
 
+env:
+  SNAP_CHANNEL: ${{ inputs['snap-channel'] }}
+  MACOS_PKG_URL: ${{ inputs['macos-pkg-url'] }}
+  WINDOWS_PKG_URL: ${{ inputs['windows-pkg-url'] }}
+  PYTEST_EXTRA_ARGS: ${{ inputs['pytest-extra-args'] }}
+
 concurrency:
   group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -64,10 +70,10 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const inputs = context.payload?.inputs || github.event?.inputs;
+            const {SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL, PYTEST_EXTRA_ARGS} = process.env
             const matrix = { include: [] };
 
-            if (inputs['snap-channel'] !== '<undefined>') {
+            if (SNAP_CHANNEL !== '<undefined>') {
               matrix.include.push({
                 os: 'ubuntu-latest',
                 label: 'Snap',
@@ -75,29 +81,29 @@ jobs:
                 'sudo-cmd': 'sudo',
                 'pkg-url': '',
                 'cmd-prologue': '',
-                'snap-channel': inputs['snap-channel']
+                'snap-channel': SNAP_CHANNEL
               });
             }
 
-            if (inputs['macos-pkg-url'] !== '<undefined>') {
+            if (MACOS_PKG_URL !== '<undefined>') {
               matrix.include.push({
                 os: 'macos-13',
                 label: 'macOS',
                 'daemon-controller': 'launchd',
                 'sudo-cmd': 'sudo',
-                'pkg-url': inputs['macos-pkg-url'],
+                'pkg-url': MACOS_PKG_URL,
                 'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg',
                 'cmd-prologue': 'arch -arch x86_64'
               });
             }
 
-            if (inputs['windows-pkg-url'] !== '<undefined>') {
+            if (WINDOWS_PKG_URL !== '<undefined>') {
               matrix.include.push({
                 os: 'windows-latest',
                 label: 'Windows',
                 'daemon-controller': 'winsvc',
                 'sudo-cmd': 'gsudo',
-                'pkg-url': inputs['windows-pkg-url'],
+                'pkg-url': WINDOWS_PKG_URL,
                 'pkg-download-destination': '$env:RUNNER_TEMP\\multipass.msi',
                 'cmd-prologue': ''
               });
@@ -192,7 +198,7 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml ${{ inputs.pytest-extra-args }}
+        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --junitxml=reports/junit.xml ${{ env.pytest-extra-args }}
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
