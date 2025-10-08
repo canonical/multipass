@@ -34,7 +34,7 @@ fn uses_custom_separator() {
 }
 
 #[test]
-fn generates_two_tokens_by_default() {
+fn can_generate_two_token_name() {
     let mut name_generator = new_petname(2, "-").expect("Should create valid petname");
     let name = make_name(&mut name_generator).expect("Should generate name");
     let tokens = split_name(&name, "-");
