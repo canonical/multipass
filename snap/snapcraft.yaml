@@ -286,6 +286,7 @@ parts:
     - meson
     - python3-venv
     - gettext
+    - python3-tomli
     stage-packages:
     - libpixman-1-0
     stage:
