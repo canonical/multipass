@@ -222,6 +222,38 @@ pytest tools/cli_tests/ --cmd-retries launch=5 exec=2
 
 It's possible to do plethora of things with `pytest` flags. Refer to the [pytest's documentation](https://docs.pytest.org/en/6.2.x/usage.html) to learn more about how to meet your particular needs.
 
+## Running CLI Tests in GitHub Actions
+
+The CLI tests has a dedicated workflow in `.github/workflows/cli-tests.yaml` path. This workflow can be triggered either via `workflow_call` (i.e., from another workflow), or `workflow_dispatch` (i.e., manually). The workflow dispatch can be used as following:
+
+```yaml
+  DispatchCLITestsWorkflow:
+    # The cli-tests.yaml workflow needs checks: write to write test reports.
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      macos-pkg-url: https://example.com/macos/multipass.pkg
+      windows-pkg-url: https://example.com/win/multipass.msi
+      snap-channel: edge/pr1234
+```
+
+The `macos-pkg-url`, `windows-pkg-url` and `snap-channel` will determine the matrix to be dispatched. The platform will be skipped when the respective variable is unset.
+
+The `pytest-extra-args` can be used to pass additional arguments to the pytest run, to e.g. enabe additional debug output, or run a specific set of tests instead of the full test harness.
+
+The manual dispatch can be made through GitHub Web UI, GitHub API, or GitHub CLI. Below is an example how to trigger the cli-tests from GitHub CLI:
+
+```sh
+ # This will run the CLI tests against the snap edge channel only.
+ gh workflow run -r feature/cli-tests "CLI Tests" -f snap-channel=edge
+ # This will run the CLI tests against the Windows MSI package, and the macOS package.
+ gh workflow run -r feature/cli-tests "CLI Tests" -f windows-pkg-url=https://multipass-ci.s3.amazonaws.com/pr4061/multipass-1.17.0-dev.550.pr4061%2Bg0239bc1f.win-win64.msi macos-pkg-url=https://multipass-ci.s3.amazonaws.com/pr4061/multipass-1.17.0-dev.550.pr4061%2Bg0239bc1f.mac-Darwin.pkg pytest-extra-args="--print-all-output"
+```
+
 ## Test coverage status
 
 The suite has a good coverage of all existing Multipass except for a few. The table below summarizes the test coverage status for per-command:
