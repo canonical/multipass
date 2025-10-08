@@ -243,7 +243,7 @@ The CLI tests has a dedicated workflow in `.github/workflows/cli-tests.yaml` pat
 
 The `macos-pkg-url`, `windows-pkg-url` and `snap-channel` will determine the matrix to be dispatched. The platform will be skipped when the respective variable is unset.
 
-The `pytest-extra-args` can be used to pass additional arguments to the pytest run, to e.g. enabe additional debug output, or run a specific set of tests instead of the full test harness.
+The `pytest-extra-args` can be used to pass additional arguments to the pytest run, to e.g. enable additional debug output, or run a specific set of tests instead of the full test harness.
 
 The manual dispatch can be made through GitHub Web UI, GitHub API, or GitHub CLI. Below is an example how to trigger the cli-tests from GitHub CLI:
 
