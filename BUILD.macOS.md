@@ -117,7 +117,7 @@ or, if on Apple silicon, brew will store the Qt binaries in a different location
 Then start the build with:
 
     cd build/
-    ninja
+    cmake --build .
 
 Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about
 missing Qt6.
@@ -126,11 +126,7 @@ Creating a Package
 ------------------
 This is as simple as running
 
-    ninja package
-
-or
-
-    cpack
+    cmake --build . --target package
 
 Make sure you have dylibbundler installed!
 
