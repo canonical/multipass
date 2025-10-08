@@ -68,7 +68,6 @@
 
 #include <memory>
 #include <ostream>
-#include <regex>
 #include <stdexcept>
 #include <string>
 #include <variant>
