@@ -29,6 +29,7 @@ from cli_tests.multipass import (
     random_vm_name,
     snapshot_count,
     info,
+    state,
 )
 
 
@@ -76,16 +77,16 @@ class TestLaunch:
             assert "snapshot_count" not in info(instance)
 
         # Try to stop the instance
-        assert multipass("stop", f"{instance}")
-        validate_info_output(instance, {"state": "Stopped"})
+        assert multipass("stop", instance)
+        assert state(instance) == "Stopped"
 
         # Try to start the instance
-        assert multipass("start", f"{instance}")
-        validate_info_output(instance, {"state": "Running"})
+        assert multipass("start", instance)
+        assert state(instance) == "Running"
 
         # Remove the instance.
-        assert multipass("delete", f"{instance}")
-        validate_info_output(instance, {"state": "Deleted"})
+        assert multipass("delete", instance)
+        assert state(instance) == "Deleted"
 
         assert multipass("purge")
         assert multipass("list", "--format=json") == {"list": []}
