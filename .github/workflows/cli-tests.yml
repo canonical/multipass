@@ -147,14 +147,6 @@ jobs:
           & "C:\tools\gsudo\Current\gsudo.exe" -v
           echo "C:\tools\gsudo\Current" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Check snap channel (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          if [ -z "${{ matrix['snap-channel'] }}" ]; then
-            echo "❌ snap-channel is empty"
-            exit 1
-          fi
-
       - name: Install package (Snap)
         if: runner.os == 'Linux'
         run: ${{ matrix.cmd-prologue }}${{ matrix.sudo-cmd }} snap install multipass --channel=${{ matrix['snap-channel'] }}
