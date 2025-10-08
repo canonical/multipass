@@ -346,9 +346,7 @@ jobs:
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
-        if [ -n "$S3_URL" ]; then
-          echo "${{ matrix.runs-on }}-${{ matrix.arch }}-s3-url=$S3_URL" >> "$GITHUB_OUTPUT"
-        fi
+        echo "${{ matrix.runs-on }}-${{ matrix.arch }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
@@ -359,7 +357,7 @@ jobs:
     runs-on: macos-latest
 
     outputs:
-      macos-pkg-url: ${{ steps.report-url.outputs.s3-url }}
+      macos-pkg-url: ${{ steps.s3-upload.outputs.url }}
 
     steps:
     - name: Check out code
@@ -431,7 +429,6 @@ jobs:
       id: report-url
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
-        echo "s3-url=$S3_URL" >> "$GITHUB_OUTPUT"
 
   DispatchCLITestsWorkflow:
     permissions:
