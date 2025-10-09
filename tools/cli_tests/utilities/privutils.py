@@ -53,8 +53,9 @@ def get_sudo_tool():
 def sudo(*args):
     return [*get_sudo_tool(), *args]
 
+
 def run_in_new_interpreter(
-    py_func, *args, check=True, stdout=None, stderr=None, privileged=False
+    py_func, *args, privileged=False, check=False, **kwargs
 ):
     """
     Run a top-level function with elevated privileges using sudo.
@@ -123,5 +124,5 @@ def run_in_new_interpreter(
     ]
 
     return subprocess.run(
-        [*cmd_prologue, *cmd], check=check, stdout=stdout, stderr=stderr, env=env
+        [*cmd_prologue, *cmd], check=check, **kwargs, env=env
     )
