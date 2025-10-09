@@ -161,7 +161,7 @@ public:
         auto custom_on_failure = [](grpc::Status& status) {
             if (auto code = status.error_code(); code == grpc::NOT_FOUND)
             {
-                mpl::log(mpl::Level::error, category, "Could not reach daemon.");
+                mpl::error(category, "Could not reach daemon.");
                 return mp::ReturnCode::Ok;
             }
 

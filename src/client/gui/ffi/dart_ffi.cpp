@@ -38,12 +38,12 @@ char* generate_petname()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, "{}: {}", error, e.what());
         return nullptr;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }
@@ -58,12 +58,12 @@ char* get_server_address()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, "{}: {}", error, e.what());
         return nullptr;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }
@@ -76,22 +76,41 @@ struct KeyCertificatePair get_cert_pair()
         const auto provider = mpc::get_cert_provider();
         const auto cert = provider->PEM_certificate();
         const auto key = provider->PEM_signing_key();
-        struct KeyCertificatePair pair
-        {
-        };
+        struct KeyCertificatePair pair{};
         pair.pem_cert = strdup(cert.c_str());
         pair.pem_priv_key = strdup(key.c_str());
         return pair;
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, "{}: {}", error, e.what());
         return KeyCertificatePair{nullptr, nullptr};
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return KeyCertificatePair{nullptr, nullptr};
+    }
+}
+
+char* get_root_cert()
+{
+    static constexpr auto error = "failed retrieving root certificate";
+    try
+    {
+        const auto cert_path = MP_PLATFORM.get_root_cert_path();
+        const auto cert = MP_UTILS.contents_of(QString::fromStdU16String(cert_path.u16string()));
+        return strdup(cert.c_str());
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category, "{}: {}", error, e.what());
+        return nullptr;
+    }
+    catch (...)
+    {
+        mpl::warn(category, error);
+        return nullptr;
     }
 }
 
@@ -107,12 +126,12 @@ char* settings_file()
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, "{}: {}", error, e.what());
         return nullptr;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }
@@ -131,23 +150,19 @@ enum SettingResult get_setting(char* key, char** output)
     }
     catch (const mp::UnrecognizedSettingException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}': {}", error, key_string, e.what()));
+        mpl::warn(category, "{} '{}': {}", error, key_string, e.what());
         *output = nullptr;
         return SettingResult::KeyNotFound;
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}': {}", error, key_string, e.what()));
+        mpl::warn(category, "{} '{}': {}", error, key_string, e.what());
         *output = strdup(e.what());
         return SettingResult::UnexpectedError;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{} '{}'", error, key_string));
+        mpl::warn(category, "{} '{}'", error, key_string);
         *output = strdup("unknown error");
         return SettingResult::UnexpectedError;
     }
@@ -169,33 +184,25 @@ enum SettingResult set_setting(char* key, char* value, char** output)
     }
     catch (const mp::UnrecognizedSettingException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
+        mpl::warn(category, "{} '{}'='{}': {}", error, key_string, value_string, e.what());
         *output = nullptr;
         return SettingResult::KeyNotFound;
     }
     catch (const mp::InvalidSettingException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
+        mpl::warn(category, "{} '{}'='{}': {}", error, key_string, value_string, e.what());
         *output = strdup(e.what());
         return SettingResult::InvalidValue;
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}': {}", error, key_string, value_string, e.what()));
+        mpl::warn(category, "{} '{}'='{}': {}", error, key_string, value_string, e.what());
         *output = strdup(e.what());
         return SettingResult::UnexpectedError;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} '{}'='{}'", error, key_string, value_string));
+        mpl::warn(category, "{} '{}'='{}'", error, key_string, value_string);
         *output = strdup("unknown error");
         return SettingResult::UnexpectedError;
     }
@@ -227,12 +234,12 @@ long long memory_in_bytes(char* value)
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, "{}: {}", error, e.what());
         return -1;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return -1;
     }
 }
@@ -266,12 +273,12 @@ char* default_mount_target(char* source)
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::warning, category, fmt::format("{}: {}", error, e.what()));
+        mpl::warn(category, "{}: {}", error, e.what());
         return nullptr;
     }
     catch (...)
     {
-        mpl::log(mpl::Level::warning, category, error);
+        mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
 }

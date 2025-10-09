@@ -353,7 +353,7 @@ void mp::LibVirtVirtualMachine::start()
     state = refresh_instance_state_for_domain(domain.get(), state, libvirt_wrapper);
 
     if (state == State::suspended)
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Resuming from a suspended state"));
+        mpl::info(vm_name, "Resuming from a suspended state");
 
     state = State::starting;
     update_state();
@@ -399,13 +399,13 @@ void mp::LibVirtVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
     catch (const VMStateIdempotentException& e)
     {
-        mpl::log(mpl::Level::info, vm_name, e.what());
+        mpl::log_message(mpl::Level::info, vm_name, e.what());
         return;
     }
 
     if (shutdown_policy == ShutdownPolicy::Poweroff) // TODO delete suspension state if it exists
     {
-        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+        mpl::info(vm_name, "Forcing shutdown");
 
         libvirt_wrapper->virDomainDestroy(domain.get());
 
@@ -424,7 +424,7 @@ void mp::LibVirtVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             auto warning_string{fmt::format("Cannot shutdown '{}': {}",
                                             vm_name,
                                             libvirt_wrapper->virGetLastErrorMessage())};
-            mpl::log(mpl::Level::warning, vm_name, warning_string);
+            mpl::log_message(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
     }
@@ -448,7 +448,7 @@ void mp::LibVirtVirtualMachine::suspend()
             auto warning_string{fmt::format("Cannot suspend '{}': {}",
                                             vm_name,
                                             libvirt_wrapper->virGetLastErrorMessage())};
-            mpl::log(mpl::Level::warning, vm_name, warning_string);
+            mpl::log_message(mpl::Level::warning, vm_name, warning_string);
             throw std::runtime_error(warning_string);
         }
 
@@ -460,7 +460,7 @@ void mp::LibVirtVirtualMachine::suspend()
     }
     else if (state == State::off)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
     monitor->on_suspend();

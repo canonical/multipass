@@ -54,10 +54,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         }
         else
         {
-            mpl::log(
-                mpl::Level::info,
-                desc.vm_name,
-                fmt::format("Cannot determine QEMU machine type. Falling back to system default."));
+            mpl::info(desc.vm_name,
+                      "Cannot determine QEMU machine type. Falling back to system default.");
         }
 
         args.replaceInStrings(QRegularExpression("helper=.*bridge_helper"),

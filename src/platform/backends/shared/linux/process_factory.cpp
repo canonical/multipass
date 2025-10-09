@@ -45,10 +45,9 @@ public:
         connect(this, &AppArmoredProcess::state_changed, [this](QProcess::ProcessState state) {
             if (state == QProcess::Starting)
             {
-                mpl::log(mpl::Level::debug,
-                         "daemon",
-                         fmt::format("Applied AppArmor policy: {}",
-                                     process_spec->apparmor_profile_name()));
+                mpl::debug("daemon",
+                           "Applied AppArmor policy: {}",
+                           process_spec->apparmor_profile_name());
             }
         });
     }
@@ -97,7 +96,7 @@ public:
         catch (const std::exception& e)
         {
             // It's not considered an error when an apparmor cannot be removed
-            mpl::log(mpl::Level::info, "apparmor", e.what());
+            mpl::log_message(mpl::Level::info, "apparmor", e.what());
         }
     }
 
@@ -118,21 +117,19 @@ std::optional<mp::AppArmor> create_apparmor()
     {
         if (qEnvironmentVariableIsSet("DISABLE_APPARMOR"))
         {
-            mpl::log(mpl::Level::warning, "apparmor", "AppArmor disabled by environment variable");
+            mpl::warn("apparmor", "AppArmor disabled by environment variable");
             return std::nullopt;
         }
     }
 
     try
     {
-        mpl::log(mpl::Level::info, "apparmor", "Using AppArmor support");
+        mpl::info("apparmor", "Using AppArmor support");
         return mp::AppArmor{};
     }
     catch (mp::AppArmorException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 "apparmor",
-                 fmt::format("Failed to enable AppArmor: {}", e.what()));
+        mpl::warn("apparmor", "Failed to enable AppArmor: {}", e.what());
         return std::nullopt;
     }
 }
@@ -157,7 +154,7 @@ std::unique_ptr<mp::Process> mp::ProcessFactory::create_process(
         catch (const mp::AppArmorException& e)
         {
             // TODO: This won't fly in strict mode (#1074), since we'll be confined by snapd
-            mpl::log(mpl::Level::warning, "apparmor", e.what());
+            mpl::log_message(mpl::Level::warning, "apparmor", e.what());
             return std::make_unique<BasicProcess>(spec);
         }
     }
