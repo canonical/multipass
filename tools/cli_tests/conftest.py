@@ -184,7 +184,8 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     """Validate command line args."""
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+    logging.basicConfig(level=logging.INFO,
+                        format="[%(levelname)s] %(message)s")
 
     if (
         config.getoption("--daemon-controller") == "standalone"
@@ -305,7 +306,13 @@ def pytest_runtest_setup(item):
         raise ValueError(f"Invalid op in requires_version: {op_str}")
 
     if not op(current, target):
-        pytest.skip(f"Version-gated test {item} skipped ({current} {op_str} {target})")
+        pytest.skip(
+            f"Version-gated test {item} skipped ({current} {op_str} {target})")
+
+
+def remove_temporary_storage_dir(target_dir):
+    import shutil
+    shutil.rmtree(target_dir)
 
 
 def make_temporary_storage_dir(request):
@@ -317,11 +324,13 @@ def make_temporary_storage_dir(request):
             a non-root user cannot remove it. Therefore, try
             privilege escalation if nuking as normal fails."""
             try:
-                shutil.rmtree(str(tmpdir))
+                remove_temporary_storage_dir(str(tmpdir))
                 print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
             except PermissionError:
-                print(f"\n🧹 ⚠️ Permission denied, escalating to sudo rm -rf {tmpdir}")
-                subprocess.run(["sudo", "rm", "-rf", str(tmpdir)], check=True)
+                print(
+                    f"\n🧹 ⚠️ Permission denied, escalating privilege {tmpdir}")
+                run_in_new_interpreter(
+                    remove_temporary_storage_dir, str(tmpdir), privileged=True)
 
         # Register finalizer to cleanup on exit
         request.addfinalizer(cleanup)
@@ -334,14 +343,16 @@ def store_config(request):
     they would be accessible to all functions in the module."""
     config.bin_dir = request.config.getoption("--bin-dir")
     config.storage_dir = request.config.getoption("--storage-dir")
-    config.print_daemon_output = request.config.getoption("--print-daemon-output")
+    config.print_daemon_output = request.config.getoption(
+        "--print-daemon-output")
     config.print_cli_output = request.config.getoption("--print-cli-output")
 
     if request.config.getoption("--print-all-output"):
         config.print_daemon_output = True
         config.print_cli_output = True
 
-    config.remove_all_instances = request.config.getoption("--remove-all-instances")
+    config.remove_all_instances = request.config.getoption(
+        "--remove-all-instances")
     config.driver = request.config.getoption("--driver")
     config.daemon_controller = request.config.getoption("--daemon-controller")
 
@@ -512,7 +523,8 @@ def multipassd_impl():
         )
 
         # Ensure that the governor.stop() is called on context exit.
-        stack.callback(lambda: wait_for_future(loop.run(governor.stop_async())))
+        stack.callback(lambda: wait_for_future(
+            loop.run(governor.stop_async())))
 
         # Stop the governor if already running (for cleanup)
         wait_for_future(loop.run(governor.stop_async()))
