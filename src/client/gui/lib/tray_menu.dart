@@ -61,15 +61,20 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
     label: 'multipass version: $multipassVersion',
     enabled: false,
   );
-  final daemonVersionItem = await aboutSubmenu.addLabel(
-    'multipassd-version',
-    label: 'multipassd version: loading...',
-    enabled: false,
-  );
-  providerContainer.listen(
-    daemonVersionProvider,
-    (_, version) => daemonVersionItem.setLabel('multipassd version: $version'),
-  );
+  String daemonVersion;
+  do {
+    daemonVersion = providerContainer.read(daemonVersionProvider);
+    if (daemonVersion == 'loading...') {
+      await Future.delayed(Duration(milliseconds: 100));
+    }
+  } while (daemonVersion == 'loading...');
+  if (multipassVersion != daemonVersion) {
+    await aboutSubmenu.addLabel(
+      'multipassd-version',
+      label: 'multipassd version: $daemonVersion',
+      enabled: false,
+    );
+  }
   await aboutSubmenu.addLabel(
     'copyright',
     label: 'Copyright (C) Canonical, Ltd.',
