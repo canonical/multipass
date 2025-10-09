@@ -53,8 +53,6 @@ struct fake_vm_properties
     VirtualMachine::State state = VirtualMachine::State::starting;
 };
 
-class MockVMImageVault;
-
 struct DaemonTestFixture : public ::Test
 {
     DaemonTestFixture();
@@ -62,8 +60,6 @@ struct DaemonTestFixture : public ::Test
     void SetUp() override;
 
     MockVirtualMachineFactory* use_a_mock_vm_factory();
-
-    MockVMImageVault* mock_image_vault();
 
     void send_command(const std::vector<std::string>& command,
                       std::ostream& cout = trash_stream,
