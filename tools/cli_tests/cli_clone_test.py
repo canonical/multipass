@@ -63,6 +63,7 @@ class TestClone:
 
         # Verify that the clone does not have any snapshots
         assert snapshot_count(f"{instance}-clone1") == 0
+        assert multipass("delete", f"{instance}-clone1", "--purge")
 
     def test_clone_verify_clone_has_different_properties(self, instance):
         """ip, mac, hostname, etc."""
@@ -102,3 +103,4 @@ class TestClone:
         assert get_mac_addr_of(instance, i_if_name) != get_mac_addr_of(
             expected_clone_name, i_clone_if_name
         )
+        assert multipass("delete", f"{instance}-clone1", "--purge")
