@@ -55,10 +55,6 @@ env:
   WINDOWS_PKG_URL: ${{ inputs['windows-pkg-url'] }}
   PYTEST_EXTRA_ARGS: ${{ inputs['pytest-extra-args'] }}
 
-concurrency:
-  group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
   determine-matrix:
     runs-on: ubuntu-latest
@@ -70,12 +66,15 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const crypto = require('crypto');
             const {SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL, PYTEST_EXTRA_ARGS} = process.env
             const matrix = { include: [] };
 
             for (const [name, value] of Object.entries({ SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL }))
             if (value === '')
               throw new Error(`${name.toLowerCase().replaceAll('_', '-')} set but empty!`);
+
+            const shortHash = str => crypto.createHash("sha256").update(str).digest("hex").slice(0, 12);
 
             if (SNAP_CHANNEL !== '<undefined>') {
               matrix.include.push({
@@ -85,7 +84,8 @@ jobs:
                 'sudo-cmd': 'sudo',
                 'pkg-url': '',
                 'cmd-prologue': '',
-                'snap-channel': SNAP_CHANNEL
+                'snap-channel': SNAP_CHANNEL,
+                'concurrency-key': shortHash(SNAP_CHANNEL)
               });
             }
 
@@ -97,7 +97,8 @@ jobs:
                 'sudo-cmd': 'sudo',
                 'pkg-url': MACOS_PKG_URL,
                 'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg',
-                'cmd-prologue': 'arch -arch x86_64'
+                'cmd-prologue': 'arch -arch x86_64',
+                'concurrency-key': shortHash(MACOS_PKG_URL)
               });
             }
 
@@ -109,13 +110,17 @@ jobs:
                 'sudo-cmd': 'gsudo',
                 'pkg-url': WINDOWS_PKG_URL,
                 'pkg-download-destination': '$env:RUNNER_TEMP\\multipass.msi',
-                'cmd-prologue': ''
+                'cmd-prologue': '',
+                'concurrency-key': shortHash(WINDOWS_PKG_URL)
               });
             }
 
             core.setOutput('matrix', JSON.stringify(matrix));
             core.setOutput('has_targets', String(matrix.include.length > 0));
   run-cli-tests:
+    concurrency:
+      group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
+      cancel-in-progress: true
     name: CLI Tests (${{ matrix.label }})
     needs: determine-matrix
     runs-on: ${{ matrix.os }}
