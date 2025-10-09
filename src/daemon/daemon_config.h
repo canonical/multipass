@@ -47,7 +47,6 @@ struct DaemonConfig
     const std::unique_ptr<VirtualMachineFactory> factory;
     const std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     const std::unique_ptr<VMImageVault> vault;
-    const std::unique_ptr<NameGenerator> name_generator;
     const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     const std::unique_ptr<CertProvider> cert_provider;
     const std::unique_ptr<CertStore> client_cert_store;
@@ -55,6 +54,7 @@ struct DaemonConfig
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const std::unique_ptr<QNetworkProxy> network_proxy;
     const std::unique_ptr<VMBlueprintProvider> blueprint_provider;
+    const std::unique_ptr<NameGenerator> name_generator;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
@@ -68,7 +68,6 @@ struct DaemonConfigBuilder
     std::unique_ptr<VirtualMachineFactory> factory;
     std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     std::unique_ptr<VMImageVault> vault;
-    std::unique_ptr<NameGenerator> name_generator;
     std::unique_ptr<SSHKeyProvider> ssh_key_provider;
     std::unique_ptr<CertProvider> cert_provider;
     std::unique_ptr<CertStore> client_cert_store;
@@ -76,6 +75,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<logging::Logger> logger;
     std::unique_ptr<QNetworkProxy> network_proxy;
     std::unique_ptr<VMBlueprintProvider> blueprint_provider;
+    std::unique_ptr<NameGenerator> name_generator;
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;

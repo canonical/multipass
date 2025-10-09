@@ -180,6 +180,29 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 # targets: fmt::fmt, fmt::fmt-header-only
 
+# Corrosion for Rust + CMake integration
+include(FetchContent)
+
+FetchContent_Declare(
+    Corrosion
+    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+    GIT_TAG v0.5 # Use stable version
+)
+FetchContent_MakeAvailable(Corrosion)
+
+# Register Rust build directories for cleaning
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES
+    "${CMAKE_BINARY_DIR}/cargo"
+    "${CMAKE_BINARY_DIR}/corrosion"
+)
+
+# Add custom target to also run cargo clean when needed
+add_custom_target(clean-rust
+    COMMAND cargo clean --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml
+    COMMENT "Cleaning Cargo workspace artifacts"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
@@ -394,6 +417,20 @@ add_subdirectory(src)
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests)
+
+  # Add convenience targets for running tests
+  add_custom_target(test-all
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all_tests
+    COMMENT "Running all tests (C++ and Rust) via convenience target"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  )
+
+  # Add alias for compatibility
+  add_custom_target(check
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all_tests
+    COMMENT "Running all tests (alias for test-all)"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  )
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)

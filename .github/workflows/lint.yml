@@ -77,3 +77,21 @@ jobs:
             echo "Run '3rd-party/flutter/bin/dart format' to fix formatting."
             exit 1
           fi
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Run Rust format check
+        shell: bash
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            if ! cargo fmt --all --check; then
+              echo -n "##[error] Rust code is not properly formatted. "
+              echo "Run 'cargo fmt --all' to fix formatting."
+              exit 1
+            fi
+          else
+            echo "No Cargo.toml found, skipping Rust format check"
+          fi

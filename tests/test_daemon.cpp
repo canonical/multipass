@@ -28,6 +28,7 @@
 #include "mock_image_host.h"
 #include "mock_json_utils.h"
 #include "mock_logger.h"
+#include "mock_name_generator.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -50,11 +51,12 @@
 #include <multipass/default_vm_blueprint_provider.h>
 #include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
 #include <multipass/signal.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_host.h>
+
+#include <rustipass_cxx/lib.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -96,17 +98,6 @@ const qint64 default_total_bytes{16'106'127'360}; // 15G
 
 const std::string csv_header{"Alias,Instance,Command,Working directory,Context\n"};
 
-struct StubNameGenerator : public mp::NameGenerator
-{
-    explicit StubNameGenerator(std::string name) : name{std::move(name)}
-    {
-    }
-    std::string make_name() override
-    {
-        return name;
-    }
-    std::string name;
-};
 } // namespace
 
 struct Daemon : public mpt::DaemonTestFixture
@@ -700,14 +691,21 @@ TEST_P(DaemonCreateLaunchTestSuite, onCreationHandlesInstanceImagePreparationFai
 
 TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProvideOne)
 {
-    const std::string expected_name{"pied-piper-valley"};
+    // Create a mock name generator that returns a known name
+    auto mock_name_generator = std::make_unique<NiceMock<mpt::MockNameGenerator>>();
+    const std::string expected_name = "test-petname";
 
-    config_builder.name_generator = std::make_unique<StubNameGenerator>(expected_name);
+    EXPECT_CALL(*mock_name_generator, make_name()).WillOnce(Return(expected_name));
+
+    config_builder.name_generator = std::move(mock_name_generator);
+
+    use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
     send_command({GetParam()}, stream);
 
+    // Now we can check for the exact name we expect
     EXPECT_THAT(stream.str(), HasSubstr(expected_name));
 }
 

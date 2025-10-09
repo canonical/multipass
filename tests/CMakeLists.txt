@@ -94,7 +94,6 @@ add_executable(multipass_tests
   test_new_release_monitor.cpp
   test_output_formatter.cpp
   test_persistent_settings_handler.cpp
-  test_petname.cpp
   test_private_pass_provider.cpp
   test_qemuimg_process_spec.cpp
   test_remote_settings_handler.cpp
@@ -132,6 +131,7 @@ add_executable(multipass_tests
   test_permission_utils.cpp
   test_client_logger.cpp
   test_standard_logger.cpp
+  test_rust_petname_generator.cpp
 )
 
 target_include_directories(multipass_tests
@@ -180,6 +180,21 @@ target_link_libraries(multipass_tests
 
 add_test(NAME multipass_tests
   COMMAND multipass_tests
+)
+
+# Platform-specific cargo path handling for Rust tests
+if(WIN32)
+  # Windows: cargo should be in PATH, but ensure we use CMD to avoid bash conflicts
+  set(RUST_TEST_COMMAND cmd /c "cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml")
+else()
+  # Unix-like: cargo should be available in PATH
+  set(RUST_TEST_COMMAND cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml)
+endif()
+
+# Register Rust tests with CTest
+add_test(NAME rust_tests
+  COMMAND ${CMAKE_COMMAND} -E env cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
