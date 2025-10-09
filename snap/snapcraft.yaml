@@ -127,7 +127,6 @@ parts:
     - qt6-qpa-plugins
     prime:
     - usr/lib/*/qt6/plugins/tls/*
-
   multipass:
     after: [ qt-ssl-plugin ]
     plugin: cmake
@@ -236,12 +235,14 @@ parts:
 
   qemu:
     build-environment:
+    - PYTHONPATH: ""
     - LD_LIBRARY_PATH: ""
     - XDG_DATA_DIRS: /root/stage/usr/share:/usr/share
     - PKG_CONFIG_PATH: ""
+    - PYTHON: /usr/bin/python3
     source: https://github.com/canonical/qemu.git
     source-type: git
-    source-branch: multipass-8.2.1+9p-uid-gid-map
+    source-tag: v10.0.3+9p-uid-gid-map
     source-depth: 1
     source-submodules: []
     plugin: autotools
@@ -260,7 +261,6 @@ parts:
     - --disable-replication
     - --disable-snappy
     - --disable-lzo
-    - --disable-live-block-migration
     - --disable-vvfat
     - --disable-curl
     - --disable-tests
@@ -284,9 +284,9 @@ parts:
     - libglib2.0-dev
     - libpixman-1-dev
     - libseccomp-dev
-    - meson
     - python3-venv
     - gettext
+    - python3-tomli
     stage-packages:
     - libpixman-1-0
     stage:
@@ -299,6 +299,7 @@ parts:
       usr/share/qemu/*: qemu/
     override-pull: |-
       [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+
 
       craftctl default
     override-build: |-
