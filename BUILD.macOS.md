@@ -20,8 +20,8 @@ Avoid the version of cmake supplied, we need a newer one (see later).
 
 Install aqtinstall and use it to download Qt 6.2.4:
 
-    pip3 install aqtinstall
-    python3 -m aqt install-qt mac desktop 6.2.4 --outputdir ~/Qt
+    brew install aqtinstall
+    aqt install-qt mac desktop 6.2.4 --outputdir ~/Qt
 
 This will install Qt 6.2.4 to `~/Qt/6.2.4/macos`.
 
