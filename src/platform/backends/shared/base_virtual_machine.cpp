@@ -84,7 +84,7 @@ mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
                                        mpl::Level log_level = mpl::Level::trace)
 {
     assert(vm);
-    mpl::log(log_level, vm->vm_name, e.what());
+    mpl::log_message(log_level, vm->vm_name, e.what());
     return mp::utils::TimeoutAction::retry;
 };
 
@@ -93,7 +93,7 @@ std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtu
                                                        const mp::SSHKeyProvider& key_provider)
 {
     static constexpr auto wait_step = 1s;
-    mpl::log(mpl::Level::debug, virtual_machine->vm_name, "Waiting for SSH to be up");
+    mpl::debug(virtual_machine->vm_name, "Waiting for SSH to be up");
 
     std::optional<mp::SSHSession> session = std::nullopt;
     auto action = [virtual_machine, &key_provider, &session] {
@@ -239,9 +239,9 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
         assert(reconnect && "we should have thrown otherwise");
         if ((!ssh_session || !ssh_session->is_connected()) && reconnect)
         {
-            const auto msg = fmt::format("SSH session disconnected{}",
-                                         log_details ? fmt::format(": {}", *log_details) : "");
-            mpl::log(logging::Level::info, vm_name, msg);
+            mpl::info(vm_name,
+                      "SSH session disconnected{}",
+                      log_details ? fmt::format(": {}", *log_details) : "");
 
             reconnect = false; // once only
             lock.unlock();
@@ -276,9 +276,7 @@ void mp::BaseVirtualMachine::renew_ssh_session()
             throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
     }
 
-    mpl::log(logging::Level::debug,
-             vm_name,
-             fmt::format("{} SSH session", ssh_session ? "Renewing cached" : "Caching new"));
+    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
 
     ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 }
@@ -305,7 +303,7 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
         }
         catch (const std::exception& e) // transitioning away from catching generic runtime errors
         {                               // TODO remove once we're confident this is an anomaly
-            mpl::log(mpl::Level::warning, vm_name, e.what());
+            mpl::log_message(mpl::Level::warning, vm_name, e.what());
             return mp::utils::TimeoutAction::retry;
         }
     };
@@ -342,9 +340,7 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
         }
         catch (const SSHException& e)
         {
-            mpl::log(mpl::Level::debug,
-                     vm_name,
-                     fmt::format("Error getting extra IP addresses: {}", e.what()));
+            mpl::debug(vm_name, "Error getting extra IP addresses: {}", e.what());
         }
     }
 
@@ -451,7 +447,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
     const auto [it, success] = snapshots.try_emplace(sname, nullptr);
     if (!success)
     {
-        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", sname));
+        mpl::warn(vm_name, "Snapshot name taken: {}", sname);
         throw SnapshotNameTakenException{vm_name, sname};
     }
 
@@ -608,7 +604,7 @@ void mp::BaseVirtualMachine::delete_snapshot(const std::string& name)
     delete_snapshot_helper(snapshot);
 
     snapshots.erase(it); // doesn't throw
-    mpl::log(mpl::Level::debug, vm_name, fmt::format("Snapshot deleted: {}", name));
+    mpl::debug(vm_name, "Snapshot deleted: {}", name);
 }
 
 void mp::BaseVirtualMachine::load_snapshots()
@@ -668,10 +664,10 @@ void mp::BaseVirtualMachine::log_latest_snapshot(LockT lock) const
 
         mpl::log(log_detail_lvl,
                  vm_name,
-                 fmt::format(R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})",
-                             name,
-                             parent_name,
-                             num_snapshots));
+                 R"(New snapshot: "{}"; Descendant of: "{}"; Total snapshots: {})",
+                 name,
+                 parent_name,
+                 num_snapshots);
     }
 }
 
@@ -683,7 +679,7 @@ void mp::BaseVirtualMachine::load_snapshot(const QString& filename)
 
     if (!success)
     {
-        mpl::log(mpl::Level::warning, vm_name, fmt::format("Snapshot name taken: {}", name));
+        mpl::warn(vm_name, "Snapshot name taken: {}", name);
         throw SnapshotNameTakenException{vm_name, name};
     }
 }
@@ -842,7 +838,7 @@ void mp::BaseVirtualMachine::drop_ssh_session()
 {
     if (ssh_session)
     {
-        mpl::log(mpl::Level::debug, vm_name, "Dropping cached SSH session");
+        mpl::debug(vm_name, "Dropping cached SSH session");
         ssh_session.reset();
     }
 }

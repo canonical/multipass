@@ -97,10 +97,10 @@ constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
-const std::string sshfs_error_template =
+constexpr auto sshfs_error_template =
     "Error enabling mount support in '{}'"
     "\n\nPlease install the 'multipass-sshfs' snap manually inside the instance.";
-const std::string invalid_network_template =
+constexpr auto invalid_network_template =
     "Invalid network '{}' set as bridged interface, use `multipass set "
     "{}=<name>` to correct. See `multipass networks` for valid names.";
 
@@ -272,9 +272,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         if (!num_cores && !deleted && ssh_username.empty() && metadata.isEmpty() &&
             !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
         {
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("Ignoring ghost instance in database: {}", key));
+            mpl::warn(category, "Ignoring ghost instance in database: {}", key);
             continue;
         }
 
@@ -478,9 +476,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
                 throw std::runtime_error(
                     fmt::format(invalid_network_template, net_id, mp::bridged_interface_key));
 
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("Invalid network name \"{}\"", net_id));
+            mpl::warn(category, "Invalid network name \"{}\"", net_id);
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
         else if (host_net_it->needs_authorization)
@@ -495,7 +491,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
                 net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
         {
-            mpl::log(mpl::Level::warning, category, fmt::format("Invalid MAC address \"{}\"", mac));
+            mpl::warn(category, "Invalid MAC address \"{}\"", mac);
             option_errors.add_error_codes(mp::LaunchError::INVALID_NETWORK);
         }
     }
@@ -769,13 +765,13 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, Ts&&... fmt_params)
+auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
     -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
 
-    return fmt::format_to(std::back_inserter(buffer), std::forward<Ts>(fmt_params)...);
+    return fmt::format_to(std::back_inserter(buffer), fmt, std::forward<Ts>(fmt_params)...);
 }
 
 using SelectionComponent = std::variant<LinearInstanceSelection, MissingInstanceList>;
@@ -800,9 +796,9 @@ grpc::StatusCode react_to_component(const SelectionComponent& selection_componen
                     const auto& instance_name = get_instance_name(instance_element);
 
                     if (status_code)
-                        add_fmt_to(errors, msg, instance_name);
+                        add_fmt_to(errors, fmt::runtime(msg), instance_name);
                     else
-                        mpl::log(mpl::Level::debug, category, fmt::format(msg, instance_name));
+                        mpl::debug(category, fmt::runtime(msg), instance_name);
                 }
             }
         }
@@ -884,11 +880,11 @@ grpc::Status grpc_status_for_instance_trail(const InstanceTrail& trail,
     const auto& status_code = relevant_reaction_component->status_code;
     if (const auto& msg_opt = relevant_reaction_component->message_template; msg_opt)
     {
-        const auto& msg = fmt::format(*msg_opt, *instance_name);
+        const auto& msg = fmt::format(fmt::runtime(*msg_opt), *instance_name);
         if (status_code)
             return grpc::Status{status_code, msg, ""};
 
-        mpl::log(mpl::Level::debug, category, msg);
+        mpl::log_message(mpl::Level::debug, category, msg);
     }
 
     return grpc::Status{status_code, "", ""};
@@ -1087,11 +1083,10 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
 
     if (available_disk_space < disk_space)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Reserving more disk space ({} bytes) than available ({} bytes)",
-                             disk_space.in_bytes(),
-                             available_disk_space.in_bytes()));
+        mpl::warn(category,
+                  "Reserving more disk space ({} bytes) than available ({} bytes)",
+                  disk_space.in_bytes(),
+                  available_disk_space.in_bytes());
     }
 
     return disk_space;
@@ -1280,10 +1275,8 @@ bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& m
                            std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
 {
     auto removed = false;
-    auto handlers_it = vm_mounts.begin();
-    while (handlers_it != vm_mounts.end())
-    {
-        const auto& [target, handler] = *handlers_it;
+    std::erase_if(vm_mounts, [&](auto&& i) {
+        const auto& [target, handler] = i;
         if (auto specs_it = mount_specs.find(target);
             specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
         {
@@ -1293,13 +1286,11 @@ bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& m
                 handler->deactivate();
             }
 
-            handlers_it = vm_mounts.erase(handlers_it);
             removed = true;
+            return true;
         }
-        else
-            ++handlers_it;
-    }
-
+        return false;
+    });
     return removed;
 }
 
@@ -1425,9 +1416,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     }
     catch (const std::runtime_error& e)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Hypervisor health check failed: {}", e.what()));
+        mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
 
     for (auto& entry : vm_instance_specs)
@@ -1450,9 +1439,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             !merge_if_disjoint(new_macs, allocated_mac_addrs))
         {
             // There is at least one repeated address in new_macs.
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("{} has repeated MAC addresses", name));
+            mpl::warn(category, "{} has repeated MAC addresses", name);
             invalid_specs.push_back(name);
             continue;
         }
@@ -1460,11 +1447,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
         {
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("Could not find image for '{}'. Expected location: {}",
-                                 name,
-                                 vm_image.image_path));
+            mpl::warn(category,
+                      "Could not find image for '{}'. Expected location: {}",
+                      name,
+                      vm_image.image_path);
             invalid_specs.push_back(name);
             continue;
         }
@@ -1496,14 +1482,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // FIXME: somehow we're writing contradictory state to disk.
         if (spec.deleted && spec.state != e_state::stopped && spec.state != e_state::off)
         {
-            mpl::log(
-                mpl::Level::warning,
+            mpl::warn(
                 category,
-                fmt::format(
-                    "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
-                    name,
-                    static_cast<int>(spec.state),
-                    static_cast<int>(e_state::stopped)));
+                "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
+                name,
+                static_cast<int>(spec.state),
+                static_cast<int>(e_state::stopped));
             spec.state = e_state::stopped;
         }
 
@@ -1520,9 +1504,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             case e_state::running:
             case e_state::starting:
             {
-                mpl::log(mpl::Level::info,
-                         category,
-                         fmt::format("{} needs syncing. Syncing now...", name));
+                mpl::info(category, "{} needs syncing. Syncing now...", name);
                 // We don't need to start the instance, but we need to ensure that
                 // the daemon side resources for the VM are initialized.
                 multipass::top_catch_all(name, [this, &name, &lock] {
@@ -1534,9 +1516,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             default:
             {
                 assert(!spec.deleted);
-                mpl::log(mpl::Level::info,
-                         category,
-                         fmt::format("{} needs starting. Starting now...", name));
+                mpl::info(category, "{} needs starting. Starting now...", name);
 
                 multipass::top_catch_all(name, [this, &name, &lock]() {
                     operative_instances[name]->start();
@@ -1551,9 +1531,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     for (const auto& bad_spec : invalid_specs)
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Removing invalid instance: {}", bad_spec));
+        mpl::warn(category, "Removing invalid instance: {}", bad_spec);
         vm_instance_specs.erase(bad_spec);
         config->vault->remove(bad_spec);
     }
@@ -1568,7 +1546,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     connect(&source_images_maintenance_task, &QTimer::timeout, [this]() {
         if (image_update_future.isRunning())
         {
-            mpl::log(mpl::Level::info, category, "Image updater already running. Skipping…");
+            mpl::info(category, "Image updater already running. Skipping…");
         }
         else
         {
@@ -1587,7 +1565,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                         // percentage, so this logic is to only log it once
                         if (last_percentage_logged != percentage)
                         {
-                            mpl::log(mpl::Level::info, category, fmt::format("  {}%", percentage));
+                            mpl::info(category, "  {}%", percentage);
                             last_percentage_logged = percentage;
                         }
                     }
@@ -1602,9 +1580,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                 }
                 catch (const std::exception& e)
                 {
-                    mpl::log(mpl::Level::error,
-                             category,
-                             fmt::format("Error updating images: {}", e.what()));
+                    mpl::error(category, "Error updating images: {}", e.what());
                 }
             });
         }
@@ -1712,7 +1688,7 @@ try
         const auto& name = del.first;
         release_resources(name);
         response.add_purged_instances(name);
-        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
+        mpl::debug(category, "Instance purged: {}", name);
     }
 
     deleted_instances.clear();
@@ -1770,13 +1746,10 @@ try
             }
             catch (const std::exception& e)
             {
-                mpl::log(
-                    mpl::Level::warning,
-                    category,
-                    fmt::format(
-                        "An unexpected error occurred while fetching images matching \"{}\": {}",
-                        request->search_string(),
-                        e.what()));
+                mpl::warn(category,
+                          "An unexpected error occurred while fetching images matching \"{}\": {}",
+                          request->search_string(),
+                          e.what());
             }
 
             for (auto& [remote, info] : vm_images_info)
@@ -1805,12 +1778,11 @@ try
             }
             catch (const std::exception& e)
             {
-                mpl::log(mpl::Level::warning,
-                         category,
-                         fmt::format("An unexpected error occurred while fetching blueprints "
-                                     "matching \"{}\": {}",
-                                     request->search_string(),
-                                     e.what()));
+                mpl::warn(category,
+                          "An unexpected error occurred while fetching blueprints "
+                          "matching \"{}\": {}",
+                          request->search_string(),
+                          e.what());
             }
 
             if (info)
@@ -1942,7 +1914,7 @@ try
         }
         catch (const NoSuchSnapshotException& e)
         {
-            add_fmt_to(errors, e.what());
+            add_fmt_to(errors, "{}", e.what());
         }
 
         return grpc_status_for(errors);
@@ -1966,9 +1938,7 @@ try
         }
 
         if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
-            mpl::log(mpl::Level::error,
-                     category,
-                     "Mounts have been disabled on this instance of Multipass");
+            mpl::error(category, "Mounts have been disabled on this instance of Multipass");
 
         server->Write(response);
     }
@@ -2027,9 +1997,7 @@ try
             }
             catch (const std::exception& e)
             {
-                mpl::log(mpl::Level::warning,
-                         category,
-                         fmt::format("Cannot fetch image information: {}", e.what()));
+                mpl::warn(category, "Cannot fetch image information: {}", e.what());
             }
         }
 
@@ -2070,7 +2038,7 @@ try
         }
         catch (const NoSuchSnapshotException& e)
         {
-            add_fmt_to(errors, e.what());
+            add_fmt_to(errors, "{}", e.what());
         }
 
         return grpc_status_for(errors);
@@ -2173,7 +2141,8 @@ try
         {
             mpl::log(mpl::Level::warning,
                      category,
-                     fmt::format("Invalid target path: {}", q_target_path.toStdString()));
+                     "Invalid target path: {}",
+                     q_target_path.toStdString());
             add_fmt_to(errors, "unable to mount to \"{}\"", target_path);
             continue;
         }
@@ -2253,7 +2222,7 @@ try
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
-            mpl::log(mpl::Level::debug, category, fmt::format("Instance recovered: {}", name));
+            mpl::debug(category, "Instance recovered: {}", name);
         }
         persist_instances();
     }
@@ -2349,8 +2318,8 @@ try
                 fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
                             "Try to stop it first.",
                             name);
-            mpl::log(mpl::Level::warning, category, error_string);
-            fmt::format_to(std::back_inserter(start_errors), error_string);
+            mpl::log_message(mpl::Level::warning, category, error_string);
+            start_errors.append(error_string);
             continue;
         }
         case VirtualMachine::State::suspending:
@@ -2370,9 +2339,7 @@ try
             if (complain_disabled_mounts && !vm_instance_specs[name].mounts.empty())
             {
                 complain_disabled_mounts = false; // I shall say zis only once
-                mpl::log(mpl::Level::error,
-                         category,
-                         "Mounts have been disabled on this instance of Multipass");
+                mpl::error(category, "Mounts have been disabled on this instance of Multipass");
             }
 
             vm.start();
@@ -2711,7 +2678,7 @@ try
 
     auto key = request->key();
     auto val = MP_SETTINGS.get(QString::fromStdString(key)).toStdString();
-    mpl::log(mpl::Level::debug, category, fmt::format("Returning setting {}={}", key, val));
+    mpl::debug(category, "Returning setting {}={}", key, val);
 
     reply.set_value(val);
     server->Write(reply);
@@ -2752,9 +2719,9 @@ try
         });
     });
 
-    mpl::log(mpl::Level::trace, category, fmt::format("Trying to set {}={}", key, val));
+    mpl::trace(category, "Trying to set {}={}", key, val);
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
-    mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
+    mpl::debug(category, "Succeeded setting {}={}", key, val);
 
     status_promise->set_value(grpc::Status::OK);
 }
@@ -2762,9 +2729,7 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
 {
     auto key = request->key();
     auto val = request->val();
-    mpl::log(mpl::Level::debug,
-             category,
-             fmt::format("Asking for user authorization to set {}={}", key, val));
+    mpl::debug(category, "Asking for user authorization to set {}={}", key, val);
 
     auto reply = SetReply{};
     reply.set_needs_authorization(true);
@@ -2782,13 +2747,13 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
 
         user_authorized_bridges.erase(get_bridged_interface_name());
 
-        mpl::log(mpl::Level::debug, category, fmt::format("Succeeded setting {}={}", key, val));
+        mpl::debug(category, "Succeeded setting {}={}", key, val);
 
         status_promise->set_value(grpc::Status::OK);
     }
     else
     {
-        mpl::log(mpl::Level::debug, category, "User did not authorize, cancelling");
+        mpl::debug(category, "User did not authorize, cancelling");
 
         status_promise->set_value(
             grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
@@ -2829,9 +2794,7 @@ try
     for (const auto& key : MP_SETTINGS.keys())
         reply.add_settings_keys(key.toStdString());
 
-    mpl::log(mpl::Level::debug,
-             category,
-             fmt::format("Returning {} settings keys", reply.settings_keys_size()));
+    mpl::debug(category, "Returning {} settings keys", reply.settings_keys_size());
     server->Write(reply);
 
     status_promise->set_value(grpc::Status::OK);
@@ -3401,10 +3364,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                             // Attach the aliases to be created by the CLI to the last message.
                             for (const auto& blueprint_alias : vm_aliases)
                             {
-                                mpl::log(mpl::Level::debug,
-                                         category,
-                                         fmt::format("Adding alias '{}' to RPC reply",
-                                                     blueprint_alias.first));
+                                mpl::debug(category,
+                                           "Adding alias '{}' to RPC reply",
+                                           blueprint_alias.first);
                                 auto alias = reply.add_aliases_to_be_created();
                                 alias->set_name(blueprint_alias.first);
                                 alias->set_instance(blueprint_alias.second.instance);
@@ -3416,10 +3378,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                             // Now attach the workspaces.
                             for (const auto& blueprint_workspace : vm_workspaces)
                             {
-                                mpl::log(mpl::Level::debug,
-                                         category,
-                                         fmt::format("Adding workspace '{}' to RPC reply",
-                                                     blueprint_workspace));
+                                mpl::debug(category,
+                                           "Adding workspace '{}' to RPC reply",
+                                           blueprint_workspace);
                                 reply.add_workspaces_to_be_created(blueprint_workspace);
                             }
 
@@ -3525,24 +3486,21 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     for (auto& alias_to_define : client_launch_data.aliases_to_be_created)
                         if (alias_to_define.second.instance == image)
                         {
-                            mpl::log(mpl::Level::trace,
-                                     category,
-                                     fmt::format(
-                                         "Renaming instance on alias \"{}\" from \"{}\" to \"{}\"",
-                                         alias_to_define.first,
-                                         alias_to_define.second.instance,
-                                         name));
+                            mpl::trace(category,
+                                       "Renaming instance on alias \"{}\" from \"{}\" to \"{}\"",
+                                       alias_to_define.first,
+                                       alias_to_define.second.instance,
+                                       name);
                             alias_to_define.second.instance = name;
                         }
 
                     for (auto& workspace_to_create : client_launch_data.workspaces_to_be_created)
                         if (workspace_to_create == image)
                         {
-                            mpl::log(mpl::Level::trace,
-                                     category,
-                                     fmt::format("Renaming workspace \"{}\" to \"{}\"",
-                                                 workspace_to_create,
-                                                 name));
+                            mpl::trace(category,
+                                       "Renaming workspace \"{}\" to \"{}\"",
+                                       workspace_to_create,
+                                       name);
                             workspace_to_create = name;
                         }
                 }
@@ -3652,7 +3610,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
 
     if (!vm_instance_specs[name].deleted)
     {
-        mpl::log(mpl::Level::debug, category, fmt::format("Deleting instance: {}", name));
+        mpl::debug(category, "Deleting instance: {}", name);
         erase_from = &operative_instances;
         if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
@@ -3667,11 +3625,11 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
             deleted_instances[name] = std::move(instance);
 
             instances_dirty = true;
-            mpl::log(mpl::Level::debug, category, fmt::format("Instance deleted: {}", name));
+            mpl::debug(category, "Instance deleted: {}", name);
         }
     }
     else
-        mpl::log(mpl::Level::debug, category, fmt::format("Instance is already deleted: {}", name));
+        mpl::debug(category, "Instance is already deleted: {}", name);
 
     if (purge)
     {
@@ -3679,7 +3637,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
         release_resources(name);
 
         instances_dirty = true;
-        mpl::log(mpl::Level::debug, category, fmt::format("Instance purged: {}", name));
+        mpl::debug(category, "Instance purged: {}", name);
     }
 
     if (erase_from)
@@ -3695,16 +3653,17 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 
     if (auto st = vm.current_state(); !MP_UTILS.is_running(st))
     {
-        auto msg = st == VirtualMachine::State::unknown
-                       ? "Instance '{0}' is already running, but in an unknown state.\n"
-                         "Try to stop and start it instead."
-                       : "Instance '{0}' is not running";
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                            fmt::format(msg, vm.vm_name),
-                            ""};
+        std::string msg;
+        if (st == VirtualMachine::State::unknown)
+            msg = fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
+                              "Try to stop and start it instead.",
+                              vm.vm_name);
+        else
+            msg = fmt::format("Instance '{0}' is not running", vm.vm_name);
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, std::move(msg), ""};
     }
 
-    mpl::log(mpl::Level::debug, category, fmt::format("Rebooting {}", vm.vm_name));
+    mpl::debug(category, "Rebooting {}", vm.vm_name);
     return ssh_reboot(vm);
 }
 
@@ -3742,9 +3701,7 @@ grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
     if (it != delayed_shutdown_instances.end())
         delayed_shutdown_instances.erase(it);
     else
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("no delayed shutdown to cancel on instance \"{}\"", vm.vm_name));
+        mpl::debug(category, "no delayed shutdown to cancel on instance \"{}\"", vm.vm_name);
 
     return grpc::Status::OK;
 }
@@ -3814,10 +3771,8 @@ bool mp::Daemon::create_missing_mounts(
     mp::VirtualMachine* vm)
 {
     auto initial_mount_count = mount_specs.size();
-    auto specs_it = mount_specs.begin();
-    while (specs_it != mount_specs.end()) // TODO@C++20 replace with erase_if over mount_specs
-    {
-        const auto& [target, mount_spec] = *specs_it;
+    std::erase_if(mount_specs, [&](auto&& i) {
+        const auto& [target, mount_spec] = i;
         if (vm_mounts.find(target) == vm_mounts.end())
         {
             try
@@ -3826,21 +3781,18 @@ bool mp::Daemon::create_missing_mounts(
             }
             catch (const std::exception& e)
             {
-                mpl::log(mpl::Level::warning,
-                         category,
-                         fmt::format(R"(Removing mount "{}" => "{}" from '{}': {})",
-                                     mount_spec.get_source_path(),
-                                     target,
-                                     vm->vm_name,
-                                     e.what()));
+                mpl::warn(category,
+                          R"(Removing mount "{}" => "{}" from '{}': {})",
+                          mount_spec.get_source_path(),
+                          target,
+                          vm->vm_name,
+                          e.what());
 
-                specs_it = mount_specs.erase(
-                    specs_it); // unordered_map so only iterators to erased element invalidated
-                continue;
+                return true;
             }
         }
-        ++specs_it;
-    }
+        return false;
+    });
 
     assert(mount_specs.size() <= initial_mount_count);
     return mount_specs.size() != initial_mount_count;
@@ -3932,8 +3884,8 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                                            target,
                                            name,
                                            e.what());
-                    mpl::log(mpl::Level::warning, category, msg);
-                    fmt::format_to(std::back_inserter(warnings), msg);
+                    mpl::log_message(mpl::Level::warning, category, msg);
+                    warnings.append(msg);
                     invalid_mounts.push_back(target);
                 }
 
@@ -3956,7 +3908,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
     }
     catch (const std::exception& e)
     {
-        fmt::format_to(std::back_inserter(errors), e.what());
+        fmt::format_to(std::back_inserter(errors), "{}", e.what());
     }
 
     return fmt::to_string(errors);
@@ -3998,7 +3950,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
     fmt::memory_buffer warnings;
 
-    fmt::format_to(std::back_inserter(warnings), "{}", start_warnings);
+    warnings.append(start_warnings);
 
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
@@ -4009,11 +3961,11 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     }
 
     fmt::memory_buffer errors;
-    fmt::format_to(std::back_inserter(errors), "{}", start_errors);
+    errors.append(start_errors);
 
     for (const auto& future : start_synchronizer.futures())
         if (auto error = future.result(); !error.empty())
-            add_fmt_to(errors, error);
+            add_fmt_to(errors, "{}", error);
 
     if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
     {
@@ -4068,7 +4020,7 @@ void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(
     if (force_manifest_network_download)
     {
         update_manifests_all_task.stop_timer();
-        mpl::log(mpl::Level::debug, "async task", "fetch manifest from the internet");
+        mpl::debug("async task", "fetch manifest from the internet");
         update_manifests_all(true);
         update_manifests_all_task.start_timer();
     }
@@ -4118,9 +4070,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         }
         catch (const std::exception& e)
         {
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("Cannot fetch image information: {}", e.what()));
+            mpl::warn(category, "Cannot fetch image information: {}", e.what());
         }
     }
 
@@ -4239,9 +4189,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
     const auto& preferred_net = get_bridged_interface_name();
     if (is_bridged_impl(specs, host_nets, preferred_net))
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("{} is already bridged", instance_name));
+        mpl::warn(category, "{} is already bridged", instance_name);
         return;
     }
 
@@ -4264,36 +4212,33 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
     mp::NetworkInterface new_if{preferred_net,
                                 generate_unused_mac_address(allocated_mac_addrs),
                                 true};
-    mpl::log(mpl::Level::debug,
-             category,
-             fmt::format("New interface {{\"{}\", \"{}\", {}}}",
-                         new_if.id,
-                         new_if.mac_address,
-                         new_if.auto_mode));
+    mpl::debug(category,
+               "New interface {{\"{}\", \"{}\", {}}}",
+               new_if.id,
+               new_if.mac_address,
+               new_if.auto_mode);
 
     // Add the new interface to the spec.
     specs.extra_interfaces.push_back(new_if);
 
-    mpl::log(mpl::Level::trace, category, "Prepare networking");
+    mpl::trace(category, "Prepare networking");
     config->factory->prepare_networking(specs.extra_interfaces);
     new_if =
         specs.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Done preparation, new interface id is now \"{}\"", new_if.id));
+    mpl::trace(category, "Done preparation, new interface id is now \"{}\"", new_if.id);
 
     // Add the new interface to the VM.
-    mpl::log(mpl::Level::trace, category, "Adding new interface to instance");
+    mpl::trace(category, "Adding new interface to instance");
     try
     {
         instance->add_network_interface(specs.extra_interfaces.size() - 1,
                                         specs.default_mac_address,
                                         new_if);
-        mpl::log(mpl::Level::trace, category, "Done adding");
+        mpl::trace(category, "Done adding");
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::debug, category, "Failure adding interface to instance, rolling back");
+        mpl::debug(category, "Failure adding interface to instance, rolling back");
 
         specs.extra_interfaces.pop_back();
 

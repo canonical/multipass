@@ -102,10 +102,9 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
             return QString("qemu-%1").arg(match.captured(1));
         else
         {
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("Failed to parse QEMU version out: '{}'",
-                                 process->read_all_standard_output()));
+            mpl::error(category,
+                       "Failed to parse QEMU version out: '{}'",
+                       process->read_all_standard_output());
             return QString("qemu-unknown");
         }
     }
@@ -113,18 +112,15 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
     {
         if (exit_state.error)
         {
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("Qemu failed to start: {}", exit_state.failure_message()));
+            mpl::error(category, "Qemu failed to start: {}", exit_state.failure_message());
         }
         else if (exit_state.exit_code)
         {
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("Qemu fail: '{}' with outputs:\n{}\n{}",
-                                 exit_state.failure_message(),
-                                 process->read_all_standard_output(),
-                                 process->read_all_standard_error()));
+            mpl::error(category,
+                       "Qemu fail: '{}' with outputs:\n{}\n{}",
+                       exit_state.failure_message(),
+                       process->read_all_standard_output(),
+                       process->read_all_standard_error());
         }
     }
 

@@ -36,7 +36,7 @@ void SFTPDirIterator::push_dir(const std::string& path)
 
 SFTPDirIterator::SFTPDirIterator(sftp_session sftp, const fs::path& path) : sftp(sftp)
 {
-    push_dir(path.u8string());
+    push_dir(path.string());
     next();
 }
 

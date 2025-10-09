@@ -145,9 +145,7 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
     const auto name = name_regex.match(nsetup_entry).captured(1);
     const auto desc = desc_regex.match(nsetup_entry).captured(1);
 
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Parsing networksetup chunk:\n{}", nsetup_entry));
+    mpl::trace(category, "Parsing networksetup chunk:\n{}", nsetup_entry);
 
     if (!name.isEmpty() && !desc.isEmpty())
     {
@@ -169,12 +167,10 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
         if (desc.contains("wi-fi", Qt::CaseInsensitive))
             return mp::NetworkInterfaceInfo{id, "wifi", description};
 
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Unsupported device \"{}\" ({})", id, description));
+        mpl::warn(category, "Unsupported device \"{}\" ({})", id, description);
     }
 
-    mpl::log(mpl::Level::trace, category, fmt::format("Skipping chunk"));
+    mpl::trace(category, "Skipping chunk");
     return std::nullopt;
 }
 
@@ -195,12 +191,8 @@ mp::platform::Platform::get_network_interfaces_info() const
     auto ifconfig_output = get_ifconfig_output();
     auto nsetup_output = get_networksetup_output();
 
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
+    mpl::trace(category, "Got the following output from ifconfig:\n{}", ifconfig_output);
+    mpl::trace(category, "Got the following output from networksetup:\n{}", nsetup_output);
 
     // split the output of networksetup in multiple entries (one per interface)
     auto empty_line_regex =

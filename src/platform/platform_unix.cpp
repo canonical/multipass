@@ -72,10 +72,10 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
     if (ec)
     {
-        mpl::log(
-            mpl::Level::warning,
-            "permissions",
-            fmt::format("failed to set permissions for {}: {}", path.u8string(), ec.message()));
+        mpl::warn("permissions",
+                  "failed to set permissions for {}: {}",
+                  path.string(),
+                  ec.message());
     }
 
     return !ec;
@@ -83,7 +83,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    return this->chown(path.u8string().c_str(), 0, 0) == 0;
+    return this->chown(path.string().c_str(), 0, 0) == 0;
 }
 
 void mp::platform::Platform::setup_permission_inheritance(bool restricted) const
@@ -132,8 +132,7 @@ std::string mp::platform::Platform::alias_path_message() const
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& server_address,
                                                             const bool restricted) const
 {
-    // With C++20 change to using enum
-    using namespace std::filesystem;
+    using enum std::filesystem::perms;
 
     auto tokens = mp::utils::split(server_address, ":");
     if (tokens.size() != 2u)
@@ -145,7 +144,7 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
         return;
 
     int gid{0};
-    auto mode{perms::owner_read | perms::owner_write | perms::group_read | perms::group_write};
+    auto mode{owner_read | owner_write | group_read | group_write};
 
     if (restricted)
     {
@@ -161,7 +160,7 @@ void mp::platform::Platform::set_server_socket_restrictions(const std::string& s
     }
     else
     {
-        mode |= perms::others_read | perms::others_write;
+        mode |= others_read | others_write;
     }
 
     const auto socket_path = tokens[1];

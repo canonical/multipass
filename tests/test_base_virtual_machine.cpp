@@ -661,7 +661,7 @@ TEST_F(BaseVM, providesChildrenNames)
 {
     mock_snapshotting();
 
-    const auto name_template = "s{}";
+    constexpr auto name_template = "s{}";
     const auto num_snapshots = 5;
     const mp::VMSpecs specs{};
     for (int i = 0; i < num_snapshots; ++i)

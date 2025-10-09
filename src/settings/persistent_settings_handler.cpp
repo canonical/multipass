@@ -76,9 +76,7 @@ QString checked_get(mp::WrappedQSettings& qsettings,
     }
     catch (const mp::InvalidSettingException& e)
     {
-        mpl::log(mpl::Level::warning,
-                 "settings",
-                 fmt::format("{}. Resetting '{}'.", e.what(), key));
+        mpl::warn("settings", "{}. Resetting '{}'.", e.what(), key);
         qsettings.remove(key);
         qsettings.sync();
         check_status(qsettings, "reset");
@@ -143,11 +141,10 @@ void mp::PersistentSettingsHandler::set(const QString& key, const QString& val)
 std::set<QString> mp::PersistentSettingsHandler::keys() const
 {
     std::set<QString> ret{};
-    std::transform(
-        cbegin(settings),
-        cend(settings),
-        std::inserter(ret, begin(ret)),
-        [](const auto& elem) { return elem.first; }); // I wish get<0> worked here... maybe in C++20
+    std::transform(cbegin(settings),
+                   cend(settings),
+                   std::inserter(ret, begin(ret)),
+                   [](const auto& elem) { return elem.first; });
 
     return ret;
 }

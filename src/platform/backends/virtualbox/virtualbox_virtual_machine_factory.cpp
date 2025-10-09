@@ -168,7 +168,7 @@ void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::s
     }
     else
     {
-        mpl::log(mpl::Level::warning, name, "Could not find the cloud-init ISO path for removal.");
+        mpl::warn(name, "Could not find the cloud-init ISO path for removal.");
     }
 }
 
@@ -240,9 +240,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     // List to store the output of the query command; each element corresponds to one interface.
     QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), Qt::SkipEmptyParts));
 
-    mpl::log(mpl::Level::info,
-             log_category,
-             fmt::format("VirtualBox found {} interface(s)", if_list.size()));
+    mpl::info(log_category, "VirtualBox found {} interface(s)", if_list.size());
 
     std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info =
         MP_PLATFORM.get_network_interfaces_info();
@@ -257,7 +255,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
         }
         catch (VirtualBoxNetworkException& e)
         {
-            mpl::log(mpl::Level::warning, log_category, e.what());
+            mpl::log_message(mpl::Level::warning, log_category, e.what());
         }
     }
 

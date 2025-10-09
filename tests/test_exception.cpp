@@ -111,7 +111,7 @@ TEST_F(ExceptionTests, throwFormatError)
 Format string: `message {}`
 Format error: `argument not found`)";
 
-    MP_EXPECT_THROW_THAT(throw MockException<std::runtime_error>("message {}"),
+    MP_EXPECT_THROW_THAT(throw MockException<std::runtime_error>(fmt::runtime("message {}")),
                          std::runtime_error,
                          mpt::match_what(HasSubstr(expected_error_msg)));
 }

@@ -233,12 +233,11 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     }
     else
     {
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("{}:{} {}(): adding default uid mapping",
-                             __FILE__,
-                             __LINE__,
-                             __FUNCTION__));
+        mpl::debug(category,
+                   "{}:{} {}(): adding default uid mapping",
+                   __FILE__,
+                   __LINE__,
+                   __FUNCTION__);
 
         auto uid_pair = mount_maps->add_uid_mappings();
         uid_pair->set_host_id(mcp::getuid());
@@ -277,12 +276,11 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     }
     else
     {
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("{}:{} {}(): adding default gid mapping",
-                             __FILE__,
-                             __LINE__,
-                             __FUNCTION__));
+        mpl::debug(category,
+                   "{}:{} {}(): adding default gid mapping",
+                   __FILE__,
+                   __LINE__,
+                   __FUNCTION__);
 
         auto gid_pair = mount_maps->add_gid_mappings();
         gid_pair->set_host_id(mcp::getgid());

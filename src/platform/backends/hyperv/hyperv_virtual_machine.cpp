@@ -363,7 +363,7 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
     catch (const VMStateIdempotentException& e)
     {
-        mpl::log(mpl::Level::info, vm_name, e.what());
+        mpl::log_message(mpl::Level::info, vm_name, e.what());
         return;
     }
 
@@ -371,7 +371,7 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
-        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+        mpl::info(vm_name, "Forcing shutdown");
         power_shell->run({"Stop-VM", "-Name", name, "-TurnOff"});
     }
     else
@@ -407,7 +407,7 @@ void mp::HyperVVirtualMachine::suspend()
     }
     else if (present_state == State::stopped)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
     monitor->on_suspend();
@@ -444,9 +444,7 @@ void mp::HyperVVirtualMachine::update_state()
     {
         // Cached IPs become stale when the guest is restarted from within. By resetting them here
         // we at least cover multipass's restart initiatives, which include state updates.
-        mpl::log(mpl::Level::debug,
-                 vm_name,
-                 "Invalidating cached mgmt IP address upon state update");
+        mpl::debug(vm_name, "Invalidating cached mgmt IP address upon state update");
         management_ip = std::nullopt;
     }
     monitor->persist_state_for(vm_name, state);

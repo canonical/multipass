@@ -37,7 +37,7 @@ namespace multipass
 struct SFTPError : public std::runtime_error
 {
     template <typename... Args>
-    explicit SFTPError(const char* fmt, Args&&... args)
+    explicit SFTPError(fmt::format_string<Args...> fmt, Args&&... args)
         : runtime_error(fmt::format(fmt, std::forward<Args>(args)...))
     {
     }
