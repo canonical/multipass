@@ -24,16 +24,16 @@ class DisplayField extends StatelessWidget {
     final Widget? styledField = text != null
         ? SizedBox(
             width: width,
-            child: copyable
-                ? CopyableText(
-                    text!,
-                    style: const TextStyle(fontSize: 16),
-                  )
-                : Text(
-                    text!,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-          )
+            child: Center(
+                child: copyable
+                    ? CopyableText(
+                        text!,
+                        style: const TextStyle(fontSize: 16),
+                      )
+                    : Text(
+                        text!,
+                        style: const TextStyle(fontSize: 16),
+                      )))
         : null;
 
     return Row(

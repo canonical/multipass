@@ -20,35 +20,22 @@ class AboutSection extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
         DisplayField(
-          label: 'multipass version:',
-          labelStyle: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 16,
-            color: Colors.black87,
-          ),
+          label: 'Multipass version',
           width: 260,
           text: multipassVersion,
           copyable: true,
         ),
+        if (multipassVersion != daemonVersion) const SizedBox(height: 20),
+        if (multipassVersion != daemonVersion)
+          DisplayField(
+            label: 'Multipass daemon version',
+            width: 260,
+            text: daemonVersion,
+            copyable: true,
+          ),
         const SizedBox(height: 20),
         DisplayField(
-          label: 'multipassd version:',
-          labelStyle: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 16,
-            color: Colors.black87,
-          ),
-          width: 260,
-          text: daemonVersion,
-          copyable: true,
-        ),
-        const SizedBox(height: 20),
-        DisplayField(
-          label: 'Copyright (C) Canonical, Ltd.',
-          labelStyle: TextStyle(
-            fontSize: 16,
-            color: Colors.grey,
-          ),
+          label: 'Copyright © Canonical, Ltd.',
           width: 260,
           copyable: false,
         ),
