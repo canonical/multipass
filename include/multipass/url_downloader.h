@@ -58,7 +58,7 @@ public:
                              const int download_type,
                              const ProgressMonitor& monitor);
     virtual QByteArray download(const QUrl& url);
-    virtual QByteArray download(const QUrl& url, const bool is_force_update_from_network);
+    virtual QByteArray download(const QUrl& url, const bool force_update);
     virtual QDateTime last_modified(const QUrl& url);
     virtual void abort_all_downloads();
 
