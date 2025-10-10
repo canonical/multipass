@@ -535,6 +535,7 @@ mp::platform::wsa_init_wrapper::wsa_init_wrapper()
     {
         mpl::error(category,
                    " WSAStartup failed with `{}`: {}",
+                   wsa_init_result,
                    std::system_category().message(wsa_init_result));
     }
 }

@@ -40,10 +40,10 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
 
     constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
 
-    return format_to(ctx.out(),
-                     subnet_template.as<Char>(),
-                     fmt::join(subnet.routes, comma.as<Char>()),
-                     maybe_widen{subnet.ip_address_prefix});
+    return fmt::format_to(ctx.out(),
+                          subnet_template.as<Char>(),
+                          fmt::join(subnet.routes, comma.as<Char>()),
+                          maybe_widen{subnet.ip_address_prefix});
 }
 
 template auto fmt::formatter<HcnSubnet, char>::format<fmt::format_context>(

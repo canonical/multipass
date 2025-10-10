@@ -38,10 +38,10 @@ auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& c
 
     constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
 
-    return format_to(ctx.out(),
-                     subnet_template.as<Char>(),
-                     maybe_widen{ipam.type},
-                     fmt::join(ipam.subnets, comma.as<Char>()));
+    return fmt::format_to(ctx.out(),
+                          subnet_template.as<Char>(),
+                          maybe_widen{ipam.type},
+                          fmt::join(ipam.subnets, comma.as<Char>()));
 }
 
 template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&,
