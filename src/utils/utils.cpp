@@ -41,6 +41,7 @@
 #include <array>
 #include <cassert>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <random>
@@ -611,10 +612,16 @@ mp::Path mp::Utils::default_mount_target(const Path& source) const
 
 QString mp::Utils::normalize_mount_target(QString target_mount_path) const
 {
-    if (QDir::isRelativePath(target_mount_path)) // rely on Qt to understand Linux paths on Windows
-        target_mount_path.prepend('/').prepend(home_in_instance); // QString::prepend is fast
+    std::filesystem::path target_mount = target_mount_path.toStdString();
+    if (target_mount.is_relative())
+        target_mount = home_in_instance / target_mount;
 
-    return QDir::cleanPath(target_mount_path);
+    // Normalize the path and remove trailing slash.
+    target_mount = target_mount.lexically_normal();
+    if (!target_mount.has_filename())
+        target_mount = target_mount.parent_path();
+
+    return QString::fromStdString(target_mount.generic_string());
 }
 
 bool mp::Utils::invalid_target_path(const QString& target_path) const
