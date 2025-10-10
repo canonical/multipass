@@ -26,11 +26,11 @@ auto fmt::formatter<HcsPath, Char>::format(const HcsPath& path, FormatContext& c
 {
     if constexpr (std::is_same_v<char, Char>)
     {
-        return format_to(ctx.out(), "{}", path.get().generic_string());
+        return fmt::format_to(ctx.out(), "{}", path.get().generic_string());
     }
     else if constexpr (std::is_same_v<wchar_t, Char>)
     {
-        return format_to(ctx.out(), L"{}", path.get().generic_wstring());
+        return fmt::format_to(ctx.out(), L"{}", path.get().generic_wstring());
     }
 }
 

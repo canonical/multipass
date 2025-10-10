@@ -110,6 +110,6 @@ struct fmt::formatter<multipass::hyperv::hcs::ComputeSystemState, Char>
             break;
         }
 
-        return format_to(ctx.out(), "{}", v);
+        return fmt::format_to(ctx.out(), "{}", v);
     }
 };
