@@ -70,8 +70,10 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir,
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
-    constexpr static auto terminate_timeout = std::chrono::milliseconds(10000).count();
-    constexpr static auto kill_timeout = std::chrono::milliseconds(5000).count();
+    using namespace std::chrono_literals;
+
+    constexpr static auto terminate_timeout = 10000ms;
+    constexpr static auto kill_timeout = 5000ms;
 
     if (dnsmasq_cmd && dnsmasq_cmd->running())
     {
