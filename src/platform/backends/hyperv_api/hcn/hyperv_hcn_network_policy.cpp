@@ -28,8 +28,7 @@ struct NetworkPolicySettingsFormatters
 {
     auto operator()(const HcnNetworkPolicyNetAdapterName& policy)
     {
-        constexpr static auto netadaptername_settings_template =
-            MULTIPASS_UNIVERSAL_LITERAL(R"json(
+        constexpr static auto netadaptername_settings_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
             "NetworkAdapterName": "{}"
         )json");
 
