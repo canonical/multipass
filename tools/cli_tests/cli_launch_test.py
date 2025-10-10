@@ -30,6 +30,7 @@ from cli_tests.multipass import (
     snapshot_count,
     info,
     state,
+    vm_exists
 )
 
 
@@ -89,7 +90,8 @@ class TestLaunch:
         assert state(instance) == "Deleted"
 
         assert multipass("purge")
-        assert multipass("list", "--format=json") == {"list": []}
+
+        assert not vm_exists(instance)
 
     def test_launch_invalid_name(self):
         invalid_names = [
@@ -114,6 +116,8 @@ class TestLaunch:
             ) as output:
                 assert not output
                 assert "Invalid instance name supplied" in output
+                assert not vm_exists(invalid_names)
+
 
     def test_launch_invalid_ram(self):
         name = random_vm_name()
@@ -130,6 +134,7 @@ class TestLaunch:
         ) as output:
             assert not output
             assert "1CiG is not a valid memory size" in output
+            assert not vm_exists(name)
 
     def test_launch_invalid_disk(self):
         name = random_vm_name()
@@ -146,3 +151,4 @@ class TestLaunch:
         ) as output:
             assert not output
             assert "6CiG is not a valid memory size" in output
+            assert not vm_exists(name)
