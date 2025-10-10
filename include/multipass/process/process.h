@@ -17,9 +17,12 @@
 
 #pragma once
 
+#include <multipass/utils/saturate_cast.h>
+
 #include <QProcessEnvironment>
 #include <QStringList>
 
+#include <chrono>
 #include <memory>
 #include <optional>
 
@@ -93,6 +96,21 @@ public:
     virtual bool wait_for_started(int msecs = 30000) = 0;
     virtual bool wait_for_finished(int msecs = 30000) = 0;
     virtual bool wait_for_ready_read(int msecs = 30000) = 0;
+
+    bool wait_for_started(std::chrono::milliseconds ms)
+    {
+        return wait_for_started(saturate_cast<int>(ms.count()));
+    }
+
+    bool wait_for_finished(std::chrono::milliseconds ms)
+    {
+        return wait_for_finished(saturate_cast<int>(ms.count()));
+    }
+
+    bool wait_for_ready_read(std::chrono::milliseconds ms)
+    {
+        return wait_for_ready_read(saturate_cast<int>(ms.count()));
+    }
 
     virtual bool running() const = 0;
     virtual ProcessState process_state() const = 0;
