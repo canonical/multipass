@@ -53,7 +53,7 @@ public:
     void stop();
 
     using SSHSessionUptr = std::unique_ptr<ssh_session_struct, decltype(ssh_free)*>;
-    using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_free)*>;
+    using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
     using SSHFSProcUptr = std::unique_ptr<SSHProcess>;
 
 private:

@@ -20,9 +20,10 @@
 #include <premock.hpp>
 
 #include <libssh/sftp.h>
+#include <libssh/sftp_priv.h>
 
 DECL_MOCK(sftp_server_new);
-DECL_MOCK(sftp_server_init);
+DECL_MOCK(sftp_server_free);
 DECL_MOCK(sftp_reply_status);
 DECL_MOCK(sftp_reply_attr);
 DECL_MOCK(sftp_reply_data);
@@ -34,6 +35,7 @@ DECL_MOCK(sftp_get_client_message);
 DECL_MOCK(sftp_client_message_free);
 DECL_MOCK(sftp_client_message_get_data);
 DECL_MOCK(sftp_client_message_get_filename);
+DECL_MOCK(sftp_reply_version);
 DECL_MOCK(sftp_handle);
 DECL_MOCK(sftp_handle_alloc);
 DECL_MOCK(sftp_handle_remove);
