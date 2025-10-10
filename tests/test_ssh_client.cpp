@@ -77,13 +77,13 @@ TEST_F(SSHClient, execMultipleCommandsReturnsOKNoFailure)
 TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
 {
     auto client = make_ssh_client();
-
+    constexpr int failure_code{127};
     REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 127;
+        *val = failure_code;
         return SSH_OK;
     });
 
-    EXPECT_EQ(client.exec({"foo"}), 127);
+    EXPECT_EQ(client.exec({"foo"}), failure_code);
 }
 
 TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))

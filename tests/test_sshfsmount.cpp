@@ -212,14 +212,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 
     auto mock_sftp_get_cli_msg(sftp_client_message message)
     {
-        return [message, calls = 0](sftp_session) mutable {
-            if (calls <= 0)
-            {
-                calls++;
-                return message;
-            }
-            return static_cast<sftp_client_message>(nullptr);
-        };
+        return [message](sftp_session) mutable { return std::exchange(message, nullptr); };
     }
 
     mpt::ExitStatusMock exit_status_mock;
