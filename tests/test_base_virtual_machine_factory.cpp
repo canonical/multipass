@@ -326,6 +326,8 @@ TEST_F(BaseFactory, prepareNetworkingPreparesEachRequestedNetwork)
 TEST_F(BaseFactory, factoryHasDefaultSuspendSupport)
 {
     MockBaseFactory factory;
-    EXPECT_NO_THROW(factory.mp::BaseVirtualMachineFactory::require_suspend_support());
+    EXPECT_NO_THROW(
+        factory.mp::BaseVirtualMachineFactory::require_suspend_support()); // TODO: remove after LXD
+                                                                           // migration
 }
 } // namespace
