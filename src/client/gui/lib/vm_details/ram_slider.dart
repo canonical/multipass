@@ -18,7 +18,11 @@ class RamSlider extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final daemonInfo = ref.watch(daemonInfoProvider);
-    final ram = daemonInfo.valueOrNull?.memory.toInt() ?? min;
+    final ram = daemonInfo.when(
+      data: (data) => data.memory.toInt(),
+      loading: () => min,
+      error: (_, __) => min,
+    );
     final max = math.max(initialValue ?? min, ram);
 
     return MemorySlider(

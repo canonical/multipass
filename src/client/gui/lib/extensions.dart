@@ -4,10 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'sidebar.dart';
 
-final _hoveredLinkProvider = StateProvider.autoDispose<TextSpan?>((ref) {
-  ref.watch(sidebarKeyProvider);
-  return null;
-});
+class HoveredLinkNotifier extends Notifier<TextSpan?> {
+  @override
+  TextSpan? build() {
+    ref.watch(sidebarKeyProvider);
+    return null;
+  }
+
+  void set(TextSpan? value) {
+    state = value;
+  }
+
+  void clear() {
+    state = null;
+  }
+}
+
+final _hoveredLinkProvider =
+    NotifierProvider.autoDispose<HoveredLinkNotifier, TextSpan?>(
+  HoveredLinkNotifier.new,
+);
 
 extension TextSpanFromStringExt on String {
   TextSpan get span => TextSpan(
@@ -71,7 +87,7 @@ extension TextSpanExt on TextSpan {
         decorationColor: Colors.blue,
       ),
       recognizer: TapGestureRecognizer()..onTap = callback,
-      onEnter: (_) => ref.read(_hoveredLinkProvider.notifier).state = this,
+      onEnter: (_) => ref.read(_hoveredLinkProvider.notifier).set(this),
       onExit: (_) {
         if (ref.context.mounted) ref.invalidate(_hoveredLinkProvider);
       },

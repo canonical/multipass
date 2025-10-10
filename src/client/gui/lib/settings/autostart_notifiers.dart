@@ -9,7 +9,7 @@ final autostartProvider =
   mpPlatform.autostartNotifier,
 );
 
-abstract class AutostartNotifier extends AutoDisposeAsyncNotifier<bool> {
+abstract class AutostartNotifier extends AsyncNotifier<bool> {
   Future<void> set(bool value) async {
     try {
       await doSet(value);

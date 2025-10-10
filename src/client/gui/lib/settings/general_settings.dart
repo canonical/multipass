@@ -17,7 +17,11 @@ class GeneralSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final update = ref.watch(updateProvider);
-    final autostart = ref.watch(autostartProvider).valueOrNull ?? false;
+    final autostart = ref.watch(autostartProvider).when(
+          data: (data) => data,
+          loading: () => false,
+          error: (_, __) => false,
+        );
     final onAppClose = ref.watch(onAppCloseProvider);
 
     return Column(

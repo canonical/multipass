@@ -104,15 +104,16 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
         if (!formKey.currentState!.validate()) return;
         formKey.currentState!.save();
         setState(() => editing = false);
-        ref.read(activeEditPageProvider(widget.name).notifier).state = null;
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
       child: const Text('Save changes'),
     );
 
     void configure() {
       setState(() => editing = true);
-      ref.read(activeEditPageProvider(widget.name).notifier).state =
-          ActiveEditPage.resources;
+      ref
+          .read(activeEditPageProvider(widget.name).notifier)
+          .set(ActiveEditPage.resources);
     }
 
     final configureButton = Tooltip(
@@ -128,7 +129,7 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
       onPressed: () {
         formKey.currentState?.reset();
         setState(() => editing = false);
-        ref.read(activeEditPageProvider(widget.name).notifier).state = null;
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
       child: const Text('Cancel'),
     );
