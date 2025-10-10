@@ -39,7 +39,7 @@ if(LINUX)
 elseif(MSVC)
     set(BUILD_SHARED_LIBS OFF)
 else()
-    # This applies to other platforms (e.g., Windows, macOS)
+    # This applies to macOS and other platforms
     set(BUILD_SHARED_LIBS ON)
 endif()
 
