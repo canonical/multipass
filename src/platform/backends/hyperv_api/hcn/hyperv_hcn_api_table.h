@@ -72,7 +72,7 @@ struct fmt::formatter<multipass::hyperv::hcn::HCNAPITable, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcn::HCNAPITable& api, FormatContext& ctx) const
     {
-        return format_to(
+        return fmt::format_to(
             ctx.out(),
             "CreateNetwork: ({}) | OpenNetwork: ({}) | DeleteNetwork: ({}) | CloseNetwork: ({}) | "
             "CreateEndpoint: ({}) | OpenEndpoint: ({}) | DeleteEndpoint: ({}) | CloseEndpoint: "
