@@ -23,6 +23,9 @@
 #include <multipass/virtual_machine.h>
 
 #include <fmt/format.h>
+#include <fmt/std.h>
+
+#include <source_location>
 
 namespace multipass::hyperv::hcs
 {
@@ -94,21 +97,15 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
         if (const auto& [leading, missing] = mpu::get_path_split(session, target); missing != ".")
         {
             const auto default_uid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -u"));
-            mpl::log(mpl::Level::debug,
-                     kLogCategory,
-                     fmt::format("{}:{} {}(): `id -u` = {}",
-                                 __FILE__,
-                                 __LINE__,
-                                 __FUNCTION__,
-                                 default_uid));
+            mpl::debug(kLogCategory,
+                       "{}(): `id -u` = {}",
+                       std::source_location::current(),
+                       default_uid);
             const auto default_gid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -g"));
-            mpl::log(mpl::Level::debug,
-                     kLogCategory,
-                     fmt::format("{}:{} {}(): `id -g` = {}",
-                                 __FILE__,
-                                 __LINE__,
-                                 __FUNCTION__,
-                                 default_gid));
+            mpl::debug(kLogCategory,
+                       "{}(): `id -g` = {}",
+                       std::source_location::current(),
+                       default_gid);
 
             mpu::make_target_dir(session, leading, missing);
             mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
