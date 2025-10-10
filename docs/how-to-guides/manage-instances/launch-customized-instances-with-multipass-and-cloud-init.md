@@ -6,6 +6,7 @@ You can set up instances with a customized environment or configuration using th
 Below are some common examples of using `cloud-init` with Multipass to create customized instances. The `cloud-init` file is provided by the Multipass team, but users are free to create and use their own personal `cloud-init` configurations.
 
 ## 📦 anbox-cloud-appliance
+
 Launch with:
 ```{code-block} text
 multipass launch \
@@ -16,8 +17,11 @@ multipass launch \
   --timeout 900 \
   --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-anbox.yaml
 ```
+
 ## ⚙️ charm-dev
+
 Launch with:
+
 ```{code-block} text
 multipass launch 24.04 \
   --name charm-dev \
@@ -27,7 +31,9 @@ multipass launch 24.04 \
   --timeout 1800 \
   --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-charm-dev.yaml
 ```
+
 Health check:
+
 ```{code-block} text
 multipass exec charm-dev -- bash -c "
  set -e
@@ -38,8 +44,11 @@ multipass exec charm-dev -- bash -c "
  charmcraft pack
 "
 ```
+
 ## 🐳 docker
+
 Launch with:
+
 ```{code-block} text
 multipass launch 24.04 \
   --name docker \
@@ -48,10 +57,13 @@ multipass launch 24.04 \
   --disk 40G \
   --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-docker.yaml
 ```
+
 Health check:
+
 ```{code-block} text
 multipass exec docker -- bash -c "docker run hello-world"
 ```
+
 You can also optionally add aliases:
 
 ```{code-block} text
@@ -61,10 +73,13 @@ multipass alias docker:docker-compose docker-compose
 multipass prefer default
 multipass aliases
 ```
-> See also: [`How to use command aliases`](/how-to-guides/manage-instances/use-instance-command-aliases)
+
+> See also: [`How to use command aliases`](how-to-guides-manage-instances-use-instance-command-aliases)
 
 ## 🎞️ jellyfin
+
 Launch with:
+
 ```{code-block} text
 multipass launch 22.04 \
   --name jellyfin \
@@ -75,7 +90,9 @@ multipass launch 22.04 \
 ```
 
 ## ☸️ minikube
+
 Launch with:
+
 ```{code-block} text
 multipass launch \
   --name minikube \
@@ -85,7 +102,9 @@ multipass launch \
   --timeout 1800 \
   --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-minikube.yaml
 ```
+
 Health check:
+
 ```{code-block} text
 multipass exec minikube -- bash -c "set -e
   minikube status
@@ -93,7 +112,9 @@ multipass exec minikube -- bash -c "set -e
 ```
 
 ## 🤖 ros2-humble
+
 Launch with:
+
 ```{code-block} text
 multipass launch 22.04 \
   --name ros2-humble \
@@ -103,7 +124,9 @@ multipass launch 22.04 \
   --timeout 1800 \
   --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-ros2-humble.yaml
 ```
+
 Heath check:
+
 ```{code-block} text
 multipass exec ros2-humble -- bash -c "
   set -e
@@ -116,8 +139,11 @@ multipass exec ros2-humble -- bash -c "
   ls /opt/ros/humble
 "
 ```
+
 ## 🤖 ros2-jazzy
+
 Launch with:
+
 ```{code-block} text
 multipass launch 24.04 \
   --name ros2-jazzy \
@@ -127,7 +153,9 @@ multipass launch 24.04 \
   --timeout 1800 \
   --cloud-init https://raw.githubusercontent.com/canonical/multipass/refs/heads/main/data/cloud-init-yaml/cloud-init-ros2-jazzy.yaml
 ```
+
 Health check:
+
 ```{code-block} text
 multipass exec ros2-jazzy -- bash -c "
   set -e

@@ -1,15 +1,15 @@
 (how-to-guides-manage-instances-use-instance-command-aliases)=
 # Use instance command aliases
 
-> See also: [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases), [Instance](/explanation/instance).
+> See also: [Alias](explanation-alias), [Instance](explanation-instance).
 
 This guide demonstrates how to create, list, run and remove aliases for commands running inside an instance.
 
 ## Create an alias
 
-> See also: [`alias`](/reference/command-line-interface/alias)
+> See also: [`alias`](reference-command-line-interface-alias)
 
-To create an alias that runs a command on a given instance, use the [`alias`](/reference/command-line-interface/alias) command. The code below uses this command to create an alias `lscc` that will run the command `ls` inside an instance `crazy-cat`:
+To create an alias that runs a command on a given instance, use the [`alias`](reference-command-line-interface-alias) command. The code below uses this command to create an alias `lscc` that will run the command `ls` inside an instance `crazy-cat`:
 
 ```{code-block} text
 multipass alias crazy-cat:ls lscc
@@ -27,7 +27,7 @@ multipass alias crazy-cat:pwd pwdcc --no-map-working-directory
 
 ### Alias contexts
 
-> See also: [`prefer`](/reference/command-line-interface/prefer)
+> See also: [`prefer`](reference-command-line-interface-prefer)
 
 Contexts are sets of aliases. While one can safely work with one context, named `default`, contexts can be useful in some scenarios; for example, to define aliases with the same name in different instances.
 
@@ -35,7 +35,7 @@ You can switch to using another context with `multipass prefer secondary`. Then,
 
 ## List the existing aliases
 
-> See also:  [`aliases`](/reference/command-line-interface/aliases)
+> See also:  [`aliases`](reference-command-line-interface-aliases)
 
 To see the list of aliases defined so far, use the `multipass aliases` command.
 
@@ -189,7 +189,7 @@ lscc -l
 
 ## Remove an alias
 
-> See also: [`unalias`](/reference/command-line-interface/unalias)
+> See also: [`unalias`](reference-command-line-interface-unalias)
 
 Finally, to remove the alias `lscc`, run the following command:
 
