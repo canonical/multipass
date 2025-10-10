@@ -21,8 +21,8 @@ import sys
 import re
 import os
 from pathlib import Path
-from packaging import version
 from functools import lru_cache
+from packaging import version
 
 from .multipass_cmd import multipass
 
@@ -34,9 +34,9 @@ def _retrieve_info_field(name, key):
     info_r = info(name)
 
     assert name in info_r, f"`info` output does not contain `{name}` key: {str(info_r)}"
-    assert key in info_r[name], (
-        f"`info[{name}]` output does not contain `{key}` key: {str(info_r)}"
-    )
+    assert (
+        key in info_r[name]
+    ), f"`info[{name}]` output does not contain `{key}` key: {str(info_r)}"
     return info_r[name][key]
 
 
@@ -52,9 +52,9 @@ def info(name):
     """
     with multipass("info", "--format=json", f"{name}").json() as output:
         assert output, f"info({name}) failed ({output.exitstatus}): {str(output)}"
-        assert "info" in output, (
-            f"`info` output does not contain `info` key!: {str(output)}"
-        )
+        assert (
+            "info" in output
+        ), f"`info` output does not contain `info` key!: {str(output)}"
         return output["info"]
 
 
@@ -135,7 +135,8 @@ def move_path(vm_name, src, dst):
 
     return bool(
         multipass(
-            "exec", vm_name, "--", "mv", Path(src).as_posix(), Path(dst).as_posix()
+            "exec", vm_name, "--", "mv", Path(
+                src).as_posix(), Path(dst).as_posix()
         )
     )
 
@@ -163,11 +164,18 @@ def shell(name):
         return multipass("shell", name, interactive=True)
 
 
+def vm_exists(name):
+    with multipass("list", "--format=json").json() as list_json:
+        assert "list" in list_json, "`list` key not found in list json output!"
+        return list_json.jq(f'[.list[] | select(.name == "{name}")] | any').first()
+
+
 def get_ram_size(name):
     """Return total RAM (in MiB) reported by /proc/meminfo inside the instance."""
     with multipass("exec", name, "--", "cat", "/proc/meminfo") as result:
         assert result, f"Failed: {result.content} ({result.exitstatus})"
-        match = re.search(r"^MemTotal:\s+(\d+)\s+kB", str(result), re.MULTILINE)
+        match = re.search(r"^MemTotal:\s+(\d+)\s+kB",
+                          str(result), re.MULTILINE)
         assert match, f"No MemTotal in: {result.content}!"
         mem_kb = int(match.group(1))
         return mem_kb // 1024
@@ -223,7 +231,9 @@ def get_multipass_version():
         version_lines = version_output.content.splitlines()
         assert len(version_lines) == 2
         version_lines = [v.split()[1] for v in version_lines]
-        assert version_lines[0] == version_lines[1], f"{version_lines[0]} != {version_lines[1]}"
+        assert (
+            version_lines[0] == version_lines[1]
+        ), f"{version_lines[0]} != {version_lines[1]}"
         return version.parse(version_lines[0].strip())
 
 
@@ -247,7 +257,8 @@ def default_driver_name():
     # | WASI              | 'wasi'         |
     # +-------------------+----------------+
 
-    platform_driver_mappings = {"win32": "hyperv", "linux": "qemu", "darwin": "qemu"}
+    platform_driver_mappings = {"win32": "hyperv",
+                                "linux": "qemu", "darwin": "qemu"}
 
     if sys.platform in platform_driver_mappings:
         return platform_driver_mappings[sys.platform]

@@ -50,6 +50,7 @@ from .helpers import (
     get_mac_addr_of,
     get_cloudinit_instance_id,
     get_multipass_version,
+    vm_exists,
 )
 from .multipass_cmd import multipass
 from .snapshot import build_snapshot_tree, collapse_to_snapshot_tree, take_snapshot
