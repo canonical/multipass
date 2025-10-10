@@ -140,9 +140,7 @@ message FindRequest {
     string remote_name = 2;
     int32 verbosity_level = 3;
     bool allow_unsupported = 4;
-    bool show_images = 5;
-    bool show_blueprints = 6;
-    bool force_manifest_network_download = 7;
+    bool force_manifest_network_download = 5;
 }
 
 message FindReply {
@@ -157,11 +155,8 @@ message FindReply {
         repeated AliasInfo aliases_info = 4;
         string codename = 5;
     }
-    bool show_images = 1;
-    bool show_blueprints = 2;
-    repeated ImageInfo images_info = 3;
-    repeated ImageInfo blueprints_info = 4;
-    string log_line = 5;
+    repeated ImageInfo images_info = 1;
+    string log_line = 2;
 }
 
 message InstanceSnapshotPair {

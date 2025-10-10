@@ -29,7 +29,6 @@
 #include "stub_ssh_key_provider.h"
 #include "stub_terminal.h"
 #include "stub_virtual_machine_factory.h"
-#include "stub_vm_blueprint_provider.h"
 #include "stub_vm_image_vault.h"
 
 #include <src/client/cli/client.h>
@@ -326,7 +325,6 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.client_cert_store = std::make_unique<StubCertStore>();
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
-    config_builder.blueprint_provider = std::make_unique<StubVMBlueprintProvider>();
 }
 
 void mpt::DaemonTestFixture::SetUp()

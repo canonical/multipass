@@ -22,7 +22,6 @@
 
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
-#include <multipass/default_vm_blueprint_provider.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
@@ -46,8 +45,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto manifest_ttl = std::chrono::minutes{5};
-
 std::string server_name_from(const std::string& server_address)
 {
     auto tokens = mp::utils::split(server_address, ":");
@@ -215,21 +212,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (network_proxy == nullptr)
         network_proxy = discover_http_proxy();
 
-    if (blueprint_provider == nullptr)
-    {
-        auto blueprint_provider_url = qEnvironmentVariable(blueprints_url_env_var);
-        if (!blueprint_provider_url.isEmpty())
-            blueprint_provider =
-                std::make_unique<DefaultVMBlueprintProvider>(QUrl(blueprint_provider_url),
-                                                             url_downloader.get(),
-                                                             cache_directory,
-                                                             manifest_ttl);
-        else
-            blueprint_provider = std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(),
-                                                                              cache_directory,
-                                                                              manifest_ttl);
-    }
-
     // tighten permissions for cache and data
     if (!storage_path.isEmpty())
     {
@@ -266,7 +248,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                                                 std::move(update_prompt),
                                                                 multiplexing_logger,
                                                                 std::move(network_proxy),
-                                                                std::move(blueprint_provider),
                                                                 cache_directory,
                                                                 data_directory,
                                                                 server_address,
