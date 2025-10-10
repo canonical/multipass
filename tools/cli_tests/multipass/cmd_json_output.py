@@ -42,5 +42,6 @@ class JsonOutput(dict):
         return self.exitstatus == 0
 
     def jq(self, query):
-        """Real jq queries using the jq library"""
+        """Real jq queries using the jq library.
+        https://play.jqlang.org/ to experiment."""
         return jq.compile(query).input(dict(self))
