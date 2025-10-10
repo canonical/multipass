@@ -110,6 +110,6 @@ struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkFlags, Char>
                 parts.emplace_back("enable_iov");
         }
 
-        return format_to(ctx.out(), "{}", fmt::join(parts, " | "));
+        return fmt::format_to(ctx.out(), "{}", fmt::join(parts, " | "));
     }
 };

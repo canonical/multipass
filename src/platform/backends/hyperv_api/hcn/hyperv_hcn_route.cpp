@@ -34,11 +34,11 @@ auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext
             "Metric": {}
         }})json");
 
-    return format_to(ctx.out(),
-                     route_template.as<Char>(),
-                     maybe_widen{route.next_hop},
-                     maybe_widen(route.destination_prefix),
-                     route.metric);
+    return fmt::format_to(ctx.out(),
+                          route_template.as<Char>(),
+                          maybe_widen{route.next_hop},
+                          maybe_widen(route.destination_prefix),
+                          route.metric);
 }
 
 template auto fmt::formatter<HcnRoute, char>::format<fmt::format_context>(

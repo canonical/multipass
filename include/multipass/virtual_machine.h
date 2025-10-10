@@ -181,6 +181,6 @@ struct fmt::formatter<multipass::VirtualMachine::State, Char>
             break;
         }
 
-        return format_to(ctx.out(), "{}", v);
+        return fmt::format_to(ctx.out(), "{}", v);
     }
 };

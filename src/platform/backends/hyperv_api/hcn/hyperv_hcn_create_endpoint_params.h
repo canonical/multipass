@@ -70,10 +70,10 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
     auto format(const multipass::hyperv::hcn::CreateEndpointParameters& params,
                 FormatContext& ctx) const
     {
-        return format_to(ctx.out(),
-                         "Endpoint GUID: ({}) | Network GUID: ({}) | MAC address: ({})",
-                         params.endpoint_guid,
-                         params.network_guid,
-                         params.mac_address);
+        return fmt::format_to(ctx.out(),
+                              "Endpoint GUID: ({}) | Network GUID: ({}) | MAC address: ({})",
+                              params.endpoint_guid,
+                              params.network_guid,
+                              params.mac_address);
     }
 };

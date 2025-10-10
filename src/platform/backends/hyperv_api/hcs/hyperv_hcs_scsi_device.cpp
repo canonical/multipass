@@ -42,12 +42,12 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
         }}
     )json");
 
-    return format_to(ctx.out(),
-                     scsi_device_template.as<Char>(),
-                     maybe_widen{scsi_device.name},
-                     maybe_widen{scsi_device.type},
-                     scsi_device.path,
-                     scsi_device.read_only);
+    return fmt::format_to(ctx.out(),
+                          scsi_device_template.as<Char>(),
+                          maybe_widen{scsi_device.name},
+                          maybe_widen{scsi_device.type},
+                          scsi_device.path,
+                          scsi_device.read_only);
 }
 
 template auto fmt::formatter<HcsScsiDevice, char>::format<fmt::format_context>(

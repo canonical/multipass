@@ -107,15 +107,15 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
 
     append_version_dependent_section(requested_services.as<Char>(), HcsSchemaVersion::v25);
 
-    return format_to(ctx.out(),
-                     json_template.as<Char>(),
-                     params.processor_count,
-                     params.memory_size_mb,
-                     maybe_widen{params.name},
-                     fmt::join(params.scsi_devices, comma.as<Char>()),
-                     fmt::join(params.network_adapters, comma.as<Char>()),
-                     fmt::join(params.shares, comma.as<Char>()),
-                     fmt::join(schema_version_dependent_vm_sections, comma.as<Char>()));
+    return fmt::format_to(ctx.out(),
+                          json_template.as<Char>(),
+                          params.processor_count,
+                          params.memory_size_mb,
+                          maybe_widen{params.name},
+                          fmt::join(params.scsi_devices, comma.as<Char>()),
+                          fmt::join(params.network_adapters, comma.as<Char>()),
+                          fmt::join(params.shares, comma.as<Char>()),
+                          fmt::join(schema_version_dependent_vm_sections, comma.as<Char>()));
 }
 
 template auto fmt::formatter<CreateComputeSystemParameters, char>::format<fmt::format_context>(

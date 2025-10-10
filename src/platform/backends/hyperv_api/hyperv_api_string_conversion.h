@@ -36,13 +36,13 @@ struct universal_string_literal_helper
     [[nodiscard]] auto as() const;
 
     template <>
-    [[nodiscard]] auto as<std::string_view::value_type>() const
+    [[nodiscard]] constexpr auto as<std::string_view::value_type>() const
     {
         return narrow;
     }
 
     template <>
-    [[nodiscard]] auto as<std::wstring_view::value_type>() const
+    [[nodiscard]] constexpr auto as<std::wstring_view::value_type>() const
     {
         return wide;
     }
@@ -86,7 +86,7 @@ struct fmt::formatter<multipass::hyperv::maybe_widen, Char>
     {
         constexpr static Char fmt_str[] = {'{', '}', '\0'};
         using const_sref_type = const std::basic_string<typename FormatContext::char_type>&;
-        return format_to(ctx.out(), fmt_str, static_cast<const_sref_type>(params));
+        return fmt::format_to(ctx.out(), fmt_str, static_cast<const_sref_type>(params));
     }
 };
 

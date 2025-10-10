@@ -28,7 +28,8 @@ struct NetworkPolicySettingsFormatters
 {
     auto operator()(const HcnNetworkPolicyNetAdapterName& policy)
     {
-        constexpr static auto netadaptername_settings_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+        constexpr static auto netadaptername_settings_template =
+            MULTIPASS_UNIVERSAL_LITERAL(R"json(
             "NetworkAdapterName": "{}"
         )json");
 
@@ -52,10 +53,10 @@ auto fmt::formatter<HcnNetworkPolicy, Char>::format(const HcnNetworkPolicy& poli
         }}
     )json");
 
-    return format_to(ctx.out(),
-                     route_template.as<Char>(),
-                     maybe_widen{policy.type},
-                     std::visit(NetworkPolicySettingsFormatters<Char>{}, policy.settings));
+    return fmt::format_to(ctx.out(),
+                          route_template.as<Char>(),
+                          maybe_widen{policy.type},
+                          std::visit(NetworkPolicySettingsFormatters<Char>{}, policy.settings));
 }
 
 template auto fmt::formatter<HcnNetworkPolicy, char>::format<fmt::format_context>(

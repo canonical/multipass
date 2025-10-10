@@ -143,7 +143,7 @@ auto fmt::formatter<HcsSchemaVersion, Char>::format(const HcsSchemaVersion& sche
         break;
     }
 
-    return format_to(ctx.out(), fmt_str.as<Char>(), result.as<Char>());
+    return fmt::format_to(ctx.out(), fmt_str.as<Char>(), result.as<Char>());
 }
 
 template auto fmt::formatter<HcsSchemaVersion, char>::format<fmt::format_context>(

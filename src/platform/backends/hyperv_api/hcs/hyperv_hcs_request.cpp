@@ -94,11 +94,11 @@ auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatCon
         }}
     )json");
 
-    return format_to(ctx.out(),
-                     json_template.as<Char>(),
-                     maybe_widen{param.resource_path},
-                     maybe_widen{param.request_type},
-                     std::visit(HcsRequestSettingsFormatters<Char>{}, param.settings));
+    return fmt::format_to(ctx.out(),
+                          json_template.as<Char>(),
+                          maybe_widen{param.resource_path},
+                          maybe_widen{param.request_type},
+                          std::visit(HcsRequestSettingsFormatters<Char>{}, param.settings));
 }
 
 template auto fmt::formatter<HcsRequest, char>::format<fmt::format_context>(
