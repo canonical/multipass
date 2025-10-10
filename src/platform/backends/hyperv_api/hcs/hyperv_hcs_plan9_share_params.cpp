@@ -39,13 +39,13 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
             "Flags": {4}
         }}
     )json");
-    return format_to(ctx.out(),
-                     json_template.as<Char>(),
-                     maybe_widen{params.name},
-                     params.host_path,
-                     params.port,
-                     maybe_widen{params.access_name},
-                     fmt::underlying(params.flags));
+    return fmt::format_to(ctx.out(),
+                          json_template.as<Char>(),
+                          maybe_widen{params.name},
+                          params.host_path,
+                          params.port,
+                          maybe_widen{params.access_name},
+                          fmt::underlying(params.flags));
 }
 
 template <typename Char>
@@ -62,11 +62,11 @@ auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(
         }}
     )json");
 
-    return format_to(ctx.out(),
-                     json_template.as<Char>(),
-                     maybe_widen{params.name},
-                     maybe_widen{params.access_name},
-                     params.port);
+    return fmt::format_to(ctx.out(),
+                          json_template.as<Char>(),
+                          maybe_widen{params.name},
+                          maybe_widen{params.access_name},
+                          params.port);
 }
 
 template auto fmt::formatter<HcsAddPlan9ShareParameters, char>::format<fmt::format_context>(

@@ -75,7 +75,7 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::virtdisk::VirtDiskAPITable& api, FormatContext& ctx) const
     {
-        return format_to(
+        return fmt::format_to(
             ctx.out(),
             "CreateVirtualDisk: ({}) | OpenVirtualDisk ({}) | ResizeVirtualDisk: ({}) | "
             "MergeVirtualDisk: ({}) | GetVirtualDiskInformation: ({}) | SetVirtualDiskInformation: "

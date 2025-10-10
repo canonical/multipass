@@ -35,10 +35,10 @@ auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& ne
         }}
     )json");
 
-    return format_to(ctx.out(),
-                     network_adapter_template.as<Char>(),
-                     maybe_widen{network_adapter.endpoint_guid},
-                     maybe_widen{network_adapter.mac_address});
+    return fmt::format_to(ctx.out(),
+                          network_adapter_template.as<Char>(),
+                          maybe_widen{network_adapter.endpoint_guid},
+                          maybe_widen{network_adapter.mac_address});
 }
 
 template auto fmt::formatter<HcsNetworkAdapter, char>::format<fmt::format_context>(
