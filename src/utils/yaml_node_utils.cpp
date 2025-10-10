@@ -131,7 +131,7 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
                 if (value.length() >= 2 && value[0] == '0' &&
                     std::all_of(value.begin() + 1, value.end(), ::isdigit))
                 {
-                    emitter << YAML::LocalTag("str") << value;
+                    emitter << YAML::DoubleQuoted << value;
                     break;
                 }
             }
