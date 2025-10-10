@@ -19,6 +19,7 @@
 
 #include "apparmor.h"
 
+#include <fcntl.h>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -141,4 +142,47 @@ void mp::AppArmor::next_exec_under_policy(const QByteArray& aa_policy_name) cons
                                                 errno,
                                                 strerror(errno)));
     }
+}
+
+int mp::AppArmor::aa_change_onexec_forksafe(const char* exec)
+{
+    // This function only uses strlen, memcpy, open, write and close which are all
+    // async signal safe: https://man7.org/linux/man-pages/man7/signal-safety.7.html
+    // aa_change_onexec itself is not async signal safe since it allocates memory and uses *printf
+    //
+    // https://gitlab.com/apparmor/apparmor/-/blob/master/libraries/libapparmor/src/kernel.c#L715
+    //
+
+    if (nullptr == exec)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const auto len = strlen(exec);
+
+    // Prefer AppArmor-specific paths; fall back to legacy ones
+    const char* paths[4] = {"/proc/thread-self/attr/apparmor/exec",
+                            "/proc/self/attr/apparmor/exec",
+                            "/proc/thread-self/attr/exec",
+                            "/proc/self/attr/exec"};
+
+    for (size_t i = 0; i < 4; ++i)
+    {
+        int fd = ::open(paths[i], O_WRONLY | O_CLOEXEC);
+        if (fd < 0)
+        {
+            continue;
+        }
+
+        ssize_t n = ::write(fd, exec, (ssize_t)len); // must be one atomic write
+        int saved = errno;
+        ::close(fd);
+        errno = saved;
+
+        if (n == (ssize_t)len)
+            return 0; // success
+    }
+
+    return errno;
 }
