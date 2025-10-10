@@ -82,7 +82,7 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateNetworkParameters, Char>
     auto format(const multipass::hyperv::hcn::CreateNetworkParameters& params,
                 FormatContext& ctx) const
     {
-        return format_to(ctx.out(),
+        return fmt::format_to(ctx.out(),
                          "Network Name: ({}) | Network Type: ({}) | Network GUID: ({}) | Flags: "
                          "({}) | IPAMs: ({}) | "
                          "Policies: ({})",

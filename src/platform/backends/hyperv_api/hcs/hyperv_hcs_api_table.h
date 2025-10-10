@@ -113,7 +113,7 @@ struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcs::HCSAPITable& api, FormatContext& ctx) const
     {
-        return format_to(
+        return fmt::format_to(
             ctx.out(),
             "CreateOperation: ({}) | WaitForOperationResult: ({}) | CloseOperation: ({}) | "
             "CreateComputeSystem: ({}) | OpenComputeSystem: ({}) | StartComputeSystem: ({}) | "

@@ -58,12 +58,12 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo::size_info, C
     auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo::size_info& params,
                 FormatContext& ctx) const
     {
-        return format_to(ctx.out(),
-                         "Virtual: ({}) | Physical: ({}) | Block: ({}) | Sector: ({})",
-                         params.virtual_,
-                         params.physical,
-                         params.block,
-                         params.sector);
+        return fmt::format_to(ctx.out(),
+                              "Virtual: ({}) | Physical: ({}) | Block: ({}) | Sector: ({})",
+                              params.virtual_,
+                              params.physical,
+                              params.block,
+                              params.sector);
     }
 };
 
@@ -82,7 +82,7 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo, Char>
     auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo& params,
                 FormatContext& ctx) const
     {
-        return format_to(
+        return fmt::format_to(
             ctx.out(),
             "Storage type: {} | Size: {} | Smallest safe size: {} | Provider subtype: {}",
             params.virtual_storage_type,
