@@ -170,6 +170,38 @@ TEST_P(SSLCertProviderParameterTests, regeneratesCertificates)
     }
 }
 
+/*
+# Generate certificates for testing SSLCertProvider
+
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out root_key.pem
+openssl req -x509 -new -nodes -key root_key.pem -sha256 -days 3650 \
+  -subj "/C=US/O=Canonical/CN=Multipass Root CA" \
+  -out root_cert.pem
+
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out localhost_key.pem
+openssl req -new -key localhost_key.pem \
+  -subj "/C=US/O=Canonical/CN=localhost" \
+  -out localhost.csr
+
+cat > extfile.cnf <<'EOF'
+[ v3_server ]
+basicConstraints = critical,CA:FALSE
+subjectAltName = @alt_name
+extendedKeyUsage = serverAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+
+[ alt_name ]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+EOF
+
+openssl x509 -req -in localhost.csr \
+  -CA root_cert.pem -CAkey root_key.pem -CAcreateserial \
+  -out localhost_cert.pem -days 3650 -sha256 \
+  -extfile extfile.cnf -extensions v3_server
+*/
+
 INSTANTIATE_TEST_SUITE_P(
     SSLCertProviderTests,
     SSLCertProviderParameterTests,
