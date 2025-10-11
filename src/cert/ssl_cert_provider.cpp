@@ -270,9 +270,14 @@ public:
         set_random_serial_number(cert.get());
         X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Start time: now
 
-        constexpr std::chrono::seconds one_year = std::chrono::hours{24} * 365;
+        constexpr std::chrono::seconds one_day = std::chrono::hours{24};
+        constexpr std::chrono::seconds one_year = one_day * 365;
         constexpr std::chrono::seconds ten_years = one_year * 10;
-        const auto valid_duration = cert_type == CertType::Root ? ten_years : one_year;
+
+        // Apple requires TLS server certificates to have a validity period of 825 days or less
+        const auto valid_duration = cert_type == CertType::Root     ? ten_years
+                                    : cert_type == CertType::Server ? one_day * 825
+                                                                    : one_year;
         X509_gmtime_adj(X509_get_notAfter(cert.get()), valid_duration.count());
 
         constexpr int APPEND_ENTRY{-1};
