@@ -208,8 +208,9 @@ void set_random_serial_number(X509* cert)
 /**
  * Check whether this certificate is the issuer (signer) of the given certificate.
  *
+ * @param [in] issuer The issuing certificate
  * @param [in] signed_cert The certificate to check
- * @return True if this certificate signed @p signed_cert; false otherwise.
+ * @return True if @p issuer signed @p signed_cert; false otherwise.
  */
 bool is_issuer_of(X509& issuer, X509& signed_cert)
 {
