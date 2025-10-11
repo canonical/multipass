@@ -221,6 +221,30 @@ bool is_issuer_of(X509& issuer, X509& signed_cert)
     return X509_verify(&signed_cert, pubkey.get()) == 1;
 }
 
+bool cert_has_eku_nid(const X509& cert, int eku_nid)
+{
+    int crit = 0;
+    STACK_OF(ASN1_OBJECT)* eku = reinterpret_cast<STACK_OF(ASN1_OBJECT)*>(
+        X509_get_ext_d2i(&cert, NID_ext_key_usage, &crit, nullptr));
+
+    if (!eku || crit)
+        return false;
+
+    bool found = false;
+    for (int i = 0; i < sk_ASN1_OBJECT_num(eku); ++i)
+    {
+        ASN1_OBJECT* obj = sk_ASN1_OBJECT_value(eku, i);
+        if (OBJ_obj2nid(obj) == eku_nid)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    sk_ASN1_OBJECT_pop_free(eku, ASN1_OBJECT_free);
+    return found;
+}
+
 class X509Cert
 {
 public:
@@ -406,11 +430,23 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                            root_cert_path,
                            cert_path.toStdString());
 
-                // FIXME: Also check the validity period of the certificates to decide if they need
-                // to be re-generated
-
-                // Validate root cert is the issuer(signer) of the subordinate certificate
-                if (is_issuer_of(*root_cert.get(), *cert.get()))
+                // TODO: Remove in Multipass 1.18
+                if (!cert_has_eku_nid(*cert.get(), NID_server_auth))
+                {
+                    mpl::warn(kLogCategory,
+                              "Existing gRPC server certificate (`{}`) does not contain the "
+                              "correct extensions",
+                              cert_path.toStdString());
+                }
+                else if (!is_issuer_of(*root_cert.get(), *cert.get()))
+                {
+                    mpl::warn(kLogCategory,
+                              "Existing root certificate (`{}`) is not the signer of the gRPC "
+                              "server certificate (`{}`)",
+                              root_cert_path,
+                              cert_path.toStdString());
+                }
+                else
                 {
                     mpl::info(kLogCategory, "Re-using existing certificates for the gRPC server");
 
@@ -424,11 +460,8 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                             mp::utils::contents_of(priv_key_path)};
                 }
 
-                mpl::warn(kLogCategory,
-                          "Existing root certificate (`{}`) is not the signer of the gRPC "
-                          "server certificate (`{}`)",
-                          root_cert_path,
-                          cert_path.toStdString());
+                // FIXME: Also check the validity period of the certificates to decide if they need
+                // to be re-generated
             }
             else
             {
