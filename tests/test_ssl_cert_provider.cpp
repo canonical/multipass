@@ -122,37 +122,38 @@ TEST_F(SSLCertProviderFixture, reusesExistingValidServerCertificates)
 
     constexpr auto root_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
-MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
+MIIBzjCCAXWgAwIBAgIUUxRU151mY5cjo8V62XTPsSArbqowCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
-dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMzUwNzA4MDg1OTM5WjA9
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ0ODQzWhcNMzUxMDA5MDQ0ODQzWjA9
 MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
-aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABIq/jXfQ+0U3
-DYfNb54xG3EKiBC+SDluEOJyELQkg9kGXP2Yvh8d7tWN99bc63Bju1uAR4tWhGxP
-EJt8PbSL88ajUzBRMB0GA1UdDgQWBBSOKSfZjt+7cfRspiOTU2I5a6NmVjAfBgNV
-HSMEGDAWgBSOKSfZjt+7cfRspiOTU2I5a6NmVjAPBgNVHRMBAf8EBTADAQH/MAoG
-CCqGSM49BAMCA0cAMEQCIChkSDoKa5iZqptHa9Ih7267WSYxx2h0nzOZxopZWUMx
-AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
+aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGxi3pMImRW+
+PU5VmyLrxPXdzyyKYg2Rxh283M0br2LZnit0E6mBc7TTNaGmeA2UMrnWXAHQ0Al6
+80IxDo1MuJujUzBRMB0GA1UdDgQWBBTxx5ieDIt2XyjwnEplC9UmvFu5qTAfBgNV
+HSMEGDAWgBTxx5ieDIt2XyjwnEplC9UmvFu5qTAPBgNVHRMBAf8EBTADAQH/MAoG
+CCqGSM49BAMCA0cAMEQCIEFeoff2SpUQMmpknLuRdkVv2V22GeYyRuzhST8bRBm/
+AiBlHZrSslurf3k2upXxypUktY8gO9fmhFBeZHIOkVbOzA==
 -----END CERTIFICATE-----)cert";
 
     constexpr auto subordinate_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
-MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
+MIIB9TCCAZygAwIBAgIUVl/7R6Ps3Lpf5OT1bI/zBSu0ItswCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
-dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ0ODQzWhcNMjYxMDExMDQ0ODQzWjA1
 MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
-bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATlZbmi2M8q9SR+Cgd6C/pA
-AfuqGqznWizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
-o2YwZDAUBgNVHREEDTALgglsb2NhbGhvc3QwHQYDVR0OBBYEFPAgeiZPxzoczlQ5
-pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
-EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
-BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASf4wQpBqlhk+as4uXUCVVm
+2q2zlG0wb7B6QSM+V5IXPA5h2OlI3dIz7dQtiAr1CbQLTSuCN+WhPPmRDDFWWBUB
+o4GBMH8wDAYDVR0TAQH/BAIwADAaBgNVHREEEzARgglsb2NhbGhvc3SHBH8AAAEw
+EwYDVR0lBAwwCgYIKwYBBQUHAwEwHQYDVR0OBBYEFGEWVChbpWLb4bY5Vd1rM9GR
+7ebtMB8GA1UdIwQYMBaAFPHHmJ4Mi3ZfKPCcSmUL1Sa8W7mpMAoGCCqGSM49BAMC
+A0cAMEQCIFA8fMlJqtheFmdIhNUiRmlGH/Xd6WJGa+nj3vm4HtPmAiBvVlI5GaOg
+y5aCa2JgVvkIVcRPDBCQwoaFD9Y4Kxxoig==
 -----END CERTIFICATE-----)cert";
 
     constexpr auto subordinate_key_contents =
         R"cert(-----BEGIN PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
-0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
-WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgp0z/cELvz+iLPyoD
+PCfTSsi5B+QwbetVXso0IycHCK6hRANCAASf4wQpBqlhk+as4uXUCVVm2q2zlG0w
+b7B6QSM+V5IXPA5h2OlI3dIz7dQtiAr1CbQLTSuCN+WhPPmRDDFWWBUB
 -----END PRIVATE KEY-----)cert";
 
     const QDir dir{cert_dir};
@@ -412,37 +413,38 @@ TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenRootCertIsNotTheIssuer
 
     constexpr auto root_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
-MIIBzzCCAXWgAwIBAgIUAOtHJnyORHMBZb1g3Lub65TFMkgwCgYIKoZIzj0EAwIw
-PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
-dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMTAzODU2WhcNMzUwNzA4MTAzODU2WjA9
-MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
-aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABOZrJ6hk0ARU
-fYynzij63WUdFGXASPzrshLxxzum2FfADoCHfj28O6OiVFTBF5T0q39oHGaxclgV
-99fJFjgw0GCjUzBRMB0GA1UdDgQWBBSJAiHfyxwx7DC5ru7QGjFr35H0xTAfBgNV
-HSMEGDAWgBSJAiHfyxwx7DC5ru7QGjFr35H0xTAPBgNVHRMBAf8EBTADAQH/MAoG
-CCqGSM49BAMCA0gAMEUCICVVwSYOZqyPmd1aXkVCDQHMFm6hOM7hFs/6SRBQqAWZ
-AiEAmhbAFiEUSyjZj5MVOhw1TW6NxGe2+45ypLULJaOAE0g=
+MIIB0TCCAXegAwIBAgIUYJpTTkCvlm6CU8Ufy3bD01+uxnwwCgYIKoZIzj0EAwIw
+PjELMAkGA1UEBhMCVVMxEzARBgNVBAoMCnNoYXJkZXI5OTYxGjAYBgNVBAMMEU11
+bHRpcGFzcyBSb290IENBMB4XDTI1MTAxMTA0NTE1MloXDTM1MTAwOTA0NTE1Mlow
+PjELMAkGA1UEBhMCVVMxEzARBgNVBAoMCnNoYXJkZXI5OTYxGjAYBgNVBAMMEU11
+bHRpcGFzcyBSb290IENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEX5HsyHve
+0u6jWMmZAmdZ1Muh5HQibKl4xMOojk0t81EQRE2oFOxUceFF0LeRisYaV1H/n9+3
+oJNNUKNknSYCMqNTMFEwHQYDVR0OBBYEFKx9h895VsGvkmouH6o0tWDzW/RxMB8G
+A1UdIwQYMBaAFKx9h895VsGvkmouH6o0tWDzW/RxMA8GA1UdEwEB/wQFMAMBAf8w
+CgYIKoZIzj0EAwIDSAAwRQIgCTY7PXLmD0zwV3IBOexi71gf6ZGSlItjXks1bRG8
+YiACIQDDe4jtIZTP7Kw06nr61PejvfWDnQhDskfqOkHpKpTvPA==
 -----END CERTIFICATE-----)cert";
 
     constexpr auto subordinate_cert_contents =
         R"cert(-----BEGIN CERTIFICATE-----
-MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
+MIIB9jCCAZygAwIBAgIUVl/7R6Ps3Lpf5OT1bI/zBSu0ItwwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
-dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ1MTUyWhcNMjYxMDExMDQ1MTUyWjA1
 MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
-bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATlZbmi2M8q9SR+Cgd6C/pA
-AfuqGqznWizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
-o2YwZDAUBgNVHREEDTALgglsb2NhbGhvc3QwHQYDVR0OBBYEFPAgeiZPxzoczlQ5
-pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
-EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
-BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASm04ivEWfHpm28SJ2aVfac
+tw+0p35vItYs3p91rRPh5Etm4n/NTQbRBYTPXm08XwI+bmtVetrTCW5TfZ/USAhy
+o4GBMH8wDAYDVR0TAQH/BAIwADAaBgNVHREEEzARgglsb2NhbGhvc3SHBH8AAAEw
+EwYDVR0lBAwwCgYIKwYBBQUHAwEwHQYDVR0OBBYEFG4V9sM3BfD6VDz8LpCqkgC9
+ZMX8MB8GA1UdIwQYMBaAFMCy5nYv8B0fquwB2yhc0+tC0xOqMAoGCCqGSM49BAMC
+A0gAMEUCICJuye/aUH56WDt9f2iuFMyz7SdKLHFyYWUf81NPv7k5AiEA3MECztyW
+REjMJHprgc63THRbmW8S4ksD6q0x3pa4iGo=
 -----END CERTIFICATE-----)cert";
 
     constexpr auto subordinate_key_contents =
         R"cert(-----BEGIN PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
-0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
-WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgoAanPdCFx78AskWe
+eUL60fl0qAuzjd1vrAR1Z2yEEA+hRANCAASm04ivEWfHpm28SJ2aVfactw+0p35v
+ItYs3p91rRPh5Etm4n/NTQbRBYTPXm08XwI+bmtVetrTCW5TfZ/USAhy
 -----END PRIVATE KEY-----)cert";
 
     const QDir dir{cert_dir};
@@ -458,6 +460,144 @@ WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "are valid X.509 files");
     logger_scope.mock_logger->expect_log(mpl::Level::warning,
                                          "is not the signer of the gRPC server certificate");
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Regenerating certificates for the gRPC server");
+
+    mp::SSLCertProvider cert_provider{cert_dir, "localhost"};
+
+    const auto actual_cert = cert_provider.PEM_certificate();
+    const auto actual_key = cert_provider.PEM_signing_key();
+
+    EXPECT_THAT(actual_cert, StrNe(subordinate_cert_contents));
+    EXPECT_THAT(actual_key, StrNe(subordinate_key_contents));
+}
+
+TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenMissingServerAuthExt)
+{
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
+
+    constexpr auto root_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIBzjCCAXWgAwIBAgIUO95PN/WButxgebA76W7ma7d+bP4wCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQyMTQ3WhcNMzUxMDA5MDQyMTQ3WjA9
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
+aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGNRoMsA+XTv
+syS14ycFub9OJCfKIleVPXL/g8yy5ttDQ9ARwhRplGVboheXvW4ix5bRfbi7TI/3
+R8Q7BMzOzz+jUzBRMB0GA1UdDgQWBBS8Au0BSmlbWvBJZc9P0Z9YAji/ajAfBgNV
+HSMEGDAWgBS8Au0BSmlbWvBJZc9P0Z9YAji/ajAPBgNVHRMBAf8EBTADAQH/MAoG
+CCqGSM49BAMCA0cAMEQCIEyrRmyakaFNfsv7y93WSFu3kQiSvwhPQGyU5/rmvgAq
+AiA0b0p2vhWbgQ36xci+OAUimRERZc7xm6Kq/BstsohmBw==
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIB4TCCAYagAwIBAgIUVl/7R6Ps3Lpf5OT1bI/zBSu0ItowCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQyMTQ3WhcNMjYxMDExMDQyMTQ3WjA1
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQXxQohKM5ZXFPhydtPxvkv
+lfycEVRQUwtxGnpEhj0D0h1M3tKVz3HkLh/yCS2b2jtZJRq3lzbfwHkOkFk64iqs
+o2wwajAMBgNVHRMBAf8EAjAAMBoGA1UdEQQTMBGCCWxvY2FsaG9zdIcEfwAAATAd
+BgNVHQ4EFgQU+kIJ1nqffb6P4lSN9XBkqgIOmQYwHwYDVR0jBBgwFoAUvALtAUpp
+W1rwSWXPT9GfWAI4v2owCgYIKoZIzj0EAwIDSQAwRgIhAL5llYus/xGn7f5ibsmG
+vwYu01mkSZKHpMOCGCLYSqV8AiEAmDfgqgilMt2FkJ2LJLe+nTOShvqG6VWHQOxC
+uJiZkGQ=
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_key_contents =
+        R"cert(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgWD5l1u681lEtS2s4
+lxScmmgQpHiVy2dRvF3Qy5UCwRihRANCAAQXxQohKM5ZXFPhydtPxvkvlfycEVRQ
+UwtxGnpEhj0D0h1M3tKVz3HkLh/yCS2b2jtZJRq3lzbfwHkOkFk64iqs
+-----END PRIVATE KEY-----)cert";
+
+    const QDir dir{cert_dir};
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
+    const auto cert_path = dir.filePath("localhost.pem");
+    const auto key_path = dir.filePath("localhost_key.pem");
+
+    mpt::make_file_with_content(root_cert_path, root_cert_contents);
+    mpt::make_file_with_content(cert_path, subordinate_cert_contents);
+    mpt::make_file_with_content(key_path, subordinate_key_contents);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "are valid X.509 files");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "does not contain the "
+                                         "correct extensions");
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Regenerating certificates for the gRPC server");
+
+    mp::SSLCertProvider cert_provider{cert_dir, "localhost"};
+
+    const auto actual_cert = cert_provider.PEM_certificate();
+    const auto actual_key = cert_provider.PEM_signing_key();
+
+    EXPECT_THAT(actual_cert, StrNe(subordinate_cert_contents));
+    EXPECT_THAT(actual_key, StrNe(subordinate_key_contents));
+}
+
+TEST_F(SSLCertProviderFixture, regeneratesCertificatesWhenServerCertHasExpired)
+{
+    const auto [mock_platform, _] = mpt::MockPlatform::inject<NiceMock>();
+    // move the multipass_root_cert.pem into the temporary directory so it will be deleted
+    // automatically later
+    EXPECT_CALL(*mock_platform, get_root_cert_dir())
+        .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
+
+    constexpr auto root_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIBzzCCAXWgAwIBAgIUTwg6yEhLKbaNOkPKptZjdA7nPfEwCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ1MzEzWhcNMzUxMDA5MDQ1MzEzWjA9
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0
+aXBhc3MgUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABPN5wC4zJPtq
+Rvob6784LKGPcm3nQvkNGwPnDiKEQW2+9XjJZyajSRMXqGi9HApjKrdtLnpahpV3
+nozuFn4MhHyjUzBRMB0GA1UdDgQWBBRgm8a0EFMw7o4vSO5TBvVJX3wQ3zAfBgNV
+HSMEGDAWgBRgm8a0EFMw7o4vSO5TBvVJX3wQ3zAPBgNVHRMBAf8EBTADAQH/MAoG
+CCqGSM49BAMCA0gAMEUCIFFxpHWbhmADPRqlJzd3UW8UuJ31X+svjvRNp96BV3As
+AiEAv5TNEYgDkbFZL+mdxkRpMcIqMKTeQ5XJAAUNSccpuMU=
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_cert_contents =
+        R"cert(-----BEGIN CERTIFICATE-----
+MIIB9jCCAZygAwIBAgIUVl/7R6Ps3Lpf5OT1bI/zBSu0It0wCgYIKoZIzj0EAwIw
+PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
+dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ1MzEzWhcNMjUxMDExMDQ1MzEzWjA1
+MQswCQYDVQQGEwJVUzESMBAGA1UECgwJQ2Fub25pY2FsMRIwEAYDVQQDDAlsb2Nh
+bGhvc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQ+RWFT7EsmiVjsmuNVHLST
+VJts+tbI4TUAI+Glb6vEsgNaxcb5OEcWenpZ4lkVCVRM2+vUJEb0Ma595UtSp3y9
+o4GBMH8wDAYDVR0TAQH/BAIwADAaBgNVHREEEzARgglsb2NhbGhvc3SHBH8AAAEw
+EwYDVR0lBAwwCgYIKwYBBQUHAwEwHQYDVR0OBBYEFD/ISUn5L/pYpsYChcGAdMEq
+KXAxMB8GA1UdIwQYMBaAFGCbxrQQUzDuji9I7lMG9UlffBDfMAoGCCqGSM49BAMC
+A0gAMEUCIQCEILD1lEMj8yyISgb1XCW7Jmj4GqjJAzOpw65tKYQ1HwIgWE0g+/vQ
+jJqg0xUWTVsNm6oyxqK+XL8/LaBYBMScrdY=
+-----END CERTIFICATE-----)cert";
+
+    constexpr auto subordinate_key_contents =
+        R"cert(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgNZ1gdGGXXHECUjXV
+BmHhpWWYsdTK3cYOaqR0HDU9NuehRANCAAQ+RWFT7EsmiVjsmuNVHLSTVJts+tbI
+4TUAI+Glb6vEsgNaxcb5OEcWenpZ4lkVCVRM2+vUJEb0Ma595UtSp3y9
+-----END PRIVATE KEY-----)cert";
+
+    const QDir dir{cert_dir};
+    const auto root_cert_path =
+        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
+    const auto cert_path = dir.filePath("localhost.pem");
+    const auto key_path = dir.filePath("localhost_key.pem");
+
+    mpt::make_file_with_content(root_cert_path, root_cert_contents);
+    mpt::make_file_with_content(cert_path, subordinate_cert_contents);
+    mpt::make_file_with_content(key_path, subordinate_key_contents);
+
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "are valid X.509 files");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "validity period is not valid");
     logger_scope.mock_logger->expect_log(mpl::Level::info,
                                          "Regenerating certificates for the gRPC server");
 
