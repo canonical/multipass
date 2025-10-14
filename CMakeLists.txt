@@ -334,7 +334,7 @@ else()
     endif()
 
     add_definitions(-DMULTIPASS_PLATFORM_LINUX)
-    set(MULTIPASS_BACKENDS libvirt lxd qemu)
+    set(MULTIPASS_BACKENDS lxd qemu)
 
     set(MULTIPASS_PLATFORM linux)
     set(LINUX TRUE)

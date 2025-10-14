@@ -15,8 +15,10 @@
  *
  */
 
-#include "src/platform/backends/shared/macos/backend_utils.h"
 #include "tests/mock_process_factory.h"
+#include "tests/mock_utils.h"
+
+#include <src/platform/backends/shared/macos/backend_utils.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -29,6 +31,8 @@ const QByteArray mock_arp_output_stream = QByteArray{R"(
 ? (192.168.64.2) at 52:54:0:2a:12:b6 on bridge100 ifscope [bridge]
 ? (192.168.64.3) at 52:54:0:85:72:55 on bridge100 ifscope [bridge]
 ? (192.168.64.4) at 52:54:0:e1:cd:ab on bridge100 ifscope [bridge]
+? (192.168.64.5) at 50:eb:f6:7f:39:a7 on bridge100 ifscope [bridge]
+? (192.168.64.6) at 50:eb:f6:7f:39:a7 on bridge100 ifscope [bridge]
 ? (192.168.64.255) at ff:ff:ff:ff:ff:ff on bridge100 ifscope [bridge]
 ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet])"};
 }
@@ -63,6 +67,13 @@ struct GetNeighbourIPValidInputsTests
 TEST_P(GetNeighbourIPValidInputsTests, validInputCases)
 {
     const auto& [existed_mac, expected_mapped_ip] = GetParam();
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ping"), _, _))
+        .WillRepeatedly([](const QString&, const QStringList& args, auto&&) {
+            return !args.contains("192.168.64.5");
+        });
+
     EXPECT_EQ(mp::backend::get_neighbour_ip(existed_mac).value().as_string(), expected_mapped_ip);
 }
 
@@ -71,6 +82,7 @@ INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
                          Values(std::make_pair("52:54:00:2a:12:b6", "192.168.64.2"),
                                 std::make_pair("52:54:00:85:72:55", "192.168.64.3"),
                                 std::make_pair("52:54:00:e1:cd:ab", "192.168.64.4"),
+                                std::make_pair("50:eb:f6:7f:39:a7", "192.168.64.6"),
                                 std::make_pair("01:00:5e:00:00:fb", "224.0.0.251")));
 
 struct GetNeighbourIPInValidInputsTests : public GetNeighbourIpFixture,

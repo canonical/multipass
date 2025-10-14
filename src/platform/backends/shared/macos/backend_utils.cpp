@@ -17,13 +17,17 @@
 
 #include "backend_utils.h"
 
+#include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
+#include <multipass/utils.h>
 
 namespace mp = multipass;
 
 namespace
 {
+constexpr auto category = "backend-utils";
+
 QString simplify_mac_address(const QString& input_mac_address)
 {
     // Trim the (first) leading 0 of each segment of the a MAC address.
@@ -60,6 +64,11 @@ QString get_arp_output()
     return QString{arp_process->read_all_standard_output()};
 }
 
+bool can_reach_gateway(const std::string& ip)
+{
+    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "1", "-t", "1"});
+}
+
 } // namespace
 
 std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& mac_address)
@@ -70,23 +79,34 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
     // ? (192.168.64.2) at 52:54:0:2a:12:b6 on bridge100 ifscope [bridge]
     // ? (192.168.64.3) at 52:54:0:85:72:55 on bridge100 ifscope [bridge]
     // ? (192.168.64.4) at 52:54:0:e1:cd:ab on bridge100 ifscope [bridge]
+    // ? (192.168.64.5) at 52:54:0:e1:cd:ab on bridge100 ifscope [bridge]
     // ? (192.168.64.255) at ff:ff:ff:ff:ff:ff on bridge100 ifscope [bridge]
     // ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet]
 
-    const QString arp_ouput_stream = get_arp_output();
-    const QRegularExpression ip_and_mac_address_pair_regex(R"(\(([^)\s]+)\) at ([^\s]+))");
-    QRegularExpressionMatchIterator iter =
-        ip_and_mac_address_pair_regex.globalMatch(arp_ouput_stream);
+    const QString arp_output = get_arp_output();
+    const QRegularExpression arp_reg(R"(\(([^)\s]+)\) at ([^\s]+))");
+    QRegularExpressionMatchIterator iter = arp_reg.globalMatch(arp_output);
 
     const QString arp_format_mac_address =
         simplify_mac_address(QString::fromStdString(mac_address));
+
     while (iter.hasNext())
     {
         QRegularExpressionMatch match = iter.next();
         // group 0 is the full match, 1 and 2 are the inner groups
         if (match.captured(2) == arp_format_mac_address)
         {
-            return {mp::IPAddress{match.captured(1).toStdString()}};
+            mp::IPAddress current_ip{match.captured(1).toStdString()};
+
+            mpl::trace(category,
+                       "Found ip match \'{}\': for mac address: \'{}\'",
+                       current_ip.as_string(),
+                       mac_address);
+
+            if (can_reach_gateway(current_ip.as_string()))
+            {
+                return current_ip;
+            }
         }
     }
 
