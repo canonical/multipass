@@ -129,6 +129,7 @@ parts:
     - ccache
     - lcov
     - clang-15
+    - clang-tidy-15
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
