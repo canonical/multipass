@@ -34,8 +34,8 @@ namespace multipass
  * TODO: Remove when C++26 arrives.
  */
 template <typename To, typename From>
-requires(std::is_integral<To>::value&& std::is_integral<From>::value) constexpr To
-    saturate_cast(From from_value) noexcept
+requires(std::is_integral<To>::value && std::is_integral<From>::value)
+constexpr To saturate_cast(From from_value) noexcept
 {
     // https://en.cppreference.com/w/cpp/numeric/saturate_cast.html
     constexpr auto min_to = std::numeric_limits<To>::min();
