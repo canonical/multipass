@@ -208,8 +208,9 @@ void set_random_serial_number(X509* cert)
 /**
  * Check whether this certificate is the issuer (signer) of the given certificate.
  *
+ * @param [in] issuer The issuing certificate
  * @param [in] signed_cert The certificate to check
- * @return True if this certificate signed @p signed_cert; false otherwise.
+ * @return True if @p issuer signed @p signed_cert; false otherwise.
  */
 bool is_issuer_of(X509& issuer, X509& signed_cert)
 {
@@ -219,6 +220,53 @@ bool is_issuer_of(X509& issuer, X509& signed_cert)
     openssl_check(pubkey, "Failed to get public key from certificate");
     // Verify that signed_cert is issued by this certificate.
     return X509_verify(&signed_cert, pubkey.get()) == 1;
+}
+
+/**
+ * Check whether this certificate is still valid.
+ *
+ * @param [in] cert The certificate to check
+ * @return True if this certificate's validity period started before and ends after today, false
+ * otherwise.
+ */
+bool is_expired(const X509& cert)
+{
+    const ASN1_TIME* not_before = X509_get0_notBefore(&cert);
+    const ASN1_TIME* not_after = X509_get0_notAfter(&cert);
+
+    int nb_days = 0, nb_secs = 0;
+    int na_days = 0, na_secs = 0;
+
+    return !ASN1_TIME_diff(&nb_days, &nb_secs, not_before, nullptr) ||
+           !ASN1_TIME_diff(&na_days, &na_secs, nullptr, not_after) ||
+           // Not yet valid
+           (nb_days < 0 || (nb_days == 0 && nb_secs < 0)) ||
+           // Past expiration
+           (na_days < 0 || (na_days == 0 && na_secs <= 0));
+}
+
+bool cert_has_eku_nid(const X509& cert, int eku_nid)
+{
+    int crit = 0;
+    STACK_OF(ASN1_OBJECT)* eku = reinterpret_cast<STACK_OF(ASN1_OBJECT)*>(
+        X509_get_ext_d2i(&cert, NID_ext_key_usage, &crit, nullptr));
+
+    if (!eku || crit)
+        return false;
+
+    bool found = false;
+    for (int i = 0; i < sk_ASN1_OBJECT_num(eku); ++i)
+    {
+        ASN1_OBJECT* obj = sk_ASN1_OBJECT_value(eku, i);
+        if (OBJ_obj2nid(obj) == eku_nid)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    sk_ASN1_OBJECT_pop_free(eku, ASN1_OBJECT_free);
+    return found;
 }
 
 class X509Cert
@@ -246,9 +294,14 @@ public:
         set_random_serial_number(cert.get());
         X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Start time: now
 
-        constexpr std::chrono::seconds one_year = std::chrono::hours{24} * 365;
+        constexpr std::chrono::seconds one_day = std::chrono::hours{24};
+        constexpr std::chrono::seconds one_year = one_day * 365;
         constexpr std::chrono::seconds ten_years = one_year * 10;
-        const auto valid_duration = cert_type == CertType::Root ? ten_years : one_year;
+
+        // Apple requires TLS server certificates to have a validity period of 825 days or less
+        const auto valid_duration = cert_type == CertType::Root     ? ten_years
+                                    : cert_type == CertType::Server ? one_day * 825
+                                                                    : one_year;
         X509_gmtime_adj(X509_get_notAfter(cert.get()), valid_duration.count());
 
         constexpr int APPEND_ENTRY{-1};
@@ -319,6 +372,15 @@ public:
             NID_basic_constraints,
             (std::string("critical,CA:") + (cert_type == CertType::Root ? "TRUE" : "FALSE"))
                 .c_str());
+
+        if (cert_type == CertType::Server)
+        {
+            add_extension(ctx, NID_ext_key_usage, "serverAuth");
+        }
+        else if (cert_type == CertType::Client)
+        {
+            add_extension(ctx, NID_ext_key_usage, "clientAuth");
+        }
 
         const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
 
@@ -397,11 +459,30 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                            root_cert_path,
                            cert_path.toStdString());
 
-                // FIXME: Also check the validity period of the certificates to decide if they need
-                // to be re-generated
-
-                // Validate root cert is the issuer(signer) of the subordinate certificate
-                if (is_issuer_of(*root_cert.get(), *cert.get()))
+                // TODO: Remove in Multipass 1.18
+                if (!cert_has_eku_nid(*cert.get(), NID_server_auth))
+                {
+                    mpl::warn(kLogCategory,
+                              "Existing gRPC server certificate (`{}`) does not contain the "
+                              "correct extensions",
+                              cert_path.toStdString());
+                }
+                else if (!is_issuer_of(*root_cert.get(), *cert.get()))
+                {
+                    mpl::warn(kLogCategory,
+                              "Existing root certificate (`{}`) is not the signer of the gRPC "
+                              "server certificate (`{}`)",
+                              root_cert_path,
+                              cert_path.toStdString());
+                }
+                else if (is_expired(*cert.get()))
+                {
+                    mpl::warn(
+                        kLogCategory,
+                        "Existing gRPC server certificate (`{}`) validity period is not valid",
+                        cert_path.toStdString());
+                }
+                else
                 {
                     mpl::info(kLogCategory, "Re-using existing certificates for the gRPC server");
 
@@ -414,12 +495,6 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                     return {mp::utils::contents_of(cert_path),
                             mp::utils::contents_of(priv_key_path)};
                 }
-
-                mpl::warn(kLogCategory,
-                          "Existing root certificate (`{}`) is not the signer of the gRPC "
-                          "server certificate (`{}`)",
-                          root_cert_path,
-                          cert_path.toStdString());
             }
             else
             {
