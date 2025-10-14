@@ -24,6 +24,7 @@ jobs:
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
       code: ${{ steps.filter.outputs.code }}
+      hooks: ${{ steps.filter.outputs.hooks }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -59,6 +60,9 @@ jobs:
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
+            hooks:
+              - "git-hooks/**"
+
 
   docs:
     name: Docs
@@ -85,11 +89,17 @@ jobs:
     uses: "./.github/workflows/windows-macos.yml"
     secrets: inherit
 
+  hooks:
+    name: Hooks
+    needs: filter
+    if: needs.filter.outputs.hooks == 'true'
+    uses: "./.github/workflows/test-hooks.yml"
+
   finalize:
     name: Finalize
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [docs, lint, linux, windows-macos]
+    needs: [docs, lint, linux, windows-macos, hooks]
     steps:
       - name: Docs failure check
         if: ${{
@@ -103,4 +113,8 @@ jobs:
           needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
           needs.windows-macos.result == 'failure' || needs.windows-macos.result == 'cancelled'
           }}
+        run: exit 1
+
+      - name: Hooks failure check
+        if: ${{ needs.hooks.result == 'failure' || needs.hooks.result == 'cancelled' }}
         run: exit 1
