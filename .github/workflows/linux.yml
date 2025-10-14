@@ -151,7 +151,7 @@ jobs:
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         /snap/bin/lxc --project snapcraft start $instance_name
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
-          git -C /root/parts/multipass diff -U0 --no-color HEAD^1 | clang-tidy-diff-16.py -p1 -path /root/parts/multipass/build/ -clang-tidy-binary=clang-tidy-16"
+          git -C /root/parts/multipass/src diff -U0 --no-color HEAD^1 | clang-tidy-diff-15.py -p1 -path /root/parts/multipass/build/ -clang-tidy-binary=clang-tidy-15"
 
     - name: Clear CCache stats
       run: ccache --show-stats --zero-stats
