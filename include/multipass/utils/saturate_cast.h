@@ -30,6 +30,8 @@ namespace multipass
  *
  * @tparam To Type to be converted
  * @tparam From From type (auto-deduced)
+ *
+ * TODO: Remove when C++26 arrives.
  */
 template <typename To, typename From>
 requires(std::is_integral<To>::value&& std::is_integral<From>::value) constexpr To
