@@ -203,7 +203,6 @@ parts:
     - -DMULTIPASS_ENABLE_TESTS=off
     - -DMULTIPASS_UPSTREAM=origin
     - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
-    - -DCMAKE_EXPORT_COMPILE_COMMANDS=1
     override-build: |
       craftctl default
       set -e
