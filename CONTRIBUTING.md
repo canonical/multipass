@@ -178,7 +178,8 @@ try to find a generic unifying category, or choose the most relevant.<br>
 **MSG9.** Use multiple paragraphs in the body if needed. Separate them with a blank line.<br>
 **MSG10.** Do not include more than 1 consecutive blank line, except in quoted text.<br>
 **MSG11.** Use punctuation normally in the body.<br>
-**MSG12.** Wrap the body at 72 characters, except on lines consisting only of blockquotes, references, or sign-offs.<br>
+**MSG12.** Wrap the body at 72 characters, except on lines consisting only of blockquotes,
+references, sign-offs, and co-authors.<br>
 **MSG13.** Use the body to explain *what* and *why*, rather than *how*.<br>
 **MSG14.** Be descriptive but succinct and avoid filler text.<br>
 **MSG15.** Omit the body if the subject is self-explanatory.<br>
