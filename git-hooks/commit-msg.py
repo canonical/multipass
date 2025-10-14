@@ -77,6 +77,9 @@ class CommitMsgRulesChecker:
             or
             # Ignore Signed-off-by:
             re.match(r"Signed-off-by:.*\n?", line)
+            or
+            # Ignore Co-authored-by:
+            re.match(r"Co-authored-by:.*\n?", line)
         )
 
     def validate_all(self):
@@ -426,6 +429,9 @@ class TestCommitMsgRulesChecker:
             "Signed-Off-By: Aragorn II, King Elessar Telcontar, High King of the Reunited Kingdom of Gondor and Arnor. <aragorn@middleearth.localhost>",
             "Signed-Off-By: Legolas Greenleaf Thranduilion, Prince of the Woodland Realm. <legolas@middleearth.localhost>",
             "Signed-Off-By: Gimli, son of Glóin, of the House of Durin. <gimli@middleearth.localhost>",
+            "Co-Authored-By: Samwise Gamgee, Banazîr Galbasi, Gardner of Frodo Baggings. <samgee@middleearth.localhost>",
+            "Co-Authored-By: Frodo Baggings, Maura Labingi, Bearer of the One Ring. <fbaggings@middleearth.localhost>",
+            "Co-Authored-By: Boromir, Captain and High Warden of the White Tower. <boromir@middleearth.localhost>",
             "",
             "Regular text"
         ]
