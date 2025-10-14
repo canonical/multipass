@@ -222,8 +222,8 @@ void SSHFSMountHandler::deactivate_impl(bool force)
     mpl::info(category, "Stopping mount \"{}\" in instance '{}'", target, vm->get_name());
     QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
 
-    constexpr auto kProcessWaitTimeout = std::chrono::milliseconds{5000};
-    if (process->terminate(); !process->wait_for_finished(kProcessWaitTimeout.count()))
+    constexpr auto process_wait_timeout = std::chrono::milliseconds{5000};
+    if (process->terminate(); !process->wait_for_finished(process_wait_timeout.count()))
     {
         auto fetch_stderr = [](Process& process) {
             return fmt::format("Failed to terminate SSHFS mount process gracefully: {}",
@@ -244,7 +244,7 @@ void SSHFSMountHandler::deactivate_impl(bool force)
              * Let's try brute force this time.
              */
             process->kill();
-            const auto result = process->wait_for_finished(kProcessWaitTimeout.count());
+            const auto result = process->wait_for_finished(process_wait_timeout.count());
 
             mpl::warn(category,
                       "{} to forcefully stop mount \"{}\" in instance '{}': {}",

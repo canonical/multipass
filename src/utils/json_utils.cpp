@@ -39,7 +39,7 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-constexpr static auto kLogCategory = "JsonUtils";
+constexpr static auto log_category = "JsonUtils";
 }
 
 mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
@@ -49,8 +49,8 @@ mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
 
 void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 {
-    constexpr static auto kStaleLockTime = std::chrono::seconds{10};
-    constexpr static auto kLockAcquireTimeout = std::chrono::seconds{10};
+    constexpr static auto stale_lock_time = std::chrono::seconds{10};
+    constexpr static auto lock_acquire_timeout = std::chrono::seconds{10};
     const QFileInfo fi{file_name};
 
     const auto dir = fi.absoluteDir();
@@ -63,10 +63,10 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 
     // Make the lock file stale after a while to avoid deadlocking
     // on process crashes, etc.
-    MP_FILEOPS.setStaleLockTime(lock, kStaleLockTime);
+    MP_FILEOPS.setStaleLockTime(lock, stale_lock_time);
 
     // Acquire lock file before attempting to write.
-    if (!MP_FILEOPS.tryLock(lock, kLockAcquireTimeout))
+    if (!MP_FILEOPS.tryLock(lock, lock_acquire_timeout))
     { // wait up to 10s
         throw std::runtime_error(fmt::format("Could not acquire lock for '{}'", file_name));
     }
@@ -93,9 +93,9 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
         if (!MP_FILEOPS.commit(db_file))
         {
             auto get_jitter_amount = [] {
-                constexpr static auto kMaxJitter = 25;
+                constexpr static auto max_jitter = 25;
                 thread_local std::mt19937 rng{std::random_device{}()};
-                thread_local std::uniform_int_distribution<int> jit(0, kMaxJitter);
+                thread_local std::uniform_int_distribution<int> jit(0, max_jitter);
                 return jit(rng);
             };
 
@@ -106,7 +106,7 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
             const auto delay = std::chrono::milliseconds(std::min(200, 10 * (1 << (attempt - 1))) +
                                                          get_jitter_amount());
             mpl::warn(
-                kLogCategory,
+                log_category,
                 "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} ms delay.",
                 file_name,
                 attempt,
@@ -118,7 +118,7 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
         else
         {
             // Saved successfully
-            mpl::debug(kLogCategory,
+            mpl::debug(log_category,
                        "Saved file `{}` successfully in attempt #{}",
                        file_name,
                        attempt);
