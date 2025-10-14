@@ -428,3 +428,10 @@ if(MULTIPASS_ENABLE_TESTS)
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)
+
+# Disable .clang-tidy in build folder
+file(WRITE "${CMAKE_BINARY_DIR}/.clang-tidy"
+"---
+Checks: >
+  -*,
+")
