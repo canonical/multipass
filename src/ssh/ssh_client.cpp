@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
@@ -27,6 +28,7 @@
 #endif
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -153,31 +155,31 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
                             cmd_line.c_str());
 
     handle_ssh_events();
+    return this->ssh_channel_get_exit_status(channel.get());
+}
+
+int mp::SSHClient::ssh_channel_get_exit_status(ssh_channel channel)
+{
 
     uint32_t exit_status = static_cast<uint32_t>(-1);
     char* exit_signal_status = nullptr;
     int core_dumped = 0;
 
-    int result =
-        ssh_channel_get_exit_state(channel.get(), &exit_status, &exit_signal_status, &core_dumped);
+    int result{
+        ssh_channel_get_exit_state(channel, &exit_status, &exit_signal_status, &core_dumped)};
 
-    if (result == SSH_OK)
-    {
-        if (exit_signal_status != nullptr)
-        {
-            fprintf(stderr,
-                    "[ssh client] Process terminated by signal: %s%s\n",
-                    exit_signal_status,
-                    core_dumped ? " (core dumped)" : "");
-
-            ssh_string_free_char(exit_signal_status);
-        }
-        return static_cast<int>(exit_status);
-    }
+    if (result != SSH_OK)
+        // If SSH_ERROR or SSH_AGAIN, the string is never allocated
+        return SSH_ERROR;
 
     if (exit_signal_status != nullptr)
     {
+        mpl::error("ssh client",
+                   "Process terminated by signal: {}{}\n",
+                   exit_signal_status,
+                   core_dumped ? " (core dumped)" : "");
+
         ssh_string_free_char(exit_signal_status);
     }
-    return -1;
+    return static_cast<int>(exit_status);
 }
