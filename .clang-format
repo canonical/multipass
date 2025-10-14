@@ -38,7 +38,6 @@ IndentWidth: 4
 InsertNewlineAtEOF: true
 PenaltyReturnTypeOnItsOwnLine: 120
 PointerAlignment: Left
-RequiresClausePosition: SingleLine
 ---
 Language: Proto
 DisableFormat: true
