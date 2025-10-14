@@ -234,7 +234,10 @@ def get_multipass_version():
         assert (
             version_lines[0] == version_lines[1]
         ), f"{version_lines[0]} != {version_lines[1]}"
-        return version.parse(version_lines[0].strip())
+        # maj.min.rev is enough
+        match = re.search(r"(\d+\.\d+\.\d+)", version_lines[0])
+        assert match, f"Could not extract MAJ.MIN.REV from {version_lines[0]}!"
+        return version.parse(match.group(1))
 
 
 def default_driver_name():
