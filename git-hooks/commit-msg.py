@@ -30,7 +30,8 @@ class CommitMsgRulesChecker:
         RULE6 =   "MSG6.  Do not end the subject line with a period."
         RULE8 =   "MSG8.  If adding a body, separate it from the subject with a blank line."
         RULE10 =  "MSG10. Do not include more than 1 consecutive blank line, except in quoted text."
-        RULE12 =  "MSG12. Wrap the body at 72 characters, except on lines consisting only of blockquotes, references, or sign-offs."
+        RULE12 = ("MSG12. Wrap the body at 72 characters, except on lines consisting only of "
+                  "blockquotes, references, sign-offs, and co-authors.")
         # fmt: on
 
     def __init__(self, msg, *, strict=False):
