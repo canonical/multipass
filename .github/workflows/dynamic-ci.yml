@@ -93,7 +93,7 @@ jobs:
     name: Hooks
     needs: filter
     if: needs.filter.outputs.hooks == 'true'
-    uses: "./.github/workflows/hooks.yml"
+    uses: "./.github/workflows/test-hooks.yml"
 
   finalize:
     name: Finalize
