@@ -11,6 +11,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install Python dependencies
+        uses: BSFishy/pip-action@v1
+        with:
+          requirements: git-hooks/requirements.txt
+
       - name: Run hook tests
         run: |
           for hook in git-hooks/*.py; do
