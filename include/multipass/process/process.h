@@ -97,9 +97,9 @@ public:
     virtual bool wait_for_finished(int msecs) = 0;
     virtual bool wait_for_ready_read(int msecs) = 0;
 
-    bool wait_for_started(std::chrono::milliseconds ms = kDefaultWaitAmount);
-    bool wait_for_finished(std::chrono::milliseconds ms = kDefaultWaitAmount);
-    bool wait_for_ready_read(std::chrono::milliseconds ms = kDefaultWaitAmount);
+    bool wait_for_started(std::chrono::milliseconds ms = default_wait_amount);
+    bool wait_for_finished(std::chrono::milliseconds ms = default_wait_amount);
+    bool wait_for_ready_read(std::chrono::milliseconds ms = default_wait_amount);
 
     virtual bool running() const = 0;
     virtual ProcessState process_state() const = 0;
@@ -127,7 +127,7 @@ signals:
 
 protected:
     virtual void setup_child_process() = 0;
-    constexpr static inline auto kDefaultWaitAmount = std::chrono::milliseconds{30000};
+    constexpr static inline auto default_wait_amount = std::chrono::milliseconds{30000};
 };
 } // namespace multipass
 
