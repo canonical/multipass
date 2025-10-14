@@ -61,7 +61,7 @@ jobs:
               - "vcpkg-configuration.json"
               - "vcpkg.json"
             hooks:
-              - "git-hooks/*"
+              - "git-hooks/**"
 
 
   docs:
@@ -99,7 +99,7 @@ jobs:
     name: Finalize
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [docs, lint, linux, windows-macos]
+    needs: [docs, lint, linux, windows-macos, hooks]
     steps:
       - name: Docs failure check
         if: ${{
@@ -113,4 +113,8 @@ jobs:
           needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
           needs.windows-macos.result == 'failure' || needs.windows-macos.result == 'cancelled'
           }}
+        run: exit 1
+
+      - name: Hooks failure check
+        if: ${{ needs.hooks.result == 'failure' || needs.hooks.result == 'cancelled' }}
         run: exit 1
