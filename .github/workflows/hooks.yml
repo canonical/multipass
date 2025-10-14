@@ -1,0 +1,4 @@
+name: Test hooks
+on:
+  workflow_call:
+  workflow_dispatch: # Manual trigger

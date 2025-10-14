@@ -24,6 +24,7 @@ jobs:
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
       code: ${{ steps.filter.outputs.code }}
+      hooks: ${{ steps.filter.outputs.hooks }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -59,6 +60,9 @@ jobs:
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
+            hooks:
+              - "git-hooks/*"
+
 
   docs:
     name: Docs
@@ -84,6 +88,12 @@ jobs:
     if: needs.filter.outputs.code == 'true'
     uses: "./.github/workflows/windows-macos.yml"
     secrets: inherit
+
+  hooks:
+    name: Hooks
+    needs: filter
+    if: needs.filter.outputs.hooks == 'true'
+    uses: "./.github/workflows/hooks.yml"
 
   finalize:
     name: Finalize
