@@ -133,7 +133,7 @@ def multipass(*args, **kwargs):
     if kwargs.get("interactive"):
         if sys.platform == "win32":
             return WinptySpawn(
-                f"{get_multipass_path()} {' '.join(str(arg) for arg in args)}",
+                [get_multipass_path(), *map(str, args)],
                 logfile=(sys.stdout if config.print_cli_output else None),
                 timeout=timeout,
                 encoding="utf-8",
