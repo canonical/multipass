@@ -7,7 +7,7 @@ The `multipass networks` command lists network interfaces that multipass can con
 
 At this time, `multipass networks` can only find interfaces in the following scenarios:
 
-- on Linux, with QEMU (*from Multipass 1.15 onward*) and LXD (deprecated)
+- on Linux, with QEMU
 - on Windows, with both Hyper-V and VirtualBox
 - on macOS, with the QEMU and VirtualBox drivers
 

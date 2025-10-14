@@ -196,7 +196,6 @@ First, run the `multipass networks` command; for example:
 ```{code-block} text
 Name             Type      Description
 eth0             ethernet  Ethernet device
-lxdbr0           bridge    Network bridge
 mpbr0            bridge    Network bridge for Multipass
 virbr0           bridge    Network bridge
 ```
