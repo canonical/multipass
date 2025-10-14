@@ -54,6 +54,8 @@ env:
   MACOS_PKG_URL: ${{ inputs['macos-pkg-url'] }}
   WINDOWS_PKG_URL: ${{ inputs['windows-pkg-url'] }}
   PYTEST_EXTRA_ARGS: ${{ inputs['pytest-extra-args'] }}
+  PYTHONUTF8: "1" # force Python UTF-8 mode (needed for Windows)
+  PYTHONIOENCODING: "utf-8"
 
 jobs:
   determine-matrix:
