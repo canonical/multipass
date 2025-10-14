@@ -64,7 +64,6 @@ apps:
       - network-control
       - network-manager # for bridge creation
       - network-observe # for network listing (to read `/sys/devices/**/net/*`)
-      - lxd
       - removable-media
       - system-observe  # to read the host's os-release
   multipass:
