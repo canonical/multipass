@@ -31,7 +31,6 @@ set(INSTALL_GTEST OFF CACHE BOOL "")
 FetchContent_MakeAvailable(googletest)
 
 add_executable(multipass_tests
-  blueprint_test_lambdas.cpp
   common.cpp
   daemon_test_fixture.cpp
   file_operations.cpp
@@ -70,7 +69,6 @@ add_executable(multipass_tests
   test_daemon_authenticate.cpp
   test_daemon_clone.cpp
   test_daemon_find.cpp
-  test_daemon_launch.cpp
   test_daemon_mount.cpp
   test_daemon_restart.cpp
   test_daemon_snapshot_restore.cpp
@@ -122,7 +120,6 @@ add_executable(multipass_tests
   test_yaml_node_utils.cpp
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
-  test_blueprint_provider.cpp
   test_sftp_dir_iterator.cpp
   test_sftp_utils.cpp
   test_file_ops.cpp
@@ -164,7 +161,6 @@ target_link_libraries(multipass_tests
   iso
   network
   petname
-  poco_utils
   settings
   simplestreams
   sftp_test

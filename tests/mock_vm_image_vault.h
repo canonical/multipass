@@ -18,6 +18,7 @@
 #pragma once
 
 #include "common.h"
+#include "mock_image_host.h"
 #include "temp_file.h"
 
 #include <multipass/query.h>
@@ -39,6 +40,22 @@ public:
         });
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
         ON_CALL(*this, minimum_image_size_for(_)).WillByDefault(Return(MemorySize{"1048576"}));
+
+        ON_CALL(*this, all_info_for(_))
+            .WillByDefault(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
+                std::pair<std::string, mp::VMImageInfo>{"default",
+                                                        {{default_alias},
+                                                         "Ubuntu",
+                                                         "bionic",
+                                                         default_release_info,
+                                                         "Bionic Beaver",
+                                                         true,
+                                                         dummy_image.url(),
+                                                         default_id,
+                                                         default_stream_location,
+                                                         default_version,
+                                                         1,
+                                                         true}}}));
     };
 
     MOCK_METHOD(VMImage,

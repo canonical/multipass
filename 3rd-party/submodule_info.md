@@ -46,11 +46,6 @@ Version: 1.9.4 |
 <https://github.com/open-source-parsers/jsoncpp.git> |
 <https://github.com/open-source-parsers/jsoncpp/releases>
 
-### POCO
-Version: 1.13.3 |
-<https://github.com/pocoproject/poco.git> |
-<https://github.com/pocoproject/poco/releases>
-
 ### vcpkg
 Version: 2025.04.09 |
 <https://github.com/microsoft/vcpkg.git> |

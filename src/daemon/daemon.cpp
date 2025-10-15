@@ -24,7 +24,6 @@
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
-#include <multipass/exceptions/blueprint_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
@@ -203,17 +202,12 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 
 template <typename T>
 auto name_from(const std::string& requested_name,
-               const std::string& blueprint_name,
                mp::NameGenerator& name_gen,
                const T& currently_used_names)
 {
     if (!requested_name.empty())
     {
         return requested_name;
-    }
-    else if (!blueprint_name.empty())
-    {
-        return blueprint_name;
     }
     else
     {
@@ -499,36 +493,20 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     return interfaces;
 }
 
-void validate_image(const mp::LaunchRequest* request,
-                    const mp::VMImageVault& vault,
-                    mp::VMBlueprintProvider& blueprint_provider)
+void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& vault)
 {
     // TODO: Refactor this in such a way that we can use info returned here instead of ignoring it
     // to avoid calls
     //       later that accomplish the same thing.
-    try
-    {
-        if (!blueprint_provider.info_for(request->image()))
-        {
-            auto image_query = query_from(request, "");
-            if (image_query.query_type == mp::Query::Type::Alias &&
-                vault.all_info_for(image_query).empty())
-                throw mp::ImageNotFoundException(request->image(), request->remote_name());
-        }
-    }
-    catch (const mp::IncompatibleBlueprintException&)
-    {
-        throw std::runtime_error(
-            fmt::format("The \"{}\" Blueprint is not compatible with this host.",
-                        request->image()));
-    }
+    auto image_query = query_from(request, "");
+    if (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty())
+        throw mp::ImageNotFoundException(request->image(), request->remote_name());
 }
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
 {
-    assert(config && config->factory && config->blueprint_provider && config->vault &&
-           "null ptr somewhere...");
-    validate_image(request, *config->vault, *config->blueprint_provider);
+    assert(config && config->factory && config->vault && "null ptr somewhere...");
+    validate_image(request, *config->vault);
 
     static const auto min_mem = try_mem_size(mp::min_memory_size);
     static const auto min_disk = try_mem_size(mp::min_disk_size);
@@ -1218,13 +1196,10 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* co
     }
 }
 
-auto timeout_for(const int requested_timeout, const int blueprint_timeout)
+auto timeout_for(const int requested_timeout)
 {
     if (requested_timeout > 0)
         return std::chrono::seconds(requested_timeout);
-
-    if (blueprint_timeout > 0)
-        return std::chrono::seconds(blueprint_timeout);
 
     return mp::default_timeout;
 }
@@ -1711,8 +1686,6 @@ try
                                                      *config->logger,
                                                      server};
     FindReply response;
-    response.set_show_images(request->show_images());
-    response.set_show_blueprints(request->show_blueprints());
 
     const auto default_remote{"release"};
 
@@ -1729,86 +1702,53 @@ try
             config->vault->image_host_for(remote_name);
         }
 
-        if (request->show_images())
+        wait_update_manifests_all_and_optionally_applied_force(
+            request->force_manifest_network_download());
+        std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
+
+        try
         {
-            wait_update_manifests_all_and_optionally_applied_force(
-                request->force_manifest_network_download());
-            std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
-
-            try
-            {
-                vm_images_info = config->vault->all_info_for({"",
-                                                              request->search_string(),
-                                                              false,
-                                                              request->remote_name(),
-                                                              Query::Type::Alias,
-                                                              request->allow_unsupported()});
-            }
-            catch (const std::exception& e)
-            {
-                mpl::warn(category,
-                          "An unexpected error occurred while fetching images matching \"{}\": {}",
-                          request->search_string(),
-                          e.what());
-            }
-
-            for (auto& [remote, info] : vm_images_info)
-            {
-                if (info.aliases.contains(QString::fromStdString(request->search_string())))
-                    info.aliases = QStringList({QString::fromStdString(request->search_string())});
-                else
-                    info.aliases = QStringList({info.id.left(12)});
-
-                auto remote_name = (!request->remote_name().empty() ||
-                                    (request->remote_name().empty() && vm_images_info.size() > 1 &&
-                                     remote != default_remote))
-                                       ? remote
-                                       : "";
-
-                add_aliases(response.mutable_images_info(), remote_name, info, "");
-            }
+            vm_images_info = config->vault->all_info_for({"",
+                                                          request->search_string(),
+                                                          false,
+                                                          request->remote_name(),
+                                                          Query::Type::Alias,
+                                                          request->allow_unsupported()});
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category,
+                      "An unexpected error occurred while fetching images matching \"{}\": {}",
+                      request->search_string(),
+                      e.what());
         }
 
-        if (request->show_blueprints())
+        for (auto& [remote, info] : vm_images_info)
         {
-            std::optional<VMImageInfo> info;
-            try
-            {
-                info = config->blueprint_provider->info_for(request->search_string());
-            }
-            catch (const std::exception& e)
-            {
-                mpl::warn(category,
-                          "An unexpected error occurred while fetching blueprints "
-                          "matching \"{}\": {}",
-                          request->search_string(),
-                          e.what());
-            }
+            if (info.aliases.contains(QString::fromStdString(request->search_string())))
+                info.aliases = QStringList({QString::fromStdString(request->search_string())});
+            else
+                info.aliases = QStringList({info.id.left(12)});
 
-            if (info)
-            {
-                if ((*info).aliases.contains(QString::fromStdString(request->search_string())))
-                    (*info).aliases =
-                        QStringList({QString::fromStdString(request->search_string())});
-                else
-                    (*info).aliases = QStringList({(*info).id.left(12)});
+            auto remote_name = (!request->remote_name().empty() ||
+                                (request->remote_name().empty() && vm_images_info.size() > 1 &&
+                                 remote != default_remote))
+                                   ? remote
+                                   : "";
 
-                add_aliases(response.mutable_blueprints_info(), "", *info, "");
-            }
+            add_aliases(response.mutable_images_info(), remote_name, info, "");
         }
     }
     else if (request->remote_name().empty())
     {
-        if (request->show_images())
+        wait_update_manifests_all_and_optionally_applied_force(
+            request->force_manifest_network_download());
+        for (const auto& image_host : config->image_hosts)
         {
-            wait_update_manifests_all_and_optionally_applied_force(
-                request->force_manifest_network_download());
-            for (const auto& image_host : config->image_hosts)
-            {
-                std::unordered_set<std::string> images_found;
-                auto action = [&images_found, &default_remote, request, &response](
-                                  const std::string& remote,
-                                  const mp::VMImageInfo& info) {
+            std::unordered_set<std::string> images_found;
+            auto action =
+                [&images_found, &default_remote, request, &response](const std::string& remote,
+                                                                     const mp::VMImageInfo& info) {
                     if (remote != mp::snapcraft_remote &&
                         (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
                         images_found.find(info.release_title.toStdString()) == images_found.end())
@@ -1818,16 +1758,7 @@ try
                     }
                 };
 
-                image_host->for_each_entry_do(action);
-            }
-        }
-
-        if (request->show_blueprints())
-        {
-            auto vm_blueprints_info = config->blueprint_provider->all_blueprints();
-
-            for (const auto& info : vm_blueprints_info)
-                add_aliases(response.mutable_blueprints_info(), "", info, "");
+            image_host->for_each_entry_do(action);
         }
     }
     else
@@ -3230,8 +3161,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                            std::promise<grpc::Status>* status_promise,
                            bool start)
 {
-    typedef typename std::pair<VirtualMachineDescription, ClientLaunchData> VMFullDescription;
-
     auto checked_args = validate_create_arguments(request, config.get());
 
     if (!checked_args.option_errors.error_codes().empty())
@@ -3259,31 +3188,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                                       create_error.SerializeAsString()});
     }
 
-    // TODO: We should only need to query the Blueprint Provider once for all info, so this (and
-    // timeout below) will need a refactoring to do so.
-    const std::string blueprint_name =
-        config->blueprint_provider->name_from_blueprint(request->image());
-    // if the launch target is a blueprint instead of an image, issues a deprecation warning
-    if (!blueprint_name.empty())
-    {
-        constexpr auto deprecation_warning =
-            "*** Warning! Blueprints are deprecated and will be removed in a future release. "
-            "***\n\n"
-            "You can achieve similar results with cloud-init and other launch options.\n"
-            "Run `multipass help launch` for more info, or find out more at:\n"
-            "- "
-            "https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/manage-instances/"
-            "launch-customized-instances-with-multipass-and-cloud-init/\n"
-            "- https://cloudinit.readthedocs.io\n\n";
-        CreateReply reply;
-        reply.set_log_line(deprecation_warning);
-        server->Write(reply);
-    }
-
-    auto name = name_from(checked_args.instance_name,
-                          blueprint_name,
-                          *config->name_generator,
-                          operative_instances);
+    auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -3302,19 +3207,16 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     if (!instances_running(operative_instances))
         config->factory->hypervisor_health_check();
 
-    // TODO: We should only need to query the Blueprint Provider once for all info, so this (and
-    // name above) will need a refactoring to do so.
-    auto timeout = timeout_for(request->timeout(),
-                               config->blueprint_provider->blueprint_timeout(blueprint_name));
+    auto timeout = timeout_for(request->timeout());
 
     preparing_instances.insert(name);
 
-    auto prepare_future_watcher = new QFutureWatcher<VMFullDescription>();
+    auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
     auto log_level = mpl::level_from(request->verbosity_level());
 
     QObject::connect(
         prepare_future_watcher,
-        &QFutureWatcher<VMFullDescription>::finished,
+        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
         [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
             mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level,
                                                                  *config->logger,
@@ -3322,11 +3224,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             try
             {
-                auto vm_desc_pair = prepare_future_watcher->future().result();
-                auto vm_desc = vm_desc_pair.first;
-                auto& vm_client_data = vm_desc_pair.second;
-                auto& vm_aliases = vm_client_data.aliases_to_be_created;
-                auto& vm_workspaces = vm_client_data.workspaces_to_be_created;
+                auto vm_desc = prepare_future_watcher->future().result();
 
                 vm_instance_specs[name] = {vm_desc.num_cores,
                                            vm_desc.mem_size,
@@ -3354,38 +3252,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
                     operative_instances[name]->start();
 
-                    auto future_watcher =
-                        create_future_watcher([this, server, name, vm_aliases, vm_workspaces] {
-                            LaunchReply reply;
-                            reply.set_vm_instance_name(name);
-                            config->update_prompt->populate_if_time_to_show(
-                                reply.mutable_update_info());
+                    auto future_watcher = create_future_watcher([this, server, name] {
+                        LaunchReply reply;
+                        reply.set_vm_instance_name(name);
+                        config->update_prompt->populate_if_time_to_show(
+                            reply.mutable_update_info());
 
-                            // Attach the aliases to be created by the CLI to the last message.
-                            for (const auto& blueprint_alias : vm_aliases)
-                            {
-                                mpl::debug(category,
-                                           "Adding alias '{}' to RPC reply",
-                                           blueprint_alias.first);
-                                auto alias = reply.add_aliases_to_be_created();
-                                alias->set_name(blueprint_alias.first);
-                                alias->set_instance(blueprint_alias.second.instance);
-                                alias->set_command(blueprint_alias.second.command);
-                                alias->set_working_directory(
-                                    blueprint_alias.second.working_directory);
-                            }
-
-                            // Now attach the workspaces.
-                            for (const auto& blueprint_workspace : vm_workspaces)
-                            {
-                                mpl::debug(category,
-                                           "Adding workspace '{}' to RPC reply",
-                                           blueprint_workspace);
-                                reply.add_workspaces_to_be_created(blueprint_workspace);
-                            }
-
-                            server->Write(reply);
-                        });
+                        server->Write(reply);
+                    });
                     future_watcher->setFuture(QtConcurrent::run(
                         &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>,
                         this,
@@ -3417,8 +3291,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             delete prepare_future_watcher;
         });
 
-    auto make_vm_description =
-        [this, server, request, name, checked_args, log_level]() mutable -> VMFullDescription {
+    auto make_vm_description = [this, server, request, name, checked_args, log_level]() mutable
+        -> mp::VirtualMachineDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try
@@ -3447,70 +3321,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     request),
                 YAML::Node{}};
 
-            ClientLaunchData client_launch_data;
-
-            try
-            {
-                auto image = request->image();
-                auto image_qstr = QString::fromStdString(image);
-
-                // If requesting to launch from a yaml file, we assume it contains a Blueprint.
-                if (image_qstr.startsWith("file://") && (image_qstr.toLower().endsWith(".yaml") ||
-                                                         image_qstr.toLower().endsWith(".yml")))
-                {
-                    auto file_info = QFileInfo(image_qstr.remove(0, 7));
-                    auto file_path = file_info.absoluteFilePath();
-
-                    auto chop = image_qstr.at(image_qstr.size() - 4) == '.' ? 4 : 5;
-                    image = file_info.fileName().chopped(chop).toStdString();
-
-                    query = config->blueprint_provider->blueprint_from_file(file_path.toStdString(),
-                                                                            image,
-                                                                            vm_desc,
-                                                                            client_launch_data);
-                }
-                else
-                {
-                    query = config->blueprint_provider->fetch_blueprint_for(image,
-                                                                            vm_desc,
-                                                                            client_launch_data);
-                }
-
-                query.name = name;
-
-                // Aliases and default workspace are named in function of the instance name in the
-                // Blueprint. If the user asked for a different name, it will be necessary to change
-                // the alias definitions and the workspace name to reflect it.
-                if (name != image)
-                {
-                    for (auto& alias_to_define : client_launch_data.aliases_to_be_created)
-                        if (alias_to_define.second.instance == image)
-                        {
-                            mpl::trace(category,
-                                       "Renaming instance on alias \"{}\" from \"{}\" to \"{}\"",
-                                       alias_to_define.first,
-                                       alias_to_define.second.instance,
-                                       name);
-                            alias_to_define.second.instance = name;
-                        }
-
-                    for (auto& workspace_to_create : client_launch_data.workspaces_to_be_created)
-                        if (workspace_to_create == image)
-                        {
-                            mpl::trace(category,
-                                       "Renaming workspace \"{}\" to \"{}\"",
-                                       workspace_to_create,
-                                       name);
-                            workspace_to_create = name;
-                        }
-                }
-            }
-            catch (const std::out_of_range&)
-            {
-                // Blueprint not found, move on
-                query = query_from(request, name);
-                vm_desc.mem_size = checked_args.mem_size;
-            }
+            query = query_from(request, name);
+            vm_desc.mem_size = checked_args.mem_size;
 
             auto progress_monitor = [server](int progress_type, int percentage) {
                 CreateReply create_reply;
@@ -3591,7 +3403,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             // Everything went well, add the MAC addresses used in this instance.
             allocated_mac_addrs = std::move(new_macs);
 
-            return VMFullDescription{vm_desc, client_launch_data};
+            return vm_desc;
         }
         catch (const std::exception& e)
         {

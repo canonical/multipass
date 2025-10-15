@@ -1,7 +1,0 @@
-description: Minimal v2 Blueprint
-version: latest
-
-instances:
-    no-url:
-        images:
-            multivacs:
