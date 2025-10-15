@@ -17,27 +17,30 @@
 
 #include <multipass/image_host/image_mutators.h>
 
+#include <regex>
+
 namespace multipass::image_mutators
 {
+constexpr int earliestSupportedSnapcraftMVersion{18};
 bool snapcraft_mutator(VMImageInfo& info)
 {
-    static constexpr auto supported_snapcraft_aliases = {
-        "core18",
-        "18.04",
-        "core20",
-        "20.04",
-        "core22",
-        "22.04",
-        "core24",
-        "24.04",
-        "devel",
-    };
-
     const auto& aliases = info.aliases;
-    return aliases.empty() ||
-           std::any_of(supported_snapcraft_aliases.begin(),
-                       supported_snapcraft_aliases.end(),
-                       [&aliases](const auto& alias) { return aliases.contains(alias); });
+    return aliases.empty() || std::any_of(aliases.begin(), aliases.end(), [](const auto& alias) {
+               std::string alias_string{alias.toStdString()};
+               std::smatch matches;
+               if (!std::regex_match(alias_string,
+                                     matches,
+                                     std::regex{"core([0-9]+[24680])|([0-9]+[24680])\\.04|devel"}))
+                   // Not a supported alias
+                   return false;
+               // The captured index after 0 (full match) indexes the regex groups in order
+               std::string match_string{matches.str(1).empty() ? matches.str(2) : matches.str(1)};
+               if (match_string.empty())
+                   // Matched devel so all captured groups are empty
+                   return true;
+               int major_version{std::stoi(match_string)};
+               return major_version >= earliestSupportedSnapcraftMVersion;
+           });
 }
 
 bool core_mutator(VMImageInfo& info)
