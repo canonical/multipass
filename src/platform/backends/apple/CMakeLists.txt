@@ -16,6 +16,7 @@
 enable_language(OBJCXX)
 
 add_library(apple_backend STATIC
+  apple_virtual_machine.cpp
   apple_vz_wrapper.cpp
   apple_vz_bridge.mm
 )
