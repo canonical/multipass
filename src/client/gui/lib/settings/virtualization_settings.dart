@@ -24,12 +24,11 @@ class VirtualizationSettings extends ConsumerWidget {
           loading: () => null,
           error: (_, __) => null,
         );
-    final networksAsync = ref.watch(networksProvider);
-    final networks = networksAsync.when(
-      data: (data) => data,
-      loading: () => const <String>{},
-      error: (_, __) => const <String>{},
-    );
+    final networks = ref.watch(networksProvider).when(
+          data: (data) => data,
+          loading: () => const <String>{},
+          error: (_, __) => const <String>{},
+        );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
