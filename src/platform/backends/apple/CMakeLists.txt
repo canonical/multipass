@@ -16,6 +16,7 @@
 enable_language(OBJCXX)
 
 add_library(apple_backend STATIC
+  apple_virtual_machine.cpp
   apple_vz_bridge.mm
 )
 
@@ -37,5 +38,7 @@ endif()
 
 target_link_libraries(apple_backend
   PRIVATE
+    daemon
     ${FOUNDATION_FRAMEWORK}
-    ${VIRTUALIZATION_FRAMEWORK})
+    ${VIRTUALIZATION_FRAMEWORK}
+    Qt6::Core)
