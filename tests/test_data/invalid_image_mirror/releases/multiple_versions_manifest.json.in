@@ -89,7 +89,7 @@
               "ftype": "disk1.img",
               "md5": "cc2bc360fec3086edcd4e69d7d8113fc",
               "path": "zesty_newest.img",
-              "sha256": "ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c",
+              "sha256": "ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c-invalid",
               "size": 346882048
             },
             "lxd.tar.xz": {
