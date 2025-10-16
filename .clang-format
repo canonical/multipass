@@ -39,6 +39,42 @@ InsertNewlineAtEOF: true
 PenaltyReturnTypeOnItsOwnLine: 120
 PointerAlignment: Left
 ---
+Language: ObjC
+
+AccessModifierOffset: -4
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: true
+BinPackArguments: false
+BinPackParameters: false
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterExternBlock: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+BreakBeforeBraces: Custom
+ColumnLimit: 100
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+Cpp11BracedListStyle: true
+DerivePointerAlignment: false
+IndentExternBlock: NoIndent
+IndentWidth: 4
+InsertNewlineAtEOF: true
+PenaltyReturnTypeOnItsOwnLine: 120
+PointerAlignment: Left
+---
 Language: Proto
 DisableFormat: true
 ---
