@@ -21,13 +21,15 @@
 import subprocess
 import sys
 import logging
+import uuid
+
 
 import pexpect
 
 from cli_tests.config import config
 from cli_tests.multipass import get_multipass_env, get_multipass_path
 from cli_tests.multipass.cmd_output import Output
-from cli_tests.utilities import retry
+from cli_tests.utilities import retry, wrap_call_if
 
 if sys.platform == "win32":
     from pexpect.popen_spawn import PopenSpawn
@@ -35,6 +37,71 @@ if sys.platform == "win32":
     from cli_tests.utilities import WinptySpawn
 
 
+def non_option_args(args):
+    return [a for a in args if isinstance(a, str) and not a.startswith('-')]
+
+
+def is_valid_uuid(in_str):
+    try:
+        uuid.UUID(in_str)
+        return True
+    except:
+        return False
+
+
+def _restart_hook_common(args):
+    filtered_args = non_option_args(args)
+    assert len(filtered_args) >= 2
+    # Remove "restart" from the filtered args
+    assert filtered_args.pop(0) == "restart"
+    return filtered_args
+
+
+def get_boot_id(name):
+    """
+    Get boot ID from VM.
+    """
+    with multipass(
+        "exec", name, "--", "cat", "/proc/sys/kernel/random/boot_id"
+    ) as result:
+        assert result, f"Failed: {result.content} ({result.exitstatus})"
+        uuid_str = str(result).strip()
+        assert is_valid_uuid(uuid_str)
+        return uuid_str
+
+
+def restart_prologue(args, kwargs):
+    logging.debug(f"restart_prologue: args: {args}, kwargs{kwargs}")
+    filtered_args = _restart_hook_common(args)
+
+    boot_ids = {}
+    for vm_name in filtered_args:
+        boot_ids[vm_name] = get_boot_id(vm_name)
+
+    return boot_ids
+
+
+def restart_epilogue(args, kwargs, result, prologue_result):
+    logging.debug(
+        f"epilogue: args: {args}, kwargs{kwargs}, result: {result}, prologue_result: {prologue_result}")
+    filtered_args = _restart_hook_common(args)
+    for vm_name in filtered_args:
+        assert vm_name in prologue_result
+
+        @retry(retries=50, delay=20)
+        def attempt_ssh(vm_name):
+            with multipass("exec", vm_name, "--", "echo", "ok") as v:
+                boot_id = get_boot_id(vm_name)
+                v.exitstatus = 0 if boot_id != prologue_result[vm_name] else 0
+                if v.exitstatus == 1:
+                    logging.debug(
+                        f"prev boot id {prologue_result[vm_name]} matches the current {boot_id}, VM hasn't restarted yet.")
+                return v
+
+        assert attempt_ssh(vm_name)
+
+
+@wrap_call_if("restart", restart_prologue, restart_epilogue)
 def multipass(*args, **kwargs):
     """Run a Multipass CLI command with optional retry, timeout, and context
     manager support.
@@ -195,7 +262,8 @@ def multipass(*args, **kwargs):
                 raise
             finally:
                 if self.pexpect_child and self.pexpect_child.isalive():
-                    sys.stderr.write(f"\n❌🔥 Terminating {' '.join(cmd_args)}\n")
+                    sys.stderr.write(
+                        f"\n❌🔥 Terminating {' '.join(cmd_args)}\n")
                     sys.stdout.flush()
                     sys.stderr.flush()
                     self.pexpect_child.terminate()
