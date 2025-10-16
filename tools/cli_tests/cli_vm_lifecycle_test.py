@@ -40,7 +40,7 @@ class TestVmLifecycle:
         ]
 
         for op in ops:
-            with multipass(op, f"{name}") as output:
+            with multipass(op, f"{name}", disable_hooks=True) as output:
                 assert not output
                 assert "does not exist" in output
 
