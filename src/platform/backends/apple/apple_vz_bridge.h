@@ -17,6 +17,17 @@
 
 #pragma once
 
+#include <multipass/virtual_machine_description.h>
+
+#include <CoreFoundation/CoreFoundation.h>
+
 namespace multipass::apple
 {
+using VMHandle = std::shared_ptr<void>;
+
+extern "C"
+{
+CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& desc,
+                                   VMHandle& out_handle);
+}
 } // namespace multipass::apple
