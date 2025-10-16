@@ -181,12 +181,14 @@ class WindowsServiceMultipassdController:
         # Prefer the service-provided exit code
         if info.get("SERVICE_EXIT_CODE") is not None:
             try:
-                return int(info["SERVICE_EXIT_CODE"], 0)
+                exit_code = re.search(r'(\d+)', info["SERVICE_EXIT_CODE"]).group(1)
+                return int(exit_code)
             except Exception:
                 pass
         if info.get("WIN32_EXIT_CODE") is not None:
             try:
-                return int(info["WIN32_EXIT_CODE"], 0)
+                exit_code = re.search(r'(\d+)', info["WIN32_EXIT_CODE"]).group(1)
+                return int(exit_code)
             except Exception:
                 pass
         return None
