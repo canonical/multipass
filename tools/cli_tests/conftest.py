@@ -403,7 +403,7 @@ def ensure_sudo_auth():
         if sys.platform == "win32":
             # Enable credential caching
             subprocess.run(
-                [*get_sudo_tool(), "cache", "on"],
+                [*get_sudo_tool(), "cache", "on", "-d", "-1"],
                 capture_output=True,
                 timeout=90,
                 check=False,
