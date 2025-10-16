@@ -29,5 +29,12 @@ extern "C"
 {
 CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& desc,
                                    VMHandle& out_handle);
+
+// Starting and stopping VM
+CFErrorRef start_with_completion_handler(VMHandle& vm_handle);
+CFErrorRef stop_with_completion_handler(VMHandle& vm_handle);
+CFErrorRef request_stop_with_error(VMHandle& vm_handle);
+CFErrorRef pause_with_completion_handler(VMHandle& vm_handle);
+CFErrorRef resume_with_completion_handler(VMHandle& vm_handle);
 }
 } // namespace multipass::applevz
