@@ -31,6 +31,8 @@ find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 find_library(VIRTUALIZATION_FRAMEWORK Virtualization REQUIRED)
 
 target_link_libraries(applevz_backend
+  PUBLIC
+    fmt::fmt-header-only
   PRIVATE
     daemon
     ${FOUNDATION_FRAMEWORK}
