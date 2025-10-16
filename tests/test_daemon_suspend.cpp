@@ -62,43 +62,6 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
 };
 } // namespace
 
-TEST_F(TestDaemonSuspend, suspendNotSupportedDoesNotStopMounts)
-{
-    auto mock_factory = use_a_mock_vm_factory();
-    std::unordered_map<std::string, mp::VMMount> mounts{
-        {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
-
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
-    config_builder.data_directory = temp_dir->path();
-
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, deactivate_impl).Times(0);
-
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
-    EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
-        .WillOnce(Return(std::move(mock_mount_handler)));
-
-    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
-    EXPECT_CALL(*mock_factory, require_suspend_support)
-        .WillOnce(Throw(mp::NotImplementedOnThisBackendException{"suspend"}));
-
-    mp::Daemon daemon{config_builder.build()};
-
-    mp::SuspendRequest request;
-    request.mutable_instance_names()->add_instance_name(mock_instance_name);
-
-    auto status = call_daemon_slot(
-        daemon,
-        &mp::Daemon::suspend,
-        request,
-        StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
-
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(),
-                HasSubstr(("The suspend feature is not implemented on this backend.")));
-}
-
 TEST_F(TestDaemonSuspend, suspendStopsMounts)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -131,26 +94,4 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
         StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
 
     EXPECT_TRUE(status.ok());
-}
-
-TEST_F(TestDaemonSuspend, suspendNotSupportedReturnsErrorStatus)
-{
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
-    config_builder.data_directory = temp_dir->path();
-
-    mp::Daemon daemon{config_builder.build()};
-
-    mp::SuspendRequest request;
-    request.mutable_instance_names()->add_instance_name(mock_instance_name);
-
-    auto status = call_daemon_slot(
-        daemon,
-        &mp::Daemon::suspend,
-        request,
-        StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>{});
-
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(),
-                HasSubstr(("The suspend feature is not implemented on this backend.")));
 }

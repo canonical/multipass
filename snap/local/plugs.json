@@ -1,11 +1,8 @@
 {
-  "multipass-support":{
+  "multipass-support": {
     "allow-installation": "true"
   },
-  "home":{
+  "home": {
     "allow-connection": "true"
-  },
-  "lxd":{
-    "allow-installation": "true"
   }
 }

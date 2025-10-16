@@ -13,7 +13,7 @@ A string identifying the hypervisor back-end in use.
 
 ## Possible values
 
-  - `qemu` and `lxd` (deprecated) on Linux
+  - `qemu` on Linux
   - `hyperv` and `virtualbox` on Windows
   - `qemu` and `virtualbox` on macOS 10.15+
   - *(deprecated)* `hyperkit` on Intel macOS 10.15+

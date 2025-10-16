@@ -27,8 +27,6 @@
 #include "tests/temp_dir.h"
 #include "tests/test_with_mocked_bin_path.h"
 
-#include <src/platform/backends/lxd/lxd_virtual_machine_factory.h>
-
 #include "tests/qemu/linux/mock_dnsmasq_server.h"
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 #include <src/platform/platform_linux_detail.h>
@@ -115,7 +113,7 @@ TEST_F(PlatformLinux, testEmptySyncWintermProfiles)
 
 TEST_F(PlatformLinux, testDefaultDriver)
 {
-    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "lxd"));
+    EXPECT_EQ(MP_PLATFORM.default_driver(), "qemu");
 }
 
 TEST_F(PlatformLinux, testDefaultPrivilegedMounts)
@@ -126,11 +124,6 @@ TEST_F(PlatformLinux, testDefaultPrivilegedMounts)
 TEST_F(PlatformLinux, testDefaultDriverProducesCorrectFactory)
 {
     aux_test_driver_factory<mp::QemuVirtualMachineFactory>("qemu");
-}
-
-TEST_F(PlatformLinux, testLxdDriverProducesCorrectFactory)
-{
-    aux_test_driver_factory<mp::LXDVirtualMachineFactory>("lxd");
 }
 
 TEST_F(PlatformLinux, testLibvirtInEnvVarIsIgnored)

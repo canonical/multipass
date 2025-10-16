@@ -1,10 +1,6 @@
 (explanation-driver)=
 # Driver
 
-```{warning}
-Support for LXD will be deprecated and removed in a future release.
-```
-
 > See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [`local.driver`](/reference/settings/local-driver), [Instance](/explanation/instance), [Platform](/explanation/platform)
 
 A **driver** is the technology through which Multipass emulates a running machine. It corresponds to a hypervisor or intermediary technology to run virtual machines. The driver is sometimes also referred to as "backend".
@@ -17,7 +13,7 @@ On some platforms, it is possible to select a driver during installation. Until 
 
 Different sets of drivers are available on different platforms:
 
-- On Linux, Multipass can be configured to use QEMU and LXD. As of Multipass version 1.16, LXD is deprecated.
+- On Linux, Multipass can be configured to use QEMU. As of Multipass version 1.16, LXD and libvirt are no longer available.
 - On macOS, the options are QEMU and VirtualBox. As of Multipass version 1.13, Hyperkit is no longer available.
 - On Windows, Multipass uses Hyper-V (only available on Windows Pro) or VirtualBox.
 
@@ -52,15 +48,15 @@ While we strive to offer a uniform interface across the board, not all features 
 
 | Feature | Only supported on... | Notes |
 |--- | --- | --- |
-| **Native mounts** | <ul><li>Hyper-V</li><li>LXD (deprecated)</li><li>QEMU</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
-| **Extra networks** | <ul><li>Hyper-V</li><li>LXD (deprecated)</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`networks`](/reference/command-line-interface/networks) command, as well as the `--network` and `--bridged` options in [`launch`](/reference/command-line-interface/launch). |
+| **Native mounts** | <ul><li>Hyper-V</li><li>QEMU</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
+| **Extra networks** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`networks`](/reference/command-line-interface/networks) command, as well as the `--network` and `--bridged` options in [`launch`](/reference/command-line-interface/launch). |
 | **Snapshots** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> |  |
 | **Clone** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> |  This affects the [`clone`](/reference/command-line-interface/clone) command.|
 | **VM suspension** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
 
 <!-- old formatting
-- **Native mounts** are supported only on Hyper-V, QEMU, and LXD. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).
-- **Extra networks** are supported only on LXD, Hyper-V, VirtualBox, and QEMU on macOS. This affects the [`networks`](/reference/command-line-interface/networks) command, as well as the `--network` and `--bridged` options in [`launch`](/reference/command-line-interface/launch).
+- **Native mounts** are supported only on Hyper-V and QEMU. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).
+- **Extra networks** are supported only on Hyper-V, VirtualBox, and QEMU on macOS. This affects the [`networks`](/reference/command-line-interface/networks) command, as well as the `--network` and `--bridged` options in [`launch`](/reference/command-line-interface/launch).
 - **Snapshots** are supported only on QEMU, Hyper-V, and VirtualBox *[the latter since version 1.15]*.
 - **VM suspension** is supported on QEMU, libvirt, Hyper-V, and VirtualBox. This affects the [`suspend`](/reference/command-line-interface/suspend) command.
 -->
