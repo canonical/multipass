@@ -27,7 +27,7 @@ from .threadutils import (
     StdoutAsyncSubprocess,
     wait_for_future,
 )
-from .functional import retry
+from .functional import retry, wrap_call_if
 from .privutils import run_in_new_interpreter, get_sudo_tool, sudo
 from .procutils import send_ctrl_c
 from .temputils import TempDirectory
