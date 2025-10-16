@@ -135,4 +135,101 @@ CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& d
         return nullptr;
     }
 }
+
+CFErrorRef start_with_completion_handler(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+    // __block does not retain; we return ownership to caller.
+    __block CFErrorRef err = nullptr;
+
+    [vm startWithCompletionHandler:^(NSError* _Nullable error) {
+      if (err) {
+          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
+          err = (CFErrorRef)CFBridgingRetain(error);
+      }
+
+      dispatch_semaphore_signal(sema);
+    }];
+
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+
+    return err;
+}
+
+CFErrorRef stop_with_completion_handler(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+    // __block does not retain; we return ownership to caller.
+    __block CFErrorRef err = nullptr;
+
+    [vm stopWithCompletionHandler:^(NSError* _Nullable error) {
+      if (err) {
+          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
+          err = (CFErrorRef)CFBridgingRetain(error);
+      }
+
+      dispatch_semaphore_signal(sema);
+    }];
+
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+
+    return err;
+}
+
+CFErrorRef request_stop_with_error(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    NSError* err = nil;
+    [vm requestStopWithError:&err];
+
+    return err ? (CFErrorRef)CFBridgingRetain(err) : nullptr;
+}
+
+CFErrorRef pause_with_completion_handler(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+    // __block does not retain; we return ownership to caller.
+    __block CFErrorRef err = nullptr;
+
+    [vm pauseWithCompletionHandler:^(NSError* _Nullable error) {
+      if (err) {
+          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
+          err = (CFErrorRef)CFBridgingRetain(error);
+      }
+
+      dispatch_semaphore_signal(sema);
+    }];
+
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+
+    return err;
+}
+
+CFErrorRef resume_with_completion_handler(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+    // __block does not retain; we return ownership to caller.
+    __block CFErrorRef err = nullptr;
+
+    [vm resumeWithCompletionHandler:^(NSError* _Nullable error) {
+      if (err) {
+          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
+          err = (CFErrorRef)CFBridgingRetain(error);
+      }
+
+      dispatch_semaphore_signal(sema);
+    }];
+
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+
+    return err;
+}
 } // namespace multipass::apple
