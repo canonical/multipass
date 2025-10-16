@@ -15,8 +15,29 @@
  *
  */
 
+#include <apple/apple_vz_bridge.h>
 #include <apple/apple_vz_wrapper.h>
+
+#include <multipass/logging/log.h>
+
+namespace mpl = multipass::logging;
+
+namespace
+{
+constexpr static auto kLogCategory = "vz-wrapper";
+} // namespace
 
 namespace multipass::apple
 {
+CFError AppleVZ::create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::create_vm(...)");
+
+    auto err = init_with_configuration(desc, out_handle);
+
+    if (!err)
+        mpl::debug(kLogCategory, "AppleVZ::create_vm(...) succeeded");
+
+    return CFError(err);
+}
 } // namespace multipass::apple

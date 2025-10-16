@@ -17,7 +17,11 @@
 
 #pragma once
 
+#include <apple/apple_vz_bridge.h>
+#include <apple/cf_error.h>
+
 #include <multipass/singleton.h>
+#include <multipass/virtual_machine_description.h>
 
 #define MP_APPLE_VZ multipass::apple::AppleVZ::instance()
 
@@ -27,5 +31,7 @@ class AppleVZ : public Singleton<AppleVZ>
 {
 public:
     using Singleton<AppleVZ>::Singleton;
+
+    virtual CFError create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const;
 };
 } // namespace multipass::apple
