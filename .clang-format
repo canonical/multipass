@@ -39,6 +39,12 @@ InsertNewlineAtEOF: true
 PenaltyReturnTypeOnItsOwnLine: 120
 PointerAlignment: Left
 ---
+Language: ObjC
+ColumnLimit: 100
+BasedOnStyle: LLVM
+IndentWidth: 4
+PointerAlignment: Left
+---
 Language: Proto
 DisableFormat: true
 ---
