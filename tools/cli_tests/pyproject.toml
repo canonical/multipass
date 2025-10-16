@@ -2,7 +2,8 @@
 name = "multipass-cli-tests"
 version = "1.0.0"
 readme = "README.md"
-dependencies = ["pytest", "pexpect", "jq", "pywinpty; sys_platform == 'win32'", "pywin32; sys_platform == 'win32'" ]
+# pywinpty 3 hangs when "pty_proc.pty.iseof()" is called. Remove the pin when it's fixed.
+dependencies = ["pytest", "pexpect", "jq", "pywinpty==2.0.15; sys_platform == 'win32'", "pywin32; sys_platform == 'win32'" ]
 
 # This project is not intended for packaging.
 [tool.setuptools]
