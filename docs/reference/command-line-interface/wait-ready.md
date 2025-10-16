@@ -3,7 +3,7 @@
 
 > See also: [`start`](reference-command-line-interface-start), [`launch`](reference-command-line-interface-launch)
 
-The `multipass wait-ready` command blocks execution until the Multipass daemon is fully initialized and ready to accept requests. This is particularly useful in automated environments such as CI/CD pipelines, where subsequent Multipass commands may fail if the daemon has not yet finished starting up.
+The `multipass wait-ready` command blocks execution until the Multipass daemon is fully initialized and ready to accept requests. This is particularly useful in batch operations and automated environments such as CI/CD pipelines, where subsequent Multipass commands may fail if the daemon has not yet finished starting up.
 
 By waiting for the daemon to reach a ready state, scripts and services can safely perform operations such as launching or listing instances without encountering transient "daemon not ready" errors.
 
