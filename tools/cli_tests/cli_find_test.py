@@ -48,18 +48,31 @@ supported_blueprints = [
 class TestFind:
     """Find command tests."""
 
-    @pytest.mark.parametrize("show", ["", "--only-images", "--only-blueprints"])
+    @pytest.mark.parametrize("show", ["", "--only-images",
+                                      "--only-blueprints"])
     def test_find_all(self, show):
+
+        if not multipass_version_has_feature("blueprints") and show in ["--only-images",
+                                                                        "--only-blueprints"]:
+            pytest.skip("The version does not support blueprints, skipping.")
+
         # Confirm that it shows at least 1 devel, 2 LTS releases
         with multipass("find", "--format=json", show).json() as output:
-            assert "blueprints (deprecated)" in output or (show == "--only-images")
-            assert "images" in output or (show == "--only-blueprints")
-            if show in ["", "--only-blueprints"]:
-                # Check blueprints
-                blueprints = output.jq('."blueprints (deprecated)" | keys[] ').all()
-                assert blueprints == supported_blueprints
+            assert "images" in output or (
+                show == "--only-blueprints")
+
+            if multipass_version_has_feature("blueprints"):
+
+                if show in ["", "--only-blueprints"]:
+                    assert "blueprints (deprecated)" in output or (
+                        show == "--only-images")
+                    # Check blueprints
+                    blueprints = output.jq(
+                        '."blueprints (deprecated)" | keys[] ').all()
+                    assert blueprints == supported_blueprints
 
             if show in ["", "--only-images"]:
+                assert "images" in output
                 # Verify that find has at least 2 LTS images
                 lts_images = output.jq(
                     '.images | with_entries(select(.value.release | contains("LTS")))'
