@@ -16,6 +16,7 @@
 #
 
 import time
+from functools import wraps
 
 import pexpect
 
@@ -41,4 +42,28 @@ def retry(retries=3, delay=1.0):
 
         return wrapper
 
+    return decorator
+
+
+def wrap_call_if(value, pre=None, post=None, *, index=0, key=None):
+    """Run pre() before and post() after fn() if args[index]==value or kwargs[key]==value."""
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            match = (
+                (key is not None and kwargs.get(key) == value)
+                or (len(args) > index and args[index] == value)
+            )
+            pre_result = None
+            if match and pre:
+                pre_result = pre(args, kwargs)
+            try:
+                result = fn(*args, **kwargs)
+            except Exception:
+                raise
+
+            if match and post:
+                post(args, kwargs, result, pre_result)
+            return result
+        return wrapper
     return decorator
