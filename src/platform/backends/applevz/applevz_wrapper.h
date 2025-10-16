@@ -17,7 +17,11 @@
 
 #pragma once
 
+#include <applevz/applevz_bridge.h>
+#include <applevz/cf_error.h>
+
 #include <multipass/singleton.h>
+#include <multipass/virtual_machine_description.h>
 
 #define MP_APPLEVZ multipass::applevz::AppleVZ::instance()
 
@@ -27,5 +31,7 @@ class AppleVZ : public Singleton<AppleVZ>
 {
 public:
     using Singleton<AppleVZ>::Singleton;
+
+    virtual CFError create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const;
 };
 } // namespace multipass::applevz
