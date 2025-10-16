@@ -227,4 +227,34 @@ CFErrorRef resume_with_completion_handler(VMHandle& vm_handle) {
 
     return err;
 }
+
+bool can_start(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    return [vm canStart];
+}
+
+bool can_pause(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    return [vm canPause];
+}
+
+bool can_resume(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    return [vm canResume];
+}
+
+bool can_stop(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    return [vm canStop];
+}
+
+bool can_request_stop(VMHandle& vm_handle) {
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    return [vm canRequestStop];
+}
 } // namespace multipass::apple
