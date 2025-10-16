@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <apple/apple_vz_wrapper.h>
+
 #include <multipass/virtual_machine_description.h>
 #include <shared/base_virtual_machine.h>
 
@@ -43,5 +45,6 @@ public:
 private:
     VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
+    VMHandle vm_handle{nullptr};
 };
 } // namespace multipass::apple

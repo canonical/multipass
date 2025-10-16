@@ -21,6 +21,13 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_status_monitor.h>
 
+namespace mpl = multipass::logging;
+
+namespace
+{
+constexpr static auto kLogCategory = "apple-virtual-machine";
+}
+
 namespace multipass::apple
 {
 AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& desc,
@@ -29,6 +36,11 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
+    vm_handle.reset();
+    if (!MP_APPLE_VZ.create_vm(desc, vm_handle))
+    {
+        mpl::warn(kLogCategory, "Failed to create handle for VM: `{}`!", vm_name);
+    }
 }
 
 AppleVZVirtualMachine::~AppleVZVirtualMachine()
