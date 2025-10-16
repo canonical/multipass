@@ -40,7 +40,9 @@ endif()
 
 target_link_libraries(apple_backend
   PUBLIC
+    Qt6::Core
     fmt::fmt-header-only
+    logger
   PRIVATE
     ${FOUNDATION_FRAMEWORK}
     ${VIRTUALIZATION_FRAMEWORK})
