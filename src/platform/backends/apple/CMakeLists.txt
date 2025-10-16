@@ -39,6 +39,8 @@ if(NOT VIRTUALIZATION_FRAMEWORK)
 endif()
 
 target_link_libraries(apple_backend
+  PUBLIC
+    fmt::fmt-header-only
   PRIVATE
     ${FOUNDATION_FRAMEWORK}
     ${VIRTUALIZATION_FRAMEWORK})
