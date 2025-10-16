@@ -33,5 +33,7 @@ public:
     using Singleton<AppleVZ>::Singleton;
 
     virtual CFError create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const;
+    virtual CFError start_vm(VMHandle& vm_handle) const;
+    virtual CFError stop_vm(bool force, VMHandle& vm_handle) const;
 };
 } // namespace multipass::apple
