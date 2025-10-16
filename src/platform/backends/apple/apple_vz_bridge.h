@@ -36,5 +36,12 @@ CFErrorRef stop_with_completion_handler(VMHandle& vm_handle);
 CFErrorRef request_stop_with_error(VMHandle& vm_handle);
 CFErrorRef pause_with_completion_handler(VMHandle& vm_handle);
 CFErrorRef resume_with_completion_handler(VMHandle& vm_handle);
+
+// Getting the state of VM
+bool can_start(VMHandle& vm_handle);
+bool can_pause(VMHandle& vm_handle);
+bool can_resume(VMHandle& vm_handle);
+bool can_stop(VMHandle& vm_handle);
+bool can_request_stop(VMHandle& vm_handle);
 }
 } // namespace multipass::apple
