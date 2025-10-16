@@ -17,10 +17,41 @@
 
 #pragma once
 
+#include <fmt/format.h>
+
 #include <CoreFoundation/CoreFoundation.h>
 
 namespace multipass::apple
 {
+
+namespace
+{
+
+inline std::string CFStringToStdString(CFStringRef s)
+{
+    if (!s)
+        return {};
+
+    CFIndex len = CFStringGetLength(s);
+    CFIndex maxSize = CFStringGetMaximumSizeForEncoding(len, kCFStringEncodingUTF8) + 1;
+
+    auto buffer = std::make_unique<char[]>(maxSize);
+    if (!buffer)
+    {
+        return std::string();
+    }
+
+    if (CFStringGetCString(s, buffer.get(), maxSize, kCFStringEncodingUTF8))
+    {
+        std::string result(buffer.get());
+        return result;
+    }
+
+    return std::string();
+}
+
+} // namespace
+
 struct CFError
 {
     CFErrorRef ref = nullptr;
@@ -61,4 +92,40 @@ struct CFError
         return ref;
     }
 };
+
 } // namespace multipass::apple
+
+namespace fmt
+{
+template <>
+struct formatter<CFErrorRef>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(CFErrorRef e, FormatContext& ctx)
+    {
+        if (!e)
+            return format_to(ctx.out(), "<null CFErrorRef>");
+
+        CFIndex code = CFErrorGetCode(e);
+        CFStringRef domain = CFErrorGetDomain(e);
+        CFStringRef desc = CFErrorCopyDescription(e);
+        std::string sdomain = multipass::apple::CFStringToStdString(domain);
+        std::string sdesc = multipass::apple::CFStringToStdString(desc);
+
+        CFRelease(desc);
+
+        return format_to(ctx.out(),
+                         "{} ({}): {}",
+                         sdomain.empty() ? "CFError" : sdomain,
+                         code,
+                         sdesc);
+    }
+};
+
+} // namespace fmt
