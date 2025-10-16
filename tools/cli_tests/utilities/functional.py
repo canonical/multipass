@@ -50,6 +50,10 @@ def wrap_call_if(value, pre=None, post=None, *, index=0, key=None):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
+
+            if kwargs.pop("disable_hooks", False):
+                return fn(*args, **kwargs)
+
             match = (
                 (key is not None and kwargs.get(key) == value)
                 or (len(args) > index and args[index] == value)
