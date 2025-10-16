@@ -1,8 +1,7 @@
 (how-to-guides-manage-instances-use-a-blueprint)=
-# Use a blueprint (deprecated)
-
+# Use a blueprint (removed)
 ```{Warning}
-Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)
+Blueprints have been removed. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)
 ```
 
 > See also:  {ref}`explanation-blueprint`

@@ -3,7 +3,7 @@
 
 The following guides provide step-by-step instructions on how to manage Multipass instances.
 
-Multipass allows you to create Ubuntu instances with a single command. As your needs grow, you can modify and customise instances as well as use and create blueprints for customised instances: <!--- This line added by @nielsenjared -->
+Multipass allows you to create Ubuntu instances with a single command. As your needs grow, you can modify and customise instances via different options or with the use of cloud-init files: <!--- This line added by @nielsenjared -->
 
 - [Create an instance](how-to-guides-manage-instances-create-an-instance)
 - [Modify an instance](how-to-guides-manage-instances-modify-an-instance)
