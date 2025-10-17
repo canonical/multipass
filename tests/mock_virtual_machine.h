@@ -37,14 +37,28 @@ template <typename T = VirtualMachine,
 struct MockVirtualMachineT : public T
 {
     template <typename... Args>
-    MockVirtualMachineT(Args&&... args)
+    explicit MockVirtualMachineT(Args&&... args)
         : MockVirtualMachineT{std::make_unique<TempDir>(), std::forward<Args>(args)...}
     {
     }
 
     template <typename... Args>
-    MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
+        requires(std::is_same_v<VirtualMachine, T>)
+    explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
+        : T{std::forward<Args>(args)...}, tmp_dir{std::move(tmp_dir)}
+    {
+        setup_default_actions();
+    }
+
+    template <typename... Args>
+        requires(!std::is_same_v<VirtualMachine, T>)
+    explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
         : T{std::forward<Args>(args)..., tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    {
+        setup_default_actions();
+    }
+
+    void setup_default_actions()
     {
         ON_CALL(*this, current_state).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
