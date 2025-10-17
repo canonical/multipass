@@ -160,18 +160,15 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name,
                                                                    const bool allow_unsupported)
 {
-    std::vector<mp::VMImageInfo> images;
-    auto custom_manifest = manifest_from(remote_name);
-    std::copy(custom_manifest->products.begin(),
-              custom_manifest->products.end(),
-              std::back_inserter(images));
+    if (auto custom_manifest = manifest_from(remote_name))
+        return custom_manifest->products;
 
-    return images;
+    return {};
 }
 
 std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
 {
-    return std::vector<std::string>{remote};
+    return {remote};
 }
 
 void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
@@ -199,7 +196,7 @@ void mp::CustomVMImageHost::fetch_manifests(const bool force_update)
 {
     try
     {
-        std::unique_ptr<mp::CustomManifest> custom_manifest = std::make_unique<mp::CustomManifest>(
+        auto custom_manifest = std::make_unique<mp::CustomManifest>(
             fetch_image_info(arch, url_downloader, force_update));
         manifest = std::make_pair(no_remote, std::move(custom_manifest));
     }
