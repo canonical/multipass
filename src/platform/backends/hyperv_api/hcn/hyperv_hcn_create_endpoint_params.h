@@ -45,7 +45,7 @@ struct CreateEndpointParameters
     std::string endpoint_guid{};
 
     /**
-     * MAC address assocaited with the endpoint (optional).
+     * MAC address associated with the endpoint (optional).
      *
      * HCN will auto-assign a MAC address to the endpoint when
      * not specified, where applicable.
