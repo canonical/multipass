@@ -78,12 +78,8 @@ enum class ComputeSystemState : std::uint8_t
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::hcs::ComputeSystemState, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(multipass::hyperv::hcs::ComputeSystemState state, FormatContext& ctx) const
     {
