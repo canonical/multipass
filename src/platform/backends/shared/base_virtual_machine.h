@@ -87,6 +87,8 @@ public:
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
+    QDir instance_directory() const override;
+
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -178,4 +180,9 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 {
     const std::unique_lock lock{snapshot_mutex};
     return snapshot_count;
+}
+
+inline QDir multipass::BaseVirtualMachine::instance_directory() const
+{
+    return instance_dir;
 }
