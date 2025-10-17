@@ -40,6 +40,14 @@ plugs:
     interface: home
     read: all
 
+slots:
+  multipass-bin:
+    interface: content
+    content: multipass-executables
+    read:
+      - $SNAP/bin/multipass
+      - $SNAP/bin/multipassd
+
 apps:
   multipassd:
     command: bin/launch-multipassd
