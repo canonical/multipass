@@ -288,7 +288,10 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 
 OperationResult HCNWrapper::delete_network(const std::string& network_guid) const
 {
-    mpl::debug(kLogCategory, "HCNWrapper::delete_network(...) > network_guid: {} {}", network_guid, static_cast<bool>(api.DeleteNetwork));
+    mpl::debug(kLogCategory,
+               "HCNWrapper::delete_network(...) > network_guid: {} {}",
+               network_guid,
+               static_cast<bool>(api.DeleteNetwork));
     return perform_hcn_operation(api, api.DeleteNetwork, guid_from_string(network_guid));
 }
 
