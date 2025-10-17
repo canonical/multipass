@@ -113,7 +113,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
 
-            images.push_back(std::make_pair(remote_name, *info));
+            images.emplace_back(remote_name, *info);
         }
         else
         {
@@ -124,7 +124,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
                 if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
                     found_hashes.find(entry.id.toStdString()) == found_hashes.end())
                 {
-                    images.push_back(std::make_pair(remote_name, entry));
+                    images.emplace_back(remote_name, entry);
                     found_hashes.insert(entry.id.toStdString());
                 }
             }

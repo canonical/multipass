@@ -151,9 +151,8 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
 {
     std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
-    auto image = info_for(query);
-    if (image != std::nullopt)
-        images.push_back(std::make_pair(query.remote_name, *image));
+    if (auto image = info_for(query))
+        images.emplace_back(query.remote_name, std::move(*image));
 
     return images;
 }
