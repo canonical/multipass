@@ -197,6 +197,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return 0;
     }
 
+    QDir instance_directory() const override
+    {
+        return tmp_dir->path();
+    }
+
     StubSnapshot snapshot;
     std::unique_ptr<TempDir> tmp_dir;
 };

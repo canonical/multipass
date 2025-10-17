@@ -56,6 +56,7 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, get_all_ipv4())
             .WillByDefault(Return(std::vector<std::string>{"192.168.2.123"}));
         ON_CALL(*this, ipv6()).WillByDefault(Return("::/0"));
+        ON_CALL(*this, instance_directory).WillByDefault(Return(this->tmp_dir->path()));
     }
 
     MOCK_METHOD(void, start, (), (override));
@@ -116,6 +117,7 @@ struct MockVirtualMachineT : public T
                 (const Snapshot*),
                 (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
+    MOCK_METHOD(QDir, instance_directory, (), (const, override));
 
     std::unique_ptr<TempDir> tmp_dir;
 };
