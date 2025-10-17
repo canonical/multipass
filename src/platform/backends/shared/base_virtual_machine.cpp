@@ -148,14 +148,14 @@ mp::BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
                                            const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            const Path& instance_dir)
-    : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}
+    : VirtualMachine{state, vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
 {
 }
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            const Path& instance_dir)
-    : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}
+    : VirtualMachine{vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
 {
 }
 
