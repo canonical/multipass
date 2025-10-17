@@ -642,9 +642,36 @@ TEST(Utils, checkFilesystemBytesAvailableReturnsNonNegative)
     EXPECT_GE(bytes_available, 0);
 }
 
-using NormalizeMountTargetParam = std::tuple<std::string, std::string>;
+using MountTargetParam = std::tuple<std::string, std::string>;
 
-class NormalizeMountTargetTest : public TestWithParam<NormalizeMountTargetParam>
+class DefaultMountTargetTest : public TestWithParam<MountTargetParam>
+{
+};
+
+TEST_P(DefaultMountTargetTest, mountTargetsDefaultCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    auto result = MP_UTILS.default_mount_target(QString::fromStdString(input));
+    EXPECT_EQ(result.toStdString(), expected_output);
+}
+
+std::vector<MountTargetParam> default_mount_target_values = {
+    {"", ""},
+    {"Documents", "/home/ubuntu/Documents"},
+    {"Documents/", "/home/ubuntu/Documents"},
+    {"/home/user/Desktop", "/home/ubuntu/Desktop"},
+    {"/home/user/Desktop/", "/home/ubuntu/Desktop"},
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {R"(Documents\)", "/home/ubuntu/Documents"},
+    {R"(C:\Users\user\Documents)", "/home/ubuntu/Documents"},
+    {R"(C:\Users\user\Documents\)", "/home/ubuntu/Documents"},
+#endif
+};
+
+INSTANTIATE_TEST_SUITE_P(Utils, DefaultMountTargetTest, ValuesIn(default_mount_target_values));
+
+class NormalizeMountTargetTest : public TestWithParam<MountTargetParam>
 {
 };
 
@@ -656,19 +683,27 @@ TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
     EXPECT_EQ(result.toStdString(), expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    Utils,
-    NormalizeMountTargetTest,
-    Values(std::make_tuple("Documents", "/home/ubuntu/Documents"),
-           std::make_tuple("./folder", "/home/ubuntu/folder"),
-           std::make_tuple("../folder", "/home/folder"),
-           std::make_tuple("../..//folder", "/folder"),
-           std::make_tuple("/usr/local/bin//.././/.//bin/././", "/usr/local/bin"),
-           std::make_tuple("folder//subfolder", "/home/ubuntu/folder/subfolder"),
-           std::make_tuple("./Documents/../Downloads", "/home/ubuntu/Downloads"),
-           std::make_tuple("", "/home/ubuntu"),
-           std::make_tuple(".", "/home/ubuntu"),
-           std::make_tuple("..", "/home"),
-           std::make_tuple("folder/./subfolder", "/home/ubuntu/folder/subfolder"),
-           std::make_tuple("folder/../other-folder", "/home/ubuntu/other-folder"),
-           std::make_tuple("//", "/")));
+std::vector<MountTargetParam> normalize_mount_target_values = {
+    {"Documents", "/home/ubuntu/Documents"},
+    {"", "/home/ubuntu"},
+    {".", "/home/ubuntu"},
+    {"..", "/home"},
+    {"./", "/home/ubuntu"},
+    {"folder/", "/home/ubuntu/folder"},
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {R"(.\)", "/home/ubuntu"},
+    {R"(folder\)", "/home/ubuntu/folder"},
+    {R"(folder\subfolder)", "/home/ubuntu/folder/subfolder"},
+#endif
+    {"./folder", "/home/ubuntu/folder"},
+    {"../folder", "/home/folder"},
+    {"../..//folder", "/folder"},
+    {"/usr/local/bin//.././/.//bin/././", "/usr/local/bin"},
+    {"folder//subfolder", "/home/ubuntu/folder/subfolder"},
+    {"./Documents/../Downloads", "/home/ubuntu/Downloads"},
+    {"folder/./subfolder", "/home/ubuntu/folder/subfolder"},
+    {"folder/../other-folder", "/home/ubuntu/other-folder"},
+    {"//", "/"},
+};
+
+INSTANTIATE_TEST_SUITE_P(Utils, NormalizeMountTargetTest, ValuesIn(normalize_mount_target_values));
