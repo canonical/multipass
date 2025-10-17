@@ -60,10 +60,13 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
                                                         sftp_server_free};
+    // The function sftp_server_init was expanded here to avoid deprecation warnings.
+    // TODO: move to callback-based sftp implementations.
+    // https://github.com/canonical/multipass/issues/4445
 
     /* handles setting the sftp->client_version */
     sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
-    if (msg == NULL)
+    if (msg == nullptr)
     {
         throw mp::SSHException("[sftp] server init failed: 'Null client message'");
     }
