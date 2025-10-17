@@ -271,6 +271,23 @@ const passphraseKey = 'local.passphrase';
 final daemonSettingProvider = AsyncNotifierProvider.autoDispose
     .family<DaemonSettingNotifier, String, String>(DaemonSettingNotifier.new);
 
+final trayMenuDataProvider = Provider.autoDispose((ref) {
+  return ref.watch(daemonAvailableProvider)
+      ? ref.watch(vmStatusesProvider)
+      : null;
+});
+
+final daemonVersionProvider = Provider((ref) {
+  if (ref.watch(daemonAvailableProvider)) {
+    ref
+        .watch(grpcClientProvider)
+        .version()
+        .catchError((_) => 'failed to get version')
+        .then((version) => ref.state = version);
+  }
+  return 'loading...';
+});
+
 enum VmResource { cpus, memory, disk, bridged }
 
 typedef VmResourceKey = ({String name, VmResource resource});
