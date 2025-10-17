@@ -160,6 +160,7 @@ private:
 
 protected:
     const SSHKeyProvider& key_provider;
+    const QDir instance_dir;
 
 private:
     std::optional<SSHSession> ssh_session = std::nullopt;
