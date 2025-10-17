@@ -72,5 +72,12 @@ struct HCSWrapperInterface
         void* context,
         void (*callback)(void* hcs_event, void* context)) const = 0;
     virtual ~HCSWrapperInterface() = default;
+
+protected:
+    HCSWrapperInterface() = default;
+    HCSWrapperInterface(const HCSWrapperInterface&) = default;
+    HCSWrapperInterface(HCSWrapperInterface&&) = default;
+    HCSWrapperInterface& operator=(const HCSWrapperInterface&) = default;
+    HCSWrapperInterface& operator=(HCSWrapperInterface&&) = default;
 };
 } // namespace multipass::hyperv::hcs
