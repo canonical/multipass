@@ -25,12 +25,11 @@
 #include <multipass/virtual_machine.h>
 
 #include <memory>
+#include <type_traits>
 
 using namespace testing;
 
-namespace multipass
-{
-namespace test
+namespace multipass::test
 {
 template <typename T = VirtualMachine,
           typename = std::enable_if_t<std::is_base_of_v<VirtualMachine, T>>>
@@ -136,5 +135,4 @@ struct MockVirtualMachineT : public T
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;
-} // namespace test
-} // namespace multipass
+} // namespace multipass::test
