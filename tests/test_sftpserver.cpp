@@ -349,12 +349,15 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
 
 TEST_F(SftpServer, sshfsRestartsOnTimeout)
 {
+    // This test verifies that after a sshfs timeout, the sftp server correctly restarts. To do so,
+    // it simulates failure in the first non-sftp-init message. Intended execution order :
+    // exec->msg->msg->exec(not "sudo sshfs")->exec->msg->msg
     int num_calls{0};
     auto request_exec = [this, &num_calls](ssh_channel, const char* raw_cmd) {
         std::string cmd{raw_cmd};
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
-            if (++num_calls < 3)
+            if (++num_calls < 5)
             {
                 exit_status_mock.set_ssh_rc(SSH_OK);
                 exit_status_mock.set_no_exit();
@@ -366,19 +369,18 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
 
     REPLACE(ssh_channel_request_exec, request_exec);
     auto message{make_msg(SSH_FXP_INIT)};
-    auto get_client_msg = [this, &num_calls, &message, calls = 0](auto...) mutable {
+    auto get_client_msg = [this, &num_calls, &message](auto...) mutable {
         exit_status_mock.set_ssh_rc(SSH_OK);
-        exit_status_mock.set_exit_status(num_calls == 1 ? exit_status_mock.failure_status
+        exit_status_mock.set_exit_status(num_calls == 2 ? exit_status_mock.failure_status
                                                         : exit_status_mock.success_status);
-
-        return (calls++ & 1) ? nullptr : message.get();
+        return ((++num_calls + 1) % 3 != 0) ? nullptr : message.get();
     };
     REPLACE(sftp_get_client_message, get_client_msg);
     auto sftp = make_sftpserver();
 
     sftp.run();
 
-    EXPECT_EQ(num_calls, 2);
+    EXPECT_EQ(num_calls, 6);
 }
 
 TEST_F(SftpServer, stopsAfterANullMessage)
