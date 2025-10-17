@@ -36,6 +36,14 @@ struct HCNWrapperInterface
         const struct CreateEndpointParameters& params) const = 0;
     [[nodiscard]] virtual OperationResult delete_endpoint(
         const std::string& endpoint_guid) const = 0;
+
     virtual ~HCNWrapperInterface() = default;
+
+protected:
+    HCNWrapperInterface() = default;
+    HCNWrapperInterface(const HCNWrapperInterface&) = default;
+    HCNWrapperInterface(HCNWrapperInterface&&) = default;
+    HCNWrapperInterface& operator=(const HCNWrapperInterface&) = default;
+    HCNWrapperInterface& operator=(HCNWrapperInterface&&) = default;
 };
 } // namespace multipass::hyperv::hcn
