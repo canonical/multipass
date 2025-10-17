@@ -21,6 +21,8 @@
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper_interface.h>
 
+#include <multipass/disabled_copy_move.h>
+
 namespace multipass::hyperv::hcs
 {
 
@@ -29,7 +31,7 @@ namespace multipass::hyperv::hcs
  * the common operations that Host Compute System
  * API provide.
  */
-struct HCSWrapper : public HCSWrapperInterface
+struct HCSWrapper : public HCSWrapperInterface, DisabledCopyMove
 {
 
     /**
@@ -40,10 +42,6 @@ struct HCSWrapper : public HCSWrapperInterface
      * The wrapper will use the real HCN API by default.
      */
     HCSWrapper(const HCSAPITable& api_table = {});
-    HCSWrapper(const HCSWrapper&) = default;
-    HCSWrapper(HCSWrapper&&) = default;
-    HCSWrapper& operator=(const HCSWrapper&) = default;
-    HCSWrapper& operator=(HCSWrapper&&) = default;
 
     // ---------------------------------------------------------
 
@@ -227,11 +225,8 @@ struct HCSWrapper : public HCSWrapperInterface
         void* context,
         void (*callback)(void* hcs_event, void* context)) const override;
 
-    const HCSAPITable& api() const {
-        return api_table.get();
-    }
 private:
-    std::reference_wrapper<const HCSAPITable> api_table;
+    const HCSAPITable api;
 };
 
 } // namespace multipass::hyperv::hcs
