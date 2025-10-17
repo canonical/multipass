@@ -1,13 +1,13 @@
 (how-to-guides-manage-instances-create-an-instance)=
 # Create an instance
 
-> See also: [`launch`](/reference/command-line-interface/launch), [Instance](/explanation/instance)
+> See also: [`launch`](reference-command-line-interface-launch), [Instance](explanation-instance)
 
 This document demonstrates various ways to create an instance with Multipass. While every method is a one-liner involving the command `multipass launch`, each showcases a different option that you can use to get exactly the instance that you want.
 
 ## Create an instance
 
-> See also: [`launch`](/reference/command-line-interface/launch), [`info`](/reference/command-line-interface/info)
+> See also: [`launch`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
 
 To create an instance with Multipass, run the command `multipass launch`. This launches a new instance, which is randomly named; for example:
 
@@ -32,7 +32,7 @@ Memory usage:   71.6M out of 985.4M
 
 ## Create an instance with a specific image
 
-> See also: [`find`](/reference/command-line-interface/find), [`launch <image>`](/reference/command-line-interface/launch), [`info`](/reference/command-line-interface/info)
+> See also: [`find`](reference-command-line-interface-find), [`launch <image>`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
 
 To find out which images are available, run `multipass find`. Here's a sample output:
 
@@ -77,7 +77,7 @@ Mounts:         --
 
 ## Create an instance with a custom name
 
-> See also: [`launch --name`](/reference/command-line-interface/launch)
+> See also: [`launch --name`](reference-command-line-interface-launch)
 
 To launch an instance with a specific name, add the `--name` option to the command line; for example `multipass launch kinetic --name helpful-duck`:
 
@@ -88,7 +88,7 @@ Launched: helpful-duck
 
 ## Create an instance with custom CPU number, disk and RAM
 
-> See also: [`launch --cpus --disk --memory`](/reference/command-line-interface/launch)
+> See also: [`launch --cpus --disk --memory`](reference-command-line-interface-launch)
 
 You can specify a custom number of CPUs, disk and RAM size using the `--cpus`, `--disk` and `--memory` arguments, respectively. For example:
 
@@ -98,7 +98,7 @@ multipass launch --cpus 4 --disk 20G --memory 8G
 
 ## Create an instance with primary status
 
-> See also: [`launch --name primary`](/reference/command-line-interface/launch)
+> See also: [`launch --name primary`](reference-command-line-interface-launch)
 
 An instance can obtain the primary status at creation time if its name is `primary`:
 
@@ -106,14 +106,14 @@ An instance can obtain the primary status at creation time if its name is `prima
 multipass launch kinetic --name primary
 ```
 
-For more information, see [How to use the primary instance](/how-to-guides/manage-instances/use-the-primary-instance).
+For more information, see [How to use the primary instance](how-to-guides-manage-instances-use-the-primary-instance).
 
 (create-an-instance-with-multiple-network-interfaces)=
 ## Create an instance with multiple network interfaces
 
-> See also: [`launch --network`](/reference/command-line-interface/launch)
+> See also: [`launch --network`](reference-command-line-interface-launch)
 
-Multipass can create instances with additional network interfaces using the `multipass launch` command with the `--network` option. This is complemented by the [`networks`](/reference/command-line-interface/networks) command, that you can use to find available host networks to bridge with.
+Multipass can create instances with additional network interfaces using the `multipass launch` command with the `--network` option. This is complemented by the [`networks`](reference-command-line-interface-networks) command, that you can use to find available host networks to bridge with.
 
 This feature is only supported for images with [`cloud-init` support for v2 network config](https://cloudinit.readthedocs.io/en/latest/topics/network-config-format-v2.html), which in turn requires [netplan](https://netplan.io/) to be installed, meaning that you'll require Ubuntu 17.10 and Ubuntu Core 16 (except `snapcraft:core16`) or later. More specifically, this feature is only supported in the following scenarios:
 
@@ -123,7 +123,7 @@ This feature is only supported for images with [`cloud-init` support for v2 netw
 
 The `--network` option can be given multiple times to request multiple network interfaces beyond the default one, which is always present. Each time you add the `--network` option you also need to provide an argument specifying the properties of the desired interface:
 
-- `name` - This is the only required value, used to identify the host network to connect the instance's device to (see [`networks`](/reference/command-line-interface/networks) for possible values).
+- `name` - This is the only required value, used to identify the host network to connect the instance's device to (see [`networks`](reference-command-line-interface-networks) for possible values).
 - `mode` - Either `auto` (default) or `manual`; with `auto`, the instance will attempt to configure the network automatically.
 - `mac` - Custom MAC address to use for the device.
 
@@ -230,11 +230,11 @@ Another option is to install `NetworkManager`, but other network handlers need t
 
 ## Create an instance with a custom DNS
 
-In some scenarios the default of using the system-provided DNS will not be sufficient. When that's the case, you can use the `--cloud-init` option to the [`launch`](/reference/command-line-interface/launch) command, or modify the networking configuration after the instance started.
+In some scenarios the default of using the system-provided DNS will not be sufficient. When that's the case, you can use the `--cloud-init` option to the [`launch`](reference-command-line-interface-launch) command, or modify the networking configuration after the instance started.
 
 ### The `--cloud-init` approach
 
-> See also: [`launch --cloud-init`](/reference/command-line-interface/launch)
+> See also: [`launch --cloud-init`](reference-command-line-interface-launch)
 
 To use a custom DNS in your instances, you can use this `cloud-init` snippet:
 
