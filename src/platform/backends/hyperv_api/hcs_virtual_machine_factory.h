@@ -54,13 +54,6 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 
     [[nodiscard]] std::vector<NetworkInterfaceInfo> networks() const override;
 
-    void require_snapshots_support() const override
-    {
-    }
-    void require_clone_support() const override
-    {
-    }
-
 protected:
     [[nodiscard]] std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
     void remove_resources_for_impl(const std::string& name) override;
