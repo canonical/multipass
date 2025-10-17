@@ -120,9 +120,6 @@ public:
                       const fs::path& dist,
                       fs::copy_options copy_options) const;
     virtual void rename(const fs::path& old_p, const fs::path& new_p) const;
-    virtual void rename(const fs::path& old_p,
-                        const fs::path& new_p,
-                        std::error_code& ec) const noexcept;
     virtual bool exists(const fs::path& path) const;
     virtual bool exists(const fs::path& path, std::error_code& err) const noexcept;
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
