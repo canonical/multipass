@@ -42,7 +42,6 @@
 #include <ranges>
 #include <stdexcept>
 
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
