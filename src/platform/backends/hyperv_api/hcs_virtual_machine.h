@@ -80,10 +80,6 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 
 protected:
-    void require_snapshots_support() const override
-    {
-    }
-
     [[nodiscard]] std::shared_ptr<Snapshot> make_specific_snapshot(
         const QString& filename) override;
     [[nodiscard]] std::shared_ptr<Snapshot> make_specific_snapshot(
