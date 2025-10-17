@@ -21,6 +21,7 @@
 #include "network_interface.h"
 
 #include <QDir>
+#include <fmt/format.h>
 
 #include <chrono>
 #include <condition_variable>
@@ -30,7 +31,7 @@
 #include <string>
 #include <vector>
 
-#include <fmt/format.h>
+
 
 namespace multipass
 {
@@ -136,7 +137,7 @@ protected:
 } // namespace multipass
 
 /**
- * Formatter type specialization for CreateComputeSystemParameters
+ * Formatter type specialization for VirtualMachine::State
  */
 template <typename Char>
 struct fmt::formatter<multipass::VirtualMachine::State, Char>
