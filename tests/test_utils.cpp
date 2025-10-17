@@ -656,19 +656,26 @@ TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
     EXPECT_EQ(result.toStdString(), expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    Utils,
-    NormalizeMountTargetTest,
-    Values(std::make_tuple("Documents", "/home/ubuntu/Documents"),
-           std::make_tuple("./folder", "/home/ubuntu/folder"),
-           std::make_tuple("../folder", "/home/folder"),
-           std::make_tuple("../..//folder", "/folder"),
-           std::make_tuple("/usr/local/bin//.././/.//bin/././", "/usr/local/bin"),
-           std::make_tuple("folder//subfolder", "/home/ubuntu/folder/subfolder"),
-           std::make_tuple("./Documents/../Downloads", "/home/ubuntu/Downloads"),
-           std::make_tuple("", "/home/ubuntu"),
-           std::make_tuple(".", "/home/ubuntu"),
-           std::make_tuple("..", "/home"),
-           std::make_tuple("folder/./subfolder", "/home/ubuntu/folder/subfolder"),
-           std::make_tuple("folder/../other-folder", "/home/ubuntu/other-folder"),
-           std::make_tuple("//", "/")));
+std::vector<std::tuple<std::string, std::string>> mount_target_values = {
+    std::make_tuple("Documents", "/home/ubuntu/Documents"),
+    std::make_tuple("", "/home/ubuntu"),
+    std::make_tuple(".", "/home/ubuntu"),
+    std::make_tuple("..", "/home"),
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    std::make_tuple(R"(.\)", "/home/ubuntu"),
+    std::make_tuple(R"(folder\)", "/home/ubuntu/folder"),
+    std::make_tuple(R"(folder\subfolder)", "/home/ubuntu/folder/subfolder"),
+#endif
+    std::make_tuple("./", "/home/ubuntu"),
+    std::make_tuple("folder/", "/home/ubuntu/folder"),
+    std::make_tuple("./folder", "/home/ubuntu/folder"),
+    std::make_tuple("../folder", "/home/folder"),
+    std::make_tuple("../..//folder", "/folder"),
+    std::make_tuple("/usr/local/bin//.././/.//bin/././", "/usr/local/bin"),
+    std::make_tuple("folder//subfolder", "/home/ubuntu/folder/subfolder"),
+    std::make_tuple("./Documents/../Downloads", "/home/ubuntu/Downloads"),
+    std::make_tuple("folder/./subfolder", "/home/ubuntu/folder/subfolder"),
+    std::make_tuple("folder/../other-folder", "/home/ubuntu/other-folder"),
+    std::make_tuple("//", "/")};
+
+INSTANTIATE_TEST_SUITE_P(Utils, NormalizeMountTargetTest, ValuesIn(mount_target_values));
