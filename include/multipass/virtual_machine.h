@@ -21,6 +21,7 @@
 #include "network_interface.h"
 
 #include <QDir>
+#include <fmt/format.h>
 
 #include <chrono>
 #include <condition_variable>
@@ -29,8 +30,6 @@
 #include <mutex>
 #include <string>
 #include <vector>
-
-#include <fmt/format.h>
 
 namespace multipass
 {
