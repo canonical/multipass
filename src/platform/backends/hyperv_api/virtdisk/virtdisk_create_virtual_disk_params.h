@@ -51,12 +51,8 @@ struct CreateVirtualDiskParameters
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::virtdisk::CreateVirtualDiskParameters, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::hyperv::virtdisk::CreateVirtualDiskParameters& params,
                 FormatContext& ctx) const

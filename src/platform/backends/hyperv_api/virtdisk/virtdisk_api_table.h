@@ -66,12 +66,8 @@ struct VirtDiskAPITable
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::hyperv::virtdisk::VirtDiskAPITable& api, FormatContext& ctx) const
     {
