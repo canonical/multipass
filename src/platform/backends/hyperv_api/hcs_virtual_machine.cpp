@@ -28,12 +28,13 @@
 #include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
-#include <platform/platform_win.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
+#include <platform/platform_win.h>
 #include <shared/shared_backend_utils.h>
 #include <shared/windows/smb_mount_handler.h>
+
 
 #include <fmt/xchar.h>
 #include <scope_guard.hpp>
