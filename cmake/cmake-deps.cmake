@@ -15,6 +15,7 @@
 include(FetchContent)
 
 # Declare and fetch out_ptr
+# TODO: C++23: Remove this and use std::out_ptr instead.
 FetchContent_Declare(
   out_ptr
   GIT_REPOSITORY https://github.com/soasis/out_ptr.git
