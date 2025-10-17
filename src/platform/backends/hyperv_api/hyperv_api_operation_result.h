@@ -79,7 +79,7 @@ struct OperationResult
      * Status code of the operation. Evaluates to
      * true and greater or equal to 0 on success.
      */
-    const ResultCode code;
+    ResultCode code;
 
     /**
      * A message that describes the result of the operation.
@@ -87,7 +87,7 @@ struct OperationResult
      * when the operation fails, or details regarding the status
      * of a successful operation.
      */
-    const std::wstring status_msg;
+    std::wstring status_msg;
 
     [[nodiscard]] explicit operator bool() const noexcept
     {
