@@ -152,7 +152,16 @@ TEST_F(TestSimpleStreamsManifest, filtersSnapcraftImages)
     auto info = manifest->image_records.find("24.04");
     EXPECT_NE(info, manifest->image_records.end());
 
+    info = manifest->image_records.find("25.10");
+    EXPECT_NE(info, manifest->image_records.end());
+
     info = manifest->image_records.find("16.04");
+    EXPECT_EQ(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("22.10");
+    EXPECT_EQ(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("25.04");
     EXPECT_EQ(info, manifest->image_records.end());
 }
 
