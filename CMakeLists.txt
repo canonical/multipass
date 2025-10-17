@@ -15,13 +15,13 @@
 cmake_minimum_required(VERSION 3.20)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
-include(src/cmake/environment-utils.cmake)
+include(cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
-  include(src/cmake/configure-linker.cmake)
+  include(cmake/configure-linker.cmake)
   configure_linker()
 endif()
 
@@ -170,7 +170,7 @@ if(UNIX)
   list(APPEND MULTIPASS_BACKENDS qemu)
 endif()
 
-include(src/cmake/cmake-deps.cmake)
+include(cmake/cmake-deps.cmake)
 
 # OpenSSL config
 find_package(OpenSSL REQUIRED)
