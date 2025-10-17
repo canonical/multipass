@@ -106,11 +106,8 @@ struct OperationResult
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::ResultCode, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
 
     std::string hint(const multipass::hyperv::ResultCode& rc) const
     {
@@ -143,11 +140,8 @@ struct fmt::formatter<multipass::hyperv::ResultCode, Char>
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::OperationResult, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
 
     template <typename FormatContext>
     auto format(const multipass::hyperv::OperationResult& opr, FormatContext& ctx) const

@@ -48,12 +48,8 @@ struct VirtualDiskInfo
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo::size_info, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo::size_info& params,
                 FormatContext& ctx) const
@@ -72,12 +68,8 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo::size_info, C
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo& params,
                 FormatContext& ctx) const
