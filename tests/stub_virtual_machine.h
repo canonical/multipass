@@ -33,13 +33,13 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    StubVirtualMachine(const std::string& name)
+    explicit StubVirtualMachine(const std::string& name)
         : StubVirtualMachine{name, std::make_unique<TempDir>()}
     {
     }
 
     StubVirtualMachine(const std::string& name, std::unique_ptr<TempDir> tmp_dir)
-        : VirtualMachine{name, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : VirtualMachine{name}, tmp_dir{std::move(tmp_dir)}
     {
     }
 

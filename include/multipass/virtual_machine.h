@@ -131,14 +131,16 @@ public:
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
-protected:
-    const QDir instance_dir;
+protected:                                      // TODO@ricab reorder
+    VirtualMachine(VirtualMachine::State state, // TODO@ricab remove redundant qualifier
+                   const std::string& vm_name)
+        : state{state}, vm_name{vm_name}
+    {
+    }
 
-    VirtualMachine(VirtualMachine::State state,
-                   const std::string& vm_name,
-                   const Path& instance_dir)
-        : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
-    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
-        : VirtualMachine(State::off, vm_name, instance_dir){};
+    explicit VirtualMachine(const std::string& vm_name)
+        : VirtualMachine(State::off, vm_name) // TODO@ricab split implementation
+    {
+    }
 };
 } // namespace multipass
