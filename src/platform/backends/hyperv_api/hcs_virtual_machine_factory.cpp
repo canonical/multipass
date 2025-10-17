@@ -119,7 +119,11 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
             continue;
         }
 
-        create_bridge_with(found->second);
+        const auto bridge_name = create_bridge_with(found->second);
+        if (bridge_name.empty())
+        {
+            mpl::warn(kLogCategory, "Bridge {} could not be created", found->first);
+        }
     }
 
     return std::make_unique<HCSVirtualMachine>(hcs_sptr,
