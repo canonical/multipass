@@ -15,13 +15,14 @@
  *
  */
 
+#include "platform_win.h"
+
 #include <multipass/constants.h>
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/platform_win.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
