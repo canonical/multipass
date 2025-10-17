@@ -42,8 +42,10 @@
 #include <chrono>
 #include <functional>
 #include <mutex>
+#include <ranges>
 #include <stdexcept>
 #include <string>
+
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -336,19 +338,13 @@ auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 
 auto mp::BaseVirtualMachine::view_snapshots(SnapshotPredicate predicate) const -> SnapshotVista
 {
-    SnapshotVista ret;
-
     const std::unique_lock lock{snapshot_mutex};
-    ret.reserve(snapshots.size());
 
-    for (const auto& [key, snapshot] : snapshots)
-    {
-        if (!predicate || predicate(*snapshot))
-        {
-            ret.push_back(snapshot);
-        }
-    }
-    return ret;
+    auto filtered = snapshots | std::views::values | std::views::filter([&](const auto& snapshot) {
+                        return !predicate || predicate(*snapshot);
+                    });
+
+    return SnapshotVista{filtered.begin(), filtered.end()};
 }
 
 std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::get_snapshot(
