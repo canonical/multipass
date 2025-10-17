@@ -18,7 +18,7 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-#include <multipass/platform_win.h>
+#include <platform/platform_win.h>
 
 #include <optional>
 
