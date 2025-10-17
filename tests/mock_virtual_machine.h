@@ -46,16 +46,15 @@ struct MockVirtualMachineT : public T
     MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
         : T{std::forward<Args>(args)..., tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
-        ON_CALL(*this, current_state())
-            .WillByDefault(Return(multipass::VirtualMachine::State::off));
-        ON_CALL(*this, ssh_port()).WillByDefault(Return(42));
+        ON_CALL(*this, current_state).WillByDefault(Return(multipass::VirtualMachine::State::off));
+        ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_hostname(_)).WillByDefault(Return("localhost"));
-        ON_CALL(*this, ssh_username()).WillByDefault(Return("ubuntu"));
-        ON_CALL(*this, management_ipv4()).WillByDefault(Return("0.0.0.0"));
-        ON_CALL(*this, get_all_ipv4())
+        ON_CALL(*this, ssh_username).WillByDefault(Return("ubuntu"));
+        ON_CALL(*this, management_ipv4).WillByDefault(Return("0.0.0.0"));
+        ON_CALL(*this, get_all_ipv4)
             .WillByDefault(Return(std::vector<std::string>{"192.168.2.123"}));
-        ON_CALL(*this, ipv6()).WillByDefault(Return("::/0"));
+        ON_CALL(*this, ipv6).WillByDefault(Return("::/0"));
         ON_CALL(*this, instance_directory).WillByDefault(Return(this->tmp_dir->path()));
     }
 
