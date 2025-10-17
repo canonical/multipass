@@ -16,7 +16,6 @@
  */
 
 #include "remote_settings_handler.h"
-#include "animated_spinner.h"
 #include "common_callbacks.h"
 
 #include <multipass/cli/command.h>
@@ -126,8 +125,6 @@ public:
         set_request.set_key(key.toStdString());
         set_request.set_val(val.toStdString());
         set_request.set_authorized(user_authorized);
-
-        mp::AnimatedSpinner spinner{cout};
 
         auto streaming_confirmation_callback =
             mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
