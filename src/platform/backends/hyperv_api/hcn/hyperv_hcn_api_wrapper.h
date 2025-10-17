@@ -41,8 +41,8 @@ struct HCNWrapper : public HCNWrapperInterface
     HCNWrapper(const HCNAPITable& api_table = {});
     HCNWrapper(const HCNWrapper&) = default;
     HCNWrapper(HCNWrapper&&) = default;
-    HCNWrapper& operator=(const HCNWrapper&) = delete;
-    HCNWrapper& operator=(HCNWrapper&&) = delete;
+    HCNWrapper& operator=(const HCNWrapper&) = default;
+    HCNWrapper& operator=(HCNWrapper&&) = default;
 
     /**
      * Create a new Host Compute Network
@@ -86,8 +86,13 @@ struct HCNWrapper : public HCNWrapperInterface
      */
     [[nodiscard]] OperationResult delete_endpoint(const std::string& endpoint_guid) const override;
 
+    const HCNAPITable& api() const
+    {
+        return api_table.get();
+    }
+
 private:
-    const HCNAPITable api{};
+    std::reference_wrapper<const HCNAPITable> api_table;
 };
 
 } // namespace multipass::hyperv::hcn
