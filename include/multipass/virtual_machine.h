@@ -131,15 +131,12 @@ public:
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
-protected:                                      // TODO@ricab reorder
-    VirtualMachine(VirtualMachine::State state, // TODO@ricab remove redundant qualifier
-                   const std::string& vm_name)
-        : state{state}, vm_name{vm_name}
+protected:
+    explicit VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name)
     {
     }
 
-    explicit VirtualMachine(const std::string& vm_name)
-        : VirtualMachine(State::off, vm_name) // TODO@ricab split implementation
+    VirtualMachine(State state, const std::string& vm_name) : state{state}, vm_name{vm_name}
     {
     }
 };
