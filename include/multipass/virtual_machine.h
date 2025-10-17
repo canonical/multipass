@@ -24,6 +24,7 @@
 
 #include <QDir>
 #include <QJsonObject>
+#include <fmt/format.h>
 
 #include <chrono>
 #include <condition_variable>
@@ -34,7 +35,7 @@
 #include <string>
 #include <vector>
 
-#include <fmt/format.h>
+
 
 namespace multipass
 {
@@ -153,7 +154,7 @@ inline QDir multipass::VirtualMachine::instance_directory() const
 }
 
 /**
- * Formatter type specialization for CreateComputeSystemParameters
+ * Formatter type specialization for VirtualMachine::State
  */
 template <typename Char>
 struct fmt::formatter<multipass::VirtualMachine::State, Char>
