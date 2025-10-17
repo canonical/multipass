@@ -35,11 +35,12 @@ def make_test_tmp_dir_for_snap(snap_name):
 
 
 @contextmanager
-def TempDirectory(delete=True):
+def TempDirectory(delete=True, ignore_cleanup_errors=True):
     tmp_root = None
     if config.daemon_controller == "snap":
-        run_in_new_interpreter(make_test_tmp_dir_for_snap, "multipass", privileged=True)
+        run_in_new_interpreter(make_test_tmp_dir_for_snap,
+                               "multipass", privileged=True)
         tmp_root = get_snap_temp_root("multipass")
 
-    with tempfile.TemporaryDirectory(dir=tmp_root, delete=delete) as tmp:
+    with tempfile.TemporaryDirectory(dir=tmp_root, delete=delete, ignore_cleanup_errors=ignore_cleanup_errors) as tmp:
         yield Path(tmp).resolve()
