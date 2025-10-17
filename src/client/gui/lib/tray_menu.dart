@@ -32,16 +32,23 @@ final trayMenuDataProvider = Provider.autoDispose((ref) {
       : null;
 });
 
-final daemonVersionProvider = Provider((ref) {
-  if (ref.watch(daemonAvailableProvider)) {
-    ref
-        .watch(grpcClientProvider)
-        .version()
-        .catchError((_) => 'failed to get version')
-        .then((version) => ref.state = version);
+final daemonVersionProvider = NotifierProvider<DaemonVersionNotifier, String>(
+  DaemonVersionNotifier.new,
+);
+
+class DaemonVersionNotifier extends Notifier<String> {
+  @override
+  String build() {
+    if (ref.watch(daemonAvailableProvider)) {
+      ref
+          .watch(grpcClientProvider)
+          .version()
+          .catchError((_) => 'failed to get version')
+          .then((version) => state = version);
+    }
+    return 'loading...';
   }
-  return 'loading...';
-});
+}
 
 Future<String> _iconFilePath() async {
   final dataDir = await getApplicationSupportDirectory();
@@ -202,7 +209,7 @@ Future<void> _updateTrayMenu(
         callback: (_, __) {
           providerContainer
               .read(vmScreenLocationProvider(name).notifier)
-              .state = VmDetailsLocation.shells;
+              .set(VmDetailsLocation.shells);
           providerContainer.read(sidebarKeyProvider.notifier).set(key);
           final (:ids, :currentIndex) = providerContainer.read(
             shellIdsProvider(name),

@@ -16,9 +16,12 @@ typedef ShellIds = ({
   int currentIndex,
 });
 
-class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
+class ShellIdsNotifier extends Notifier<ShellIds> {
+  ShellIdsNotifier(this.arg);
+  final String arg;
+
   @override
-  ShellIds build(String arg) => (ids: [ShellId(1)].build(), currentIndex: 0);
+  ShellIds build() => (ids: [ShellId(1)].build(), currentIndex: 0);
 
   void add() {
     final ids = state.ids;
