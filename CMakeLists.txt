@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.25)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(feature-flags.cmake)
-include(src/cmake/environment-utils.cmake)
+include(cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
 option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
@@ -25,7 +25,7 @@ option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
-  include(src/cmake/configure-linker.cmake)
+  include(cmake/configure-linker.cmake)
   configure_linker()
 endif()
 
@@ -230,7 +230,7 @@ endif()
 find_package(Boost CONFIG REQUIRED COMPONENTS json)
 
 # Dependencies satisfied by CMake
-include(src/cmake/cmake-deps.cmake)
+include(cmake/cmake-deps.cmake)
 
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
