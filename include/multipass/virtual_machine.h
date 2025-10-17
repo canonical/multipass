@@ -122,7 +122,7 @@ public:
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
 
-    QDir instance_directory() const;
+    virtual QDir instance_directory() const = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
@@ -142,8 +142,3 @@ protected:
         : VirtualMachine(State::off, vm_name, instance_dir){};
 };
 } // namespace multipass
-
-inline QDir multipass::VirtualMachine::instance_directory() const
-{
-    return instance_dir; // TODO this should probably only be known at the level of the base VM
-}
