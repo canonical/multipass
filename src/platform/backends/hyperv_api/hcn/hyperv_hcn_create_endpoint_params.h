@@ -71,9 +71,9 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateEndpointParameters, Char>
                 FormatContext& ctx) const
     {
         return fmt::format_to(ctx.out(),
-                              "Endpoint GUID: ({}) | Network GUID: ({}) | MAC address: ({})",
-                              params.endpoint_guid,
+                              "Network GUID: ({}) | Endpoint GUID: ({}) | MAC address: ({})",
                               params.network_guid,
+                              params.endpoint_guid,
                               params.mac_address);
     }
 };

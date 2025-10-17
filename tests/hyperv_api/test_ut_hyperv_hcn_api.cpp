@@ -774,9 +774,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
-            "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: "
-            "(77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68)");
+            "HCNWrapper::create_endpoint(...) > params: "
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | "
+            "Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
@@ -824,9 +824,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
-            "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: "
-            "(77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68)");
+            "HCNWrapper::create_endpoint(...) > params: "
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | "
+            "Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
@@ -934,9 +934,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
-            "HCNWrapper::create_endpoint(...) > params: Endpoint GUID: "
-            "(77c27c1e-8204-437d-a7cc-fb4ce1614819) | "
-            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68)");
+            "HCNWrapper::create_endpoint(...) > params: "
+            "Network GUID: (b70c479d-f808-4053-aafa-705bc15b6d68) | "
+            "Endpoint GUID: (77c27c1e-8204-437d-a7cc-fb4ce1614819)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");

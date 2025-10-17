@@ -158,12 +158,12 @@ OperationResult perform_hcs_operation(const HCSAPITable& api,
 
 // ---------------------------------------------------------
 
-HCSWrapper::HCSWrapper(const HCSAPITable& api_table) : api_table{api_table}
+HCSWrapper::HCSWrapper(const HCSAPITable& api_table) : api{api_table}
 {
     mpl::debug(kLogCategory,
                "HCSWrapper::HCSWrapper(...) > Schema Version: {}, API table: {}",
                SchemaUtils::instance().get_os_supported_schema_version(),
-               api());
+               api);
 }
 
 // ---------------------------------------------------------
@@ -178,9 +178,9 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
     constexpr static auto kRequestedAccessLevel = GENERIC_ALL;
 
     UniqueHcsSystem system{};
-    const ResultCode result = api().OpenComputeSystem(name_w.c_str(),
+    const ResultCode result = api.OpenComputeSystem(name_w.c_str(),
                                                     kRequestedAccessLevel,
-                                                    out_ptr(system, api().CloseComputeSystem));
+                                                    out_ptr(system, api.CloseComputeSystem));
     if (!result)
     {
         mpl::debug(kLogCategory,
@@ -201,7 +201,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(kLogCategory, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    auto operation = create_operation(api());
+    auto operation = create_operation(api);
 
     if (nullptr == operation)
     {
@@ -214,11 +214,11 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 
     UniqueHcsSystem system{};
     const auto result =
-        ResultCode{api().CreateComputeSystem(name_w.c_str(),
+        ResultCode{api.CreateComputeSystem(name_w.c_str(),
                                            vm_settings.c_str(),
                                            operation.get(),
                                            nullptr,
-                                           out_ptr(system, api().CloseComputeSystem))};
+                                           out_ptr(system, api.CloseComputeSystem))};
 
     if (!result)
     {
@@ -226,7 +226,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     }
 
     const auto op_result =
-        wait_for_operation_result(api(), std::move(operation), std::chrono::seconds{240});
+        wait_for_operation_result(api, std::move(operation), std::chrono::seconds{240});
 
     if (op_result)
         out_hcs_system = std::move(system);
@@ -240,7 +240,7 @@ OperationResult HCSWrapper::start_compute_system(const HcsSystemHandle& target_h
     mpl::debug(kLogCategory,
                "start_compute_system(...) > handle: ({})",
                fmt::ptr(target_hcs_system.get()));
-    return perform_hcs_operation(api(), api().StartComputeSystem, target_hcs_system, nullptr);
+    return perform_hcs_operation(api, api.StartComputeSystem, target_hcs_system, nullptr);
 }
 
 // ---------------------------------------------------------
@@ -257,8 +257,8 @@ OperationResult HCSWrapper::shutdown_compute_system(const HcsSystemHandle& targe
             "Type": "Shutdown"
         })";
 
-    return perform_hcs_operation(api(),
-                                 api().ShutDownComputeSystem,
+    return perform_hcs_operation(api,
+                                 api.ShutDownComputeSystem,
                                  target_hcs_system,
                                  c_shutdownOption);
 }
@@ -270,7 +270,7 @@ OperationResult HCSWrapper::terminate_compute_system(const HcsSystemHandle& targ
     mpl::debug(kLogCategory,
                "terminate_compute_system(...) > handle: ({})",
                fmt::ptr(target_hcs_system.get()));
-    return perform_hcs_operation(api(), api().TerminateComputeSystem, target_hcs_system, nullptr);
+    return perform_hcs_operation(api, api.TerminateComputeSystem, target_hcs_system, nullptr);
 }
 
 // ---------------------------------------------------------
@@ -287,7 +287,7 @@ OperationResult HCSWrapper::pause_compute_system(const HcsSystemHandle& target_h
                 "Reason": "Save"
             }
         })";
-    return perform_hcs_operation(api(), api().PauseComputeSystem, target_hcs_system, c_pauseOption);
+    return perform_hcs_operation(api, api.PauseComputeSystem, target_hcs_system, c_pauseOption);
 }
 
 // ---------------------------------------------------------
@@ -297,7 +297,7 @@ OperationResult HCSWrapper::resume_compute_system(const HcsSystemHandle& target_
     mpl::debug(kLogCategory,
                "resume_compute_system(...) > handle: ({})",
                fmt::ptr(target_hcs_system.get()));
-    return perform_hcs_operation(api(), api().ResumeComputeSystem, target_hcs_system, nullptr);
+    return perform_hcs_operation(api, api.ResumeComputeSystem, target_hcs_system, nullptr);
 }
 
 // ---------------------------------------------------------
@@ -315,7 +315,7 @@ OperationResult HCSWrapper::get_compute_system_properties(
             "PropertyTypes":[]
         })";
 
-    return perform_hcs_operation(api(), api().GetComputeSystemProperties, target_hcs_system, c_VmQuery);
+    return perform_hcs_operation(api, api.GetComputeSystemProperties, target_hcs_system, c_VmQuery);
 }
 
 // ---------------------------------------------------------
@@ -330,7 +330,7 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
 
     const auto path_as_wstring = file_path.generic_wstring();
     const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
-    const auto result = api().GrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
+    const auto result = api.GrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
 }
 
@@ -346,7 +346,7 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
 
     const auto path_as_wstring = file_path.wstring();
     const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
-    const auto result = api().RevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
+    const auto result = api.RevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"RevokeVmAccess failed!" : L""};
 }
 
@@ -360,7 +360,7 @@ OperationResult HCSWrapper::get_compute_system_state(const HcsSystemHandle& targ
                fmt::ptr(target_hcs_system.get()));
 
     const auto result =
-        perform_hcs_operation(api(), api().GetComputeSystemProperties, target_hcs_system, nullptr);
+        perform_hcs_operation(api, api.GetComputeSystemProperties, target_hcs_system, nullptr);
 
     if (!result)
         return result;
@@ -397,8 +397,8 @@ OperationResult HCSWrapper::modify_compute_system(const HcsSystemHandle& target_
                params);
 
     const auto json = fmt::to_wstring(params);
-    return perform_hcs_operation(api(),
-                                 api().ModifyComputeSystem,
+    return perform_hcs_operation(api,
+                                 api.ModifyComputeSystem,
                                  target_hcs_system,
                                  json.c_str(),
                                  nullptr);
@@ -418,7 +418,7 @@ OperationResult HCSWrapper::set_compute_system_callback(const HcsSystemHandle& t
                fmt::ptr(callback));
 
     const ResultCode result =
-        api().SetComputeSystemCallback(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+        api.SetComputeSystemCallback(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                      HCS_EVENT_OPTIONS::HcsEventOptionNone,
                                      context,
                                      reinterpret_cast<HCS_EVENT_CALLBACK>(callback));

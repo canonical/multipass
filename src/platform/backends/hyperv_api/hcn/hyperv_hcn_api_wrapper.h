@@ -19,6 +19,7 @@
 
 #include <hyperv_api/hcn/hyperv_hcn_api_table.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
+#include <multipass/disabled_copy_move.h>
 
 namespace multipass::hyperv::hcn
 {
@@ -28,7 +29,7 @@ namespace multipass::hyperv::hcn
  * the common operations that Host Compute Network
  * API provide.
  */
-struct HCNWrapper : public HCNWrapperInterface
+struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
 {
 
     /**
@@ -39,10 +40,6 @@ struct HCNWrapper : public HCNWrapperInterface
      * The wrapper will use the real HCN API by default.
      */
     HCNWrapper(const HCNAPITable& api_table = {});
-    HCNWrapper(const HCNWrapper&) = default;
-    HCNWrapper(HCNWrapper&&) = default;
-    HCNWrapper& operator=(const HCNWrapper&) = default;
-    HCNWrapper& operator=(HCNWrapper&&) = default;
 
     /**
      * Create a new Host Compute Network
@@ -79,20 +76,15 @@ struct HCNWrapper : public HCNWrapperInterface
     /**
      * Delete an existing Host Compute Network Endpoint
      *
-     * @param [in] params Target endpoint's GUID
+     * @param [in] endpoint_guid Target endpoint's GUID
      *
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult delete_endpoint(const std::string& endpoint_guid) const override;
 
-    const HCNAPITable& api() const
-    {
-        return api_table.get();
-    }
-
 private:
-    std::reference_wrapper<const HCNAPITable> api_table;
+    const HCNAPITable api;
 };
 
 } // namespace multipass::hyperv::hcn
