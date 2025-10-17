@@ -486,17 +486,52 @@ TEST_F(BaseVM, providesSnapshotsView)
         vm.delete_snapshot(sname(i));
 
     ASSERT_EQ(vm.get_num_snapshots(), 4);
-    auto snapshots = vm.view_snapshots({});
 
-    EXPECT_THAT(snapshots, SizeIs(4));
+    {
+        // No predicate
+        auto snapshots = vm.view_snapshots({});
 
-    std::vector<int> snapshot_indices{};
-    std::transform(snapshots.begin(),
-                   snapshots.end(),
-                   std::back_inserter(snapshot_indices),
-                   [](const auto& snapshot) { return snapshot->get_index(); });
+        EXPECT_THAT(snapshots, SizeIs(4));
 
-    EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5, 6, 8));
+        std::vector<int> snapshot_indices{};
+        std::transform(snapshots.begin(),
+                       snapshots.end(),
+                       std::back_inserter(snapshot_indices),
+                       [](const auto& snapshot) { return snapshot->get_index(); });
+
+        EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5, 6, 8));
+    }
+
+    {
+        // Select nothing
+        auto snapshots = vm.view_snapshots([&](const auto& snapshot) { return false; });
+
+        EXPECT_THAT(snapshots, SizeIs(0));
+    }
+
+    {
+        // Select everything
+        auto snapshots = vm.view_snapshots([&](const auto& snapshot) { return true; });
+
+        EXPECT_THAT(snapshots, SizeIs(4));
+    }
+
+    {
+        // Select index 2 and 5
+        auto snapshots = vm.view_snapshots([&](const multipass::Snapshot& snapshot) {
+            return snapshot.get_index() == 2 || snapshot.get_index() == 5;
+        });
+
+        EXPECT_THAT(snapshots, SizeIs(2));
+
+        std::vector<int> snapshot_indices{};
+        std::transform(snapshots.begin(),
+                       snapshots.end(),
+                       std::back_inserter(snapshot_indices),
+                       [](const auto& snapshot) { return snapshot->get_index(); });
+
+        EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5));
+    }
 }
 
 TEST_F(BaseVM, providesSnapshotsByIndex)
