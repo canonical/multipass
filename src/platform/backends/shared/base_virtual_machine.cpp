@@ -144,18 +144,18 @@ std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtu
 }
 } // namespace
 
-mp::BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
-                                           const std::string& vm_name,
-                                           const SSHKeyProvider& key_provider,
-                                           const Path& instance_dir)
-    : VirtualMachine{state, vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
-{
-}
-
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            const Path& instance_dir)
     : VirtualMachine{vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
+{
+}
+
+mp::BaseVirtualMachine::BaseVirtualMachine(State state,
+                                           const std::string& vm_name,
+                                           const SSHKeyProvider& key_provider,
+                                           const Path& instance_dir)
+    : VirtualMachine{state, vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
 {
 }
 
