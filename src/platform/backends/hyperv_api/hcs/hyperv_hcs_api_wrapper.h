@@ -42,8 +42,8 @@ struct HCSWrapper : public HCSWrapperInterface
     HCSWrapper(const HCSAPITable& api_table = {});
     HCSWrapper(const HCSWrapper&) = default;
     HCSWrapper(HCSWrapper&&) = default;
-    HCSWrapper& operator=(const HCSWrapper&) = delete;
-    HCSWrapper& operator=(HCSWrapper&&) = delete;
+    HCSWrapper& operator=(const HCSWrapper&) = default;
+    HCSWrapper& operator=(HCSWrapper&&) = default;
 
     // ---------------------------------------------------------
 
@@ -227,8 +227,11 @@ struct HCSWrapper : public HCSWrapperInterface
         void* context,
         void (*callback)(void* hcs_event, void* context)) const override;
 
+    const HCSAPITable& api() const {
+        return api_table.get();
+    }
 private:
-    const HCSAPITable api{};
+    std::reference_wrapper<const HCSAPITable> api_table;
 };
 
 } // namespace multipass::hyperv::hcs
