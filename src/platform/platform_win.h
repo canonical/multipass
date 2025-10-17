@@ -22,8 +22,10 @@
 #include <fmt/format.h>
 
 #include <optional>
-#include <string>
 
+/**
+ * fwdecl for the Windows Sockets info struct
+ */
 struct WSAData;
 
 namespace multipass::platform

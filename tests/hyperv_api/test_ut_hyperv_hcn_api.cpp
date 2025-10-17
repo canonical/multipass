@@ -25,7 +25,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 
 #include <multipass/logging/level.h>
-#include <multipass/platform_win.h>
+#include <platform/platform_win.h>
 
 #include <combaseapi.h>
 #include <computenetwork.h>
