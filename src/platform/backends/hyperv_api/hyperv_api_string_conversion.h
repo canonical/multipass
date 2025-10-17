@@ -75,12 +75,8 @@ private:
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::maybe_widen, Char>
+    : formatter<basic_string_view<Char>, Char>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::hyperv::maybe_widen& params, FormatContext& ctx) const
     {
