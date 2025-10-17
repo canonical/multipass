@@ -38,8 +38,8 @@
 #include <QDir>
 
 #include <chrono>
-#include <functional>
 #include <mutex>
+#include <ranges>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -347,18 +347,15 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
     return all_ipv4;
 }
 
-auto mp::BaseVirtualMachine::view_snapshots() const -> SnapshotVista
+auto mp::BaseVirtualMachine::view_snapshots(SnapshotPredicate predicate) const -> SnapshotVista
 {
-    SnapshotVista ret;
-
     const std::unique_lock lock{snapshot_mutex};
-    ret.reserve(snapshots.size());
-    std::transform(std::cbegin(snapshots),
-                   std::cend(snapshots),
-                   std::back_inserter(ret),
-                   [](const auto& pair) { return pair.second; });
 
-    return ret;
+    auto filtered = snapshots | std::views::values | std::views::filter([&](const auto& snapshot) {
+                        return !predicate || predicate(*snapshot);
+                    });
+
+    return SnapshotVista{filtered.begin(), filtered.end()};
 }
 
 std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::get_snapshot(
