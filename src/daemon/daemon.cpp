@@ -160,6 +160,8 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
 
+    // Pollinate is not available as a RPM package and also dependencies that are inherent to
+    // Ubuntu/Debian systems
     if (request->image() != "fedora")
     {
         config["packages"].push_back("pollinate");
