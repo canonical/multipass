@@ -31,8 +31,6 @@
 #include <string>
 #include <vector>
 
-
-
 namespace multipass
 {
 struct IPAddress;
