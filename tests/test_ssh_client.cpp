@@ -18,6 +18,7 @@
 #include "common.h"
 #include "disabling_macros.h"
 #include "fake_key_data.h"
+#include "mock_logger.h"
 #include "mock_ssh_client.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_console.h"
@@ -28,6 +29,7 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace mpl = multipass::logging;
 
 namespace
 {
@@ -134,4 +136,21 @@ TEST_F(SSHClient, throwWhenRequestExecFails)
     REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_ERROR; });
 
     EXPECT_THROW(client.exec({"foo"}), std::runtime_error);
+}
+
+TEST_F(SSHClient, logSignalTerminationFromExitState)
+{
+    auto client = make_ssh_client();
+    constexpr int failure_code{128 + 2}; // SIGINT exit status
+    REPLACE(ssh_channel_get_exit_state,
+            [](ssh_channel_struct*, unsigned int* val, char** signal, int* core_dump) {
+                *val = failure_code;
+                *signal = strdup("INT");
+                *core_dump = 0;
+                return SSH_OK;
+            });
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "Process terminated by signal: INT\n");
+    EXPECT_EQ(client.exec({"foo"}), failure_code);
 }
