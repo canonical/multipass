@@ -37,7 +37,6 @@
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -55,6 +54,8 @@
 #include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
+
+#include <rustipass_cxx/lib.h>
 
 #include <scope_guard.hpp>
 
@@ -211,12 +212,15 @@ auto name_from(const std::string& requested_name,
     }
     else
     {
-        auto name = name_gen.make_name();
+        std::string name = name_generator.make_name();
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
             if (currently_used_names.find(name) != currently_used_names.end())
+            {
+                name = name_generator.make_name();
                 continue;
+            }
             return name;
         }
         throw std::runtime_error("unable to generate a unique name");
