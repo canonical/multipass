@@ -18,9 +18,9 @@
 #pragma once
 
 #include <multipass/days.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <shared/base_vm_image_vault.h>
 
 #include <QDir>
@@ -85,6 +85,7 @@ private:
                                    const Path& dest_dir);
     void persist_image_records();
     void persist_instance_records();
+    void amend_db();
 
     URLDownloader* const url_downloader;
     const QDir cache_dir;
