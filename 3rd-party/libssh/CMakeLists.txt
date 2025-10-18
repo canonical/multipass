@@ -36,8 +36,10 @@ set(BIN_INSTALL_DIR bin)
 if(LINUX)
     set(BUILD_SHARED_LIBS OFF)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+elseif(MSVC)
+    set(BUILD_SHARED_LIBS OFF)
 else()
-    # This applies to other platforms (e.g., Windows, macOS)
+    # This applies to macOS and other platforms
     set(BUILD_SHARED_LIBS ON)
 endif()
 

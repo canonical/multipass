@@ -19,11 +19,15 @@
 
 #include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
+
 #include <multipass/utils.h>
+
+#include <libssh/sftp_priv.h>
 
 #include <QDir>
 #include <QFile>
@@ -55,11 +59,33 @@ enum Permissions
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
-                                                        sftp_free};
-    mp::SSH::throw_on_error(sftp_server_session,
-                            session,
-                            "[sftp] server init failed",
-                            sftp_server_init);
+                                                        sftp_server_free};
+    // The function sftp_server_init was expanded here to avoid deprecation warnings.
+    // TODO: move to callback-based sftp implementations.
+    // https://github.com/canonical/multipass/issues/4445
+
+    /* handles setting the sftp->client_version */
+    sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
+    if (msg == nullptr)
+    {
+        throw mp::SSHException("[sftp] server init failed: 'Null client message'");
+    }
+
+    if (msg->type != SSH_FXP_INIT)
+    {
+        throw mp::SSHException(fmt::format(
+            "[sftp] server init failed: 'FATAL: Packet read of type {} instead of SSH_FXP_INIT'",
+            msg->type));
+    }
+
+    // Optional: Log the SSH_FXP_INIT reception like libssh does with SSH_LOG but with mp::log
+
+    if (sftp_reply_version(msg) != SSH_OK)
+    {
+        throw mp::SSHException(
+            "[sftp] server init failed: 'FATAL: Failed to process the SSH_FXP_INIT message'");
+    }
+
     return sftp_server_session;
 }
 
