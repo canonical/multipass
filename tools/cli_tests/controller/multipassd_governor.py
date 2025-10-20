@@ -310,7 +310,7 @@ class MultipassdGovernor:
                     stdout, _ = await version_proc.communicate()
                     version_lines = stdout.decode().strip().splitlines()
 
-                    if len(version_lines) == 2:
+                    if len(version_lines) >= 2:
                         cli_ver = version_lines[0].split()[-1]
                         daemon_ver = version_lines[1].split()[-1]
 
