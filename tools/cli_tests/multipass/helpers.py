@@ -230,7 +230,7 @@ def get_multipass_version():
     with multipass("version") as version_output:
         version_lines = version_output.content.splitlines()
         assert len(version_lines) >= 2
-        version_lines = [v.split()[1] for v in version_lines]
+        version_lines = [v.split()[1] for v in version_lines[:2]]
         assert (
             version_lines[0] == version_lines[1]
         ), f"{version_lines[0]} != {version_lines[1]}"
