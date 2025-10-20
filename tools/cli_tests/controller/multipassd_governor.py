@@ -108,6 +108,12 @@ class MultipassdGovernor:
             if (self.graceful_exit_initiated and returncode == 0) or returncode == 42:
                 return  # Normal exit
 
+            if returncode is None:
+                # Unable to determine the exit code.
+                logging.warning(
+                    "multipassd-governor :: monitor task -- unable to determine daemon exit code")
+                return
+
             # Abnormal exit
             reasons = "\n".join(error_reasons) if error_reasons else ""
 
