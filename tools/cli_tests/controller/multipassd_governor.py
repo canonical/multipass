@@ -19,6 +19,8 @@ from cli_tests.multipass import (
     get_client_cert_path,
     get_multipass_env,
     get_multipass_path,
+    TestSessionFailure,
+    TestCaseFailure
 )
 from cli_tests.utilities import (
     BooleanLatch,
@@ -28,14 +30,6 @@ from cli_tests.utilities import (
 )
 
 from .multipassd_controller import MultipassdController
-
-
-class TestSessionFailure(RuntimeError):
-    """Raised to signal that the test session should be aborted with a failure."""
-
-
-class TestCaseFailure(RuntimeError):
-    """Raised to signal that the current test case has failed."""
 
 
 class MultipassdGovernor:
@@ -61,8 +55,8 @@ class MultipassdGovernor:
     def _get_error_patterns(self):
         return {
             r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?",
-            r'.*Failed to get shared "write" lock': "Cannot open an image file for writing, is another process holding a write lock?",
-            r".*Only one usage of each socket address": "Could not bind gRPC port -- is there another daemon process running?",
+            r'.*Failed to get shared "write" lock.*': "Cannot open an image file for writing, is another process holding a write lock?",
+            r".*Only one usage of each socket address.*": "Could not bind gRPC port -- is there another daemon process running?",
         }
 
     async def _read_stream(self):

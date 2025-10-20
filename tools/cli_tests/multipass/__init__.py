@@ -25,6 +25,7 @@ from .basics import (
     determine_data_dir,
     determine_bin_dir,
 )
+from .exceptions import TestSessionFailure, TestCaseFailure
 from .certutils import authenticate_client_cert, get_client_cert_path
 from .helpers import (
     debug_interactive_shell,
