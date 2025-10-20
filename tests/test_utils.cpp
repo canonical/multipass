@@ -642,9 +642,66 @@ TEST(Utils, checkFilesystemBytesAvailableReturnsNonNegative)
     EXPECT_GE(bytes_available, 0);
 }
 
-using MountTargetParam = std::tuple<std::string, std::string>;
+using PathPairParam = std::tuple<std::filesystem::path, std::filesystem::path>;
 
-class DefaultMountTargetTest : public TestWithParam<MountTargetParam>
+class NormalizePathTest : public TestWithParam<PathPairParam>
+{
+};
+
+TEST_P(NormalizePathTest, normalizesPathCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    auto result = mpu::normalize_path(input);
+    EXPECT_EQ(result, expected_output);
+}
+
+TEST_P(NormalizePathTest, normalizesStringCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    // This is like normalizing path objects, but the output is always in generic ("/") form.
+    auto result = mpu::normalize_path(input.string());
+    EXPECT_EQ(result, expected_output.generic_string());
+}
+
+std::vector<PathPairParam> normalize_path_values = {
+    {"", ""},
+    {".", "."},
+    {"..", ".."},
+    {"../", ".."},
+    {"../.", ".."},
+    {"../..", "../.."},
+    {"../../", "../.."},
+    {".././..", "../.."},
+    {"Documents", "Documents"},
+    {"Documents/", "Documents"},
+    {"Documents/.", "Documents"},
+    {"Documents/..", "."},
+    {"Documents/../", "."},
+    {"folder/../other", "other"},
+    {"/home/user/Desktop", "/home/user/Desktop"},
+    {"/home/user/Desktop/", "/home/user/Desktop"},
+    {"/", "/"},
+    {"/.", "/"},
+    {"/folder/..", "/"},
+    {"/folder/subfolder/..", "/folder"},
+    {"/folder/../other", "/other"},
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {R"(Documents\)", "Documents"},
+    {R"(folder\..\other)", "other"},
+    {R"(C:\Users\user\Documents)", R"(C:\Users\user\Documents)"},
+    {R"(C:\Users\user\Documents\)", R"(C:\Users\user\Documents)"},
+    {"//server/folder", R"(\\server\folder)"},
+    {R"(\\server\folder)", R"(\\server\folder)"},
+#endif
+};
+
+INSTANTIATE_TEST_SUITE_P(Utils, NormalizePathTest, ValuesIn(normalize_path_values));
+
+using StringPairParam = std::tuple<std::string, std::string>;
+
+class DefaultMountTargetTest : public TestWithParam<StringPairParam>
 {
 };
 
@@ -656,12 +713,16 @@ TEST_P(DefaultMountTargetTest, mountTargetsDefaultCorrectly)
     EXPECT_EQ(result.toStdString(), expected_output);
 }
 
-std::vector<MountTargetParam> default_mount_target_values = {
+std::vector<StringPairParam> default_mount_target_values = {
     {"", ""},
+    {"/", ""},
+    {"/.", ""},
     {"Documents", "/home/ubuntu/Documents"},
     {"Documents/", "/home/ubuntu/Documents"},
+    {"Documents/.", "/home/ubuntu/Documents"},
     {"/home/user/Desktop", "/home/ubuntu/Desktop"},
     {"/home/user/Desktop/", "/home/ubuntu/Desktop"},
+    {"/folder/subfolder/..", "/home/ubuntu/folder"},
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     {R"(Documents\)", "/home/ubuntu/Documents"},
     {R"(C:\Users\user\Documents)", "/home/ubuntu/Documents"},
@@ -671,7 +732,7 @@ std::vector<MountTargetParam> default_mount_target_values = {
 
 INSTANTIATE_TEST_SUITE_P(Utils, DefaultMountTargetTest, ValuesIn(default_mount_target_values));
 
-class NormalizeMountTargetTest : public TestWithParam<MountTargetParam>
+class NormalizeMountTargetTest : public TestWithParam<StringPairParam>
 {
 };
 
@@ -683,7 +744,7 @@ TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
     EXPECT_EQ(result.toStdString(), expected_output);
 }
 
-std::vector<MountTargetParam> normalize_mount_target_values = {
+std::vector<StringPairParam> normalize_mount_target_values = {
     {"Documents", "/home/ubuntu/Documents"},
     {"", "/home/ubuntu"},
     {".", "/home/ubuntu"},
