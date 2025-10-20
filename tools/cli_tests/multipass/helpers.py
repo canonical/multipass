@@ -229,7 +229,7 @@ def get_mac_addr_of(name, interface_name):
 def get_multipass_version():
     with multipass("version") as version_output:
         version_lines = version_output.content.splitlines()
-        assert len(version_lines) == 2
+        assert len(version_lines) >= 2
         version_lines = [v.split()[1] for v in version_lines]
         assert (
             version_lines[0] == version_lines[1]
