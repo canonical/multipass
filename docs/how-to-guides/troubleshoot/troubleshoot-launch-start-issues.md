@@ -22,31 +22,31 @@ Follow these steps to diagnose your issue and identify the most likely scenario:
 
 * If the multipass launch command fails with the message “Downloaded image hash does not match”, see [Stale network cache](troubleshoot-launch-start-issues-stale-network-cache).
 
-`````{tab-set}
-````{tab-item} Windows, Hyper-V driver
-Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that’s the case, see [[Windows, with Hyper-V] Stale internet connection sharing lease](troubleshoot-launch-start-issues-stale-internet).
-````
-````{tab-item} Linux/macOS, QEMU driver: NIC_RX_FILTER_CHANGED
-Inspect the Multipass logs and look for a message mentioning `NIC_RX_FILTER_CHANGED`. This message indicates that the network interface has been initialised.
-- If you don’t find it, it means that the VM didn’t manage to bring up the interface; see [**VM boot failure**](troubleshoot-launch-start-issues-vm-boot-failure).
-- If the message is present, proceed to check DHCP traffic in the next tab.
-````
-````{tab-item} Linux/macOS, QEMU driver: DHCP traffic
-Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command right after starting/launching the instance:
+  `````{tab-set}
+    ```{tab-item} Windows, Hyper-V driver
+      Inspect the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and see if there is more than one entry with your instance name in it. If that’s the case, see [[Windows, with Hyper-V] Stale internet connection sharing lease](troubleshoot-launch-start-issues-stale-internet).
+    ````
+    ````{tab-item} Linux/macOS, QEMU driver: NIC_RX_FILTER_CHANGED
+      Inspect the Multipass logs and look for a message mentioning `NIC_RX_FILTER_CHANGED`. This message indicates that the network interface has been initialised.
+      - If you don’t find it, it means that the VM didn’t manage to bring up the interface; see [**VM boot failure**](troubleshoot-launch-start-issues-vm-boot-failure).
+      - If the message is present, proceed to check DHCP traffic in the next tab.
+    ````
+    ````{tab-item} Linux/macOS, QEMU driver: DHCP traffic
+      Check DHCP traffic from your host to the instance, to find out if there are requests and replies. Adapt and run the following command right after starting/launching the instance:
 
-```bash
-sudo tcpdump -i <bridge> udp port 67 and port 68
-```
-You will need to replace `<bridge>` with `mpqemubr0` on Linux and with `bridge100` on macOS.
+      ```bash
+        sudo tcpdump -i <bridge> udp port 67 and port 68
+      ```
+      You will need to replace `<bridge>` with `mpqemubr0` on Linux and with `bridge100` on macOS.
 
-```{note}
-On macOS, `bridge100` is a virtual network interface that only appears when at least a VM is running.
-```
-- If you see `NIC_RX_FILTER_CHANGED`, you should also see DHCP requests. If you don’t, see [**VM boot failure**](troubleshoot-launch-start-issues-vm-boot-failure) and please let us know.
-- If you see a DHCP request, but no reply, it means that the VM is still waiting for an IP address to be assigned; see [**No IP assigned**](troubleshoot-launch-start-issues-no-ip-assigned).
-- If you see DHCP requests and replies, continue to the next step.
-````
-`````
+      ```{note}
+        On macOS, `bridge100` is a virtual network interface that only appears when at least a VM is running.
+      ```
+      - If you see `NIC_RX_FILTER_CHANGED`, you should also see DHCP requests. If you don’t, see [**VM boot failure**](troubleshoot-launch-start-issues-vm-boot-failure) and please let us know.
+      - If you see a DHCP request, but no reply, it means that the VM is still waiting for an IP address to be assigned; see [**No IP assigned**](troubleshoot-launch-start-issues-no-ip-assigned).
+      - If you see DHCP requests and replies, continue to the next step.
+    ````
+  `````
 
 * Look for messages regarding SSH in Multipass’s logs. The instance may have obtained an IP and/or be properly connected, but still refuse Multipass when it tries to SSH into it.
 
@@ -281,8 +281,11 @@ This can be caused by a known Qt bug (see issue [#1714](https://github.com/canon
   `````
 ``````
 
+
+## Appendix: Utility Commands and Locations
+
 (troubleshoot-launch-start-issues-reading-data-from-an-image)=
-## 8. Reading data from a QCOW2 image
+### Reading data from a QCOW2 image
 
 **Issue:**
 You need to access instance data manually.
@@ -293,7 +296,7 @@ Multipass QEMU driver images use QCOW2 format, which can be mounted using `qemu-
 Install `qemu-nbd` and follow this [AskUbuntu recipe](https://askubuntu.com/a/1254632) to mount the image.
 
 (troubleshoot-launch-start-issues-locating-binaries)=
-## 9. Locating Multipass binaries and images
+### Locating Multipass binaries and images
 
 **Issue:**
 Need to find where Multipass binaries or images are stored.
