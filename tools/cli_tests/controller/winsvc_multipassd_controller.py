@@ -38,14 +38,27 @@ from cli_tests.utilities import (
     SilentAsyncSubprocess,
     sudo
 )
+from cli_tests.config import config
 from .controller_exceptions import ControllerPrerequisiteError
+
 
 class WindowsServiceMultipassdController:
     """SCM-backed controller for multipassd on Windows."""
 
     def __init__(self, service_name: Optional[str] = "multipass"):
         if sys.platform != "win32":
-            raise ControllerPrerequisiteError("WindowsServiceMultipassdController requires Windows.")
+            raise ControllerPrerequisiteError(
+                "WindowsServiceMultipassdController requires Windows.")
+
+        if config.driver == "hyperv":
+            result = subprocess.run([*sudo(
+                'powershell', '-Command',
+                'if ((Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V).State -eq "Enabled") { exit 0 } else { exit 1 }'
+            )], capture_output=True, check=False)
+            if not result.returncode == 0:
+                raise ControllerPrerequisiteError(
+                    "Hyper-V must be enabled to use the `hyperv` driver!"
+                )
 
         self.service_name = service_name
         ret = subprocess.run(
@@ -63,7 +76,6 @@ class WindowsServiceMultipassdController:
 
         # Internal state used for autorestart detection
         self._daemon_pid: Optional[int] = None
-
 
     async def start(self) -> None:
         """Start the service (idempotent)."""
@@ -123,12 +135,14 @@ class WindowsServiceMultipassdController:
             if action == win32evtlog.EvtSubscribeActionDeliver:
                 try:
                     # Render the event message (can be expensive; done on callback thread)
-                    msg = win32evtlog.EvtFormatMessage(Metadata=pubmeta, Event=handle, Flags=win32evtlog.EvtFormatMessageEvent)
+                    msg = win32evtlog.EvtFormatMessage(
+                        Metadata=pubmeta, Event=handle, Flags=win32evtlog.EvtFormatMessageEvent)
                 except Exception as ex:
                     msg = f"<unformatted event>: {ex}"
 
                 # Hand off to asyncio loop
-                loop.call_soon_threadsafe(q.put_nowait, msg.replace("\r\n", "\n"))
+                loop.call_soon_threadsafe(
+                    q.put_nowait, msg.replace("\r\n", "\n"))
 
         signal_event = None  # you can pass a Windows event for shutdown if you want
         flags = win32evtlog.EvtSubscribeToFutureEvents
@@ -181,13 +195,15 @@ class WindowsServiceMultipassdController:
         # Prefer the service-provided exit code
         if info.get("SERVICE_EXIT_CODE") is not None:
             try:
-                exit_code = re.search(r'(\d+)', info["SERVICE_EXIT_CODE"]).group(1)
+                exit_code = re.search(
+                    r'(\d+)', info["SERVICE_EXIT_CODE"]).group(1)
                 return int(exit_code)
             except Exception:
                 pass
         if info.get("WIN32_EXIT_CODE") is not None:
             try:
-                exit_code = re.search(r'(\d+)', info["WIN32_EXIT_CODE"]).group(1)
+                exit_code = re.search(
+                    r'(\d+)', info["WIN32_EXIT_CODE"]).group(1)
                 return int(exit_code)
             except Exception:
                 pass
@@ -221,13 +237,15 @@ class WindowsServiceMultipassdController:
             info: dict[str, str] = {}
 
             # STATE line contains numeric code and name; keep the name separately
-            m = re.search(r"^\s*STATE\s*:\s*\d+\s+([A-Z_]+)", text, re.MULTILINE)
+            m = re.search(
+                r"^\s*STATE\s*:\s*\d+\s+([A-Z_]+)", text, re.MULTILINE)
             if m:
                 info["STATE_NAME"] = m.group(1).strip()
 
             # Extract key:value pairs like PID, WIN32_EXIT_CODE, SERVICE_EXIT_CODE
             for key in ("PID", "PROCESS_ID", "WIN32_EXIT_CODE", "SERVICE_EXIT_CODE"):
-                km = re.search(rf"^\s*{re.escape(key)}\s*:\s*([^\r\n]+)", text, re.MULTILINE)
+                km = re.search(
+                    rf"^\s*{re.escape(key)}\s*:\s*([^\r\n]+)", text, re.MULTILINE)
                 if km:
                     info[key] = km.group(1).strip()
 
