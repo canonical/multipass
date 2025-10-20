@@ -201,7 +201,7 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --daemon-controller=${{ matrix.daemon-controller }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
+        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
