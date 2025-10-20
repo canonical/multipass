@@ -658,10 +658,14 @@ TEST_P(DefaultMountTargetTest, mountTargetsDefaultCorrectly)
 
 std::vector<MountTargetParam> default_mount_target_values = {
     std::make_tuple("", ""),
+    std::make_tuple("/", ""),
+    std::make_tuple("/.", ""),
     std::make_tuple("Documents", "/home/ubuntu/Documents"),
     std::make_tuple("Documents/", "/home/ubuntu/Documents"),
+    std::make_tuple("Documents/.", "/home/ubuntu/Documents"),
     std::make_tuple("/home/user/Desktop", "/home/ubuntu/Desktop"),
     std::make_tuple("/home/user/Desktop/", "/home/ubuntu/Desktop"),
+    std::make_tuple("/folder/subfolder/..", "/home/ubuntu/folder"),
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     std::make_tuple(R"(Documents\)", "/home/ubuntu/Documents"),
     std::make_tuple(R"(C:\Users\user\Documents)", "/home/ubuntu/Documents"),
