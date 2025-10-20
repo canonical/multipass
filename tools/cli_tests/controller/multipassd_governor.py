@@ -68,7 +68,7 @@ class MultipassdGovernor:
     def _get_daemon_inoperative_patterns(self):
         return {
             r".*Hyper-V is not available on this edition of Windows 10.*": "Hyper-V is not available in this edition of Windows.",
-            r'.*The Hyper-V Windows feature is disabled': "Hyper-V feature is disabled!",
+            r'.*The Hyper-V Windows feature is disabled.*': "Hyper-V feature is disabled!",
         }
 
     async def _read_stream(self):
