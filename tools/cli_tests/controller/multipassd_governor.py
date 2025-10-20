@@ -65,6 +65,12 @@ class MultipassdGovernor:
             r".*Only one usage of each socket address": "Could not bind gRPC port -- is there another daemon process running?",
         }
 
+    def _get_daemon_inoperative_patterns(self):
+        return {
+            r".*Hyper-V is not available on this edition of Windows 10.*": "Hyper-V is not available in this edition of Windows.",
+            r'.*The Hyper-V Windows feature is disabled': "Hyper-V feature is disabled!",
+        }
+
     async def _read_stream(self):
         """Read from stream line by line and print if enabled"""
         logging.debug("multipassd-governor :: read_stream start")
@@ -77,9 +83,15 @@ class MultipassdGovernor:
                     if re.search(pattern, line):
                         return reason
 
+                for pattern, reason in self._get_daemon_inoperative_patterns().items():
+                    if re.search(pattern, line):
+                        raise TestSessionFailure(f"FATAL: {reason}")
+
         except asyncio.CancelledError:
             # Handle it gracefully.
             pass
+        except TestSessionFailure:
+            raise
         except Exception as e:
             if self.print_daemon_output:
                 print(f"Error in log reader: {e}", file=sys.stderr)
@@ -148,7 +160,8 @@ class MultipassdGovernor:
         self._reset_state()
         if needs_restarting:
             logging.debug("multipassd-governor :: daemon auto-restarting")
-            self.asyncio_loop.run_fn(lambda: asyncio.create_task(self.start_async()))
+            self.asyncio_loop.run_fn(
+                lambda: asyncio.create_task(self.start_async()))
 
     async def _ensure_client_certs_are_created(self):
         # Call multipass cli to create the client certs
@@ -187,7 +200,8 @@ class MultipassdGovernor:
         await self.controller.start()
 
         # Start monitoring task
-        monitor_task = asyncio.create_task(self._monitor(), name="monitor_task")
+        monitor_task = asyncio.create_task(
+            self._monitor(), name="monitor_task")
         monitor_task.add_done_callback(
             lambda t: asyncio.create_task(self.on_monitor_exit(t))
         )
@@ -214,7 +228,8 @@ class MultipassdGovernor:
 
         # Wait for daemon to be ready
         if not await ready_task:
-            logging.warning("⚠️ multipassd not ready, attempting graceful shutdown...")
+            logging.warning(
+                "⚠️ multipassd not ready, attempting graceful shutdown...")
             await self.controller.stop()
             pytest.exit(
                 "Tests cannot proceed, multipassd not responding in time.",
@@ -269,8 +284,10 @@ class MultipassdGovernor:
         # Restart events are opaque to us when the controller supports
         # self auto-restart. We need to ensure that the daemon is ready, though.
         if self.controller.supports_self_autorestart():
-            self.asyncio_loop.run(self.controller.wait_for_self_autorestart()).result()
-            logging.debug("multipassd-governor :: daemon auto-restart detected")
+            self.asyncio_loop.run(
+                self.controller.wait_for_self_autorestart()).result()
+            logging.debug(
+                "multipassd-governor :: daemon auto-restart detected")
             # Wait until daemon is ready
             self.asyncio_loop.run(self.wait_for_multipassd_ready()).result()
             return
@@ -341,6 +358,7 @@ class MultipassdGovernor:
 
             await asyncio.sleep(0.2)
 
-        sys.stderr.write("\n❌ Fatal error: The daemon did not respond in time!\n")
+        sys.stderr.write(
+            "\n❌ Fatal error: The daemon did not respond in time!\n")
         sys.stderr.flush()
         return False
