@@ -60,15 +60,11 @@ class MultipassdGovernor:
 
     def _get_error_patterns(self):
         return {
-            r".*dnsmasq: failed to create listening socket.*": "Could not bind dnsmasq to port 53, is there another process running?",
-            r'.*Failed to get shared "write" lock': "Cannot open an image file for writing, is another process holding a write lock?",
-            r".*Only one usage of each socket address": "Could not bind gRPC port -- is there another daemon process running?",
-        }
-
-    def _get_daemon_inoperative_patterns(self):
-        return {
-            r".*Hyper-V is not available on this edition of Windows 10.*": "Hyper-V is not available in this edition of Windows.",
-            r'.*The Hyper-V Windows feature is disabled.*': "Hyper-V feature is disabled!",
+            r".*dnsmasq: failed to create listening socket.*": {"description": "Could not bind dnsmasq to port 53, is there another process running?", "fatal": True},
+            r'.*Failed to get shared "write" lock': {"description": "Cannot open an image file for writing, is another process holding a write lock?", "fatal": False},
+            r".*Only one usage of each socket address": {"description": "Could not bind gRPC port -- is there another daemon process running?", "fatal": True},
+            r".*Hyper-V is not available on this edition of Windows 10.*": {"description": "Hyper-V is not available in this edition of Windows.", "fatal": True},
+            r'.*The Hyper-V Windows feature is disabled.*': {"description": "Hyper-V feature is disabled!", "fatal": True},
         }
 
     async def _read_stream(self):
@@ -83,15 +79,9 @@ class MultipassdGovernor:
                     if re.search(pattern, line):
                         return reason
 
-                for pattern, reason in self._get_daemon_inoperative_patterns().items():
-                    if re.search(pattern, line):
-                        raise TestSessionFailure(f"FATAL: {reason}")
-
         except asyncio.CancelledError:
             # Handle it gracefully.
             pass
-        except TestSessionFailure:
-            raise
         except Exception as e:
             if self.print_daemon_output:
                 print(f"Error in log reader: {e}", file=sys.stderr)
@@ -114,10 +104,10 @@ class MultipassdGovernor:
 
             error_reason = await stdout_task
             if error_reason:
-                error_reasons.append(f"\nReason: {error_reason}")
+                error_reasons.append(f"\nReason: {error_reason["description"]}")
 
             # Check exit status
-            if (self.graceful_exit_initiated and returncode == 0) or returncode == 42:
+            if not error_reason["fatal"] and ((self.graceful_exit_initiated and returncode == 0) or returncode == 42):
                 return  # Normal exit
 
             if returncode is None:
@@ -131,7 +121,7 @@ class MultipassdGovernor:
 
             # If the daemon has exited with a failure, subsequent attempts are most likely
             # to fail. Hence, abort the whole session.
-            if returncode == 1:
+            if (returncode == 1) or (error_reason["fatal"] is True):
                 raise TestSessionFailure(
                     f"FATAL: multipassd died with code {returncode}!{reasons}"
                 )
