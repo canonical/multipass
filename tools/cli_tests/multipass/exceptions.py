@@ -17,6 +17,7 @@
 
 """Exception types."""
 
+
 class TestSessionFailure(RuntimeError):
     """Raised to signal that the test session should be aborted with a failure."""
 
