@@ -2,6 +2,25 @@
     "errors": [
     ],
     "images": {
+        "18.04": {
+            "aliases": [
+                "bionic",
+                "lts"
+            ],
+            "os": "Ubuntu",
+            "release": "18.04 LTS",
+            "remote": "release",
+            "version": "20180421"
+        },
+        "19.04": {
+            "aliases": [
+                "disco"
+            ],
+            "os": "Ubuntu",
+            "release": "19.04",
+            "remote": "release",
+            "version": "20190516"
+        },
         "daily:19.10": {
             "aliases": [
                 "eoan",
@@ -10,15 +29,6 @@
             "os": "Ubuntu",
             "release": "19.10",
             "remote": "daily",
-            "version": "20190516"
-        },
-        "ubuntu": {
-            "aliases": [
-                "lts"
-            ],
-            "os": "Ubuntu",
-            "release": "18.04 LTS",
-            "remote": "release",
             "version": "20190516"
         }
     }

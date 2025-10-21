@@ -626,9 +626,18 @@ auto construct_find_multiple_reply()
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
-    image_entry->set_release("18.04 LTS");
+    image_entry->set_release("19.04");
     image_entry->set_version("20190516");
-    image_entry->add_aliases("ubuntu");
+    image_entry->add_aliases("19.04");
+    image_entry->add_aliases("disco");
+    image_entry->set_remote_name("release");
+
+    image_entry = reply.add_images_info();
+    image_entry->set_os("Ubuntu");
+    image_entry->set_release("18.04 LTS");
+    image_entry->set_version("20180421");
+    image_entry->add_aliases("18.04");
+    image_entry->add_aliases("bionic");
     image_entry->add_aliases("lts");
     image_entry->set_remote_name("release");
 
