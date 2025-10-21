@@ -77,11 +77,10 @@ BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::strin
 
     const auto json = read_json(file_path, name);
     return {
-        // TODO remove these comments in C++20
-        /*.name = */ name,
-        /*.file_path = */ file_path,
-        /*.subnet = */ deserialize_subnet(json, file_path, name),
-        /*.available = */ deserialize_available(json, file_path, name),
+        .name = name,
+        .file_path = file_path,
+        .subnet = deserialize_subnet(json, file_path, name),
+        .available = deserialize_available(json, file_path, name),
     };
 }
 
