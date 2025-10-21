@@ -12,5 +12,13 @@
       "name": "fmt",
       "version": "11.0.2"
     }
-  ]
+  ],
+  "features": {
+    "tests": {
+      "description": "Enable test dependencies",
+      "dependencies": [
+        "gtest"
+      ]
+    }
+  }
 }

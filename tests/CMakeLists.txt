@@ -17,18 +17,7 @@ set (CMAKE_AUTOMOC ON)
 
 include(c_mock_defines.cmake)
 
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
-
-FetchContent_Declare(googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG main
-  GIT_SHALLOW TRUE
-  GIT_PROGRESS TRUE
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-set(INSTALL_GTEST OFF CACHE BOOL "")
-FetchContent_MakeAvailable(googletest)
+find_package(GTest CONFIG REQUIRED)
 
 add_executable(multipass_tests
   common.cpp
@@ -155,8 +144,8 @@ target_link_libraries(multipass_tests
   client
   daemon
   delayed_shutdown
-  gmock_main
-  gtest_main
+  GTest::gtest_main
+  GTest::gmock_main
   ip_address
   iso
   network
