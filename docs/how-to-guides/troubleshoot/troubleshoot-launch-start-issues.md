@@ -1,7 +1,7 @@
 (how-to-guides-troubleshoot-troubleshoot-launch-start-issues)=
 # Troubleshoot launch/start issues
 
-This guide helps you diagnose and fix common Multipass launch or start failures such as *timeouts*, *“unknown state”*, or *SSH connection* errors.
+This guide helps you diagnose and fix common Multipass launch or start failures such as *timeouts*, *"unknown state"*, or *SSH connection* errors.
 
 These issues are often related to **networking**, **IP assignment**, **boot problems**, or **SSH access** failures and they may occur for one or more of the following reasons:
 
