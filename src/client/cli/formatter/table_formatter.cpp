@@ -46,7 +46,9 @@ void format_images(Dest&& dest,
     std::sort(sorted_images.begin(),
               sorted_images.end(),
               [](const mp::FindReply_ImageInfo* a, const mp::FindReply_ImageInfo* b) {
-                  return a->remote_name() > b->remote_name() || a->aliases()[0] < b->aliases()[0];
+                  return a->remote_name() > b->remote_name() ||
+                         (a->aliases().size() && b->aliases().size() &&
+                          (a->aliases()[0] < b->aliases()[0]));
               });
 
     for (const auto* image : sorted_images)
