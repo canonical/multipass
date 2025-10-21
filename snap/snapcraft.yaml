@@ -195,10 +195,8 @@ parts:
     prime:
     - -protobuf
     source: .
-    override-pull: |
-      craftctl default
-      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
     override-build: |
+      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
       cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
       DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
 
