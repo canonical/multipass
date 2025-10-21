@@ -171,7 +171,7 @@ target_link_libraries(multipass_tests
   # 3rd-party
   premock
   scope_guard
-  yaml
+  yaml-cpp::yaml-cpp
 )
 
 add_test(NAME multipass_tests

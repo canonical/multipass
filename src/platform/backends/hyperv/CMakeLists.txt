@@ -28,4 +28,4 @@ target_link_libraries(hyperv_backend
   process
   ssh
   utils
-  yaml)
+  yaml-cpp::yaml-cpp)
