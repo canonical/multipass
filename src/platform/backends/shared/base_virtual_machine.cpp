@@ -200,9 +200,13 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
 {
     // A mutex should already be locked by the caller here
-    if (state == State::off || state == State::stopped || state == State::unavailable)
+    if (state == State::off || state == State::stopped)
     {
         throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
+    }
+    if (state == State::unavailable)
+    {
+        throw VMStateIdempotentException{"Ignoring shutdown since instance is unavailable."};
     }
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
@@ -255,7 +259,7 @@ void mp::BaseVirtualMachine::set_available(bool available)
         return;
     }
 
-    was_running = state == State::running || state == State::starting;
+    was_running = state == State::running || state == State::starting || state == State::restarting;
     shutdown(ShutdownPolicy::Poweroff);
     state = State::unavailable;
     update_state();

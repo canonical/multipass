@@ -2267,14 +2267,12 @@ try
             continue;
         }
         case VirtualMachine::State::suspending:
-            fmt::format_to(std::back_inserter(start_errors),
-                           "Cannot start the instance '{}' while suspending.",
-                           name);
-            continue;
         case VirtualMachine::State::unavailable:
             fmt::format_to(std::back_inserter(start_errors),
-                           "Cannot start the instance '{}' while unavailable.",
-                           name);
+                           "Cannot start the instance '{}' while {}.",
+                           name,
+                           vm.current_state() == VirtualMachine::State::suspending ? "suspending"
+                                                                                   : "unavailable");
             continue;
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
@@ -2342,18 +2340,6 @@ try
         else
             operation = [this, delay_minutes = std::chrono::minutes(request->time_minutes())](
                             VirtualMachine& vm) { return this->shutdown_vm(vm, delay_minutes); };
-
-        operation = [op = std::move(operation)](VirtualMachine& vm) {
-            if (vm.current_state() == VirtualMachine::State::unavailable)
-            {
-                mpl::log(mpl::Level::info,
-                         vm.vm_name,
-                         "Ignoring stop since instance is unavailable.");
-                return grpc::Status::OK;
-            }
-
-            return op(vm);
-        };
 
         status = cmd_vms(instance_selection.operative_selection, operation);
     }
