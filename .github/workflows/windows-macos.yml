@@ -30,18 +30,59 @@ jobs:
     steps:
     - name: Determine build matrix
       id: set-matrix
-      run: |
-        set -euo pipefail
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const matrix = { include: [] };
 
-        MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "macos-13", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "brew_extra_pkgs": ["nuget", "mono"]},'
-        MATRIX+='{"runs-on": "macos-latest", "brew_extra_pkgs": ["nuget", "mono"]},'
-        MATRIX+='{"runs-on": "macos-15-intel", "mono":"mono", "optional": true, "brew_extra_pkgs": ["nuget", "mono"]}'
-        MATRIX+=']}'
+          # Windows targets
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025"
+          });
 
-        echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+          # macOS targets
+          matrix.include.push({
+            "name": "macOS 13 Ventura (Intel Silicon)",
+            "runs-on": "macos-13",
+          },{
+            "name": "macOS 14 Sonoma (Apple Silicon)",
+            "runs-on": "macos-14",
+          },{
+            "name": "macOS Latest (Apple Silicon)",
+            "runs-on": "macos-latest",
+            ###############################################################
+            # "nuget" and "mono" are removed from the macos-15 images, see:
+            # https://github.com/actions/runner-images/issues/10686
+            ###############################################################
+            "brew_extra_pkgs": ["nuget", "mono"]
+          },{
+            "name": "macOS 15 Sequia (Intel Silicon)",
+            "runs-on": "macos-15-intel",
+            ###############################################################
+            # "nuget" and "mono" are removed from the macos-15 images, see:
+            # https://github.com/actions/runner-images/issues/10686
+            ###############################################################
+            "brew_extra_pkgs": ["nuget", "mono"],
+            "optional": true
+          })
+
+          # Auto populate fields
+          for (const job of matrix.include) {
+            if (job["runs-on"]?.startsWith("macos"))
+              job.mono = "mono"
+
+            switch (true) {
+              case job["runs-on"]?.endsWith("-intel"):
+                job.arch = "x86_64";
+                break;
+              case job["runs-on"]?.endsWith("-arm"):
+                job.arch = "arm64";
+                break;
+            }
+          }
+
+          core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
     needs: GetMatrix
@@ -137,17 +178,11 @@ jobs:
           python \
           wget
 
-<<<<<<< HEAD
         # Force brew nuget & mono
         brew install nuget || true
         brew install mono || true
         brew link --overwrite mono
         brew link --overwrite nuget
-=======
-          if [ -n "${BREW_EXTRA}" ]; then
-              ${{ env.ARCH_WRAPPER }} brew install ${BREW_EXTRA}
-          fi
->>>>>>> 289cf334d ([windows-macos] Add brew_extra_pkgs to matrix cnf)
 
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
