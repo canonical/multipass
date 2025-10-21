@@ -105,8 +105,8 @@ final daemonInfoProvider = FutureProvider((ref) {
 class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
   @override
   List<DetailedInfoItem> build() {
-    return ref.watch(vmInfosStreamProvider).when(
-          data: (data) => data,
+    return ref.watch(pollingProvider).when(
+          data: (data) => data.info,
           loading: () => const [],
           error: (_, __) => const [],
         );
@@ -172,7 +172,11 @@ final deletedVmsProvider = Provider((ref) {
 });
 
 final zonesProvider = Provider<BuiltList<Zone>>((ref) {
-  return ref.watch(pollingProvider).valueOrNull?.zones.build() ?? BuiltList();
+  return ref.watch(pollingProvider).when(
+        data: (data) => data.zones.build(),
+        loading: () => BuiltList(),
+        error: (_, __) => BuiltList(),
+      );
 });
 
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
