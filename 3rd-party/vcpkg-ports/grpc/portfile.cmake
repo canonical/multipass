@@ -27,6 +27,8 @@ file(REMOVE_RECURSE
     "${SOURCE_PATH}/third_party/zlib"
 )
 
+include(${CMAKE_CURRENT_LIST_DIR}/../multipass-grpc-superbuild.cmake)
+
 if(VCPKG_CROSSCOMPILING)
     vcpkg_add_to_path(PREPEND "${CURRENT_HOST_INSTALLED_DIR}/tools/grpc")
 endif()
@@ -47,7 +49,7 @@ vcpkg_check_features(
 )
 
 vcpkg_cmake_configure(
-    SOURCE_PATH "${SOURCE_PATH}"
+    SOURCE_PATH "${CURRENT_BUILDTREES_DIR}/src-wrap"
     OPTIONS ${FEATURE_OPTIONS}
         -DgRPC_INSTALL=ON
         -DgRPC_BUILD_TESTS=OFF
@@ -87,13 +89,14 @@ if (gRPC_BUILD_CODEGEN)
     vcpkg_copy_tools(
         AUTO_CLEAN
         TOOL_NAMES
-            grpc_php_plugin
-            grpc_python_plugin
-            grpc_node_plugin
-            grpc_objective_c_plugin
-            grpc_csharp_plugin
+            # non-cpp plugins are disabled by superbuild
+            # grpc_php_plugin
+            # grpc_python_plugin
+            # grpc_node_plugin
+            # grpc_objective_c_plugin
+            # grpc_csharp_plugin
             grpc_cpp_plugin
-            grpc_ruby_plugin
+            # grpc_ruby_plugin
     )
 else()
     configure_file("${CMAKE_CURRENT_LIST_DIR}/gRPCTargets-vcpkg-tools.cmake" "${CURRENT_PACKAGES_DIR}/share/grpc/gRPCTargets-vcpkg-tools.cmake" @ONLY)
