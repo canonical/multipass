@@ -26,7 +26,7 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
-#include <semver200.h>
+#include <multipass/utils/semver_compare.h>
 
 #include <QDir>
 #include <QString>
@@ -83,15 +83,16 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
     if (!fuse_version_line.empty())
     {
-        std::string fuse_version;
+        using namespace multipass::literals;
+        std::string fuse_version_str;
 
         // split on the fuse_version_string along with 0 or 1 colon(s)
         auto tokens =
             mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
         if (tokens.size() == 2)
-            fuse_version = tokens[1];
+            fuse_version_str = tokens[1];
 
-        if (fuse_version.empty())
+        if (fuse_version_str.empty())
         {
             mpl::warn(category, "Unable to parse the {}", fuse_version_string);
             mpl::debug(category,
@@ -100,7 +101,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
                        fuse_version_line);
         }
         // The option was made the default in libfuse 3.0
-        else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))
+        else if (multipass::opaque_semver{fuse_version_str} < "3.0.0"_semver)
         {
             sshfs_exec += " -o nonempty -o cache=no";
         }
