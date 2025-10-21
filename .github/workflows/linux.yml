@@ -85,6 +85,12 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
+    - name: Apply patches
+      env:
+        PATCH_PREFIX: .github/workflows/linux
+      run: >
+        [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
+
     - name: Set up vcpkg
       id: setup-vcpkg
       uses: lukka/run-vcpkg@v11
