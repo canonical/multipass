@@ -18,7 +18,6 @@
 #pragma once
 
 #include "disabled_copy_move.h"
-#include "ip_address.h"
 #include "network_interface.h"
 #include "path.h"
 
@@ -29,7 +28,6 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -128,7 +126,6 @@ public:
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
-    std::optional<IPAddress> management_ip;
     bool shutdown_while_starting{false};
 
 protected:
