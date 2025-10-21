@@ -18,6 +18,9 @@ cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 include(src/cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
+option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
+
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
@@ -83,13 +86,14 @@ else()
   message(STATUS "Bootstrapping vcpkg completed successfully.")
 endif()
 
+if(MULTIPASS_ENABLE_TESTS)
+  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
+endif()
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
-
-option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
-option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
 
 include(GNUInstallDirs)
 
