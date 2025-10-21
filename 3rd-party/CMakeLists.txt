@@ -108,13 +108,6 @@ add_library(premock INTERFACE)
 target_include_directories(premock INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/premock)
 
-# scope_guard header only library
-add_library(scope_guard INTERFACE)
-target_include_directories(scope_guard INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/scope_guard)
-target_compile_definitions(scope_guard INTERFACE
-  SG_REQUIRE_NOEXCEPT_IN_CPP17)
-
 # semver library
 add_subdirectory_compat(semver EXCLUDE_FROM_ALL)
 target_include_directories(semver INTERFACE
