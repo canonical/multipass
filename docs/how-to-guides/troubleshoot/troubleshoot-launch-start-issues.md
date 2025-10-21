@@ -117,7 +117,7 @@ Corrupted VM disk image, often due to abrupt shutdowns.
      exit
      ```
   * Choose **resume** to continue normal boot.
-- *(Linux/macOS)* Alternatively, mount and repair the image on host (see {ref}`launch-start-issues-reading-data-from-an-image`).
+- *(Linux/macOS)* Alternatively, mount and repair the image on host (see {ref}`troubleshoot-launch-start-issues-reading-data-from-an-image`).
 - Use `qemu-img check -r` to repair:
   ```bash
   /Library/Application\ Support/com.canonical.multipass/bin/qemu-img check -r /var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>
@@ -203,7 +203,7 @@ Incorrect SSH configuration, wrong username, or missing keys.
   ```
   (access the instance manually or by mounting its image if SSH fails).
 * Gain access without SSH:
-  - Mount the instance’s image (see {ref}`launch-start-issues-reading-data-from-an-image`).
+  - Mount the instance’s image (see {ref}`troubleshoot-launch-start-issues-reading-data-from-an-image`).
   - Run the VM directly and log in as:
     - username: `ubuntu`
     - password: `ubuntu`
@@ -370,6 +370,6 @@ If these troubleshooting steps do not resolve your issue:
 - [Open a new issue on GitHub](https://github.com/canonical/multipass/issues/new/choose)
   - Include:
     - The full output of the failing command.
-    - Relevant logs from multipassd.
+    - Relevant logs from `multipassd`.
     - Your OS, Multipass version, and driver used.
-- Or visit the [Multipass Discourse Forum](https://discourse.ubuntu.com/c/multipass/) for community help.
+- Or visit the [Multipass Discourse Forum](https://discourse.ubuntu.com/c/project/multipass/21/none) for community help.
