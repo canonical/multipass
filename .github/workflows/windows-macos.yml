@@ -105,6 +105,7 @@ jobs:
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-package-file-name }}
 
+    name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
     continue-on-error: ${{ matrix.optional || false }}
 
