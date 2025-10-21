@@ -15,22 +15,54 @@ import 'search_box.dart';
 import 'table.dart';
 import 'vm_table_headers.dart';
 
-final runningOnlyProvider = StateProvider((_) => false);
-final selectedVmsProvider = StateProvider<BuiltSet<String>>((ref) {
-  // if any filter is applied (either name or show running only), the provider
-  // will be invalidated and return the empty set again
-  ref.watch(runningOnlyProvider);
-  ref.watch(searchNameProvider);
-  // if navigating to another page, deselect all
-  ref.watch(sidebarKeyProvider);
-  // look for changes in available vms and make sure this set does not contain
-  // vm names that are no longer present
-  ref.listen(vmNamesProvider, (_, availableNames) {
-    ref.controller.update(availableNames.intersection);
-  });
+class RunningOnlyNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
 
-  return BuiltSet();
-});
+  void set(bool value) {
+    state = value;
+  }
+}
+
+final runningOnlyProvider = NotifierProvider<RunningOnlyNotifier, bool>(
+  RunningOnlyNotifier.new,
+);
+
+final selectedVmsProvider =
+    NotifierProvider<SelectedVmsNotifier, BuiltSet<String>>(
+  SelectedVmsNotifier.new,
+);
+
+class SelectedVmsNotifier extends Notifier<BuiltSet<String>> {
+  @override
+  BuiltSet<String> build() {
+    // if any filter is applied (either name or show running only), the provider
+    // will be invalidated and return the empty set again
+    ref.watch(runningOnlyProvider);
+    ref.watch(searchNameProvider);
+    // if navigating to another page, deselect all
+    ref.watch(sidebarKeyProvider);
+    // look for changes in available vms and make sure this set does not contain
+    // vm names that are no longer present
+    ref.listen(vmNamesProvider, (_, availableNames) {
+      state = availableNames.intersection(state);
+    });
+
+    return BuiltSet();
+  }
+
+  void set(BuiltSet<String> newState) {
+    state = newState;
+  }
+
+  void toggle(String name, bool isSelected) {
+    state = state.rebuild((set) {
+      isSelected ? set.add(name) : set.remove(name);
+    });
+  }
+}
 
 class Vms extends ConsumerWidget {
   const Vms({super.key});
@@ -62,7 +94,7 @@ class Vms extends ConsumerWidget {
         Switch(
           label: 'Show running instances only',
           value: runningOnly,
-          onChanged: (v) => ref.read(runningOnlyProvider.notifier).state = v,
+          onChanged: (v) => ref.read(runningOnlyProvider.notifier).set(v),
         ),
         const Spacer(),
         const SearchBox(),

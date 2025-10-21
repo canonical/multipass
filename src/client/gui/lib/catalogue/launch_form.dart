@@ -19,7 +19,21 @@ import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
 
-final launchingImageProvider = StateProvider<ImageInfo>((_) => ImageInfo());
+class LaunchingImageNotifier extends Notifier<ImageInfo> {
+  @override
+  ImageInfo build() {
+    return ImageInfo();
+  }
+
+  void set(ImageInfo imageInfo) {
+    state = imageInfo;
+  }
+}
+
+final launchingImageProvider =
+    NotifierProvider<LaunchingImageNotifier, ImageInfo>(
+  LaunchingImageNotifier.new,
+);
 
 final randomNameProvider = Provider.autoDispose(
   (ref) => generatePetname(ref.watch(vmNamesProvider)),
@@ -66,8 +80,17 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final randomName = ref.watch(randomNameProvider);
     final vmNames = ref.watch(vmNamesProvider);
     final deletedVms = ref.watch(deletedVmsProvider);
-    final networks = ref.watch(networksProvider);
-    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final networksAsync = ref.watch(networksProvider);
+    final networks = networksAsync.when(
+      data: (data) => data,
+      loading: () => const <String>{},
+      error: (_, __) => const <String>{},
+    );
+    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),

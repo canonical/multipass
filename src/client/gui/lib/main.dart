@@ -49,9 +49,7 @@ void main() async {
 
   providerContainer = ProviderContainer(
     overrides: [
-      guiSettingProvider.overrideWith(() {
-        return GuiSettingNotifier(sharedPreferences);
-      }),
+      sharedPreferencesProvider.overrideWithValue(sharedPreferences),
     ],
   );
   setupTrayMenu(providerContainer);

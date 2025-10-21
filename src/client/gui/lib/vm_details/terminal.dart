@@ -18,12 +18,28 @@ import '../platform/platform.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 
-final runningShellsProvider = StateProvider.autoDispose.family<int, String>((
-  _,
-  __,
-) {
-  return 0;
-});
+class RunningShellsNotifier extends Notifier<int> {
+  RunningShellsNotifier(this.arg);
+  final String arg;
+
+  @override
+  int build() {
+    return 0;
+  }
+
+  void increment() {
+    state = state + 1;
+  }
+
+  void decrement() {
+    state = state - 1;
+  }
+}
+
+final runningShellsProvider =
+    NotifierProvider.autoDispose.family<RunningShellsNotifier, int, String>(
+  RunningShellsNotifier.new,
+);
 
 class ShellId {
   final int id;
@@ -37,8 +53,10 @@ class ShellId {
 
 typedef TerminalIdentifier = ({String vmName, ShellId shellId});
 
-class TerminalNotifier
-    extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
+class TerminalNotifier extends Notifier<Terminal?> {
+  TerminalNotifier(this.arg);
+  final TerminalIdentifier arg;
+
   final lock = Lock();
   Isolate? isolate;
   late final vmStatusProvider = vmInfoProvider(arg.vmName).select((info) {
@@ -46,7 +64,7 @@ class TerminalNotifier
   });
 
   @override
-  Terminal? build(TerminalIdentifier arg) {
+  Terminal? build() {
     ref.onDispose(_dispose);
     if (arg.shellId.autostart) {
       lock.synchronized(_initShell).then((value) => state = value);
@@ -55,6 +73,12 @@ class TerminalNotifier
       if ((previous ?? false) && !next) stop();
     });
     return null;
+  }
+
+  void _decrementShellCount() {
+    if (ref.mounted) {
+      ref.read(runningShellsProvider(arg.vmName).notifier).decrement();
+    }
   }
 
   Future<Terminal?> _initShell() async {
@@ -92,7 +116,11 @@ class TerminalNotifier
       receiver.close();
       errorReceiver.close();
       exitReceiver.close();
-      stop();
+      // Don't call stop() here - it will be handled by dispose
+      // Just clear the state to reflect that the connection is closed
+      if (ref.mounted) {
+        state = null;
+      }
     });
 
     receiver.listen((event) {
@@ -103,7 +131,10 @@ class TerminalNotifier
         case final String data:
           terminal.write(data);
         case null:
-          stop();
+          // Connection closed from remote side
+          if (ref.mounted) {
+            state = null;
+          }
       }
     });
 
@@ -120,9 +151,7 @@ class TerminalNotifier
       errorsAreFatal: true,
     );
 
-    ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
-      return state + 1;
-    });
+    ref.read(runningShellsProvider(arg.vmName).notifier).increment();
     return terminal;
   }
 
@@ -138,9 +167,7 @@ class TerminalNotifier
   void _dispose() {
     isolate?.kill(priority: Isolate.immediate);
     if (isolate != null) {
-      ref
-          .read(runningShellsProvider(arg.vmName).notifier)
-          .update((state) => state - 1);
+      _decrementShellCount();
     }
     isolate = null;
   }
@@ -390,6 +417,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           final currentSize = ref.read(sessionTerminalFontSizeProvider);
           final newSize = min(currentSize + fontSizeStep, maxFontSize);
           ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+          return null;
         },
       ),
       DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
@@ -397,6 +425,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           final currentSize = ref.read(sessionTerminalFontSizeProvider);
           final newSize = max(currentSize - fontSizeStep, minFontSize);
           ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+          return null;
         },
       ),
       ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
@@ -404,6 +433,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           ref
               .read(sessionTerminalFontSizeProvider.notifier)
               .set(SessionTerminalFontSizeNotifier.defaultFontSize);
+          return null;
         },
       ),
       PasteTextIntent: CallbackAction<PasteTextIntent>(

@@ -14,9 +14,21 @@ class VirtualizationSettings extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final driver = ref.watch(driverProvider).valueOrNull;
-    final bridgedNetwork = ref.watch(bridgedNetworkProvider).valueOrNull;
-    final networks = ref.watch(networksProvider);
+    final driver = ref.watch(driverProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
+    final bridgedNetwork = ref.watch(bridgedNetworkProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
+    final networks = ref.watch(networksProvider).when(
+          data: (data) => data,
+          loading: () => const <String>{},
+          error: (_, __) => const <String>{},
+        );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,7 +47,7 @@ class VirtualizationSettings extends ConsumerWidget {
             if (value == driver) return;
             ref
                 .read(driverProvider.notifier)
-                .set(value!)
+                .set(value as String)
                 .onError(ref.notifyError((e) => 'Failed to set driver: $e'));
           },
         ),

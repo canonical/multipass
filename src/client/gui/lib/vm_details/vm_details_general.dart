@@ -73,7 +73,7 @@ class VmDetailsHeader extends ConsumerWidget {
         style: style,
         child: Text(location.name.capitalize()),
         onPressed: () {
-          ref.read(vmScreenLocationProvider(name).notifier).state = location;
+          ref.read(vmScreenLocationProvider(name).notifier).set(location);
         },
       );
     }
