@@ -38,7 +38,7 @@ jobs:
         MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
         MATRIX+='{"runs-on": "macos-14", "arch": "arm64"},'
         MATRIX+='{"runs-on": "macos-latest", "arch": "arm64"}',
-        MATRIX+='{"runs-on": "macos-15-intel", "arch": "x86_64", "mono": "mono"}',
+        MATRIX+='{"runs-on": "macos-15-intel", "arch": "x86_64", "mono": "mono", "optional": true}',
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -65,6 +65,7 @@ jobs:
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-file-name }}
 
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ matrix.optional || false }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
