@@ -23,9 +23,9 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug"}
-                {"build-type": "Clang"}
-                {"build-type": "Release"}'
+        MATRIX='{"build-type": "Debug", "cmake-profile": "ci-snap-debug"}
+                {"build-type": "Clang", "cmake-profile": "ci-snap-clang-11"}
+                {"build-type": "Release", "cmake-profile": "ci-snap-coverage"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
             MATRIX+='{"build-type": "Coverage" }'
@@ -84,15 +84,6 @@ jobs:
     - name: Determine build parameters
       id: build-params
       uses: ./.github/actions/build-params
-
-    - name: Patch
-      env:
-        PATCH_PREFIX: .github/workflows/linux
-      run: >
-        [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
-
-        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] ||
-          patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -167,6 +158,10 @@ jobs:
 
         if [ -n "${GITHUB_ACTIONS}" ]; then
           sed -i "/build-environment:/a \    - GITHUB_ACTIONS: \"${GITHUB_ACTIONS}\"" snap/snapcraft.yaml
+        fi
+
+        if [ -n "${{ matrix.cmake-profile }}" ]; then
+          sed -i -E 's/^([[:space:]]*-\s*CMAKE_preset:\s*).*/\1"'"${{ matrix.cmake-profile }}"'"/' snap/snapcraft.yaml
         fi
 
         # Build the `multipass` part.
