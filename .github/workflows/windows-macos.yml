@@ -57,7 +57,7 @@ jobs:
             // ##############################################################
             "brew_extra_pkgs": ["nuget", "mono"]
           },{
-            "name": "macOS 15 Sequia (Intel Silicon)",
+            "name": "macOS 15 Sequoia (Intel Silicon)",
             "runs-on": "macos-15-intel",
             // ##############################################################
             // "nuget" and "mono" are removed from the macos-15 images, see:
