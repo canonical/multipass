@@ -426,16 +426,15 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                 node = YAML::LoadFile(cloud_init_file_stdstr);
             }
 
-            (void)node["users"];
-            (void)node["ssh_authorized_keys"];
-            (void)node["packages"];
+            for (const auto& key : {"users", "ssh_authorized_keys", "packages"})
+                [[maybe_unused]] auto x = node[key];
 
             request.set_cloud_init_user_data(YAML::Dump(node));
         }
         catch (const YAML::BadSubscript& e)
         {
             auto err_detail =
-                fmt::format("{}\n{}", e.what(), "Please ensure key is included in cloud init file.");
+                fmt::format("{}\n{}", e.what(), "Please ensure the key is included in the cloud-init file.");
             fmt::println(cerr, err_msg_template, err_detail);
             return ParseCode::CommandLineError;
         }
