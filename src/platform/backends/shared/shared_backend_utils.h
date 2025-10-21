@@ -32,38 +32,6 @@ namespace backend
 using namespace std::chrono_literals;
 
 template <typename Callable>
-std::string ip_address_for(VirtualMachine* virtual_machine,
-                           Callable&& get_ip,
-                           std::chrono::milliseconds timeout)
-{
-    if (!virtual_machine->management_ip)
-    {
-        auto action = [virtual_machine, get_ip] {
-            virtual_machine->ensure_vm_is_running();
-            auto result = get_ip();
-            if (result)
-            {
-                virtual_machine->management_ip.emplace(*result);
-                return utils::TimeoutAction::done;
-            }
-            else
-            {
-                return utils::TimeoutAction::retry;
-            }
-        };
-
-        auto on_timeout = [virtual_machine, &timeout] {
-            virtual_machine->state = VirtualMachine::State::unknown;
-            throw InternalTimeoutException{"determine IP address", timeout};
-        };
-
-        utils::try_action_for(on_timeout, timeout, action);
-    }
-
-    return virtual_machine->management_ip->as_string();
-}
-
-template <typename Callable>
 void ensure_vm_is_running_for(VirtualMachine* virtual_machine,
                               Callable&& is_vm_running,
                               const std::string& msg)
