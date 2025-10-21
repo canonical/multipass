@@ -29,5 +29,5 @@ jobs:
           only-issue-labels: "question"
           start-date: 2025-10-20
           exempt-all-milestones: true
-          exempt-assignees: true
+          exempt-all-assignees: true
           repo-token: ${{ secrets.GITHUB_TOKEN }}
