@@ -23,9 +23,9 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug", "cmake-profile": "ci-snap-debug"}
-                {"build-type": "Clang", "cmake-profile": "ci-snap-clang-11"}
-                {"build-type": "Release", "cmake-profile": "ci-snap-coverage"}'
+        MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
+                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-11"}
+                {"build-type": "Release", "cmake-preset": "ci-snap-coverage"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
             MATRIX+='{"build-type": "Coverage" }'
@@ -166,8 +166,8 @@ jobs:
           sed -i "/build-environment:/a \    - GITHUB_ACTIONS: \"${GITHUB_ACTIONS}\"" snap/snapcraft.yaml
         fi
 
-        if [ -n "${{ matrix.cmake-profile }}" ]; then
-          sed -i -E 's/^([[:space:]]*-\s*CMAKE_preset:\s*).*/\1"'"${{ matrix.cmake-profile }}"'"/' snap/snapcraft.yaml
+        if [ -n "${{ matrix.cmake-preset }}" ]; then
+          sed -i -E 's/^([[:space:]]*-\s*CMAKE_PRESET:\s*).*/\1"'"${{ matrix.cmake-preset }}"'"/' snap/snapcraft.yaml
         fi
 
         # Build the `multipass` part.
