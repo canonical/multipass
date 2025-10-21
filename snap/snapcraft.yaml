@@ -118,6 +118,7 @@ parts:
     build-environment:
     - PATH: /snap/bin:$PATH
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
+    - CMAKE_PRESET: snap
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
@@ -194,14 +195,13 @@ parts:
     prime:
     - -protobuf
     source: .
-    cmake-parameters:
-    - -DCMAKE_BUILD_TYPE=Release
-    - -DCMAKE_INSTALL_PREFIX=/
-    - -DMULTIPASS_ENABLE_TESTS=off
-    - -DMULTIPASS_UPSTREAM=origin
-    - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
-    override-build: |
+    override-pull: |
       craftctl default
+      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
+    override-build: |
+      cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
+      DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
+
       set -e
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
