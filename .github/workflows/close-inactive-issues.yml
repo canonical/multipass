@@ -15,8 +15,8 @@ jobs:
           days-before-issue-stale: 30
           days-before-issue-close: 14
           stale-issue-label: "stale"
-          stale-issue-message: "This issue is stale because it has been open for 30 days with no activity."
-          close-issue-message: "This issue was closed because it has been inactive for 14 days since being marked as stale."
+          stale-issue-message: "This issue was marked stale because it has been labelled with \"question\" for 30 days."
+          close-issue-message: "This issue was closed because it has been 14 days since being marked as stale."
 
           # Leave PRs alone
           days-before-pr-stale: -1
