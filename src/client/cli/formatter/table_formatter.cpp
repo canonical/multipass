@@ -32,10 +32,9 @@ const std::regex newline("(\r\n|\n)");
 
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-                   std::string type)
+                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
 {
-    fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", type, "Aliases", "Version", "Description");
+    fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
 
     std::vector<const mp::FindReply_ImageInfo*> sorted_images;
     sorted_images.reserve(static_cast<size_t>(images_info.size()));
@@ -482,7 +481,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
     }
     else
     {
-        format_images(std::back_inserter(buf), reply.images_info(), "Image");
+        format_images(std::back_inserter(buf), reply.images_info());
     }
     return fmt::to_string(buf);
 }
