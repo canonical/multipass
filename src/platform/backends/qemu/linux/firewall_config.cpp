@@ -22,9 +22,8 @@
 #include <multipass/process/process.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
+#include <multipass/utils/semver_compare.h>
 #include <shared/linux/process_factory.h>
-
-#include <semver200.h>
 
 #include <stdexcept>
 
@@ -350,11 +349,12 @@ bool is_firewall_in_use(const QString& firewall)
 // rules. Taken from LXD :)
 bool kernel_supports_nftables()
 {
-    const auto kernel_version{MP_UTILS.get_kernel_version()};
+
+    const auto kernel_version_str{MP_UTILS.get_kernel_version()};
     try
     {
-        auto kernel_supported{version::Semver200_version(kernel_version) >=
-                              version::Semver200_version("5.2.0")};
+        using namespace multipass::literals;
+        const auto kernel_supported{multipass::opaque_semver{kernel_version_str} >= "5.2.0"_semver};
 
         if (!kernel_supported)
         {
@@ -363,9 +363,9 @@ bool kernel_supports_nftables()
 
         return kernel_supported;
     }
-    catch (version::Parse_error&)
+    catch (const std::invalid_argument&)
     {
-        mpl::warn(category, "Cannot parse kernel version \'{}\'", kernel_version);
+        mpl::warn(category, "Cannot parse kernel version \'{}\'", kernel_version_str);
         return false;
     }
 }
