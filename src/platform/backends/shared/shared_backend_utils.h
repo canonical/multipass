@@ -34,7 +34,7 @@ void ensure_vm_is_running_for(VirtualMachine* virtual_machine,
                               Callable&& is_vm_running,
                               const std::string& msg)
 {
-    std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
+    std::lock_guard lock{virtual_machine->state_mutex};
     if (!is_vm_running())
     {
         virtual_machine->shutdown_while_starting = true;
