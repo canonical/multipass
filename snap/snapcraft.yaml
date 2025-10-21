@@ -122,6 +122,9 @@ parts:
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
+    - ccache
+    - lcov
+    - clang-11
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
