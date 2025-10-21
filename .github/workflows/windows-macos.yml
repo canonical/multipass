@@ -36,9 +36,9 @@ jobs:
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "macos-13", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14"},'
-        MATRIX+='{"runs-on": "macos-latest"},'
-        MATRIX+='{"runs-on": "macos-15-intel", "mono":"mono", "optional": true}'
+        MATRIX+='{"runs-on": "macos-14", "brew_extra_pkgs": ["nuget", "mono"]},'
+        MATRIX+='{"runs-on": "macos-latest", "brew_extra_pkgs": ["nuget", "mono"]},'
+        MATRIX+='{"runs-on": "macos-15-intel", "mono":"mono", "optional": true, "brew_extra_pkgs": ["nuget", "mono"]}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -116,6 +116,8 @@ jobs:
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
+      env:
+        BREW_EXTRA: ${{ matrix.brew_extra_pkgs && join(matrix.brew_extra_pkgs, ' ') || '' }}
       run: |
         # Avoid reinstalling cmake
         brew list cmake > /dev/null || brew install cmake
@@ -135,11 +137,17 @@ jobs:
           python \
           wget
 
+<<<<<<< HEAD
         # Force brew nuget & mono
         brew install nuget || true
         brew install mono || true
         brew link --overwrite mono
         brew link --overwrite nuget
+=======
+          if [ -n "${BREW_EXTRA}" ]; then
+              ${{ env.ARCH_WRAPPER }} brew install ${BREW_EXTRA}
+          fi
+>>>>>>> 289cf334d ([windows-macos] Add brew_extra_pkgs to matrix cnf)
 
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
