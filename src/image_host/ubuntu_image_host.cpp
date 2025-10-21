@@ -199,8 +199,7 @@ void mp::UbuntuVMImageHost::fetch_manifests(const bool force_update)
     auto fetch_one_remote =
         [this, force_update](const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)
         -> std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>> {
-        const auto& remote_name = remote_pair.first;
-        const auto& remote_info = remote_pair.second;
+        const auto& [remote_name, remote_info] = remote_pair;
 
         try
         {
