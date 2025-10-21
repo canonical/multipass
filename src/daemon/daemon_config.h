@@ -76,6 +76,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<logging::Logger> logger;
     std::unique_ptr<QNetworkProxy> network_proxy;
     AvailabilityZoneManager::UPtr az_manager;
+    multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;
     std::string ssh_username;

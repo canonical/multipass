@@ -15,7 +15,6 @@
  *
  */
 
-#include "blueprint_test_lambdas.h"
 #include "daemon_test_fixture.h"
 #include "mock_availability_zone.h"
 #include "mock_availability_zone_manager.h"

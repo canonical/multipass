@@ -150,6 +150,6 @@ void BaseAvailabilityZone::serialize() const
         {available_key, m.available},
     };
 
-    MP_JSONUTILS.write_json(json, QString::fromStdString(m.file_path.u8string()));
+    MP_JSONUTILS.write_json(json, QString::fromStdU16String(m.file_path.u16string()));
 }
 } // namespace multipass

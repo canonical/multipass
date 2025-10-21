@@ -83,10 +83,9 @@ BaseAvailabilityZoneManager::data BaseAvailabilityZoneManager::read_from_file(
 {
     mpl::debug(category, "reading AZ manager from file '{}'", file_path);
     return {
-        // TODO remove these comments in C++20
-        /*.file_path = */ file_path,
-        /*.zone_collection = */
-        {create_default_zones(zones_directory), deserialize_automatic_zone(read_json(file_path))},
+        .file_path = file_path,
+        .zone_collection = {create_default_zones(zones_directory),
+                            deserialize_automatic_zone(read_json(file_path))},
     };
 }
 
@@ -136,7 +135,7 @@ void BaseAvailabilityZoneManager::serialize() const
         {automatic_zone_key, QString::fromStdString(m.zone_collection.last_used())},
     };
 
-    MP_JSONUTILS.write_json(json, QString::fromStdString(m.file_path.u8string()));
+    MP_JSONUTILS.write_json(json, QString::fromStdU16String(m.file_path.u16string()));
 }
 
 const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray&

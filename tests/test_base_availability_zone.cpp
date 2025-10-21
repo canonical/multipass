@@ -41,7 +41,7 @@ struct BaseAvailabilityZoneTest : public Test
     const std::string az_name{"zone1"};
     const mp::fs::path az_dir{"/path/to/zones"};
     const mp::fs::path az_file = az_dir / (az_name + ".json");
-    const QString az_file_qstr{QString::fromStdString(az_file.u8string())};
+    const QString az_file_qstr{QString::fromStdU16String(az_file.u16string())};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockJsonUtils::GuardedMock mock_json_utils_guard{mpt::MockJsonUtils::inject()};
@@ -56,7 +56,7 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(*mock_json_utils_guard.first,
-                write_json(_, QString::fromStdString(az_file.u8string())));
+                write_json(_, QString::fromStdU16String(az_file.u16string())));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 
@@ -100,7 +100,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(*mock_json_utils_guard.first,
-                write_json(_, QString::fromStdString(az_file.u8string())))
+                write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
@@ -123,7 +123,7 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(*mock_json_utils_guard.first,
-                write_json(_, QString::fromStdString(az_file.u8string())));
+                write_json(_, QString::fromStdU16String(az_file.u16string())));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 
@@ -144,7 +144,7 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(*mock_json_utils_guard.first,
-                write_json(_, QString::fromStdString(az_file.u8string())))
+                write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};

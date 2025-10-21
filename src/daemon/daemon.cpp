@@ -3251,8 +3251,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
-    auto zone_name =
-        checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name() : checked_args.zone_name;
+    auto zone_name = checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name()
+                                                    : checked_args.zone_name;
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -3320,15 +3320,16 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
                     operative_instances[name]->start();
 
-                    auto future_watcher = create_future_watcher([this, server, name, zone = vm_desc.zone] {
-                        LaunchReply reply;
-                        reply.set_vm_instance_name(name);
-                        config->update_prompt->populate_if_time_to_show(
-                            reply.mutable_update_info());
+                    auto future_watcher =
+                        create_future_watcher([this, server, name, zone = vm_desc.zone] {
+                            LaunchReply reply;
+                            reply.set_vm_instance_name(name);
+                            config->update_prompt->populate_if_time_to_show(
+                                reply.mutable_update_info());
 
-                        reply.set_zone(zone)
-                        server->Write(reply);
-                    });
+                            reply.set_zone(zone);
+                            server->Write(reply);
+                        });
                     future_watcher->setFuture(QtConcurrent::run(
                         &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>,
                         this,
@@ -3362,7 +3363,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto make_vm_description =
         [this, server, request, name, zone_name, checked_args, log_level]() mutable
-        -> VMFullDescription {
+        -> mp::VirtualMachineDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try

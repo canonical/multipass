@@ -100,11 +100,11 @@ std::string generate_instance_details(const mp::InfoReply reply)
         const auto& instance_details = info.instance_info();
 
         fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
+                       "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
                        info.name(),
                        mp::format::status_string_for(info.instance_status()),
                        info.zone().name(),
-                       info.zone().availablse(),
+                       info.zone().available(),
                        instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
                        instance_details.ipv6_size() ? instance_details.ipv6(0) : "",
                        instance_details.current_release(),

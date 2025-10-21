@@ -41,7 +41,7 @@ struct BaseAvailabilityZoneManagerTest : public Test
     const mp::fs::path data_dir{"/path/to/data"};
     const mp::fs::path manager_file = data_dir / "az-manager.json";
     const mp::fs::path zones_dir = data_dir / "zones";
-    const QString manager_file_qstr{QString::fromStdString(manager_file.u8string())};
+    const QString manager_file_qstr{QString::fromStdU16String(manager_file.u16string())};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockJsonUtils::GuardedMock mock_json_utils_guard{mpt::MockJsonUtils::inject()};
@@ -64,7 +64,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
         EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
             .WillOnce(Return(QJsonObject{}));
         EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdString(zone_file.u8string())));
+                    write_json(_, QString::fromStdU16String(zone_file.u16string())));
     }
 
     // Manager file gets written with default zone (once in constructor and once in
@@ -97,7 +97,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
         EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
             .WillOnce(Return(QJsonObject{}));
         EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdString(zone_file.u8string())))
+                    write_json(_, QString::fromStdU16String(zone_file.u16string())))
             .Times(AnyNumber());
     }
 
@@ -143,7 +143,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
         EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
             .WillOnce(Return(QJsonObject{}));
         EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdString(zone_file.u8string())))
+                    write_json(_, QString::fromStdU16String(zone_file.u16string())))
             .Times(AnyNumber());
     }
 
@@ -168,7 +168,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
         EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
             .WillOnce(Return(QJsonObject{}));
         EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdString(zone_file.u8string())))
+                    write_json(_, QString::fromStdU16String(zone_file.u16string())))
             .Times(AnyNumber());
     }
 

@@ -130,7 +130,7 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
     fmt::format_to(
-        std::back_inserter(buf),
+        dest,
         "{:<16}{}\n",
         "Zone:",
         fmt::format("{}({})", item.zone().name(), item.zone().available() ? "a" : "u/a"));
@@ -257,7 +257,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     const std::string::size_type ip_column_width = 17;
     const std::string::size_type image_column_width = 20;
 
-    const auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -608,7 +608,7 @@ std::string mp::TableFormatter::format(const ZonesReply& reply) const
         [](const auto& zone) -> int { return zone.name().length(); },
         name_col_header.length());
 
-    const auto row_format = "{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,

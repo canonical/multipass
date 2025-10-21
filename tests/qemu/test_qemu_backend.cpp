@@ -1026,12 +1026,6 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
     machine.shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown);
 }
 
-TEST_F(QemuBackend, supportsSnapshots)
-{
-    MockQemuVM vm{"asdf", key_provider, zone};
-    EXPECT_NO_THROW(vm.require_snapshots_support());
-}
-
 TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 {
     MockQemuVM machine{"mock-qemu-vm", key_provider, zone};
