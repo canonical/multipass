@@ -35,13 +35,13 @@ jobs:
         script: |
           const matrix = { include: [] };
 
-          # Windows targets
+          // Windows targets
           matrix.include.push({
               "name": "Windows Server 2025",
               "runs-on": "windows-2025"
           });
 
-          # macOS targets
+          // macOS targets
           matrix.include.push({
             "name": "macOS 13 Ventura (Intel Silicon)",
             "runs-on": "macos-13",
@@ -51,23 +51,23 @@ jobs:
           },{
             "name": "macOS Latest (Apple Silicon)",
             "runs-on": "macos-latest",
-            ###############################################################
-            # "nuget" and "mono" are removed from the macos-15 images, see:
-            # https://github.com/actions/runner-images/issues/10686
-            ###############################################################
+            // ##############################################################
+            // "nuget" and "mono" are removed from the macos-15 images, see:
+            // https://github.com/actions/runner-images/issues/10686
+            // ##############################################################
             "brew_extra_pkgs": ["nuget", "mono"]
           },{
             "name": "macOS 15 Sequia (Intel Silicon)",
             "runs-on": "macos-15-intel",
-            ###############################################################
-            # "nuget" and "mono" are removed from the macos-15 images, see:
-            # https://github.com/actions/runner-images/issues/10686
-            ###############################################################
+            // ##############################################################
+            // "nuget" and "mono" are removed from the macos-15 images, see:
+            // https://github.com/actions/runner-images/issues/10686
+            // ##############################################################
             "brew_extra_pkgs": ["nuget", "mono"],
             "optional": true
           })
 
-          # Auto populate fields
+          // Auto populate fields
           for (const job of matrix.include) {
             if (job["runs-on"]?.startsWith("macos"))
               job.mono = "mono"
