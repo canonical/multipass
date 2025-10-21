@@ -103,18 +103,18 @@ auto fetch_image_info(const QString& arch,
         for (QString& alias : aliases)
             alias = alias.trimmed();
 
-        images.push_back(mp::VMImageInfo{aliases,
-                                         distro_obj["os"].toString(),
-                                         distro_obj["release"].toString(),
-                                         distro_obj["release_codename"].toString(),
-                                         distro_obj["release_title"].toString(),
-                                         true,
-                                         distro_obj["items"][arch]["image_location"].toString(),
-                                         distro_obj["items"][arch]["id"].toString(),
-                                         "",
-                                         distro_obj["items"][arch]["version"].toString(),
-                                         distro_obj["items"][arch]["size"].toInt(-1),
-                                         true});
+        images.emplace_back(mp::VMImageInfo{aliases,
+                                            distro_obj["os"].toString(),
+                                            distro_obj["release"].toString(),
+                                            distro_obj["release_codename"].toString(),
+                                            distro_obj["release_title"].toString(),
+                                            true,
+                                            distro_obj["items"][arch]["image_location"].toString(),
+                                            distro_obj["items"][arch]["id"].toString(),
+                                            "",
+                                            distro_obj["items"][arch]["version"].toString(),
+                                            distro_obj["items"][arch]["size"].toInt(-1),
+                                            true});
     }
 
     return images;
