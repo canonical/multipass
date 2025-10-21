@@ -36,9 +36,9 @@ jobs:
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64"},'
-        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64"}',
-        MATRIX+='{"runs-on": "macos-15-intel", "arch": "x86_64", "mono": "mono", "optional": true}',
+        MATRIX+='{"runs-on": "macos-14", "arch": "arm64", "brew_extra_pkgs": ["nuget", "mono"]},'
+        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64", "brew_extra_pkgs": ["nuget", "mono"]}',
+        MATRIX+='{"runs-on": "macos-15-intel", "arch": "x86_64", "mono": "mono", "optional": true, "brew_extra_pkgs": ["nuget", "mono"]}',
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -120,6 +120,8 @@ jobs:
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
+      env:
+        BREW_EXTRA: ${{ matrix.brew_extra_pkgs && join(matrix.brew_extra_pkgs, ' ') || '' }}
       run: |
         # Avoid reinstalling cmake
         ${{ env.ARCH_WRAPPER }} brew list cmake > /dev/null || \
@@ -140,6 +142,10 @@ jobs:
           pkg-config \
           python \
           wget
+
+          if [ -n "${BREW_EXTRA}" ]; then
+              ${{ env.ARCH_WRAPPER }} brew install ${BREW_EXTRA}
+          fi
 
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
@@ -172,11 +178,6 @@ jobs:
         if [[ "${{ matrix['runs-on'] }}" == *multipass* ]]; then
           echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
         fi
-
-    - name: Install nuget
-      if: ${{ matrix.arch == 'arm64' }}
-      run: |
-        brew install nuget mono
 
     - name: Configure NuGet Source
       if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
