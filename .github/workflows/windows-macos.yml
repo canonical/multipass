@@ -38,7 +38,7 @@ jobs:
         MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
         MATRIX+='{"runs-on": "macos-14", "arch": "arm64"},'
         MATRIX+='{"runs-on": "macos-latest", "arch": "arm64"}',
-        MATRIX+='{"runs-on": "macos-15-intel", "arch": "x86_64"}',
+        MATRIX+='{"runs-on": "macos-15-intel", "arch": "x86_64", "mono": "mono"}',
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
