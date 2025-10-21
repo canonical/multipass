@@ -1,0 +1,125 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "common",
+            "description": "Base preset for all.",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "snap",
+            "description": "Preset for snap builds.",
+            "inherits": "common",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_GENERATOR": {
+                    "type": "STRING",
+                    "value": "Unix Makefiles"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "CMAKE_INSTALL_PREFIX": {
+                    "type": "STRING",
+                    "value": "/"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "MULTIPASS_UPSTREAM": {
+                    "type": "STRING",
+                    "value": "origin"
+                },
+                "MULTIPASS_ENABLE_FLUTTER_GUI": {
+                    "type": "BOOL",
+                    "value": "On"
+                }
+            }
+        },
+        {
+            "name": "ci-snap",
+            "description": "Preset for snap builds in CI.",
+            "inherits": "snap",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "CMAKE_C_COMPILER_LAUNCHER": {
+                    "type": "STRING",
+                    "value": "ccache"
+                },
+                "CMAKE_CXX_COMPILER_LAUNCHER": {
+                    "type": "STRING",
+                    "value": "ccache"
+                }
+            }
+        },
+        {
+            "name": "ci-snap-clang-11",
+            "description": "Preset for snap builds in CI (clang-11 build).",
+            "inherits": "ci-snap",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER_LAUNCHER": {
+                    "type": "STRING",
+                    "value": "clang-11"
+                },
+                "CMAKE_CXX_COMPILER_LAUNCHER": {
+                    "type": "STRING",
+                    "value": "clang++-11"
+                }
+            }
+        },
+        {
+            "name": "ci-snap-coverage",
+            "description": "Preset for snap builds in CI for code coverage runs.",
+            "inherits": "ci-snap",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Coverage"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-snap-debug",
+            "description": "Preset for snap builds in CI for test runs.",
+            "inherits": "ci-snap",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "configured-at-present",
+            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "configurePreset": "common"
+        }
+    ]
+}
