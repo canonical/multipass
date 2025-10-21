@@ -4,15 +4,11 @@ on:
     - cron: "17 1 * * *"
 
 permissions:
-  actions: write
   issues: write
 
 jobs:
   close-issues:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
     steps:
       - uses: actions/stale@v10
         with:
