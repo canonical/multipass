@@ -140,7 +140,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     {
         for (const auto& product : manifest.second->products)
         {
-            if (product.id.toStdString() == full_hash)
+            if (multipass::utils::iequals(product.id.toStdString(), full_hash))
             {
                 return product;
             }

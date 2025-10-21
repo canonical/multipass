@@ -501,7 +501,7 @@ TEST_F(UbuntuImageHost, infoForFullHashFindsImage)
     host.update_manifests(false);
 
     auto image_info =
-        host.info_for_full_hash("ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c");
+        host.info_for_full_hash("AB115B83E7A8BEBF3D3A02BF55AD0CB75A0ED515FCBC65FB0C9ABE76C752921C");
 
     EXPECT_EQ(image_info.release, "zesty");
 }

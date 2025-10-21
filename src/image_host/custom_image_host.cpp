@@ -22,6 +22,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
+#include <multipass/utils.h>
 
 #include <fmt/format.h>
 
@@ -183,7 +184,7 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string
 {
     for (const auto& product : manifest.second->products)
     {
-        if (product.id.toStdString() == full_hash)
+        if (multipass::utils::iequals(product.id.toStdString(), full_hash))
         {
             return product;
         }

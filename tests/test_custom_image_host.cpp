@@ -185,7 +185,7 @@ TEST_F(CustomImageHost, infoForFullHashFindsImageInfo)
 
     host.update_manifests(false);
 
-    const auto image = host.info_for_full_hash("debian-12-hash");
+    const auto image = host.info_for_full_hash("debian-12-HASH");
 
     EXPECT_THAT(image.release, Eq("bookworm"));
 }
