@@ -43,12 +43,11 @@ void format_images(Dest&& dest,
         sorted_images.push_back(&img);
     }
 
-    std::stable_sort(sorted_images.begin(),
-                     sorted_images.end(),
-                     [](const mp::FindReply_ImageInfo* a, const mp::FindReply_ImageInfo* b) {
-                         return a->remote_name() > b->remote_name() ||
-                                a->aliases()[0] < b->aliases()[0];
-                     });
+    std::sort(sorted_images.begin(),
+              sorted_images.end(),
+              [](const mp::FindReply_ImageInfo* a, const mp::FindReply_ImageInfo* b) {
+                  return a->remote_name() > b->remote_name() || a->aliases()[0] < b->aliases()[0];
+              });
 
     for (const auto* image : sorted_images)
     {
