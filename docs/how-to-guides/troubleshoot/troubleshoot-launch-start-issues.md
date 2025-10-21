@@ -282,40 +282,85 @@ This can be caused by a known Qt bug (see issue [#1714](https://github.com/canon
 ``````
 
 
-## Appendix: Utility Commands and Locations
+## Appendix: Utility commands and locations
+
+(launch-start-issues-locate-multipass-binaries)=
+### Locating Multipass binaries
+
+You may need to locate where Multipass is installed. Use the appropriate tab for your platform:
+
+`````{tab-set}
+  ````{tab-item} Linux
+    Run one of the following commands to find the Multipass binary:
+    ```bash
+    which multipass
+    whereis multipass
+    ```
+    By default, Multipass is installed in the `/snap/bin` folder.
+  ````
+  ````{tab-item} Windows
+    Run the following command to find the Multipass binary:
+    ```powershell
+    where.exe multipass
+    ```
+    Or, right-click a shortcut to Multipass in your files or Start menu and select "Open file location".
+    By default, Multipass is installed in the `C:\\Program Files\\Multipass\\bin` folder.
+  ````
+  ````{tab-item} macOS
+    Run the following command to find the Multipass binary:
+    ```bash
+    readlink -f $(which multipass)
+    ```
+    By default, Multipass is installed in the `/Library/Application\ Support/com.canonical.multipass/bin/` folder.
+  ````
+`````
+
+(launch-start-issues-locate-multipass-images)=
+### Locating Multipass images
+
+You may need to locate where Multipass is storing instances. Use the appropriate tab for your platform:
+
+`````{tab-set}
+  ````{tab-item} Linux
+    The default location is:
+    ```text
+    /root/.local/share/multipassd/vault/instances/<instance>/<img>
+    ```
+  ````
+  ````{tab-item} Windows
+    The default location is:
+    ```text
+    C:\ProgramData\Multipass\data\vault\instances\<instance>\<img>
+    ```
+  ````
+  ````{tab-item} macOS
+    The default location is:
+    ```text
+    /var/root/Library/Application\ Support/multipassd/qemu/vault/instances/<instance>/<img>
+    ```
+  ````
+`````
 
 (troubleshoot-launch-start-issues-reading-data-from-an-image)=
 ### Reading data from a QCOW2 image
 
-**Issue:**
-You need to access instance data manually.
+Multipass QEMU driver images use QCOW2 format, which other tools can read.
 
-**Fix:**
+One example is [`qemu-nbd`](https://manpages.ubuntu.com/manpages/questing/en/man8/qemu-nbd.8.html), which allows mounting the image. This tool is not shipped with Multipass, so you would need to install it manually.
 
-Multipass QEMU driver images use QCOW2 format, which can be mounted using `qemu-nbd`.
-Install `qemu-nbd` and follow this [AskUbuntu recipe](https://askubuntu.com/a/1254632) to mount the image.
+Once you have it, you can search the web for recipes to mount a QCOW2 image. For example, here is a [a recipe](https://askubuntu.com/a/4404).
 
-(troubleshoot-launch-start-issues-locating-binaries)=
-### Locating Multipass binaries and images
+(launch-start-issues-windows-run-virtualbox)=
+### Running VirtualBox with the system account (Windows, VirtualBox driver)
 
-**Issue:**
-Need to find where Multipass binaries or images are stored.
+To run the VirtualBox GUI with the system account, you will need a Windows tool called PsExec:
 
-````{tab-set}
-  ```{tab-item} Linux
-    * Binaries: `/snap/bin/multipass`
-    * Images: `/root/.local/share/multipassd/vault/instances/<instance>/<img>`
-  ```
-  ```{tab-item} Windows
-    * Binaries: `C:\Program Files\Multipass\bin`
-    * Images: `C:\ProgramData\Multipass\data\vault\instances\<instance>\<img>`
-  ```
-  ```{tab-item} macOS
-    * Binaries: `/Library/Application Support/com.canonical.multipass/bin/`
-    * Images: `/var/root/Library/Application Support/multipassd/qemu/vault/instances/<instance>/<img>`
-  ```
-````
+1. Install [PsExec](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec).
+1. Add it to your `PATH`.
+1. Run PowerShell as Administrator.
+1. Execute `psexec.exe -s -i "C:\Program Files\Oracle\VirtualBox\VirtualBox.exe"` (adapt the path to the VirtualBox executable as needed).
 
+When successful, you should see Multipass's instances in VirtualBox
 ---
 
 ## Get support
