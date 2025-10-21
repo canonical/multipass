@@ -47,6 +47,6 @@ Version: 1.9.4 |
 <https://github.com/open-source-parsers/jsoncpp/releases>
 
 ### vcpkg
-Version: 2025.04.09 |
+Version: 2025.09.17 |
 <https://github.com/microsoft/vcpkg.git> |
 <https://github.com/microsoft/vcpkg/releases>
