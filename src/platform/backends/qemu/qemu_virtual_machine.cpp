@@ -24,6 +24,7 @@
 
 #include <shared/shared_backend_utils.h>
 
+#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -46,7 +47,8 @@
 #include <cassert>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
+namespace mpl = mp::logging;
+namespace mpu = mp::utils;
 
 using namespace std::chrono_literals;
 
@@ -525,11 +527,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> std::optional<IPAddress> {
-        return qemu_platform->get_ip_for(desc.default_mac_address);
-    };
-
-    return mp::backend::ip_address_for(this, get_ip, timeout);
+    return ip_address_for(timeout);
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
@@ -830,4 +828,34 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
     return std::make_shared<QemuSnapshot>(filename, *this, desc);
+}
+
+std::string mp::QemuVirtualMachine::ip_address_for(std::chrono::milliseconds timeout)
+{
+    // TODO@ricab simplify this stuff further
+    if (!management_ip)
+    {
+        auto action = [this] {
+            ensure_vm_is_running();
+            auto result = qemu_platform->get_ip_for(desc.default_mac_address);
+            if (result)
+            {
+                management_ip.emplace(*result);
+                return mpu::TimeoutAction::done;
+            }
+            else
+            {
+                return mpu::TimeoutAction::retry;
+            }
+        };
+
+        auto on_timeout = [this, &timeout] {
+            state = mp::VirtualMachine::State::unknown;
+            throw mp::InternalTimeoutException{"determine IP address", timeout};
+        };
+
+        mpu::try_action_for(on_timeout, timeout, action);
+    }
+
+    return management_ip->as_string(); // TODO@ricab void
 }
