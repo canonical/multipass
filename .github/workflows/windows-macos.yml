@@ -45,12 +45,15 @@ jobs:
           matrix.include.push({
             "name": "macOS 13 Ventura (Intel Silicon)",
             "runs-on": "macos-13",
+            "arch": "x86_64"
           },{
             "name": "macOS 14 Sonoma (Apple Silicon)",
             "runs-on": "macos-14",
+            "arch": "arm64"
           },{
             "name": "macOS Latest (Apple Silicon)",
             "runs-on": "macos-latest",
+            "arch": "arm64",
             // ##############################################################
             // "nuget" and "mono" are removed from the macos-15 images, see:
             // https://github.com/actions/runner-images/issues/10686
@@ -59,6 +62,7 @@ jobs:
           },{
             "name": "macOS 15 Sequoia (Intel Silicon)",
             "runs-on": "macos-15-intel",
+            "arch": "x86_64",
             // ##############################################################
             // "nuget" and "mono" are removed from the macos-15 images, see:
             // https://github.com/actions/runner-images/issues/10686
@@ -71,15 +75,6 @@ jobs:
           for (const job of matrix.include) {
             if (job["runs-on"]?.startsWith("macos"))
               job.mono = "mono"
-
-            switch (true) {
-              case job["runs-on"]?.endsWith("-intel"):
-                job.arch = "x86_64";
-                break;
-              case job["runs-on"]?.endsWith("-arm"):
-                job.arch = "arm64";
-                break;
-            }
           }
 
           core.setOutput('matrix', JSON.stringify(matrix));
