@@ -2,7 +2,8 @@
   "builtin-baseline": "4334d8b4c8916018600212ab4dd4bbdc343065d1",
   "dependencies": [
     "grpc",
-    "fmt"
+    "fmt",
+    "scope-guard"
   ],
   "overrides": [
     {

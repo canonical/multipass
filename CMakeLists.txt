@@ -176,9 +176,17 @@ find_package(OpenSSL REQUIRED)
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)
 
+
+# SG_REQUIRE_NOEXCEPT_IN_CPP17
 # fmt config
 find_package(fmt CONFIG REQUIRED)
 # targets: fmt::fmt, fmt::fmt-header-only
+
+# scope_guard config
+find_path(SCOPE_GUARD_INCLUDE_DIRS "scope_guard.hpp")
+add_library(scope_guard INTERFACE)
+target_include_directories(scope_guard INTERFACE ${SCOPE_GUARD_INCLUDE_DIRS})
+target_compile_definitions(scope_guard INTERFACE SG_REQUIRE_NOEXCEPT_IN_CPP17)
 
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
