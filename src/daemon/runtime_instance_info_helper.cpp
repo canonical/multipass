@@ -140,11 +140,11 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
     instance_info->set_current_release(!current_release.empty() ? current_release
                                                                 : original_release);
 
-    std::string management_ip = vm.management_ipv4();
+    auto management_ip = vm.management_ipv4();
     auto all_ipv4 = vm.get_all_ipv4();
 
-    if (MP_UTILS.is_ipv4_valid(management_ip))
-        instance_info->add_ipv4(management_ip);
+    if (management_ip)
+        instance_info->add_ipv4(*management_ip);
     else if (all_ipv4.empty())
         instance_info->add_ipv4("N/A");
 

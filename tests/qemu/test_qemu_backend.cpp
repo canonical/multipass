@@ -1022,7 +1022,7 @@ TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(), std::nullopt);
 }
 
 TEST_F(QemuBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
