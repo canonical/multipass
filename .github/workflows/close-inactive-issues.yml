@@ -22,7 +22,7 @@ jobs:
           days-before-pr-stale: -1
           days-before-pr-close: -1
 
-          only-issue-labels: "question"
+          only-issue-labels: "needs-info"
           start-date: 2025-10-20
           exempt-all-milestones: true
           exempt-all-assignees: true
