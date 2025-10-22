@@ -27,13 +27,12 @@ namespace multipass
 {
 struct IPAddress
 {
-    IPAddress(std::array<uint8_t, 4> octets);
-    IPAddress(const std::string& ip_string);
+    explicit IPAddress(std::array<uint8_t, 4> octets);
+    explicit IPAddress(const std::string& ip_string);
     explicit IPAddress(uint32_t value);
-    IPAddress(const IPAddress& other) = default;
 
-    std::string as_string() const;
-    uint32_t as_uint32() const;
+    [[nodiscard]] std::string as_string() const;
+    [[nodiscard]] uint32_t as_uint32() const;
 
     bool operator==(const IPAddress& other) const;
     bool operator!=(const IPAddress& other) const;
