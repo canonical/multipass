@@ -24,7 +24,7 @@ target_compile_definitions(qemu_platform_detail PRIVATE BRIDGE_HELPER_EXEC_NAME_
 
 target_include_directories(qemu_platform_detail PRIVATE ../)
 
-target_link_libraries(qemu_platform_detail
+target_link_libraries(qemu_platform_detail PUBLIC
   logger
   shared_linux
   utils
