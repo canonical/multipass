@@ -41,6 +41,7 @@
 #include <array>
 #include <cassert>
 #include <cctype>
+#include <cstdlib>
 #include <fstream>
 #include <optional>
 #include <random>
@@ -604,6 +605,7 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
 
 mp::Path mp::Utils::default_mount_target(const Path& source) const
 {
+    std::abort();
     return source.isEmpty()
                ? ""
                : QDir{QDir::cleanPath(source)}.dirName().prepend(QString{home_in_instance} + '/');
