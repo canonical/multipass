@@ -15,19 +15,31 @@
  *
  */
 
-#pragma once
+#include "rust_petname_generator.h"
 
-#include <string>
+#include <stdexcept>
 
 namespace multipass
 {
 
-class NameGenerator
+RustPetnameGenerator::RustPetnameGenerator(int num_words, const std::string& separator)
+try
+    : petname_generator(multipass::petname::new_petname(num_words, separator.c_str()))
 {
-public:
-    virtual ~NameGenerator() = default;
+}
+catch (const rust::Error& e)
+{
+    throw std::runtime_error(std::string("Failed to create petname generator: ") + e.what());
+}
 
-    virtual std::string make_name() = 0;
-};
+std::string RustPetnameGenerator::make_name()
+try
+{
+    return std::string(multipass::petname::make_name(*petname_generator));
+}
+catch (const rust::Error& e)
+{
+    throw std::runtime_error(std::string("Failed to generate petname: ") + e.what());
+}
 
 } // namespace multipass

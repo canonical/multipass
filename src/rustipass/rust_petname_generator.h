@@ -17,17 +17,30 @@
 
 #pragma once
 
-#include <string>
+#include <multipass/name_generator.h>
+
+#include <rust/cxx.h>
+
+// Forward declare the Rust type
+namespace multipass::petname
+{
+struct Petname;
+rust::Box<Petname> new_petname(int32_t num_words, rust::Str separator);
+rust::String make_name(Petname& petname);
+} // namespace multipass::petname
 
 namespace multipass
 {
 
-class NameGenerator
+class RustPetnameGenerator : public NameGenerator
 {
 public:
-    virtual ~NameGenerator() = default;
+    explicit RustPetnameGenerator(int num_words = 2, const std::string& separator = "-");
 
-    virtual std::string make_name() = 0;
+    std::string make_name() override;
+
+private:
+    rust::Box<multipass::petname::Petname> petname_generator;
 };
 
 } // namespace multipass
