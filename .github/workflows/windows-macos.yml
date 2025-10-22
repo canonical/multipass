@@ -280,7 +280,7 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
       run : |
-        # Allow core dumps and set size to unlimited for this shell
+        # Allow core dumps
         sudo sysctl -w kern.coredump=1
         # This entitlement is needed for a proc to produce a coredump
         /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" segv.entitlements
@@ -301,7 +301,7 @@ jobs:
       shell: bash
       run: |
         trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
-        ulimit -c unlimited
+        ulimit -c 524288
         ${{ env.ARCH_WRAPPER }} bin/multipass_tests
 
     - name: Setup tmate session
