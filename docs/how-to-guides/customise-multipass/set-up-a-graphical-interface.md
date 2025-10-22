@@ -89,13 +89,14 @@ You are done on the server side! Quit the Ubuntu shell on the running instance w
 
    ```text
    multipass launch \
-      -vvvv
       --memory 12G \
       --cpus=2 \
       --disk 30G \
       --timeout 600 \
       --cloud-init ./cloud-init.yaml 25.10
    ```
+
+   Adjust the `--memory`, `--cpus` and `--disk` options as needed on your system.
 
    The command sets the timeout to 10 minutes because the default timeout of 5 minutes isn't enough to initialise the instance.
 
