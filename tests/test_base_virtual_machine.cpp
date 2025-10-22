@@ -168,7 +168,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4() override
+    std::optional<std::string> management_ipv4() override
     {
         return "1.2.3.4";
     }

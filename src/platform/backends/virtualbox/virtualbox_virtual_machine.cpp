@@ -513,9 +513,9 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::VirtualBoxVirtualMachine::management_ipv4()
+std::optional<std::string> mp::VirtualBoxVirtualMachine::management_ipv4()
 {
-    return "N/A";
+    return std::nullopt;
 }
 
 std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4()
