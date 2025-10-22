@@ -36,7 +36,7 @@ jobs:
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest"},'
         MATRIX+='{"runs-on": "macos-13", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14" },'
+        MATRIX+='{"runs-on": "macos-14"},'
         MATRIX+='{"runs-on": "macos-latest"}'
         MATRIX+=']}'
 
@@ -169,9 +169,9 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: |
           for pkg in nuget mono; do
-            if ! command -v $pkg >/dev/null 2>&1; then
+            if ! command -v "$pkg" >/dev/null 2>&1; then
               echo "$pkg not found, installing..."
-              brew install $pkg
+              brew install "$pkg"
             fi
           done
 
