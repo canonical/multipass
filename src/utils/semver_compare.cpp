@@ -29,7 +29,6 @@ std::strong_ordering operator<=>(const opaque_semver& lhs, const opaque_semver& 
         semver::version v;
         if (!semver::parse(svv.value, v))
         {
-            std::printf("error: %s\n", svv.value.c_str());
             throw std::invalid_argument{svv.value};
         }
         return v;
