@@ -129,9 +129,9 @@ void mp::Client::sort_commands()
 
 int mp::Client::run(const QStringList& arguments)
 {
-    QString description("Create, control and connect to Ubuntu instances.\n\n"
+    QString description("Create, control and connect to cloud instances.\n\n"
                         "This is a command line utility for multipass, a\n"
-                        "service that manages Ubuntu instances.");
+                        "service that manages cloud instances.");
 
     ArgParser parser(arguments, commands, term->cout(), term->cerr());
     parser.setApplicationDescription(description);

@@ -41,8 +41,7 @@ final randomNameProvider = Provider.autoDispose(
 
 String imageName(ImageInfo imageInfo) {
   final result = '${imageInfo.os} ${imageInfo.release}';
-  return imageInfo.aliasesInfo
-          .any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a.alias))
+  return imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a))
       ? result
       : '$result ${imageInfo.codename}';
 }
@@ -119,8 +118,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     // Determine minimums based on image type
-    final isCore = imageInfo.aliasesInfo
-        .any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a.alias));
+    final isCore =
+        imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a));
     final minRam = isCore ? 512.mebi : 1024.mebi;
     final minDisk = isCore ? 1.gibi : 5.gibi;
 
@@ -363,10 +362,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     mountFormState?.save();
     formState.save();
 
-    final aliasInfo = imageInfo.aliasesInfo.first;
-    launchRequest.image = aliasInfo.alias;
-    if (aliasInfo.hasRemoteName()) {
-      launchRequest.remoteName = aliasInfo.remoteName;
+    launchRequest.image = imageInfo.aliases.first;
+    if (imageInfo.hasRemoteName()) {
+      launchRequest.remoteName = imageInfo.remoteName;
     }
 
     for (final mountRequest in mountRequests) {

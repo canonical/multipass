@@ -1,0 +1,23 @@
+{
+  "Debian": {
+    "aliases": "debian, bookworm",
+    "os": "Debian",
+    "release": "bookworm",
+    "release_codename": "Bookworm",
+    "release_title": "12",
+    "items": {
+      "x86_64": {
+        "image_location": "https://example.com/debian-12-amd64.qcow2",
+        "id": "debian-12-hash",
+        "version": "20250804",
+        "size": 444896256
+      },
+      "arm64": {
+        "image_location": "https://example.com/debian-12-arm64.qcow2",
+        "id": "debian-12-hash",
+        "version": "20250804",
+        "size": 432209920
+      }
+    }
+  },
+}

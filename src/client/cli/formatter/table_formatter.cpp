@@ -32,19 +32,28 @@ const std::regex newline("(\r\n|\n)");
 
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-                   std::string type)
+                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
 {
-    fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", type, "Aliases", "Version", "Description");
-    for (const auto& image : images_info)
+    fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
+
+    auto sorted_images = images_info;
+    std::sort(sorted_images.begin(),
+              sorted_images.end(),
+              [](const mp::FindReply_ImageInfo& a, const mp::FindReply_ImageInfo& b) {
+                  return a.remote_name() > b.remote_name() ||
+                         (a.aliases().size() && b.aliases().size() &&
+                          (a.aliases()[0] < b.aliases()[0]));
+              });
+
+    for (const auto& image : sorted_images)
     {
-        auto aliases = image.aliases_info();
+        auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
         fmt::format_to(
             dest,
             "{:<28}{:<18}{:<17}{:<}\n",
-            mp::format::image_string_for(aliases[0]),
+            mp::format::image_string_for(image.remote_name(), aliases[0]),
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
             image.version(),
             fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
@@ -159,9 +168,9 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
         fmt::format_to(dest,
                        "{}{}\n",
                        instance_details.id().substr(0, 12),
-                       !instance_details.image_release().empty()
-                           ? fmt::format(" (Ubuntu {})", instance_details.image_release())
-                           : "");
+                       instance_details.image_release().empty()
+                           ? ""
+                           : fmt::format(" ({})", instance_details.image_release()));
 
     fmt::format_to(dest,
                    "{:<16}{}\n",
@@ -274,9 +283,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                        state_column_width,
                        ipv4_size ? instance.ipv4(0) : "--",
                        ip_column_width,
-                       instance.current_release().empty()
-                           ? "Not Available"
-                           : fmt::format("Ubuntu {}", instance.current_release()));
+                       instance.current_release().empty() ? "Not Available"
+                                                          : instance.current_release());
 
         for (int i = 1; i < ipv4_size; ++i)
         {
@@ -468,7 +476,7 @@ std::string mp::TableFormatter::format(const FindReply& reply) const
     }
     else
     {
-        format_images(std::back_inserter(buf), reply.images_info(), "Image");
+        format_images(std::back_inserter(buf), reply.images_info());
     }
     return fmt::to_string(buf);
 }

@@ -173,7 +173,7 @@ std::string cmd::Launch::name() const
 
 QString cmd::Launch::short_help() const
 {
-    return QStringLiteral("Create and start an Ubuntu instance");
+    return QStringLiteral("Create and start a cloud instance");
 }
 
 QString cmd::Launch::description() const
@@ -185,7 +185,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument(
         "image",
-        "Optional image to launch. If omitted, then the default Ubuntu LTS "
+        "Optional image to launch. If omitted, then the latest Ubuntu LTS "
         "will be used.\n"
         "<remote> can be either ‘release’ or ‘daily‘. If <remote> is omitted, "
         "‘release’ will be used.\n"

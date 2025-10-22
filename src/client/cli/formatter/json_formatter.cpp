@@ -41,17 +41,18 @@ QJsonObject format_images(
         image_obj.insert("version", QString::fromStdString(image.version()));
 
         QJsonArray aliases_arr;
-        auto aliases = image.aliases_info();
+        auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
-        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
-            aliases_arr.append(QString::fromStdString(alias->alias()));
+        for (int i = 1; i < aliases.size(); ++i)
+            aliases_arr.append(QString::fromStdString(aliases[i]));
 
         image_obj.insert("aliases", aliases_arr);
-        image_obj.insert("remote", QString::fromStdString(aliases[0].remote_name()));
+        image_obj.insert("remote", QString::fromStdString(image.remote_name()));
 
-        images_obj.insert(QString::fromStdString(mp::format::image_string_for(aliases[0])),
-                          image_obj);
+        images_obj.insert(
+            QString::fromStdString(mp::format::image_string_for(image.remote_name(), aliases[0])),
+            image_obj);
     }
 
     return images_obj;
@@ -203,11 +204,10 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             ipv4_addrs.append(QString::fromStdString(ip));
         instance_obj.insert("ipv4", ipv4_addrs);
 
-        instance_obj.insert(
-            "release",
-            QString::fromStdString(instance.current_release().empty()
-                                       ? "Not Available"
-                                       : fmt::format("Ubuntu {}", instance.current_release())));
+        instance_obj.insert("release",
+                            QString::fromStdString(instance.current_release().empty()
+                                                       ? "Not Available"
+                                                       : instance.current_release()));
 
         instances.append(instance_obj);
     }

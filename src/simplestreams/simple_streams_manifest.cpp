@@ -65,10 +65,10 @@ QString latest_version_in(const QJsonObject& versions)
     return max_version;
 }
 
-QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(
+std::unordered_map<QString, const mp::VMImageInfo*> map_aliases_to_vm_info_for(
     const std::vector<mp::VMImageInfo>& images)
 {
-    QMap<QString, const mp::VMImageInfo*> map;
+    std::unordered_map<QString, const mp::VMImageInfo*> map;
 
     for (const auto& image : images)
     {
@@ -88,14 +88,15 @@ mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at,
                                                  std::vector<VMImageInfo>&& images)
     : updated_at{updated_at},
       products{std::move(images)},
-      image_records{qmap_aliases_to_vm_info_for(products)}
+      image_records{map_aliases_to_vm_info_for(products)}
 {
 }
 
 std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
     const QByteArray& json_from_official,
     const std::optional<QByteArray>& json_from_mirror,
-    const QString& host_url)
+    const QString& host_url,
+    std::function<bool(VMImageInfo&)> mutator)
 {
     const auto manifest_from_official = parse_manifest(json_from_official);
     const auto updated = manifest_from_official["updated"].toString();
@@ -129,12 +130,14 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
         if (product["arch"].toString() != arch)
             continue;
 
-        const auto product_aliases = product["aliases"].toString().split(",");
+        auto product_aliases = product["aliases"].toString().split(",");
 
         const auto release = product["release"].toString();
         const auto release_title = product["release_title"].toString();
         const auto release_codename = product["release_codename"].toString();
-        const auto supported = product["supported"].toBool() || product_aliases.contains("devel");
+        const auto supported =
+            product["supported"].toBool() || product_aliases.contains("devel") ||
+            (product["os"] == "ubuntu-core" && product["image_type"] == "stable");
 
         const auto versions = product["versions"].toObject();
         if (versions.isEmpty())
@@ -164,27 +167,43 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
             QString sha256, image_location;
             int size = -1;
 
-            const auto image_key = items.contains("uefi1.img") ? "uefi1.img" : "disk1.img";
+            QString image_key;
+            // Prioritize UEFI images
+            if (items.contains("uefi1.img"))
+                image_key = "uefi1.img";
+            // For Ubuntu Core images
+            else if (product["os"] == "ubuntu-core" && items.contains("img.xz"))
+                image_key = "img.xz";
+            // Last resort, use img
+            else
+                image_key = "disk1.img";
+
             image = items[image_key].toObject();
-            image_location = image["path"].toString();
+            image_location = host_url + image["path"].toString();
             sha256 = image["sha256"].toString();
             size = image["size"].toInt(-1);
 
             // Aliases always alias to the latest version
             const QStringList& aliases =
                 version_string == latest_version ? product_aliases : QStringList();
-            products.push_back({aliases,
-                                "Ubuntu",
-                                release,
-                                release_title,
-                                release_codename,
-                                supported,
-                                image_location,
-                                sha256,
-                                host_url,
-                                version_string,
-                                size,
-                                true});
+
+            VMImageInfo info{aliases,
+                             "Ubuntu",
+                             release,
+                             release_title,
+                             release_codename,
+                             supported,
+                             image_location,
+                             sha256,
+                             host_url,
+                             version_string,
+                             size,
+                             true};
+
+            if (mutator(info))
+            {
+                products.push_back(std::move(info));
+            }
         }
     }
 
