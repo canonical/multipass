@@ -131,7 +131,9 @@ jobs:
           pixman \
           pkg-config \
           python \
-          wget
+          wget \
+          mono \
+          nuget
 
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
@@ -164,16 +166,6 @@ jobs:
         if [[ "${{ matrix['runs-on'] }}" == *multipass* ]]; then
           echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
         fi
-
-    - name: Install 'nuget' and 'mono' if missing
-      if: ${{ runner.os == 'macOS' }}
-      run: |
-          for pkg in nuget mono; do
-            if ! command -v "$pkg" >/dev/null 2>&1; then
-              echo "$pkg not found, installing..."
-              brew install "$pkg"
-            fi
-          done
 
     - name: Configure NuGet Source
       if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
