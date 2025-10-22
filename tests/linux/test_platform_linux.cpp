@@ -45,6 +45,7 @@
 
 #include <stdexcept>
 #include <tests/mock_platform.h>
+#include <tests/stub_availability_zone_manager.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -65,9 +66,10 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
 
         auto factory = mpt::MockProcessFactory::Inject();
         setup_driver_settings(driver);
+        mpt::StubAvailabilityZoneManager az_manager{};
 
-        decltype(mp::platform::vm_backend("")) factory_ptr;
-        EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path););
+        decltype(mp::platform::vm_backend("", az_manager)) factory_ptr;
+        EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path, az_manager););
 
         EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
     }
@@ -163,7 +165,8 @@ TEST_P(TestUnsupportedDrivers, testUnsupportedDriver)
     ASSERT_FALSE(MP_PLATFORM.is_backend_supported(GetParam()));
 
     setup_driver_settings(GetParam());
-    EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
+    mpt::StubAvailabilityZoneManager az_manager{};
+    EXPECT_THROW(mp::platform::vm_backend(backend_path, az_manager), std::runtime_error);
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux,

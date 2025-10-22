@@ -249,6 +249,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
         "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+    QCommandLineOption zoneOption("zone", "The zone in which to launch the instance.", "zone");
     QCommandLineOption mountOption(
         "mount",
         QStringLiteral("Mount a local directory inside the instance. If <target> is omitted, the "
@@ -257,14 +258,17 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
             .arg(home_in_instance),
         "source>:<target");
 
-    parser->addOptions({cpusOption,
-                        diskOption,
-                        memOption,
-                        nameOption,
-                        cloudInitOption,
-                        networkOption,
-                        bridgedOption,
-                        mountOption});
+    parser->addOptions({
+        cpusOption,
+        diskOption,
+        memOption,
+        nameOption,
+        cloudInitOption,
+        networkOption,
+        bridgedOption,
+        zoneOption,
+        mountOption,
+    });
 
     mp::cmd::add_instance_timeout(parser);
 
@@ -449,8 +453,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     try
     {
         if (parser->isSet(networkOption))
+        {
             for (const auto& net : parser->values(networkOption))
                 request.mutable_network_options()->Add(net_digest(net));
+        }
 
         request.set_timeout(mp::cmd::parse_timeout(parser));
     }
@@ -471,6 +477,17 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
     if (!spinner)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
             cout); // Creating just in time to work around canonical/multipass#2075
+
+    if (parser->isSet("zone"))
+    {
+        auto zone = parser->value("zone").trimmed();
+        if (zone.isEmpty())
+        {
+            cerr << "Error: Empty zone specified with --zone option\n";
+            return ReturnCode::CommandLineError;
+        }
+        request.set_zone(zone.toStdString());
+    }
 
     if (timer)
         timer->resume();
@@ -540,7 +557,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             }
         }
 
-        cout << "Launched: " << reply.vm_instance_name() << "\n";
+        cout << "Launched: " << reply.vm_instance_name() << " in " << reply.zone() << "\n";
 
         if (term->is_live() && update_available(reply.update_info()))
         {
@@ -589,6 +606,14 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                 // TODO: show the option which triggered the error only. This will need a refactor
                 // in the LaunchError proto.
                 error_details = "Invalid network options supplied";
+            }
+            else if (error == LaunchError::INVALID_ZONE)
+            {
+                error_details = fmt::format("Invalid zone name supplied: {}", request.zone());
+            }
+            else if (error == LaunchError::ZONE_UNAVAILABLE)
+            {
+                error_details = fmt::format("Unavailable zone name supplied: {}", request.zone());
             }
         }
 

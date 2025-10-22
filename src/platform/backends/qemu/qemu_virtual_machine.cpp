@@ -236,6 +236,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            QemuPlatform* qemu_platform,
                                            VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
+                                           AvailabilityZone& zone,
                                            const Path& instance_dir,
                                            bool remove_snapshots)
     : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path,
@@ -244,6 +245,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                              : State::off,
                          desc.vm_name,
                          key_provider,
+                         zone,
                          instance_dir},
       desc{desc},
       qemu_platform{qemu_platform},
