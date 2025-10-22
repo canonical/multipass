@@ -17,19 +17,20 @@ function(add_target TARGET_NAME)
     add_library(${TARGET_NAME} STATIC
       platform_linux.cpp
       platform_unix.cpp)
-
-    target_link_libraries(${TARGET_NAME}
-      logger_linux)
+    target_link_libraries(${TARGET_NAME} logger_linux)
   elseif(MSVC)
     add_library(${TARGET_NAME} STATIC
       platform_proprietary.cpp
       platform_win.cpp)
     qt6_disable_unicode_defines(${TARGET_NAME})
     target_link_libraries(${TARGET_NAME}
+      PUBLIC
       jsoncpp_static
       shared_win
       scope_guard
-      wineventlogger)
+      wineventlogger
+      PRIVATE
+      OpenSSL::applink)
   elseif(APPLE)
     add_library(${TARGET_NAME} STATIC
       platform_osx.cpp
@@ -43,7 +44,7 @@ function(add_target TARGET_NAME)
     string(TOUPPER ${BACKEND}_ENABLED DEF)
     target_compile_definitions(${TARGET_NAME} PRIVATE -D${DEF})
 
-    target_link_libraries(${TARGET_NAME}
+    target_link_libraries(${TARGET_NAME} PUBLIC
       ${BACKEND}_backend)
   endforeach()
 
@@ -51,7 +52,7 @@ function(add_target TARGET_NAME)
     backends
     ${CMAKE_SOURCE_DIR}/src)
 
-  target_link_libraries(${TARGET_NAME}
+  target_link_libraries(${TARGET_NAME} PUBLIC
     daemon
     settings
     shared
