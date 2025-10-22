@@ -58,10 +58,10 @@ jobs:
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
       # Use artifacts from macos-13 and macos-14 in official package
-      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-artifact-name }}
-      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-file-name }}
-      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-file-name }}
+      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-package-artifact-name }}
+      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-package-file-name }}
 
     runs-on: ${{ matrix.runs-on }}
 
