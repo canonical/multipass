@@ -315,7 +315,7 @@ if(MSVC)
   set(MULTIPASS_BACKENDS hyperv virtualbox)
   set(MULTIPASS_PLATFORM windows)
 else()
-  add_compile_options(-Werror -Wall -pedantic -fPIC -Wno-error=deprecated-declarations)
+  add_compile_options(-Werror -Wall -pedantic -fPIC)
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
