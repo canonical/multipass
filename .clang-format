@@ -41,4 +41,7 @@ PointerAlignment: Left
 ---
 Language: Proto
 DisableFormat: true
+---
+Language: Json
+IndentWidth: 4
 ...

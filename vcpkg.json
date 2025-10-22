@@ -1,24 +1,24 @@
 {
-  "builtin-baseline": "4334d8b4c8916018600212ab4dd4bbdc343065d1",
-  "dependencies": [
-    "grpc",
-    "fmt",
-    "scope-guard",
-    "yaml-cpp",
-    "neargye-semver"
-  ],
-  "overrides": [
-    {
-      "name": "fmt",
-      "version": "11.0.2"
+    "builtin-baseline": "4334d8b4c8916018600212ab4dd4bbdc343065d1",
+    "dependencies": [
+        "grpc",
+        "fmt",
+        "scope-guard",
+        "yaml-cpp",
+        "neargye-semver"
+    ],
+    "overrides": [
+        {
+            "name": "fmt",
+            "version": "11.0.2"
+        }
+    ],
+    "features": {
+        "tests": {
+            "description": "Enable test dependencies",
+            "dependencies": [
+                "gtest"
+            ]
+        }
     }
-  ],
-  "features": {
-    "tests": {
-      "description": "Enable test dependencies",
-      "dependencies": [
-        "gtest"
-      ]
-    }
-  }
 }
