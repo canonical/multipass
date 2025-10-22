@@ -46,19 +46,30 @@ List<ImageInfo> sortImages(List<ImageInfo> images) {
     return image.aliases.any((a) => a.contains('core'));
   }
 
+  bool ubuntuFilter(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
+  }
+
   int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
     return b.release.compareTo(a.release);
   }
 
-  final normalImages =
-      images.whereNot(coreFilter).sorted(decreasingReleaseSorter);
+  final ubuntuImages = images
+      .whereNot(coreFilter)
+      .where(ubuntuFilter)
+      .sorted(decreasingReleaseSorter);
   final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
+  final thirdPartyImages = images
+      .whereNot(coreFilter)
+      .whereNot(ubuntuFilter)
+      .sorted(decreasingReleaseSorter);
 
   return [
     if (lts != null) lts,
-    ...normalImages,
+    ...ubuntuImages,
     if (devel != null) devel,
     ...coreImages,
+    ...thirdPartyImages,
   ];
 }
 
