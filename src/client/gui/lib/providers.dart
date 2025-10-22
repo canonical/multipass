@@ -282,6 +282,30 @@ class DaemonSettingNotifier extends AsyncNotifier<String> {
   }
 }
 
+final trayMenuDataProvider = Provider.autoDispose((ref) {
+  return ref.watch(daemonAvailableProvider)
+      ? ref.watch(vmStatusesProvider)
+      : null;
+});
+
+final daemonVersionProvider = NotifierProvider<DaemonVersionNotifier, String>(
+  DaemonVersionNotifier.new,
+);
+
+class DaemonVersionNotifier extends Notifier<String> {
+  @override
+  String build() {
+    if (ref.watch(daemonAvailableProvider)) {
+      ref
+          .watch(grpcClientProvider)
+          .version()
+          .catchError((_) => 'failed to get version')
+          .then((version) => state = version);
+    }
+    return 'loading...';
+  }
+}
+
 const driverKey = 'local.driver';
 const bridgedNetworkKey = 'local.bridged-network';
 const privilegedMountsKey = 'local.privileged-mounts';

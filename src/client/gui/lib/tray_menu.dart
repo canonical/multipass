@@ -26,30 +26,6 @@ extension WindowManagerExtensions on WindowManager {
   }
 }
 
-final trayMenuDataProvider = Provider.autoDispose((ref) {
-  return ref.watch(daemonAvailableProvider)
-      ? ref.watch(vmStatusesProvider)
-      : null;
-});
-
-final daemonVersionProvider = NotifierProvider<DaemonVersionNotifier, String>(
-  DaemonVersionNotifier.new,
-);
-
-class DaemonVersionNotifier extends Notifier<String> {
-  @override
-  String build() {
-    if (ref.watch(daemonAvailableProvider)) {
-      ref
-          .watch(grpcClientProvider)
-          .version()
-          .catchError((_) => 'failed to get version')
-          .then((version) => state = version);
-    }
-    return 'loading...';
-  }
-}
-
 Future<String> _iconFilePath() async {
   final dataDir = await getApplicationSupportDirectory();
   final iconName = mpPlatform.trayIconFile;
