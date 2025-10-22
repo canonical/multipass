@@ -199,9 +199,9 @@ jobs:
       run: |
         # Locate the real NuGet.exe in Homebrew’s Cellar
         NUGET_EXE="$(brew --prefix nuget)/libexec/NuGet.exe"
-        if file "$NUGET_EXE" | grep -q "text"; then
+        if file "/opt/homebrew/bin/nuget" | grep -q "text"; then
           # Remove the old shim and replace it with a symlink
-          echo "$NUGET_EXE is a shim, replacing"
+          echo "/opt/homebrew/bin/nuget is a shim, replacing it with $NUGET_EXE"
           sudo rm -f /opt/homebrew/bin/nuget
           sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
           sudo chmod +x /opt/homebrew/bin/nuget
