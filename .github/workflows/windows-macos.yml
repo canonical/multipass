@@ -181,6 +181,7 @@ jobs:
       continue-on-error: true
       shell: 'bash'
       run: |
+        echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
         ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
           sources add \
