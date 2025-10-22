@@ -131,9 +131,13 @@ jobs:
           pixman \
           pkg-config \
           python \
-          wget \
-          mono \
-          nuget
+          wget
+
+        # Force brew nuget & mono
+        brew install nuget || true
+        brew install mono || true
+        brew link --overwrite mono
+        brew link --overwrite nuget
 
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
