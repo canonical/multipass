@@ -42,7 +42,7 @@ struct BaseAvailabilityZoneTest : public Test
     const std::string az_name{"zone1"};
     const mp::fs::path az_dir{"/path/to/zones"};
     const mp::fs::path az_file = az_dir / (az_name + ".json");
-    const QString az_file_qstr{QString::fromStdU16tring(az_file.u16string())};
+    const QString az_file_qstr{QString::fromStdU16String(az_file.u16string())};
     const mp::Subnet az_subnet{"192.168.1.0/24"};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
@@ -84,7 +84,7 @@ TEST_F(BaseAvailabilityZoneTest, loads_existing_zone_file)
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(*mock_json_utils_guard.first,
-                write_json(_, QString::fromStdString(az_file.u8string())));
+                write_json(_, QString::fromStdU16String(az_file.u16string())));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 
