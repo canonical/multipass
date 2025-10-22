@@ -20,7 +20,7 @@ add_library(shared STATIC
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 
-target_link_libraries(shared
+target_link_libraries(shared PUBLIC
   iso
   process
   scope_guard

@@ -16,12 +16,12 @@
 if(MSVC)
   add_library(wineventlogger STATIC win_event_logger.cpp)
   qt6_disable_unicode_defines(wineventlogger)
-  target_link_libraries(wineventlogger fmt::fmt-header-only Qt6::Core)
+  target_link_libraries(wineventlogger PUBLIC fmt::fmt-header-only Qt6::Core)
 elseif(APPLE)
   # Platform specific logger library here
 else()
   add_library(logger_linux_common STATIC linux_logger.cpp)
-  target_link_libraries(logger_linux_common Qt6::Core)
+  target_link_libraries(logger_linux_common PUBLIC Qt6::Core)
 
   # Determine whether journald is available.
   find_package(PkgConfig)
@@ -32,7 +32,7 @@ else()
     set(JOURNALD_FOUND "${JOURNALD_FOUND}" PARENT_SCOPE)
     add_library(logger_linux_journald STATIC journald_wrapper.cpp journald_logger.cpp)
     target_include_directories(logger_linux_journald PRIVATE ${JOURNALD_INCLUDE_DIRS})
-    target_link_libraries(logger_linux_journald logger_linux_common ${JOURNALD_LIBRARIES})
+    target_link_libraries(logger_linux_journald PUBLIC logger_linux_common ${JOURNALD_LIBRARIES})
   endif()
 
 
@@ -48,7 +48,7 @@ else()
   # Declare the syslog target if found.
   if(SYSLOG_FOUND)
     add_library(logger_linux_syslog STATIC syslog_wrapper.cpp syslog_logger.cpp)
-    target_link_libraries(logger_linux_syslog logger_linux_common)
+    target_link_libraries(logger_linux_syslog PUBLIC logger_linux_common)
   endif()
 
   # Settle on which logging backend to use

@@ -22,7 +22,7 @@ add_library(shared_win STATIC
 include_directories(shared_win
   ..)
 
-target_link_libraries(shared_win
+target_link_libraries(shared_win PUBLIC
   Qt6::Core
   fmt::fmt-header-only
   logger

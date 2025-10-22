@@ -20,7 +20,7 @@ add_library(virtualbox_backend STATIC
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h)
 
-target_link_libraries(virtualbox_backend
+target_link_libraries(virtualbox_backend PUBLIC
   Qt6::Core
   fmt::fmt-header-only
   ip_address

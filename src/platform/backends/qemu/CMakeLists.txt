@@ -26,7 +26,7 @@ add_library(qemu_backend STATIC
   qemu_virtual_machine_factory.cpp
   qemu_virtual_machine.cpp)
 
-target_link_libraries(qemu_backend
+target_link_libraries(qemu_backend PUBLIC
   daemon
   fmt::fmt-header-only
   ip_address
