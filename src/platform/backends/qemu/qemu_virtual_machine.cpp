@@ -426,9 +426,11 @@ void mp::QemuVirtualMachine::suspend()
 
         vm_process.reset(nullptr);
     }
-    else if (state == State::off || state == State::suspended)
+    else if (state == State::off || state == State::suspended || state == State::unavailable)
     {
-        mpl::info(vm_name, "Ignoring suspend issued while stopped/suspended");
+        mpl::log(mpl::Level::info,
+                 vm_name,
+                 "Ignoring suspend issued while stopped/suspended/unavailable");
         monitor->on_suspend();
     }
 }

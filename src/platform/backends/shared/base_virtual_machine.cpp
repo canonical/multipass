@@ -204,6 +204,10 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
     {
         throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
     }
+    if (state == State::unavailable)
+    {
+        throw VMStateIdempotentException{"Ignoring shutdown since instance is unavailable."};
+    }
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
@@ -236,6 +240,29 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
         throw VMStateInvalidException{
             fmt::format("Cannot shut down instance {} while starting.", vm_name)};
     }
+}
+
+void mp::BaseVirtualMachine::set_available(bool available)
+{
+    if (available)
+    {
+        state = State::off;
+        update_state();
+        if (was_running)
+        {
+            start();
+
+            // normally the daemon sets the state to running...
+            state = State::running;
+            update_state();
+        }
+        return;
+    }
+
+    was_running = state == State::running || state == State::starting || state == State::restarting;
+    shutdown(ShutdownPolicy::Poweroff);
+    state = State::unavailable;
+    update_state();
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)

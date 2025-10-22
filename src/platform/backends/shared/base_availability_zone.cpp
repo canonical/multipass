@@ -117,8 +117,32 @@ void BaseAvailabilityZone::set_available(const bool new_available)
     m.available = new_available;
     serialize();
 
-    for (auto& vm : m.vms)
-        vm.get().set_available(m.available);
+    try
+    {
+        for (auto& vm : m.vms)
+            vm.get().set_available(new_available);
+    }
+    catch (...)
+    {
+        // if an error occurs fallback to available.
+        m.available = true;
+        serialize();
+
+        // make sure nothing is still unavailable.
+        for (auto& vm : m.vms)
+        {
+            // setting the state here breaks encapsulation, but it's already broken.
+            std::unique_lock vm_lock{vm.get().state_mutex};
+            if (vm.get().current_state() == VirtualMachine::State::unavailable)
+            {
+                vm.get().state = VirtualMachine::State::off;
+                vm.get().update_state();
+            }
+        }
+
+        // rethrow the error so something else can deal with it.
+        throw;
+    }
 }
 
 void BaseAvailabilityZone::add_vm(VirtualMachine& vm)
