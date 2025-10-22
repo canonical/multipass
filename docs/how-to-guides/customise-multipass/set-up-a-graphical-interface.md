@@ -14,9 +14,11 @@ You can display the graphical desktop in various ways. In this document, we desc
 
 ## Using RDP
 
-The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment (here we use `ubuntu-desktop` but there are as many other options as flavours of Ubuntu exist) along with the RDP server (we will use `xrdp` but there are also other options such as `freerdp`).
+The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment. Here, we use `ubuntu-desktop` but there are as many other options as flavours of Ubuntu exist. You also have to install the RDP server. We will use `xrdp` or `gnome-remote-desktop` but there are also other options such as `freerdp`.
 
-To do this, first you need to log into a running Multipass instance. Start by listing your instances:
+### Set up the XRDP server
+
+First, you need to log into a running Multipass instance. Start by listing your instances:
 
 ```{code-block} text
 multipass list
@@ -50,9 +52,78 @@ sudo passwd ubuntu
 
 You will be asked to enter and re-enter a password.
 
-You are done on the server side!
+You are done on the server side! Quit the Ubuntu shell on the running instance with the `exit` command. Proceed to {ref}`connect-to-the-instance-with-an-rdp-client`.
 
-Quit the Ubuntu shell on the running instance with the `exit` command, and take note of the IP address to connect to. You can find the instance's IP address in the output of `multipass list` from the first step above, or you can use the `multipass info` command as well.
+### Set up the GNOME Remote Desktop server
+
+1. Create the following `cloud-init.yaml` configuration file:
+
+   ```{code-block} yaml
+   :caption: cloud-init.yaml
+   :emphasize-lines: 13,14
+
+   package_update: true
+   package_upgrade: true
+   users:
+   - default
+   packages:
+   - ubuntu-desktop
+   - gnome-remote-desktop
+   - winpr3-utils
+   runcmd:
+   - sudo -u gnome-remote-desktop winpr-makecert3 -silent -rdp -path ~gnome-remote-desktop rdp-tls
+   - sudo -u gnome-remote-desktop grdctl --headless rdp set-tls-key ~gnome-remote-desktop/rdp-tls.key
+   - sudo -u gnome-remote-desktop grdctl --headless rdp set-tls-cert ~gnome-remote-desktop/rdp-tls.crt
+   - sudo -u gnome-remote-desktop grdctl --headless rdp set-credentials ubuntu <your-password>
+   - echo ubuntu:<your-password> | sudo chpasswd
+   - echo /usr/sbin/nologin >> /etc/shells
+   - sudo -u gnome-remote-desktop grdctl --headless rdp enable
+   - systemctl --user enable --now gnome-remote-desktop-headless.service
+   - sudo systemctl set-default graphical.target
+   - loginctl enable-linger ubuntu
+   ```
+
+   Replace `<your-password>` with a secure password on the highlighted lines.
+
+1. Launch the configured Multipass instance:
+
+   ```text
+   multipass launch \
+      -vvvv
+      --memory 12G \
+      --cpus=2 \
+      --disk 30G \
+      --timeout 600 \
+      --cloud-init ./cloud-init.yaml 25.10
+   ```
+
+   The command sets the timeout to 10 minutes because the default timeout of 5 minutes isn't enough to initialise the instance.
+
+1. List your instances:
+
+   ```text
+   multipass list
+   ```
+
+   Sample output:
+
+   ```text
+   Name                    State             IPv4             Image
+   headbanging-squid       Running           10.49.93.209     Ubuntu 25.10
+   ```
+
+1. Restart the Multipass instance:
+
+   ```text
+   multipass restart headbanging-squid
+   ```
+
+1. Proceed to {ref}`connect-to-the-instance-with-an-rdp-client`.
+
+(connect-to-the-instance-with-an-rdp-client)=
+### Connect to the instance with an RDP client
+
+Find the instance's IP address in the output of `multipass list`, or you can use the `multipass info` command:
 
 ```{code-block} text
 multipass info headbanging-squid
@@ -84,12 +155,22 @@ If the IP address of the instance is not displayed in the output of `multipass l
 
 ````{group-tab} Linux
 
-On Linux, there are applications such as Remmina to visualise the desktop (make sure the package `remmina-plugin-rdp` is installed in your host along with `remmina`).
+On Linux, there are applications such as Remmina to visualise the desktop.
+
+Make sure that the Remmina packages are installed:
+
+```text
+sudo apt install remmina remmina-plugin-rdp
+```
 
 To directly launch the client, run the following command:
 
 ```{code-block} text
 remmina -c rdp://10.49.93.209
+```
+
+```{note}
+To enable audio, open the Remmina application instead of connecting directly. Create a connection and set {guilabel}`Audio output mode` to {guilabel}`Local` in Advanced settings. Confirm with {guilabel}`Save and Connect`.
 ```
 
 The system will ask for a username (`ubuntu`) and the password set above, and then the Ubuntu desktop on the instance will be displayed.
