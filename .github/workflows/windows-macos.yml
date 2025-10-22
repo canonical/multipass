@@ -360,14 +360,12 @@ jobs:
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
-      if: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
       uses: actions/download-artifact@v5
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
-      if: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
       uses: actions/download-artifact@v5
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
