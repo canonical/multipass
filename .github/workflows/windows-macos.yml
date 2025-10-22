@@ -71,12 +71,6 @@ jobs:
             "optional": true
           })
 
-          // Auto populate fields
-          for (const job of matrix.include) {
-            if (job["runs-on"]?.startsWith("macos"))
-              job.mono = "mono"
-          }
-
           core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
@@ -220,14 +214,29 @@ jobs:
       run: |
         echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        # Retrieve vcpkg's nuget.
+        NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        MONO_WRAPPER=""
+
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # Check if we actually need to call NuGet through mono.
+            # That would be the case if NuGet is the real PE32 executable
+            # instead of a shim.
+            if file "$NUGET_PATH" | grep -q "PE32"; then
+                MONO_WRAPPER="mono"
+            fi
+        fi
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           sources add \
           -source "${{ env.FEED_URL }}" \
           -storepasswordincleartext \
           -name "GitHubPackages" \
           -username "${{ env.USERNAME }}" \
           -password "${{ secrets.GITHUB_TOKEN }}"
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -source "${{ env.FEED_URL }}"
 
