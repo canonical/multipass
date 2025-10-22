@@ -157,11 +157,7 @@ If the IP address of the instance is not displayed in the output of `multipass l
 
 On Linux, there are applications such as Remmina to visualise the desktop.
 
-Make sure that the Remmina packages are installed:
-
-```text
-sudo apt install remmina remmina-plugin-rdp
-```
+Make sure that the `remmina` and `remmina-plugin-rdp` packages are installed.
 
 To directly launch the client, run the following command:
 
