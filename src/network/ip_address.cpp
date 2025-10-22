@@ -17,7 +17,11 @@
 
 #include <multipass/ip_address.h>
 
+#include <array>
+#include <cstdint>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 
 namespace mp = multipass;
 
@@ -63,7 +67,7 @@ mp::IPAddress::IPAddress(std::array<uint8_t, 4> octets) : octets{octets}
 {
 }
 
-mp::IPAddress::IPAddress(const std::string& ip) : IPAddress(parse(ip))
+mp::IPAddress::IPAddress(const std::string& ip_string) : IPAddress(parse(ip_string))
 {
 }
 
