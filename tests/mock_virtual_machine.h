@@ -79,7 +79,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (std::chrono::milliseconds), (override));
     MOCK_METHOD(std::string, ssh_username, (), (override));
-    MOCK_METHOD(std::string, management_ipv4, (), (override));
+    MOCK_METHOD(std::optional<std::string>, management_ipv4, (), (override));
     MOCK_METHOD(std::vector<std::string>, get_all_ipv4, (), (override));
     MOCK_METHOD(std::string, ipv6, (), (override));
 

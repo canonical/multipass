@@ -459,19 +459,17 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::HyperVVirtualMachine::management_ipv4()
+std::optional<std::string> mp::HyperVVirtualMachine::management_ipv4()
 {
-    if (!management_ip)
-    {
-        // Not using cached SSH session for this because a) the underlying functions do not
-        // guarantee constness; b) we endure the penalty of creating a new session only when we
-        // don't have the IP yet.
-        auto result =
-            remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
-        if (result)
-            management_ip.emplace(result.value());
-    }
-    return management_ip ? management_ip.value().as_string() : "UNKNOWN";
+    // Not using cached SSH session for this because a) the underlying functions do not
+    // guarantee constness; b) we endure the penalty of creating a new session only when we
+    // don't have the IP yet.
+    if (!management_ip &&
+        (management_ip =
+             remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider)))
+        return management_ip.value().as_string(); // TODO@ricab just get the IP...
+
+    return std::nullopt;
 }
 
 std::string mp::HyperVVirtualMachine::ipv6()

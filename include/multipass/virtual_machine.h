@@ -77,7 +77,7 @@ public:
     };
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
-    virtual std::string management_ipv4() = 0;
+    virtual std::optional<std::string> management_ipv4() = 0;
     virtual std::vector<std::string> get_all_ipv4() = 0;
     virtual std::string ipv6() = 0;
 

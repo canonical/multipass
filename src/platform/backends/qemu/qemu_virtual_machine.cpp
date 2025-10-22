@@ -534,18 +534,12 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::QemuVirtualMachine::management_ipv4()
+std::optional<std::string> mp::QemuVirtualMachine::management_ipv4()
 {
-    if (!management_ip)
-    {
-        auto result = qemu_platform->get_ip_for(desc.default_mac_address);
-        if (result)
-            management_ip.emplace(result.value());
-        else
-            return "UNKNOWN";
-    }
+    if (!management_ip && (management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
+        return management_ip.value().as_string(); // TODO@ricab just get the IP...
 
-    return management_ip.value().as_string();
+    return std::nullopt;
 }
 
 std::string mp::QemuVirtualMachine::ipv6()

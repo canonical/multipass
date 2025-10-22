@@ -75,9 +75,9 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4() override
+    std::optional<std::string> management_ipv4() override
     {
-        return {};
+        return std::nullopt;
     }
 
     std::vector<std::string> get_all_ipv4() override
