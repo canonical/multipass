@@ -157,3 +157,10 @@ TEST(NewReleaseMonitor, devRcReleaseOrderingCorrect1)
 
     EXPECT_TRUE(new_release);
 }
+
+TEST(NewReleaseMonitor, not_a_semver)
+{
+    auto new_release =
+        check_for_new_release("untitled-txt-final-edit-backup123", "0.6.0-rc.238+g5c642f4");
+    EXPECT_FALSE(new_release);
+}
