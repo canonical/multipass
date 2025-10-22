@@ -1915,8 +1915,6 @@ try
 
             if (management_ip)
                 entry->add_ipv4(*management_ip);
-            else if (all_ipv4.empty())
-                entry->add_ipv4("N/A");
 
             for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
