@@ -30,17 +30,48 @@ jobs:
     steps:
     - name: Determine build matrix
       id: set-matrix
-      run: |
-        set -euo pipefail
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const matrix = { include: [] };
 
-        MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64"},'
-        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64"}'
-        MATRIX+=']}'
+          // Windows targets
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025"
+          });
 
-        echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+          // macOS targets
+          matrix.include.push({
+            "name": "macOS 13 Ventura (Intel Silicon)",
+            "runs-on": "macos-13",
+            "arch": "x86_64"
+          },{
+            "name": "macOS 14 Sonoma (Apple Silicon)",
+            "runs-on": "macos-14",
+            "arch": "arm64"
+          },{
+            "name": "macOS Latest (Apple Silicon)",
+            "runs-on": "macos-latest",
+            "arch": "arm64",
+            // ##############################################################
+            // "nuget" and "mono" are removed from the macos-15 images, see:
+            // https://github.com/actions/runner-images/issues/10686
+            // ##############################################################
+            "brew_extra_pkgs": ["nuget", "mono"]
+          },{
+            "name": "macOS 15 Sequoia (Intel Silicon)",
+            "runs-on": "macos-15-intel",
+            "arch": "x86_64",
+            // ##############################################################
+            // "nuget" and "mono" are removed from the macos-15 images, see:
+            // https://github.com/actions/runner-images/issues/10686
+            // ##############################################################
+            "brew_extra_pkgs": ["nuget", "mono"],
+            "optional": true
+          })
+
+          core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
     needs: GetMatrix
@@ -63,7 +94,9 @@ jobs:
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-file-name }}
 
+    name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ matrix.optional || false }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
@@ -118,6 +151,8 @@ jobs:
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
+      env:
+        BREW_EXTRA: ${{ matrix.brew_extra_pkgs && join(matrix.brew_extra_pkgs, ' ') || '' }}
       run: |
         # Avoid reinstalling cmake
         ${{ env.ARCH_WRAPPER }} brew list cmake > /dev/null || \
@@ -138,6 +173,10 @@ jobs:
           pkg-config \
           python \
           wget
+
+          if [ -n "${BREW_EXTRA}" ]; then
+              ${{ env.ARCH_WRAPPER }} brew install ${BREW_EXTRA}
+          fi
 
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
@@ -171,11 +210,6 @@ jobs:
           echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
         fi
 
-    - name: Install nuget
-      if: ${{ matrix.arch == 'arm64' }}
-      run: |
-        brew install nuget mono
-
     - name: Configure NuGet Source
       if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
       id: setup_nuget
@@ -183,14 +217,29 @@ jobs:
       shell: 'bash'
       run: |
         # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        # Retrieve vcpkg's nuget.
+        NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        MONO_WRAPPER=""
+
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # Check if we actually need to call NuGet through mono.
+            # That would be the case if NuGet is the real PE32 executable
+            # instead of a shim.
+            if file "$NUGET_PATH" | grep -q "PE32"; then
+                MONO_WRAPPER="mono"
+            fi
+        fi
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           sources add \
           -source "${{ env.FEED_URL }}" \
           -storepasswordincleartext \
           -name "GitHubPackages" \
           -username "${{ env.USERNAME }}" \
           -password "${{ secrets.GITHUB_TOKEN }}"
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -source "${{ env.FEED_URL }}"
 
