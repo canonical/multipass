@@ -542,11 +542,6 @@ std::optional<std::string> mp::QemuVirtualMachine::management_ipv4()
     return std::nullopt;
 }
 
-std::string mp::QemuVirtualMachine::ipv6()
-{
-    return {};
-}
-
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     BaseVirtualMachine::wait_until_ssh_up(timeout);
