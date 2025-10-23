@@ -22,5 +22,6 @@ packaging/windows/wix/obj/*
 packaging/windows/custom-actions/packages/*
 packaging/windows/custom-actions/x64/*
 
-# Python artifacts
-*.pyc
+
+network-cache/
+.cache
