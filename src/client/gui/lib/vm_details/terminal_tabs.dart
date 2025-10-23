@@ -66,6 +66,7 @@ class Tab extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onClose;
+  final String release;
 
   const Tab({
     super.key,
@@ -73,6 +74,7 @@ class Tab extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.onClose,
+    required this.release,
   });
 
   static final ubuntuIcon = Container(
@@ -145,6 +147,10 @@ class TerminalTabs extends ConsumerWidget {
     final (:ids, :currentIndex) = ref.watch(provider);
     final askTerminalCloseProvider = guiSettingProvider(askTerminalCloseKey);
 
+    final vmInfo = ref.watch(vmInfoProvider(name));
+    final release =
+        vmInfo.hasInstanceInfo() ? vmInfo.instanceInfo.imageRelease : 'Ubuntu';
+
     final tabsAndShells = ids.mapIndexed((index, shellId) {
       final tab = ReorderableDragStartListener(
         key: ValueKey(shellId.id),
@@ -152,6 +158,7 @@ class TerminalTabs extends ConsumerWidget {
         child: Tab(
           title: 'Shell ${shellId.id}',
           selected: index == currentIndex,
+          release: release,
           onTap: () => ref.read(notifier).setCurrent(index),
           onClose: () {
             final ask = ref.read(
