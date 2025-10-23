@@ -19,6 +19,7 @@
 #include "mock_standard_paths.h"
 
 #include <QCoreApplication>
+#include <google/protobuf/stubs/common.h>
 
 namespace mp = multipass;
 
@@ -26,6 +27,8 @@ namespace mp = multipass;
 // also define main... DAMN THEM!
 int main(int argc, char* argv[])
 {
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("multipass_tests");
 

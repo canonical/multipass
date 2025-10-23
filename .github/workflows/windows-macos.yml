@@ -275,10 +275,50 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: ccache --show-stats --zero-stats
 
+    - name: Enable coredump
+      if: ${{ runner.os == 'macOS' }}
+      working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
+      run : |
+        # Allow core dumps
+        sudo sysctl -w kern.coredump=1
+        # This entitlement is needed for a proc to produce a coredump
+        /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" segv.entitlements
+        # Code-sign the test executable to grant core dump entitlement
+        codesign -s - -f --entitlements segv.entitlements bin/multipass_tests
+        # Ensure destination exists and is writable
+        sudo mkdir -p /cores || true
+        sudo chmod 1777 /cores
+
+    - name: Print syctl coredump parameters
+      if: ${{ runner.os == 'macOS' }}
+      run : |
+        sysctl kern.coredump kern.corefile
+        ulimit -a
+
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
       run: |
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        ulimit -c 524288
         ${{ env.ARCH_WRAPPER }} bin/multipass_tests
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
+      timeout-minutes: 30
+      with:
+        limit-access-to-actor: true
+
+    - name: Upload test coredump
+      uses: actions/upload-artifact@v4
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && runner.os == 'macOS' }}
+      with:
+        name: buildandtest-test-crash-${{ matrix.runs-on }}-${{ matrix.build-type }}
+        path: |
+          /cores/**
+          bin/multipass_tests
 
     - name: Package
       id: cmake-package
