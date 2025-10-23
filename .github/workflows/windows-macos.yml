@@ -35,9 +35,9 @@ jobs:
 
         MATRIX='{"include": ['
         MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64"},'
-        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64"}'
+        MATRIX+='{"runs-on": "macos-13", "mono": "mono"},'
+        MATRIX+='{"runs-on": "macos-14"},'
+        MATRIX+='{"runs-on": "macos-latest"}'
         MATRIX+=']}'
 
         echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
@@ -58,10 +58,10 @@ jobs:
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
       # Use artifacts from macos-13 and macos-14 in official package
-      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-artifact-name }}
-      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-file-name }}
-      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-file-name }}
+      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-package-artifact-name }}
+      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-package-file-name }}
 
     runs-on: ${{ matrix.runs-on }}
 
@@ -105,10 +105,6 @@ jobs:
         # Needed for cache: https://github.com/actions/cache?tab=readme-ov-file#pre-requisites
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
 
-    - name: Set the arch wrapper
-      if: ${{ matrix.arch }}
-      run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
-
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
       if: ${{ runner.os == 'macOS' }}
@@ -120,10 +116,8 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: |
         # Avoid reinstalling cmake
-        ${{ env.ARCH_WRAPPER }} brew list cmake > /dev/null || \
-            ${{ env.ARCH_WRAPPER }} brew install cmake
+        brew list cmake > /dev/null || brew install cmake
 
-        ${{ env.ARCH_WRAPPER }} \
         brew install \
           coreutils \
           dylibbundler \
@@ -139,10 +133,16 @@ jobs:
           python \
           wget
 
+        # Force brew nuget & mono
+        brew install nuget || true
+        brew install mono || true
+        brew link --overwrite mono
+        brew link --overwrite nuget
+
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
       run: |
-        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade distlib
+        python3 -m pip install --user --upgrade distlib
 
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
@@ -171,17 +171,13 @@ jobs:
           echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
         fi
 
-    - name: Install nuget
-      if: ${{ matrix.arch == 'arm64' }}
-      run: |
-        brew install nuget mono
-
     - name: Configure NuGet Source
       if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
       id: setup_nuget
       continue-on-error: true
       shell: 'bash'
       run: |
+        echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
         ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
           sources add \
@@ -196,20 +192,23 @@ jobs:
 
     - name: Overwrite Homebrew nuget shim with nuget DLL
       continue-on-error: true
-      if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' && matrix.arch == 'arm64' }}
+      if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' }}
       run: |
         # Locate the real NuGet.exe in Homebrew’s Cellar
         NUGET_EXE="$(brew --prefix nuget)/libexec/NuGet.exe"
-        # Remove the old shim and replace it with a symlink
-        sudo rm -f /opt/homebrew/bin/nuget
-        sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
-        sudo chmod +x /opt/homebrew/bin/nuget
+        if file "/opt/homebrew/bin/nuget" | grep -q "text"; then
+          # Remove the old shim and replace it with a symlink
+          echo "/opt/homebrew/bin/nuget is a shim, replacing it with $NUGET_EXE"
+          sudo rm -f /opt/homebrew/bin/nuget
+          sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
+          sudo chmod +x /opt/homebrew/bin/nuget
+        fi
 
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
       run: |
-        ${{ env.ARCH_WRAPPER }} brew install ccache
+        brew install ccache
 
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
@@ -257,7 +256,6 @@ jobs:
 
     - name: Configure
       run: >
-        ${{ env.ARCH_WRAPPER }}
         cmake
         -B${{ env.BUILD_DIR }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -269,7 +267,7 @@ jobs:
         ${{ github.workspace }}
 
     - name: Build
-      run: ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }}
+      run: cmake --build ${{ env.BUILD_DIR }}
 
     - name: Clear CCache stats
       if: ${{ runner.os == 'macOS' }}
@@ -278,13 +276,13 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        ${{ env.ARCH_WRAPPER }} bin/multipass_tests
+        bin/multipass_tests
 
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
       run: >
-        ${{ env.ARCH_WRAPPER }} cmake --build . --target package
+        cmake --build . --target package
 
         echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' ||
         '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >>
@@ -332,8 +330,8 @@ jobs:
       shell: bash
       run: |
         NAME="${{ steps.cmake-package.outputs.name }}"
-        ARTIFACT_NAME="${{ matrix.runs-on }}-${{ matrix.arch }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
-        FILE_NAME="${{ matrix.runs-on }}-${{ matrix.arch }}-package-file-name=${NAME}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
 
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
@@ -359,39 +357,32 @@ jobs:
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
-      if: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
       uses: actions/download-artifact@v5
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
-      if: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
       uses: actions/download-artifact@v5
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
-
-    - name: Set the arch wrapper
-      run: >
-        echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple &&
-          echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
 
     - name: Combine the macOS package
       id: combine-package
       if: ${{ steps.retrieve-x86.outputs.download-path && steps.retrieve-arm.outputs.download-path }}
       run: |
-        ${ARCH_WRAPPER} brew install python
-        ${ARCH_WRAPPER} brew install coreutils
-        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade lxml
+        brew install python
+        brew install coreutils
+        python3 -m pip install --user --upgrade lxml
 
         PKG=${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
         PKG=${PKG/.x86_64/}
-        ${ARCH_WRAPPER} packaging/macos/merge_pkgs.py \
+        packaging/macos/merge_pkgs.py \
           ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }} \
           ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }} \
           ${PKG}
 
-        ${ARCH_WRAPPER} packaging/macos/sign-and-notarize.sh \
+        packaging/macos/sign-and-notarize.sh \
           --app-signer - \
           ${PKG}
 
