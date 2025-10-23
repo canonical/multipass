@@ -23,7 +23,7 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 - [Add a network to an existing instance](manage-instances/add-a-network-to-an-existing-instance)
 - [Configure static IPs](manage-instances/configure-static-ips)
 - [Use a blueprint](manage-instances/use-a-blueprint)
-- [Use the Docker blueprint](manage-instances/use-the-docker-blueprint)
+- {ref}`how-to-guides-manage-instances-use-the-docker-blueprint`
 - [Run a Docker container in Multipass](manage-instances/run-a-docker-container-in-multipass)
 
 ## Customise Multipass

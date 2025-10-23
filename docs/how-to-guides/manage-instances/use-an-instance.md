@@ -1,13 +1,13 @@
 (how-to-guides-manage-instances-use-an-instance)=
 # Use an instance
 
-> See also: [Instance](/explanation/instance)
+> See also: [Instance](explanation-instance)
 
 This document demonstrates various ways to use an instance.
 
 ## Open a shell prompt inside an instance
 
-> See also: [`shell`](/reference/command-line-interface/shell)
+> See also: [`shell`](reference-command-line-interface-shell)
 
 To open a shell prompt on an existing instance (e.g. `loving-duck`), run the command `multipass shell loving-duck`. The output will be similar to the following:
 
@@ -53,7 +53,7 @@ This is also available on the GUI.
 
 ## Run a command inside an instance
 
-> See also: [`exec`](/reference/command-line-interface/exec)
+> See also: [`exec`](reference-command-line-interface-exec)
 
 To run a single command inside an instance, you don't need to open a shell. The command can be directly called from the host using `multipass exec`. For example, the command `multipass exec loving-duck -- pwd` returns:
 
@@ -65,7 +65,7 @@ In the example, `/home/ubuntu` is the output of invoking the `pwd` command on th
 
 ## Start an instance
 
-> See also: [`start`](/reference/command-line-interface/start)
+> See also: [`start`](reference-command-line-interface-start)
 
 An existing instance that is in `Stopped` or `Suspended` status can be started with the `multipass start` command; for example:
 
@@ -93,7 +93,7 @@ This is also available on the GUI.
 
 ## Suspend an instance
 
-> See also: [`suspend`](/reference/command-line-interface/suspend)
+> See also: [`suspend`](reference-command-line-interface-suspend)
 
 An instance can be suspended with the command:
 
@@ -117,7 +117,7 @@ If no options are specified, the `multipass suspend` command suspends the primar
 
 ## Stop an instance
 
-> See also: [`stop`](/reference/command-line-interface/stop)
+> See also: [`stop`](reference-command-line-interface-stop)
 
 A running, not suspended instance is stopped with the command:
 
