@@ -15,7 +15,7 @@ function(add_subdirectory_compat)
     #
     # https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_VERSION_MINIMUM.html
     set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-    add_subdirectory(${ARGV})
+    add_subdirectory(${ARGV} SYSTEM)
 endfunction()
 
 # Generates gRPC and protobuf C++ sources and headers from the given .proto files
@@ -90,18 +90,18 @@ include(ExternalProject)
 
 # QEMU itself
 if (APPLE AND "qemu" IN_LIST MULTIPASS_BACKENDS)
-    add_subdirectory(qemu)
+    add_subdirectory(qemu SYSTEM)
 endif ()
 
 if(MSVC)
   set(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF CACHE BOOL "Disable pkgconfig in jsoncpp" FORCE)
   set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "Disable unit tests in jsoncpp" FORCE)
   set(JSONCPP_WITH_TESTS OFF CACHE BOOL "Disable test executables in jsoncpp lib" FORCE)
-  add_subdirectory(jsoncpp)
+  add_subdirectory(jsoncpp SYSTEM)
 endif()
 
 # libssh config
-add_subdirectory(libssh)
+add_subdirectory(libssh SYSTEM)
 
 # premock header only library to mock c-functions
 add_library(premock INTERFACE)
@@ -115,4 +115,4 @@ target_include_directories(semver INTERFACE
 set_target_properties(semver PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # xz-decoder config
-add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)
+add_subdirectory(xz-decoder SYSTEM EXCLUDE_FROM_ALL)
