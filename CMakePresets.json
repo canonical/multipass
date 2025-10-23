@@ -45,7 +45,7 @@
                 },
                 "MULTIPASS_ENABLE_FLUTTER_GUI": {
                     "type": "BOOL",
-                    "value": "On"
+                    "value": "ON"
                 }
             }
         },
@@ -73,11 +73,11 @@
             "description": "Preset for snap builds in CI (clang-11 build).",
             "inherits": "ci-snap",
             "cacheVariables": {
-                "CMAKE_C_COMPILER_LAUNCHER": {
+                "CMAKE_C_COMPILER": {
                     "type": "STRING",
                     "value": "clang-11"
                 },
-                "CMAKE_CXX_COMPILER_LAUNCHER": {
+                "CMAKE_CXX_COMPILER": {
                     "type": "STRING",
                     "value": "clang++-11"
                 }
