@@ -28,13 +28,14 @@
 #include <cerrno>
 #include <cstring>
 #include <sstream>
+#include <source_location>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 constexpr auto category = "ssh process";
 
-consteval std::string_view extract_filename(std::string_view path)
+constexpr std::string_view extract_filename(std::string_view path)
 {
     auto pos = path.find_last_of("/\\");
     return (pos == std::string_view::npos) ? path : path.substr(pos + 1);
@@ -43,11 +44,10 @@ consteval std::string_view extract_filename(std::string_view path)
 void log_trace(const std::string_view message,
                const std::source_location location = std::source_location::current())
 {
-    constexpr auto file = extract_filename(location.file_name());
+    auto file = extract_filename(location.file_name());
 
     mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("{}:{} {}(): {}",
+             category,fmt::format("{}:{} {}(): {}",
                          file,
                          location.line(),
                          location.function_name(),
@@ -87,15 +87,19 @@ private:
 auto make_channel(ssh_session session, const std::string& cmd)
 {
     if (!ssh_is_connected(session))
+    {
+     log_trace(fmt::format("unable to create a channel for remote process: '{}', SSH session not connected", cmd));
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
-
+    }
     mp::SSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+    log_trace("[ssh proc] opening session channel");
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] failed to open session channel",
                             ssh_channel_open_session);
+    log_trace(fmt::format("[ssh proc] executing command: '{}'", cmd));
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] exec request failed",
@@ -169,8 +173,12 @@ void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save
 
     if (!std::holds_alternative<int>(exit_result))
     {
-        std::exception_ptr eptr;
         if (rc == SSH_ERROR) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+            log_trace(fmt::format("SSHProcessExitError for cmd '{}': {}", cmd, std::strerror(errno)));
+        else
+          log_trace(fmt::format("SSHProcessTimeoutException for cmd '{}', timeout: {}", cmd, timeout));
+        std::exception_ptr eptr;
+         if (rc == SSH_ERROR)
             eptr = std::make_exception_ptr(SSHProcessExitError{cmd, std::strerror(errno)});
         else
             eptr = std::make_exception_ptr(SSHProcessTimeoutException{cmd, timeout});
@@ -196,17 +204,12 @@ std::string mp::SSHProcess::read_std_error()
 
 std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 {
-    mpl::trace(category,
-               "{}:{} {}(type = {}, timeout = {}): ",
-               __FILE__,
-               __LINE__,
-               __FUNCTION__,
-               static_cast<int>(type),
-               timeout);
+   log_trace(fmt::format("(type = {}, timeout = {})", static_cast<int>(type), timeout));
+
     // If the channel is closed there's no output to read
     if (ssh_channel_is_closed(channel.get()))
     {
-        mpl::trace(category, "{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__);
+        log_trace("channel closed");
         return std::string();
     }
 
@@ -221,26 +224,17 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                                              buffer.size(),
                                              is_std_err,
                                              timeout);
-        mpl::trace(category,
-                   "{}:{} {}(): num_bytes = {}",
-                   __FILE__,
-                   __LINE__,
-                   __FUNCTION__,
-                   num_bytes);
+        log_trace(fmt::format("num_bytes = {}", num_bytes));
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
             // returning 0 bytes
             if (ssh_channel_is_closed(channel.get()))
             {
-                mpl::trace(category,
-                           "{}:{} {}(): channel closed",
-                           __FILE__,
-                           __LINE__,
-                           __FUNCTION__);
+                log_trace("channel closed");
                 return output.str();
             }
-
+            log_trace(fmt::format("SSH read error for cmd '{}', error: {}", cmd, num_bytes));
             throw mp::SSHException(
                 fmt::format("error while reading ssh channel for remote process '{}' - error: {}",
                             cmd,
