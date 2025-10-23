@@ -33,6 +33,8 @@ foreach(entry ${vcpkg_port_entries})
     endif()
 endforeach()
 
+set(VCPKG_OVERLAY_PORTS "" CACHE STRING "vcpkg Overlay Ports (dynamically populated)" FORCE)
+
 # Iterate over all wrapped packages to set up the wrapper and the hook.
 foreach(PACKAGE ${WRAPPED_VCPKG_PACKAGES})
   message(STATUS "Copying the original vcpkg port for ${PACKAGE} to override.")
@@ -46,6 +48,8 @@ foreach(PACKAGE ${WRAPPED_VCPKG_PACKAGES})
   file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile-wrapper.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile.cmake")
   # Copy the target filter hook
   file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-vcpkg-target-filter-hook.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
+  # Add it to overlay ports
+  list(APPEND VCPKG_OVERLAY_PORTS "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
 endforeach()
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")

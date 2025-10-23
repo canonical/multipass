@@ -1,7 +1,4 @@
 {
-  "overlay-ports": [
-    "build/vcpkg-ports/grpc"
-  ],
   "overlay-triplets": [
     "3rd-party/vcpkg-triplets"
   ]
