@@ -153,14 +153,6 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
     for (int i = 1; i < ipv4_size; ++i)
         fmt::format_to(dest, "{:<16}{}\n", "", instance_details.ipv4(i));
 
-    if (int ipv6_size = instance_details.ipv6_size())
-    {
-        fmt::format_to(dest, "{:<16}{}\n", "IPv6:", instance_details.ipv6(0));
-
-        for (int i = 1; i < ipv6_size; ++i)
-            fmt::format_to(dest, "{:<16}{}\n", "", instance_details.ipv6(i));
-    }
-
     fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Release:",

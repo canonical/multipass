@@ -211,7 +211,6 @@ message InstanceDetails {
     string memory_usage = 5;
     string disk_usage = 6;
     repeated string ipv4 = 7;
-    repeated string ipv6 = 8;
     optional int32 num_snapshots = 9;
     string cpu_times = 10;
     string uptime = 11;
@@ -263,7 +262,6 @@ message ListVMInstance {
     string name = 1;
     InstanceStatus instance_status = 2;
     repeated string ipv4 = 3;
-    repeated string ipv6 = 4;
     string current_release = 5;
     string os = 6;
 }

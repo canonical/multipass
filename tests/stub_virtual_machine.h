@@ -85,11 +85,6 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return std::vector<std::string>{"192.168.2.123"};
     }
 
-    std::string ipv6() override
-    {
-        return {};
-    }
-
     std::string ssh_exec(const std::string& cmd, bool whisper = false) override
     {
         return {};

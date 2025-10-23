@@ -528,11 +528,6 @@ std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4()
     return all_ipv4;
 }
 
-std::string mp::VirtualBoxVirtualMachine::ipv6()
-{
-    return {};
-}
-
 void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);

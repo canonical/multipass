@@ -56,7 +56,6 @@ public:
     std::string ssh_username() override;
     std::optional<std::string> management_ipv4() override;
     std::vector<std::string> get_all_ipv4() override;
-    std::string ipv6() override;
     void ensure_vm_is_running() override;
     void update_state() override;
     void update_cpus(int num_cores) override;

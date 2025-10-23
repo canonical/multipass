@@ -472,11 +472,6 @@ std::optional<std::string> mp::HyperVVirtualMachine::management_ipv4()
     return std::nullopt;
 }
 
-std::string mp::HyperVVirtualMachine::ipv6()
-{
-    return {};
-}
-
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);
