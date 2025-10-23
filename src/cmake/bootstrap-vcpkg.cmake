@@ -23,16 +23,30 @@ else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
 
-# Copy gRPC port
-file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg/ports/grpc" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/")
-# Rename the original port file
-file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/portfile.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/portfile-original.cmake")
-# Copy our shim portfile
-file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/grpc-portfile-wrapper.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/")
-file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/grpc-portfile-wrapper.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/portfile.cmake")
-# Copy the target filter hook
-file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-vcpkg-target-filter-hook.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc")
+# Get list of portfile overrides
+file(GLOB vcpkg_port_entries RELATIVE ${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports ${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/*)
+set(WRAPPED_VCPKG_PACKAGES "")
 
+foreach(entry ${vcpkg_port_entries})
+    if(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/${entry})
+        list(APPEND WRAPPED_VCPKG_PACKAGES ${entry})
+    endif()
+endforeach()
+
+# Iterate over all wrapped packages to set up the wrapper and the hook.
+foreach(PACKAGE ${WRAPPED_VCPKG_PACKAGES})
+  message(STATUS "Copying the original vcpkg port for ${PACKAGE} to override.")
+  # Copy the port to build/ folder
+  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg/ports/${PACKAGE}" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/")
+  # Rename the original portfile
+  file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile-original.cmake")
+  # Copy the portfile wrapper
+  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/${PACKAGE}/portfile-wrapper.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/")
+  # Rename the portfile-wrapper.cmake to portfile.cmake
+  file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile-wrapper.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile.cmake")
+  # Copy the target filter hook
+  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-vcpkg-target-filter-hook.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
+endforeach()
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
