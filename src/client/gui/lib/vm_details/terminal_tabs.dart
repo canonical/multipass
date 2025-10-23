@@ -77,18 +77,35 @@ class Tab extends StatelessWidget {
     required this.release,
   });
 
-  static final ubuntuIcon = Container(
-    alignment: Alignment.center,
-    color: const Color(0xffE95420),
-    margin: const EdgeInsets.symmetric(horizontal: 10),
-    width: 17,
-    height: 17,
-    child: SvgPicture.asset(
-      'assets/ubuntu.svg',
-      width: 12,
-      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-    ),
-  );
+  Widget _buildIcon(String release) {
+    final osl = release.toLowerCase();
+    // Tuple: (asset path, background color, svg color)
+    final iconData = osl.contains('ubuntu')
+        ? ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white)
+        : osl.contains('debian')
+            ? ('assets/debian.svg', null, null)
+            : osl.contains('fedora')
+                ? ('assets/fedora.svg', null, null)
+                : ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white);
+
+    return Container(
+      alignment: Alignment.center,
+      color: iconData.$2,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      width: 17,
+      height: 17,
+      child: iconData.$3 == null
+          ? SvgPicture.asset(
+              iconData.$1,
+              width: 12,
+            )
+          : SvgPicture.asset(
+              iconData.$1,
+              width: 12,
+              colorFilter: ColorFilter.mode(iconData.$3!, BlendMode.srcIn),
+            ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +142,7 @@ class Tab extends StatelessWidget {
         decoration: decoration,
         child: Row(
           children: [
-            ubuntuIcon,
+            _buildIcon(release),
             Expanded(child: tabTitle),
             closeButton,
           ],
