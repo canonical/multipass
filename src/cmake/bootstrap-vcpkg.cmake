@@ -23,6 +23,17 @@ else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
 
+# Copy gRPC port
+file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg/ports/grpc" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/")
+# Rename the original port file
+file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/portfile.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/portfile-original.cmake")
+# Copy our shim portfile
+file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/grpc-portfile-wrapper.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/")
+file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/grpc-portfile-wrapper.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc/portfile.cmake")
+# Copy the target filter hook
+file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-vcpkg-target-filter-hook.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/grpc")
+
+
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
