@@ -28,7 +28,7 @@ jobs:
                 {"build-type": "Release", "cmake-preset": "ci-snap"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
-            MATRIX+='{"build-type": "Coverage", "cmake-preset":"ci-snap-coverage" }'
+            MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage" }'
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
