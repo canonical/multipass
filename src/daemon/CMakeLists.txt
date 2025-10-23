@@ -44,7 +44,7 @@ target_link_libraries(daemon
   Qt6::Core
   Qt6::Network
   xz_image_decoder
-  yaml)
+  yaml-cpp::yaml-cpp)
 
 add_library(delayed_shutdown STATIC
   delayed_shutdown_timer.cpp

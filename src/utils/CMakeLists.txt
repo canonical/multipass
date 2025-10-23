@@ -32,7 +32,7 @@ function(add_target TARGET_NAME)
     logger
     ssh_common
     ssh
-    yaml
+    yaml-cpp::yaml-cpp
     xz_image_decoder
     Qt6::Core)
 

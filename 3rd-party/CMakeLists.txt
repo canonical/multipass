@@ -69,23 +69,6 @@ if (NOT MSVC)
   target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor" "-Wno-pedantic")
 endif ()
 
-# YAML C++
-# Disable tests here to avoid double-including gtest
-option(YAML_CPP_BUILD_TOOLS OFF)
-option(YAML_CPP_BUILD_CONTRIB OFF)
-option(YAML_CPP_BUILD_TESTS OFF)
-
-add_subdirectory_compat(yaml-cpp EXCLUDE_FROM_ALL)
-set_target_properties(yaml-cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_library(yaml INTERFACE)
-
-target_include_directories(yaml INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp/include)
-
-target_link_libraries(yaml INTERFACE
-  yaml-cpp)
-
 include(ExternalProject)
 
 # QEMU itself

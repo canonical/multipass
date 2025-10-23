@@ -3,7 +3,8 @@
   "dependencies": [
     "grpc",
     "fmt",
-    "scope-guard"
+    "scope-guard",
+    "yaml-cpp"
   ],
   "overrides": [
     {

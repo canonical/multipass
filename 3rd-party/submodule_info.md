@@ -31,11 +31,6 @@ Version: v2024-12-30 |
 <https://github.com/tukaani-project/xz-embedded.git> |
 <https://tukaani.org/xz/embedded.html>
 
-### yaml-cpp
-Version: 0.8.0 (+[our patches](https://github.com/canonical/yaml-cpp/compare/0.8.0..multipass)) |
-<https://github.com/canonical/yaml-cpp.git> |
-<https://github.com/jbeder/yaml-cpp/releases>
-
 ### JsonCpp
 Version: 1.9.4 |
 <https://github.com/open-source-parsers/jsoncpp.git> |

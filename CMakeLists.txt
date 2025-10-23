@@ -188,6 +188,9 @@ add_library(scope_guard INTERFACE)
 target_include_directories(scope_guard INTERFACE ${SCOPE_GUARD_INCLUDE_DIRS})
 target_compile_definitions(scope_guard INTERFACE SG_REQUIRE_NOEXCEPT_IN_CPP17)
 
+# yaml-cpp config
+find_package(yaml-cpp CONFIG REQUIRED)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
