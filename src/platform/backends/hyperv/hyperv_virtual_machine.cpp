@@ -467,7 +467,7 @@ std::optional<std::string> mp::HyperVVirtualMachine::management_ipv4()
     if (!management_ip &&
         (management_ip =
              remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider)))
-        return management_ip.value().as_string(); // TODO@ricab just get the IP...
+        return management_ip.value().as_string(); // TODO@no-merge just get the IP...
 
     return std::nullopt;
 }
