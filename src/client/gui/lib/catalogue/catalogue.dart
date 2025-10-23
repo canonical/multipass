@@ -191,13 +191,6 @@ class CatalogueScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            child: const Text(
-              'Images',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
           LayoutBuilder(
             builder: (_, constraints) {
               const minCardWidth = 285;
@@ -208,8 +201,7 @@ class CatalogueScreen extends ConsumerWidget {
               return Wrap(
                 runSpacing: spacing,
                 spacing: spacing,
-                children:
-                    images.map((image) => ImageCard(image, cardWidth)).toList(),
+                children: _groupAndCreateCards(images, cardWidth),
               );
             },
           ),
