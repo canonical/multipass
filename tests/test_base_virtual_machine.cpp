@@ -173,11 +173,6 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "1.2.3.4";
     }
 
-    std::string ipv6() override
-    {
-        return "";
-    }
-
     void wait_until_ssh_up(std::chrono::milliseconds) override
     {
     }
