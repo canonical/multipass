@@ -537,7 +537,7 @@ std::string mp::QemuVirtualMachine::ssh_username()
 std::optional<std::string> mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip && (management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-        return management_ip.value().as_string(); // TODO@ricab just get the IP...
+        return management_ip.value().as_string(); // TODO@no-merge just get the IP...
 
     return std::nullopt;
 }
@@ -825,7 +825,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
 
 std::string mp::QemuVirtualMachine::ip_address_for(std::chrono::milliseconds timeout)
 {
-    // TODO@ricab simplify this stuff further
+    // TODO@no-merge simplify this stuff further
     if (!management_ip)
     {
         auto action = [this] {
@@ -850,5 +850,5 @@ std::string mp::QemuVirtualMachine::ip_address_for(std::chrono::milliseconds tim
         mpu::try_action_for(on_timeout, timeout, action);
     }
 
-    return management_ip->as_string(); // TODO@ricab void
+    return management_ip->as_string(); // TODO@no-merge void
 }
