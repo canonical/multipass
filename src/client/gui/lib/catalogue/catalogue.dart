@@ -73,6 +73,54 @@ List<ImageInfo> sortImages(List<ImageInfo> images) {
   ];
 }
 
+List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
+  bool isCore(ImageInfo image) {
+    return image.aliases.any((a) => a.contains('core'));
+  }
+
+  bool isUbuntu(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
+  }
+
+  bool isOther(ImageInfo image) {
+    return !isCore(image) && !isUbuntu(image);
+  }
+
+  final ubuntuImages = images
+      .where((i) => isUbuntu(i) && !isCore(i) && !isOther(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final coreImages = images
+      .where((i) => isUbuntu(i) && isCore(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final otherImages = images
+      .where((i) => isOther(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  return [
+    if (ubuntuImages.isNotEmpty)
+      ImageCard(
+        parentImage: ubuntuImages.first,
+        versions: ubuntuImages.toList(),
+        width: cardWidth,
+      ),
+    if (coreImages.isNotEmpty)
+      ImageCard(
+        parentImage: coreImages.first,
+        versions: coreImages.toList(),
+        width: cardWidth,
+      ),
+    ...otherImages.map((image) {
+      return ImageCard(
+        parentImage: image,
+        versions: [image],
+        width: cardWidth,
+      );
+    }),
+  ];
+}
+
 class CatalogueScreen extends ConsumerWidget {
   static const sidebarKey = 'catalogue';
 
