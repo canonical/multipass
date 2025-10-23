@@ -19,7 +19,7 @@ add_library(shared_macos STATIC
 include_directories(shared_macos
   ..)
 
-target_link_libraries(shared_macos
+target_link_libraries(shared_macos PUBLIC
   fmt::fmt-header-only
   ssh_common
   Qt6::Core)
