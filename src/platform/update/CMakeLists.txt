@@ -22,7 +22,6 @@ target_link_libraries(update
   network
   fmt::fmt-header-only
   rpc
-  semver
   Qt6::Core)
 
 target_include_directories(update

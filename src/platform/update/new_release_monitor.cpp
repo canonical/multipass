@@ -20,8 +20,7 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/url_downloader.h>
-
-#include <semver200.h>
+#include <multipass/utils/semver_compare.h>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -125,10 +124,11 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
 {
     try
     {
+        const multipass::opaque_semver current{current_version.toStdString()};
+        const multipass::opaque_semver latest{latest_release.version.toStdString()};
         // Deliberately keeping all version string parsing here. If any version string
         // not of correct form, throw.
-        if (version::Semver200_version(current_version.toStdString()) <
-            version::Semver200_version(latest_release.version.toStdString()))
+        if (current < latest)
         {
             new_release = latest_release;
             mpl::info("update",
@@ -136,7 +136,7 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
                       qUtf8Printable(new_release->version));
         }
     }
-    catch (const version::Parse_error& e)
+    catch (const std::invalid_argument& e)
     {
         mpl::warn("update",
                   "Version strings {} and {} not comparable: {}",
