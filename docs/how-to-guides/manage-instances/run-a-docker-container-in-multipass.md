@@ -1,7 +1,8 @@
 (how-to-guides-manage-instances-run-a-docker-container-in-multipass)=
 # Run a Docker container in Multipass
+
 ```{Warning}
-Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](/how-to-guides/manage-instances/launch-customized-instances-with-multipass-and-cloud-init)
+Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)
 ```
 <!-- This is published as an Ubuntu Tutorial at this link: https://ubuntu.com/tutorials/running-a-container-with-the-docker-workflow-in-multipass -->
 
@@ -36,7 +37,7 @@ In this tutorial, you will see how to get started with the Docker blueprint by c
 
 *Duration: 3 minutes*
 
-Let's start by installing Multipass on your machine, following the steps in [How to install Multipass](/how-to-guides/install-multipass).
+Let's start by installing Multipass on your machine, following the steps in [How to install Multipass](how-to-guides-install-multipass).
 
 <!-- Out of date and unnecessary
 ![|720x643](https://assets.ubuntu.com/v1/25ca03d0-mp-docker.png)
