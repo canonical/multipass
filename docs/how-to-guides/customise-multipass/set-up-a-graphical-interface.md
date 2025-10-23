@@ -14,9 +14,32 @@ You can display the graphical desktop in various ways. In this document, we desc
 
 ## Using RDP
 
-The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment. Here, we use `ubuntu-desktop` but there are as many other options as flavours of Ubuntu exist. You also have to install the RDP server. We will use `xrdp` or `gnome-remote-desktop` but there are also other options such as `freerdp`.
+The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment. Here, we use `ubuntu-desktop` but there are as many other options as flavours of Ubuntu exist. You also have to install the RDP server. We will use XRDP or GNOME Remote Desktop but there are also other options such as FreeRDP.
 
+### Which RDP server to use
+
+Ubuntu 25.10 with GNOME removed support for the X11 protocol, and as a consequence, XRDP no longer works there. Choose the RDP server depending on the Ubuntu release and the desktop on your instance:
+
+```{list-table}
+:header-rows: 1
+
+* - Instance
+  - RDP server
+
+* - Earlier than Ubuntu 25.10
+  - {ref}`set-up-the-xrdp-server`
+
+* - Ubuntu 25.10 and later with GNOME
+  - {ref}`set-up-the-gnome-remote-desktop-server`
+
+* - Ubuntu 25.10 and later with KDE, Xfce or other alternative desktop
+  - {ref}`set-up-the-xrdp-server`
+```
+
+(set-up-the-xrdp-server)=
 ### Set up the XRDP server
+
+Use this RDP server with Ubuntu Desktop earlier than version 25.10 as your instance, such as Ubuntu Desktop 24.04 LTS. You can also use XRDP with alternative desktops such as KDE or Xfce regardless of the Ubuntu release.
 
 First, you need to log into a running Multipass instance. Start by listing your instances:
 
@@ -54,7 +77,10 @@ You will be asked to enter and re-enter a password.
 
 You are done on the server side! Quit the Ubuntu shell on the running instance with the `exit` command. Proceed to {ref}`connect-to-the-instance-with-an-rdp-client`.
 
+(set-up-the-gnome-remote-desktop-server)=
 ### Set up the GNOME Remote Desktop server
+
+This RDP server only works with the default GNOME desktop. You can use it with Ubuntu Desktop 25.10, 26.04 LTS and later as your instance.
 
 1. Create the following `cloud-init.yaml` configuration file:
 
