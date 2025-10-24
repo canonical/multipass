@@ -462,7 +462,7 @@ void mp::QemuVirtualMachine::on_error()
 void mp::QemuVirtualMachine::on_shutdown()
 {
     {
-        std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+        std::unique_lock lock{state_mutex};
         auto current_state = state;
 
         state = State::off;
