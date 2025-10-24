@@ -21,15 +21,12 @@
 
 #include <multipass/exceptions/start_exception.h>
 
-#include <chrono>
 #include <string>
 
 namespace multipass
 {
 namespace backend
 {
-using namespace std::chrono_literals;
-
 template <typename Callable>
 void ensure_vm_is_running_for(BaseVirtualMachine* virtual_machine,
                               Callable&& is_vm_running,
