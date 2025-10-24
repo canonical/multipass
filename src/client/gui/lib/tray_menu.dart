@@ -26,30 +26,6 @@ extension WindowManagerExtensions on WindowManager {
   }
 }
 
-final trayMenuDataProvider = Provider.autoDispose((ref) {
-  return ref.watch(daemonAvailableProvider)
-      ? ref.watch(vmStatusesProvider)
-      : null;
-});
-
-final daemonVersionProvider = NotifierProvider<DaemonVersionNotifier, String>(
-  DaemonVersionNotifier.new,
-);
-
-class DaemonVersionNotifier extends Notifier<String> {
-  @override
-  String build() {
-    if (ref.watch(daemonAvailableProvider)) {
-      ref
-          .watch(grpcClientProvider)
-          .version()
-          .catchError((_) => 'failed to get version')
-          .then((version) => state = version);
-    }
-    return 'loading...';
-  }
-}
-
 Future<String> _iconFilePath() async {
   final dataDir = await getApplicationSupportDirectory();
   final iconName = mpPlatform.trayIconFile;
@@ -85,19 +61,24 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
     label: 'multipass version: $multipassVersion',
     enabled: false,
   );
-  final daemonVersionItem = await aboutSubmenu.addLabel(
-    'multipassd-version',
-    label: 'multipassd version: loading...',
-    enabled: false,
-  );
-  providerContainer.listen(
-    daemonVersionProvider,
-    (_, version) => daemonVersionItem.setLabel('multipassd version: $version'),
-  );
   await aboutSubmenu.addLabel(
     'copyright',
     label: 'Copyright (C) Canonical, Ltd.',
     enabled: false,
+  );
+  providerContainer.listen<String>(
+    daemonVersionProvider,
+    (previous, next) async {
+      await aboutSubmenu.remove('multipassd-version');
+      if (next == multipassVersion) return;
+      await aboutSubmenu.addLabel(
+        'multipassd-version',
+        label: 'multipassd version: $next',
+        enabled: false,
+        before: 'copyright',
+      );
+    },
+    fireImmediately: true,
   );
   await TrayMenu.instance.addLabel(
     'quit',
