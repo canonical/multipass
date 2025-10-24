@@ -520,7 +520,7 @@ auto mp::VirtualBoxVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 
     const auto internal_ip = IPAddress{"10.0.2.15"};
     auto all_ipv4 = BaseVirtualMachine::get_all_ipv4();
-    all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), internal_ip), end(all_ipv4));
+    std::erase(all_ipv4, internal_ip);
 
     return all_ipv4;
 }
