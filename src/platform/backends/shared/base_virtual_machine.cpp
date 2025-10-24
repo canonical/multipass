@@ -42,6 +42,7 @@
 #include <chrono>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -286,13 +287,19 @@ bool multipass::BaseVirtualMachine::unplugged() const
     return state == State::off || state == State::stopped;
 }
 
-void mp::BaseVirtualMachine::ensure_vm_is_running_for(const std::string& msg)
+void mp::BaseVirtualMachine::ensure_vm_is_running_for(const std::string& detail)
 {
-    std::lock_guard lock{state_mutex};
+    const std::lock_guard lock{state_mutex};
     if (unplugged())
     {
         shutdown_while_starting = true;
         state_wait.notify_all();
+
+        using namespace std::literals; // TODO@no-merge make this central?
+        auto msg = "Instance shutdown during start"s;
+        if (!detail.empty())
+            msg += fmt::format(": {}", detail);
+
         throw StartException(vm_name, msg);
     }
 }
