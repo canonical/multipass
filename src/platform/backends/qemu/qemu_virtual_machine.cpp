@@ -527,7 +527,10 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    return ip_address_for(timeout);
+    fetch_ip(timeout);
+
+    assert(management_ip && "Should have thrown otherwise");
+    return management_ip->as_string();
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
@@ -819,32 +822,22 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
     return std::make_shared<QemuSnapshot>(filename, *this, desc);
 }
 
-std::string mp::QemuVirtualMachine::ip_address_for(std::chrono::milliseconds timeout)
+void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
 {
-    // TODO@no-merge simplify this stuff further
     if (!management_ip)
     {
         auto action = [this] {
             ensure_vm_is_running();
-            auto result = qemu_platform->get_ip_for(desc.default_mac_address);
-            if (result)
-            {
-                management_ip.emplace(*result);
-                return mpu::TimeoutAction::done;
-            }
-            else
-            {
-                return mpu::TimeoutAction::retry;
-            }
+            return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
+                       ? mpu::TimeoutAction::done
+                       : mpu::TimeoutAction::retry;
         };
 
         auto on_timeout = [this, &timeout] {
-            state = mp::VirtualMachine::State::unknown;
-            throw mp::InternalTimeoutException{"determine IP address", timeout};
+            state = State::unknown;
+            throw InternalTimeoutException{"determine IP address", timeout};
         };
 
         mpu::try_action_for(on_timeout, timeout, action);
     }
-
-    return management_ip->as_string(); // TODO@no-merge void
 }
