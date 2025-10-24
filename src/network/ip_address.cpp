@@ -88,36 +88,6 @@ uint32_t mp::IPAddress::as_uint32() const
     return value;
 }
 
-bool mp::IPAddress::operator==(const IPAddress& other) const
-{
-    return octets == other.octets;
-}
-
-bool mp::IPAddress::operator!=(const IPAddress& other) const
-{
-    return octets != other.octets;
-}
-
-bool mp::IPAddress::operator<(const IPAddress& other) const
-{
-    return as_uint32() < other.as_uint32();
-}
-
-bool mp::IPAddress::operator<=(const IPAddress& other) const
-{
-    return as_uint32() <= other.as_uint32();
-}
-
-bool mp::IPAddress::operator>(const IPAddress& other) const
-{
-    return as_uint32() > other.as_uint32();
-}
-
-bool mp::IPAddress::operator>=(const IPAddress& other) const
-{
-    return as_uint32() >= other.as_uint32();
-}
-
 mp::IPAddress mp::IPAddress::operator+(int value) const
 {
     return mp::IPAddress(as_uint32() + value);

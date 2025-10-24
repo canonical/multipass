@@ -161,20 +161,13 @@ bool mp::Subnet::contains(IPAddress ip) const
     return address <= ip && (max_address() + 1) >= ip;
 }
 
-bool mp::Subnet::operator==(const Subnet& other) const
-{
-    return address == other.address && prefix == other.prefix;
-}
-
-/* TODO C++20 uncomment
 std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 {
     const auto ip_res = address <=> other.address;
 
     // note the prefix_length operands are purposely flipped
-    return (ip_res == 0) ? other.prefix_length <=> prefix_length : ip_res;
+    return (ip_res == 0) ? other.prefix_length() <=> prefix_length() : ip_res;
 }
-*/
 
 mp::Subnet mp::SubnetUtils::random_subnet_from_range(Subnet::PrefixLength prefix,
                                                      Subnet range) const
