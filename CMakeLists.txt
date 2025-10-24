@@ -31,6 +31,9 @@ endif()
 
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
 
+include(CMakeDependentOption)
+cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
+
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
@@ -167,7 +170,7 @@ if(UNIX)
     set(HOST_ARCH "aarch64")
   endif ()
 
-  if (APPLE AND ${HOST_ARCH} MATCHES "x86_64")
+  if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND ${HOST_ARCH} MATCHES "x86_64"))
       list(APPEND MULTIPASS_BACKENDS virtualbox)
   endif()
 
