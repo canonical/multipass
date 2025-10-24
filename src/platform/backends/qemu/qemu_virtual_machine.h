@@ -101,7 +101,7 @@ private:
 
     void connect_vm_signals();
     void disconnect_vm_signals();
-    std::string ip_address_for(std::chrono::milliseconds timeout);
+    void fetch_ip(std::chrono::milliseconds timeout);
 
     void remove_snapshots_from_backend() const;
 
