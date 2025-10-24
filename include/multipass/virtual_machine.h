@@ -19,7 +19,6 @@
 
 #include "disabled_copy_move.h"
 #include "network_interface.h"
-#include "path.h"
 
 #include <QDir>
 #include <QJsonObject>

@@ -36,9 +36,10 @@
 #include <scope_guard.hpp>
 
 #include <QDir>
+#include <QRegularExpression>
+#include <QString>
 
 #include <chrono>
-#include <functional>
 #include <mutex>
 #include <stdexcept>
 
