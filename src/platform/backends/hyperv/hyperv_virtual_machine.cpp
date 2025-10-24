@@ -29,7 +29,6 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
-#include <shared/shared_backend_utils.h>
 #include <shared/windows/powershell.h>
 #include <shared/windows/smb_mount_handler.h>
 
@@ -434,7 +433,7 @@ void mp::HyperVVirtualMachine::ensure_vm_is_running()
 {
     auto is_vm_running = [this] { return state != State::off; };
 
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
+    ensure_vm_is_running_for(is_vm_running, "Instance shutdown during start");
 }
 
 void mp::HyperVVirtualMachine::update_state()
