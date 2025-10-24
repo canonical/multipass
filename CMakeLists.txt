@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(src/cmake/environment-utils.cmake)
@@ -31,9 +31,9 @@ if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
   if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "macOS Deployment Target")
   else()
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
   endif()
 elseif("${HOST_OS_NAME}" STREQUAL "Windows")
   set(VCPKG_HOST_OS "windows-static-md")
