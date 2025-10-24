@@ -17,8 +17,9 @@
 
 #pragma once
 
+#include "base_virtual_machine.h"
+
 #include <multipass/exceptions/start_exception.h>
-#include <multipass/virtual_machine.h>
 
 #include <chrono>
 #include <string>
@@ -30,7 +31,7 @@ namespace backend
 using namespace std::chrono_literals;
 
 template <typename Callable>
-void ensure_vm_is_running_for(VirtualMachine* virtual_machine,
+void ensure_vm_is_running_for(BaseVirtualMachine* virtual_machine,
                               Callable&& is_vm_running,
                               const std::string& msg)
 {
