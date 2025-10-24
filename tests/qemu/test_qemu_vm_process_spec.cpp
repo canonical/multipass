@@ -18,6 +18,7 @@
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 
+#include <multipass/snap_utils.h>
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
 #include <QDir>
@@ -27,6 +28,7 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace mpu = multipass::utils;
 using namespace testing;
 
 struct TestQemuVMProcessSpec : public Test
@@ -218,7 +220,7 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunInSnap)
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
     EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr(QString(" %1/bin/bridge_helper").arg(snap_dir.path()).toStdString()));
+                HasSubstr(QString(" %1/bin/bridge_helper").arg(mpu::snap_dir()).toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunOutsideSnap)

@@ -54,11 +54,11 @@ choco install aqt -yfd
 Then specify the following options in the installation command:
 
 ```[pwsh]
-aqt install-qt windows desktop 6.2.4 win64_msvc2019_64 -O C:/Qt
+aqt install-qt windows desktop 6.10.0 win64_msvc2022_64 -O C:/Qt
 ```
 
-Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_624/qt.qt6.624.win64_msvc2019_64/6.2.4-0-202203140926qtbase-Windows-Windows_10_21H2-MSVC2019-Windows-Windows_10_21H2-X86_64.7z)
-and extract it to `C:\Qt` (so it ends up in `C:\Qt\6.2.4`).
+Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6100/qt6_6100/qt.qt6.6100.win64_msvc2022_64/6.10.0-0-202510021201qtbase-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z)
+and extract it to `C:\Qt\6.10.0`.
 
 ### Path setup
 
@@ -67,7 +67,7 @@ You'll have to manually add CMake and Qt to your account's PATH variable.
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.2.4\msvc2019_64\bin`
+- `C:\Qt\6.10.0\bin`
 
 ### Console setup
 

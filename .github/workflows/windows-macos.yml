@@ -244,9 +244,9 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.2.4
+        version: 6.10.0
         setup-python: false
-        aqtversion: '==3.1.*'
+        aqtversion: '==3.3.*'
         py7zrversion: '==0.20.*'
       timeout-minutes: 20
 
