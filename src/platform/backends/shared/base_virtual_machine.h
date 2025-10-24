@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
 #include <multipass/utils.h>
@@ -104,6 +105,18 @@ protected:
     virtual std::string get_instance_id_from_the_cloud_init() const;
 
     virtual void check_state_for_shutdown(ShutdownPolicy shutdown_policy);
+
+    template <typename Callable>
+    void ensure_vm_is_running_for(Callable&& is_vm_running, const std::string& msg)
+    {
+        std::lock_guard lock{state_mutex};
+        if (!is_vm_running())
+        {
+            shutdown_while_starting = true;
+            state_wait.notify_all();
+            throw StartException(vm_name, msg);
+        }
+    }
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
