@@ -273,7 +273,8 @@ void mp::BaseVirtualMachine::renew_ssh_session()
         const std::unique_lock lock{state_mutex};
         if (!MP_UTILS.is_running(
                 current_state())) // spend time updating state only if we need a new session
-            throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+            throw SSHWhileVMNotRunning{
+                fmt::format("SSH unavailable on instance {}: not running", vm_name)};
     }
 
     mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
@@ -290,7 +291,7 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
+    auto action = [this, timeout] {
         ensure_vm_is_running();
         try
         {
@@ -299,6 +300,11 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
         }
         catch (const SSHExecFailure& e)
         {
+            return mp::utils::TimeoutAction::retry;
+        }
+        catch (const SSHWhileVMNotRunning& e)
+        {
+            wait_until_ssh_up(timeout);
             return mp::utils::TimeoutAction::retry;
         }
         catch (const std::exception& e) // transitioning away from catching generic runtime errors
