@@ -255,7 +255,6 @@ TEST(Subnet, containsWorksOnUnContainedIps)
     EXPECT_FALSE(subnet.contains(ip));
 }
 
-/* TODO C++20 uncomment
 TEST(Subnet, relationalComparisonsWorkAsExpected)
 {
     const mp::Subnet low{"0.0.0.0/0"};
@@ -281,7 +280,6 @@ TEST(Subnet, relationalComparisonsWorkAsExpected)
     EXPECT_LT(submiddle, middle);
     EXPECT_LT(submiddle, high);
 }
-*/
 
 struct SubnetUtils : public Test
 {
