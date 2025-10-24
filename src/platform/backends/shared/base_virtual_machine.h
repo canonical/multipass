@@ -95,6 +95,9 @@ protected:
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
 
+    virtual bool unplugged() const;
+    void ensure_vm_is_running_for(const std::string& msg);
+
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,
         const NetworkInterface& extra_interface) const;
@@ -105,18 +108,6 @@ protected:
     virtual std::string get_instance_id_from_the_cloud_init() const;
 
     virtual void check_state_for_shutdown(ShutdownPolicy shutdown_policy);
-
-    template <typename Callable>
-    void ensure_vm_is_running_for(Callable&& is_vm_running, const std::string& msg)
-    {
-        std::lock_guard lock{state_mutex};
-        if (!is_vm_running())
-        {
-            shutdown_while_starting = true;
-            state_wait.notify_all();
-            throw StartException(vm_name, msg);
-        }
-    }
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;

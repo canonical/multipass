@@ -288,6 +288,21 @@ void mp::BaseVirtualMachine::renew_ssh_session()
 
     ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 }
+bool multipass::BaseVirtualMachine::unplugged() const
+{
+    return state == State::off || state == State::stopped;
+}
+
+void mp::BaseVirtualMachine::ensure_vm_is_running_for(const std::string& msg)
+{
+    std::lock_guard lock{state_mutex};
+    if (unplugged())
+    {
+        shutdown_while_starting = true;
+        state_wait.notify_all();
+        throw StartException(vm_name, msg);
+    }
+}
 
 void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
