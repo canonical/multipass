@@ -20,6 +20,7 @@
 
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
@@ -513,17 +514,18 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::optional<std::string> mp::VirtualBoxVirtualMachine::management_ipv4()
+auto mp::VirtualBoxVirtualMachine::management_ipv4() -> std::optional<IPAddress>
 {
     return std::nullopt;
 }
 
-std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4()
+auto mp::VirtualBoxVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
     using namespace std;
 
+    const auto internal_ip = IPAddress{"10.0.2.15"};
     auto all_ipv4 = BaseVirtualMachine::get_all_ipv4();
-    all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), "10.0.2.15"), end(all_ipv4));
+    all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), internal_ip), end(all_ipv4));
 
     return all_ipv4;
 }
