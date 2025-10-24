@@ -21,7 +21,7 @@
 
 namespace multipass::image_mutators
 {
-constexpr int earliestSupportedSnapcraftMVersion{18};
+constexpr int earliest_supported_snapcraft_major_version{18};
 bool snapcraft_mutator(VMImageInfo& info)
 {
     const auto& aliases = info.aliases;
@@ -39,7 +39,7 @@ bool snapcraft_mutator(VMImageInfo& info)
                    // Matched devel so all captured groups are empty
                    return true;
                int major_version{std::stoi(match_string)};
-               return major_version >= earliestSupportedSnapcraftMVersion;
+               return major_version >= earliest_supported_snapcraft_major_version;
            });
 }
 
