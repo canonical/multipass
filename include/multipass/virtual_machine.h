@@ -125,7 +125,6 @@ public:
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
-    bool shutdown_while_starting{false};
 
 protected:
     explicit VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name)
