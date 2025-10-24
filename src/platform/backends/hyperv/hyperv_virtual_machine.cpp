@@ -19,7 +19,6 @@
 #include "hyperv_snapshot.h"
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/logging/log.h>
