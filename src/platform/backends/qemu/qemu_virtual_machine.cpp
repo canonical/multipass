@@ -22,8 +22,6 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
-#include <shared/shared_backend_utils.h>
-
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
@@ -522,7 +520,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
 
     auto is_vm_running = [this] { return (vm_process && vm_process->running()); };
 
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, saved_error_msg);
+    ensure_vm_is_running_for(is_vm_running, saved_error_msg);
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
