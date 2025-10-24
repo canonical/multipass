@@ -21,6 +21,7 @@
 #include "stub_snapshot.h"
 #include "temp_dir.h"
 
+#include <multipass/ip_address.h>
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -33,13 +34,13 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    StubVirtualMachine(const std::string& name)
+    explicit StubVirtualMachine(const std::string& name)
         : StubVirtualMachine{name, std::make_unique<TempDir>()}
     {
     }
 
     StubVirtualMachine(const std::string& name, std::unique_ptr<TempDir> tmp_dir)
-        : VirtualMachine{name, tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : VirtualMachine{name}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -75,19 +76,14 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4() override
+    std::optional<IPAddress> management_ipv4() override
     {
-        return {};
+        return std::nullopt;
     }
 
-    std::vector<std::string> get_all_ipv4() override
+    std::vector<IPAddress> get_all_ipv4() override
     {
-        return std::vector<std::string>{"192.168.2.123"};
-    }
-
-    std::string ipv6() override
-    {
-        return {};
+        return {IPAddress{"192.168.2.123"}};
     }
 
     std::string ssh_exec(const std::string& cmd, bool whisper = false) override
@@ -195,6 +191,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     int get_snapshot_count() const override
     {
         return 0;
+    }
+
+    QDir instance_directory() const override
+    {
+        return tmp_dir->path();
     }
 
     StubSnapshot snapshot;

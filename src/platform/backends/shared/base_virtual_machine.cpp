@@ -36,11 +36,13 @@
 #include <scope_guard.hpp>
 
 #include <QDir>
+#include <QRegularExpression>
+#include <QString>
 
 #include <chrono>
-#include <functional>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -138,18 +140,18 @@ std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtu
 }
 } // namespace
 
-mp::BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
-                                           const std::string& vm_name,
-                                           const SSHKeyProvider& key_provider,
-                                           const Path& instance_dir)
-    : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}
-{
-}
-
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            const Path& instance_dir)
-    : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}
+    : VirtualMachine{vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
+{
+}
+
+mp::BaseVirtualMachine::BaseVirtualMachine(State state,
+                                           const std::string& vm_name,
+                                           const SSHKeyProvider& key_provider,
+                                           const Path& instance_dir)
+    : VirtualMachine{state, vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
 {
 }
 
@@ -280,6 +282,27 @@ void mp::BaseVirtualMachine::renew_ssh_session()
 
     ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 }
+bool multipass::BaseVirtualMachine::unplugged() const
+{
+    return state == State::off || state == State::stopped;
+}
+
+void mp::BaseVirtualMachine::ensure_vm_is_running_for(const std::string& detail)
+{
+    const std::lock_guard lock{state_mutex};
+    if (unplugged())
+    {
+        shutdown_while_starting = true;
+        state_wait.notify_all();
+
+        using namespace std::literals; // TODO@no-merge make this central?
+        auto msg = "Instance shutdown during start"s;
+        if (!detail.empty())
+            msg += fmt::format(": {}", detail);
+
+        throw StartException(vm_name, msg);
+    }
+}
 
 void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
@@ -314,9 +337,9 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
-std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
+auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
-    std::vector<std::string> all_ipv4;
+    std::vector<IPAddress> all_ipv4;
 
     if (MP_UTILS.is_running(current_state()))
     {
@@ -333,9 +356,9 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
             while (ip_it.hasNext())
             {
                 auto ip_match = ip_it.next();
-                auto ip = ip_match.captured(1).toStdString();
+                auto ip_str = ip_match.captured(1).toStdString();
 
-                all_ipv4.push_back(ip);
+                all_ipv4.push_back(IPAddress{ip_str});
             }
         }
         catch (const SSHException& e)

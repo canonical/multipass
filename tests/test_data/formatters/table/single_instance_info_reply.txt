@@ -3,8 +3,6 @@ State:          Running
 Snapshots:      0
 IPv4:           10.168.32.2
                 200.3.123.29
-IPv6:           2001:67c:1562:8007::aac:423a
-                fd52:2ccf:f758:0:a342:79b5:e2ba:e05e
 Release:        Ubuntu 16.04.3 LTS
 Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)
 CPU(s):         1

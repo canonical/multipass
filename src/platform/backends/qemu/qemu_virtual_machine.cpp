@@ -22,14 +22,13 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
-#include <shared/shared_backend_utils.h>
-
+#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
-#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
@@ -46,7 +45,8 @@
 #include <cassert>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
+namespace mpl = mp::logging;
+namespace mpu = mp::utils;
 
 using namespace std::chrono_literals;
 
@@ -462,17 +462,12 @@ void mp::QemuVirtualMachine::on_error()
 void mp::QemuVirtualMachine::on_shutdown()
 {
     {
-        std::unique_lock<decltype(state_mutex)> lock{state_mutex};
+        std::unique_lock lock{state_mutex};
         auto current_state = state;
 
         state = State::off;
         if (current_state == State::starting)
-        {
-            if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
-                saved_error_msg.append("\n");
-            saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        }
 
         management_ip = std::nullopt;
         drop_ssh_session();
@@ -518,18 +513,15 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
         }
     }
 
-    auto is_vm_running = [this] { return (vm_process && vm_process->running()); };
-
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, saved_error_msg);
+    ensure_vm_is_running_for(saved_error_msg);
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> std::optional<IPAddress> {
-        return qemu_platform->get_ip_for(desc.default_mac_address);
-    };
+    fetch_ip(timeout);
 
-    return mp::backend::ip_address_for(this, get_ip, timeout);
+    assert(management_ip && "Should have thrown otherwise");
+    return management_ip->as_string();
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
@@ -537,23 +529,12 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::QemuVirtualMachine::management_ipv4()
+auto mp::QemuVirtualMachine::management_ipv4() -> std::optional<IPAddress>
 {
     if (!management_ip)
-    {
-        auto result = qemu_platform->get_ip_for(desc.default_mac_address);
-        if (result)
-            management_ip.emplace(result.value());
-        else
-            return "UNKNOWN";
-    }
+        management_ip = qemu_platform->get_ip_for(desc.default_mac_address);
 
-    return management_ip.value().as_string();
-}
-
-std::string mp::QemuVirtualMachine::ipv6()
-{
-    return {};
+    return management_ip;
 }
 
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
@@ -820,9 +801,33 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                           *this,
                                           desc);
 }
+bool multipass::QemuVirtualMachine::unplugged() const
+{
+    return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running();
+}
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
     return std::make_shared<QemuSnapshot>(filename, *this, desc);
+}
+
+void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
+{
+    if (!management_ip)
+    {
+        auto action = [this] {
+            ensure_vm_is_running();
+            return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
+                       ? mpu::TimeoutAction::done
+                       : mpu::TimeoutAction::retry;
+        };
+
+        auto on_timeout = [this, &timeout] {
+            state = State::unknown;
+            throw InternalTimeoutException{"determine IP address", timeout};
+        };
+
+        mpu::try_action_for(on_timeout, timeout, action);
+    }
 }

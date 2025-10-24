@@ -20,42 +20,54 @@
 #include "common.h"
 #include "temp_dir.h"
 
+#include <multipass/ip_address.h>
 #include <multipass/memory_size.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 
 #include <memory>
+#include <type_traits>
 
 using namespace testing;
 
-namespace multipass
-{
-namespace test
+namespace multipass::test
 {
 template <typename T = VirtualMachine,
           typename = std::enable_if_t<std::is_base_of_v<VirtualMachine, T>>>
 struct MockVirtualMachineT : public T
 {
     template <typename... Args>
-    MockVirtualMachineT(Args&&... args)
+    explicit MockVirtualMachineT(Args&&... args)
         : MockVirtualMachineT{std::make_unique<TempDir>(), std::forward<Args>(args)...}
     {
     }
 
     template <typename... Args>
-    MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
+        requires(std::is_same_v<VirtualMachine, T>)
+    explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
+        : T{std::forward<Args>(args)...}, tmp_dir{std::move(tmp_dir)}
+    {
+        setup_default_actions();
+    }
+
+    template <typename... Args>
+        requires(!std::is_same_v<VirtualMachine, T>)
+    explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
         : T{std::forward<Args>(args)..., tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
-        ON_CALL(*this, current_state())
-            .WillByDefault(Return(multipass::VirtualMachine::State::off));
-        ON_CALL(*this, ssh_port()).WillByDefault(Return(42));
+        setup_default_actions();
+    }
+
+    void setup_default_actions()
+    {
+        ON_CALL(*this, current_state).WillByDefault(Return(multipass::VirtualMachine::State::off));
+        ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_hostname(_)).WillByDefault(Return("localhost"));
-        ON_CALL(*this, ssh_username()).WillByDefault(Return("ubuntu"));
-        ON_CALL(*this, management_ipv4()).WillByDefault(Return("0.0.0.0"));
-        ON_CALL(*this, get_all_ipv4())
-            .WillByDefault(Return(std::vector<std::string>{"192.168.2.123"}));
-        ON_CALL(*this, ipv6()).WillByDefault(Return("::/0"));
+        ON_CALL(*this, ssh_username).WillByDefault(Return("ubuntu"));
+        ON_CALL(*this, management_ipv4).WillByDefault(Return(IPAddress{"0.0.0.0"}));
+        ON_CALL(*this, get_all_ipv4).WillByDefault(Return(std::vector{IPAddress{"192.168.2.123"}}));
+        ON_CALL(*this, instance_directory).WillByDefault(Return(this->tmp_dir->path()));
     }
 
     MOCK_METHOD(void, start, (), (override));
@@ -66,10 +78,8 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (std::chrono::milliseconds), (override));
     MOCK_METHOD(std::string, ssh_username, (), (override));
-    MOCK_METHOD(std::string, management_ipv4, (), (override));
-    MOCK_METHOD(std::vector<std::string>, get_all_ipv4, (), (override));
-    MOCK_METHOD(std::string, ipv6, (), (override));
-
+    MOCK_METHOD(std::optional<IPAddress>, management_ipv4, (), (override));
+    MOCK_METHOD(std::vector<IPAddress>, get_all_ipv4, (), (override));
     MOCK_METHOD(std::string, ssh_exec, (const std::string& cmd, bool whisper), (override));
     std::string ssh_exec(const std::string& cmd)
     {
@@ -116,10 +126,10 @@ struct MockVirtualMachineT : public T
                 (const Snapshot*),
                 (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
+    MOCK_METHOD(QDir, instance_directory, (), (const, override));
 
     std::unique_ptr<TempDir> tmp_dir;
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;
-} // namespace test
-} // namespace multipass
+} // namespace multipass::test

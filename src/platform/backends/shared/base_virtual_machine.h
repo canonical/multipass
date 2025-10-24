@@ -18,15 +18,11 @@
 #pragma once
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
-#include <multipass/logging/log.h>
+#include <multipass/exceptions/start_exception.h>
+#include <multipass/ip_address.h>
 #include <multipass/path.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
-
-#include <fmt/format.h>
-
-#include <QRegularExpression>
-#include <QString>
 
 #include <memory>
 #include <mutex>
@@ -54,7 +50,7 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
-    std::vector<std::string> get_all_ipv4() override;
+    std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override
@@ -87,6 +83,8 @@ public:
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
+    QDir instance_directory() const override;
+
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -96,6 +94,9 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
+
+    virtual bool unplugged() const;
+    void ensure_vm_is_running_for(const std::string& detail = "");
 
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,
@@ -156,8 +157,13 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
+public:
+    bool shutdown_while_starting{false}; // TODO@no-merge hide
+
 protected:
     const SSHKeyProvider& key_provider;
+    const QDir instance_dir;
+    std::optional<IPAddress> management_ip;
 
 private:
     std::optional<SSHSession> ssh_session = std::nullopt;
@@ -178,4 +184,9 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 {
     const std::unique_lock lock{snapshot_mutex};
     return snapshot_count;
+}
+
+inline QDir multipass::BaseVirtualMachine::instance_directory() const
+{
+    return instance_dir;
 }

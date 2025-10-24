@@ -947,7 +947,7 @@ TEST_F(QemuBackend, sshHostnameReturnsExpectedValue)
 
 TEST_F(QemuBackend, getsManagementIp)
 {
-    const std::string expected_ip{"10.10.0.35"};
+    const mp::IPAddress expected_ip{"10.10.0.35"};
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
     EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(expected_ip));
@@ -977,7 +977,7 @@ TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(), std::nullopt);
 }
 
 TEST_F(QemuBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)

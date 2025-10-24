@@ -19,9 +19,9 @@
 #include "hyperv_snapshot.h"
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/not_implemented_on_this_backend_exception.h> // TODO@snapshots drop
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
@@ -29,7 +29,6 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
-#include <shared/shared_backend_utils.h>
 #include <shared/windows/powershell.h>
 #include <shared/windows/smb_mount_handler.h>
 
@@ -432,9 +431,7 @@ int mp::HyperVVirtualMachine::ssh_port()
 
 void mp::HyperVVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] { return state != State::off; };
-
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
+    ensure_vm_is_running_for();
 }
 
 void mp::HyperVVirtualMachine::update_state()
@@ -460,24 +457,16 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::HyperVVirtualMachine::management_ipv4()
+auto mp::HyperVVirtualMachine::management_ipv4() -> std::optional<IPAddress>
 {
+    // Not using cached SSH session for this because a) the underlying functions do not
+    // guarantee constness; b) we endure the penalty of creating a new session only when we
+    // don't have the IP yet.
     if (!management_ip)
-    {
-        // Not using cached SSH session for this because a) the underlying functions do not
-        // guarantee constness; b) we endure the penalty of creating a new session only when we
-        // don't have the IP yet.
-        auto result =
+        management_ip =
             remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
-        if (result)
-            management_ip.emplace(result.value());
-    }
-    return management_ip ? management_ip.value().as_string() : "UNKNOWN";
-}
 
-std::string mp::HyperVVirtualMachine::ipv6()
-{
-    return {};
+    return management_ip;
 }
 
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)

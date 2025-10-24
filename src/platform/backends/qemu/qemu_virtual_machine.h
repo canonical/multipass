@@ -28,6 +28,7 @@
 #include <QObject>
 #include <QStringList>
 
+#include <chrono>
 #include <unordered_map>
 
 namespace multipass
@@ -56,8 +57,7 @@ public:
     int ssh_port() override;
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
-    std::string management_ipv4() override;
-    std::string ipv6() override;
+    std::optional<IPAddress> management_ipv4() override;
     void ensure_vm_is_running() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
@@ -91,6 +91,8 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
 
+    bool unplugged() const override;
+
 private:
     void on_started();
     void on_error();
@@ -101,6 +103,8 @@ private:
 
     void connect_vm_signals();
     void disconnect_vm_signals();
+    void fetch_ip(std::chrono::milliseconds timeout);
+
     void remove_snapshots_from_backend() const;
 
     VirtualMachineDescription desc;
