@@ -1005,7 +1005,7 @@ TEST_F(QemuBackend, getsManagementIp)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.management_ipv4(), expected_ip.as_string()); // TODO@no-merge revert as_string
+    EXPECT_EQ(machine.management_ipv4(), expected_ip);
 }
 
 TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)

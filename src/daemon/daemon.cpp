@@ -1914,11 +1914,11 @@ try
             auto all_ipv4 = vm.get_all_ipv4();
 
             if (management_ip)
-                entry->add_ipv4(*management_ip);
+                entry->add_ipv4(management_ip->as_string());
 
             for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
-                    entry->add_ipv4(extra_ipv4);
+                    entry->add_ipv4(extra_ipv4.as_string());
         }
 
         return grpc::Status::OK;
