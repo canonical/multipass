@@ -55,8 +55,8 @@ class _ImageCardState extends ConsumerState<ImageCard> {
         'Ubuntu operating system optimised for IoT and Edge',
       'ubuntu' =>
         'Ubuntu operating system designed as a backbone for the internet',
-      'debian' => 'Debian official cloud image.',
-      'fedora' => 'Fedora Cloud Edition.',
+      'debian' => 'Debian official cloud image',
+      'fedora' => 'Fedora Cloud Edition',
       _ => '',
     };
   }
