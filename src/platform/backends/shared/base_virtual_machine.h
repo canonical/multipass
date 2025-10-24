@@ -153,6 +153,9 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
+public:
+    bool shutdown_while_starting{false}; // TODO@no-merge hide
+
 protected:
     const SSHKeyProvider& key_provider;
     const QDir instance_dir;
