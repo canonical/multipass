@@ -13,31 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #pragma once
 
-#include <array>
-#include <cstdint>
-#include <string>
+#include "mock_singleton_helpers.h"
 
-namespace multipass
+#include <multipass/subnet.h>
+
+namespace multipass::test
 {
-struct IPAddress
+struct MockSubnetUtils : public SubnetUtils
 {
-    IPAddress(std::array<uint8_t, 4> octets);
-    IPAddress(const std::string& ip_string);
-    explicit IPAddress(uint32_t value);
-    IPAddress(const IPAddress& other) = default;
+    using SubnetUtils::SubnetUtils;
 
-    std::string as_string() const;
-    uint32_t as_uint32() const;
+    MOCK_METHOD(Subnet,
+                random_subnet_from_range,
+                (Subnet::PrefixLength prefix, Subnet range),
+                (const, override));
 
-    auto operator<=>(const IPAddress& other) const = default;
-    IPAddress operator+(int value) const;
-
-    std::array<uint8_t, 4> octets;
+    MP_MOCK_SINGLETON_BOILERPLATE(MockSubnetUtils, SubnetUtils);
 };
-} // namespace multipass
+} // namespace multipass::test

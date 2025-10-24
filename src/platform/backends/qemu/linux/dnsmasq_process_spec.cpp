@@ -26,14 +26,14 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-[[nodiscard]] QStringList make_dnsmasq_subnet_args(const mp::SubnetList& subnets)
+[[nodiscard]] QStringList make_dnsmasq_subnet_args(const mp::BridgeSubnetList& subnets)
 {
     QStringList out{};
     for (const auto& [bridge_name, subnet] : subnets)
     {
-        const auto bridge_addr = mp::IPAddress{fmt::format("{}.1", subnet)};
-        const auto start_ip = mp::IPAddress{fmt::format("{}.2", subnet)};
-        const auto end_ip = mp::IPAddress{fmt::format("{}.254", subnet)};
+        const auto bridge_addr = subnet.min_address();
+        const auto start_ip = bridge_addr + 1;
+        const auto end_ip = subnet.max_address();
 
         out << QString("--interface=%1").arg(bridge_name)
             << QString("--listen-address=%1").arg(QString::fromStdString(bridge_addr.as_string()))
@@ -48,7 +48,7 @@ namespace
 } // namespace
 
 mp::DNSMasqProcessSpec::DNSMasqProcessSpec(const mp::Path& data_dir,
-                                           const SubnetList& subnets,
+                                           const BridgeSubnetList& subnets,
                                            const QString& conf_file_path)
     : data_dir(data_dir), subnets(subnets), conf_file_path{conf_file_path}
 {
