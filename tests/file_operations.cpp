@@ -34,12 +34,11 @@ namespace mpt = multipass::test;
 QByteArray mpt::load(QString path)
 {
     QFile file(path);
-    if (file.exists())
-    {
-        file.open(QIODevice::ReadOnly);
-        return file.readAll();
-    }
-    throw std::invalid_argument(path.toStdString() + " does not exist");
+    if (!file.exists())
+        throw std::invalid_argument(path.toStdString() + " does not exist");
+    if (!file.open(QIODevice::ReadOnly))
+        throw std::runtime_error("failed to open " + path.toStdString());
+    return file.readAll();
 }
 
 QByteArray mpt::load_test_file(const char* file_name)

@@ -96,7 +96,7 @@ TEST_F(TestImageVaultUtils, computeHashComputesSha256)
     QByteArray data = ":)";
     QBuffer buffer{&data};
 
-    buffer.open(QIODevice::ReadOnly);
+    ASSERT_TRUE(buffer.open(QIODevice::ReadOnly));
 
     auto hash = MP_IMAGE_VAULT_UTILS.compute_hash(buffer);
     EXPECT_EQ(hash, "54d626e08c1c802b305dad30b7e54a82f102390cc92c7d4db112048935236e9c");

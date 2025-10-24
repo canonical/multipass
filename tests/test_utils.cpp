@@ -53,7 +53,7 @@ std::string file_contents{"line 1 of file contents\nline 2\n"};
 
 void check_file_contents(QFile& checked_file, const std::string& checked_contents)
 {
-    checked_file.open(QIODevice::ReadOnly | QIODevice::Text);
+    ASSERT_TRUE(checked_file.open(QIODevice::ReadOnly | QIODevice::Text));
 
     QString actual_contents;
 

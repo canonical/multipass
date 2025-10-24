@@ -43,11 +43,8 @@ auto load_certs_from_file(const QDir& cert_dir)
 
     QFile cert_file{path};
 
-    if (cert_file.exists())
-    {
-        cert_file.open(QFile::ReadOnly);
+    if (cert_file.exists() && cert_file.open(QFile::ReadOnly))
         certs = QSslCertificate::fromDevice(&cert_file);
-    }
 
     return certs;
 }

@@ -55,13 +55,16 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir,
       subnet{subnet},
       conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
-    conf_file.open();
+    if (!conf_file.open())
+        throw std::runtime_error("unable to create temporary dnsmasq conf file");
     conf_file.close();
 
     QFile dnsmasq_hosts(QDir(data_dir).filePath("dnsmasq.hosts"));
     if (!dnsmasq_hosts.exists())
     {
-        dnsmasq_hosts.open(QIODevice::WriteOnly);
+        if (!dnsmasq_hosts.open(QIODevice::WriteOnly))
+            throw std::runtime_error(
+                fmt::format("unable to create file {}", dnsmasq_hosts.filesystemFileName()));
     }
 
     dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
