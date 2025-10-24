@@ -77,10 +77,8 @@ public:
     [[nodiscard]] bool contains(Subnet other) const;
     [[nodiscard]] bool contains(IPAddress ip) const;
 
-    // TODO C++20 uncomment then remove existing operator==
-    // [[nodiscard]] std::strong_ordering operator<=>(const Subnet& other) const;
-    // [[nodiscard]] bool operator==(const Subnet& other) const == default;
-    [[nodiscard]] bool operator==(const Subnet& other) const;
+    [[nodiscard]] std::strong_ordering operator<=>(const Subnet& other) const;
+    [[nodiscard]] bool operator==(const Subnet& other) const = default;
 
 private:
     IPAddress address;
