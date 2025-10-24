@@ -431,9 +431,7 @@ int mp::HyperVVirtualMachine::ssh_port()
 
 void mp::HyperVVirtualMachine::ensure_vm_is_running()
 {
-    auto is_vm_running = [this] { return state != State::off; };
-
-    ensure_vm_is_running_for(is_vm_running, "Instance shutdown during start");
+    ensure_vm_is_running_for("Instance shutdown during start");
 }
 
 void mp::HyperVVirtualMachine::update_state()
