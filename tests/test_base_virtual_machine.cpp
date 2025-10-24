@@ -33,6 +33,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/level.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
@@ -168,9 +169,9 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "ubuntu";
     }
 
-    std::optional<std::string> management_ipv4() override
+    std::optional<mp::IPAddress> management_ipv4() override
     {
-        return "1.2.3.4";
+        return mp::IPAddress{"1.2.3.4"};
     }
 
     void wait_until_ssh_up(std::chrono::milliseconds) override
@@ -309,7 +310,7 @@ struct IpTestParams
 {
     int exit_status;
     std::string output;
-    std::vector<std::string> expected_ips;
+    std::vector<mp::IPAddress> expected_ips;
 };
 
 struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
@@ -358,17 +359,20 @@ TEST_P(IpExecution, getAllIpv4WorksWhenSshWorks)
 INSTANTIATE_TEST_SUITE_P(
     BaseVM,
     IpExecution,
-    Values(
-        IpTestParams{0, "eth0             UP             192.168.2.168/24 \n", {"192.168.2.168"}},
-        IpTestParams{0,
-                     "eth1             UP             192.168.2.169/24 metric 100 \n",
-                     {"192.168.2.169"}},
-        IpTestParams{0,
-                     "wlp4s0           UP             192.168.2.8/24 \n"
-                     "virbr0           DOWN           192.168.3.1/24 \n"
-                     "tun0             UNKNOWN        10.172.66.5/18 \n",
-                     {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
-        IpTestParams{0, "", {}}));
+    Values(IpTestParams{0,
+                        "eth0             UP             192.168.2.168/24 \n",
+                        {mp::IPAddress{"192.168.2.168"}}},
+           IpTestParams{0,
+                        "eth1             UP             192.168.2.169/24 metric 100 \n",
+                        {mp::IPAddress{"192.168.2.169"}}},
+           IpTestParams{0,
+                        "wlp4s0           UP             192.168.2.8/24 \n"
+                        "virbr0           DOWN           192.168.3.1/24 \n"
+                        "tun0             UNKNOWN        10.172.66.5/18 \n",
+                        {mp::IPAddress{"192.168.2.8"},
+                         mp::IPAddress{"192.168.3.1"},
+                         mp::IPAddress{"10.172.66.5"}}},
+           IpTestParams{0, "", {}}));
 
 TEST_F(BaseVM, startsWithNoSnapshots)
 {

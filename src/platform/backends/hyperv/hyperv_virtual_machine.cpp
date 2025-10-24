@@ -21,6 +21,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
@@ -459,17 +460,16 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::optional<std::string> mp::HyperVVirtualMachine::management_ipv4()
+auto mp::HyperVVirtualMachine::management_ipv4() -> std::optional<IPAddress>
 {
     // Not using cached SSH session for this because a) the underlying functions do not
     // guarantee constness; b) we endure the penalty of creating a new session only when we
     // don't have the IP yet.
-    if (!management_ip &&
-        (management_ip =
-             remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider)))
-        return management_ip.value().as_string(); // TODO@no-merge just get the IP...
+    if (!management_ip)
+        management_ip =
+            remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 
-    return std::nullopt;
+    return management_ip;
 }
 
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)

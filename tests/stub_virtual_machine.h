@@ -21,6 +21,7 @@
 #include "stub_snapshot.h"
 #include "temp_dir.h"
 
+#include <multipass/ip_address.h>
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -75,14 +76,14 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return "ubuntu";
     }
 
-    std::optional<std::string> management_ipv4() override
+    std::optional<IPAddress> management_ipv4() override
     {
         return std::nullopt;
     }
 
-    std::vector<std::string> get_all_ipv4() override
+    std::vector<IPAddress> get_all_ipv4() override
     {
-        return std::vector<std::string>{"192.168.2.123"};
+        return {IPAddress{"192.168.2.123"}};
     }
 
     std::string ssh_exec(const std::string& cmd, bool whisper = false) override

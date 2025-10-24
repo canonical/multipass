@@ -27,6 +27,7 @@
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
@@ -534,12 +535,12 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::optional<std::string> mp::QemuVirtualMachine::management_ipv4()
+auto mp::QemuVirtualMachine::management_ipv4() -> std::optional<IPAddress>
 {
-    if (!management_ip && (management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-        return management_ip.value().as_string(); // TODO@no-merge just get the IP...
+    if (!management_ip)
+        management_ip = qemu_platform->get_ip_for(desc.default_mac_address);
 
-    return std::nullopt;
+    return management_ip;
 }
 
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)

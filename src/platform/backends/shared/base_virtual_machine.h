@@ -49,7 +49,7 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
-    std::vector<std::string> get_all_ipv4() override;
+    std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override

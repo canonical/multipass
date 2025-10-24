@@ -328,9 +328,9 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mp::utils::try_action_for(on_timeout, timeout, action);
 }
 
-std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
+auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
-    std::vector<std::string> all_ipv4;
+    std::vector<IPAddress> all_ipv4;
 
     if (MP_UTILS.is_running(current_state()))
     {
@@ -347,9 +347,9 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
             while (ip_it.hasNext())
             {
                 auto ip_match = ip_it.next();
-                auto ip = ip_match.captured(1).toStdString();
+                auto ip_str = ip_match.captured(1).toStdString();
 
-                all_ipv4.push_back(ip);
+                all_ipv4.push_back(IPAddress{ip_str});
             }
         }
         catch (const SSHException& e)

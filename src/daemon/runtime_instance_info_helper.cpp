@@ -144,9 +144,9 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
     auto all_ipv4 = vm.get_all_ipv4();
 
     if (management_ip)
-        instance_info->add_ipv4(*management_ip);
+        instance_info->add_ipv4(management_ip->as_string());
 
     for (const auto& extra_ipv4 : all_ipv4)
         if (extra_ipv4 != management_ip)
-            instance_info->add_ipv4(extra_ipv4);
+            instance_info->add_ipv4(extra_ipv4.as_string());
 }
