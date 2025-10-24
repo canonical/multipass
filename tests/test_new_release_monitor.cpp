@@ -47,7 +47,8 @@ class StubUpdateJson
 public:
     StubUpdateJson(QString version, QString url)
     {
-        json_file.open();
+        if (!json_file.open())
+            throw std::runtime_error("test failed to create temporary file");
         json_file.write(json_template.arg(url).arg(version).toUtf8());
         json_file.close();
     }

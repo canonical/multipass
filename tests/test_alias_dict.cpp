@@ -51,8 +51,9 @@ struct AliasDictionary : public FakeAliasConfig, public Test
 TEST_F(AliasDictionary, worksWithEmptyFile)
 {
     QFile db(QString::fromStdString(db_filename()));
+    MP_UTILS.make_dir(QFileInfo(db).dir());
 
-    db.open(QIODevice::ReadWrite); // Create the database file.
+    ASSERT_TRUE(db.open(QIODevice::ReadWrite)); // Create the database file.
 
     std::stringstream trash_stream;
     mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);

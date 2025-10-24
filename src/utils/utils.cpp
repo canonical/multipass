@@ -452,7 +452,9 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
         MP_UTILS.make_dir(
             {},
             QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
-        config_file.open(QIODevice::WriteOnly);
+        if (!config_file.open(QIODevice::WriteOnly))
+            throw std::runtime_error(
+                fmt::format("Unable to create config file \"{}\"", config_file_path.toStdString()));
     }
 }
 
