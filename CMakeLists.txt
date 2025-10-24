@@ -349,8 +349,6 @@ else()
     endif()
 
     add_definitions(-DMULTIPASS_PLATFORM_LINUX)
-    set(MULTIPASS_BACKENDS qemu)
-
     set(MULTIPASS_PLATFORM linux)
     set(LINUX TRUE)
   endif()
