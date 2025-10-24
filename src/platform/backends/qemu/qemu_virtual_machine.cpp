@@ -518,9 +518,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
         }
     }
 
-    auto is_vm_running = [this] { return (vm_process && vm_process->running()); };
-
-    ensure_vm_is_running_for(is_vm_running, saved_error_msg);
+    ensure_vm_is_running_for(saved_error_msg); // TODO@ricab optional param + default message
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
@@ -812,6 +810,10 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                           specs,
                                           *this,
                                           desc);
+}
+bool multipass::QemuVirtualMachine::unplugged() const
+{
+    return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running();
 }
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
