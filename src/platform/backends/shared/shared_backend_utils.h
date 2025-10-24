@@ -17,9 +17,7 @@
 
 #pragma once
 
-#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/start_exception.h>
-#include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
 #include <chrono>
