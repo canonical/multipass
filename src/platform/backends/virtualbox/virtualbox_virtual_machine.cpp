@@ -18,7 +18,6 @@
 #include "virtualbox_virtual_machine.h"
 #include "virtualbox_snapshot.h"
 
-#include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
@@ -30,8 +29,6 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
-
-#include <shared/shared_backend_utils.h>
 
 #include <fmt/format.h>
 
@@ -496,7 +493,7 @@ void mp::VirtualBoxVirtualMachine::ensure_vm_is_running()
 {
     auto is_vm_running = [this] { return state != State::stopped; };
 
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
+    ensure_vm_is_running_for(is_vm_running, "Instance shutdown during start");
 }
 
 void mp::VirtualBoxVirtualMachine::update_state()
