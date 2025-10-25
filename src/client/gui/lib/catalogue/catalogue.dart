@@ -46,19 +46,78 @@ List<ImageInfo> sortImages(List<ImageInfo> images) {
     return image.aliases.any((a) => a.contains('core'));
   }
 
+  bool ubuntuFilter(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
+  }
+
   int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
     return b.release.compareTo(a.release);
   }
 
-  final normalImages =
-      images.whereNot(coreFilter).sorted(decreasingReleaseSorter);
+  final ubuntuImages = images
+      .whereNot(coreFilter)
+      .where(ubuntuFilter)
+      .sorted(decreasingReleaseSorter);
   final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
+  final thirdPartyImages = images
+      .whereNot(coreFilter)
+      .whereNot(ubuntuFilter)
+      .sorted(decreasingReleaseSorter);
 
   return [
     if (lts != null) lts,
-    ...normalImages,
+    ...ubuntuImages,
     if (devel != null) devel,
     ...coreImages,
+    ...thirdPartyImages,
+  ];
+}
+
+List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
+  bool isCore(ImageInfo image) {
+    return image.aliases.any((a) => a.contains('core'));
+  }
+
+  bool isUbuntu(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
+  }
+
+  bool isOther(ImageInfo image) {
+    return !isCore(image) && !isUbuntu(image);
+  }
+
+  final ubuntuImages = images
+      .where((i) => isUbuntu(i) && !isCore(i) && !isOther(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final coreImages = images
+      .where((i) => isUbuntu(i) && isCore(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final otherImages = images
+      .where((i) => isOther(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  return [
+    if (ubuntuImages.isNotEmpty)
+      ImageCard(
+        parentImage: ubuntuImages.first,
+        versions: ubuntuImages.toList(),
+        width: cardWidth,
+      ),
+    if (coreImages.isNotEmpty)
+      ImageCard(
+        parentImage: coreImages.first,
+        versions: coreImages.toList(),
+        width: cardWidth,
+      ),
+    ...otherImages.map((image) {
+      return ImageCard(
+        parentImage: image,
+        versions: [image],
+        width: cardWidth,
+      );
+    }),
   ];
 }
 
@@ -132,13 +191,6 @@ class CatalogueScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            child: const Text(
-              'Images',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
           LayoutBuilder(
             builder: (_, constraints) {
               const minCardWidth = 285;
@@ -149,8 +201,7 @@ class CatalogueScreen extends ConsumerWidget {
               return Wrap(
                 runSpacing: spacing,
                 spacing: spacing,
-                children:
-                    images.map((image) => ImageCard(image, cardWidth)).toList(),
+                children: _groupAndCreateCards(images, cardWidth),
               );
             },
           ),
