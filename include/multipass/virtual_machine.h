@@ -24,9 +24,11 @@
 
 #include <QDir>
 #include <QJsonObject>
+#include <fmt/format.h>
 
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -77,7 +79,7 @@ public:
     virtual std::string ssh_hostname()
     {
         return ssh_hostname(std::chrono::minutes(2));
-    };
+    }
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
     virtual std::string management_ipv4() = 0;
@@ -102,7 +104,8 @@ public:
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
                                                                         // confusion with C++ views
-    virtual SnapshotVista view_snapshots() const = 0;
+    using SnapshotPredicate = std::function<bool(const Snapshot&)>;
+    virtual SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const = 0;
     virtual int get_num_snapshots() const = 0;
 
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
@@ -139,7 +142,7 @@ protected:
                    const Path& instance_dir)
         : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
     VirtualMachine(const std::string& vm_name, const Path& instance_dir)
-        : VirtualMachine(State::off, vm_name, instance_dir){};
+        : VirtualMachine(State::off, vm_name, instance_dir) {};
 };
 } // namespace multipass
 
@@ -147,3 +150,53 @@ inline QDir multipass::VirtualMachine::instance_directory() const
 {
     return instance_dir; // TODO this should probably only be known at the level of the base VM
 }
+
+/**
+ * Formatter type specialization for VirtualMachine::State
+ */
+template <typename Char>
+struct fmt::formatter<multipass::VirtualMachine::State, Char>
+{
+    constexpr auto parse(basic_format_parse_context<Char>& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(multipass::VirtualMachine::State state, FormatContext& ctx) const
+    {
+        std::string_view v = "(undefined)";
+        switch (state)
+        {
+        case multipass::VirtualMachine::State::off:
+            v = "off";
+            break;
+        case multipass::VirtualMachine::State::stopped:
+            v = "stopped";
+            break;
+        case multipass::VirtualMachine::State::starting:
+            v = "starting";
+            break;
+        case multipass::VirtualMachine::State::restarting:
+            v = "restarting";
+            break;
+        case multipass::VirtualMachine::State::running:
+            v = "running";
+            break;
+        case multipass::VirtualMachine::State::delayed_shutdown:
+            v = "delayed_shutdown";
+            break;
+        case multipass::VirtualMachine::State::suspending:
+            v = "suspending";
+            break;
+        case multipass::VirtualMachine::State::suspended:
+            v = "suspended";
+            break;
+        case multipass::VirtualMachine::State::unknown:
+            v = "unknown";
+            break;
+        }
+
+        return fmt::format_to(ctx.out(), "{}", v);
+    }
+};
