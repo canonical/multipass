@@ -49,10 +49,6 @@ While we strive to offer a uniform interface across the board, not all features 
 | Feature | Only supported on... | Notes |
 |--- | --- | --- |
 | **Native mounts** | <ul><li>Hyper-V</li><li>QEMU</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
-| **Extra networks** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`networks`](/reference/command-line-interface/networks) command, as well as the `--network` and `--bridged` options in [`launch`](/reference/command-line-interface/launch). |
-| **Snapshots** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> |  |
-| **Clone** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> |  This affects the [`clone`](/reference/command-line-interface/clone) command.|
-| **VM suspension** | <ul><li>Hyper-V</li><li>QEMU</li><li>VirtualBox</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
 
 <!-- old formatting
 - **Native mounts** are supported only on Hyper-V and QEMU. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).
