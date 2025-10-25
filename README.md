@@ -180,7 +180,7 @@ Please follow the platform-specific build instructions in the files below:
 ### Generic build tips
 
 **Qt version compatibility**
-Multipass is tested with **Qt 6.2.4**. Newer patch versions along the 6.2 track (e.g. 6.2.8) should be fine. Newer minor versions may work, but they may cause compatibility issues.
+Multipass is tested with **Qt 6.10.0**. Newer patch versions along the 6.10 track (e.g. 6.10.4) should be fine. Newer minor versions may work, but they may cause compatibility issues.
 
 **ARM64 and cross-compilation**
 If you're using Apple Silicon (arm64) or cross-compiling, ensure that your `PATH` and `CMAKE_PREFIX_PATH` environment variables point to the correct Qt installation for your system architecture.

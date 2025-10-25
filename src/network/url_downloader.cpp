@@ -249,7 +249,9 @@ void mp::URLDownloader::download_to(const QUrl& url,
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
     QFile file{file_name};
-    file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+    if (!file.open(QIODevice::ReadWrite | QIODevice::Truncate))
+        throw std::runtime_error(
+            fmt::format("unable to write to file \"{}\"", file_name.toStdString()));
 
     auto progress_monitor = [this, &abort_download, &monitor, download_type, size](
                                 QNetworkReply* reply,
