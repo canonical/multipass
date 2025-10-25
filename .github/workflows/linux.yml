@@ -23,12 +23,12 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug"}
-                {"build-type": "Clang"}
-                {"build-type": "Release"}'
+        MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
+                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-11"}
+                {"build-type": "Release", "cmake-preset": "ci-snap"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
-            MATRIX+='{"build-type": "Coverage" }'
+            MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage" }'
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
@@ -85,14 +85,11 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Patch
+    - name: Apply patches
       env:
         PATCH_PREFIX: .github/workflows/linux
       run: >
         [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
-
-        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] ||
-          patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -167,6 +164,10 @@ jobs:
 
         if [ -n "${GITHUB_ACTIONS}" ]; then
           sed -i "/build-environment:/a \    - GITHUB_ACTIONS: \"${GITHUB_ACTIONS}\"" snap/snapcraft.yaml
+        fi
+
+        if [ -n "${{ matrix.cmake-preset }}" ]; then
+          sed -i -E 's/^([[:space:]]*-\s*CMAKE_PRESET:\s*).*/\1"'"${{ matrix.cmake-preset }}"'"/' snap/snapcraft.yaml
         fi
 
         # Build the `multipass` part.
