@@ -17,20 +17,25 @@
 
 #include <multipass/image_host/image_mutators.h>
 
+#include <fmt/format.h>
+
 #include <regex>
 
 namespace multipass::image_mutators
 {
-constexpr int earliestSupportedSnapcraftMVersion{18};
+constexpr int earliest_supported_snapcraft_major_version{18};
 bool snapcraft_mutator(VMImageInfo& info)
 {
     const auto& aliases = info.aliases;
     return aliases.empty() || std::any_of(aliases.begin(), aliases.end(), [](const auto& alias) {
-               std::string alias_string{alias.toStdString()};
+               std::string alias_string{alias.toStdString()}, lts_year_regex{"([0-9]+[24680])"},
+                   core_version_rgx{fmt::format("core{}", lts_year_regex)},
+                   num_version_rgx{fmt::format("{}\\.04", lts_year_regex)};
                std::smatch matches;
-               if (!std::regex_match(alias_string,
-                                     matches,
-                                     std::regex{"core([0-9]+[24680])|([0-9]+[24680])\\.04|devel"}))
+               if (!std::regex_match(
+                       alias_string,
+                       matches,
+                       std::regex{fmt::format("{}|{}|devel", core_version_rgx, num_version_rgx)}))
                    // Not a supported alias
                    return false;
                // The captured index after 0 (full match) indexes the regex groups in order
@@ -39,7 +44,7 @@ bool snapcraft_mutator(VMImageInfo& info)
                    // Matched devel so all captured groups are empty
                    return true;
                int major_version{std::stoi(match_string)};
-               return major_version >= earliestSupportedSnapcraftMVersion;
+               return major_version >= earliest_supported_snapcraft_major_version;
            });
 }
 
