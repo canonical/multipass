@@ -2268,6 +2268,7 @@ try
         }
         case VirtualMachine::State::suspending:
         case VirtualMachine::State::unavailable:
+            // TODO: format State directly
             fmt::format_to(std::back_inserter(start_errors),
                            "Cannot start the instance '{}' while {}.",
                            name,

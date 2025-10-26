@@ -408,13 +408,12 @@ void mp::HyperVVirtualMachine::suspend()
             update_state();
         }
     }
-    else if (present_state == State::stopped)
+    else if (present_state == State::stopped || present_state == State::unavailable)
     {
-        mpl::info(vm_name, "Ignoring suspend issued while stopped");
-    }
-    else if (present_state == State::unavailable)
-    {
-        mpl::log(mpl::Level::info, vm_name, "Ignoring suspend since instance is unavailable");
+        // TODO: format state directly
+        mpl::info(vm_name,
+                  "Ignoring suspend since instance is {}",
+                  (present_state == State::unavailable) ? "unavailable" : "stopped");
     }
 
     monitor->on_suspend();
