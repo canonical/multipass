@@ -98,14 +98,8 @@ struct SubnetUtils : Singleton<SubnetUtils>
 namespace fmt
 {
 template <>
-struct formatter<multipass::Subnet>
+struct formatter<multipass::Subnet> : formatter<std::string_view>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::Subnet& subnet, FormatContext& ctx) const
     {
@@ -114,14 +108,8 @@ struct formatter<multipass::Subnet>
 };
 
 template <>
-struct formatter<multipass::Subnet::PrefixLength>
+struct formatter<multipass::Subnet::PrefixLength> : formatter<std::string_view>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::Subnet::PrefixLength& prefix, FormatContext& ctx) const
     {
