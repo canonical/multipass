@@ -208,6 +208,7 @@ message InstanceStatus {
         DELAYED_SHUTDOWN = 6;
         SUSPENDING = 7;
         SUSPENDED = 8;
+        UNAVAILABLE = 9;
     }
     Status status = 1;
 }
