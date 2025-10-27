@@ -268,6 +268,51 @@ TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
     machine->suspend();
 }
 
+TEST_F(QemuBackend, QMPErrorGetsLogged)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path()};
+
+    process_factory->register_callback([](mpt::MockProcess* process) {
+        if (process->program().startsWith(
+                "qemu-system-")) // we only care about the actual vm process
+        {
+            EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
+                QJsonParseError parse_error;
+                auto json = QJsonDocument::fromJson(data, &parse_error);
+                if (parse_error.error == QJsonParseError::NoError)
+                {
+                    auto json_object = json.object();
+                    auto execute = json_object["execute"];
+
+                    if (execute == "qmp_capabilities") // Use the qmp_capabilities process write to
+                                                       // cause an error
+                    {
+                        EXPECT_CALL(*process, read_all_standard_output())
+                            .WillRepeatedly(Return("{\"error\": {\"desc\": \"some error\"}} "));
+                        emit process->ready_read_standard_output();
+                    }
+                }
+
+                return data.size();
+            });
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "QMP error: some error");
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running; // Necessary to properly shutdown
+}
+
 TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
 {
     mpt::MockProcess* vmproc = nullptr;
