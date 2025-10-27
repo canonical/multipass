@@ -46,4 +46,12 @@ public:
 private:
     int ec;
 };
+
+class SSHVMNotRunning : public SSHException
+{
+public:
+    explicit SSHVMNotRunning(const std::string& what_arg) : SSHException(what_arg)
+    {
+    }
+};
 } // namespace multipass

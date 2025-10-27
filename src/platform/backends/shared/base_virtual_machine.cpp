@@ -273,7 +273,8 @@ void mp::BaseVirtualMachine::renew_ssh_session()
         const std::unique_lock lock{state_mutex};
         if (!MP_UTILS.is_running(
                 current_state())) // spend time updating state only if we need a new session
-            throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+            throw SSHVMNotRunning{
+                fmt::format("SSH unavailable on instance {}: not running", vm_name)};
     }
 
     mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
