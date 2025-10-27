@@ -1289,6 +1289,22 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
+TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
+{
+    vm.simulate_cloud_init();
+    EXPECT_CALL(vm, ensure_vm_is_running())
+        .Times(3); // Twice in cloud-init, once inside ssh connect lambda
+    EXPECT_CALL(vm, ssh_hostname(_));
+    EXPECT_CALL(vm, ssh_port());
+    EXPECT_CALL(vm, ssh_username());
+    EXPECT_CALL(vm, ssh_exec)
+        .WillOnce(Throw(mp::SSHVMNotRunning{"VM is touching grass"}))
+        .WillOnce(Return(""));
+
+    std::chrono::milliseconds timeout(2000);
+    EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
+}
+
 TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
 {
     vm.simulate_waiting_for_ssh();
