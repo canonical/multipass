@@ -103,44 +103,37 @@ class _ImageCardState extends ConsumerState<ImageCard> {
               ],
             ),
             const SizedBox(height: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_getDescription(widget.parentImage.os),
-                      style: const TextStyle(fontWeight: FontWeight.w300)),
-                  if (_shouldShowVersionDropdown()) ...[
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: DropdownButton<String>(
-                        value: selectedImage.release,
-                        icon: const Icon(Icons.arrow_drop_down),
-                        focusColor: Colors.transparent,
-                        isExpanded: true,
-                        items: widget.versions
-                            .map((v) => DropdownMenuItem(
-                                  value: v.release,
-                                  child: Text('${v.release} (${v.codename})'),
-                                ))
-                            .toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              selectedImage = widget.versions.firstWhere(
-                                (v) => v.release == newValue,
-                              );
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
-                ],
+            Text(_getDescription(widget.parentImage.os),
+                style: const TextStyle(fontWeight: FontWeight.w300)),
+            const SizedBox(height: 16),
+            const Spacer(),
+            if (_shouldShowVersionDropdown()) ...[
+              SizedBox(
+                width: double.infinity,
+                child: DropdownButton<String>(
+                  value: selectedImage.release,
+                  icon: const Icon(Icons.arrow_drop_down),
+                  focusColor: Colors.transparent,
+                  isExpanded: true,
+                  items: widget.versions
+                      .map((v) => DropdownMenuItem(
+                            value: v.release,
+                            child: Text('${v.release} (${v.codename})'),
+                          ))
+                      .toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        selectedImage = widget.versions.firstWhere(
+                          (v) => v.release == newValue,
+                        );
+                      });
+                    }
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
             Row(children: [
               TextButton(
                 onPressed: () {
