@@ -85,16 +85,17 @@ endif()
 
 message(STATUS "Bootstrapping vcpkg...")
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-  set(VCPKG_BOOTSTRAP_EXTENSION "bat")
-else()
-  set(VCPKG_BOOTSTRAP_EXTENSION "sh")
-endif()
+set(VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
+  "Root vcpkg location, where the top bootstrap scripts are located")
 
-execute_process(
-  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/bootstrap-vcpkg.${VCPKG_BOOTSTRAP_EXTENSION}"
-  RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT
-)
+set(VCPKG_CMD "${VCPKG_LOCATION}/bootstrap-vcpkg.")
+if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+  string(APPEND VCPKG_CMD "bat")
+else ()
+  string(APPEND VCPKG_CMD "sh")
+endif ()
+
+execute_process(COMMAND ${VCPKG_CMD} RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT)
 
 if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
   message(FATAL_ERROR "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
@@ -106,7 +107,7 @@ if(MULTIPASS_ENABLE_TESTS)
   set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+set(CMAKE_TOOLCHAIN_FILE "${VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
