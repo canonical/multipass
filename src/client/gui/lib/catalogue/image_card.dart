@@ -68,7 +68,6 @@ class _ImageCardState extends ConsumerState<ImageCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 275,
       width: widget.width,
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xffdddddd)),
