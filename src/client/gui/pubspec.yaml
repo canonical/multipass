@@ -25,6 +25,7 @@ dependencies:
   fpdart: ^1.1.1
   grpc: ^5.0.0
   hotkey_manager: ^0.2.3
+  intersperse: ^2.0.0
   intl: ^0.20.2
   local_notifier: ^0.1.6
   logger: ^2.5.0

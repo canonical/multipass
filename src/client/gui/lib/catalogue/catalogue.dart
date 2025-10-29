@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
+import 'package:intersperse/intersperse.dart';
 
 import '../providers.dart';
 import 'image_card.dart';
@@ -198,10 +199,29 @@ class CatalogueScreen extends ConsumerWidget {
               final nCards = constraints.maxWidth ~/ minCardWidth;
               final whiteSpace = spacing * (nCards - 1);
               final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
-              return Wrap(
-                runSpacing: spacing,
-                spacing: spacing,
-                children: _groupAndCreateCards(images, cardWidth),
+              final cards = _groupAndCreateCards(images, cardWidth);
+
+              // Group cards into rows for IntrinsicHeight
+              final rows = <Widget>[];
+              for (var i = 0; i < cards.length; i += nCards) {
+                final rowCards = cards.skip(i).take(nCards).toList();
+                rows.add(
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: rowCards
+                          .map(
+                              (card) => SizedBox(width: cardWidth, child: card))
+                          .intersperse(const SizedBox(width: spacing))
+                          .toList(),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children:
+                    rows.intersperse(const SizedBox(height: spacing)).toList(),
               );
             },
           ),
