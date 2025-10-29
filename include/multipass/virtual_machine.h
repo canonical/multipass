@@ -18,9 +18,7 @@
 #pragma once
 
 #include "disabled_copy_move.h"
-#include "ip_address.h"
 #include "network_interface.h"
-#include "path.h"
 
 #include <QDir>
 #include <QJsonObject>
@@ -29,12 +27,12 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <vector>
 
 namespace multipass
 {
+struct IPAddress;
 class MemorySize;
 class VMMount;
 struct VMSpecs;
@@ -80,9 +78,8 @@ public:
     };
     virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
     virtual std::string ssh_username() = 0;
-    virtual std::string management_ipv4() = 0;
-    virtual std::vector<std::string> get_all_ipv4() = 0;
-    virtual std::string ipv6() = 0;
+    virtual std::optional<IPAddress> management_ipv4() = 0;
+    virtual std::vector<IPAddress> get_all_ipv4() = 0;
 
     // careful: default param in virtual method; be sure to keep the same value in all descendants
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
@@ -122,28 +119,20 @@ public:
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
 
-    QDir instance_directory() const;
+    virtual QDir instance_directory() const = 0;
 
     VirtualMachine::State state;
     const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
-    std::optional<IPAddress> management_ip;
-    bool shutdown_while_starting{false};
 
 protected:
-    const QDir instance_dir;
+    explicit VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name)
+    {
+    }
 
-    VirtualMachine(VirtualMachine::State state,
-                   const std::string& vm_name,
-                   const Path& instance_dir)
-        : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
-    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
-        : VirtualMachine(State::off, vm_name, instance_dir){};
+    VirtualMachine(State state, const std::string& vm_name) : state{state}, vm_name{vm_name}
+    {
+    }
 };
 } // namespace multipass
-
-inline QDir multipass::VirtualMachine::instance_directory() const
-{
-    return instance_dir; // TODO this should probably only be known at the level of the base VM
-}
