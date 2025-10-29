@@ -91,6 +91,7 @@ set(VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
 set(VCPKG_CMD "${VCPKG_LOCATION}/bootstrap-vcpkg.")
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
   string(APPEND VCPKG_CMD "bat")
+  list(PREPEND VCPKG_CMD "cmd" "/c") # run in cmd; otherwise, we'd fail when called from PowerShell
 else ()
   string(APPEND VCPKG_CMD "sh")
 endif ()
