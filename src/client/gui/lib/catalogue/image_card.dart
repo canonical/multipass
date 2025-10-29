@@ -108,11 +108,15 @@ class _ImageCardState extends ConsumerState<ImageCard> {
             const SizedBox(height: 16),
             const Spacer(),
             if (_shouldShowVersionDropdown()) ...[
-              SizedBox(
+              Container(
                 width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xfff5f5f5),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: DropdownButton<String>(
                   value: selectedImage.release,
-                  icon: const Icon(Icons.arrow_drop_down),
+                  icon: const Icon(Icons.keyboard_arrow_down),
                   focusColor: Colors.transparent,
                   isExpanded: true,
                   items: widget.versions
