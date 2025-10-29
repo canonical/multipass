@@ -71,7 +71,6 @@ class _ImageCardState extends ConsumerState<ImageCard> {
       width: widget.width,
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xff707070)),
-        borderRadius: BorderRadius.circular(2),
       ),
       padding: const EdgeInsets.all(16),
       child: DefaultTextStyle(
