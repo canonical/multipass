@@ -81,9 +81,9 @@ async def run_all_scrapers(output_file: pathlib.Path):
     if errors:
         output["errors"] = errors
         for name, err in errors.items():
-            print(f"- {name}: {err}")
+            logger.error("%s: %s", name, err)
         # Write partial output for debugging
-        print(f"Output:\n{json.dumps(output, indent=2, sort_keys=True)}")
+        logger.debug("Partial output: %s", json.dumps(output, indent=2, sort_keys=True))
         sys.exit(1)
 
     # Write final JSON output
@@ -108,4 +108,4 @@ def main():
         asyncio.run(run_all_scrapers(args.output_file))
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
-        sys.exit(130)
+        exit(130)
