@@ -1287,8 +1287,10 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, ensure_vm_is_running())
-        .Times(3); // Twice in cloud-init, once inside ssh connect lambda
+    EXPECT_CALL(vm, current_state)
+        .WillOnce(Return(mp::VirtualMachine::State::running))    // when 1st waiting for cloud-init
+        .WillOnce(Return(mp::VirtualMachine::State::restarting)) // when retrying to ssh
+        .WillOnce(Return(mp::VirtualMachine::State::running));   // back waiting for cloud-init
     EXPECT_CALL(vm, ssh_hostname(_));
     EXPECT_CALL(vm, ssh_port());
     EXPECT_CALL(vm, ssh_username());
