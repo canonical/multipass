@@ -6,7 +6,9 @@ import sys
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from importlib.metadata import entry_points
+from pydantic import ValidationError
 from scraper.base import BaseScraper
+from scraper.models import ScraperResult
 
 
 logger = logging.getLogger(__name__)
@@ -49,16 +51,26 @@ def write_output_file(output, path: pathlib.Path):
 
 async def run_scraper(
     scraper_instance: BaseScraper, executor: ThreadPoolExecutor
-) -> tuple[str, dict]:
+) -> tuple[str, dict | None]:
     """Run a single scraper.fetch in the provided executor and capture exceptions."""
     loop = asyncio.get_event_loop()
     name = scraper_instance.name
+    result = None
+
     try:
         result = await loop.run_in_executor(executor, scraper_instance.fetch)
-        logger.info("Scraper '%s' succeeded", name)
-        return name, result
     except Exception as e:
         logger.exception("Scraper '%s' failed: %s", name, e)
+
+    # Validate JSON structure
+    try:
+        validated = ScraperResult(**result)
+        logger.info("Scraper '%s' succeeded", name)
+        return name, validated.model_dump()
+    except ValidationError as e:
+        logger.error("Scraper '%s' returned invalid structure:\n%s", name, e)
+
+    return name, None
 
 
 async def run_all_scrapers(output_file: pathlib.Path):
