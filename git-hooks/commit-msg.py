@@ -77,10 +77,10 @@ class CommitMsgRulesChecker:
             re.match(r"\[\d+\]:.*\n?", line)
             or
             # Ignore Signed-off-by:
-            re.match(r"Signed-off-by:.*\n?", line)
+            re.match(r"Signed-off-by:.*\n?", line, re.IGNORECASE)
             or
             # Ignore Co-authored-by:
-            re.match(r"Co-authored-by:.*\n?", line)
+            re.match(r"Co-authored-by:.*\n?", line, re.IGNORECASE)
         )
 
     def validate_all(self):
@@ -367,77 +367,102 @@ class TestCommitMsgRulesChecker:
             self._test_rule("MSG12", msg, expect_failure=True)
 
     def test_rule12_body_line_comment_exceeds_72_chars(self):
-        invalid_messages = [
-            "[msg] Subject\n\n"
-            "# This body line (comment) is clearly over 72 characters long, so it is longer than expected.",
-            "[msg] Subject\n\n"
-            "# This comment line is barely over 72 characters long, surpassing the limit...",
+        valid_messages = [
+            textwrap.dedent("""\
+                [msg] Subject
+
+                # This body line (comment) is clearly over 72 characters long, so it is longer than expected.
+            """),
+            textwrap.dedent("""\
+                [msg] Subject
+
+                # This comment line is barely over 72 characters long, surpassing the limit...",
+            """)
         ]
-        for msg in invalid_messages:
+        for msg in valid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
 
     def test_rule12_body_line_contains_verbatim_text(self):
-        invalid_messages = [
-            "[msg] Subject\n\n"
-            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
-            "[msg] Subject\n\n"
-            "> This verbatim line is barely over 72 characters long, surpassing the limit...",
+        valid_messages = [
+            textwrap.dedent("""\
+                [msg] Subject
+
+                > This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.
+            """),
+            textwrap.dedent("""\
+                [msg] Subject
+
+                > This verbatim line is barely over 72 characters long, surpassing the limit...
+            """),
         ]
-        for msg in invalid_messages:
+        for msg in valid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
 
     def test_rule12_body_line_contains_verbatim_text_with_regular_empty_lines_between(self):
-        invalid_messages = [
-            "[msg] Subject\n\n"
-            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
-            "",
-            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
-            "",
-            "Regular text"
+        valid_messages = [
+            textwrap.dedent("""\
+                [msg] Subject
+
+                > This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.
+
+                > This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.
+
+                Regular text
+            """)
         ]
-        for msg in invalid_messages:
+        for msg in valid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
 
     def test_rule12_body_line_contains_verbatim_empty_lines(self):
-        invalid_messages = [
-            "[msg] Subject\n\n"
-            "> This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected.",
-            ">",
-            ">",
-            ">",
-            "",
-            "Regular text"
+        valid_messages = [
+            textwrap.dedent("""\
+                [msg] Subject
+
+                > This body line (verbatim text) is clearly over 72 characters long and probably copied from somewhere else (such as a tool's output), so it is longer than expected."
+                >
+                >
+                >
+
+                Regular text
+            """)
         ]
-        for msg in invalid_messages:
+        for msg in valid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
 
     def test_rule12_body_line_contains_footnote_references(self):
-        invalid_messages = [
-            "[msg] Subject\n\n"
-            "> This body line contains footnote references; [1] and [2]",
-            "[1]: https://www.example.com/legolas-what-your-elf-eyes-see",
-            "[2]: https://www.example.com/the-uruks-have-turned-northeast/they-are-taking-hobbits-to-the-isengard-gard-gard-gard-gard",
-            "",
-            "Regular text"
+        valid_messages = [
+            textwrap.dedent("""\
+                [msg] Subject
+
+                > This body line contains footnote references; [1] and [2]
+                [1]: https://www.example.com/legolas-what-your-elf-eyes-see
+                [2]: https://www.example.com/the-uruks-have-turned-northeast/they-are-taking-hobbits-to-the-isengard-gard-gard-gard-gard
+
+                Regular text
+            """)
         ]
-        for msg in invalid_messages:
+        for msg in valid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
 
     def test_rule12_body_line_contains_a_long_signed_off_by(self):
-        invalid_messages = [
-            "[msg] Fellowship of the Ring\n\n"
-            "> This body line contains footnote references; [1] and [2]",
-            "Signed-Off-By: Aragorn II, King Elessar Telcontar, High King of the Reunited Kingdom of Gondor and Arnor. <aragorn@middleearth.localhost>",
-            "Signed-Off-By: Legolas Greenleaf Thranduilion, Prince of the Woodland Realm. <legolas@middleearth.localhost>",
-            "Signed-Off-By: Gimli, son of Glóin, of the House of Durin. <gimli@middleearth.localhost>",
-            "Co-Authored-By: Samwise Gamgee, Banazîr Galbasi, Gardner of Frodo Baggings. <samgee@middleearth.localhost>",
-            "Co-Authored-By: Frodo Baggings, Maura Labingi, Bearer of the One Ring. <fbaggings@middleearth.localhost>",
-            "Co-Authored-By: Boromir, Captain and High Warden of the White Tower. <boromir@middleearth.localhost>",
-            "",
-            "Regular text"
+        valid_messages = [
+            textwrap.dedent("""\
+                [msg] Fellowship of the Ring
+
+                > This body line contains footnote references; [1] and [2]
+                Signed-Off-By: Aragorn II, King Elessar Telcontar, High King of the Reunited Kingdom of Gondor and Arnor. <aragorn@middleearth.localhost>
+                Signed-Off-By: Legolas Greenleaf Thranduilion, Prince of the Woodland Realm. <legolas@middleearth.localhost>
+                Signed-Off-By: Gimli, son of Glóin, of the House of Durin. <gimli@middleearth.localhost>
+                Co-Authored-By: Samwise Gamgee, Banazîr Galbasi, Gardener of Frodo Baggins. <samgee@middleearth.localhost>
+                Co-Authored-By: Frodo Baggins, Maura Labingi, Bearer of the One Ring. <fbaggins@middleearth.localhost>
+                Co-Authored-By: Boromir, Captain and High Warden of the White Tower. <boromir@middleearth.localhost>
+
+                Regular text
+            """)
         ]
-        for msg in invalid_messages:
+        for msg in valid_messages:
             self._test_rule("MSG12", msg, expect_failure=False)
+
     @staticmethod
     def _test_valid_msgs(valid_messages):
         for msg in valid_messages:
@@ -448,7 +473,7 @@ class TestCommitMsgRulesChecker:
     def _test_rule(rule, msg, expect_failure, *, strict=False):
         checker = CommitMsgRulesChecker(msg, strict=strict)
         rule_broken = any(rule in error for error in checker.errors)
-        error = f"Rule {rule} should {'pass' if expect_failure else 'fail'} for: {msg!r}"
+        error = f"Rule {rule} should {'fail' if expect_failure else 'pass'} for: {msg!r}"
 
         assert rule_broken == expect_failure, error + f" - Errors: {checker.errors}"
 
