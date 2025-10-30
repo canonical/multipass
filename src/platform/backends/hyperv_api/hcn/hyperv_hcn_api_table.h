@@ -18,7 +18,6 @@
 #pragma once
 
 // clang-format off
-// (xmkg): clang-format is messing with the include order.
 #include <windows.h>
 #include <computenetwork.h>
 #include <objbase.h> // for CoTaskMemFree
