@@ -62,7 +62,7 @@ if(NOT VCPKG_BUILD_DEFAULT)
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
 else()
-  message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take nearly twice the time to build the `vcpkg` deps.")
+  message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
 message(STATUS "Bootstrapping vcpkg...")
