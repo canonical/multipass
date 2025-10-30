@@ -138,6 +138,9 @@ CMake will automatically fetch all necessary content, build vcpkg dependencies, 
 build system. You can also specify the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g.,
 `Debug`, `Release`, `Coverage`, etc.).
 
+To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
+It should point to the root vcpkg location, where the top bootstrap scripts are located.
+
 Another example:
 
 ```[batch]
