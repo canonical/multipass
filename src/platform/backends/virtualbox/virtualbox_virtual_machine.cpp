@@ -491,7 +491,7 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
 
 void mp::VirtualBoxVirtualMachine::ensure_vm_is_running()
 {
-    ensure_vm_is_running_for("Instance shutdown during start");
+    ensure_vm_is_running_for();
 }
 
 void mp::VirtualBoxVirtualMachine::update_state()

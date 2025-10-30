@@ -96,7 +96,7 @@ protected:
     void renew_ssh_session();
 
     virtual bool unplugged() const;
-    void ensure_vm_is_running_for(const std::string& msg);
+    void ensure_vm_is_running_for(const std::string& detail = "");
 
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,

@@ -467,12 +467,7 @@ void mp::QemuVirtualMachine::on_shutdown()
 
         state = State::off;
         if (current_state == State::starting)
-        {
-            if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
-                saved_error_msg.append("\n");
-            saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        }
 
         management_ip = std::nullopt;
         drop_ssh_session();
@@ -518,7 +513,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
         }
     }
 
-    ensure_vm_is_running_for(saved_error_msg); // TODO@ricab optional param + default message
+    ensure_vm_is_running_for(saved_error_msg);
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
