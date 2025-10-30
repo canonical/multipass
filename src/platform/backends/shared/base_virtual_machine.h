@@ -85,10 +85,6 @@ public:
 
     QDir instance_directory() const override;
 
-    // TODO@ricab shouldn't need to be public
-    // TODO@ricab does it really need to be virtual?
-    virtual void ensure_vm_is_running();
-
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -100,6 +96,7 @@ protected:
     void renew_ssh_session();
 
     virtual bool unplugged();
+    virtual void ensure_vm_is_running(); // TODO@ricab does it really need to be virtual?
     void save_error_msg(std::string error) noexcept;
 
     virtual void add_extra_interface_to_instance_cloud_init(
@@ -160,6 +157,10 @@ private:
                                      std::vector<Snapshot*>& updated_snapshot_paths) const;
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
+
+    utils::TimeoutAction try_to_ssh();
+    void ssh_and_cross_to_running();
+    void timeout_ssh();
 
 public:
     bool shutdown_while_starting{false}; // TODO@no-merge hide
