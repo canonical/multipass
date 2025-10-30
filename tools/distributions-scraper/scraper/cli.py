@@ -1,13 +1,11 @@
-import importlib
-import pkgutil
 import asyncio
 import json
 import pathlib
 import sys
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from importlib.metadata import entry_points
 from scraper.base import BaseScraper
-import scraper
 
 
 DEFAULT_OUTPUT_FILE = (
@@ -29,17 +27,18 @@ def configure_logging(level: int = logging.INFO):
     )
 
 def load_scrapers():
-    """Dynamically load all scraper classes from scraper/ package."""
+    """Load all scraper classes from registered entry points."""
     scrapers = []
-    for _, module_name, _ in pkgutil.iter_modules(scraper.__path__):
-        if module_name == "base":
-            continue
 
-        module = importlib.import_module(f"scraper.{module_name}")
-        for attr_name in dir(module):
-            obj = getattr(module, attr_name)
-            if isinstance(obj, type) and issubclass(obj, BaseScraper) and obj is not BaseScraper:
-                scrapers.append(obj())
+    eps = entry_points(group='dist_scraper.scrapers')
+    for ep in eps:
+        logger.info("Loading scraper plugin: %s", ep.name)
+        scraper_class = ep.load()
+        if isinstance(scraper_class, type) and issubclass(scraper_class, BaseScraper):
+            scrapers.append(scraper_class())
+        else:
+            logger.warning("Entry point %s did not provide a valid scraper class", ep.name)
+
     return scrapers
 
 
@@ -66,7 +65,8 @@ async def run_scraper(scraper_instance: BaseScraper, executor: ThreadPoolExecuto
         return name, None, str(e)
 
 
-async def main():
+async def run_all_scrapers():
+    """Run all registered scrapers concurrently and write output."""
     scrapers = load_scrapers()
     output = {}
     errors = {}
@@ -97,10 +97,10 @@ async def main():
     logger.info("All scrapers succeeded.")
 
 
-if __name__ == "__main__":
+def main():
     configure_logging()
     try:
-        asyncio.run(main())
+        asyncio.run(run_all_scrapers())
     except KeyboardInterrupt:
-        logging.getLogger(__name__).info("Interrupted by user")
-        raise
+        logger.info("Interrupted by user")
+        sys.exit(130)
