@@ -21,11 +21,6 @@ Version: 11.0.2 |
 <https://github.com/fmtlib/fmt.git> |
 <https://github.com/fmtlib/fmt/releases>
 
-### semver
-Version: 1.1.0 (+[our patches](https://github.com/CanonicalLtd/semver/compare/1.1.0..69e1b1e)) |
-<https://github.com/CanonicalLtd/semver.git> |
-<https://github.com/zmarko/semver/releases>
-
 ### xz-embedded
 Version: v2024-12-30 |
 <https://github.com/tukaani-project/xz-embedded.git> |

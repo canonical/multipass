@@ -50,11 +50,5 @@ add_library(premock INTERFACE)
 target_include_directories(premock INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/premock)
 
-# semver library
-add_subdirectory_compat(semver EXCLUDE_FROM_ALL)
-target_include_directories(semver INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/semver/include)
-set_target_properties(semver PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
 # xz-decoder config
 add_subdirectory(xz-decoder EXCLUDE_FROM_ALL)

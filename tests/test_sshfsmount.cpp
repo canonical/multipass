@@ -264,12 +264,6 @@ struct SshfsMountExecuteThrowInvArg : public SshfsMount,
 {
 };
 
-// Mocks the server raising a std::runtime_error.
-struct SshfsMountExecuteThrowRuntErr : public SshfsMount,
-                                       public testing::WithParamInterface<CommandVector>
-{
-};
-
 } // namespace
 
 //
@@ -330,11 +324,6 @@ TEST_P(SshfsMountExecuteAndNoFail, testSuccessfulInvocationAndFail)
 TEST_P(SshfsMountExecuteThrowInvArg, testInvalidArgWhenExecuting)
 {
     EXPECT_THROW(test_command_execution(GetParam()), std::invalid_argument);
-}
-
-TEST_P(SshfsMountExecuteThrowRuntErr, testRuntimeErrorWhenExecuting)
-{
-    EXPECT_THROW(test_command_execution(GetParam()), std::runtime_error);
 }
 
 //
@@ -435,11 +424,9 @@ CommandVector invalid_fuse_ver_cmds = {
 
 INSTANTIATE_TEST_SUITE_P(SshfsMountThrowInvArg,
                          SshfsMountExecuteThrowInvArg,
-                         testing::Values(non_int_uid_cmds, non_int_gid_cmds));
-
-INSTANTIATE_TEST_SUITE_P(SshfsMountThrowRuntErr,
-                         SshfsMountExecuteThrowRuntErr,
-                         testing::Values(invalid_fuse_ver_cmds));
+                         testing::Values(non_int_uid_cmds,
+                                         non_int_gid_cmds,
+                                         invalid_fuse_ver_cmds));
 
 //
 // Finally, individual test fixtures.

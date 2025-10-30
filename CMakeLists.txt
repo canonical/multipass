@@ -192,6 +192,9 @@ target_compile_definitions(scope_guard INTERFACE SG_REQUIRE_NOEXCEPT_IN_CPP17)
 # yaml-cpp config
 find_package(yaml-cpp CONFIG REQUIRED)
 
+# neargye-semver config
+find_package(semver CONFIG REQUIRED)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 

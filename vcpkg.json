@@ -4,7 +4,8 @@
     "grpc",
     "fmt",
     "scope-guard",
-    "yaml-cpp"
+    "yaml-cpp",
+    "neargye-semver"
   ],
   "overrides": [
     {

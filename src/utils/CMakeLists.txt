@@ -24,9 +24,11 @@ function(add_target TARGET_NAME)
     utils.cpp
     vm_image_vault_utils.cpp
     vm_mount.cpp
-    yaml_node_utils.cpp)
+    yaml_node_utils.cpp
+    semver_compare.cpp)
 
   target_link_libraries(${TARGET_NAME}
+    PUBLIC
     cert
     fmt::fmt-header-only
     logger
@@ -34,7 +36,9 @@ function(add_target TARGET_NAME)
     ssh
     yaml-cpp::yaml-cpp
     xz_image_decoder
-    Qt6::Core)
+    Qt6::Core
+    PRIVATE semver::semver
+    )
 
   target_include_directories(${TARGET_NAME} PRIVATE
     ${OPENSSL_INCLUDE_DIR})
