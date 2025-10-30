@@ -97,6 +97,7 @@ protected:
 
     virtual bool unplugged();
     virtual void detect_aborted_start(); // TODO@ricab does it really need to be virtual?
+    virtual void refresh_start();
     void save_error_msg(std::string error) noexcept;
 
     virtual void add_extra_interface_to_instance_cloud_init(
@@ -200,4 +201,9 @@ inline QDir multipass::BaseVirtualMachine::instance_directory() const
 inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noexcept
 {
     saved_error_msg = std::move(error);
+}
+
+inline void multipass::BaseVirtualMachine::refresh_start()
+{
+    // nothing to do in the general case
 }
