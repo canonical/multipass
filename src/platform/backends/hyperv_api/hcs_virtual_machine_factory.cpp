@@ -43,12 +43,12 @@ namespace multipass::hyperv
  */
 constexpr static auto kLogCategory = "HyperV-Virtual-Machine-Factory";
 constexpr static auto kDefaultHyperVSwitchGUID = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
-constexpr static auto kExtraInterfaceBridgeNameFmtStr = "Multipass Bridge ({})";
+constexpr static auto kExtraInterfaceVswitchNameFmtStr = "Multipass vSwitch ({})";
 /**
  * Regex pattern to extract the origin network name and GUID from an extra interface
  * name.
  */
-constexpr static auto kExtraInterfaceBridgeNameRegex = "Multipass Bridge \\((.*)\\)";
+constexpr static auto kExtraInterfaceVswitchNameRegex = R"(Multipass vSwitch \((.*)\))";
 
 // Delegating constructor
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
