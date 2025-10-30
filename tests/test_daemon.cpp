@@ -422,10 +422,10 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
-    // update_state is called by the finished() handler of the future. If it's called, then
+    // handle_state_update is called by the finished() handler of the future. If it's called, then
     // everything's ok.
-    EXPECT_CALL(*mock_vm, update_state).WillOnce([&sig] {
-        // Ensure that update_state is delayed until daemon's destructor call.
+    EXPECT_CALL(*mock_vm, handle_state_update).WillOnce([&sig] {
+        // Ensure that handle_state_update is delayed until daemon's destructor call.
         sig.wait();
         // Wait a bit to ensure that daemon's destructor has been run
         std::this_thread::sleep_for(std::chrono::milliseconds{50});
@@ -453,7 +453,7 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -474,7 +474,7 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -495,7 +495,7 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -517,7 +517,7 @@ TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
     EXPECT_CALL(*mock_vm, current_state).Times(0);
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, update_state).Times(0);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));

@@ -414,7 +414,7 @@ void mp::QemuVirtualMachine::suspend()
         if (update_shutdown_status)
         {
             state = State::suspending;
-            update_state();
+            handle_state_update();
             update_shutdown_status = false;
         }
 
@@ -441,7 +441,7 @@ int mp::QemuVirtualMachine::ssh_port()
     return 22;
 }
 
-void mp::QemuVirtualMachine::update_state()
+void mp::QemuVirtualMachine::handle_state_update()
 {
     monitor->persist_state_for(vm_name, state);
 }
@@ -449,14 +449,14 @@ void mp::QemuVirtualMachine::update_state()
 void mp::QemuVirtualMachine::on_started()
 {
     state = State::starting;
-    update_state();
+    handle_state_update();
     monitor->on_resume();
 }
 
 void mp::QemuVirtualMachine::on_error()
 {
     state = State::off;
-    update_state();
+    handle_state_update();
 }
 
 void mp::QemuVirtualMachine::on_shutdown()
@@ -471,7 +471,7 @@ void mp::QemuVirtualMachine::on_shutdown()
 
         management_ip = std::nullopt;
         drop_ssh_session();
-        update_state();
+        handle_state_update();
         vm_process.reset(nullptr);
     }
 
@@ -489,7 +489,7 @@ void mp::QemuVirtualMachine::on_restart()
 {
     drop_ssh_session();
     state = State::restarting;
-    update_state();
+    handle_state_update();
 
     management_ip = std::nullopt;
 

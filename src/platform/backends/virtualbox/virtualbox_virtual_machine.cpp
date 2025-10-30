@@ -352,7 +352,7 @@ mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
 void mp::VirtualBoxVirtualMachine::start()
 {
     state = State::starting;
-    update_state();
+    handle_state_update();
 
     mpu::process_throw_on_error("VBoxManage",
                                 {"startvm", name, "--type", "headless"},
@@ -415,7 +415,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
 
     port = std::nullopt;
-    update_state();
+    handle_state_update();
 }
 
 void mp::VirtualBoxVirtualMachine::suspend()
@@ -433,7 +433,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
         if (update_suspend_status)
         {
             state = State::suspended;
-            update_state();
+            handle_state_update();
         }
     }
     else if (present_state == State::stopped)
@@ -489,7 +489,7 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
     return *port;
 }
 
-void mp::VirtualBoxVirtualMachine::update_state()
+void mp::VirtualBoxVirtualMachine::handle_state_update()
 {
     monitor->persist_state_for(vm_name, state);
 }

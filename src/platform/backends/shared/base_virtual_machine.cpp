@@ -850,13 +850,13 @@ void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 
     std::lock_guard lock{state_mutex};
     state = State::running;
-    update_state();
+    handle_state_update();
 }
 
 void mp::BaseVirtualMachine::timeout_ssh()
 {
     std::lock_guard lock{state_mutex};
     state = State::unknown;
-    update_state();
+    handle_state_update();
     throw std::runtime_error(fmt::format("{}: timed out waiting for response", vm_name));
 }

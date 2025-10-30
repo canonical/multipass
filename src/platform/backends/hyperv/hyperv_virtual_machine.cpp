@@ -340,13 +340,13 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 void mp::HyperVVirtualMachine::start()
 {
     state = State::starting;
-    update_state();
+    handle_state_update();
 
     QString output_err;
     if (!power_shell->run({"Start-VM", "-Name", name}, nullptr, &output_err))
     {
         state = instance_state_for(power_shell.get(), name);
-        update_state();
+        handle_state_update();
         throw StartException{vm_name, output_err.toStdString()};
     }
 }
@@ -386,7 +386,7 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
 
-    update_state();
+    handle_state_update();
 }
 
 void mp::HyperVVirtualMachine::suspend()
@@ -401,7 +401,7 @@ void mp::HyperVVirtualMachine::suspend()
         if (update_suspend_status)
         {
             state = State::suspended;
-            update_state();
+            handle_state_update();
         }
     }
     else if (present_state == State::stopped)
@@ -429,7 +429,7 @@ int mp::HyperVVirtualMachine::ssh_port()
     return 22;
 }
 
-void mp::HyperVVirtualMachine::update_state()
+void mp::HyperVVirtualMachine::handle_state_update()
 {
     // Invalidate the management IP address on state update.
     if (current_state() == VirtualMachine::State::running)

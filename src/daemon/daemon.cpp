@@ -3060,7 +3060,7 @@ void mp::Daemon::on_restart(const std::string& name)
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
                 virtual_machine->state_mutex};
             virtual_machine->state = VirtualMachine::State::running;
-            virtual_machine->update_state();
+            virtual_machine->handle_state_update();
         }
         catch (const std::out_of_range&)
         {
