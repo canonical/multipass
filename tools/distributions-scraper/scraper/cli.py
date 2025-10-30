@@ -14,8 +14,10 @@ from scraper.models import ScraperResult
 logger = logging.getLogger(__name__)
 
 
-def configure_logging():
-    """Configure root logger for CLI usage."""
+def configure_logging() -> None:
+    """
+    Configure root logger for CLI usage.
+    """
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -23,8 +25,10 @@ def configure_logging():
     )
 
 
-def load_scrapers():
-    """Load all scraper classes from registered entry points."""
+def load_scrapers() -> list[BaseScraper]:
+    """
+    Load all scraper classes from registered entry points.
+    """
     scrapers = []
 
     eps = entry_points(group="dist_scraper.scrapers")
@@ -41,8 +45,10 @@ def load_scrapers():
     return scrapers
 
 
-def write_output_file(output, path: pathlib.Path):
-    """Write JSON output to the given path, creating parent directories as needed."""
+def write_output_file(output, path: pathlib.Path) -> None:
+    """
+    Write JSON output to the given path, creating parent directories as needed.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     json_str = json.dumps(output, indent=2, sort_keys=True) + "\n"
     path.write_text(json_str)
@@ -52,7 +58,9 @@ def write_output_file(output, path: pathlib.Path):
 async def run_scraper(
     scraper_instance: BaseScraper, executor: ThreadPoolExecutor
 ) -> tuple[str, dict | None]:
-    """Run a single scraper.fetch in the provided executor and capture exceptions."""
+    """
+    Run a single scraper.fetch in the provided executor and capture exceptions.
+    """
     loop = asyncio.get_event_loop()
     name = scraper_instance.name
     result = None
@@ -73,8 +81,10 @@ async def run_scraper(
     return name, None
 
 
-async def run_all_scrapers(output_file: pathlib.Path):
-    """Run all registered scrapers concurrently and write output."""
+async def run_all_scrapers(output_file: pathlib.Path) -> None:
+    """
+    Run all registered scrapers concurrently and write output.
+    """
     scrapers = load_scrapers()
     output = {}
 
