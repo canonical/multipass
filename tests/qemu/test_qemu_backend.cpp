@@ -345,7 +345,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     while (machine->state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);
 
-    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(),
+    MP_EXPECT_THROW_THAT(dynamic_cast<mp::BaseVirtualMachine&>(*machine).ensure_vm_is_running(),
                          mp::StartException,
                          Property(&mp::StartException::name, Eq(machine->vm_name)));
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
@@ -435,7 +435,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(
-        machine->ensure_vm_is_running(),
+        dynamic_cast<mp::BaseVirtualMachine&>(*machine).ensure_vm_is_running(),
         mp::StartException,
         AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
               mpt::match_what(

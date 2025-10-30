@@ -513,7 +513,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
         }
     }
 
-    ensure_vm_is_running_for(saved_error_msg);
+    BaseVirtualMachine::ensure_vm_is_running();
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
@@ -605,8 +605,9 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     });
 
     QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {
-        saved_error_msg = vm_process->read_all_standard_error().data();
-        mpl::log_message(mpl::Level::warning, vm_name, saved_error_msg);
+        auto error_msg = vm_process->read_all_standard_error().data();
+        save_error_msg(error_msg);
+        mpl::log_message(mpl::Level::warning, vm_name, error_msg);
     });
 
     QObject::connect(
