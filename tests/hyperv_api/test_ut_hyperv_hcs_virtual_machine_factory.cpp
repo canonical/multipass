@@ -151,8 +151,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
     interface1.id = "aabb";
     interface2.id = "bbaa";
     multipass::NetworkInterface if1, if2;
-    if1.id = "Multipass Bridge (aabb)";
-    if2.id = "Multipass Bridge (bbaa)";
+    if1.id = "Multipass vSwitch (aabb)";
+    if2.id = "Multipass vSwitch (bbaa)";
     desc.extra_interfaces.push_back(if1);
     desc.extra_interfaces.push_back(if2);
 
