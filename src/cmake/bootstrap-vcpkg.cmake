@@ -48,6 +48,8 @@ foreach(PACKAGE ${WRAPPED_VCPKG_PACKAGES})
   file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile-wrapper.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile.cmake")
   # Copy the target filter hook
   file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-vcpkg-target-filter-hook.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
+  # Copy the override vcpkg function module
+  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-override-vcpkg-function.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
   # Add it to overlay ports
   list(APPEND VCPKG_OVERLAY_PORTS "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
 endforeach()
