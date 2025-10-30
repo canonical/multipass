@@ -92,12 +92,13 @@ protected:
                                                              const std::string& instance_id,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
-    virtual void drop_ssh_session(); // virtual to allow mocking
-    void renew_ssh_session();
 
+    virtual void drop_ssh_session(); // virtual to allow mocking
     virtual bool unplugged();
-    virtual void detect_aborted_start(); // TODO@ricab does it really need to be virtual?
     virtual void refresh_start();
+
+    void renew_ssh_session();
+    void detect_aborted_start();
     void save_error_msg(std::string error) noexcept;
 
     virtual void add_extra_interface_to_instance_cloud_init(
