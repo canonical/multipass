@@ -26,6 +26,7 @@
 #include <QJsonObject>
 #include <fmt/format.h>
 
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -142,7 +143,9 @@ protected:
                    const Path& instance_dir)
         : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
     VirtualMachine(const std::string& vm_name, const Path& instance_dir)
-        : VirtualMachine(State::off, vm_name, instance_dir) {};
+        : VirtualMachine(State::off, vm_name, instance_dir)
+    {
+    }
 };
 } // namespace multipass
 
@@ -194,6 +197,9 @@ struct fmt::formatter<multipass::VirtualMachine::State, Char>
             break;
         case multipass::VirtualMachine::State::unknown:
             v = "unknown";
+            break;
+        default:
+            assert(0) && "unhandled VM state";
             break;
         }
 
