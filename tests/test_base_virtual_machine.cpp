@@ -178,7 +178,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    void update_state() override
+    void handle_state_update() override
     {
     }
 
@@ -1330,8 +1330,8 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     static constexpr auto thrower = [](const auto& e) { throw e; };
 
     vm.simulate_waiting_for_ssh();
-    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
-    EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
+    EXPECT_CALL(vm, handle_state_update).WillRepeatedly(Return());
 
     auto timeout = std::chrono::milliseconds{100};
     EXPECT_CALL(vm, ssh_hostname(_))

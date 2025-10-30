@@ -99,7 +99,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void update_state() override
+    void handle_state_update() override
     {
     }
 
