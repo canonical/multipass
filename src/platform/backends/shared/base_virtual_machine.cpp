@@ -823,6 +823,7 @@ void mp::BaseVirtualMachine::drop_ssh_session()
 auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 {
     detect_aborted_start();
+    refresh_start();
     try
     {
         ssh_and_cross_to_running();
