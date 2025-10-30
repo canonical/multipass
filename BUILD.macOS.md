@@ -125,6 +125,9 @@ CMake will fetch all necessary content, build vcpkg dependencies, and initialize
 You can also specify the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g., `Debug`,
 `Release`, `Coverage`, etc.).
 
+To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
+It should point to the root vcpkg location, where the top bootstrap scripts are located.
+
 ### Build Multipass
 
     cmake -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos
