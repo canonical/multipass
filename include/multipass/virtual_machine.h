@@ -45,6 +45,7 @@ class Snapshot;
 class VirtualMachine : private DisabledCopyMove
 {
 public:
+    // TODO: Get rid of the VirtualMachine::State in favor of InstanceStatus
     enum class State
     {
         off,
