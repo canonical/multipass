@@ -345,7 +345,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     while (machine->state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);
 
-    MP_EXPECT_THROW_THAT(dynamic_cast<mp::BaseVirtualMachine&>(*machine).ensure_vm_is_running(),
+    MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
                          mp::StartException,
                          Property(&mp::StartException::name, Eq(machine->vm_name)));
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
@@ -427,7 +427,8 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         mp::ProcessState exit_state;
         exit_state.exit_code = 1;
         emit vmproc->finished(exit_state); /* note that this waits on a condition variable that is
-                                              unblocked by ensure_vm_is_running */
+                                              unblocked by wait_for_cloud_init once it detects that
+                                              the process what interrupted */
     }};
 
     using namespace std::chrono_literals;
@@ -435,7 +436,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(
-        dynamic_cast<mp::BaseVirtualMachine&>(*machine).ensure_vm_is_running(),
+        machine->wait_for_cloud_init(1ms),
         mp::StartException,
         AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
               mpt::match_what(

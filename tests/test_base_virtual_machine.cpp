@@ -97,8 +97,6 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
 
-    MOCK_METHOD(void, ensure_vm_is_running, (), (override));
-
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
@@ -177,10 +175,6 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
     void wait_until_ssh_up(std::chrono::milliseconds) override
-    {
-    }
-
-    void ensure_vm_is_running() override
     {
     }
 
@@ -1270,7 +1264,7 @@ TEST_F(BaseVM, rollsbackFailedRestore)
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
 
     std::chrono::milliseconds timeout(1);
@@ -1280,7 +1274,7 @@ TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
 
     std::chrono::milliseconds timeout(1);
@@ -1310,6 +1304,7 @@ TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
 {
     vm.simulate_waiting_for_ssh();
     constexpr auto action = "determine IP address";
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(vm, ssh_hostname(_))
         .WillOnce(Throw(mp::InternalTimeoutException{action, std::chrono::milliseconds{0}}));
 
@@ -1333,7 +1328,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     static constexpr auto thrower = [](const auto& e) { throw e; };
 
     vm.simulate_waiting_for_ssh();
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
 
     auto timeout = std::chrono::milliseconds{100};
