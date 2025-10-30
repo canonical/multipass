@@ -47,48 +47,34 @@ def write_output_file(output, path: pathlib.Path):
     logger.info("Output written to %s", path)
 
 
-async def run_scraper(scraper_instance: BaseScraper, executor: ThreadPoolExecutor):
-    """Run a single scraper.fetch in the provided executor and capture exceptions.
-
-    Returns (name, result_or_none, error_message_or_none).
-    """
+async def run_scraper(
+    scraper_instance: BaseScraper, executor: ThreadPoolExecutor
+) -> tuple[str, dict]:
+    """Run a single scraper.fetch in the provided executor and capture exceptions."""
     loop = asyncio.get_event_loop()
     name = scraper_instance.name
     try:
         result = await loop.run_in_executor(executor, scraper_instance.fetch)
-        logger.info("Scraper %s succeeded", name)
-        return name, result, None
+        logger.info("Scraper '%s' succeeded", name)
+        return name, result
     except Exception as e:
-        logger.exception("Scraper %s failed", name)
-        return name, None, str(e)
+        logger.exception("Scraper '%s' failed: %s", name, e)
 
 
 async def run_all_scrapers(output_file: pathlib.Path):
     """Run all registered scrapers concurrently and write output."""
     scrapers = load_scrapers()
     output = {}
-    errors = {}
 
     # Run scrapers concurrently using a thread pool
     with ThreadPoolExecutor(max_workers=len(scrapers)) as executor:
         tasks = [run_scraper(s, executor) for s in scrapers]
         completed = await asyncio.gather(*tasks)
 
-    # Populate output and errors
-    for name, data, error in completed:
-        if error:
-            errors[name] = error
-        elif data:
+    # Populate output
+    for name, data in completed:
+        if data:
             output[name] = data
-
-    # Only include errors if there are any
-    if errors:
-        output["errors"] = errors
-        for name, err in errors.items():
-            logger.error("%s: %s", name, err)
-        # Write partial output for debugging
-        logger.debug("Partial output: %s", json.dumps(output, indent=2, sort_keys=True))
-        sys.exit(1)
 
     # Write final JSON output
     write_output_file(output, output_file)
