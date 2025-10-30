@@ -33,7 +33,7 @@ struct universal_string_literal_helper
     std::wstring_view wide;
 
     template <typename Char>
-    [[nodiscard]] auto as() const;
+    [[nodiscard]] auto as() const = delete;
 
     template <>
     [[nodiscard]] constexpr auto as<std::string_view::value_type>() const
