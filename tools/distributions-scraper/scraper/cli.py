@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import json
 import pathlib
@@ -8,20 +9,13 @@ from importlib.metadata import entry_points
 from scraper.base import BaseScraper
 
 
-DEFAULT_OUTPUT_FILE = (
-    pathlib.Path(__file__).resolve().parent.parent.parent
-    / "data"
-    / "distributions"
-    / "distribution-info.json"
-)
-
 logger = logging.getLogger(__name__)
 
 
-def configure_logging(level: int = logging.INFO):
+def configure_logging():
     """Configure root logger for CLI usage."""
     logging.basicConfig(
-        level=level,
+        level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         stream=sys.stdout,
     )
@@ -42,7 +36,7 @@ def load_scrapers():
     return scrapers
 
 
-def write_output_file(output, path = DEFAULT_OUTPUT_FILE):
+def write_output_file(output, path: pathlib.Path):
     """Write JSON output to the given path, creating parent directories as needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     json_str = json.dumps(output, indent=2, sort_keys=True) + "\n"
@@ -65,7 +59,7 @@ async def run_scraper(scraper_instance: BaseScraper, executor: ThreadPoolExecuto
         return name, None, str(e)
 
 
-async def run_all_scrapers():
+async def run_all_scrapers(output_file: pathlib.Path):
     """Run all registered scrapers concurrently and write output."""
     scrapers = load_scrapers()
     output = {}
@@ -93,14 +87,25 @@ async def run_all_scrapers():
         sys.exit(1)
 
     # Write final JSON output
-    write_output_file(output)
+    write_output_file(output, output_file)
     logger.info("All scrapers succeeded.")
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Scrape distribution information from various Linux distributions"
+    )
+    parser.add_argument(
+        "output_file",
+        type=pathlib.Path,
+        help="Path to the output JSON file"
+    )
+    args = parser.parse_args()
+
     configure_logging()
+
     try:
-        asyncio.run(run_all_scrapers())
+        asyncio.run(run_all_scrapers(args.output_file))
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
         sys.exit(130)
