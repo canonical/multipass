@@ -1,6 +1,6 @@
 import logging
 import requests
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 from dateutil import parser as dateparser
 from scraper.base import BaseScraper
 

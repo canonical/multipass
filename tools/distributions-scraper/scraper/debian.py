@@ -8,9 +8,7 @@ from scraper.base import BaseScraper
 logger = logging.getLogger(__name__)
 
 RELEASE_FILE_URL = "https://deb.debian.org/debian/dists/stable/Release"
-MANIFEST_URL_TEMPLATE = (
-    "https://cloud.debian.org/images/cloud/{codename}/latest/debian-{version}-generic-{arch}.json"
-)
+MANIFEST_URL_TEMPLATE = "https://cloud.debian.org/images/cloud/{codename}/latest/debian-{version}-generic-{arch}.json"
 IMAGE_BASE_URL = "https://cloud.debian.org/images/cloud/"
 DEFAULT_TIMEOUT = 10
 
@@ -75,7 +73,7 @@ def _decode_sha512_b64_to_hex(digest_annotation: Optional[str]):
         logger.info("Unexpected digest format: %s", digest_annotation)
         return None
 
-    b64 = digest_annotation[len(prefix):]
+    b64 = digest_annotation[len(prefix) :]
     # Add missing padding if necessary
     missing_padding = len(b64) % 4
     if missing_padding:
@@ -85,7 +83,9 @@ def _decode_sha512_b64_to_hex(digest_annotation: Optional[str]):
         decoded = base64.b64decode(b64)
         return f"{prefix}{decoded.hex()}"
     except TypeError as exc:
-        logger.warning("Failed to decode base64 digest: %s (%s)", digest_annotation, exc)
+        logger.warning(
+            "Failed to decode base64 digest: %s (%s)", digest_annotation, exc
+        )
         return None
 
 
@@ -98,7 +98,10 @@ def _find_qcow2_upload(manifest: Dict):
         kind = item.get("kind")
         metadata = item.get("metadata") or {}
         labels = metadata.get("labels") or {}
-        if kind == "Upload" and labels.get("upload.cloud.debian.org/image-format") == "qcow2":
+        if (
+            kind == "Upload"
+            and labels.get("upload.cloud.debian.org/image-format") == "qcow2"
+        ):
             return item
     return None
 
@@ -115,7 +118,9 @@ def _fetch_items(codename: str, version: str):
 
     items: Dict[str, Dict] = {}
     for arch, label in arch_map.items():
-        manifest_url = MANIFEST_URL_TEMPLATE.format(codename=codename, version=version, arch=arch)
+        manifest_url = MANIFEST_URL_TEMPLATE.format(
+            codename=codename, version=version, arch=arch
+        )
         manifest = _fetch_json(manifest_url)
 
         upload_item = _find_qcow2_upload(manifest)
@@ -135,7 +140,9 @@ def _fetch_items(codename: str, version: str):
 
         image_url = IMAGE_BASE_URL + image_ref
         size = _head_content_length(image_url)
-        sha512_hex = _decode_sha512_b64_to_hex(annotations.get("cloud.debian.org/digest"))
+        sha512_hex = _decode_sha512_b64_to_hex(
+            annotations.get("cloud.debian.org/digest")
+        )
 
         # Take the version label as in the original implementation (split on '-')
         raw_version_label = labels.get("cloud.debian.org/version")

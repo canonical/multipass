@@ -20,18 +20,21 @@ def configure_logging():
         stream=sys.stdout,
     )
 
+
 def load_scrapers():
     """Load all scraper classes from registered entry points."""
     scrapers = []
 
-    eps = entry_points(group='dist_scraper.scrapers')
+    eps = entry_points(group="dist_scraper.scrapers")
     for ep in eps:
         logger.info("Loading scraper plugin: %s", ep.name)
         scraper_class = ep.load()
         if isinstance(scraper_class, type) and issubclass(scraper_class, BaseScraper):
             scrapers.append(scraper_class())
         else:
-            logger.warning("Entry point %s did not provide a valid scraper class", ep.name)
+            logger.warning(
+                "Entry point %s did not provide a valid scraper class", ep.name
+            )
 
     return scrapers
 
@@ -42,6 +45,7 @@ def write_output_file(output, path: pathlib.Path):
     json_str = json.dumps(output, indent=2, sort_keys=True) + "\n"
     path.write_text(json_str)
     logger.info("Output written to %s", path)
+
 
 async def run_scraper(scraper_instance: BaseScraper, executor: ThreadPoolExecutor):
     """Run a single scraper.fetch in the provided executor and capture exceptions.
@@ -96,9 +100,7 @@ def main():
         description="Scrape distribution information from various Linux distributions"
     )
     parser.add_argument(
-        "output_file",
-        type=pathlib.Path,
-        help="Path to the output JSON file"
+        "output_file", type=pathlib.Path, help="Path to the output JSON file"
     )
     args = parser.parse_args()
 
