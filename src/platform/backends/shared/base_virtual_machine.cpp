@@ -289,9 +289,10 @@ void mp::BaseVirtualMachine::renew_ssh_session()
 
     ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 }
-bool multipass::BaseVirtualMachine::unplugged() const
+bool multipass::BaseVirtualMachine::unplugged()
 {
-    return state == State::off || state == State::stopped;
+    auto st = current_state();
+    return st == State::off || st == State::stopped;
 }
 
 void mp::BaseVirtualMachine::ensure_vm_is_running() // TODO@ricab rename the thing

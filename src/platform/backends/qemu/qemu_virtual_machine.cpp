@@ -808,7 +808,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                           *this,
                                           desc);
 }
-bool multipass::QemuVirtualMachine::unplugged() const
+bool multipass::QemuVirtualMachine::unplugged()
 {
     return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running();
 }
