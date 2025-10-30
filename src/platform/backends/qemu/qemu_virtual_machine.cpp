@@ -448,7 +448,7 @@ void mp::QemuVirtualMachine::update_state()
 
 void mp::QemuVirtualMachine::on_started()
 {
-    state = VirtualMachine::State::starting;
+    state = State::starting;
     update_state();
     monitor->on_resume();
 }
@@ -494,26 +494,6 @@ void mp::QemuVirtualMachine::on_restart()
     management_ip = std::nullopt;
 
     monitor->on_restart(vm_name);
-}
-
-void mp::QemuVirtualMachine::detect_aborted_start()
-{
-    if (is_starting_from_suspend)
-    {
-        // Due to https://github.com/canonical/multipass/issues/2374, the DHCP address is removed
-        // from the dnsmasq leases file, so if the daemon restarts while an instance is suspended
-        // and then starts the instance, the daemon won't be able to reach the instance since the
-        // instance won't refresh it's IP address.  The following will force the instance to refresh
-        // by resetting the network at 5 seconds and then every 30 seconds until the start timeout
-        // is reached.
-        if (std::chrono::steady_clock::now() > network_deadline)
-        {
-            network_deadline = std::chrono::steady_clock::now() + 30s;
-            emit on_reset_network();
-        }
-    }
-
-    BaseVirtualMachine::detect_aborted_start();
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
@@ -836,5 +816,24 @@ void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
         };
 
         mpu::try_action_for(on_timeout, timeout, action);
+    }
+}
+
+void mp::QemuVirtualMachine::refresh_start()
+{
+    if (is_starting_from_suspend)
+    {
+        // Due to https://github.com/canonical/multipass/issues/2374, the DHCP address is removed
+        // from the dnsmasq leases file, so if the daemon restarts while an instance is suspended
+        // and then starts the instance, the daemon won't be able to reach the instance since the
+        // instance won't refresh it's IP address.  The following will force the instance to refresh
+        // by resetting the network at 5 seconds and then every 30 seconds until the start timeout
+        // is reached.
+
+        if (std::chrono::steady_clock::now() > network_deadline)
+        {
+            network_deadline = std::chrono::steady_clock::now() + 30s;
+            emit on_reset_network();
+        }
     }
 }
