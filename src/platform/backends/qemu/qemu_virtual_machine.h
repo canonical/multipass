@@ -91,7 +91,7 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
 
-    bool unplugged() const override;
+    bool unplugged() override;
 
 private:
     void on_started();

@@ -99,7 +99,7 @@ protected:
     virtual void drop_ssh_session(); // virtual to allow mocking
     void renew_ssh_session();
 
-    virtual bool unplugged() const;
+    virtual bool unplugged();
     void save_error_msg(std::string error) noexcept;
 
     virtual void add_extra_interface_to_instance_cloud_init(
