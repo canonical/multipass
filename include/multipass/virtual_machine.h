@@ -23,6 +23,7 @@
 #include <QDir>
 #include <fmt/format.h>
 
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -177,6 +178,9 @@ struct fmt::formatter<multipass::VirtualMachine::State, Char>
             break;
         case multipass::VirtualMachine::State::unknown:
             v = "unknown";
+            break;
+        default:
+            assert(0) && "unhandled VM state";
             break;
         }
 
