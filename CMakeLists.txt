@@ -69,10 +69,10 @@ endif()
 
 message(STATUS "Bootstrapping vcpkg...")
 
-set(VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
+set(MULTIPASS_VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
   "Root vcpkg location, where the top bootstrap scripts are located")
 
-set(VCPKG_CMD "${VCPKG_LOCATION}/bootstrap-vcpkg.")
+set(VCPKG_CMD "${MULTIPASS_VCPKG_LOCATION}/bootstrap-vcpkg.")
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
   string(APPEND VCPKG_CMD "bat")
   list(PREPEND VCPKG_CMD "cmd" "/c") # run in cmd; otherwise, we'd fail when called from PowerShell
@@ -88,7 +88,7 @@ else()
   message(STATUS "Bootstrapping vcpkg completed successfully.")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
+set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
