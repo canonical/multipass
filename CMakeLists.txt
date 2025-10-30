@@ -18,6 +18,8 @@ cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 include(src/cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
+option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
+
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
@@ -48,11 +50,8 @@ if(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  set(VCPKG_BUILD_DEFAULT TRUE)
-endif()
-
-if(NOT DEFINED VCPKG_BUILD_DEFAULT)
+if(NOT VCPKG_BUILD_DEFAULT)
+  message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
   cmake_host_system_information(RESULT VCPKG_HOST_ARCH QUERY OS_PLATFORM)
   if("${VCPKG_HOST_ARCH}" STREQUAL "x86_64" OR "${VCPKG_HOST_ARCH}" STREQUAL "AMD64")
     set(VCPKG_HOST_ARCH "x64")
@@ -62,6 +61,8 @@ if(NOT DEFINED VCPKG_BUILD_DEFAULT)
 
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+else()
+  message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take nearly twice the time to build the `vcpkg` deps.")
 endif()
 
 message(STATUS "Bootstrapping vcpkg...")
