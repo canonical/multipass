@@ -238,7 +238,7 @@ bool multipass::BaseVirtualMachine::unplugged()
     return st == State::off || st == State::stopped;
 }
 
-void mp::BaseVirtualMachine::ensure_vm_is_running() // TODO@ricab rename the thing
+void mp::BaseVirtualMachine::detect_aborted_start()
 {
     const std::lock_guard lock{state_mutex};
     if (unplugged())
@@ -270,7 +270,7 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
     auto action = [this] {
-        ensure_vm_is_running();
+        detect_aborted_start();
         try
         {
             ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
@@ -822,7 +822,7 @@ void mp::BaseVirtualMachine::drop_ssh_session()
 
 auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 {
-    ensure_vm_is_running();
+    detect_aborted_start();
     try
     {
         ssh_and_cross_to_running();

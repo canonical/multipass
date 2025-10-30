@@ -96,7 +96,7 @@ protected:
     void renew_ssh_session();
 
     virtual bool unplugged();
-    virtual void ensure_vm_is_running(); // TODO@ricab does it really need to be virtual?
+    virtual void detect_aborted_start(); // TODO@ricab does it really need to be virtual?
     void save_error_msg(std::string error) noexcept;
 
     virtual void add_extra_interface_to_instance_cloud_init(

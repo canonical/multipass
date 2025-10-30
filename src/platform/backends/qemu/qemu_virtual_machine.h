@@ -58,7 +58,7 @@ public:
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
-    void ensure_vm_is_running() override;
+    void detect_aborted_start() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void update_state() override;
     void update_cpus(int num_cores) override;
