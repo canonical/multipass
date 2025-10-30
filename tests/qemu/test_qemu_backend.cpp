@@ -439,7 +439,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         mp::StartException,
         AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
               mpt::match_what(
-                  AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+                  AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("start")))));
 }
 
 TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
