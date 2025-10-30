@@ -496,7 +496,7 @@ void mp::QemuVirtualMachine::on_restart()
     monitor->on_restart(vm_name);
 }
 
-void mp::QemuVirtualMachine::ensure_vm_is_running()
+void mp::QemuVirtualMachine::detect_aborted_start()
 {
     if (is_starting_from_suspend)
     {
@@ -513,7 +513,7 @@ void mp::QemuVirtualMachine::ensure_vm_is_running()
         }
     }
 
-    BaseVirtualMachine::ensure_vm_is_running();
+    BaseVirtualMachine::detect_aborted_start();
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
@@ -824,7 +824,7 @@ void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     if (!management_ip)
     {
         auto action = [this] {
-            ensure_vm_is_running();
+            detect_aborted_start();
             return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
                        ? mpu::TimeoutAction::done
                        : mpu::TimeoutAction::retry;
