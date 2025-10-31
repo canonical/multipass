@@ -2,7 +2,7 @@ import base64
 import aiohttp
 import asyncio
 from email.parser import Parser
-from scraper.base import BaseScraper
+from ..base import BaseScraper
 
 RELEASE_FILE_URL = "https://deb.debian.org/debian/dists/stable/Release"
 MANIFEST_URL_TEMPLATE = "https://cloud.debian.org/images/cloud/{codename}/latest/debian-{version}-generic-{arch}.json"

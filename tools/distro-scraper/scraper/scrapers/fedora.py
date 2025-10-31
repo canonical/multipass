@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 import datetime
 from dateutil import parser
-from scraper.base import BaseScraper
+from ..base import BaseScraper
 
 
 RELEASES_URL = "https://fedoraproject.org/releases.json"

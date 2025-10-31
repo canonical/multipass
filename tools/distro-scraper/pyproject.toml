@@ -18,8 +18,8 @@ dependencies = [
 distro-scraper = "scraper.cli:main"
 
 [project.entry-points."dist_scraper.scrapers"]
-debian = "scraper.debian:DebianScraper"
-fedora = "scraper.fedora:FedoraScraper"
+debian = "scraper.scrapers.debian:DebianScraper"
+fedora = "scraper.scrapers.fedora:FedoraScraper"
 
 [tool.setuptools.packages.find]
 where = ["."]

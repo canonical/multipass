@@ -29,8 +29,8 @@ jobs:
           source .venv/bin/activate
           echo PATH=$PATH >> $GITHUB_ENV
 
-      - name: Install distributions-scraper package
-        run: pip install ./tools/distributions-scraper
+      - name: Install distro-scraper package
+        run: pip install ./tools/distro-scraper
 
       - name: Check for updated Cloud Images
         run: distro-scraper ${{ github.workspace }}/data/distributions/distribution-info.json
