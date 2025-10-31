@@ -1326,7 +1326,7 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     auto snapshot_info = info->mutable_snapshot_info();
     auto fundamentals = snapshot_info->mutable_fundamentals();
 
-    info->set_name(vm.vm_name);
+    info->set_name(vm.get_name());
     info->mutable_instance_status()->set_status(grpc_instance_status_for(snapshot->get_state()));
     info->set_memory_total(snapshot->get_mem_size().human_readable());
     info->set_disk_total(snapshot->get_disk_space().human_readable());
@@ -1798,7 +1798,7 @@ try
                                   &have_mounts,
                                   &deleted](VirtualMachine& vm) {
         fmt::memory_buffer errors;
-        const auto& name = vm.vm_name;
+        const auto& name = vm.get_name();
 
         const auto& it = instance_snapshots_map.find(name);
         const auto& snapshot_pick =
@@ -1879,7 +1879,7 @@ try
     bool deleted = false;
 
     auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
-        const auto& name = vm.vm_name;
+        const auto& name = vm.get_name();
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
@@ -1926,7 +1926,7 @@ try
 
     auto fetch_snapshot = [&response](VirtualMachine& vm) {
         fmt::memory_buffer errors;
-        const auto& name = vm.vm_name;
+        const auto& name = vm.get_name();
 
         try
         {
@@ -2331,7 +2331,7 @@ try
     if (status.ok())
     {
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
-            stop_mounts(vm.vm_name);
+            stop_mounts(vm.get_name());
 
             vm.suspend();
             return grpc::Status::OK;
@@ -2372,7 +2372,7 @@ try
 
     const auto& instance_targets = instance_selection.operative_selection;
     status = cmd_vms(instance_targets, [this](auto& vm) {
-        stop_mounts(vm.vm_name);
+        stop_mounts(vm.get_name());
 
         return reboot_vm(vm);
     }); // 1st pass to reboot all targets
@@ -3429,7 +3429,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 {
     if (vm.state == VirtualMachine::State::delayed_shutdown)
-        delayed_shutdown_instances.erase(vm.vm_name);
+        delayed_shutdown_instances.erase(vm.get_name());
 
     if (auto st = vm.current_state(); !MP_UTILS.is_running(st))
     {
@@ -3437,19 +3437,19 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
         if (st == VirtualMachine::State::unknown)
             msg = fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
                               "Try to stop and start it instead.",
-                              vm.vm_name);
+                              vm.get_name());
         else
-            msg = fmt::format("Instance '{0}' is not running", vm.vm_name);
+            msg = fmt::format("Instance '{0}' is not running", vm.get_name());
         return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, std::move(msg), ""};
     }
 
-    mpl::debug(category, "Rebooting {}", vm.vm_name);
+    mpl::debug(category, "Rebooting {}", vm.get_name());
     return ssh_reboot(vm);
 }
 
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
 {
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     delayed_shutdown_instances.erase(name);
 
     auto stop_all_mounts = [this](const std::string& name) { stop_mounts(name); };
@@ -3467,7 +3467,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
 
 grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
 {
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     delayed_shutdown_instances.erase(name);
 
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
@@ -3477,18 +3477,18 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
 
 grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
 {
-    auto it = delayed_shutdown_instances.find(vm.vm_name);
+    auto it = delayed_shutdown_instances.find(vm.get_name());
     if (it != delayed_shutdown_instances.end())
         delayed_shutdown_instances.erase(it);
     else
-        mpl::debug(category, "no delayed shutdown to cancel on instance \"{}\"", vm.vm_name);
+        mpl::debug(category, "no delayed shutdown to cancel on instance \"{}\"", vm.get_name());
 
     return grpc::Status::OK;
 }
 
 grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response)
 {
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     if (vm.current_state() == VirtualMachine::State::unknown)
         throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
@@ -3565,7 +3565,7 @@ bool mp::Daemon::create_missing_mounts(
                           R"(Removing mount "{}" => "{}" from '{}': {})",
                           mount_spec.get_source_path(),
                           target,
-                          vm->vm_name,
+                          vm->get_name(),
                           e.what());
 
                 return true;
@@ -3820,7 +3820,7 @@ void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* se
 }
 
 void mp::Daemon::populate_instance_info(VirtualMachine& vm,
-                                        mp::InfoReply& response,
+                                        InfoReply& response,
                                         bool no_runtime_info,
                                         bool deleted,
                                         bool& have_mounts)
@@ -3829,7 +3829,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     auto instance_info = info->mutable_instance_info();
     auto present_state = vm.current_state();
 
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     info->set_name(name);
 
     if (deleted)
