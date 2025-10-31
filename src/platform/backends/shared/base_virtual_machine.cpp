@@ -87,7 +87,7 @@ mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
                                        mpl::Level log_level = mpl::Level::trace)
 {
     assert(vm);
-    mpl::log_message(log_level, vm->vm_name, e.what());
+    mpl::log_message(log_level, vm->get_name(), e.what());
     return mp::utils::TimeoutAction::retry;
 };
 } // namespace

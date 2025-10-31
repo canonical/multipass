@@ -553,7 +553,7 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
         MP_EXPECT_THROW_THAT(
             vm.get_snapshot(i),
             std::runtime_error,
-            mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(std::to_string(i)))));
+            mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(std::to_string(i)))));
     };
 
     for (int i = -2; i < 4; ++i)
@@ -578,7 +578,7 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByName)
         {
             MP_EXPECT_THROW_THAT(vm.get_snapshot(name),
                                  mp::NoSuchSnapshotException,
-                                 mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(name))));
+                                 mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(name))));
         }
     };
 
@@ -630,7 +630,7 @@ TEST_F(BaseVM, snapshotDeletionThrowsOnMissingSnapshot)
     const auto name = "missing";
     MP_EXPECT_THROW_THAT(vm.delete_snapshot(name),
                          mp::NoSuchSnapshotException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(name))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(name))));
 }
 
 TEST_F(BaseVM, providesChildrenNames)
@@ -707,7 +707,7 @@ TEST_F(BaseVM, throwsOnRequestToRenameMissingSnapshot)
 
     MP_EXPECT_THROW_THAT(vm.rename_snapshot(missing_name, "Filipe"),
                          mp::NoSuchSnapshotException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(missing_name))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(missing_name))));
 
     EXPECT_EQ(vm.get_snapshot(good_name), snapshot_album[0]);
 }
@@ -727,10 +727,10 @@ TEST_F(BaseVM, throwsOnRequestToRenameSnapshotWithRepeatedName)
 
     MP_EXPECT_THROW_THAT(vm.rename_snapshot(names[0], names[1]),
                          mp::SnapshotNameTakenException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(names[1]))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(names[1]))));
     MP_EXPECT_THROW_THAT(vm.rename_snapshot(names[1], names[0]),
                          mp::SnapshotNameTakenException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(names[0]))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(names[0]))));
 
     EXPECT_EQ(vm.get_snapshot(names[0]), snapshot_album[0]);
     EXPECT_EQ(vm.get_snapshot(names[1]), snapshot_album[1]);

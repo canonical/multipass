@@ -347,7 +347,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
 
     MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
                          mp::StartException,
-                         Property(&mp::StartException::name, Eq(machine->vm_name)));
+                         Property(&mp::StartException::name, Eq(machine->get_name())));
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
@@ -438,7 +438,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
     MP_EXPECT_THROW_THAT(
         machine->wait_for_cloud_init(1ms),
         mp::StartException,
-        AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
+        AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
               mpt::match_what(
                   AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("start")))));
 }
