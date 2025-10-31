@@ -81,15 +81,17 @@ struct SmbMountHandlerTest : public ::Test
         EXPECT_CALL(platform, get_username).WillOnce(Return(username));
         ON_CALL(utils, contents_of).WillByDefault(Return("irrelevant"));
         ON_CALL(utils, make_file_with_content(_, _)).WillByDefault(Return());
-        EXPECT_CALL(utils, make_uuid(std::make_optional(vm.vm_name)))
+        EXPECT_CALL(utils, make_uuid(std::make_optional(vm.get_name())))
             .WillOnce(Return(vm_name_uuid));
         EXPECT_CALL(utils, make_uuid(std::make_optional(target))).WillOnce(Return(target_uuid));
         EXPECT_CALL(utils, make_uuid(std::make_optional(username.toStdString())))
             .WillOnce(Return(username_uuid));
         EXPECT_CALL(logger, log).WillRepeatedly(Return());
-        logger.expect_log(
-            mpl::Level::info,
-            fmt::format("Initializing native mount {} => {} in '{}'", source, target, vm.vm_name));
+        logger.expect_log(mpl::Level::info,
+                          fmt::format("Initializing native mount {} => {} in '{}'",
+                                      source,
+                                      target,
+                                      vm.get_name()));
 
         MP_DELEGATE_MOCK_CALLS_ON_BASE(utils, run_in_ssh_session, mp::Utils);
     }
@@ -247,7 +249,8 @@ TEST_F(SmbMountHandlerTest, installsCifs)
     EXPECT_CALL(server,
                 Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
         .WillOnce(Return(true));
-    logger.expect_log(mpl::Level::info, fmt::format("Installing cifs-utils in '{}'", vm.vm_name));
+    logger.expect_log(mpl::Level::info,
+                      fmt::format("Installing cifs-utils in '{}'", vm.get_name()));
 
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
 
@@ -277,7 +280,8 @@ TEST_F(SmbMountHandlerTest, failInstallCifs)
     EXPECT_CALL(server,
                 Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
         .WillOnce(Return(true));
-    logger.expect_log(mpl::Level::info, fmt::format("Installing cifs-utils in '{}'", vm.vm_name));
+    logger.expect_log(mpl::Level::info,
+                      fmt::format("Installing cifs-utils in '{}'", vm.get_name()));
     logger.expect_log(
         mpl::Level::warning,
         fmt::format("Failed to install 'cifs-utils', error message: '{}'", install_error));
@@ -436,7 +440,7 @@ TEST_F(SmbMountHandlerTest, failMkdirTarget)
                          std::runtime_error,
                          mpt::match_what(fmt::format("Cannot create \"{}\" in instance '{}': {}",
                                                      target,
-                                                     vm.vm_name,
+                                                     vm.get_name(),
                                                      mkdir_error)));
 }
 
@@ -485,7 +489,7 @@ TEST_F(SmbMountHandlerTest, failRemoveCredsFile)
     ssh_outputs[rm_command] = {rm_error, 1};
     logger.expect_log(
         mpl::Level::warning,
-        fmt::format("Failed deleting credentials file in \'{}\': {}", vm.vm_name, rm_error));
+        fmt::format("Failed deleting credentials file in \'{}\': {}", vm.get_name(), rm_error));
 
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
@@ -513,7 +517,7 @@ TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
     logger.expect_log(mpl::Level::warning,
                       fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}",
                                   target,
-                                  vm.vm_name,
+                                  vm.get_name(),
                                   umount_error));
 
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
