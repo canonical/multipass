@@ -2498,8 +2498,7 @@ try
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto target_path =
-            QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
+        const auto target_path = mpu::normalize_path(path_entry.target_path());
 
         if (operative_instances.find(name) == operative_instances.end())
         {

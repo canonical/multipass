@@ -531,7 +531,7 @@ TEST_F(PlatformLinux, createAliasScriptWorksUnconfined)
                                         mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
-    checked_script.open(QFile::ReadOnly);
+    ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
@@ -559,7 +559,7 @@ TEST_F(PlatformLinux, createAliasScriptWorksConfined)
                                         mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
-    checked_script.open(QFile::ReadOnly);
+    ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");

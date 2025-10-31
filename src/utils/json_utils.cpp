@@ -59,7 +59,7 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
 
     // Interprocess lock file to ensure that we can synchronize the request from
     // both the daemon and the client.
-    QLockFile lock(fi.filePath() + u".lock"_qs);
+    QLockFile lock(fi.filePath() + ".lock");
 
     // Make the lock file stale after a while to avoid deadlocking
     // on process crashes, etc.
