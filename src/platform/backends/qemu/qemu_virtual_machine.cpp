@@ -463,10 +463,10 @@ void mp::QemuVirtualMachine::on_shutdown()
 {
     {
         std::unique_lock lock{state_mutex};
-        auto current_state = state;
+        auto old_state = state;
 
         state = State::off;
-        if (current_state == State::starting)
+        if (old_state == State::starting)
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
 
         management_ip = std::nullopt;
