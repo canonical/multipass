@@ -38,7 +38,6 @@
 #include <QDir>
 
 #include <chrono>
-#include <functional>
 #include <mutex>
 #include <stdexcept>
 
