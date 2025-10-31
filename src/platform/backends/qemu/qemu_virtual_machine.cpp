@@ -616,6 +616,11 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                 }
             }
         }
+        else if (qmp_object.contains("error"))
+        {
+            const auto error = qmp_object["error"].toObject();
+            mpl::error(vm_name, "QMP error: {}", error["desc"].toString());
+        }
     });
 
     QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {

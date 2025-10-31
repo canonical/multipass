@@ -20,6 +20,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "formatted_exception_base.h"
+
 namespace multipass
 {
 class SSHException : public std::runtime_error
@@ -45,5 +47,10 @@ public:
 
 private:
     int ec;
+};
+
+struct SSHVMNotRunning : public FormattedExceptionBase<SSHException>
+{
+    using FormattedExceptionBase<SSHException>::FormattedExceptionBase;
 };
 } // namespace multipass
