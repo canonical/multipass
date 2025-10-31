@@ -2,7 +2,7 @@
 # Run a Docker container in Multipass
 
 ```{Warning}
-Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)
+Blueprints have been removed as a feature. You can achieve similar effects with cloud-init and other launch options. Find out more at: [Launch customized instances with Multipass and cloud-init](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)
 ```
 <!-- This is published as an Ubuntu Tutorial at this link: https://ubuntu.com/tutorials/running-a-container-with-the-docker-workflow-in-multipass -->
 
