@@ -1,4 +1,4 @@
-import requests
+import aiohttp
 import datetime
 from dateutil import parser
 from scraper.base import BaseScraper
@@ -62,78 +62,90 @@ class FedoraScraper(BaseScraper):
             and "Fedora-Cloud-Base-Generic" in artifact.get("link", "")
         )
 
-    def _fetch_artifacts(
-        self, url: str = RELEASES_URL, timeout: int = DEFAULT_TIMEOUT
+    async def _fetch_artifacts(
+        self,
+        session: aiohttp.ClientSession,
+        url: str = RELEASES_URL,
+        timeout: int = DEFAULT_TIMEOUT,
     ) -> list[dict]:
         """
         Fetch the releases JSON and return the parsed artifacts list.
         """
         self.logger.info("Fetching Fedora releases from %s", url)
-        resp = requests.get(url, timeout=timeout)
-        resp.raise_for_status()
-        return resp.json()
+        async with session.get(
+            url, timeout=aiohttp.ClientTimeout(total=timeout)
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()
 
-    def _get_last_modified_for_url(
-        self, url: str, timeout: int = DEFAULT_TIMEOUT
+    async def _get_last_modified_for_url(
+        self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
     ) -> datetime.datetime | None:
         """
         HEAD the URL and return a parsed Last-Modified header if present.
         """
         self.logger.info("Sending HEAD request to %s", url)
-        resp = requests.head(url, timeout=timeout, allow_redirects=True)
-        resp.raise_for_status()
-        last_mod = resp.headers.get("Last-Modified")
-        if last_mod:
-            try:
-                return parser.parse(last_mod)
-            except (ValueError, TypeError) as exc:
-                self.logger.debug(
-                    "Failed to parse Last-Modified header '%s': %s", last_mod, exc
-                )
-        return None
+        async with session.head(
+            url, timeout=aiohttp.ClientTimeout(total=timeout), allow_redirects=True
+        ) as resp:
+            resp.raise_for_status()
+            last_mod = resp.headers.get("Last-Modified")
+            if last_mod:
+                try:
+                    return parser.parse(last_mod)
+                except (ValueError, TypeError) as exc:
+                    self.logger.debug(
+                        "Failed to parse Last-Modified header '%s': %s", last_mod, exc
+                    )
+            return None
 
-    def fetch(self) -> dict:
+    async def fetch(self) -> dict:
         """
         Fetch Fedora Cloud Base Generic images and return normalized metadata.
         """
-        artifacts = self._fetch_artifacts()
+        async with aiohttp.ClientSession() as session:
+            artifacts = await self._fetch_artifacts(session)
 
-        images = [a for a in artifacts if self._is_cloud_base_generic(a)]
-        if not images:
-            raise RuntimeError("No Fedora Cloud Base Generic images found")
+            images = [a for a in artifacts if self._is_cloud_base_generic(a)]
+            if not images:
+                raise RuntimeError("No Fedora Cloud Base Generic images found")
 
-        latest_version = self._find_latest_version(images)
-        latest_images = [a for a in images if a.get("version") == latest_version]
-        if not latest_images:
-            raise RuntimeError(f"No images found for latest version {latest_version}")
+            latest_version = self._find_latest_version(images)
+            latest_images = [a for a in images if a.get("version") == latest_version]
+            if not latest_images:
+                raise RuntimeError(
+                    f"No images found for latest version {latest_version}"
+                )
 
-        items: dict[str, dict] = {}
-        for img in latest_images:
-            arch = img.get("arch")
-            label = self._map_arch_label(arch)
-            if not label:
-                self.logger.info("Skipping unsupported architecture: %s", arch)
-                continue
+            items: dict[str, dict] = {}
+            for img in latest_images:
+                arch = img.get("arch")
+                label = self._map_arch_label(arch)
+                if not label:
+                    self.logger.info("Skipping unsupported architecture: %s", arch)
+                    continue
 
-            last_modified = None
-            link = img.get("link")
-            if link:
-                last_modified = self._get_last_modified_for_url(link)
+                last_modified = None
+                link = img.get("link")
+                if link:
+                    last_modified = await self._get_last_modified_for_url(session, link)
 
-            # Compose item entry
-            items[label] = {
-                "image_location": link,
-                "id": img.get("sha256"),
-                # match previous behaviour: use parsed Last-Modified date formatted as YYYYMMDD
-                "version": last_modified.strftime("%Y%m%d") if last_modified else "",
-                "size": int(img.get("size", 0)),
+                # Compose item entry
+                items[label] = {
+                    "image_location": link,
+                    "id": img.get("sha256"),
+                    # match previous behaviour: use parsed Last-Modified date formatted as YYYYMMDD
+                    "version": (
+                        last_modified.strftime("%Y%m%d") if last_modified else ""
+                    ),
+                    "size": int(img.get("size", 0)),
+                }
+
+            return {
+                "aliases": "fedora",
+                "os": "Fedora",
+                "release": "",
+                "release_codename": latest_version,
+                "release_title": latest_version,
+                "items": items,
             }
-
-        return {
-            "aliases": "fedora",
-            "os": "Fedora",
-            "release": "",
-            "release_codename": latest_version,
-            "release_title": latest_version,
-            "items": items,
-        }

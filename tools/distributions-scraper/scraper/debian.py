@@ -1,6 +1,5 @@
 import base64
-import requests
-from typing import Dict, Optional
+import aiohttp
 from email.parser import Parser
 from scraper.base import BaseScraper
 
@@ -36,23 +35,31 @@ class DebianScraper(BaseScraper):
                 return item
         return None
 
-    def _fetch_text(self, url: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+    async def _fetch_text(
+        self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
+    ) -> str:
         """
-        GET a URL and return its text. Raises requests.HTTPError on bad response.
+        GET a URL and return its text. Raises aiohttp.ClientError on bad response.
         """
         self.logger.info("Fetching Debian releases from %s", url)
-        resp = requests.get(url, timeout=timeout)
-        resp.raise_for_status()
-        return resp.text
+        async with session.get(
+            url, timeout=aiohttp.ClientTimeout(total=timeout)
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.text()
 
-    def _fetch_json(self, url: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
+    async def _fetch_json(
+        self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
+    ) -> dict:
         """
         GET a URL and return JSON-decoded content.
         """
         self.logger.info("Fetching Debian manifest from %s", url)
-        resp = requests.get(url, timeout=timeout)
-        resp.raise_for_status()
-        return resp.json()
+        async with session.get(
+            url, timeout=aiohttp.ClientTimeout(total=timeout)
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()
 
     def _parse_release_file(self, content: str) -> dict[str, str]:
         """
@@ -69,27 +76,29 @@ class DebianScraper(BaseScraper):
         )
         return {"Version": version, "Codename": codename}
 
-    def _head_content_length(
-        self, url: str, timeout: int = DEFAULT_TIMEOUT
+    async def _head_content_length(
+        self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
     ) -> int | None:
         """
         HEAD the URL and return Content-Length as int if present, otherwise None.
 
-        Raises requests.HTTPError on non-2xx responses.
+        Raises aiohttp.ClientError on non-2xx responses.
         """
         self.logger.info("Sending HEAD request to %s", url)
-        resp = requests.head(url, allow_redirects=True, timeout=timeout)
-        resp.raise_for_status()
-        length = resp.headers.get("Content-Length")
-        if length is None:
-            return None
-        try:
-            return int(length)
-        except (TypeError, ValueError):
-            self.logger.warning("Invalid Content-Length header: %s", length)
-            return None
+        async with session.head(
+            url, allow_redirects=True, timeout=aiohttp.ClientTimeout(total=timeout)
+        ) as resp:
+            resp.raise_for_status()
+            length = resp.headers.get("Content-Length")
+            if length is None:
+                return None
+            try:
+                return int(length)
+            except (TypeError, ValueError):
+                self.logger.warning("Invalid Content-Length header: %s", length)
+                return None
 
-    def _decode_sha512_b64_to_hex(self, digest_annotation: Optional[str]) -> str | None:
+    def _decode_sha512_b64_to_hex(self, digest_annotation: str | None) -> str | None:
         """
         Convert a digest annotation like 'sha512:BASE64' to 'sha512:<hex>' or return None.
 
@@ -118,7 +127,9 @@ class DebianScraper(BaseScraper):
             )
             return None
 
-    def _fetch_items(self, codename: str, version: str) -> dict[str, dict]:
+    async def _fetch_items(
+        self, session: aiohttp.ClientSession, codename: str, version: str
+    ) -> dict[str, dict]:
         """
         Fetch image manifests for known arches and build the items mapping.
 
@@ -129,12 +140,12 @@ class DebianScraper(BaseScraper):
             "arm64": "arm64",
         }
 
-        items: Dict[str, Dict] = {}
+        items: dict[str, dict] = {}
         for arch, label in arch_map.items():
             manifest_url = MANIFEST_URL_TEMPLATE.format(
                 codename=codename, version=version, arch=arch
             )
-            manifest = self._fetch_json(manifest_url)
+            manifest = await self._fetch_json(session, manifest_url)
 
             upload_item = self._find_qcow2_upload(manifest)
             if not upload_item:
@@ -154,7 +165,7 @@ class DebianScraper(BaseScraper):
                 continue
 
             image_url = IMAGE_BASE_URL + image_ref
-            size = self._head_content_length(image_url)
+            size = await self._head_content_length(session, image_url)
             sha512_hex = self._decode_sha512_b64_to_hex(
                 annotations.get("cloud.debian.org/digest")
             )
@@ -174,26 +185,29 @@ class DebianScraper(BaseScraper):
 
         return items
 
-    def fetch(self) -> dict:
+    async def fetch(self) -> dict:
         """
         Fetch Debian Cloud images and return normalized metadata.
         """
-        release_text = self._fetch_text(RELEASE_FILE_URL)
-        parsed = self._parse_release_file(release_text)
+        async with aiohttp.ClientSession() as session:
+            release_text = await self._fetch_text(session, RELEASE_FILE_URL)
+            parsed = self._parse_release_file(release_text)
 
-        raw_version = parsed.get("Version")
-        codename = parsed.get("Codename")
-        if not codename:
-            raise RuntimeError("Could not determine Debian codename from Release file")
+            raw_version = parsed.get("Version")
+            codename = parsed.get("Codename")
+            if not codename:
+                raise RuntimeError(
+                    "Could not determine Debian codename from Release file"
+                )
 
-        version = raw_version.split(".")[0] if raw_version else None
-        items = self._fetch_items(codename, version)
+            version = raw_version.split(".")[0] if raw_version else None
+            items = await self._fetch_items(session, codename, version)
 
-        return {
-            "aliases": f"debian, {codename}",
-            "os": "Debian",
-            "release": codename,
-            "release_codename": codename.capitalize(),
-            "release_title": version,
-            "items": items,
-        }
+            return {
+                "aliases": f"debian, {codename}",
+                "os": "Debian",
+                "release": codename,
+                "release_codename": codename.capitalize(),
+                "release_title": version,
+                "items": items,
+            }

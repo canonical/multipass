@@ -4,7 +4,6 @@ import json
 import pathlib
 import sys
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from importlib.metadata import entry_points
 from pydantic import ValidationError
 from scraper.base import BaseScraper
@@ -55,18 +54,15 @@ def write_output_file(output, path: pathlib.Path) -> None:
     logger.info("Output written to %s", path)
 
 
-async def run_scraper(
-    scraper_instance: BaseScraper, executor: ThreadPoolExecutor
-) -> tuple[str, dict | None]:
+async def run_scraper(scraper_instance: BaseScraper) -> tuple[str, dict | None]:
     """
-    Run a single scraper.fetch in the provided executor and capture exceptions.
+    Run a single scraper.fetch and capture exceptions.
     """
-    loop = asyncio.get_event_loop()
     name = scraper_instance.name
     result = None
 
     try:
-        result = await loop.run_in_executor(executor, scraper_instance.fetch)
+        result = await scraper_instance.fetch()
     except Exception as e:
         logger.exception("Scraper '%s' failed: %s", name, e)
 
@@ -88,10 +84,9 @@ async def run_all_scrapers(output_file: pathlib.Path) -> None:
     scrapers = load_scrapers()
     output = {}
 
-    # Run scrapers concurrently using a thread pool
-    with ThreadPoolExecutor(max_workers=len(scrapers)) as executor:
-        tasks = [run_scraper(s, executor) for s in scrapers]
-        completed = await asyncio.gather(*tasks)
+    # Run scrapers concurrently using asyncio.gather
+    tasks = [run_scraper(s) for s in scrapers]
+    completed = await asyncio.gather(*tasks)
 
     # Populate output
     for name, data in completed:

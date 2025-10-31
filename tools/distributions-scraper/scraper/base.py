@@ -14,7 +14,7 @@ class BaseScraper(ABC):
         self.logger = logging.getLogger(self.__class__.__module__)
 
     @abstractmethod
-    def fetch(self) -> dict:
+    async def fetch(self) -> dict:
         """
         Fetch data from the source and return it as a dict.
         """
