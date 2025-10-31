@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import datetime
 from dateutil import parser
 from scraper.base import BaseScraper
@@ -117,20 +118,33 @@ class FedoraScraper(BaseScraper):
                     f"No images found for latest version {latest_version}"
                 )
 
-            items: dict[str, dict] = {}
+            # Filter out unsupported architectures first
+            supported_images = []
             for img in latest_images:
                 arch = img.get("arch")
                 label = self._map_arch_label(arch)
-                if not label:
+                if label:
+                    supported_images.append((img, label))
+                else:
                     self.logger.info("Skipping unsupported architecture: %s", arch)
-                    continue
 
-                last_modified = None
+            # Fetch all last-modified dates asynchronously
+            last_modified_tasks = [
+                (
+                    self._get_last_modified_for_url(session, img.get("link"))
+                    if img.get("link")
+                    else None
+                )
+                for img, _ in supported_images
+            ]
+            last_modified_results = await asyncio.gather(*last_modified_tasks)
+
+            # Build items dictionary
+            items: dict[str, dict] = {}
+            for (img, label), last_modified in zip(
+                supported_images, last_modified_results
+            ):
                 link = img.get("link")
-                if link:
-                    last_modified = await self._get_last_modified_for_url(session, link)
-
-                # Compose item entry
                 items[label] = {
                     "image_location": link,
                     "id": img.get("sha256"),

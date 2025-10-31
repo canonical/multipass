@@ -1,5 +1,6 @@
 import base64
 import aiohttp
+import asyncio
 from email.parser import Parser
 from scraper.base import BaseScraper
 
@@ -140,13 +141,17 @@ class DebianScraper(BaseScraper):
             "arm64": "arm64",
         }
 
-        items: dict[str, dict] = {}
-        for arch, label in arch_map.items():
-            manifest_url = MANIFEST_URL_TEMPLATE.format(
-                codename=codename, version=version, arch=arch
-            )
-            manifest = await self._fetch_json(session, manifest_url)
+        # Fetch all manifests concurrently
+        manifest_urls = [
+            MANIFEST_URL_TEMPLATE.format(codename=codename, version=version, arch=arch)
+            for arch in arch_map.keys()
+        ]
+        manifests = await asyncio.gather(
+            *[self._fetch_json(session, url) for url in manifest_urls]
+        )
 
+        items: dict[str, dict] = {}
+        for (arch, label), manifest in zip(arch_map.items(), manifests):
             upload_item = self._find_qcow2_upload(manifest)
             if not upload_item:
                 self.logger.info("No qcow2 upload found for %s %s", codename, arch)
