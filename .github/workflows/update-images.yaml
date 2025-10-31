@@ -21,15 +21,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
-      - name: Install Python dependencies
-        uses: BSFishy/pip-action@v1
-        with:
-          requirements: tools/distributions-scraper/requirements.txt
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+
+      - name: Install distributions-scraper package
+        run: pip install ./tools/distributions-scraper
 
       - name: Check for updated Cloud Images
-        run: tools/distributions-scraper/main.py
+        run: distro-scraper ${{ github.workspace }}/data/distributions/distribution-info.json
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v7
