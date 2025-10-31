@@ -23,7 +23,7 @@ function(add_target TARGET_NAME)
     backend_utils.cpp
     process_factory.cpp)
 
-  target_link_libraries(${TARGET_NAME}
+  target_link_libraries(${TARGET_NAME} PUBLIC
     apparmor
     fmt::fmt-header-only
     scope_guard

@@ -61,10 +61,6 @@
 #include <libssh/sftp.h>
 
 // Needed for OpenSSL dll compatibility
-extern "C"
-{
-#include <openssl/applink.c>
-}
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
