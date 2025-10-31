@@ -29,20 +29,3 @@ index 559eb56f6..c5fe7d48c 100644
    qt-ssl-plugin:
      plugin: nil
      stage-packages:
-@@ -123,6 +143,7 @@ parts:
-     build-packages:
-     - on arm64: [libgles2-mesa-dev]
-     - build-essential
-+    - ccache
-     - git
-     - libapparmor-dev
-     - libgl1-mesa-dev
-@@ -203,6 +224,8 @@ parts:
-     - -DMULTIPASS_ENABLE_TESTS=off
-     - -DMULTIPASS_UPSTREAM=origin
-     - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
-+    - -DCMAKE_C_COMPILER_LAUNCHER=ccache
-+    - -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-     override-build: |
-       craftctl default
-       set -e
