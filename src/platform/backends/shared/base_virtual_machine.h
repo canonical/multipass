@@ -164,13 +164,11 @@ private:
     void ssh_and_cross_to_running();
     void timeout_ssh();
 
-public:
-    bool shutdown_while_starting{false}; // TODO@no-merge hide
-
 protected:
     const SSHKeyProvider& key_provider;
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
+    bool shutdown_while_starting{false};
 
 private:
     std::string saved_error_msg = "";
