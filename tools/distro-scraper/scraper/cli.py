@@ -44,14 +44,49 @@ def load_scrapers() -> list[BaseScraper]:
     return scrapers
 
 
-def write_output_file(output, path: pathlib.Path) -> None:
+def write_output_file(output: dict, path: pathlib.Path) -> None:
     """
-    Write JSON output to the given path, creating parent directories as needed.
+    Attempt to merge output with existing data at the given path.
+
+    If the file exists, load it and merge with new data. Only distributions
+    present in 'output' will be updated; others are preserved.
+
+    If the file does not exist or is invalid, it will be created anew.
     """
+    # Load existing data if file exists
+    existing_data = {}
+    if path.exists():
+        try:
+            raw_data = json.loads(path.read_text())
+            # Validate existing data against schema
+            for dist_name, dist_data in raw_data.items():
+                try:
+                    validated = ScraperResult(**dist_data)
+                    existing_data[dist_name] = validated.model_dump()
+                except ValidationError as e:
+                    logger.warning(
+                        "Existing data for '%s' is invalid and will be discarded: %s",
+                        dist_name,
+                        e,
+                    )
+            logger.info(
+                "Loaded existing data from %s (%d valid distribution(s))",
+                path,
+                len(existing_data),
+            )
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning("Could not load existing output file: %s", e)
+
+    # Merge new data into existing
+    existing_data.update(output)
+
+    # Write merged output
     path.parent.mkdir(parents=True, exist_ok=True)
-    json_str = json.dumps(output, indent=2, sort_keys=True) + "\n"
-    path.write_text(json_str)
-    logger.info("Output written to %s", path)
+    with path.open("w") as f:
+        json.dump(existing_data, f, indent=2, sort_keys=True)
+        f.write("\n")
+
+    logger.info("Output written to %s)", path)
 
 
 async def run_scraper(scraper_instance: BaseScraper) -> tuple[str, dict | None]:
