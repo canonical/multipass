@@ -29,6 +29,7 @@
 #include <scope_guard.hpp>
 
 #include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDBusMetaType>
 #include <QString>
 #include <QtDBus/QtDBus>
@@ -64,6 +65,36 @@ const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Set
 const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
 const auto nm_connection_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings.Connection");
 constexpr auto max_bridge_name_len = 15; // maximum number of characters in a bridge name
+
+QString generate_bridge_name(const QString& interface_name)
+{
+    // Generate bridge name with format "br-<interface_name>"
+    // If the resulting name would exceed max_bridge_name_len, append a hash suffix to ensure uniqueness
+    const QString base_name = QStringLiteral("br-");
+    const QString full_name = base_name + interface_name;
+    
+    if (full_name.length() <= max_bridge_name_len)
+    {
+        return full_name;
+    }
+    
+    // Name would be truncated, so we need to add a hash to ensure uniqueness
+    // Format: "br-<prefix>-<hash>" where hash is a short hex string
+    // We use 4 hex chars (2 bytes) for the hash, leaving room for "br-" (3) + "-" (1) + hash (4) = 8 chars
+    // This gives us max_bridge_name_len - 8 = 7 chars for the interface prefix
+    constexpr int hash_hex_len = 4;
+    constexpr int separator_len = 1; // for the "-" before hash
+    const int prefix_len = max_bridge_name_len - base_name.length() - separator_len - hash_hex_len;
+    
+    // Compute hash of the full interface name
+    QByteArray hash = QCryptographicHash::hash(interface_name.toUtf8(), QCryptographicHash::Sha256);
+    QString hash_suffix = hash.toHex().left(hash_hex_len);
+    
+    // Build the bridge name: br-<prefix>-<hash>
+    QString bridge_name = base_name + interface_name.left(prefix_len) + "-" + hash_suffix;
+    
+    return bridge_name;
+}
 
 bool subnet_used_locally(const std::string& subnet)
 {
@@ -215,14 +246,12 @@ std::string generate_random_subnet()
 
 } // namespace
 
-// @precondition no bridge exists for this interface
 // @precondition interface identifies an ethernet device
 std::string mp::Backend::create_bridge_with(const std::string& interface)
 {
     static constexpr auto log_category_create = "create bridge";
     static constexpr auto log_category_rollback = "rollback bridge";
     static const auto root_path = QDBusObjectPath{"/"};
-    static const auto base_name = QStringLiteral("br-");
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
@@ -232,7 +261,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     auto nm_settings =
         get_checked_interface(system_bus, nm_bus_name, nm_settings_obj, nm_settings_ifc);
 
-    auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
+    auto parent_name = generate_bridge_name(QString::fromStdString(interface));
     auto child_name = parent_name + "-child";
     mpl::debug(log_category_create, "Creating bridge: {}", parent_name);
 

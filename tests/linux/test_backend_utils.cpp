@@ -31,6 +31,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 
+#include <QCryptographicHash>
 #include <QMap>
 #include <QVariant>
 
@@ -184,9 +185,32 @@ struct CreateBridgeTest : public Test
                         Property(&QDBusObjectPath::path, mpt::match_qstring(Eq(path))));
     }
 
+    static QString generate_bridge_name(const QString& interface_name)
+    {
+        const int max_bridge_name_len = 15;
+        const QString base_name = QStringLiteral("br-");
+        const QString full_name = base_name + interface_name;
+        
+        if (full_name.length() <= max_bridge_name_len)
+        {
+            return full_name;
+        }
+        
+        constexpr int hash_hex_len = 4;
+        constexpr int separator_len = 1;
+        const int prefix_len = max_bridge_name_len - base_name.length() - separator_len - hash_hex_len;
+        
+        QByteArray hash = QCryptographicHash::hash(interface_name.toUtf8(), QCryptographicHash::Sha256);
+        QString hash_suffix = hash.toHex().left(hash_hex_len);
+        
+        QString bridge_name = base_name + interface_name.left(prefix_len) + "-" + hash_suffix;
+        
+        return bridge_name;
+    }
+
     static QString get_bridge_name(const char* child)
     {
-        return (QString{"br-"} + child).left(15);
+        return generate_bridge_name(QString{child});
     }
 
     MockDBusProvider::GuardedMock mock_dbus_injection = MockDBusProvider::inject();
@@ -571,4 +595,100 @@ TEST(LinuxBackendUtils, getSubnetNotInFileWritesNewSubnetReturnsExpectedData)
         });
 
     EXPECT_EQ(MP_BACKEND.get_subnet("foo", bridge_name), generated_subnet);
+}
+
+TEST_F(CreateBridgeTest, createsBridgesWithUniqueNamesForLongInterfaces)
+{
+    // Test that two long interface names that would collide with simple truncation
+    // get unique bridge names
+    static constexpr auto network1 = "eth123456789abc";
+    static constexpr auto network2 = "eth123456789xyz";
+    static constexpr auto child1_obj_path = "/obj/path/for/child1";
+    static constexpr auto child2_obj_path = "/obj/path/for/child2";
+    static constexpr auto null_obj_path = "/";
+
+    const auto bridge1 = get_bridge_name(network1);
+    const auto bridge2 = get_bridge_name(network2);
+    
+    // Ensure bridge names are different
+    EXPECT_NE(bridge1, bridge2);
+    // Ensure both are within the limit
+    EXPECT_LE(bridge1.length(), 15);
+    EXPECT_LE(bridge2.length(), 15);
+
+    // First bridge creation
+    {
+        InSequence seq{};
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block,
+                              Eq("AddConnection"),
+                              make_parent_connection_matcher(network1),
+                              empty,
+                              empty))
+            .WillOnce(Return(make_obj_path_reply("/a/b/c1")));
+
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block,
+                              Eq("AddConnection"),
+                              make_child_connection_matcher(network1),
+                              empty,
+                              empty))
+            .WillOnce(Return(make_obj_path_reply(child1_obj_path)));
+
+        auto null_obj_matcher = make_object_path_matcher(null_obj_path);
+        auto child_obj_matcher = make_object_path_matcher(child1_obj_path);
+        EXPECT_CALL(*mock_nm_root,
+                    call_impl(QDBus::Block,
+                              Eq("ActivateConnection"),
+                              child_obj_matcher,
+                              null_obj_matcher,
+                              null_obj_matcher))
+            .WillOnce(Return(make_obj_path_reply("/active/obj/path1")));
+    }
+
+    inject_dbus_interfaces();
+    const auto created_bridge1 = MP_BACKEND.create_bridge_with(network1);
+    EXPECT_EQ(created_bridge1, bridge1.toStdString());
+
+    // Second bridge creation - need to reinject mocks
+    mock_nm_settings = std::make_unique<MockDBusInterface>();
+    mock_nm_root = std::make_unique<MockDBusInterface>();
+    EXPECT_CALL(*mock_nm_root, is_valid).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_nm_settings, is_valid).WillRepeatedly(Return(true));
+    
+    {
+        InSequence seq{};
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block,
+                              Eq("AddConnection"),
+                              make_parent_connection_matcher(network2),
+                              empty,
+                              empty))
+            .WillOnce(Return(make_obj_path_reply("/a/b/c2")));
+
+        EXPECT_CALL(*mock_nm_settings,
+                    call_impl(QDBus::Block,
+                              Eq("AddConnection"),
+                              make_child_connection_matcher(network2),
+                              empty,
+                              empty))
+            .WillOnce(Return(make_obj_path_reply(child2_obj_path)));
+
+        auto null_obj_matcher = make_object_path_matcher(null_obj_path);
+        auto child_obj_matcher = make_object_path_matcher(child2_obj_path);
+        EXPECT_CALL(*mock_nm_root,
+                    call_impl(QDBus::Block,
+                              Eq("ActivateConnection"),
+                              child_obj_matcher,
+                              null_obj_matcher,
+                              null_obj_matcher))
+            .WillOnce(Return(make_obj_path_reply("/active/obj/path2")));
+    }
+
+    inject_dbus_interfaces();
+    const auto created_bridge2 = MP_BACKEND.create_bridge_with(network2);
+    EXPECT_EQ(created_bridge2, bridge2.toStdString());
+    
+    // Verify the bridges are different
+    EXPECT_NE(created_bridge1, created_bridge2);
 }
