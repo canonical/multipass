@@ -190,21 +190,23 @@ struct CreateBridgeTest : public Test
         const int max_bridge_name_len = 15;
         const QString base_name = QStringLiteral("br-");
         const QString full_name = base_name + interface_name;
-        
+
         if (full_name.length() <= max_bridge_name_len)
         {
             return full_name;
         }
-        
+
         constexpr int hash_hex_len = 4;
         constexpr int separator_len = 1;
-        const int prefix_len = max_bridge_name_len - base_name.length() - separator_len - hash_hex_len;
-        
-        QByteArray hash = QCryptographicHash::hash(interface_name.toUtf8(), QCryptographicHash::Sha256);
+        const int prefix_len =
+            max_bridge_name_len - base_name.length() - separator_len - hash_hex_len;
+
+        QByteArray hash =
+            QCryptographicHash::hash(interface_name.toUtf8(), QCryptographicHash::Sha256);
         QString hash_suffix = hash.toHex().left(hash_hex_len);
-        
+
         QString bridge_name = base_name + interface_name.left(prefix_len) + "-" + hash_suffix;
-        
+
         return bridge_name;
     }
 
@@ -609,7 +611,7 @@ TEST_F(CreateBridgeTest, createsBridgesWithUniqueNamesForLongInterfaces)
 
     const auto bridge1 = get_bridge_name(network1);
     const auto bridge2 = get_bridge_name(network2);
-    
+
     // Ensure bridge names are different
     EXPECT_NE(bridge1, bridge2);
     // Ensure both are within the limit
@@ -655,7 +657,7 @@ TEST_F(CreateBridgeTest, createsBridgesWithUniqueNamesForLongInterfaces)
     mock_nm_root = std::make_unique<MockDBusInterface>();
     EXPECT_CALL(*mock_nm_root, is_valid).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_nm_settings, is_valid).WillRepeatedly(Return(true));
-    
+
     {
         InSequence seq{};
         EXPECT_CALL(*mock_nm_settings,
@@ -688,7 +690,7 @@ TEST_F(CreateBridgeTest, createsBridgesWithUniqueNamesForLongInterfaces)
     inject_dbus_interfaces();
     const auto created_bridge2 = MP_BACKEND.create_bridge_with(network2);
     EXPECT_EQ(created_bridge2, bridge2.toStdString());
-    
+
     // Verify the bridges are different
     EXPECT_NE(created_bridge1, created_bridge2);
 }
