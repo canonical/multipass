@@ -22,25 +22,28 @@ class NoVms extends ConsumerWidget {
     }
 
     return Center(
-      child: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            multipassLogo,
-            const SizedBox(height: 22),
-            const Text('Zero Instances', style: TextStyle(fontSize: 21)),
-            const SizedBox(height: 8),
-            Text.rich(
-              [
-                'Return to the '.span,
-                'Catalogue'.span.color(Colors.blue).link(ref, goToCatalogue),
-                ' to choose your instance or get started with the primary Ubuntu Image'
-                    .span,
-              ].spans.size(16),
-            ),
-          ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              multipassLogo,
+              const SizedBox(height: 22),
+              const Text('Zero Instances', style: TextStyle(fontSize: 21)),
+              const SizedBox(height: 8),
+              Text.rich(
+                [
+                  'Return to the '.span,
+                  'Catalogue'.span.color(Colors.blue).link(ref, goToCatalogue),
+                  ' to choose your instance or get started with the primary Ubuntu Image'
+                      .span,
+                ].spans.size(16),
+              ),
+            ],
+          ),
         ),
       ),
     );
