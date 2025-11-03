@@ -86,7 +86,7 @@ def write_output_file(output: dict, path: pathlib.Path) -> None:
         json.dump(existing_data, f, indent=2, sort_keys=True)
         f.write("\n")
 
-    logger.info("Output written to %s)", path)
+    logger.info("Output written to %s", path)
 
 
 async def run_scraper(scraper_instance: BaseScraper) -> tuple[str, dict | None]:
