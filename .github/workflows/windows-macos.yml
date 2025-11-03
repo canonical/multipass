@@ -44,30 +44,16 @@ jobs:
           // macOS targets
           matrix.include.push({
             "name": "macOS 13 Ventura (Intel Silicon)",
-            "runs-on": "macos-13",
-            "arch": "x86_64"
+            "runs-on": "macos-13"
           },{
             "name": "macOS 14 Sonoma (Apple Silicon)",
-            "runs-on": "macos-14",
-            "arch": "arm64"
+            "runs-on": "macos-14"
           },{
             "name": "macOS Latest (Apple Silicon)",
-            "runs-on": "macos-latest",
-            "arch": "arm64",
-            // ##############################################################
-            // "nuget" and "mono" are removed from the macos-15 images, see:
-            // https://github.com/actions/runner-images/issues/10686
-            // ##############################################################
-            "brew_extra_pkgs": ["nuget", "mono"]
+            "runs-on": "macos-latest"
           },{
             "name": "macOS 15 Sequoia (Intel Silicon)",
             "runs-on": "macos-15-intel",
-            "arch": "x86_64",
-            // ##############################################################
-            // "nuget" and "mono" are removed from the macos-15 images, see:
-            // https://github.com/actions/runner-images/issues/10686
-            // ##############################################################
-            "brew_extra_pkgs": ["nuget", "mono"],
             "optional": true
           })
 
@@ -147,8 +133,6 @@ jobs:
 
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
-      env:
-        BREW_EXTRA: ${{ matrix.brew_extra_pkgs && join(matrix.brew_extra_pkgs, ' ') || '' }}
       run: |
         # Avoid reinstalling cmake
         brew list cmake > /dev/null || brew install cmake
