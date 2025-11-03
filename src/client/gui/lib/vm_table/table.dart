@@ -57,7 +57,6 @@ class _TableState<T> extends State<Table<T>> {
   int? sortIndex;
 
   static const borderSide = BorderSide(color: Colors.grey, width: 0.5);
-  static const rowHeight = 50.0;
 
   @override
   void dispose() {
@@ -180,7 +179,7 @@ class _TableState<T> extends State<Table<T>> {
             children: [
               // Properly styled header row that matches the regular table
               SizedBox(
-                height: rowHeight,
+                height: 50, // Match table row height
                 child: Scrollbar(
                   controller: horizontal,
                   child: SingleChildScrollView(
@@ -191,7 +190,7 @@ class _TableState<T> extends State<Table<T>> {
                         for (int i = 0; i < widget.headers.length; i++)
                           Container(
                             width: widget.headers[i].width,
-                            height: rowHeight,
+                            height: 50,
                             decoration: const BoxDecoration(
                               border: Border(
                                 bottom: borderSide,
@@ -218,7 +217,7 @@ class _TableState<T> extends State<Table<T>> {
       pinnedRowCount: 1,
       rowCount: cells.length,
       columnCount: widget.headers.length + 1,
-      rowBuilder: (_) => const TableSpan(extent: FixedTableSpanExtent(rowHeight)),
+      rowBuilder: (_) => const TableSpan(extent: FixedTableSpanExtent(50)),
       columnBuilder: (i) => TableSpan(
         extent: i == widget.headers.length
             ? const RemainingTableSpanExtent()
