@@ -52,10 +52,11 @@ namespace
 struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualMachine>
 {
     template <typename... Args>
-    MockBaseVirtualMachine(Args&&... args)
+    explicit MockBaseVirtualMachine(Args&&... args)
         : mpt::MockVirtualMachineT<mp::BaseVirtualMachine>{std::forward<Args>(args)...}
     {
         const auto& const_self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_name, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_all_ipv4, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, view_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_num_snapshots, mp::BaseVirtualMachine);
