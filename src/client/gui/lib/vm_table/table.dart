@@ -180,29 +180,27 @@ class _TableState<T> extends State<Table<T>> {
               // Properly styled header row that matches the regular table
               SizedBox(
                 height: 50, // Match table row height
-                child: Row(
-                  children: [
-                    for (int i = 0; i < widget.headers.length; i++)
-                      Container(
-                        width: widget.headers[i].width,
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: borderSide,
+                child: Scrollbar(
+                  controller: horizontal,
+                  child: SingleChildScrollView(
+                    controller: horizontal,
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (int i = 0; i < widget.headers.length; i++)
+                          Container(
+                            width: widget.headers[i].width,
+                            height: 50,
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                bottom: borderSide,
+                              ),
+                            ),
+                            child: headerCells[i],
                           ),
-                        ),
-                        child: headerCells[i],
-                      ),
-                    // Add empty space for the remaining column
-                    Expanded(
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: borderSide,
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               // Actual NoVms widget
