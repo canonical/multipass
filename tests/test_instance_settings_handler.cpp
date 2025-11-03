@@ -124,7 +124,8 @@ struct TestInstanceSettingsHandler : public Test
     template <template <typename /*MockClass*/> typename MockCharacter = ::testing::NiceMock>
     mpt::MockVirtualMachine& mock_vm(const std::string& name, bool deleted = false)
     {
-        auto ret = std::make_shared<MockCharacter<mpt::MockVirtualMachine>>(name);
+        auto ret = std::make_shared<MockCharacter<mpt::MockVirtualMachine>>();
+        EXPECT_CALL(*ret, get_name).WillRepeatedly(ReturnRefOfCopy(name));
 
         auto& vm_collection = deleted ? deleted_vms : vms;
         vm_collection.emplace(name, ret);

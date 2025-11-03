@@ -95,7 +95,7 @@ mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            const Path& instance_dir)
-    : VirtualMachine{vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
+    : vm_name{vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
 {
 }
 
@@ -103,7 +103,10 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            const Path& instance_dir)
-    : VirtualMachine{state, vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
+    : VirtualMachine{state},
+      vm_name{vm_name},
+      key_provider{key_provider},
+      instance_dir{instance_dir}
 {
 }
 
