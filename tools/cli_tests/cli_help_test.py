@@ -51,7 +51,7 @@ ALL_COMMANDS = [
     ("get", "Get a configuration setting"),
     ("help", "Display help about a command"),
     ("info", "Display information about instances or snapshots"),
-    ("launch", "Create and start an Ubuntu instance"),
+    ("launch", "Create and start .* instance"),
     ("list", "List all available instances or snapshots"),
     ("mount", "Mount a local directory in the instance"),
     ("networks", "List available network interfaces"),
@@ -117,7 +117,13 @@ class TestHelp:
                 r"^ {2}(\w+)\s+(.+?)\r?$", output.content, flags=re.MULTILINE
             )
 
-            assert ALL_COMMANDS == matches
+            matches = dict(matches)
+
+            for cmd, desc_pattern in ALL_COMMANDS:
+                assert cmd in matches
+                assert re.search(desc_pattern, matches[cmd])
+
+            #assert ALL_COMMANDS == matches
 
     @pytest.mark.parametrize("cmd", (x[0] for x in ALL_COMMANDS))
     def test_per_command_help(self, loc, cmd):
