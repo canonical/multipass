@@ -84,6 +84,7 @@ public:
     int get_snapshot_count() const override;
 
     QDir instance_directory() const override;
+    const std::string& get_name() const override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
@@ -165,6 +166,7 @@ private:
     void timeout_ssh();
 
 protected:
+    const std::string vm_name;
     const SSHKeyProvider& key_provider;
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
@@ -195,6 +197,11 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 inline QDir multipass::BaseVirtualMachine::instance_directory() const
 {
     return instance_dir;
+}
+
+inline const std::string& multipass::BaseVirtualMachine::get_name() const
+{
+    return vm_name;
 }
 
 inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noexcept

@@ -119,23 +119,14 @@ public:
     virtual int get_snapshot_count() const = 0;
 
     virtual QDir instance_directory() const = 0;
-    virtual const std::string& get_name() const
-    {
-        return vm_name;
-    };
+    virtual const std::string& get_name() const = 0;
 
     VirtualMachine::State state;
     std::condition_variable state_wait;
     std::mutex state_mutex;
 
 protected:
-    const std::string vm_name;
-
-    explicit VirtualMachine(const std::string& vm_name) : VirtualMachine(State::off, vm_name)
-    {
-    }
-
-    VirtualMachine(State state, const std::string& vm_name) : state{state}, vm_name{vm_name}
+    explicit VirtualMachine(State state = State::off) : state{state}
     {
     }
 };

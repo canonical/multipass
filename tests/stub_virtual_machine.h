@@ -40,7 +40,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     }
 
     StubVirtualMachine(const std::string& name, std::unique_ptr<TempDir> tmp_dir)
-        : VirtualMachine{name}, tmp_dir{std::move(tmp_dir)}
+        : VirtualMachine{}, name{name}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -193,7 +193,13 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return tmp_dir->path();
     }
 
+    const std::string& get_name() const override
+    {
+        return name;
+    }
+
     StubSnapshot snapshot;
+    std::string name;
     std::unique_ptr<TempDir> tmp_dir;
 };
 } // namespace test

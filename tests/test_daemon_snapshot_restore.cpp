@@ -49,9 +49,10 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
         const auto [temp_dir, filename] =
             plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
-        auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+        auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
         auto* ret_instance = instance_ptr.get();
 
+        EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
         EXPECT_CALL(*instance_ptr, current_state)
             .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));

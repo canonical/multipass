@@ -135,7 +135,7 @@ struct SmbMountHandlerTest : public ::Test
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::ExitStatusMock exit_status;
 
-    NiceMock<mpt::MockVirtualMachine> vm{"my_instance"};
+    NiceMock<mpt::MockVirtualMachine> vm{};
     std::string source{"source"}, target{"target"};
     QString target_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
     QString vm_name_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};

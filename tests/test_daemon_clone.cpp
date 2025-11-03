@@ -38,10 +38,10 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
 
     auto build_daemon_with_mock_instance()
     {
-        auto instance_unique_ptr =
-            std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_src_instance_name);
+        auto instance_unique_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
         auto* instance_raw_ptr = instance_unique_ptr.get();
 
+        ON_CALL(*instance_unique_ptr, get_name).WillByDefault(ReturnRef(mock_src_instance_name));
         EXPECT_CALL(mock_factory, create_virtual_machine)
             .WillOnce(Return(std::move(instance_unique_ptr)));
 

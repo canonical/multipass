@@ -73,7 +73,7 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
     static const auto upcoming_cmd_matcher = AllOf(HasSubstr("wall"), HasSubstr(msg_upcoming));
     static const auto now_cmd_matcher = AllOf(HasSubstr("wall"), HasSubstr(msg_now));
 
-    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
+    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running};
     mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
 
     EXPECT_CALL(vm, ssh_exec(upcoming_cmd_matcher, _)).Times(1); // as we start
@@ -89,7 +89,7 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
 
 TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
 {
-    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running, "mock"};
+    mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running};
     mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
 
     EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"), _))

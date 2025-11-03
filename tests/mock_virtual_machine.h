@@ -60,6 +60,7 @@ struct MockVirtualMachineT : public T
 
     void setup_default_actions()
     {
+        ON_CALL(*this, get_name).WillByDefault(ReturnRefOfCopy(std::string{"mock-vm"}));
         ON_CALL(*this, current_state).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
@@ -126,6 +127,7 @@ struct MockVirtualMachineT : public T
                 (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
     MOCK_METHOD(QDir, instance_directory, (), (const, override));
+    MOCK_METHOD(const std::string&, get_name, (), (const, override));
 
     std::unique_ptr<TempDir> tmp_dir;
 };
