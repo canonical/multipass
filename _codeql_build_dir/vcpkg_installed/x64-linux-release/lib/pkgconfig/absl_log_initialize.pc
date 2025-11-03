@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_log_initialize
+Description: Abseil log_initialize library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_log_initialize
+Requires: absl_config = 20250127, absl_log_globals = 20250127, absl_log_internal_globals = 20250127, absl_time = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

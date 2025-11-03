@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_log_internal_fnmatch
+Description: Abseil log_internal_fnmatch library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_log_internal_fnmatch
+Requires: absl_config = 20250127, absl_strings = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

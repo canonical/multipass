@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_container_common
+Description: Abseil container_common library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: absl_type_traits = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

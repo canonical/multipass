@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_pretty_function
+Description: Abseil pretty_function library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: 
+Cflags: "-I${includedir}" -DNOMINMAX

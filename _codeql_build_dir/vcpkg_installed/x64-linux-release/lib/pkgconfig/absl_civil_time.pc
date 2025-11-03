@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_civil_time
+Description: Abseil civil_time library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_civil_time
+Requires: 
+Cflags: "-I${includedir}" -DNOMINMAX

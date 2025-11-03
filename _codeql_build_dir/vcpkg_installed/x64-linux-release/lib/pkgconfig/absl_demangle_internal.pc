@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_demangle_internal
+Description: Abseil demangle_internal library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_demangle_internal
+Requires: absl_config = 20250127, absl_demangle_rust = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

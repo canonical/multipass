@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_flags_private_handle_accessor
+Description: Abseil flags_private_handle_accessor library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_flags_private_handle_accessor
+Requires: absl_config = 20250127, absl_flags_commandlineflag = 20250127, absl_flags_commandlineflag_internal = 20250127, absl_strings = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

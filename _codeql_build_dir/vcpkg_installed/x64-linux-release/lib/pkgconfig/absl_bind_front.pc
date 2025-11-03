@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_bind_front
+Description: Abseil bind_front library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: absl_base_internal = 20250127, absl_compressed_tuple = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

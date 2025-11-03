@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_hashtablez_sampler
+Description: Abseil hashtablez_sampler library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_hashtablez_sampler
+Requires: absl_base = 20250127, absl_config = 20250127, absl_exponential_biased = 20250127, absl_no_destructor = 20250127, absl_raw_logging_internal = 20250127, absl_sample_recorder = 20250127, absl_synchronization = 20250127, absl_time = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

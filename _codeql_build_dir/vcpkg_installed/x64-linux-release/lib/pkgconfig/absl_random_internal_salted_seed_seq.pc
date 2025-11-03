@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_random_internal_salted_seed_seq
+Description: Abseil random_internal_salted_seed_seq library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: absl_inlined_vector = 20250127, absl_optional = 20250127, absl_span = 20250127, absl_random_internal_seed_material = 20250127, absl_type_traits = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

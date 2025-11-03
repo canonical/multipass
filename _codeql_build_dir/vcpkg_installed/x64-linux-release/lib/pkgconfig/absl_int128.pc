@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_int128
+Description: Abseil int128 library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_int128
+Requires: absl_compare = 20250127, absl_config = 20250127, absl_core_headers = 20250127, absl_bits = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

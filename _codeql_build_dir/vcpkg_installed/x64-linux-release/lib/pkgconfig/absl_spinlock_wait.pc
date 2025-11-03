@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_spinlock_wait
+Description: Abseil spinlock_wait library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_spinlock_wait
+Requires: absl_base_internal = 20250127, absl_core_headers = 20250127, absl_errno_saver = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

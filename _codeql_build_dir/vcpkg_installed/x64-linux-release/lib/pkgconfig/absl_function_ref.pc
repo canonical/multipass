@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_function_ref
+Description: Abseil function_ref library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: absl_base_internal = 20250127, absl_core_headers = 20250127, absl_any_invocable = 20250127, absl_meta = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

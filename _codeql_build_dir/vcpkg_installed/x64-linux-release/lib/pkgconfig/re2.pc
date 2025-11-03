@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/../..
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: re2
+Description: RE2 is a fast, safe, thread-friendly regular expression engine.
+Version: 11.0.0
+
+Libs: -pthread "-L${libdir}" -lre2
+Requires: absl_absl_check absl_absl_log absl_base absl_core_headers absl_fixed_array absl_flags absl_flat_hash_map absl_flat_hash_set absl_hash absl_inlined_vector absl_optional absl_span absl_str_format absl_strings absl_synchronization
+Cflags: -pthread "-I${includedir}"

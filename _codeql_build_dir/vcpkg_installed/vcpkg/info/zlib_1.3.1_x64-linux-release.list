@@ -1,0 +1,15 @@
+x64-linux-release/
+x64-linux-release/include/
+x64-linux-release/include/zconf.h
+x64-linux-release/include/zlib.h
+x64-linux-release/lib/
+x64-linux-release/lib/libz.a
+x64-linux-release/lib/pkgconfig/
+x64-linux-release/lib/pkgconfig/zlib.pc
+x64-linux-release/share/
+x64-linux-release/share/zlib/
+x64-linux-release/share/zlib/copyright
+x64-linux-release/share/zlib/usage
+x64-linux-release/share/zlib/vcpkg-cmake-wrapper.cmake
+x64-linux-release/share/zlib/vcpkg.spdx.json
+x64-linux-release/share/zlib/vcpkg_abi_info.txt

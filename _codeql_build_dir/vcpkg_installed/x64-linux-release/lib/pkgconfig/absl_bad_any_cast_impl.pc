@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_bad_any_cast_impl
+Description: Abseil bad_any_cast_impl library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_bad_any_cast_impl
+Requires: absl_config = 20250127, absl_raw_logging_internal = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

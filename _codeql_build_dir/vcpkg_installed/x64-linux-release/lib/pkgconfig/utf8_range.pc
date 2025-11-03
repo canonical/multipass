@@ -1,0 +1,12 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: UTF8 Range
+Description: Google's UTF8 Library
+Version: 1.0
+
+Libs: "-L${libdir}" -lutf8_validity -lutf8_range
+Requires: absl_strings
+Cflags: "-I${includedir}"

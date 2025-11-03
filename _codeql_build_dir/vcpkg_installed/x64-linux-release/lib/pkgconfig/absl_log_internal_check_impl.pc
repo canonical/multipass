@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_log_internal_check_impl
+Description: Abseil log_internal_check_impl library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: absl_core_headers = 20250127, absl_log_internal_check_op = 20250127, absl_log_internal_conditions = 20250127, absl_log_internal_message = 20250127, absl_log_internal_strip = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

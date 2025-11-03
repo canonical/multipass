@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_tracing_internal
+Description: Abseil tracing_internal library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_tracing_internal
+Requires: absl_base = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

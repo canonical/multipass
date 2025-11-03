@@ -1,0 +1,8 @@
+Package: utf8-range
+Version: 5.29.5
+Depends: abseil, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux-release
+Multi-Arch: same
+Abi: 60330f7345d516c4498ffc990c798cc68f2e4213b90b8b953b36b3275df156fb
+Description: Fast UTF-8 validation with Range algorithm (NEON+SSE4+AVX2)
+Status: install ok installed

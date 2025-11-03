@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_die_if_null
+Description: Abseil die_if_null library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}" -labsl_die_if_null
+Requires: absl_config = 20250127, absl_core_headers = 20250127, absl_log = 20250127, absl_strings = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

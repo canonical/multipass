@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_absl_check
+Description: Abseil absl_check library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: absl_log_internal_check_impl = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX

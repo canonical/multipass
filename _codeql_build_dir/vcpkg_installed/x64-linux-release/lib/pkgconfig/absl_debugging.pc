@@ -1,0 +1,13 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: absl_debugging
+Description: Abseil debugging library
+URL: https://abseil.io/
+Version: 20250127
+
+Libs: "-L${libdir}"
+Requires: absl_stacktrace = 20250127, absl_leak_check = 20250127
+Cflags: "-I${includedir}" -DNOMINMAX
