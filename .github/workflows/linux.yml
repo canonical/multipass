@@ -270,7 +270,7 @@ jobs:
         set +o xtrace
 
     - name: Upload test coredump
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
       with:
         name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
@@ -298,7 +298,7 @@ jobs:
         echo "snap-file=$( ls *.snap )" >> $GITHUB_OUTPUT
 
     - name: Upload the snap
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: ${{ matrix.build-type == 'Release' }}
       with:
         name: ${{ steps.build-snap.outputs.snap-file }}
@@ -324,7 +324,7 @@ jobs:
     timeout-minutes: 15
     steps:
     - name: Download the built snap
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
       with:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
 
