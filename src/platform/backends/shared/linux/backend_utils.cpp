@@ -81,8 +81,8 @@ QString generate_bridge_name(const QString& interface_name)
 
     // Name would be truncated, so we need to add a hash to ensure uniqueness
     // Format: "br-<prefix>-<hash>" where hash is a short hex string
-    // We use 4 hex chars (2 bytes) for the hash, leaving room for "br-" (3) + "-" (1) + hash (4) =
-    // 8 chars This gives us max_bridge_name_len - 8 = 7 chars for the interface prefix
+    // We use 4 hex chars (2 bytes) for the hash, leaving room for "br-" (3) + "-" (1) + hash (4)
+    // = 8 chars. This gives us max_bridge_name_len - 8 = 7 chars for the interface prefix
     constexpr int hash_hex_len = 4;
     constexpr int separator_len = 1; // for the "-" before hash
     const int prefix_len = max_bridge_name_len - base_name.length() - separator_len - hash_hex_len;
