@@ -124,14 +124,19 @@ async def run_all_scrapers(output_file: pathlib.Path) -> None:
     completed = await asyncio.gather(*tasks)
 
     # Populate output
+    failed_scrapers = []
     for name, data in completed:
         if data:
             output[name] = data
+        else:
+            failed_scrapers.append(name)
 
     # Write final JSON output
     write_output_file(output, output_file)
-    logger.info("All scrapers succeeded.")
-
+    if not failed_scrapers:
+        logger.info("All scrapers succeeded.")
+    else:
+        logger.warning("Some scrapers failed: %s", ", ".join(failed_scrapers))
 
 def main():
     parser = argparse.ArgumentParser(
