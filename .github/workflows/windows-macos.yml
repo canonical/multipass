@@ -146,7 +146,6 @@ jobs:
           libev \
           libffi \
           ninja \
-          openssl@3 \
           pixman \
           pkg-config \
           python \
@@ -248,12 +247,6 @@ jobs:
         restore-keys: |
           ccache-${{ matrix.runs-on }}
         path: ${{ env.CCACHE_DIR }}
-
-    - name: Install OpenSSL from Choco
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
-      with:
-        args: install --yes openssl --version=3.1.1
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
