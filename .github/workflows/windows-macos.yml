@@ -181,17 +181,7 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
-      # TODO: remove this when self-hosted runners are dropped
-    - name: Disable vcpkg binary cache on self-hosted runners
-      id: disable-cache
-      shell: bash
-      run: |
-        if [[ "${{ matrix['runs-on'] }}" == *multipass* ]]; then
-          echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
-        fi
-
     - name: Configure NuGet Source
-      if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
       id: setup_nuget
       continue-on-error: true
       shell: 'bash'
