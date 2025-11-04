@@ -18,11 +18,14 @@
 #include "common.h"
 #include "file_operations.h"
 
+#include <nlohmann/json.hpp>
+
 #include <multipass/simple_streams_index.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
+using json = nlohmann::json;
 using namespace testing;
 
 TEST(SimpleStreamsIndex, parsesManifestLocation)
@@ -44,25 +47,25 @@ TEST(SimpleStreamsIndex, parsesUpdateStamp)
 TEST(SimpleStreamsIndex, throwsIfInvalidDataType)
 {
     auto json = mpt::load_test_file("simple_streams_index/bad_datatype_index.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), json::exception);
 }
 
 TEST(SimpleStreamsIndex, throwsIfMissingIndex)
 {
     auto json = mpt::load_test_file("simple_streams_index/missing_index.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), json::exception);
 }
 
 TEST(SimpleStreamsIndex, throwsIfIndexIsNotObjectType)
 {
     auto json = mpt::load_test_file("simple_streams_index/bad_index.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), json::exception);
 }
 
 TEST(SimpleStreamsIndex, throwsOnInvalidJson)
 {
     QByteArray json;
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), json::exception);
 }
 
 TEST(SimpleStreamsIndex, throwsOnInvalidTopLevelType)

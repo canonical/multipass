@@ -186,6 +186,8 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 # targets: fmt::fmt, fmt::fmt-header-only
 
+find_package(nlohmann_json CONFIG REQUIRED)
+
 # scope_guard config
 find_path(SCOPE_GUARD_INCLUDE_DIRS "scope_guard.hpp")
 add_library(scope_guard INTERFACE)
