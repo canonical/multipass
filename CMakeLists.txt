@@ -64,17 +64,12 @@ if(NOT VCPKG_BUILD_DEFAULT)
 
   # Propagate macOS deployment target to vcpkg triplet
   if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-    set(TRIPLET_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake")
-    file(WRITE "${TRIPLET_FILE}"
-"set(VCPKG_TARGET_ARCHITECTURE ${VCPKG_HOST_ARCH})
-set(VCPKG_CRT_LINKAGE dynamic)
-set(VCPKG_LIBRARY_LINKAGE static)
-set(VCPKG_CMAKE_SYSTEM_NAME Darwin)
-
-set(VCPKG_BUILD_TYPE release)
-set(VCPKG_OSX_DEPLOYMENT_TARGET \"${CMAKE_OSX_DEPLOYMENT_TARGET}\")
-")
-    message(STATUS "Generated vcpkg triplet: ${TRIPLET_FILE} with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    configure_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
+      @ONLY
+    )
+    message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
 
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
