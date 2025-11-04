@@ -24,3 +24,7 @@ packaging/windows/custom-actions/x64/*
 
 # Python artifacts
 *.pyc
+
+# Generated vcpkg triplet files
+3rd-party/vcpkg-triplets/arm64-osx-release.cmake
+3rd-party/vcpkg-triplets/x64-osx-release.cmake
