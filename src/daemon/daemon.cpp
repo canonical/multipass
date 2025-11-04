@@ -3866,7 +3866,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         // TODO find a better way to identify the missing feature
         assert(std::string{e.what()}.find("snapshots") != std::string::npos);
     }
-    instance_info->set_image_release(mpu::trim(fmt::format("{} {}", os, original_release)));
+    instance_info->set_image_release(original_release);
+    instance_info->set_os(os);
     instance_info->set_id(vm_image.id);
 
     auto vm_specs = vm_instance_specs[name];
