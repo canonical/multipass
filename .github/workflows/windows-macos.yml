@@ -43,12 +43,6 @@ jobs:
 
           // macOS targets
           matrix.include.push({
-            "name": "macOS 13 Ventura (Intel Silicon)",
-            "runs-on": "macos-13"
-          },{
-            "name": "macOS 14 Sonoma (Apple Silicon)",
-            "runs-on": "macos-14"
-          },{
             "name": "macOS Latest (Apple Silicon)",
             "runs-on": "macos-latest"
           },{
@@ -74,11 +68,11 @@ jobs:
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
-      # Use artifacts from macos-13 and macos-14 in official package
-      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-package-artifact-name }}
-      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-package-file-name }}
-      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-package-file-name }}
+      # Use artifacts from macos-15-intel and macos-latest in official package
+      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
+      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -359,7 +353,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
     - name: Check out code
