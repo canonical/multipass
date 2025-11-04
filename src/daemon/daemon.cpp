@@ -1905,7 +1905,8 @@ try
             }
         }
 
-        entry->set_current_release(mpu::trim(fmt::format("{} {}", os, current_release)));
+        entry->set_current_release(current_release);
+        entry->set_os(os);
 
         if (request->request_ipv4() && MP_UTILS.is_running(present_state))
         {

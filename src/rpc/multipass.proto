@@ -264,6 +264,7 @@ message ListVMInstance {
     repeated string ipv4 = 3;
     repeated string ipv6 = 4;
     string current_release = 5;
+    string os = 6;
 }
 
 message ListVMSnapshot {
