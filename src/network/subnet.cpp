@@ -30,7 +30,7 @@ namespace mp = multipass;
 
 namespace
 {
-mp::Subnet parse(const std::string& cidr_string)
+[[nodiscard]] mp::Subnet parse(const std::string& cidr_string)
 try
 {
     if (auto i = cidr_string.find('/'); i != std::string::npos)
@@ -69,32 +69,6 @@ catch (const std::out_of_range& e)
         ip.octets[i] &= mask.octets[i];
     }
     return ip;
-}
-
-mp::Subnet random_subnet_from_range(mp::Subnet::PrefixLength prefix_length, mp::Subnet range)
-{
-    if (prefix_length < range.prefix_length())
-        throw std::logic_error(
-            fmt::format("A subnet with prefix length {} cannot be contained by {}",
-                        prefix_length,
-                        range));
-
-    // a range with prefix /16 has 65536 prefix /32 networks,
-    // a range with prefix /24 has 256 prefix /32 networks,
-    // so a prefix /16 network can hold 65536 / 256 = 256 prefix /24 networks.
-    // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
-    const size_t possible_subnets = std::size_t{1} << (prefix_length - range.prefix_length());
-
-    // narrowing conversion, possibleSubnets is guaranteed to be < 2^31 (4 bytes is safe)
-    static_assert(sizeof(decltype(MP_UTILS.random_int(0, possible_subnets))) >= 4);
-
-    const auto subnet_block_idx = static_cast<size_t>(MP_UTILS.random_int(0, possible_subnets - 1));
-
-    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
-    mp::IPAddress id =
-        range.network_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
-
-    return mp::Subnet{id, prefix_length};
 }
 } // namespace
 
@@ -146,6 +120,41 @@ std::string mp::Subnet::to_cidr() const
     return fmt::format("{}/{}", address.as_string(), prefix);
 }
 
+size_t mp::Subnet::size(mp::Subnet::PrefixLength prefix_length) const
+{
+    if (prefix_length < this->prefix_length())
+        return 0;
+
+    // a range with prefix /16 has 65536 prefix /32 networks,
+    // a range with prefix /24 has 256 prefix /32 networks,
+    // so a prefix /16 network can hold 65536 / 256 = 256 prefix /24 networks.
+    // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
+    return std::size_t{1} << (prefix_length - this->prefix_length());
+}
+
+mp::Subnet mp::Subnet::get_specific_subnet(size_t subnet_block_idx,
+                                           mp::Subnet::PrefixLength prefix_length) const
+{
+    const size_t possible_subnets = size(prefix_length);
+    if (possible_subnets == 0)
+        throw std::logic_error(
+            fmt::format("A subnet with prefix length {} cannot be contained by {}",
+                        prefix_length,
+                        *this));
+
+    if (subnet_block_idx >= possible_subnets)
+        throw std::invalid_argument(
+            fmt::format("{} is greater than the largest subnet block index {}",
+                        subnet_block_idx,
+                        possible_subnets - 1));
+
+    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
+    mp::IPAddress address =
+        network_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
+
+    return mp::Subnet{address, prefix_length};
+}
+
 bool mp::Subnet::contains(Subnet other) const
 {
     // can't possibly contain a larger subnet
@@ -167,26 +176,4 @@ std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 
     // note the prefix_length operands are purposely flipped
     return (ip_res == 0) ? other.prefix_length() <=> prefix_length() : ip_res;
-}
-
-mp::Subnet mp::SubnetUtils::random_subnet_from_range(Subnet::PrefixLength prefix,
-                                                     Subnet range) const
-{
-    // @TODO don't rely on pure randomness
-    for (auto i = 0; i < 100; ++i)
-    {
-        const auto subnet = ::random_subnet_from_range(prefix, range);
-        if (MP_PLATFORM.subnet_used_locally(subnet))
-            continue;
-
-        if (MP_PLATFORM.can_reach_gateway(subnet.min_address()))
-            continue;
-
-        if (MP_PLATFORM.can_reach_gateway(subnet.max_address()))
-            continue;
-
-        return subnet;
-    }
-
-    throw std::runtime_error("Could not determine a subnet for networking.");
 }

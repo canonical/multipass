@@ -162,6 +162,61 @@ TEST(Subnet, canConvertToString)
     EXPECT_EQ(subnet.to_cidr(), "0.0.0.0/0");
 }
 
+TEST(Subnet, sizeGetsTheRightSize)
+{
+    mp::Subnet subnet{"192.168.0.1/24"};
+    EXPECT_EQ(subnet.size(24), 1);
+    EXPECT_EQ(subnet.size(25), 2);
+    EXPECT_EQ(subnet.size(30), 64);
+
+    subnet = mp::Subnet{"255.0.255.0/8"};
+    EXPECT_EQ(subnet.size(9), 2);
+}
+
+TEST(Subnet, sizeHandlesSmallerPrefixLength)
+{
+    mp::Subnet subnet{"192.168.0.1/24"};
+    EXPECT_EQ(subnet.size(23), 0);
+    EXPECT_EQ(subnet.size(16), 0);
+    EXPECT_EQ(subnet.size(0), 0);
+
+    subnet = mp::Subnet{"255.0.255.0/8"};
+    EXPECT_EQ(subnet.size(7), 0);
+}
+
+TEST(Subnet, getSpecificSubnetWorks)
+{
+    mp::Subnet subnet{"192.168.0.1/16"};
+
+    auto res1 = subnet.get_specific_subnet(0, 24);
+    EXPECT_EQ(res1.prefix_length(), 24);
+    EXPECT_EQ(res1.network_address(), subnet.network_address());
+
+    auto res2 = subnet.get_specific_subnet(129, 24);
+    EXPECT_EQ(res2.prefix_length(), 24);
+    EXPECT_EQ(res2.network_address(), mp::IPAddress{"192.168.129.0"});
+
+    auto res3 = subnet.get_specific_subnet(subnet.size(20) - 1, 20);
+    EXPECT_EQ(res3.prefix_length(), 20);
+    EXPECT_EQ(res3.network_address(), mp::IPAddress{"192.168.240.0"});
+}
+
+TEST(Subnet, getSpecificSubnetFailsOnBadIndex)
+{
+    mp::Subnet subnet{"192.168.0.1/16"};
+
+    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(99999999, 24), std::invalid_argument);
+    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(256, 24), std::invalid_argument);
+}
+
+TEST(Subnet, getSpecificSubnetFailsOnBadLength)
+{
+    mp::Subnet subnet{"192.168.0.1/16"};
+
+    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(0, 15), std::logic_error);
+    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(0, 0), std::logic_error);
+}
+
 TEST(Subnet, containsWorksOnContainedSubnets)
 {
     mp::Subnet container{"192.168.0.0/16"};
@@ -279,119 +334,4 @@ TEST(Subnet, relationalComparisonsWorkAsExpected)
     EXPECT_GT(submiddle, low);
     EXPECT_LT(submiddle, middle);
     EXPECT_LT(submiddle, high);
-}
-
-struct SubnetUtils : public Test
-{
-    SubnetUtils()
-    {
-        ON_CALL(*mock_platform, subnet_used_locally).WillByDefault(Return(false));
-        ON_CALL(*mock_platform, can_reach_gateway).WillByDefault(Return(false));
-    }
-
-    mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<StrictMock>()};
-    mpt::MockUtils* mock_utils = mock_utils_injection.first;
-
-    mpt::MockPlatform::GuardedMock mock_platform_injection = mpt::MockPlatform::inject<NiceMock>();
-    mpt::MockPlatform* mock_platform = mock_platform_injection.first;
-};
-
-TEST_F(SubnetUtils, generateRandomSubnetTriviallyWorks)
-{
-    const mp::Subnet range{"10.1.2.0/24"};
-
-    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(Invoke([](auto a, auto b) {
-        EXPECT_EQ(a, b);
-        return a;
-    }));
-
-    mp::Subnet subnet = MP_SUBNET_UTILS.random_subnet_from_range(24, range);
-
-    EXPECT_EQ(subnet.network_address(), range.network_address());
-    EXPECT_EQ(subnet.prefix_length(), 24);
-}
-
-TEST_F(SubnetUtils, generateRandomSubnetFailsOnSmallRange)
-{
-    mp::Subnet range{"192.168.1.0/16"};
-
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(15, range),
-                 std::logic_error);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(0, range),
-                 std::logic_error);
-}
-
-TEST_F(SubnetUtils, generateRandomSubnetFailsOnBadPrefixLength)
-{
-    mp::Subnet range{"0.0.0.0/0"};
-
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(31, range),
-                 mp::Subnet::PrefixLengthOutOfRange);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(32, range),
-                 mp::Subnet::PrefixLengthOutOfRange);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(33, range),
-                 mp::Subnet::PrefixLengthOutOfRange);
-    EXPECT_THROW(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(255, range),
-                 mp::Subnet::PrefixLengthOutOfRange);
-}
-
-TEST_F(SubnetUtils, generateRandomSubnetRespectsRange)
-{
-    mp::Subnet range("192.168.0.0/16");
-
-    auto [mock_utils, guard] = mpt::MockUtils::inject();
-
-    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(ReturnArg<0>()).WillOnce(ReturnArg<1>());
-
-    auto subnetLow = MP_SUBNET_UTILS.random_subnet_from_range(24, range);
-    auto subnetHigh = MP_SUBNET_UTILS.random_subnet_from_range(24, range);
-
-    EXPECT_EQ(subnetLow.network_address(), mp::IPAddress{"192.168.0.0"});
-    EXPECT_EQ(subnetLow.prefix_length(), 24);
-
-    EXPECT_EQ(subnetHigh.network_address(), mp::IPAddress{"192.168.255.0"});
-    EXPECT_EQ(subnetHigh.prefix_length(), 24);
-}
-
-TEST_F(SubnetUtils, generateRandomSubnetWorksAtUpperExtreme)
-{
-    mp::Subnet range("0.0.0.0/0");
-
-    EXPECT_CALL(*mock_utils, random_int(_, _)).WillOnce(ReturnArg<0>()).WillOnce(ReturnArg<1>());
-
-    auto subnetLow = MP_SUBNET_UTILS.random_subnet_from_range(30, range);
-    auto subnetHigh = MP_SUBNET_UTILS.random_subnet_from_range(30, range);
-
-    EXPECT_EQ(subnetLow.network_address(), mp::IPAddress{"0.0.0.0"});
-    EXPECT_EQ(subnetLow.prefix_length(), 30);
-
-    EXPECT_EQ(subnetHigh.network_address(), mp::IPAddress{"255.255.255.252"});
-    EXPECT_EQ(subnetHigh.prefix_length(), 30);
-}
-
-TEST_F(SubnetUtils, generateRandomSubnetGivesUpUsedLocally)
-{
-    mp::Subnet range("0.0.0.0/0");
-
-    EXPECT_CALL(*mock_utils, random_int(_, _)).WillRepeatedly(ReturnArg<0>());
-
-    EXPECT_CALL(*mock_platform, subnet_used_locally).WillRepeatedly(Return(true));
-
-    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(24, range),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("subnet")));
-}
-
-TEST_F(SubnetUtils, generateRandomSubnetGivesUpGatewayReached)
-{
-    mp::Subnet range("0.0.0.0/0");
-
-    EXPECT_CALL(*mock_utils, random_int(_, _)).WillRepeatedly(ReturnArg<0>());
-
-    EXPECT_CALL(*mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_platform, can_reach_gateway).WillRepeatedly(Return(true));
-
-    MP_EXPECT_THROW_THAT(std::ignore = MP_SUBNET_UTILS.random_subnet_from_range(24, range),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("subnet")));
 }

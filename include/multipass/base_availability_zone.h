@@ -30,7 +30,9 @@ namespace multipass
 class BaseAvailabilityZone : public AvailabilityZone
 {
 public:
-    BaseAvailabilityZone(const std::string& name, const std::filesystem::path& az_directory);
+    BaseAvailabilityZone(const std::string& name,
+                         size_t num,
+                         const std::filesystem::path& az_directory);
 
     const std::string& get_name() const override;
     const Subnet& get_subnet() const override;
@@ -56,7 +58,9 @@ private:
         mutable std::recursive_mutex mutex{};
     } m;
 
-    static data read_from_file(const std::string& name, const std::filesystem::path& file_path);
+    static data read_from_file(const std::string& name,
+                               size_t zone_num,
+                               const std::filesystem::path& file_path);
 };
 } // namespace multipass
 

@@ -24,7 +24,6 @@
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
 #include "tests/mock_process_factory.h"
-#include "tests/mock_subnet_utils.h"
 #include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 
@@ -129,9 +128,6 @@ struct QemuPlatformDetail : public Test
 
     mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils* mock_utils = utils_attr.first;
-
-    mpt::MockSubnetUtils::GuardedMock subnet_utils_attr{mpt::MockSubnetUtils::inject<NiceMock>()};
-    mpt::MockSubnetUtils* mock_subnet_utils = subnet_utils_attr.first;
 
     mpt::MockBackend::GuardedMock backend_attr{mpt::MockBackend::inject<NiceMock>()};
     mpt::MockBackend* mock_backend = backend_attr.first;

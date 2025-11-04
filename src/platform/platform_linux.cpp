@@ -354,12 +354,6 @@ std::string mp::platform::Platform::bridge_nomenclature() const
     return br_nomenclature;
 }
 
-bool mp::platform::Platform::can_reach_gateway(mp::IPAddress ip) const
-{
-    const auto ipstr = ip.as_string();
-    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ipstr.c_str(), "-c", "1", "-W", "1"});
-}
-
 // validation of the ip and cidr happen later, otherwise this regex would be massive.
 const QRegularExpression subnet_regex(
     R"(((?:[0-9][0-9]?[0-9]?\.){3}[0-9][0-9]?[0-9]?\/[0-9][0-9]?))");
@@ -390,7 +384,14 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
             mpl::warn(category, "invalid subnet from ip command: {}", e.what());
         }
     }
-    return false;
+
+    auto can_reach_gateway = [](mp::IPAddress ip) {
+        const auto ipstr = ip.as_string();
+        return MP_UTILS.run_cmd_for_status("ping",
+                                           {"-n", "-q", ipstr.c_str(), "-c", "1", "-W", "1"});
+    };
+
+    return can_reach_gateway(subnet.min_address()) || can_reach_gateway(subnet.max_address());
 }
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)

@@ -23,8 +23,6 @@
 
 #include "ip_address.h"
 
-#define MP_SUBNET_UTILS multipass::SubnetUtils::instance()
-
 namespace multipass
 {
 class Subnet
@@ -73,6 +71,9 @@ public:
 
     [[nodiscard]] std::string to_cidr() const;
 
+    [[nodiscard]] size_t size(PrefixLength prefix_length) const;
+    [[nodiscard]] Subnet get_specific_subnet(size_t block_idx, PrefixLength prefix_length) const;
+
     // Subnets are either disjoint or the smaller is a subset of the larger
     [[nodiscard]] bool contains(Subnet other) const;
     [[nodiscard]] bool contains(IPAddress ip) const;
@@ -83,15 +84,6 @@ public:
 private:
     IPAddress address;
     PrefixLength prefix;
-};
-
-struct SubnetUtils : Singleton<SubnetUtils>
-{
-    using Singleton<SubnetUtils>::Singleton;
-
-    [[nodiscard]] virtual Subnet random_subnet_from_range(Subnet::PrefixLength prefix = 24,
-                                                          Subnet range = Subnet{
-                                                              "10.0.0.0/8"}) const;
 };
 } // namespace multipass
 

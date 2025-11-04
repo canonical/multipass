@@ -34,6 +34,9 @@ namespace
 constexpr auto subnet_key = "subnet";
 constexpr auto available_key = "available";
 
+const multipass::Subnet subnet_range{"10.97.0.0/20"};
+constexpr auto subnet_prefix_length = 24;
+
 [[nodiscard]] QJsonObject read_json(const multipass::fs::path& file_path, const std::string& name)
 try
 {
@@ -47,13 +50,14 @@ catch (const std::ios_base::failure& e)
 
 [[nodiscard]] multipass::Subnet deserialize_subnet(const QJsonObject& json,
                                                    const multipass::fs::path& file_path,
-                                                   const std::string& name)
+                                                   const std::string& name,
+                                                   size_t zone_num)
 {
     if (const auto json_subnet = json[subnet_key].toString().toStdString(); !json_subnet.empty())
         return json_subnet;
 
     mpl::debug(name, "subnet missing from AZ file '{}', using default", file_path);
-    return MP_SUBNET_UTILS.random_subnet_from_range();
+    return subnet_range.get_specific_subnet(zone_num, subnet_prefix_length);
 };
 
 [[nodiscard]] bool deserialize_available(const QJsonObject& json,
@@ -72,6 +76,7 @@ namespace multipass
 {
 
 BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::string& name,
+                                                                size_t zone_num,
                                                                 const fs::path& file_path)
 {
     mpl::trace(name, "reading AZ from file '{}'", file_path);
@@ -80,13 +85,15 @@ BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::strin
     return {
         .name = name,
         .file_path = file_path,
-        .subnet = deserialize_subnet(json, file_path, name),
+        .subnet = deserialize_subnet(json, file_path, name, zone_num),
         .available = deserialize_available(json, file_path, name),
     };
 }
 
-BaseAvailabilityZone::BaseAvailabilityZone(const std::string& name, const fs::path& az_directory)
-    : m{read_from_file(name, az_directory / (name + ".json"))}
+BaseAvailabilityZone::BaseAvailabilityZone(const std::string& name,
+                                           size_t num,
+                                           const fs::path& az_directory)
+    : m{read_from_file(name, num, az_directory / (name + ".json"))}
 {
     serialize();
 }

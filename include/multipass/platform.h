@@ -78,7 +78,6 @@ public:
     virtual QString default_driver() const;
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
-    [[nodiscard]] virtual bool can_reach_gateway(IPAddress ip) const;
     [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
