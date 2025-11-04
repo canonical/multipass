@@ -186,7 +186,7 @@ if(UNIX)
 endif()
 
 # OpenSSL config
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL CONFIG REQUIRED)
 
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)

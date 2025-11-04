@@ -5,7 +5,8 @@
         "fmt",
         "scope-guard",
         "yaml-cpp",
-        "neargye-semver"
+        "neargye-semver",
+        "openssl"
     ],
     "overrides": [
         {
