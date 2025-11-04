@@ -195,7 +195,9 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             instance_node["ipv4"].push_back(ip);
 
         instance_node["release"] =
-            instance.current_release().empty() ? "Not Available" : instance.current_release();
+            instance.current_release().empty()
+                ? "Not Available"
+                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release()));
 
         list[instance.name()].push_back(instance_node);
     }
