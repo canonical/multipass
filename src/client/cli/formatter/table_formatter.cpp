@@ -166,12 +166,13 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
     if (instance_details.id().empty())
         fmt::format_to(dest, "{}\n", "Not Available");
     else
-        fmt::format_to(dest,
-                       "{}{}\n",
-                       instance_details.id().substr(0, 12),
-                       instance_details.image_release().empty()
-                           ? ""
-                           : fmt::format(" ({})", instance_details.image_release()));
+        fmt::format_to(
+            dest,
+            "{}{}\n",
+            instance_details.id().substr(0, 12),
+            instance_details.image_release().empty()
+                ? ""
+                : fmt::format(" ({} {})", instance_details.os(), instance_details.image_release()));
 
     fmt::format_to(dest,
                    "{:<16}{}\n",
