@@ -14,6 +14,14 @@ All the runtime dependencies for the tests are listed in the `pyproject.toml` fi
 sudo pip install -e ./tools/cli_tests/ --break-system-packages
 ```
 
+### Rust dependency in Windows
+
+One of the python dependencies in Windows is a Rust library. Therefore, the Rust toolchain needs to be present to satisfy the Python deps in Windows:
+
+```pwsh
+choco install rust-ms
+```
+
 ### `sudo` requirement
 
 Controlling the Multipass service and running the Multipass daemon needs superuser privileges. Hence, `sudo` (or `gsudo` in Windows) needs to be available in the environment. The test harness will prompt for an initial `sudo` escalation and will keep the `sudo` ticket alive for the duration of the tests. The tests themselves will run as non-privileged but some parts, like spawning the daemon process, or removing a `root` owned directory will escalate privileges as needed.
