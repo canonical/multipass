@@ -95,5 +95,9 @@ else()
   message(STATUS "Bootstrapping vcpkg completed successfully.")
 endif()
 
+if(MULTIPASS_ENABLE_TESTS)
+  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
+endif()
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
