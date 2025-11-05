@@ -16,14 +16,14 @@ Avoid the version of cmake supplied, we need a newer one (see later).
 
 ### Qt6
 
-#### Installing Qt 6.2.4 using aqtinstall (recommended)
+#### Installing Qt 6.10.0 using aqtinstall (recommended)
 
-Install aqtinstall and use it to download Qt 6.2.4:
+Install aqtinstall and use it to download Qt 6.10.0:
 
     brew install aqtinstall
-    aqt install-qt mac desktop 6.2.4 --outputdir ~/Qt
+    aqt install-qt mac desktop 6.10.0 --outputdir ~/Qt
 
-This will install Qt 6.2.4 to `~/Qt/6.2.4/macos`.
+This will install Qt 6.10.0 to `~/Qt/6.10.0/macos`.
 
 Adjust accordingly if you customized the Qt install directory.
 
@@ -40,16 +40,12 @@ You may need to update your version of Ruby first. You can do so with RVM:
 **Important: RVM/Ruby may require OpenSSL v1, while building Multipass requires OpenSSL v3. Make sure to switch to the right version of OpenSSL as necessary with `brew link`**
 
 
-Install Qt6:
-
-    brew install qt6
-
 ### Cmake
 
 Building a Multipass package requires cmake 3.9 or greater. The most convenient
 means to obtain cmake is with Homebrew <https://brew.sh/>.
 
-    brew install cmake glib pixman
+    brew install cmake
 
 Building
 ---------------------------------------
@@ -104,7 +100,7 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 To build with Qt installed via aqtinstall:
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.2.4/macos/bin
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos/bin
 
 Alternatively if using Qt6 from Homebrew, do
 
