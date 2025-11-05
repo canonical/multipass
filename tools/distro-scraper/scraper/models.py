@@ -1,4 +1,8 @@
 from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+
+
+ImageArch = Literal["x86_64", "arm64"]
 
 
 class ImageItem(BaseModel, extra="forbid"):
@@ -22,23 +26,6 @@ class ScraperResult(BaseModel, extra="forbid"):
     release: str = Field(..., description="Release identifier")
     release_codename: str = Field(..., description="Human-readable release codename")
     release_title: str = Field(..., description="Release title or version")
-    items: dict[str, ImageItem] = Field(
+    items: dict[ImageArch, ImageItem] = Field(
         ..., description="Map of architecture labels to image metadata"
     )
-
-    @field_validator("items")
-    @classmethod
-    def validate_architecture_keys(
-        cls, v: dict[str, ImageItem]
-    ) -> dict[str, ImageItem]:
-        """
-        Ensure items dict only contains valid architecture keys.
-        """
-        allowed_keys = {"x86_64", "arm64"}
-        invalid_keys = set(v.keys()) - allowed_keys
-        if invalid_keys:
-            raise ValueError(
-                f"Invalid architecture keys: {invalid_keys}. "
-                f"Only {allowed_keys} are allowed."
-            )
-        return v
