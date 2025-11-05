@@ -33,7 +33,7 @@ CocoaPods is required to build the Flutter GUI
 
     sudo gem install cocoapods
 
-You may need to update your version of Ruby first. You can do so with RVM:
+You may need to update your version of Ruby first. You can do so with RVM <https://rvm.io/rvm/install>:
 
     rvm install 3.1.0 && rvm --default use 3.1.0
 
