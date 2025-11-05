@@ -62,11 +62,11 @@ class DebianScraper(BaseScraper):
             resp.raise_for_status()
             return await resp.json()
 
-    def _parse_release_file(self, content: str) -> dict[str, str]:
+    def _parse_release_file(self, content: str) -> tuple[str, str]:
         """
         Parse RFC822-style Release file and return important fields.
 
-        Returns a dict with keys: Version, Codename
+        Returns a tuple with (Version, Codename)
         """
         parser = Parser()
         parsed = parser.parsestr(content)
@@ -75,7 +75,7 @@ class DebianScraper(BaseScraper):
         self.logger.info(
             "Parsed Release file: Version=%s, Codename=%s", version, codename
         )
-        return {"Version": version, "Codename": codename}
+        return version, codename
 
     async def _head_content_length(
         self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
@@ -196,10 +196,8 @@ class DebianScraper(BaseScraper):
         """
         async with aiohttp.ClientSession() as session:
             release_text = await self._fetch_text(session, RELEASE_FILE_URL)
-            parsed = self._parse_release_file(release_text)
 
-            raw_version = parsed.get("Version")
-            codename = parsed.get("Codename")
+            raw_version, codename = self._parse_release_file(release_text)
             if not codename:
                 raise RuntimeError(
                     "Could not determine Debian codename from Release file"

@@ -18,7 +18,7 @@ class FedoraScraper(BaseScraper):
         return "Fedora"
 
     @staticmethod
-    def _map_arch_label(arch: str) -> str | None:
+    def _map_arch_label(arch: str) -> str:
         """
         Map Fedora architecture names to the labels used in our items output.
 
@@ -28,7 +28,7 @@ class FedoraScraper(BaseScraper):
             return "arm64"
         if arch == "x86_64":
             return "x86_64"
-        return None
+        raise ValueError(f"unsupported arch {arch}")
 
     def _find_latest_version(self, images: list[dict]) -> str:
         """
@@ -122,10 +122,9 @@ class FedoraScraper(BaseScraper):
             supported_images = []
             for img in latest_images:
                 arch = img.get("arch")
-                label = self._map_arch_label(arch)
-                if label:
-                    supported_images.append((img, label))
-                else:
+                try:
+                    supported_images.append((img, self._map_arch_label(arch)))
+                except ValueError:
                     self.logger.info("Skipping unsupported architecture: %s", arch)
 
             # Fetch all last-modified dates asynchronously
