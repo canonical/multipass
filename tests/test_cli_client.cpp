@@ -1244,7 +1244,7 @@ TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageHttpOk))
 TEST_F(Client, launchCmdCloudinitOptionWithValidFileIsOk)
 {
     QTemporaryFile tmpfile; // file is auto-deleted when this goes out of scope
-    tmpfile.open();
+    ASSERT_TRUE(tmpfile.open());
     tmpfile.write("password: passw0rd"); // need some YAML
     tmpfile.close();
     EXPECT_CALL(mock_daemon, launch(_, _));

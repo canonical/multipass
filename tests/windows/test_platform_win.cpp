@@ -615,7 +615,7 @@ TEST(PlatformWin, createAliasScriptWorks)
         MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
 
     QFile checked_script(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
-    checked_script.open(QFile::ReadOnly);
+    ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
 
     std::string script_line = checked_script.readLine().toStdString();
     EXPECT_THAT(script_line, HasSubstr("@"));

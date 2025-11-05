@@ -41,6 +41,7 @@
 #include <array>
 #include <cassert>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <random>
@@ -159,6 +160,25 @@ QDir mp::utils::base_dir(const QString& path)
 {
     QFileInfo info{path};
     return info.absoluteDir();
+}
+
+std::filesystem::path mp::utils::normalize_path(const std::filesystem::path& path)
+{
+    auto result = path.lexically_normal();
+    // Remove the trailing slash if present.
+    if (!result.has_filename())
+        result = result.parent_path();
+    return result;
+}
+
+std::string mp::utils::normalize_path(const std::string& path)
+{
+    return normalize_path(std::filesystem::path{path}).generic_string();
+}
+
+QString mp::utils::normalize_path(const QString& path)
+{
+    return QString::fromStdString(normalize_path(path.toStdString()));
 }
 
 bool mp::utils::valid_hostname(const std::string& name_string)
@@ -432,7 +452,9 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
         MP_UTILS.make_dir(
             {},
             QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
-        config_file.open(QIODevice::WriteOnly);
+        if (!config_file.open(QIODevice::WriteOnly))
+            throw std::runtime_error(
+                fmt::format("Unable to create config file \"{}\"", config_file_path.toStdString()));
     }
 }
 
@@ -604,22 +626,33 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
 
 mp::Path mp::Utils::default_mount_target(const Path& source) const
 {
-    return source.isEmpty()
-               ? ""
-               : QDir{QDir::cleanPath(source)}.dirName().prepend(QString{home_in_instance} + '/');
+    // The GUI calls this function on every update of the host mount directory, so we need to be
+    // pretty lenient with what we accept for now. In the future, the GUI should be able to handle
+    // errors from this function as an indicator that the host mount directory is invalid.
+    if (source == "")
+        return "";
+
+    auto path = mp::utils::normalize_path(std::filesystem::absolute(source.toStdString()));
+    if (!path.has_filename())
+        return "";
+    auto mount_target = home_in_instance / path.filename();
+    return QString::fromStdString(mount_target.generic_string());
 }
 
 QString mp::Utils::normalize_mount_target(QString target_mount_path) const
 {
-    if (QDir::isRelativePath(target_mount_path)) // rely on Qt to understand Linux paths on Windows
-        target_mount_path.prepend('/').prepend(home_in_instance); // QString::prepend is fast
+    std::filesystem::path target_mount = target_mount_path.toStdString();
+    if (target_mount.is_relative())
+        target_mount = home_in_instance / target_mount;
 
-    return QDir::cleanPath(target_mount_path);
+    target_mount = mp::utils::normalize_path(target_mount);
+    return QString::fromStdString(target_mount.generic_string());
 }
 
 bool mp::Utils::invalid_target_path(const QString& target_path) const
 {
-    assert(target_path == QDir::cleanPath(target_path) && "target_path must be normalized");
+    assert(target_path == mp::utils::normalize_path(target_path) &&
+           "target_path must be normalized");
     static QRegularExpression matcher{
         QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
 

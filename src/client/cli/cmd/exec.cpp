@@ -20,8 +20,10 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/ssh/ssh_client.h>
+#include <multipass/utils.h>
 
 namespace mp = multipass;
+namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
 
 namespace
@@ -75,14 +77,14 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
             (!parser->executeAlias() && !parser->isSet(no_dir_mapping_option)))
         {
             // The host directory on which the user is executing the command.
-            QString clean_exec_dir = QDir::cleanPath(QDir::current().canonicalPath());
+            QString clean_exec_dir = mpu::normalize_path(QDir::current().canonicalPath());
             QStringList split_exec_dir = clean_exec_dir.split('/');
 
             auto on_info_success = [&work_dir, &split_exec_dir](mp::InfoReply& reply) {
                 for (const auto& mount : reply.details(0).mount_info().mount_paths())
                 {
                     auto source_dir = QDir(QString::fromStdString(mount.source_path()));
-                    auto clean_source_dir = QDir::cleanPath(source_dir.absolutePath());
+                    auto clean_source_dir = mpu::normalize_path(source_dir.absolutePath());
                     QStringList split_source_dir = clean_source_dir.split('/');
 
                     // If the directory is mounted, we need to `cd` to it in the instance before
