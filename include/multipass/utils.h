@@ -76,6 +76,13 @@ bool invalid_target_path(const QString& target_path);
 QTemporaryFile create_temp_file_with_path(const QString& filename_template);
 void remove_directories(const std::vector<QString>& dirs);
 
+// path normalization: returns the lexically-normal form of the path with any trailing directory
+// separator removed. The string overloads additionally convert directory separators to generic
+// form ("/").
+std::filesystem::path normalize_path(const std::filesystem::path& path);
+std::string normalize_path(const std::string& path);
+QString normalize_path(const QString& path);
+
 // filesystem mount helpers
 void make_target_dir(SSHSession& session,
                      const std::string& root,

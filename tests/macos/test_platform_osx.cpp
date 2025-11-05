@@ -312,7 +312,7 @@ TEST(PlatformOSX, createAliasScriptWorks)
         MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
-    checked_script.open(QFile::ReadOnly);
+    ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");

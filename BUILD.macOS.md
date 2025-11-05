@@ -18,14 +18,14 @@ Avoid the version of cmake supplied, we need a newer one (see later).
 
 #### Option 1: Using Qt official sources
 
-Install the latest stable version of Qt6 LTS (6.2.4 at the moment): <http://www.qt.io/download-open-source/>.
+Install the latest stable version of Qt6 LTS (6.10.0 at the moment): <http://www.qt.io/download-open-source/>.
 
 If it tells you that XCode 5.0.0 needs to be installed, go to XCode > Preferences > Locations and make a selection in
 the _Command Line Tools_ box.
 
 Add Qt6 to your PATH environment variable, adding to your `.bash_profile` file the following line:
 
-    export PATH=$PATH:~/Qt/6.2.4/clang_64/bin
+    export PATH=$PATH:~/Qt/6.10.0/clang_64/bin
 
 Adjust accordingly if you customized the Qt install directory.
 
@@ -50,7 +50,7 @@ Building
 
 To build with official Qt sources do:
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.2.4/clang_64
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/clang_64
 
 Alternatively if using Qt6 from Homebrew, do
 
