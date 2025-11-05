@@ -6,6 +6,12 @@ A Python package for scraping cloud distribution image information for Multipass
 
 This tool fetches metadata about the latest cloud images from various Linux distributions and outputs a JSON file for use by Multipass.
 
+The scraper will:
+1. Load all registered scraper plugins
+2. Fetch image metadata from each distribution concurrently
+3. Validate the output against the expected schema
+4. Write the combined results to the specified JSON file
+
 ## Installation
 
 Create a virtual environment:
@@ -34,12 +40,6 @@ distro-scraper <output_file>
 ```bash
 python -m scraper <output_file>
 ```
-
-The scraper will:
-1. Load all registered scraper plugins
-2. Fetch image metadata from each distribution concurrently
-3. Validate the output against the expected schema
-4. Write the combined results to the specified JSON file
 
 ## Architecture
 
