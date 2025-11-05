@@ -29,7 +29,8 @@ function(add_target TARGET_NAME)
       jsoncpp_static
       shared_win
       scope_guard
-      wineventlogger)
+      wineventlogger
+      OpenSSL::applink)
   elseif(APPLE)
     add_library(${TARGET_NAME} STATIC
       platform_osx.cpp
