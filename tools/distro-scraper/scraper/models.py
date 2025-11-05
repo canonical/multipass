@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 
 
-class ImageItem(BaseModel):
+class ImageItem(BaseModel, extra="forbid"):
     """
     Schema for an individual architecture's image metadata.
     """
@@ -12,7 +12,7 @@ class ImageItem(BaseModel):
     size: int = Field(..., description="Size of the image in bytes")
 
 
-class ScraperResult(BaseModel):
+class ScraperResult(BaseModel, extra="forbid"):
     """
     Schema for the complete scraper output.
     """
@@ -42,7 +42,3 @@ class ScraperResult(BaseModel):
                 f"Only {allowed_keys} are allowed."
             )
         return v
-
-    class Config:
-        # Reject extra fields to catch errors
-        extra = "forbid"
