@@ -16,14 +16,14 @@ Avoid the version of cmake supplied, we need a newer one (see later).
 
 ### Qt6
 
-#### Installing Qt 6.2.4 using aqtinstall (recommended)
+#### Installing Qt 6.10.0 using aqtinstall (recommended)
 
-Install aqtinstall and use it to download Qt 6.2.4:
+Install aqtinstall and use it to download Qt 6.10.0:
 
     brew install aqtinstall
-    aqt install-qt mac desktop 6.2.4 --outputdir ~/Qt
+    aqt install-qt mac desktop 6.10.0 --outputdir ~/Qt
 
-This will install Qt 6.2.4 to `~/Qt/6.2.4/macos`.
+This will install Qt 6.10.0 to `~/Qt/6.10.0/macos`.
 
 Adjust accordingly if you customized the Qt install directory.
 
@@ -99,7 +99,7 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 To build with Qt installed via aqtinstall:
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.2.4/macos/bin
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos/bin
 
 Then start the build with:
 
