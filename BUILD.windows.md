@@ -15,7 +15,7 @@ After chocolatey is installed you can now install the rest of the dependencies f
 Powershell(Admin). To get the best results, in the following order:
 
 ```[pwsh]
-choco install cmake ninja qemu-img openssl git wget unzip -yfd
+choco install cmake ninja qemu-img git wget unzip -yfd
 ```
 
 ```[pwsh]
