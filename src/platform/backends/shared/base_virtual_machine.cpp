@@ -243,6 +243,10 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 
 void mp::BaseVirtualMachine::set_available(bool available)
 {
+    // Ignore idempotent calls
+    if (available == (state != State::unavailable))
+        return;
+
     if (available)
     {
         state = State::off;

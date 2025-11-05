@@ -1460,6 +1460,9 @@ TEST_F(BaseVM, setAvailableRestartsRunning)
     base_vm.set_available(false);
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
+    base_vm.set_available(false);
+    ASSERT_EQ(base_vm.current_state(), St::unavailable);
+
     base_vm.set_available(true);
     EXPECT_EQ(base_vm.current_state(), St::running);
 }
