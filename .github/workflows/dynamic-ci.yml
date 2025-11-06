@@ -55,7 +55,6 @@ jobs:
               - "snap-wrappers/**"
               - "src/**"
               - "tests/**"
-              - "tools/**"
               - ".gitmodules"
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
