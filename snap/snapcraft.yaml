@@ -124,7 +124,7 @@ parts:
     - build-essential
     - ccache
     - lcov
-    - clang-11
+    - clang-15
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
@@ -137,7 +137,6 @@ parts:
     - unzip
     - curl
     - libkeybinder-3.0-dev
-    - clang
     - ninja-build
     stage-packages:
     - apparmor

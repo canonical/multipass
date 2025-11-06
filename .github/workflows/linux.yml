@@ -24,7 +24,7 @@ jobs:
         set -euo pipefail
 
         MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
-                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-11"}
+                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-15"}
                 {"build-type": "Release", "cmake-preset": "ci-snap"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
