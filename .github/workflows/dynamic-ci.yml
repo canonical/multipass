@@ -47,7 +47,7 @@ jobs:
               - ".github/workflows/windows-macos.yml"
               - "3rd-party/**"
               - "completions/**"
-              - "data/**"
+              - "data/*"
               - "debian/**"
               - "include/**"
               - "packaging/**"
