@@ -48,7 +48,6 @@ jobs:
           },{
             "name": "macOS 15 Sequoia (Intel Silicon)",
             "runs-on": "macos-15-intel",
-            "optional": true
           })
 
           core.setOutput('matrix', JSON.stringify(matrix));
@@ -76,7 +75,6 @@ jobs:
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
-    continue-on-error: ${{ matrix.optional || false }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
