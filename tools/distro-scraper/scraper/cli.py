@@ -83,7 +83,7 @@ def write_output_file(output: dict, path: pathlib.Path) -> None:
     # Write merged output
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
-        json.dump(existing_data, f, indent=2, sort_keys=True)
+        json.dump(existing_data, f, indent=4, sort_keys=True)
         f.write("\n")
 
     logger.info("Output written to %s", path)
