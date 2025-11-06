@@ -140,7 +140,6 @@ parts:
     - libpng16-16
     - libqt6core6
     - libqt6network6
-    - libssl3
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
