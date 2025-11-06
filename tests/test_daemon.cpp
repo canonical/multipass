@@ -554,7 +554,10 @@ struct DaemonCreateLaunchAliasTestSuite : public Daemon,
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
             .WillRepeatedly(Return(fake_alias_dir.path()));
 
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_json_utils, write_json, JsonUtils);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_json_utils,
+                                                     write_json,
+                                                     JsonUtils,
+                                                     (An<const QJsonObject&>(), _));
     }
 };
 
@@ -1101,7 +1104,8 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
     mp::Daemon daemon{config_builder.build()};
 
     auto [mock_json_utils, guard] = mpt::MockJsonUtils::inject<StrictMock>();
-    EXPECT_CALL(*mock_json_utils, write_json).Times(1); // avoid creating directory
+    EXPECT_CALL(*mock_json_utils, write_json(An<const QJsonObject&>(), _))
+        .Times(1); // avoid creating directory
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
@@ -1201,7 +1205,7 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
         .WillOnce(WithArg<0>([&mac_addr, &extra_interfaces](const QJsonObject& obj) {
             check_interfaces_in_json(obj, mac_addr, extra_interfaces);
         }));
@@ -1280,7 +1284,7 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
         .WillOnce(
             WithArg<0>([&mounts](const QJsonObject& obj) { check_mounts_in_json(obj, mounts); }));
 
@@ -1316,7 +1320,7 @@ TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
     send_command({"list"}, stream);
     EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
         .WillOnce(WithArg<0>([&uid_mappings, &gid_mappings](const QJsonObject& obj) {
             check_maps_in_json(obj, uid_mappings, gid_mappings);
         }));
@@ -1544,7 +1548,7 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
         .WillOnce(Return())
         .WillOnce(WithArg<0>([&stayed, &gone](const QJsonObject& obj) {
             QJsonDocument doc{obj};
@@ -2297,7 +2301,7 @@ TEST_F(Daemon, purgePersistsInstances)
     const auto [temp_dir, filename] = plant_instance_json(json_contents);
     config_builder.data_directory = temp_dir->path();
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
         .WillOnce(Return())
         .WillOnce(Return())
         .WillOnce(WithArg<0>([&name1, &name2](const QJsonObject& obj) {

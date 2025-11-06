@@ -26,6 +26,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <boost/json.hpp>
+
 #include <optional>
 #include <ostream>
 #include <string>
@@ -42,6 +44,8 @@ public:
     explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
 
     virtual void write_json(const QJsonObject& root,
+                            QString file_name) const; // transactional; creates parent dirs
+    virtual void write_json(const boost::json::value& root,
                             QString file_name) const; // transactional; creates parent dirs
     virtual std::string json_to_string(const QJsonObject& root) const;
     virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
