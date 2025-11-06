@@ -30,17 +30,34 @@ jobs:
     steps:
     - name: Determine build matrix
       id: set-matrix
-      run: |
-        set -euo pipefail
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const matrix = { include: [] };
 
-        MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "macos-13", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14"},'
-        MATRIX+='{"runs-on": "macos-latest"}'
-        MATRIX+=']}'
+          // Windows targets
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025"
+          });
 
-        echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+          // macOS targets
+          matrix.include.push({
+            "name": "macOS 13 Ventura (Intel Silicon)",
+            "runs-on": "macos-13"
+          },{
+            "name": "macOS 14 Sonoma (Apple Silicon)",
+            "runs-on": "macos-14"
+          },{
+            "name": "macOS Latest (Apple Silicon)",
+            "runs-on": "macos-latest"
+          },{
+            "name": "macOS 15 Sequoia (Intel Silicon)",
+            "runs-on": "macos-15-intel",
+            "optional": true
+          })
+
+          core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
     needs: GetMatrix
@@ -63,7 +80,9 @@ jobs:
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-package-file-name }}
 
+    name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ matrix.optional || false }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
@@ -179,14 +198,29 @@ jobs:
       run: |
         echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        # Retrieve vcpkg's nuget.
+        NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        MONO_WRAPPER=""
+
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # Check if we actually need to call NuGet through mono.
+            # That would be the case if NuGet is the real PE32 executable
+            # instead of a shim.
+            if file "$NUGET_PATH" | grep -q "PE32"; then
+                MONO_WRAPPER="mono"
+            fi
+        fi
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           sources add \
           -source "${{ env.FEED_URL }}" \
           -storepasswordincleartext \
           -name "GitHubPackages" \
           -username "${{ env.USERNAME }}" \
           -password "${{ secrets.GITHUB_TOKEN }}"
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -source "${{ env.FEED_URL }}"
 
