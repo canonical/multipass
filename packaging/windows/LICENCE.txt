@@ -15,7 +15,7 @@ https://github.com/canonical/multipass/
 - libssh: https://git.libssh.org/projects/libssh.git/
 - openssl: https://www.openssl.org/
 - qt: https://www.qt.io/
-- semver: https://github.com/zmarko/semver
+- semver: https://github.com/Neargye/semver
 - xz-embedded: https://git.tukaani.org/?p=xz-embedded.git
 - yaml-cpp: https://github.com/jbeder/yaml-cpp
 
@@ -36,7 +36,7 @@ Below is a summary of the licensing used in the respective projects. See their s
   - GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
   - OpenSSL Exception
 - qt: GNU LGPL Version 3; Copyright (c) 2016 The Qt Company
-- semver: MIT License; Copyright (c) 2015 Marko Živanović
+- semver: MIT License; Copyright (c) Neargye
 - xz-embedded: zx-embedded License;
 - yaml-cpp: MIT License; Copyright (c) 2008-2015 Jesse Beder.
 - gettext (libintl): GNU LGPL Version 2.1 License; See AUTHORS file for Copyright information
