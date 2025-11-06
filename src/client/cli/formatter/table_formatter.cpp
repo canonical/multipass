@@ -42,10 +42,8 @@ void format_images(Dest&& dest,
               [](const mp::FindReply_ImageInfo& a, const mp::FindReply_ImageInfo& b) {
                   if (a.remote_name() == b.remote_name())
                   {
-                      if (!a.aliases().empty() && !b.aliases().empty())
-                      {
-                          return a.aliases()[0] < b.aliases()[0];
-                      }
+                      return (!a.aliases().empty() && !b.aliases().empty()) &&
+                             a.aliases()[0] < b.aliases()[0];
                   }
 
                   return a.remote_name() > b.remote_name();
