@@ -88,6 +88,14 @@
             "description": "Preset for snap builds in CI for code coverage runs.",
             "inherits": "ci-snap",
             "cacheVariables": {
+                "CMAKE_C_COMPILER": {
+                    "type": "STRING",
+                    "value": "gcc"
+                },
+                "CMAKE_CXX_COMPILER": {
+                    "type": "STRING",
+                    "value": "g++"
+                },
                 "CMAKE_BUILD_TYPE": {
                     "type": "STRING",
                     "value": "Coverage"
