@@ -86,9 +86,20 @@ jobs:
       uses: ./.github/actions/build-params
 
     - name: Apply snapcraft-ci-override.yaml
-      run: >
-        sudo apt-get install yq
-        yq -y -s '.[0] * .[1]' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml
+      env:
+        MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      run: |
+        sudo snap install yq
+
+        # Substitute the environment variables in the snapcraft-ci-override.yaml
+        envsubst < snap/snapcraft-ci-override.yaml.in | yq eval \
+          'del(..|select(. == null or . == "" or . == {})) | del(.. | select(type == "array" and length == 0))'\
+           -P > snap/snapcraft-ci-override.yaml
+
+        # Merge / override the original snapcraft.yaml
+        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -126,51 +137,10 @@ jobs:
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
     - name: Build
-      env:
-        LABEL: ${{ steps.build-params.outputs.label }}
       run: |
-        # Inject the build label.
-        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${LABEL}" snap/snapcraft.yaml
-
-        # Inject vcpkg GH Actions cache env vars if they exist
-        if [ -n "${ACTIONS_CACHE_URL}" ]; then
-          sed -i "/build-environment:/a \    - ACTIONS_CACHE_URL: ${ACTIONS_CACHE_URL}" snap/snapcraft.yaml
-        fi
-        if [ -n "${ACTIONS_RUNTIME_TOKEN}" ]; then
-          sed -i "/build-environment:/a \    - ACTIONS_RUNTIME_TOKEN: ${ACTIONS_RUNTIME_TOKEN}" snap/snapcraft.yaml
-        fi
-
-        if [ -n "${VCPKG_BINARY_SOURCES}" ]; then
-          sed -i '/build-environment:/ {
-          a\
-            - VCPKG_BINARY_SOURCES: '"${VCPKG_BINARY_SOURCES}"'\
-            - FEED_URL: '"${FEED_URL}"'\
-            - USERNAME: '"${USERNAME}"'\
-            - GITHUB_TOKEN: '"${{ secrets.GITHUB_TOKEN }}"'
-          }' snap/snapcraft.yaml
-          sed -i "/build-packages:/a \    - mono-complete" snap/snapcraft.yaml
-          sed -i '0,/override-build: |/ {
-            /override-build: |/ a\
-              curl -L -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe\
-              ln -sf /usr/local/bin/nuget.exe /usr/local/bin/nuget\
-              export PATH=$PATH:/usr/local/bin\
-              if ! mono /usr/local/bin/nuget.exe sources list -format short | grep ${FEED_URL} &> /dev/null; then\
-                mono /usr/local/bin/nuget.exe sources add -name GitHubPackages -source "${FEED_URL}" -username "${USERNAME}" -password "${GITHUB_TOKEN}" -storePasswordInClearText\
-              fi\
-              mono /usr/local/bin/nuget.exe setapikey "${GITHUB_TOKEN}" -source "${FEED_URL}"
-          }' snap/snapcraft.yaml
-        fi
-
-        if [ -n "${GITHUB_ACTIONS}" ]; then
-          sed -i "/build-environment:/a \    - GITHUB_ACTIONS: \"${GITHUB_ACTIONS}\"" snap/snapcraft.yaml
-        fi
-
-        if [ -n "${{ matrix.cmake-preset }}" ]; then
-          sed -i -E 's/^([[:space:]]*-\s*CMAKE_PRESET:\s*).*/\1"'"${{ matrix.cmake-preset }}"'"/' snap/snapcraft.yaml
-        fi
-
         # Build the `multipass` part.
         /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
+        /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
         /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Clear CCache stats
