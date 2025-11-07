@@ -65,6 +65,10 @@
                 "CMAKE_CXX_COMPILER_LAUNCHER": {
                     "type": "STRING",
                     "value": "ccache"
+                },
+                "MULTIPASS_BUILD_LABEL": {
+                    "type": "STRING",
+                    "value": "$env{MULTIPASS_BUILD_LABEL}"
                 }
             }
         },

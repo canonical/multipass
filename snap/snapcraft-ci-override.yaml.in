@@ -1,0 +1,45 @@
+parts:
+  inject-apt-mirrors:
+    plugin: nil
+    override-pull: |
+      # Based on https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt-sources.sh
+      echo "Injecting custom APT mirror priorities..."
+
+      cat <<EOF > /etc/apt/apt-mirrors.txt
+      http://azure.archive.ubuntu.com/ubuntu/	priority:1
+      https://archive.ubuntu.com/ubuntu/	priority:2
+      https://security.ubuntu.com/ubuntu/	priority:3
+      EOF
+
+      codename=jammy
+      cat <<EOF > /etc/apt/sources.list
+      deb mirror+file:/etc/apt/apt-mirrors.txt $codename main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt $codename-updates main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt $codename-security main restricted universe multiverse
+      EOF
+
+      apt-get update
+
+  configure-nuget-cache:
+    build-environment:
+      - FEED_URL: '${FEED_URL}'
+      - USERNAME: '${USERNAME}'
+      - GITHUB_TOKEN: '${GITHUB_TOKEN}'
+    plugin: nil
+    override-pull: |
+      curl -L -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe\
+      ln -sf /usr/local/bin/nuget.exe /usr/local/bin/nuget\
+      export PATH=$PATH:/usr/local/bin\
+      if ! mono /usr/local/bin/nuget.exe sources list -format short | grep ${FEED_URL} &> /dev/null; then\
+        mono /usr/local/bin/nuget.exe sources add -name GitHubPackages -source "${FEED_URL}" -username "${USERNAME}" -password "${GITHUB_TOKEN}" -storePasswordInClearText\
+      fi\
+      mono /usr/local/bin/nuget.exe setapikey "${GITHUB_TOKEN}" -source "${FEED_URL}"
+
+  multipass:
+    build-environment:
+      - MULTIPASS_BUILD_LABEL: ${LABEL}
+      - ACTIONS_CACHE_URL: ${ACTIONS_CACHE_URL}
+      - ACTIONS_RUNTIME_TOKEN: ${ACTIONS_RUNTIME_TOKEN}
+      - VCPKG_BINARY_SOURCES: ${VCPKG_BINARY_SOURCES}
+      - GITHUB_ACTIONS: '${GITHUB_ACTIONS}'
+      - CMAKE_PRESET: '${CMAKE_PRESET}'
