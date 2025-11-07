@@ -30,10 +30,12 @@ namespace multipass
 class BaseAvailabilityZone : public AvailabilityZone
 {
 public:
-    BaseAvailabilityZone(const std::string& name, const std::filesystem::path& az_directory);
+    BaseAvailabilityZone(const std::string& name,
+                         size_t num,
+                         const std::filesystem::path& az_directory);
 
     const std::string& get_name() const override;
-    const std::string& get_subnet() const override;
+    const Subnet& get_subnet() const override;
     bool is_available() const override;
     void set_available(bool new_available) override;
     void add_vm(VirtualMachine& vm) override;
@@ -48,7 +50,7 @@ private:
     {
         const std::string name{};
         const std::filesystem::path file_path{};
-        const std::string subnet{};
+        const Subnet subnet;
         bool available{};
         std::vector<std::reference_wrapper<VirtualMachine>> vms{};
         // we don't have designated initializers, so mutex remains last so it doesn't need to be
@@ -56,7 +58,9 @@ private:
         mutable std::recursive_mutex mutex{};
     } m;
 
-    static data read_from_file(const std::string& name, const std::filesystem::path& file_path);
+    static data read_from_file(const std::string& name,
+                               size_t zone_num,
+                               const std::filesystem::path& file_path);
 };
 } // namespace multipass
 

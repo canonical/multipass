@@ -40,12 +40,14 @@ constexpr auto automatic_zone_key = "automatic_zone";
     using namespace multipass;
 
     std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
-    std::transform(default_zone_names.begin(),
-                   default_zone_names.end(),
-                   zones.begin(),
-                   [&](const auto& zone_name) {
-                       return std::make_unique<BaseAvailabilityZone>(zone_name, zones_directory);
-                   });
+    size_t zone_num = 0;
+    for (const auto& zone_name : default_zone_names)
+    {
+        zones[zone_num] =
+            std::make_unique<BaseAvailabilityZone>(zone_name, zone_num, zones_directory);
+        ++zone_num;
+    }
+
     return zones;
 };
 

@@ -27,6 +27,7 @@
 #include <multipass/settings/setting_spec.h>
 #include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
+#include <multipass/subnet.h>
 #include <multipass/update_prompt.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
@@ -77,6 +78,7 @@ public:
     virtual QString default_driver() const;
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
+    [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
 

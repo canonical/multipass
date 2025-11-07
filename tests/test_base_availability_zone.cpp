@@ -42,6 +42,7 @@ struct BaseAvailabilityZoneTest : public Test
     const mp::fs::path az_dir{"/path/to/zones"};
     const mp::fs::path az_file = az_dir / (az_name + ".json");
     const QString az_file_qstr{QString::fromStdU16String(az_file.u16string())};
+    const mp::Subnet az_subnet{"192.168.1.0/24"};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockJsonUtils::GuardedMock mock_json_utils_guard{mpt::MockJsonUtils::inject()};
@@ -58,37 +59,34 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())));
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
 
     EXPECT_EQ(zone.get_name(), az_name);
     EXPECT_TRUE(zone.is_available());
-    // TODO: Subnet generation is not yet implemented
-    // EXPECT_TRUE(zone.get_subnet().empty());
 }
 
-// TODO: Re-implement this test when subnet generation is implemented
-// TEST_F(TestBaseAvailabilityZone, loads_existing_zone_file)
-// {
-//     const std::string test_subnet = "10.0.0.0/24";
-//     const bool test_available = false;
-//
-//     QJsonObject json{{"subnet", QString::fromStdString(test_subnet)}, {"available",
-//     test_available}};
-//
-//     EXPECT_CALL(*mock_json_utils_guard.first,
-//     read_object_from_file(az_file)).WillOnce(Return(json));
-//
-//     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
-//
-//     EXPECT_CALL(*mock_json_utils_guard.first, write_json(_,
-//     QString::fromStdString(az_file.u8string())));
-//
-//     mp::BaseAvailabilityZone zone{az_name, az_dir};
-//
-//     EXPECT_EQ(zone.get_name(), az_name);
-//     EXPECT_EQ(zone.get_subnet(), test_subnet);
-//     EXPECT_FALSE(zone.is_available());
-// }
+TEST_F(BaseAvailabilityZoneTest, loads_existing_zone_file)
+{
+    const mp::Subnet test_subnet{"10.0.0.0/24"};
+    const bool test_available = false;
+
+    QJsonObject json{{"subnet", QString::fromStdString(test_subnet.to_cidr())},
+                     {"available", test_available}};
+
+    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(az_file))
+        .WillOnce(Return(json));
+
+    EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
+
+    EXPECT_CALL(*mock_json_utils_guard.first,
+                write_json(_, QString::fromStdU16String(az_file.u16string())));
+
+    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
+
+    EXPECT_EQ(zone.get_name(), az_name);
+    EXPECT_EQ(zone.get_subnet(), test_subnet);
+    EXPECT_FALSE(zone.is_available());
+}
 
 TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
 {
@@ -103,7 +101,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
                 write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
 
     const std::string test_vm_name = "test-vm";
     NiceMock<mpt::MockVirtualMachine> mock_vm{test_vm_name};
@@ -125,7 +123,7 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
     EXPECT_CALL(*mock_json_utils_guard.first,
                 write_json(_, QString::fromStdU16String(az_file.u16string())));
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
 
     const std::string test_vm_name = "test-vm";
     NiceMock<mpt::MockVirtualMachine> mock_vm{test_vm_name};
@@ -147,7 +145,7 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
                 write_json(_, QString::fromStdU16String(az_file.u16string())))
         .Times(2); // Once in constructor, once in set_available
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
 
     const std::string vm1_name = "test-vm1";
     const std::string vm2_name = "test-vm2";

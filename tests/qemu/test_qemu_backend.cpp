@@ -200,7 +200,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 
 TEST_F(QemuBackend, createsInOffState)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -212,7 +212,7 @@ TEST_F(QemuBackend, createsInOffState)
 
 TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -227,7 +227,7 @@ TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
 
 TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -251,7 +251,7 @@ TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
 
 TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -285,7 +285,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -326,7 +326,7 @@ TEST_F(QemuBackend, throwsOnShutdownTimeout)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -365,7 +365,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -404,7 +404,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
 
 TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -432,7 +432,7 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 {
     const std::string sub_error_msg{"Cannot shut down suspended instance"};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -454,7 +454,7 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
     const std::string sub_error_msg1{"Cannot shut down instance"};
     const std::string sub_error_msg2{"while suspending."};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -477,7 +477,7 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
     const std::string sub_error_msg1{"Cannot shut down instance"};
     const std::string sub_error_msg2{"while starting."};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -514,7 +514,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -544,7 +544,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 
 TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -565,7 +565,7 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 
 TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -604,7 +604,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 
 TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -626,7 +626,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 
 TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -667,7 +667,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 
 TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -694,7 +694,7 @@ TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
 
 TEST_F(QemuBackend, verifySomeCommonQemuArguments)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -727,7 +727,7 @@ TEST_F(QemuBackend, verifySomeCommonQemuArguments)
 
 TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -755,7 +755,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
 {
     constexpr auto machine_type = "k0mPuT0R";
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -786,7 +786,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
 
 TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -828,7 +828,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
 
 TEST_F(QemuBackend, returnsVersionString)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -856,7 +856,7 @@ TEST_F(QemuBackend, returnsVersionString)
 
 TEST_F(QemuBackend, returnsVersionStringWhenFailedParsing)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -883,7 +883,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenFailedParsing)
 
 TEST_F(QemuBackend, returnsVersionStringWhenErrored)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -908,7 +908,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenErrored)
 
 TEST_F(QemuBackend, returnsVersionStringWhenExecFailed)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1088,7 +1088,7 @@ TEST_F(QemuBackend, networksReturnsSupportedNetworks)
 {
     ON_CALL(*mock_qemu_platform, is_network_supported(_)).WillByDefault(Return(true));
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1119,7 +1119,7 @@ TEST_F(QemuBackend, removeResourcesForCallsQemuPlatform)
             EXPECT_EQ(name, test_name);
         });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1138,7 +1138,7 @@ TEST_F(QemuBackend, hypervisorHealthCheckCallsQemuPlatform)
         health_check_called = true;
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1162,7 +1162,7 @@ TEST_F(QemuBackend, getBackendDirectoryNameCallsQemuPlatform)
             return backend_dir_name;
         });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1176,7 +1176,7 @@ TEST_F(QemuBackend, getBackendDirectoryNameCallsQemuPlatform)
 
 TEST_F(QemuBackend, addNetworkInterface)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1191,7 +1191,7 @@ TEST_F(QemuBackend, addNetworkInterface)
 
 TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
     EXPECT_CALL(*mock_qemu_platform, needs_network_prep()).Times(1).WillRepeatedly(Return(true));
@@ -1204,7 +1204,7 @@ TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
 
 TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1255,7 +1255,7 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
 
 TEST_F(QemuBackend, cloneCopiesRelevantFiles)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
         return std::move(mock_qemu_platform);
     });
 

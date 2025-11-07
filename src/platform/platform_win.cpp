@@ -629,6 +629,14 @@ std::string mp::platform::Platform::bridge_nomenclature() const
     return "switch";
 }
 
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    // ping
+    // Get-NetAdapter | Get-NetIPAddress | Format-Table IPAddress,PrefixLength
+    // throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
+    return false;
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = systemprofile_app_data_path();
