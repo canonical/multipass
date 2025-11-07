@@ -18,7 +18,7 @@ add_library(update STATIC
   default_update_prompt.cpp
   new_release_monitor.cpp)
 
-target_link_libraries(update
+target_link_libraries(update PUBLIC
   network
   fmt::fmt-header-only
   rpc

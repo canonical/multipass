@@ -17,7 +17,7 @@ add_library(qemu_platform_detail
 
 target_include_directories(qemu_platform_detail PRIVATE ../)
 
-target_link_libraries(qemu_platform_detail
+target_link_libraries(qemu_platform_detail PUBLIC
   fmt::fmt-header-only
   logger
   utils
