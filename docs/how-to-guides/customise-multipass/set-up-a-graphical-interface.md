@@ -84,32 +84,34 @@ This RDP server only works with the default GNOME desktop. You can use it with U
 
 1. Create the following `cloud-init.yaml` configuration file:
 
-   ```{code-block} yaml
-   :caption: cloud-init.yaml
-   :emphasize-lines: 13,14
+    ```{code-block} yaml
+    :caption: cloud-init.yaml
+    :emphasize-lines: 14,15
 
-   package_update: true
-   package_upgrade: true
-   users:
-   - default
-   packages:
-   - ubuntu-desktop
-   - gnome-remote-desktop
-   - winpr3-utils
-   runcmd:
-   - sudo -u gnome-remote-desktop winpr-makecert3 -silent -rdp -path ~gnome-remote-desktop rdp-tls
-   - sudo -u gnome-remote-desktop grdctl --headless rdp set-tls-key ~gnome-remote-desktop/rdp-tls.key
-   - sudo -u gnome-remote-desktop grdctl --headless rdp set-tls-cert ~gnome-remote-desktop/rdp-tls.crt
-   - sudo -u gnome-remote-desktop grdctl --headless rdp set-credentials ubuntu <your-password>
-   - echo ubuntu:<your-password> | sudo chpasswd
-   - echo /usr/sbin/nologin >> /etc/shells
-   - sudo -u gnome-remote-desktop grdctl --headless rdp enable
-   - systemctl --user enable --now gnome-remote-desktop-headless.service
-   - sudo systemctl set-default graphical.target
-   - loginctl enable-linger ubuntu
-   ```
+    package_update: true
+    package_upgrade: true
+    users:
+    - default
+    packages:
+    - ubuntu-desktop
+    - gnome-remote-desktop
+    - winpr3-utils
+    runcmd:
+    - whoami > /etc/whoami
+    - sudo -u gnome-remote-desktop winpr-makecert3 -silent -rdp -path ~gnome-remote-desktop rdp-tls
+    - grdctl --system rdp set-tls-key ~gnome-remote-desktop/rdp-tls.key
+    - grdctl --system rdp set-tls-cert ~gnome-remote-desktop/rdp-tls.crt
+    - grdctl --system rdp set-credentials ubuntu <your-password>
+    - echo ubuntu:<your-password> | sudo chpasswd
+    - echo /usr/sbin/nologin >> /etc/shells
+    - grdctl --system rdp enable
+    - systemctl enable --now gnome-remote-desktop.service
+    - systemctl enable --now gdm
+    - sudo systemctl set-default graphical.target
+    - loginctl enable-linger ubuntu
+    ```
 
-   Replace `<your-password>` with a secure password on the highlighted lines.
+    Replace `<your-password>` with a secure password on the highlighted lines.
 
 1. Launch the configured Multipass instance:
 
