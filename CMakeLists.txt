@@ -64,11 +64,13 @@ if(NOT VCPKG_BUILD_DEFAULT)
 
   # Propagate macOS deployment target to vcpkg triplet
   if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
     configure_file(
       "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
-      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
+      "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
       @ONLY
     )
+    set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
     message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
 
