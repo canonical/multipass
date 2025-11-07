@@ -29,7 +29,7 @@ dependencies:
   local_notifier: ^0.1.6
   logger: ^2.5.0
   path_provider: ^2.1.5
-  protobuf: ^4.0.0
+  protobuf: 5.1.0
   rxdart: ^0.28.0
   shared_preferences: ^2.5.2
   synchronized: ^3.3.1
