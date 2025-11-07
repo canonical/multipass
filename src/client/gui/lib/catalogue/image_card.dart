@@ -120,7 +120,11 @@ class ImageCard extends ConsumerWidget {
                   items: versions
                       .map((v) => DropdownMenuItem(
                             value: v.release,
-                            child: Text('${v.release} (${v.codename})'),
+                            child: Text(
+                              '${v.release} (${v.codename})',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ))
                       .toList(),
                   onChanged: (String? newValue) {
