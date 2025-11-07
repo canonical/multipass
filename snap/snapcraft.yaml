@@ -134,6 +134,7 @@ parts:
     - curl
     - libkeybinder-3.0-dev
     - clang
+    - clang-tidy
     - ninja-build
     stage-packages:
     - apparmor
