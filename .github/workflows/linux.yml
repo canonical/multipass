@@ -85,11 +85,10 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Apply patches
-      env:
-        PATCH_PREFIX: .github/workflows/linux
+    - name: Apply snapcraft-ci-override.yaml
       run: >
-        [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
+        sudo apt-get install yq
+        yq -y -s '.[0] * .[1]' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml
 
     - name: Set up vcpkg
       id: setup-vcpkg
