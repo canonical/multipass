@@ -97,7 +97,6 @@ This RDP server only works with the default GNOME desktop. You can use it with U
     - gnome-remote-desktop
     - winpr3-utils
     runcmd:
-    - whoami > /etc/whoami
     - sudo -u gnome-remote-desktop winpr-makecert3 -silent -rdp -path ~gnome-remote-desktop rdp-tls
     - grdctl --system rdp set-tls-key ~gnome-remote-desktop/rdp-tls.key
     - grdctl --system rdp set-tls-cert ~gnome-remote-desktop/rdp-tls.crt
