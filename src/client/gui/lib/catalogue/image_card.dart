@@ -136,7 +136,9 @@ class _ImageCardState extends ConsumerState<ImageCard> {
                 ),
               ),
               const SizedBox(height: 8),
-            ],
+            ] else
+              const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Row(children: [
               TextButton(
                 onPressed: () {
