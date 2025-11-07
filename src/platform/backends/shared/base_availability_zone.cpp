@@ -23,6 +23,8 @@
 
 #include <fmt/format.h>
 
+#include <scope_guard.hpp>
+
 #include <QJsonDocument>
 
 namespace mpl = multipass::logging;
@@ -115,10 +117,42 @@ void BaseAvailabilityZone::set_available(const bool new_available)
         return;
 
     m.available = new_available;
-    serialize();
+    auto serialize_guard = sg::make_scope_guard([this]() noexcept {
+        try
+        {
+            serialize();
+        }
+        catch (const std::exception& e)
+        {
+            mpl::error(m.name, "Failed to serialize availability zone: {}", e.what());
+        }
+    });
 
-    for (auto& vm : m.vms)
-        vm.get().set_available(m.available);
+    try
+    {
+        for (auto& vm : m.vms)
+            vm.get().set_available(new_available);
+    }
+    catch (...)
+    {
+        // if an error occurs fallback to available.
+        m.available = true;
+
+        // make sure nothing is still unavailable.
+        for (auto& vm : m.vms)
+        {
+            // setting the state here breaks encapsulation, but it's already broken.
+            std::unique_lock vm_lock{vm.get().state_mutex};
+            if (vm.get().current_state() == VirtualMachine::State::unavailable)
+            {
+                vm.get().state = VirtualMachine::State::off;
+                vm.get().update_state();
+            }
+        }
+
+        // rethrow the error so something else can deal with it.
+        throw;
+    }
 }
 
 void BaseAvailabilityZone::add_vm(VirtualMachine& vm)

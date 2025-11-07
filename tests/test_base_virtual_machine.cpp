@@ -82,6 +82,10 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                                                      get_snapshot,
                                                      mp::BaseVirtualMachine,
                                                      (A<const std::string&>()));
+        MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*this,
+                                                     set_available,
+                                                     mp::BaseVirtualMachine,
+                                                     (A<bool>()));
     }
 
     MOCK_METHOD(std::shared_ptr<mp::Snapshot>,
@@ -1439,6 +1443,39 @@ TEST_F(BaseVM, sshExecRethrowsSSHExceptionsWhenConnected)
     MP_EXPECT_THROW_THAT(vm.ssh_exec(cmd),
                          mp::SSHException,
                          mpt::match_what(HasSubstr("intentional")));
+}
+
+TEST_F(BaseVM, setUnavailableShutsdownRunning)
+{
+    ON_CALL(vm, current_state).WillByDefault(Return(St::running));
+    EXPECT_CALL(vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff)).Times(1);
+
+    vm.set_available(false);
+}
+
+TEST_F(BaseVM, setAvailableRestartsRunning)
+{
+    StubBaseVirtualMachine base_vm(zone, St::running);
+
+    base_vm.set_available(false);
+    ASSERT_EQ(base_vm.current_state(), St::unavailable);
+
+    base_vm.set_available(false);
+    ASSERT_EQ(base_vm.current_state(), St::unavailable);
+
+    base_vm.set_available(true);
+    EXPECT_EQ(base_vm.current_state(), St::running);
+}
+
+TEST_F(BaseVM, setAvailableKeepsOffOff)
+{
+    StubBaseVirtualMachine base_vm(zone, St::off);
+
+    base_vm.set_available(false);
+    ASSERT_EQ(base_vm.current_state(), St::unavailable);
+
+    base_vm.set_available(true);
+    EXPECT_EQ(base_vm.current_state(), St::off);
 }
 
 } // namespace

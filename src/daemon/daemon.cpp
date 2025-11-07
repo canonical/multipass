@@ -1034,6 +1034,8 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
         return mp::InstanceStatus::SUSPENDING;
     case mp::VirtualMachine::State::suspended:
         return mp::InstanceStatus::SUSPENDED;
+    case mp::VirtualMachine::State::unavailable:
+        return mp::InstanceStatus::UNAVAILABLE;
     case mp::VirtualMachine::State::unknown:
     default:
         return mp::InstanceStatus::UNKNOWN;
@@ -2083,6 +2085,12 @@ try
             continue;
         }
 
+        if (vm->current_state() == VirtualMachine::State::unavailable)
+        {
+            add_fmt_to(errors, "instance '{}' is not available", name);
+            continue;
+        }
+
         auto& vm_mounts = mounts[name];
         if (vm_mounts.find(target_path) != vm_mounts.end())
         {
@@ -2259,9 +2267,13 @@ try
             continue;
         }
         case VirtualMachine::State::suspending:
+        case VirtualMachine::State::unavailable:
+            // TODO: format State directly
             fmt::format_to(std::back_inserter(start_errors),
-                           "Cannot start the instance '{}' while suspending.",
-                           name);
+                           "Cannot start the instance '{}' while {}.",
+                           name,
+                           vm.current_state() == VirtualMachine::State::suspending ? "suspending"
+                                                                                   : "unavailable");
             continue;
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
@@ -2364,6 +2376,14 @@ try
     if (status.ok())
     {
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
+            if (vm.current_state() == VirtualMachine::State::unavailable)
+            {
+                mpl::log(mpl::Level::info,
+                         vm.vm_name,
+                         "Ignoring suspend since instance is unavailable.");
+                return grpc::Status::OK;
+            }
+
             stop_mounts(vm.vm_name);
 
             vm.suspend();
@@ -2485,6 +2505,14 @@ try
             {
                 const auto& instance_name = vm_it->first;
 
+                if (vm_it->second->current_state() == VirtualMachine::State::unavailable)
+                {
+                    mpl::log(mpl::Level::info,
+                             instance_name,
+                             "Ignoring delete since instance is unavailable.");
+                    continue;
+                }
+
                 auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
                 const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
                                               ? SnapshotPick{{}, true}
@@ -2533,9 +2561,16 @@ try
         const auto target_path =
             QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
 
-        if (operative_instances.find(name) == operative_instances.end())
+        auto vm = operative_instances.find(name);
+        if (vm == operative_instances.end())
         {
             add_fmt_to(errors, "instance '{}' does not exist", name);
+            continue;
+        }
+
+        if (vm->second->current_state() == VirtualMachine::State::unavailable)
+        {
+            mpl::log(mpl::Level::info, name, "Ignoring umount since instance unavailable.");
             continue;
         }
 
