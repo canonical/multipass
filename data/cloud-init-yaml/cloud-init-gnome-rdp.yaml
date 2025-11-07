@@ -1,0 +1,21 @@
+package_update: true
+package_upgrade: true
+users:
+  - default
+packages:
+  - ubuntu-desktop
+  - gnome-remote-desktop
+  - winpr3-utils
+runcmd:
+  - whoami > /etc/whoami
+  - sudo -u gnome-remote-desktop winpr-makecert3 -silent -rdp -path ~gnome-remote-desktop rdp-tls
+  - grdctl --system rdp set-tls-key ~gnome-remote-desktop/rdp-tls.key
+  - grdctl --system rdp set-tls-cert ~gnome-remote-desktop/rdp-tls.crt
+  - grdctl --system rdp set-credentials ubuntu <your-password>
+  - echo ubuntu:<your-password> | sudo chpasswd
+  - echo /usr/sbin/nologin >> /etc/shells
+  - grdctl --system rdp enable
+  - systemctl enable --now gnome-remote-desktop.service
+  - systemctl enable --now gdm
+  - sudo systemctl set-default graphical.target
+  - loginctl enable-linger ubuntu
