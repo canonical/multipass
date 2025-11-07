@@ -3,31 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../providers.dart';
+import 'catalogue.dart';
 import 'launch_form.dart';
 
-class ImageCard extends ConsumerStatefulWidget {
+class ImageCard extends ConsumerWidget {
   final ImageInfo parentImage;
   final List<ImageInfo> versions;
   final double width;
+  final String imageKey;
 
-  const ImageCard(
-      {required this.parentImage,
-      required this.versions,
-      required this.width,
-      super.key});
-
-  @override
-  ConsumerState<ImageCard> createState() => _ImageCardState();
-}
-
-class _ImageCardState extends ConsumerState<ImageCard> {
-  late ImageInfo selectedImage;
-
-  @override
-  void initState() {
-    super.initState();
-    selectedImage = widget.parentImage;
-  }
+  const ImageCard({
+    required this.parentImage,
+    required this.versions,
+    required this.width,
+    required this.imageKey,
+  });
 
   String _getParentImageLogo(String os) {
     return switch (os.toLowerCase()) {
@@ -38,20 +28,20 @@ class _ImageCardState extends ConsumerState<ImageCard> {
     };
   }
 
-  String _getDisplayTitle(String os) {
-    return switch (os.toLowerCase()) {
-      'ubuntu' when widget.parentImage.aliases.any((a) => a.contains('core')) =>
+  String _getDisplayTitle(ImageInfo parentImage) {
+    return switch (parentImage.os.toLowerCase()) {
+      'ubuntu' when parentImage.aliases.any((a) => a.contains('core')) =>
         'Ubuntu Core',
       'ubuntu' => 'Ubuntu Server',
       'debian' => 'Debian',
       'fedora' => 'Fedora',
-      _ => os, // Default case: return the OS name as-is
+      _ => parentImage.os, // Default case: return the OS name as-is
     };
   }
 
-  String _getDescription(String os) {
-    return switch (os.toLowerCase()) {
-      'ubuntu' when widget.parentImage.aliases.any((a) => a.contains('core')) =>
+  String _getDescription(ImageInfo parentImage) {
+    return switch (parentImage.os.toLowerCase()) {
+      'ubuntu' when parentImage.aliases.any((a) => a.contains('core')) =>
         'Ubuntu operating system optimised for IoT and Edge',
       'ubuntu' =>
         'Ubuntu operating system designed as a backbone for the internet',
@@ -62,13 +52,22 @@ class _ImageCardState extends ConsumerState<ImageCard> {
   }
 
   bool _shouldShowVersionDropdown() {
-    return widget.versions.length > 1;
+    return versions.length > 1;
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedImage =
+        ref.watch(selectedImageProvider(imageKey)) ?? parentImage;
+
+    if (ref.read(selectedImageProvider(imageKey)) == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(selectedImageProvider(imageKey).notifier).set(parentImage);
+      });
+    }
+
     return Container(
-      width: widget.width,
+      width: width,
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xff707070)),
       ),
@@ -86,14 +85,14 @@ class _ImageCardState extends ConsumerState<ImageCard> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 SvgPicture.asset(
-                  _getParentImageLogo(widget.parentImage.os),
+                  _getParentImageLogo(parentImage.os),
                   height: 24,
                   fit: BoxFit.contain,
-                  semanticsLabel: '${widget.parentImage.os} logo',
+                  semanticsLabel: '${parentImage.os} logo',
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _getDisplayTitle(widget.parentImage.os),
+                  _getDisplayTitle(parentImage),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
@@ -102,7 +101,7 @@ class _ImageCardState extends ConsumerState<ImageCard> {
               ],
             ),
             const SizedBox(height: 12),
-            Text(_getDescription(widget.parentImage.os),
+            Text(_getDescription(parentImage),
                 style: const TextStyle(fontWeight: FontWeight.w300)),
             const SizedBox(height: 16),
             const Spacer(),
@@ -118,7 +117,7 @@ class _ImageCardState extends ConsumerState<ImageCard> {
                   icon: const Icon(Icons.keyboard_arrow_down),
                   focusColor: Colors.transparent,
                   isExpanded: true,
-                  items: widget.versions
+                  items: versions
                       .map((v) => DropdownMenuItem(
                             value: v.release,
                             child: Text('${v.release} (${v.codename})'),
@@ -126,11 +125,12 @@ class _ImageCardState extends ConsumerState<ImageCard> {
                       .toList(),
                   onChanged: (String? newValue) {
                     if (newValue != null) {
-                      setState(() {
-                        selectedImage = widget.versions.firstWhere(
-                          (v) => v.release == newValue,
-                        );
-                      });
+                      final newImage = versions.firstWhere(
+                        (v) => v.release == newValue,
+                      );
+                      ref
+                          .read(selectedImageProvider(imageKey).notifier)
+                          .set(newImage);
                     }
                   },
                 ),

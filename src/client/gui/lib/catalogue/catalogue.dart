@@ -11,6 +11,25 @@ import '../providers.dart';
 import 'image_card.dart';
 import 'launch_form.dart';
 
+class SelectedImageNotifier extends Notifier<ImageInfo?> {
+  SelectedImageNotifier(this.arg);
+  final String arg;
+
+  @override
+  ImageInfo? build() {
+    return null;
+  }
+
+  void set(ImageInfo image) {
+    state = image;
+  }
+}
+
+final selectedImageProvider =
+    NotifierProvider.family<SelectedImageNotifier, ImageInfo?, String>(
+  SelectedImageNotifier.new,
+);
+
 final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
   if (!ref.watch(daemonAvailableProvider)) {
     // When daemon is not available, return empty list
@@ -102,18 +121,21 @@ List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
   return [
     if (ubuntuImages.isNotEmpty)
       ImageCard(
+        imageKey: 'ubuntu-${ubuntuImages.first.release}',
         parentImage: ubuntuImages.first,
         versions: ubuntuImages.toList(),
         width: cardWidth,
       ),
     if (coreImages.isNotEmpty)
       ImageCard(
+        imageKey: 'core-${coreImages.first.release}',
         parentImage: coreImages.first,
         versions: coreImages.toList(),
         width: cardWidth,
       ),
     ...otherImages.map((image) {
       return ImageCard(
+        imageKey: '${image.os}-${image.release}',
         parentImage: image,
         versions: [image],
         width: cardWidth,
