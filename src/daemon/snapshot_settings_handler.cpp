@@ -22,6 +22,7 @@
 #include <multipass/constants.h>
 #include <multipass/format.h>
 
+#include <QRegularExpression>
 #include <QString>
 
 namespace mp = multipass;
