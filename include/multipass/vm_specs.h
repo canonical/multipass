@@ -22,6 +22,8 @@
 #include "virtual_machine.h"
 #include "vm_mount.h"
 
+#include <boost/json.hpp>
+
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -42,7 +44,7 @@ struct VMSpecs
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
-    QJsonObject metadata;
+    boost::json::object metadata;
     int clone_count =
         0; // tracks the number of cloned vm from this source vm (regardless of deletes)
 
