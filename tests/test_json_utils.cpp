@@ -87,6 +87,38 @@ TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
               QJsonValue{"vm2_e_e_e"});
 }
 
+struct Animal
+{
+    std::string name;
+    friend bool operator==(const Animal&, const Animal&) = default;
+};
+
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const Animal& animal)
+{
+    json = {{"name", animal.name}};
+}
+Animal tag_invoke(const boost::json::value_to_tag<Animal>&, const boost::json::value& json)
+{
+    return {value_to<std::string>(json.at("name"))};
+}
+
+TEST(TestJsonUtils, mapToJsonArray)
+{
+    std::map<std::string, Animal> map = {{"dog", {"fido"}},
+                                         {"goat", {"philipp"}},
+                                         {"panda", {"coco"}}};
+    boost::json::array json_array = {{{"species", "dog"}, {"name", "fido"}},
+                                     {{"species", "goat"}, {"name", "philipp"}},
+                                     {{"species", "panda"}, {"name", "coco"}}};
+
+    auto json_result = boost::json::value_from(map, mp::MapAsJsonArray{"species"});
+    EXPECT_EQ(json_result, json_array);
+
+    auto map_result =
+        value_to<std::map<std::string, Animal>>(json_array, mp::MapAsJsonArray{"species"});
+    EXPECT_EQ(map_result, map);
+}
+
 TEST(TestJsonUtils, jsonToQString)
 {
     boost::json::value json = "hello";
