@@ -21,7 +21,6 @@
 #include "network_interface.h"
 
 #include <QDir>
-#include <QJsonObject>
 
 #include <chrono>
 #include <condition_variable>
