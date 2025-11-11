@@ -215,12 +215,7 @@ TEST_F(TestBaseSnapshot, adoptsCustomMounts)
 
 TEST_F(TestBaseSnapshot, adoptsCustomMetadata)
 {
-    QJsonObject json;
-    QJsonObject data;
-    data.insert("an-int", 7);
-    data.insert("a-str", "str");
-    json.insert("meta", data);
-    specs.metadata = json;
+    specs.metadata = {{"meta", {{"an-int", 7}, {"a-str", "str"}}}};
 
     auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm};
     EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
@@ -465,7 +460,7 @@ TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
     mod_snapshot_json(json, "metadata", metadata);
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
-    EXPECT_EQ(snapshot.get_metadata(), metadata);
+    EXPECT_EQ(snapshot.get_metadata(), mp::qjson_to_boost_json(metadata).as_object());
 }
 
 TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
