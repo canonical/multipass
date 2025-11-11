@@ -22,6 +22,9 @@
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/utils.h>
 
+#include <QRegularExpression>
+#include <QString>
+
 namespace mp = multipass;
 
 namespace
