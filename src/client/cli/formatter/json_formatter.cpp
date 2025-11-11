@@ -24,6 +24,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include <boost/json.hpp>
+
 namespace mp = multipass;
 
 namespace
@@ -400,5 +402,5 @@ std::string mp::JsonFormatter::format(const VersionReply& reply,
 
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
-    return MP_JSONUTILS.json_to_string(aliases.to_json());
+    return pretty_print(boost::json::value_from(aliases));
 }

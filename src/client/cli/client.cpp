@@ -81,7 +81,7 @@ mp::Client::Client(ClientConfig& config)
     : stub{mp::Rpc::NewStub(
           mp::client::make_channel(config.server_address, *config.cert_provider))},
       term{config.term},
-      aliases{config.term}
+      aliases{AliasDict::load_file(config.term)}
 {
     add_command<cmd::Alias>(aliases);
     add_command<cmd::Aliases>(aliases);
