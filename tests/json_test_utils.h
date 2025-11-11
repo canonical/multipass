@@ -26,8 +26,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <QJsonObject>
-#include <QString>
+#include <boost/json.hpp>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -39,16 +38,13 @@ std::string make_instance_json(const std::optional<std::string>& default_mac = s
 std::unique_ptr<mpt::TempDir> plant_instance_json(
     const std::string& contents); // unique_ptr bypasses missing move ctor
 
-void check_interfaces_in_json(const QString& file,
+void check_interfaces_in_json(const boost::json::value& doc,
                               const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_interfaces);
 
-void check_interfaces_in_json(const QJsonObject& doc_object,
-                              const std::string& mac,
-                              const std::vector<mp::NetworkInterface>& extra_interfaces);
+void check_maps_in_json(const boost::json::value& doc,
+                        const mp::id_mappings& expected_gid_mappings,
+                        const mp::id_mappings& expected_uid_mappings);
 
-void check_mounts_in_json(const QString& file,
-                          const std::unordered_map<std::string, mp::VMMount>& mounts);
-
-void check_mounts_in_json(const QJsonObject& doc_object,
+void check_mounts_in_json(const boost::json::value& doc,
                           const std::unordered_map<std::string, mp::VMMount>& mounts);

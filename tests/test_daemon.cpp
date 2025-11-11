@@ -56,8 +56,6 @@
 
 #include <scope_guard.hpp>
 
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <QNetworkProxyFactory>
 #include <QStorageInfo>
 #include <QString>
@@ -557,7 +555,7 @@ struct DaemonCreateLaunchAliasTestSuite : public Daemon,
         MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_json_utils,
                                                      write_json,
                                                      JsonUtils,
-                                                     (An<const QJsonObject&>(), _));
+                                                     (An<const boost::json::value&>(), _));
     }
 };
 
@@ -1104,7 +1102,7 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
     mp::Daemon daemon{config_builder.build()};
 
     auto [mock_json_utils, guard] = mpt::MockJsonUtils::inject<StrictMock>();
-    EXPECT_CALL(*mock_json_utils, write_json(An<const QJsonObject&>(), _))
+    EXPECT_CALL(*mock_json_utils, write_json(An<const boost::json::value&>(), _))
         .Times(1); // avoid creating directory
 
     std::stringstream stream;
@@ -1135,38 +1133,6 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                         std::vector<std::string>{"--disk", "4G"}),
                                  Values("1G", mp::default_disk_size, "10G")));
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchStorageCheckSuite, Values("test_create", "launch"));
-
-void check_maps_in_json(const QJsonObject& doc_object,
-                        const mp::id_mappings& expected_gid_mappings,
-                        const mp::id_mappings& expected_uid_mappings)
-{
-    const auto instance_object = doc_object["real-zebraphant"].toObject();
-
-    const auto mounts = instance_object["mounts"].toArray();
-
-    ASSERT_EQ(mounts.size(), 1);
-
-    auto mount = mounts.first().toObject(); // There is at most one mount in our JSON.
-
-    auto gid_mappings = mount["gid_mappings"].toArray();
-
-    ASSERT_EQ((unsigned)gid_mappings.size(), expected_gid_mappings.size());
-
-    for (unsigned i = 0; i < expected_gid_mappings.size(); ++i)
-    {
-        ASSERT_EQ(gid_mappings[i].toObject()["host_gid"], expected_gid_mappings[i].first);
-        ASSERT_EQ(gid_mappings[i].toObject()["instance_gid"], expected_gid_mappings[i].second);
-    }
-
-    auto uid_mappings = mount["uid_mappings"].toArray();
-    ASSERT_EQ((unsigned)uid_mappings.size(), expected_uid_mappings.size());
-
-    for (unsigned i = 0; i < expected_uid_mappings.size(); ++i)
-    {
-        ASSERT_EQ(uid_mappings[i].toObject()["host_uid"], expected_uid_mappings[i].first);
-        ASSERT_EQ(uid_mappings[i].toObject()["instance_uid"], expected_uid_mappings[i].second);
-    }
-}
 
 TEST_F(Daemon, readsMacAddressesFromJson)
 {
@@ -1205,8 +1171,8 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
-        .WillOnce(WithArg<0>([&mac_addr, &extra_interfaces](const QJsonObject& obj) {
+    EXPECT_CALL(mock_json_utils, write_json(An<const boost::json::value&>(), Eq(filename)))
+        .WillOnce(WithArg<0>([&mac_addr, &extra_interfaces](const boost::json::value& obj) {
             check_interfaces_in_json(obj, mac_addr, extra_interfaces);
         }));
 
@@ -1284,9 +1250,9 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
-        .WillOnce(
-            WithArg<0>([&mounts](const QJsonObject& obj) { check_mounts_in_json(obj, mounts); }));
+    EXPECT_CALL(mock_json_utils, write_json(An<const boost::json::value&>(), Eq(filename)))
+        .WillOnce(WithArg<0>(
+            [&mounts](const boost::json::value& obj) { check_mounts_in_json(obj, mounts); }));
 
     daemon.persist_instances();
 }
@@ -1320,8 +1286,8 @@ TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
     send_command({"list"}, stream);
     EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
 
-    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
-        .WillOnce(WithArg<0>([&uid_mappings, &gid_mappings](const QJsonObject& obj) {
+    EXPECT_CALL(mock_json_utils, write_json(An<const boost::json::value&>(), Eq(filename)))
+        .WillOnce(WithArg<0>([&uid_mappings, &gid_mappings](const boost::json::value& obj) {
             check_maps_in_json(obj, uid_mappings, gid_mappings);
         }));
 
@@ -1548,11 +1514,10 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
+    EXPECT_CALL(mock_json_utils, write_json(An<const boost::json::value&>(), Eq(filename)))
         .WillOnce(Return())
-        .WillOnce(WithArg<0>([&stayed, &gone](const QJsonObject& obj) {
-            QJsonDocument doc{obj};
-            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
+        .WillOnce(WithArg<0>([&stayed, &gone](const boost::json::value& obj) {
+            EXPECT_THAT(serialize(obj), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
         }));
 
     mp::Daemon daemon{config_builder.build()};
@@ -2301,12 +2266,11 @@ TEST_F(Daemon, purgePersistsInstances)
     const auto [temp_dir, filename] = plant_instance_json(json_contents);
     config_builder.data_directory = temp_dir->path();
 
-    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), Eq(filename)))
+    EXPECT_CALL(mock_json_utils, write_json(An<const boost::json::value&>(), Eq(filename)))
         .WillOnce(Return())
         .WillOnce(Return())
-        .WillOnce(WithArg<0>([&name1, &name2](const QJsonObject& obj) {
-            QJsonDocument doc{obj};
-            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
+        .WillOnce(WithArg<0>([&name1, &name2](const boost::json::value& obj) {
+            EXPECT_THAT(serialize(obj), AllOf(HasSubstr(name1), HasSubstr(name2)));
         }));
 
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();

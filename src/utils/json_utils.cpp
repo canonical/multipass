@@ -44,7 +44,18 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr static auto kLogCategory = "JsonUtils";
+
+std::string& replace_substring(std::string& str, std::string_view from, std::string_view to)
+{
+    std::size_t pos = 0;
+    while ((pos = str.find(from)) != std::string::npos)
+    {
+        str.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+    return str;
 }
+} // namespace
 
 mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
     : Singleton<JsonUtils>{pass}
@@ -109,13 +120,13 @@ void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
             // [14,20,30,40,98,174,221,208,206,214]
             const auto delay = std::chrono::milliseconds(std::min(200, 10 * (1 << (attempt - 1))) +
                                                          get_jitter_amount());
-            mpl::warn(
-                kLogCategory,
-                "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} ms delay.",
-                file_name,
-                attempt,
-                db_file.errorString(),
-                delay);
+            mpl::warn(kLogCategory,
+                      "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} "
+                      "ms delay.",
+                      file_name,
+                      attempt,
+                      db_file.errorString(),
+                      delay);
 
             std::this_thread::sleep_for(delay);
         }
@@ -193,13 +204,13 @@ void mp::JsonUtils::write_json(const boost::json::value& root, QString file_name
             // [14,20,30,40,98,174,221,208,206,214]
             const auto delay = std::chrono::milliseconds(std::min(200, 10 * (1 << (attempt - 1))) +
                                                          get_jitter_amount());
-            mpl::warn(
-                kLogCategory,
-                "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} ms delay.",
-                file_name,
-                attempt,
-                db_file.errorString(),
-                delay);
+            mpl::warn(kLogCategory,
+                      "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} "
+                      "ms delay.",
+                      file_name,
+                      attempt,
+                      db_file.errorString(),
+                      delay);
 
             std::this_thread::sleep_for(delay);
         }
@@ -235,8 +246,8 @@ QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& id,
     return QJsonValue{QString::fromStdString(id_str.replace(0, src_vm_name.size(), dest_vm_name))};
 }
 
-QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(
-    const QJsonValue& metadata,
+boost::json::object mp::JsonUtils::update_unique_identifiers_of_metadata(
+    const boost::json::object& metadata,
     const multipass::VMSpecs& src_specs,
     const multipass::VMSpecs& dest_specs,
     const std::string& src_vm_name,
@@ -244,33 +255,28 @@ QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(
 {
     assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
 
-    QJsonObject result_metadata_object = metadata.toObject();
-    QJsonValueRef arguments = result_metadata_object["arguments"];
-    QJsonArray json_array = arguments.toArray();
-    for (QJsonValueRef item : json_array)
+    boost::json::object result_metadata = metadata;
+    for (auto& item : result_metadata.at("arguments").as_array())
     {
-        QString str = item.toString();
-
-        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
+        auto str = value_to<std::string>(item);
+        replace_substring(str, src_specs.default_mac_address, dest_specs.default_mac_address);
         for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
         {
             const std::string& src_mac = src_specs.extra_interfaces[i].mac_address;
             if (!src_mac.empty())
             {
                 const std::string& dest_mac = dest_specs.extra_interfaces[i].mac_address;
-                str.replace(src_mac.c_str(), dest_mac.c_str());
+                replace_substring(str, src_mac, dest_mac);
             }
         }
         // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
-        // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
-        // metadata.
-        str.replace("instances/" + QString{src_vm_name.c_str()},
-                    "instances/" + QString{dest_vm_name.c_str()});
-        item = str;
+        // "<src_name>"->"<dest_name>", because the second one might match other substrings of
+        // the metadata.
+        replace_substring(str, "instances/" + src_vm_name, "instances/" + dest_vm_name);
+        item = boost::json::string(str);
     }
-    arguments = json_array;
 
-    return QJsonValue{result_metadata_object};
+    return result_metadata;
 }
 
 QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
