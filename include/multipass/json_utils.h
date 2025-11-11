@@ -61,6 +61,85 @@ public:
         const QJsonObject& record) const;
 };
 
+namespace detail
+{
+inline auto if_contains(const boost::json::value& json, std::size_t key)
+{
+    if (auto arr = json.try_as_array())
+        return arr->if_contains(key);
+    throw std::runtime_error("wrong type"); // FIXME
+}
+
+inline auto if_contains(const boost::json::value& json, std::string_view key)
+{
+    if (auto obj = json.try_as_object())
+        return obj->if_contains(key);
+    throw std::runtime_error("wrong type"); // FIXME
+}
+} // namespace detail
+
+template <typename T, typename Key, typename Context>
+T lookup_or(const boost::json::value& json, Key&& key, T&& fallback, const Context& ctx)
+{
+    if (auto elem = detail::if_contains(json, std::forward<Key>(key)))
+        return value_to<T>(*elem, ctx);
+    else
+        return std::forward<T>(fallback);
+}
+
+template <typename T, typename Key>
+T lookup_or(const boost::json::value& json, Key&& key, T&& fallback)
+{
+    if (auto elem = detail::if_contains(json, std::forward<Key>(key)))
+        return value_to<T>(*elem);
+    else
+        return std::forward<T>(fallback);
+}
+
+// Prevent implicit conversions to `boost::json::value`.
+template <typename T, typename U, typename Key>
+T lookup_or(const U&, Key&&, T&&) = delete;
+
+// (De)serialize mappings to/from JSON arrays by setting the map key as a JSON field in each
+// element.
+struct map_as_array
+{
+    std::string key_field;
+};
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const T& mapping,
+                const map_as_array& cfg)
+{
+    auto& arr = json.emplace_array();
+    for (const auto& [key, value] : mapping)
+    {
+        auto elem = boost::json::value_from(value);
+        elem.as_object().emplace(cfg.key_field, boost::json::value_from(key));
+        arr.push_back(std::move(elem));
+    }
+}
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+T tag_invoke(const boost::json::value_to_tag<T>&,
+             const boost::json::value& json,
+             const map_as_array& cfg)
+{
+    T result;
+    for (const auto& i : json.as_array())
+    {
+        boost::json::value elem = i;
+        auto key = value_to<typename T::key_type>(elem.at(cfg.key_field));
+        elem.as_object().erase(cfg.key_field);
+        result.emplace(key, value_to<typename T::mapped_type>(elem));
+    }
+    return result;
+}
+
 boost::json::value qjson_to_boost_json(const QJsonValue& value);
 QJsonValue boost_json_to_qjson(const boost::json::value& value);
 
