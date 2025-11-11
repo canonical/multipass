@@ -804,7 +804,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
-        .WillRepeatedly(Return(QJsonObject({{"machine_type", machine_type}})));
+        .WillRepeatedly(Return(boost::json::object{{"machine_type", machine_type}}));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -846,12 +846,9 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
-        .WillRepeatedly(Return(QJsonObject{
-            {"arguments", QJsonArray{"-hi_there", "-hows_it_going"}},
-            {"mount_data",
-             QJsonObject{
-                 {"mytag",
-                  QJsonObject{{"source", "src"}, {"arguments", QJsonArray{"-mount_arg"}}}}}}}));
+        .WillRepeatedly(Return(boost::json::object{
+            {"arguments", {"-hi_there", "-hows_it_going"}},
+            {"mount_data", {{"mytag", {{"source", "src"}, {"arguments", {"-mount_arg"}}}}}}}));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 

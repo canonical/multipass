@@ -114,26 +114,26 @@ TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
     dst_specs.default_mac_address = "aa:ff:00:00:00:01";
     dst_specs.extra_interfaces = {{"id", "aa:ff:00:00:00:02", false}};
 
-    QJsonObject src_metadata = {{"arguments",
-                                 QJsonArray{"instances/src_vm",
-                                            "misc arg",
-                                            "don't change src_vm",
-                                            "--mac=01:ff:00:00:00:01",
-                                            "01:ff:00:00:00:01==01:ff:00:00:00:01",
-                                            "--extra_mac=01:ff:00:00:00:02"}}};
-    QJsonObject dst_metadata = {{"arguments",
-                                 QJsonArray{"instances/dst_vm",
-                                            "misc arg",
-                                            "don't change src_vm",
-                                            "--mac=aa:ff:00:00:00:01",
-                                            "aa:ff:00:00:00:01==aa:ff:00:00:00:01",
-                                            "--extra_mac=aa:ff:00:00:00:02"}}};
+    boost::json::object src_metadata = {{"arguments",
+                                         {"instances/src_vm",
+                                          "misc arg",
+                                          "don't change src_vm",
+                                          "--mac=01:ff:00:00:00:01",
+                                          "01:ff:00:00:00:01==01:ff:00:00:00:01",
+                                          "--extra_mac=01:ff:00:00:00:02"}}};
+    boost::json::object dst_metadata = {{"arguments",
+                                         {"instances/dst_vm",
+                                          "misc arg",
+                                          "don't change src_vm",
+                                          "--mac=aa:ff:00:00:00:01",
+                                          "aa:ff:00:00:00:01==aa:ff:00:00:00:01",
+                                          "--extra_mac=aa:ff:00:00:00:02"}}};
 
-    EXPECT_EQ(MP_JSONUTILS.update_unique_identifiers_of_metadata(src_metadata,
-                                                                 src_specs,
-                                                                 dst_specs,
-                                                                 "src_vm",
-                                                                 "dst_vm"),
+    EXPECT_EQ(update_unique_identifiers_of_metadata(src_metadata,
+                                                    src_specs,
+                                                    dst_specs,
+                                                    "src_vm",
+                                                    "dst_vm"),
               dst_metadata);
 }
 

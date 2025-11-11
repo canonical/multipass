@@ -25,6 +25,8 @@
 #include <QJsonObject>
 #include <QString>
 
+#include <boost/json.hpp>
+
 #include <mutex>
 
 namespace multipass
@@ -59,7 +61,7 @@ public:
 
     // Note that these return references - careful not to delete the snapshot while they are in use
     const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept override;
-    const QJsonObject& get_metadata() const noexcept override;
+    const boost::json::object& get_metadata() const noexcept override;
 
     std::shared_ptr<const Snapshot> get_parent() const override;
     std::shared_ptr<Snapshot> get_parent() override;
@@ -97,7 +99,7 @@ private:
                  std::vector<NetworkInterface> extra_interfaces,
                  VirtualMachine::State state,
                  std::unordered_map<std::string, VMMount> mounts,
-                 QJsonObject metadata,
+                 boost::json::object metadata,
                  const QDir& storage_dir,
                  bool captured);
 
@@ -123,7 +125,7 @@ private:
     const std::vector<NetworkInterface> extra_interfaces;
     const VirtualMachine::State state;
     const std::unordered_map<std::string, VMMount> mounts;
-    const QJsonObject metadata;
+    const boost::json::object metadata;
     const QDir storage_dir;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
@@ -217,7 +219,7 @@ inline auto multipass::BaseSnapshot::get_mounts() const noexcept
     return mounts;
 }
 
-inline const QJsonObject& multipass::BaseSnapshot::get_metadata() const noexcept
+inline const boost::json::object& multipass::BaseSnapshot::get_metadata() const noexcept
 {
     return metadata;
 }

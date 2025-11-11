@@ -20,7 +20,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/snapshot.h>
 
-#include <QJsonObject>
+#include <boost/json.hpp>
 
 namespace multipass::test
 {
@@ -101,7 +101,7 @@ struct StubSnapshot : public Snapshot
         return mounts;
     }
 
-    const QJsonObject& get_metadata() const noexcept override
+    const boost::json::object& get_metadata() const noexcept override
     {
         return metadata;
     }
@@ -131,6 +131,6 @@ struct StubSnapshot : public Snapshot
     }
 
     std::unordered_map<std::string, VMMount> mounts;
-    QJsonObject metadata;
+    boost::json::object metadata;
 };
 } // namespace multipass::test

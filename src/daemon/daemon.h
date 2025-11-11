@@ -60,8 +60,8 @@ protected:
     void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
-    void update_metadata_for(const std::string& name, const QJsonObject& metadata) override;
-    QJsonObject retrieve_metadata_for(const std::string& name) override;
+    void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
+    boost::json::object retrieve_metadata_for(const std::string& name) override;
 
 public slots:
     virtual void shutdown_grpc_server();
