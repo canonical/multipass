@@ -24,6 +24,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
+#include <QStringList>
 
 #include <boost/json.hpp>
 
@@ -59,4 +60,10 @@ public:
     virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(
         const QJsonObject& record) const;
 };
+
+boost::json::value qjson_to_boost_json(const QJsonValue& value);
+QJsonValue boost_json_to_qjson(const boost::json::value& value);
+
+boost::json::array string_list_to_boost_json(const QStringList& list);
+QStringList boost_json_to_string_list(const boost::json::array& list);
 } // namespace multipass

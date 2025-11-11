@@ -310,3 +310,49 @@ std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_inter
 
     return std::nullopt;
 }
+
+boost::json::value mp::qjson_to_boost_json(const QJsonValue& value)
+{
+    QJsonDocument doc;
+    switch (value.type())
+    {
+    case QJsonValue::Array:
+        doc = QJsonDocument{value.toArray()};
+        break;
+    case QJsonValue::Object:
+        doc = QJsonDocument{value.toObject()};
+        break;
+    default:
+        assert(false && "unsupported type");
+    }
+    return boost::json::parse(std::string_view(doc.toJson()));
+}
+
+QJsonValue mp::boost_json_to_qjson(const boost::json::value& value)
+{
+    auto json_data = serialize(value);
+    auto doc = QJsonDocument::fromJson(
+        QByteArray{json_data.data(), static_cast<qsizetype>(json_data.size())});
+    if (doc.isArray())
+        return doc.array();
+    else if (doc.isObject())
+        return doc.object();
+    else
+        assert(false && "unsupported type");
+}
+
+boost::json::array mp::string_list_to_boost_json(const QStringList& list)
+{
+    boost::json::array result;
+    for (const auto& i : list)
+        result.emplace_back(i.toStdString());
+    return result;
+}
+
+QStringList mp::boost_json_to_string_list(const boost::json::array& list)
+{
+    QStringList result;
+    for (const auto& i : list)
+        result.emplace_back(QString::fromStdString(value_to<std::string>(i)));
+    return result;
+}
