@@ -67,7 +67,7 @@ You'll have to manually add CMake and Qt to your account's PATH variable.
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.10.0\bin`
+- `C:\Qt\6.10.0\msvc2022_64\bin`
 
 ### Console setup
 
@@ -135,7 +135,7 @@ cd build
 ```
 
 ```[batch]
-cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.2.4\msvc2019_64\ ../
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.10.0\msvc2022_64\ ../
 ```
 
 ```[batch]
