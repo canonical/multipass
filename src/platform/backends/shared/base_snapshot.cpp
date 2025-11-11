@@ -77,8 +77,9 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mount
     std::unordered_map<std::string, mp::VMMount> mounts;
     for (const auto& entry : mounts_json)
     {
-        const auto& json = entry.toObject();
-        mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
+        const auto json = mp::qjson_to_boost_json(entry);
+        mounts[entry.toObject()["target_path"].toString().toStdString()] =
+            value_to<mp::VMMount>(json);
     }
 
     return mounts;
@@ -125,7 +126,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-p
                                std::vector<NetworkInterface> extra_interfaces,
                                VirtualMachine::State state,
                                std::unordered_map<std::string, VMMount> mounts,
-                               QJsonObject metadata,
+                               boost::json::object metadata,
                                const QDir& storage_dir,
                                bool captured)
     : name{name},
@@ -216,7 +217,7 @@ mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json,
                        desc.extra_interfaces), // extra_interfaces
                    static_cast<mp::VirtualMachine::State>(json["state"].toInt()), // state
                    load_mounts(json["mounts"].toArray()),                         // mounts
-                   json["metadata"].toObject(),                                   // metadata
+                   qjson_to_boost_json(json["metadata"]).as_object(),             // metadata
                    vm.instance_directory(),                                       // storage_dir
                    true}                                                          // captured
 {
@@ -244,13 +245,13 @@ QJsonObject mp::BaseSnapshot::serialize() const
     snapshot.insert("extra_interfaces",
                     MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
     snapshot.insert("state", static_cast<int>(state));
-    snapshot.insert("metadata", metadata);
+    snapshot.insert("metadata", boost_json_to_qjson(metadata));
 
     // Extract mount serialization
     QJsonArray json_mounts;
     for (const auto& mount : mounts)
     {
-        auto entry = mount.second.serialize();
+        auto entry = mp::boost_json_to_qjson(boost::json::value_from(mount.second)).toObject();
         entry.insert("target_path", QString::fromStdString(mount.first));
         json_mounts.append(entry);
     }

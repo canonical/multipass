@@ -26,6 +26,7 @@
 
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
@@ -62,50 +63,57 @@ constexpr auto mount_arguments_key = "arguments";
 constexpr int shutdown_timeout = 300000;   // unit: ms, 5 minute timeout for shutdown/suspend
 constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for killing the process
 
-QString get_vm_machine(const QJsonObject& metadata)
+QString get_vm_machine(const boost::json::object& metadata)
 {
-    QString machine;
+    std::string machine;
     if (metadata.contains(machine_type_key))
     {
-        machine = metadata[machine_type_key].toString();
+        machine = value_to<std::string>(metadata.at(machine_type_key));
     }
-    return machine;
+    return QString::fromStdString(machine);
 }
 
-QStringList get_arguments(const QJsonObject& metadata)
+QStringList get_arguments(const boost::json::object& metadata)
 {
     QStringList args;
-    if (metadata.contains(arguments_key) && metadata[arguments_key].type() == QJsonValue::Array)
+    try
     {
-        auto array = metadata[arguments_key].toArray();
-        for (const QJsonValueRef val : array)
-        {
-            args.push_back(val.toString());
-        }
+        return mp::boost_json_to_string_list(metadata.at(arguments_key).as_array());
     }
-    return args;
+    catch (const boost::system::system_error&)
+    {
+        return QStringList();
+    }
 }
 
-auto mount_args_from_json(const QJsonObject& object)
+auto mount_args_from_json(const boost::json::object& object)
 {
     mp::QemuVirtualMachine::MountArgs mount_args;
-    auto mount_data_map = object[mount_data_key].toObject();
-    for (const auto& tag : mount_data_map.keys())
+    if (!object.contains(mount_data_key))
+        return mount_args;
+
+    const auto& mount_data_map = object.at(mount_data_key).as_object();
+    for (const auto& [tag, mount_data] : mount_data_map)
     {
-        const auto mount_data = mount_data_map[tag].toObject();
-        const auto source = mount_data[mount_source_key];
-        auto args = mount_data[mount_arguments_key].toArray();
-        if (!source.isString() ||
-            !std::all_of(args.begin(), args.end(), std::mem_fn(&QJsonValueRef::isString)))
-            continue;
-        mount_args[tag.toStdString()] = {source.toString().toStdString(),
-                                         QVariant{args.toVariantList()}.toStringList()};
+        const auto& source = mount_data.at(mount_source_key);
+        const auto& args = mount_data.at(mount_arguments_key).as_array();
+        try
+        {
+            mount_args[tag] = {boost::json::value_to<std::string>(source),
+                               mp::boost_json_to_string_list(args)};
+        }
+        catch (const boost::system::system_error& e)
+        {
+            if (e.code() == boost::json::error::not_string)
+                continue;
+            throw;
+        }
     }
     return mount_args;
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc,
-                       const std::optional<QJsonObject>& resume_metadata,
+                       const std::optional<boost::json::object>& resume_metadata,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
                        const QStringList& platform_args)
 {
@@ -152,12 +160,12 @@ auto hmc_to_qmp_json(const QString& command_line)
     return QJsonDocument(qmp).toJson();
 }
 
-auto get_qemu_machine_type(const QStringList& platform_args)
+std::string get_qemu_machine_type(const QStringList& platform_args)
 {
     QTemporaryFile dump_file;
     if (!dump_file.open())
     {
-        return QString();
+        return "";
     }
 
     auto process_spec =
@@ -176,19 +184,17 @@ auto get_qemu_machine_type(const QStringList& platform_args)
 
     auto vmstate = QJsonDocument::fromJson(dump_file.readAll()).object();
 
-    auto machine_type = vmstate["vmschkmachine"].toObject()["Name"].toString();
-    return machine_type;
+    return vmstate["vmschkmachine"].toObject()["Name"].toString().toStdString();
 }
 
 auto mount_args_to_json(const mp::QemuVirtualMachine::MountArgs& mount_args)
 {
-    QJsonObject object;
+    boost::json::object object;
     for (const auto& [tag, mount_data] : mount_args)
     {
         const auto& [source, args] = mount_data;
-        object[QString::fromStdString(tag)] =
-            QJsonObject{{mount_source_key, QString::fromStdString(source)},
-                        {mount_arguments_key, QJsonArray::fromStringList(args)}};
+        object[tag] = {{mount_source_key, source},
+                       {mount_arguments_key, mp::string_list_to_boost_json(args)}};
     }
     return object;
 }
@@ -197,9 +203,9 @@ auto generate_metadata(const QStringList& platform_args,
                        const QStringList& proc_args,
                        const mp::QemuVirtualMachine::MountArgs& mount_args)
 {
-    QJsonObject metadata;
+    boost::json::object metadata;
     metadata[machine_type_key] = get_qemu_machine_type(platform_args);
-    metadata[arguments_key] = QJsonArray::fromStringList(proc_args);
+    metadata[arguments_key] = mp::string_list_to_boost_json(proc_args);
     metadata[mount_data_key] = mount_args_to_json(mount_args);
     return metadata;
 }
