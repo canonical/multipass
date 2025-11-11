@@ -57,6 +57,46 @@ public:
         const QJsonObject& record) const;
 };
 
+// (De)serialize mappings to/from JSON arrays by setting the map key as a JSON field in each
+// element.
+struct MapAsJsonArray
+{
+    std::string key_field;
+};
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const T& mapping,
+                const MapAsJsonArray& cfg)
+{
+    auto& arr = json.emplace_array();
+    for (const auto& [key, value] : mapping)
+    {
+        auto elem = boost::json::value_from(value);
+        elem.as_object().emplace(cfg.key_field, boost::json::value_from(key));
+        arr.push_back(std::move(elem));
+    }
+}
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+T tag_invoke(const boost::json::value_to_tag<T>&,
+             const boost::json::value& json,
+             const MapAsJsonArray& cfg)
+{
+    T result;
+    for (const auto& i : json.as_array())
+    {
+        boost::json::value elem = i;
+        auto key = value_to<typename T::key_type>(elem.at(cfg.key_field));
+        elem.as_object().erase(cfg.key_field);
+        result.emplace(key, value_to<typename T::mapped_type>(elem));
+    }
+    return result;
+}
+
 // Temporary conversion functions to migrate between Qt and Boost JSON values.
 boost::json::value qjson_to_boost_json(const QJsonValue& value);
 QJsonValue boost_json_to_qjson(const boost::json::value& value);
