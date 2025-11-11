@@ -25,6 +25,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/json.hpp>
+
 class QJsonObject;
 
 namespace multipass
@@ -39,14 +41,27 @@ typedef std::pair<std::string, std::string> ContextAliasPair;
 class AliasDict
 {
 public:
+    struct JSONContext
+    {
+        Terminal* term;
+        std::string filename;
+    };
+
     typedef std::unordered_map<std::string, AliasContext> DictType;
     typedef typename DictType::value_type value_type;
     typedef typename DictType::key_type key_type;
     typedef typename DictType::mapped_type mapped_type;
     typedef typename DictType::size_type size_type;
 
+private:
     AliasDict(Terminal* term);
+
+public:
+    AliasDict(Terminal* term, const std::string& active_context, const std::string& filename);
     ~AliasDict();
+    static std::string default_filename();
+    static AliasDict load_file(Terminal* term, const std::string& filename = default_filename());
+
     void set_active_context(const std::string& new_active_context);
     std::string active_context_name() const;
     const AliasContext& get_active_context() const;
@@ -106,13 +121,18 @@ public:
             aliases[default_context_name] = AliasContext();
         }
     }
-    QJsonObject to_json() const;
 
 private:
-    void load_dict();
-    void save_dict();
+    void save_file();
     void sanitize_contexts();
     std::optional<AliasDefinition> get_alias_from_all_contexts(const std::string& alias) const;
+
+    friend void tag_invoke(const boost::json::value_from_tag&,
+                           boost::json::value& json,
+                           const AliasDict& alias_dict);
+    friend AliasDict tag_invoke(const boost::json::value_to_tag<AliasDict>&,
+                                const boost::json::value& json,
+                                const AliasDict::JSONContext& context);
 
     std::string active_context;
     DictType aliases;
@@ -122,4 +142,11 @@ private:
     std::ostream& cout;
     std::ostream& cerr;
 }; // class AliasDict
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const AliasDict& alias_dict);
+AliasDict tag_invoke(const boost::json::value_to_tag<AliasDict>&,
+                     const boost::json::value& json,
+                     const AliasDict::JSONContext& context);
 } // namespace multipass

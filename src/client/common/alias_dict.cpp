@@ -20,52 +20,75 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
+#include <multipass/logging/log.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
 #include <QDir>
 #include <QFile>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonParseError>
 #include <QTemporaryFile>
 
 namespace mp = multipass;
-
-namespace
-{
-void check_working_directory_string(const std::string& dir)
-{
-    if (dir != "map" && dir != "default")
-        throw std::runtime_error(fmt::format("invalid working_directory string \"{}\"", dir));
-}
-} // namespace
+namespace mpl = multipass::logging;
 
 mp::AliasDict::AliasDict(mp::Terminal* term) : cout(term->cout()), cerr(term->cerr())
+{
+}
+
+mp::AliasDict::AliasDict(mp::Terminal* term,
+                         const std::string& active_context,
+                         const std::string& filename)
+    : active_context(active_context),
+      aliases{{active_context, AliasContext{}}},
+      aliases_file(filename),
+      cout(term->cout()),
+      cerr(term->cerr())
+{
+}
+
+mp::AliasDict::~AliasDict()
+{
+    if (modified && !aliases_file.empty())
+    {
+        try
+        {
+            save_file();
+        }
+        catch (std::runtime_error& e)
+        {
+            cerr << fmt::format("Error saving aliases dictionary: {}\n", e.what());
+        }
+    }
+}
+
+std::string mp::AliasDict::default_filename()
 {
     const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
     const auto user_config_path =
         QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
     const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
 
-    aliases_file = cli_client_dir_path.absoluteFilePath(file_name).toStdString();
-
-    load_dict();
+    return cli_client_dir_path.absoluteFilePath(file_name).toStdString();
 }
 
-mp::AliasDict::~AliasDict()
+mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::string& filename)
 {
-    if (modified)
+    QFile db_file{QString::fromStdString(filename)};
+
+    if (!MP_FILEOPS.exists(db_file))
+        return AliasDict(term, default_context_name, filename);
+    else if (!MP_FILEOPS.open(db_file, QIODevice::ReadOnly))
+        throw std::runtime_error(fmt::format("Error opening file '{}'", db_file.fileName()));
+
+    try
     {
-        try
-        {
-            save_dict();
-        }
-        catch (std::runtime_error& e)
-        {
-            cerr << fmt::format("Error saving aliases dictionary: {}\n", e.what());
-        }
+        auto json = boost::json::parse(std::string_view(db_file.readAll()));
+        return value_to<AliasDict>(json, JSONContext{term, filename});
+    }
+    catch (const boost::system::system_error& e)
+    {
+        mpl::error("aliases", "Error parsing file '{}': {}", db_file.fileName(), e.what());
+        return AliasDict(term, default_context_name, filename);
     }
 }
 
@@ -275,140 +298,12 @@ std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& a
     }
 }
 
-QJsonObject mp::AliasDict::to_json() const
-{
-    auto alias_to_json = [](const mp::AliasDefinition& alias) -> QJsonObject {
-        QJsonObject json;
-
-        check_working_directory_string(alias.working_directory);
-
-        json.insert("instance", QString::fromStdString(alias.instance));
-        json.insert("command", QString::fromStdString(alias.command));
-        json.insert("working-directory", QString::fromStdString(alias.working_directory));
-
-        return json;
-    };
-
-    QJsonObject dict_json, all_contexts_json;
-    dict_json.insert("active-context", QString::fromStdString(active_context));
-
-    for (const auto& [context_name, context_contents] : aliases)
-    {
-        QJsonObject context_json;
-
-        for (const auto& [alias_name, alias_definition] : context_contents)
-        {
-            context_json.insert(QString::fromStdString(alias_name),
-                                alias_to_json(alias_definition));
-        }
-
-        all_contexts_json.insert(QString::fromStdString(context_name), context_json);
-    }
-
-    dict_json.insert(QString("contexts"), all_contexts_json);
-
-    return dict_json;
-}
-
-void mp::AliasDict::load_dict()
-{
-    QFile db_file{QString::fromStdString(aliases_file)};
-
-    aliases.clear();
-
-    if (MP_FILEOPS.exists(db_file))
-    {
-        if (!MP_FILEOPS.open(db_file, QIODevice::ReadOnly))
-            throw std::runtime_error(fmt::format("Error opening file '{}'", db_file.fileName()));
-    }
-    else
-    {
-        active_context = default_context_name;
-        aliases[default_context_name] = AliasContext();
-
-        return;
-    }
-
-    QJsonParseError parse_error;
-    QJsonDocument doc = QJsonDocument::fromJson(db_file.readAll(), &parse_error);
-    if (doc.isNull())
-    {
-        active_context = default_context_name;
-        aliases[default_context_name] = AliasContext();
-
-        return;
-    }
-
-    QJsonObject records = doc.object();
-    if (records.isEmpty())
-    {
-        active_context = default_context_name;
-        aliases[default_context_name] = AliasContext();
-
-        return;
-    }
-
-    auto records_to_context = [](const QJsonObject& records, AliasContext& context) -> void {
-        for (auto it = records.constBegin(); it != records.constEnd(); ++it)
-        {
-            auto alias = it.key().toStdString();
-            auto record = it.value().toObject();
-            if (record.isEmpty())
-                break;
-
-            auto instance = record["instance"].toString().toStdString();
-            auto command = record["command"].toString().toStdString();
-
-            auto read_working_directory = record["working-directory"];
-            std::string working_directory;
-
-            if (read_working_directory.isString() && !read_working_directory.toString().isEmpty())
-                working_directory = read_working_directory.toString().toStdString();
-            else
-                working_directory = "default";
-
-            check_working_directory_string(working_directory);
-
-            context.emplace(alias, mp::AliasDefinition{instance, command, working_directory});
-        }
-    };
-
-    // If the JSON does not contain the active-context field, then the file was written by a version
-    // of Multipass previous than the introduction of alias contexts.
-    if (records.contains("active-context"))
-    {
-        active_context = records["active-context"].toString().toStdString();
-
-        auto context_array = records["contexts"].toObject();
-
-        for (auto it = context_array.constBegin(); it != context_array.constEnd(); ++it)
-        {
-            AliasContext context;
-            std::string context_name = it.key().toStdString();
-            records_to_context(it.value().toObject(), context);
-            aliases.emplace(std::make_pair(context_name, context));
-        }
-    }
-    else
-    {
-        // The file with the old format does not contain information about contexts. For that
-        // reason, everything defined goes into the default context.
-        active_context = default_context_name;
-
-        AliasContext default_context;
-        records_to_context(records, default_context);
-        aliases.emplace(std::make_pair(active_context, default_context));
-    }
-
-    db_file.close();
-}
-
-void mp::AliasDict::save_dict()
+void mp::AliasDict::save_file()
 {
     sanitize_contexts();
 
-    MP_FILEOPS.write_transactionally(QString::fromStdString(aliases_file),
-                                     QJsonDocument{to_json()}.toJson());
+    auto json = boost::json::value_from(*this);
+    MP_FILEOPS.write_transactionally(QString::fromStdString(aliases_file), pretty_print(json));
 }
 
 // This function removes the contexts which do not contain aliases, except the active context.
@@ -463,4 +358,41 @@ std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_all_contexts(
     }
 
     return found ? std::make_optional(*ret) : std::nullopt;
+}
+
+void mp::tag_invoke(const boost::json::value_from_tag&,
+                    boost::json::value& json,
+                    const mp::AliasDict& alias_dict)
+{
+    json = {{"active-context", alias_dict.active_context},
+            {"contexts", boost::json::value_from(alias_dict.aliases, SortJsonKeys{})}};
+}
+
+mp::AliasDict mp::tag_invoke(const boost::json::value_to_tag<mp::AliasDict>&,
+                             const boost::json::value& json,
+                             const mp::AliasDict::JSONContext& context)
+{
+    if (json.is_null())
+        return AliasDict(context.term, default_context_name, context.filename);
+
+    const auto& obj = json.as_object();
+    if (obj.empty())
+        return AliasDict(context.term, default_context_name, context.filename);
+
+    AliasDict result(context.term);
+    result.aliases_file = context.filename;
+    // If the JSON does not contain the active-context field, then the file was written by a version
+    // of Multipass previous than the introduction of alias contexts.
+    if (obj.contains("active-context"))
+    {
+        result.active_context = value_to<std::string>(obj.at("active-context"));
+        result.aliases = value_to<AliasDict::DictType>(obj.at("contexts"));
+    }
+    else
+    {
+        result.active_context = default_context_name;
+        result.aliases = {{result.active_context, value_to<AliasContext>(json)}};
+    }
+
+    return result;
 }
