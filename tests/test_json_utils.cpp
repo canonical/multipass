@@ -86,4 +86,33 @@ TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
     EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
               QJsonValue{"vm2_e_e_e"});
 }
+
+TEST(TestJsonUtils, jsonToQString)
+{
+    boost::json::value json = "hello";
+    EXPECT_EQ(value_to<QString>(json), QString("hello"));
+}
+
+TEST(TestJsonUtils, qStringToJson)
+{
+    QString str = "hello";
+    auto json = boost::json::value_from(str);
+    EXPECT_EQ(json, boost::json::string("hello"));
+}
+
+TEST(TestJsonUtils, jsonToQStringList)
+{
+    boost::json::value json = {"hello", "goodbye"};
+    EXPECT_EQ(value_to<QStringList>(json),
+              QStringList() << "hello"
+                            << "goodbye");
+}
+
+TEST(TestJsonUtils, qStringListToJson)
+{
+    auto list = QStringList() << "hello"
+                              << "goodbye";
+    auto json = boost::json::value_from(list);
+    EXPECT_EQ(json, boost::json::array({"hello", "goodbye"}));
+}
 } // namespace
