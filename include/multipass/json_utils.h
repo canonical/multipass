@@ -24,6 +24,9 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
+#include <QStringList>
+
+#include <boost/json.hpp>
 
 #include <optional>
 #include <string>
@@ -53,4 +56,29 @@ public:
     virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(
         const QJsonObject& record) const;
 };
+
+// Temporary conversion functions to migrate between Qt and Boost JSON values.
+boost::json::value qjson_to_boost_json(const QJsonValue& value);
+QJsonValue boost_json_to_qjson(const boost::json::value& value);
 } // namespace multipass
+
+// These are in the global namespace so that Boost.JSON can look them up via ADL for `QString` and
+// `QStringList`.
+inline void tag_invoke(const boost::json::value_from_tag&,
+                       boost::json::value& json,
+                       const QString& string)
+{
+    json = string.toStdString();
+}
+
+inline QString tag_invoke(const boost::json::value_to_tag<QString>&, const boost::json::value& json)
+{
+    return QString::fromStdString(value_to<std::string>(json));
+}
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const QStringList& list);
+
+QStringList tag_invoke(const boost::json::value_to_tag<QStringList>&,
+                       const boost::json::value& json);

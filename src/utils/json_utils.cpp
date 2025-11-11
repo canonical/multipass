@@ -131,3 +131,52 @@ std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_inter
 
     return std::nullopt;
 }
+
+boost::json::value mp::qjson_to_boost_json(const QJsonValue& value)
+{
+    QJsonDocument doc;
+    switch (value.type())
+    {
+    case QJsonValue::Array:
+        doc = QJsonDocument{value.toArray()};
+        break;
+    case QJsonValue::Object:
+        doc = QJsonDocument{value.toObject()};
+        break;
+    default:
+        assert(false && "unsupported type");
+    }
+    return boost::json::parse(std::string_view(doc.toJson()));
+}
+
+QJsonValue mp::boost_json_to_qjson(const boost::json::value& value)
+{
+    auto json_data = serialize(value);
+    auto doc = QJsonDocument::fromJson(
+        QByteArray{json_data.data(), static_cast<qsizetype>(json_data.size())});
+    if (doc.isArray())
+        return doc.array();
+    else if (doc.isObject())
+        return doc.object();
+
+    assert(false && "unsupported type");
+    std::abort();
+}
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const QStringList& list)
+{
+    auto& arr = json.emplace_array();
+    for (const auto& i : list)
+        arr.emplace_back(i.toStdString());
+}
+
+QStringList tag_invoke(const boost::json::value_to_tag<QStringList>&,
+                       const boost::json::value& json)
+{
+    QStringList result;
+    for (const auto& i : json.as_array())
+        result.emplace_back(value_to<QString>(i));
+    return result;
+}
