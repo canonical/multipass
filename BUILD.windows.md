@@ -31,7 +31,8 @@ compiler and related tooling or fix a broken `visualstudio2022buildtools` instal
 3. Click Modify
 4. Click Modify in the Installer interface
 5. For Windows 11, add "C++/CLI support for v143 build tools" in the "Desktop development with C++" kit
-6. Complete the installation
+6. Make sure that `vcpkg` is not installed in the same selection
+7. Complete the installation
 
 ### Git
 
