@@ -31,7 +31,8 @@ compiler and related tooling or fix a broken `visualstudio2022buildtools` instal
 3. Click Modify
 4. Click Modify in the Installer interface
 5. For Windows 11, add "C++/CLI support for v143 build tools" in the "Desktop development with C++" kit
-6. Complete the installation
+6. Make sure that `vcpkg` is not installed in the same selection
+7. Complete the installation
 
 ### Git
 
@@ -67,7 +68,7 @@ You'll have to manually add CMake and Qt to your account's PATH variable.
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.10.0\bin`
+- `C:\Qt\6.10.0\msvc2022_64\bin`
 
 ### Console setup
 
@@ -135,7 +136,7 @@ cd build
 ```
 
 ```[batch]
-cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.2.4\msvc2019_64\ ../
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.10.0\msvc2022_64\ ../
 ```
 
 ```[batch]
