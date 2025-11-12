@@ -24,7 +24,6 @@
 #include <QJsonObject>
 
 #include <chrono>
-#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -122,7 +121,6 @@ public:
     virtual const std::string& get_name() const = 0;
 
     VirtualMachine::State state;
-    std::condition_variable state_wait;
     std::mutex state_mutex;
 
 protected:

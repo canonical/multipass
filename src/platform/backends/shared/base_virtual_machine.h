@@ -24,6 +24,7 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -178,6 +179,7 @@ protected:
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
+    std::condition_variable state_wait;
 
 private:
     std::string saved_error_msg = "";
