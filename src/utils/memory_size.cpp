@@ -118,36 +118,6 @@ long long mp::MemorySize::in_gigabytes() const noexcept
     return bytes / gibi; // integer division to floor
 }
 
-bool mp::operator==(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes == b.bytes;
-}
-
-bool mp::operator!=(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes != b.bytes;
-}
-
-bool mp::operator<(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes < b.bytes;
-}
-
-bool mp::operator>(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes > b.bytes;
-}
-
-bool mp::operator<=(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes <= b.bytes;
-}
-
-bool mp::operator>=(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes >= b.bytes;
-}
-
 std::string mp::MemorySize::human_readable(unsigned int precision, bool trim_zeros) const
 {
     const auto giga = std::pair{gibi, "GiB"};
