@@ -192,6 +192,9 @@ if(UNIX)
   list(APPEND MULTIPASS_BACKENDS qemu)
 endif()
 
+# Boost config
+find_package(Boost CONFIG REQUIRED COMPONENTS json)
+
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 
