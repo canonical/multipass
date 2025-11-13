@@ -170,6 +170,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
 ### Run `multipass`
 
 With the `multipassd` daemon now running on another shell (or as a windows service) you can now run `multipass`.
+You can also add `<multipass>\build\bin` to the Path environment variable to be able to run the commands from anywhere.
 
 1. Press Windows Key + X, Select Windows PowerShell, or Terminal.
 2. Then, try `multipass help`.
@@ -186,3 +187,12 @@ needs to be part of the Hyper-V Administrators group:
 2. Under System Tools->Local Users and Groups->Groups
 3. Select on Hyper-V Administrators, add your account
 4. Sign out or reboot for changes to take effect
+
+### Run `multipass.gui`
+
+Add to the Path environment variable the following paths:
+
+- `<multipass>\build\bin`
+- `<multipass>\build\bin\windows\x64\runner\Release`
+
+Now you can run `multipass.gui`.
