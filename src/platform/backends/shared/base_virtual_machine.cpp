@@ -82,13 +82,13 @@ std::string trimmed_contents_of(const QString& file_path)
 }
 
 template <typename ExceptionT>
-mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
-                                       const mp::VirtualMachine* vm,
-                                       mpl::Level log_level = mpl::Level::trace)
+mpu::TimeoutAction log_and_retry(const ExceptionT& e,
+                                 const mp::VirtualMachine* vm,
+                                 mpl::Level log_level = mpl::Level::trace)
 {
     assert(vm);
     mpl::log_message(log_level, vm->get_name(), e.what());
-    return mp::utils::TimeoutAction::retry;
+    return mpu::TimeoutAction::retry;
 };
 } // namespace
 
@@ -277,28 +277,28 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
         try
         {
             ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
-            return mp::utils::TimeoutAction::done;
+            return mpu::TimeoutAction::done;
         }
         catch (const SSHVMNotRunning& e)
         {
             try_to_ssh();
-            return mp::utils::TimeoutAction::retry;
+            return mpu::TimeoutAction::retry;
         }
         catch (const SSHExecFailure& e)
         {
-            return mp::utils::TimeoutAction::retry;
+            return mpu::TimeoutAction::retry;
         }
         catch (const std::exception& e) // transitioning away from catching generic runtime errors
         {                               // TODO remove once we're confident this is an anomaly
             mpl::log_message(mpl::Level::warning, vm_name, e.what());
-            return mp::utils::TimeoutAction::retry;
+            return mpu::TimeoutAction::retry;
         }
     };
 
     auto on_timeout = [] {
         throw std::runtime_error("timed out waiting for initialization to complete");
     };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mpu::try_action_for(on_timeout, timeout, action);
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
