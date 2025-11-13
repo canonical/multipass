@@ -26,8 +26,7 @@
 
 #include <fmt/format.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
+#include <boost/json.hpp>
 
 #include <utility>
 
@@ -63,70 +62,49 @@ auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-auto fetch_image_info(const QString& arch,
-                      mp::URLDownloader* url_downloader,
-                      const bool force_update = false)
+std::vector<mp::VMImageInfo> fetch_image_info(const QString& arch,
+                                              mp::URLDownloader* url_downloader,
+                                              const bool force_update = false)
 {
-    std::vector<mp::VMImageInfo> images;
-
     mpl::log(mpl::Level::debug, category, "Fetching images from {}", get_manifest_url());
-    QByteArray mp_manifest;
 
     try
     {
-        mp_manifest = url_downloader->download(QUrl{get_manifest_url()}, force_update);
+        auto data = url_downloader->download(QUrl{get_manifest_url()}, force_update);
+        auto manifest = boost::json::parse(std::string_view(data)).as_object();
+        mpl::log(mpl::Level::debug, category, "Found {} items", manifest.size());
+
+        mp::for_arch context{arch.toStdString()};
+        std::vector<mp::VMImageInfo> result;
+        for (const auto& [distro_name, value] : manifest)
+        {
+            try
+            {
+                result.push_back(value_to<mp::VMImageInfo>(value, context));
+            }
+            catch (mp::UnsupportedArchException&)
+            {
+                mpl::debug(category,
+                           "Skipping unsupported distro '{}' for arch '{}'",
+                           distro_name,
+                           arch);
+                continue;
+            }
+        }
+        return result;
     }
     catch (mp::DownloadException& e)
     {
         mpl::log(mpl::Level::warning, category, "Failed to download manifest: {}", e);
-        return images;
+        return {};
     }
-
-    const auto manifest_doc = QJsonDocument::fromJson(mp_manifest);
-    if (!manifest_doc.isObject())
+    catch (const boost::system::system_error&)
     {
         mpl::log(mpl::Level::warning,
                  category,
                  "Failed to parse manifest: file does not contain a valid JSON object");
-        return images;
+        return {};
     }
-
-    const QJsonObject root_obj = manifest_doc.object();
-
-    mpl::log(mpl::Level::debug, category, "Found {} items", root_obj.size());
-
-    for (auto it = root_obj.begin(); it != root_obj.end(); ++it)
-    {
-        const QString distro_name = it.key();
-        const QJsonObject distro_obj = it.value().toObject();
-        if (!distro_obj.value("items").toObject().contains(arch))
-        {
-            mpl::debug(category,
-                       "Skipping unsupported distro '{}' for arch '{}'",
-                       distro_name,
-                       arch);
-            continue;
-        }
-
-        QStringList aliases = distro_obj.value("aliases").toString().split(",", Qt::SkipEmptyParts);
-        for (QString& alias : aliases)
-            alias = alias.trimmed();
-
-        images.emplace_back(mp::VMImageInfo{aliases,
-                                            distro_obj["os"].toString(),
-                                            distro_obj["release"].toString(),
-                                            distro_obj["release_codename"].toString(),
-                                            distro_obj["release_title"].toString(),
-                                            true,
-                                            distro_obj["items"][arch]["image_location"].toString(),
-                                            distro_obj["items"][arch]["id"].toString(),
-                                            "",
-                                            distro_obj["items"][arch]["version"].toString(),
-                                            distro_obj["items"][arch]["size"].toInt(-1),
-                                            true});
-    }
-
-    return images;
 }
 } // namespace
 
