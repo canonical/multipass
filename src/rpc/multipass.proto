@@ -216,6 +216,7 @@ message InstanceDetails {
     string cpu_times = 10;
     string uptime = 11;
     google.protobuf.Timestamp creation_timestamp = 12;
+    string os = 13;
 }
 
 message SnapshotFundamentals {
@@ -264,6 +265,7 @@ message ListVMInstance {
     repeated string ipv4 = 3;
     repeated string ipv6 = 4;
     string current_release = 5;
+    string os = 6;
 }
 
 message ListVMSnapshot {

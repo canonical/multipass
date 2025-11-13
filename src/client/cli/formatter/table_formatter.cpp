@@ -21,6 +21,7 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+#include <multipass/utils.h>
 
 #include <regex>
 
@@ -169,12 +170,13 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
     if (instance_details.id().empty())
         fmt::format_to(dest, "{}\n", "Not Available");
     else
-        fmt::format_to(dest,
-                       "{}{}\n",
-                       instance_details.id().substr(0, 12),
-                       instance_details.image_release().empty()
-                           ? ""
-                           : fmt::format(" ({})", instance_details.image_release()));
+        fmt::format_to(
+            dest,
+            "{}{}\n",
+            instance_details.id().substr(0, 12),
+            instance_details.image_release().empty()
+                ? ""
+                : fmt::format(" ({} {})", instance_details.os(), instance_details.image_release()));
 
     fmt::format_to(dest,
                    "{:<16}{}\n",
@@ -279,16 +281,18 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         int ipv4_size = instance.ipv4_size();
 
-        fmt::format_to(std::back_inserter(buf),
-                       row_format,
-                       instance.name(),
-                       name_column_width,
-                       mp::format::status_string_for(instance.instance_status()),
-                       state_column_width,
-                       ipv4_size ? instance.ipv4(0) : "--",
-                       ip_column_width,
-                       instance.current_release().empty() ? "Not Available"
-                                                          : instance.current_release());
+        fmt::format_to(
+            std::back_inserter(buf),
+            row_format,
+            instance.name(),
+            name_column_width,
+            mp::format::status_string_for(instance.instance_status()),
+            state_column_width,
+            ipv4_size ? instance.ipv4(0) : "--",
+            ip_column_width,
+            instance.current_release().empty()
+                ? "Not Available"
+                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())));
 
         for (int i = 1; i < ipv4_size; ++i)
         {

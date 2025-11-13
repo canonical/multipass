@@ -18,6 +18,7 @@
 #include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/format.h>
+#include <multipass/utils.h>
 
 namespace mp = multipass;
 
@@ -127,15 +128,17 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
-        fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},\"{}\"\n",
-                       instance.name(),
-                       mp::format::status_string_for(instance.instance_status()),
-                       instance.ipv4_size() ? instance.ipv4(0) : "",
-                       instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release().empty() ? "Not Available"
-                                                          : instance.current_release(),
-                       fmt::join(instance.ipv4(), ","));
+        fmt::format_to(
+            std::back_inserter(buf),
+            "{},{},{},{},{},\"{}\"\n",
+            instance.name(),
+            mp::format::status_string_for(instance.instance_status()),
+            instance.ipv4_size() ? instance.ipv4(0) : "",
+            instance.ipv6_size() ? instance.ipv6(0) : "",
+            instance.current_release().empty()
+                ? "Not Available"
+                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
+            fmt::join(instance.ipv4(), ","));
     }
 
     return fmt::to_string(buf);

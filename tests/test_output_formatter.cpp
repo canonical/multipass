@@ -63,7 +63,8 @@ auto construct_single_instance_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("Ubuntu 16.04 LTS");
+    list_entry->set_current_release("16.04 LTS");
+    list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
     list_entry->add_ipv6("fdde:2681:7a2::4ca");
@@ -79,13 +80,15 @@ auto construct_multiple_instances_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("Ubuntu 16.04 LTS");
+    list_entry->set_current_release("16.04 LTS");
+    list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.21.124.56");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("Ubuntu 18.04 LTS");
+    list_entry->set_current_release("18.04 LTS");
+    list_entry->set_os("Ubuntu");
 
     return list_reply;
 }
@@ -97,12 +100,14 @@ auto construct_unsorted_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("Debian 12");
+    list_entry->set_current_release("12");
+    list_entry->set_os("Debian");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("Fedora 42");
+    list_entry->set_current_release("42");
+    list_entry->set_os("Fedora");
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
@@ -260,7 +265,8 @@ auto construct_single_instance_info_reply()
     auto info_entry = info_reply.add_details();
     info_entry->set_name("foo");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->mutable_instance_info()->set_image_release("Ubuntu 16.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -314,7 +320,8 @@ auto construct_multiple_instances_info_reply()
     auto info_entry = info_reply.add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->mutable_instance_info()->set_image_release("Ubuntu 16.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -346,7 +353,8 @@ auto construct_multiple_instances_info_reply()
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    info_entry->mutable_instance_info()->set_image_release("Ubuntu 18.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -462,7 +470,8 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    info_entry->mutable_instance_info()->set_image_release("Ubuntu 18.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -477,7 +486,8 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     auto info_entry = info_reply.add_details();
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    info_entry->mutable_instance_info()->set_image_release("Ubuntu 16.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
 
@@ -503,6 +513,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->mutable_instance_info()->set_disk_usage("1932735284");
     info_entry->set_disk_total("6764573492");
     info_entry->mutable_instance_info()->set_current_release("Ubuntu 16.04.3 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->add_ipv4("10.21.124.56");
     info_entry->mutable_instance_info()->set_num_snapshots(2);
 
@@ -546,7 +557,8 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    info_entry->mutable_instance_info()->set_image_release("Ubuntu 18.04 LTS");
+    info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -576,6 +588,7 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
         entry->set_name(petenv_name());
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
         entry->mutable_instance_info()->set_image_release("18.10");
+        entry->mutable_instance_info()->set_os("Ubuntu");
         entry->mutable_instance_info()->set_id(
             "1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
     }

@@ -11,7 +11,7 @@
                 }
             },
             "image_hash": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
-            "image_release": "Ubuntu 16.04 LTS",
+            "image_release": "16.04 LTS",
             "ipv4": [
                 "10.168.32.2",
                 "200.3.123.29"
