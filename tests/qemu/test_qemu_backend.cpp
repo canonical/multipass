@@ -436,7 +436,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(
-        machine->wait_for_cloud_init(1ms),
+        machine->wait_for_cloud_init(1s),
         mp::StartException,
         AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
               mpt::match_what(
