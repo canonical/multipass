@@ -76,7 +76,8 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
     EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
     EXPECT_CALL(*mock_mount_handler, deactivate_impl);
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
 

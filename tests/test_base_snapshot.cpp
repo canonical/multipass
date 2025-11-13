@@ -138,7 +138,7 @@ struct TestBaseSnapshot : public Test
     static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
     mp::VirtualMachineDescription desc = stub_desc();
-    NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
+    NiceMock<mpt::MockVirtualMachine> vm{};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
     const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =

@@ -40,7 +40,7 @@ void attempt_ssh_exec(mp::VirtualMachine& vm, const std::string& cmd)
     }
     catch (const mp::SSHException& e)
     {
-        mpl::info(vm.vm_name, "Could not broadcast shutdown message in VM: {}", e.what());
+        mpl::info(vm.get_name(), "Could not broadcast shutdown message in VM: {}", e.what());
     }
 }
 
@@ -57,7 +57,7 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::milliseco
                 "--cancel {}' to cancel the shutdown.\"",
                 minutes_left,
                 num_plural(minutes_left) ? "s" : "",
-                vm.vm_name));
+                vm.get_name()));
     }
     else
     {
@@ -74,11 +74,11 @@ mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine,
 
 mp::DelayedShutdownTimer::~DelayedShutdownTimer()
 {
-    mp::top_catch_all(virtual_machine->vm_name, [this] {
+    mp::top_catch_all(virtual_machine->get_name(), [this] {
         if (shutdown_timer.isActive())
         {
             shutdown_timer.stop();
-            mpl::info(virtual_machine->vm_name, "Cancelling delayed shutdown");
+            mpl::info(virtual_machine->get_name(), "Cancelling delayed shutdown");
             virtual_machine->state = VirtualMachine::State::running;
             attempt_ssh_exec(*virtual_machine, "wall The system shutdown has been cancelled");
         }
@@ -94,7 +94,7 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
     if (delay > decltype(delay)(0))
     {
         auto minutes_left = std::chrono::duration_cast<std::chrono::minutes>(delay).count();
-        mpl::info(virtual_machine->vm_name,
+        mpl::info(virtual_machine->get_name(),
                   "Shutdown request delayed for {} minute{}", // TODO say "under a
                                                               // minute" if < 1 minute
                   minutes_left,
@@ -141,7 +141,7 @@ std::chrono::seconds mp::DelayedShutdownTimer::get_time_remaining()
 
 void mp::DelayedShutdownTimer::shutdown_instance()
 {
-    stop_mounts(virtual_machine->vm_name);
+    stop_mounts(virtual_machine->get_name());
     virtual_machine->shutdown();
     emit finished();
 }
