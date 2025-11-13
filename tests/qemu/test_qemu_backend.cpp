@@ -47,9 +47,7 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
+#include <boost/json.hpp>
 
 #include <thread>
 
@@ -129,41 +127,36 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
             EXPECT_CALL(*process, wait_for_finished(_)).WillRepeatedly(Return(true));
 
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
-                QJsonParseError parse_error;
-                auto json = QJsonDocument::fromJson(data, &parse_error);
-                if (parse_error.error == QJsonParseError::NoError)
+                auto json = boost::json::parse(std::string_view(data));
+                auto execute = value_to<std::string>(json.at("execute"));
+
+                if (execute == "system_powerdown")
                 {
-                    auto json_object = json.object();
-                    auto execute = json_object["execute"];
-
-                    if (execute == "system_powerdown")
+                    EXPECT_CALL(*process, wait_for_finished(_)).WillOnce([process](auto...) {
+                        mp::ProcessState exit_state{0, std::nullopt};
+                        emit process->finished(exit_state);
+                        return true;
+                    });
+                }
+                else if (execute == "human-monitor-command")
+                {
+                    auto args = json.at("arguments");
+                    auto command_line = value_to<std::string>(args.at("command-line"));
+                    if (command_line == "savevm suspend")
                     {
-                        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce([process](auto...) {
-                            mp::ProcessState exit_state{0, std::nullopt};
+                        EXPECT_CALL(*process, read_all_standard_output())
+                            .WillRepeatedly(Return("{\"timestamp\": {\"seconds\": 1541188919, "
+                                                   "\"microseconds\": 838498}, \"event\": "
+                                                   "\"RESUME\"}"));
+
+                        EXPECT_CALL(*process, kill()).WillOnce([process] {
+                            mp::ProcessState exit_state{
+                                std::nullopt,
+                                mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+                            emit process->error_occurred(QProcess::Crashed, "Crashed");
                             emit process->finished(exit_state);
-                            return true;
                         });
-                    }
-                    else if (execute == "human-monitor-command")
-                    {
-                        auto args = json_object["arguments"].toObject();
-                        auto command_line = args["command-line"];
-                        if (command_line == "savevm suspend")
-                        {
-                            EXPECT_CALL(*process, read_all_standard_output())
-                                .WillRepeatedly(Return("{\"timestamp\": {\"seconds\": 1541188919, "
-                                                       "\"microseconds\": 838498}, \"event\": "
-                                                       "\"RESUME\"}"));
-
-                            EXPECT_CALL(*process, kill()).WillOnce([process] {
-                                mp::ProcessState exit_state{
-                                    std::nullopt,
-                                    mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
-                                emit process->error_occurred(QProcess::Crashed, "Crashed");
-                                emit process->finished(exit_state);
-                            });
-                            emit process->ready_read_standard_output();
-                        }
+                        emit process->ready_read_standard_output();
                     }
                 }
 
@@ -282,20 +275,15 @@ TEST_F(QemuBackend, QMPErrorGetsLogged)
                 "qemu-system-")) // we only care about the actual vm process
         {
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
-                QJsonParseError parse_error;
-                auto json = QJsonDocument::fromJson(data, &parse_error);
-                if (parse_error.error == QJsonParseError::NoError)
-                {
-                    auto json_object = json.object();
-                    auto execute = json_object["execute"];
+                auto json = boost::json::parse(std::string_view(data));
+                auto execute = value_to<std::string>(json.at("execute"));
 
-                    if (execute == "qmp_capabilities") // Use the qmp_capabilities process write to
-                                                       // cause an error
-                    {
-                        EXPECT_CALL(*process, read_all_standard_output())
-                            .WillRepeatedly(Return("{\"error\": {\"desc\": \"some error\"}} "));
-                        emit process->ready_read_standard_output();
-                    }
+                if (execute == "qmp_capabilities") // Use the qmp_capabilities process write to
+                                                   // cause an error
+                {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillRepeatedly(Return("{\"error\": {\"desc\": \"some error\"}} "));
+                    emit process->ready_read_standard_output();
                 }
 
                 return data.size();
