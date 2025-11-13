@@ -455,7 +455,7 @@ TEST_F(ImageVault, remembersInstanceImages)
         return source_image;
     };
 
-    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), _))
+    EXPECT_CALL(mock_json_utils, write_json(An<const boost::json::value&>(), _))
         .WillRepeatedly([this](auto&&... args) {
             return mock_json_utils.JsonUtils::write_json(
                 std::forward<decltype(args)>(args)...); // call the real thing
@@ -498,7 +498,7 @@ TEST_F(ImageVault, remembersPreparedImages)
         return source_image;
     };
 
-    EXPECT_CALL(mock_json_utils, write_json(An<const QJsonObject&>(), _))
+    EXPECT_CALL(mock_json_utils, write_json(An<const boost::json::value&>(), _))
         .WillRepeatedly([this](auto&&... args) {
             return mock_json_utils.JsonUtils::write_json(
                 std::forward<decltype(args)>(args)...); // call the real thing
