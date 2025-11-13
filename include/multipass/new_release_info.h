@@ -20,6 +20,8 @@
 #include <QMetaType>
 #include <QUrl>
 
+#include <boost/json.hpp>
+
 namespace multipass
 {
 
@@ -30,6 +32,9 @@ struct NewReleaseInfo
     QString title;
     QString description;
 };
+
+NewReleaseInfo tag_invoke(const boost::json::value_to_tag<NewReleaseInfo>&,
+                          const boost::json::value& json);
 
 } // namespace multipass
 
