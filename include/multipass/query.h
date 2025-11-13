@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include <boost/json.hpp>
+
 namespace multipass
 {
 class Query
@@ -38,4 +40,25 @@ public:
     Type query_type;
     bool allow_unsupported{false};
 };
+
+inline void tag_invoke(const boost::json::value_from_tag&,
+                       boost::json::value& json,
+                       const Query& query)
+{
+    json = {{"release", query.release},
+            {"persistent", query.persistent},
+            {"remote_name", query.remote_name},
+            {"query_type", static_cast<int>(query.query_type)}};
+}
+
+inline Query tag_invoke(const boost::json::value_to_tag<Query>&, const boost::json::value& json)
+{
+    return {
+        "",
+        value_to<std::string>(json.at("release")),
+        value_to<bool>(json.at("persistent")),
+        value_to<std::string>(json.at("remote_name")),
+        static_cast<Query::Type>(value_to<int>(json.at("query_type"))),
+    };
+}
 } // namespace multipass
