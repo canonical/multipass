@@ -239,4 +239,52 @@ TEST_F(TestJsonUtils, updateCloudInitInstanceIdSucceed)
     EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
               QJsonValue{"vm2_e_e_e"});
 }
+
+class JsonPrettyPrintTest : public TestWithParam<std::string>
+{
+};
+
+TEST_P(JsonPrettyPrintTest, prettyPrintsCorrectly)
+{
+    std::string expected = GetParam();
+    boost::json::value json = boost::json::parse(expected);
+    EXPECT_EQ(mp::pretty_print(json, {.trailing_newline = false}), expected);
+}
+
+INSTANTIATE_TEST_SUITE_P(TestJsonUtils,
+                         JsonPrettyPrintTest,
+                         Values(
+                             // Null
+                             "null",
+                             // Booleans
+                             "true",
+                             "false",
+                             // Numbers
+                             "12345",
+                             "1.234",
+                             // Strings
+                             R"("hello there")",
+                             // Arrays
+                             "[\n]",
+                             R"([
+    123,
+    "hello there"
+])",
+                             // Objects
+                             "{\n}",
+                             R"({
+    "foo": "bar",
+    "one": 1,
+    "yes": true
+})",
+                             // Nested
+                             R"({
+    "foo": {
+        "bar": [
+            1,
+            2
+        ],
+        "baz": "quux"
+    }
+})"));
 } // namespace
