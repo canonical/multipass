@@ -26,8 +26,6 @@
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <QLockFile>
 #include <QSaveFile>
 
@@ -60,89 +58,6 @@ std::string& replace_substring(std::string& str, std::string_view from, std::str
 mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
     : Singleton<JsonUtils>{pass}
 {
-}
-
-void mp::JsonUtils::write_json(const QJsonObject& root, QString file_name) const
-{
-    constexpr static auto kStaleLockTime = std::chrono::seconds{10};
-    constexpr static auto kLockAcquireTimeout = std::chrono::seconds{10};
-    const QFileInfo fi{file_name};
-
-    const auto dir = fi.absoluteDir();
-    if (!MP_FILEOPS.mkpath(fi.absoluteDir(), "."))
-        throw std::runtime_error(fmt::format("Could not create path '{}'", dir.absolutePath()));
-
-    // Interprocess lock file to ensure that we can synchronize the request from
-    // both the daemon and the client.
-    QLockFile lock(fi.filePath() + ".lock");
-
-    // Make the lock file stale after a while to avoid deadlocking
-    // on process crashes, etc.
-    MP_FILEOPS.setStaleLockTime(lock, kStaleLockTime);
-
-    // Acquire lock file before attempting to write.
-    if (!MP_FILEOPS.tryLock(lock, kLockAcquireTimeout))
-    { // wait up to 10s
-        throw std::runtime_error(fmt::format("Could not acquire lock for '{}'", file_name));
-    }
-
-    constexpr static auto max_attempts = 10;
-
-    // The retry logic is here because the destination file might be locked for any reason
-    // (e.g. OS background indexing) so we will retry writing it until it's successful
-    // or the attempts are exhausted.
-    for (auto attempt = 1; attempt <= max_attempts; attempt++)
-    {
-        QSaveFile db_file{file_name};
-        if (!MP_FILEOPS.open(db_file, QIODevice::WriteOnly))
-            throw std::runtime_error{
-                fmt::format("Could not open transactional file for writing; filename: {}",
-                            file_name)};
-
-        if (MP_FILEOPS.write(db_file, QJsonDocument{root}.toJson()) == -1)
-            throw std::runtime_error{
-                fmt::format("Could not write json to transactional file; filename: {}; error: {}",
-                            file_name,
-                            db_file.errorString())};
-
-        if (!MP_FILEOPS.commit(db_file))
-        {
-            auto get_jitter_amount = [] {
-                constexpr static auto kMaxJitter = 25;
-                thread_local std::mt19937 rng{std::random_device{}()};
-                thread_local std::uniform_int_distribution<int> jit(0, kMaxJitter);
-                return jit(rng);
-            };
-
-            // Delay with jitter + backoff. A typical series produced
-            // by this formula would look like as follows:
-            // [2, 14,23,60,90,168,216,213,218,218]
-            // [14,20,30,40,98,174,221,208,206,214]
-            const auto delay = std::chrono::milliseconds(std::min(200, 10 * (1 << (attempt - 1))) +
-                                                         get_jitter_amount());
-            mpl::warn(kLogCategory,
-                      "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} "
-                      "ms delay.",
-                      file_name,
-                      attempt,
-                      db_file.errorString(),
-                      delay);
-
-            std::this_thread::sleep_for(delay);
-        }
-        else
-        {
-            // Saved successfully
-            mpl::debug(kLogCategory,
-                       "Saved file `{}` successfully in attempt #{}",
-                       file_name,
-                       attempt);
-            return;
-        }
-    }
-
-    throw std::runtime_error{
-        fmt::format("Could not commit transactional file; filename: {}", file_name)};
 }
 
 void mp::JsonUtils::write_json(const boost::json::value& root, QString file_name) const
@@ -229,23 +144,6 @@ void mp::JsonUtils::write_json(const boost::json::value& root, QString file_name
         fmt::format("Could not commit transactional file; filename: {}", file_name)};
 }
 
-std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
-{
-    // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a
-    // QByteArray.
-    return QJsonDocument(root).toJson().toStdString();
-}
-
-QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& id,
-                                                        const std::string& src_vm_name,
-                                                        const std::string& dest_vm_name) const
-{
-    std::string id_str = id.toString().toStdString();
-    assert(id_str.size() >= src_vm_name.size());
-
-    return QJsonValue{QString::fromStdString(id_str.replace(0, src_vm_name.size(), dest_vm_name))};
-}
-
 boost::json::object mp::JsonUtils::update_unique_identifiers_of_metadata(
     const boost::json::object& metadata,
     const multipass::VMSpecs& src_specs,
@@ -277,48 +175,6 @@ boost::json::object mp::JsonUtils::update_unique_identifiers_of_metadata(
     }
 
     return result_metadata;
-}
-
-QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
-    const std::vector<mp::NetworkInterface>& extra_interfaces) const
-{
-    QJsonArray json;
-
-    for (const auto& interface : extra_interfaces)
-    {
-        QJsonObject entry;
-        entry.insert("id", QString::fromStdString(interface.id));
-        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
-        entry.insert("auto_mode", interface.auto_mode);
-        json.append(entry);
-    }
-
-    return json;
-}
-
-std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_interfaces(
-    const QJsonObject& record) const
-{
-    if (record.contains("extra_interfaces"))
-    {
-        std::vector<mp::NetworkInterface> extra_interfaces;
-
-        for (QJsonValueRef entry : record["extra_interfaces"].toArray())
-        {
-            auto id = entry.toObject()["id"].toString().toStdString();
-            auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-            if (!mpu::valid_mac_address(mac_address))
-            {
-                throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
-            }
-            auto auto_mode = entry.toObject()["auto_mode"].toBool();
-            extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
-        }
-
-        return extra_interfaces;
-    }
-
-    return std::nullopt;
 }
 
 namespace
@@ -480,36 +336,6 @@ std::string mp::pretty_print(const boost::json::value& value, const PrettyPrintO
     std::ostringstream os;
     pretty_print(os, value, opts);
     return os.str();
-}
-
-boost::json::value mp::qjson_to_boost_json(const QJsonValue& value)
-{
-    QJsonDocument doc;
-    switch (value.type())
-    {
-    case QJsonValue::Array:
-        doc = QJsonDocument{value.toArray()};
-        break;
-    case QJsonValue::Object:
-        doc = QJsonDocument{value.toObject()};
-        break;
-    default:
-        assert(false && "unsupported type");
-    }
-    return boost::json::parse(std::string_view(doc.toJson()));
-}
-
-QJsonValue mp::boost_json_to_qjson(const boost::json::value& value)
-{
-    auto json_data = serialize(value);
-    auto doc = QJsonDocument::fromJson(
-        QByteArray{json_data.data(), static_cast<qsizetype>(json_data.size())});
-    if (doc.isArray())
-        return doc.array();
-    else if (doc.isObject())
-        return doc.object();
-    else
-        assert(false && "unsupported type");
 }
 
 boost::json::array mp::string_list_to_boost_json(const QStringList& list)

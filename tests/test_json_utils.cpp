@@ -21,8 +21,6 @@
 #include <multipass/json_utils.h>
 
 #include <QFileDevice>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QString>
 
 #include <stdexcept>
@@ -42,7 +40,7 @@ struct TestJsonUtils : public Test
     inline static const QString file_path = QStringLiteral("%1/%2").arg(dir, file_name);
     inline static const QString lockfile_path = file_path + ".lock";
     inline static const char* json_text = R"({"a": [1,2,3]})";
-    inline static const QJsonObject json = QJsonDocument::fromJson(json_text).object();
+    inline static const boost::json::value json = boost::json::parse(json_text);
     inline static const auto expected_stale_lock_time = std::chrono::seconds{10};
     inline static const auto expected_lock_timeout = std::chrono::seconds{10};
     inline static const auto expected_retry_attempts = 10;
@@ -66,11 +64,8 @@ struct TestJsonUtils : public Test
 
 TEST_F(TestJsonUtils, writesJsonTransactionally)
 {
-    auto json_matcher = ResultOf(
-        [](auto&& text) {
-            return QJsonDocument::fromJson(std::forward<decltype(text)>(text), nullptr);
-        },
-        Property(&QJsonDocument::object, Eq(json)));
+    auto json_matcher =
+        ResultOf([](auto&& text) { return boost::json::parse(std::string_view(text)); }, Eq(json));
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
     EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
@@ -86,11 +81,8 @@ TEST_F(TestJsonUtils, writesJsonTransactionally)
 
 TEST_F(TestJsonUtils, writesJsonTransactionallyEventually)
 {
-    auto json_matcher = ResultOf(
-        [](auto&& text) {
-            return QJsonDocument::fromJson(std::forward<decltype(text)>(text), nullptr);
-        },
-        Property(&QJsonDocument::object, Eq(json)));
+    auto json_matcher =
+        ResultOf([](auto&& text) { return boost::json::parse(std::string_view(text)); }, Eq(json));
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
     EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
@@ -183,61 +175,6 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
         MP_JSONUTILS.write_json(json, file_path),
         std::runtime_error,
         mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
-}
-
-struct ExtraInterfacesRead : public TestJsonUtils,
-                             public WithParamInterface<std::vector<mp::NetworkInterface>>
-{
-};
-
-TEST_P(ExtraInterfacesRead, writeAndReadExtraInterfaces)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    auto read_ifaces = MP_JSONUTILS.read_extra_interfaces(doc);
-
-    ASSERT_EQ(read_ifaces, extra_ifaces);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    TestJsonUtils,
-    ExtraInterfacesRead,
-    Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
-                                             {"eth2", "52:54:00:00:00:02", false}},
-           std::vector<mp::NetworkInterface>{}));
-
-TEST_F(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
-{
-    QJsonObject doc;
-    doc.insert("some_data", "nothing to see here");
-
-    ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
-}
-
-TEST_F(TestJsonUtils, throwsOnWrongMac)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces{
-        mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    MP_ASSERT_THROW_THAT(MP_JSONUTILS.read_extra_interfaces(doc),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
-}
-
-TEST_F(TestJsonUtils, updateCloudInitInstanceIdSucceed)
-{
-    EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
-              QJsonValue{"vm2_e_e_e"});
 }
 
 class JsonPrettyPrintTest : public TestWithParam<std::string>

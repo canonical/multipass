@@ -21,8 +21,6 @@
 
 #include <multipass/network_interface.h>
 
-#include <QJsonArray>
-#include <QJsonObject>
 #include <QString>
 #include <QStringList>
 
@@ -43,24 +41,14 @@ class JsonUtils : public Singleton<JsonUtils>
 public:
     explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
 
-    virtual void write_json(const QJsonObject& root,
-                            QString file_name) const; // transactional; creates parent dirs
     virtual void write_json(const boost::json::value& root,
                             QString file_name) const; // transactional; creates parent dirs
-    virtual std::string json_to_string(const QJsonObject& root) const;
-    virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
-                                                     const std::string& src_vm_name,
-                                                     const std::string& dest_vm_name) const;
     virtual boost::json::object update_unique_identifiers_of_metadata(
         const boost::json::object& metadata,
         const multipass::VMSpecs& src_specs,
         const multipass::VMSpecs& dest_specs,
         const std::string& src_vm_name,
         const std::string& dest_vm_name) const;
-    virtual QJsonArray extra_interfaces_to_json_array(
-        const std::vector<NetworkInterface>& extra_interfaces) const;
-    virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(
-        const QJsonObject& record) const;
 };
 
 namespace detail
@@ -154,9 +142,6 @@ void pretty_print(std::ostream& os,
                   const boost::json::value& value,
                   const PrettyPrintOptions& opts = {});
 std::string pretty_print(const boost::json::value& value, const PrettyPrintOptions& opts = {});
-
-boost::json::value qjson_to_boost_json(const QJsonValue& value);
-QJsonValue boost_json_to_qjson(const boost::json::value& value);
 
 boost::json::array string_list_to_boost_json(const QStringList& list);
 QStringList boost_json_to_string_list(const boost::json::array& list);
