@@ -18,8 +18,6 @@
 #include "base_snapshot.h"
 #include "multipass/virtual_machine.h"
 
-#include <multipass/cloud_init_iso.h>
-#include <multipass/constants.h>
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -27,11 +25,9 @@
 #include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
 
-#include <QJsonArray>
 #include <QString>
 
 #include <QFile>
-#include <QJsonParseError>
 #include <QTemporaryDir>
 #include <stdexcept>
 
@@ -51,37 +47,31 @@ QString derive_index_string(int index)
     return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
 }
 
-QJsonObject read_snapshot_json(const QString& filename)
+mp::SnapshotDescription read_snapshot_json(const QString& filename,
+                                           const mp::VirtualMachine& vm,
+                                           const mp::VirtualMachineDescription& vm_desc)
 {
     QFile file{filename};
     if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
         throw std::runtime_error{
             fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
 
-    QJsonParseError parse_error{};
     const auto& data = MP_FILEOPS.read_all(file);
-
-    if (const auto json = QJsonDocument::fromJson(data, &parse_error).object(); parse_error.error)
-        throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
-                                             parse_error.errorString(),
-                                             file.fileName())};
-    else if (json.isEmpty())
+    if (data.isEmpty())
         throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
-    else
-        return json["snapshot"].toObject();
-}
 
-std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mounts_json)
-{
-    std::unordered_map<std::string, mp::VMMount> mounts;
-    for (const auto& entry : mounts_json)
+    try
     {
-        const auto json = mp::qjson_to_boost_json(entry);
-        mounts[entry.toObject()["target_path"].toString().toStdString()] =
-            value_to<mp::VMMount>(json);
+        const auto json = boost::json::parse(std::string_view(data));
+        return value_to<mp::SnapshotDescription>(json.at("snapshot"),
+                                                 mp::snapshot_context{vm, vm_desc});
     }
-
-    return mounts;
+    catch (const boost::system::system_error& e)
+    {
+        throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
+                                             e.what(),
+                                             file.fileName())};
+    }
 }
 
 std::shared_ptr<mp::Snapshot> find_parent(const mp::SnapshotDescription& desc,
@@ -99,18 +89,6 @@ std::shared_ptr<mp::Snapshot> find_parent(const mp::SnapshotDescription& desc,
                         desc.parent_index)};
     }
 }
-
-// When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not
-// have the item and it needs to fill cloud_init_instance_id with the current value. The current
-// value equals to the value at snapshot time because cloud_init_instance_id has been an immutable
-// variable up to this point.
-std::string choose_cloud_init_instance_id(const QJsonObject& json,
-                                          const std::filesystem::path& cloud_init_iso_path)
-{
-    return json.contains("cloud_init_instance_id")
-               ? json["cloud_init_instance_id"].toString().toStdString()
-               : MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_iso_path);
-}
 } // namespace
 
 mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_,
@@ -124,6 +102,8 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_,
       captured{captured_}
 {
     desc.parent_index = parent ? parent->get_index() : 0;
+    if (captured && this->desc.upgraded)
+        persist();
 }
 
 mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_, VirtualMachine& vm_, bool captured_)
@@ -134,6 +114,8 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_, VirtualMachine& vm_, b
 {
     parent = find_parent(desc, vm_);
     desc.parent_index = parent ? parent->get_index() : 0;
+    if (captured && desc.upgraded)
+        persist();
 }
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name,
@@ -164,80 +146,18 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
 mp::BaseSnapshot::BaseSnapshot(const QString& filename,
                                VirtualMachine& vm,
                                const VirtualMachineDescription& desc)
-    : BaseSnapshot{read_snapshot_json(filename), vm, desc}
+    : BaseSnapshot{read_snapshot_json(filename, vm, desc), vm, /*captured=*/true}
 {
-}
-
-mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json,
-                               VirtualMachine& vm,
-                               const VirtualMachineDescription& desc)
-    : BaseSnapshot{
-          {json["name"].toString().toStdString(),
-           json["comment"].toString().toStdString(),
-           json["parent"].toInt(),
-           choose_cloud_init_instance_id(
-               json,
-               std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
-                   cloud_init_file_name),
-           json["index"].toInt(),
-           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs),
-           json["num_cores"].toInt(),
-           MemorySize{json["mem_size"].toString().toStdString()},
-           MemorySize{json["disk_space"].toString().toStdString()},
-           MP_JSONUTILS.read_extra_interfaces(json).value_or(desc.extra_interfaces),
-           static_cast<mp::VirtualMachine::State>(json["state"].toInt()),
-           load_mounts(json["mounts"].toArray()),
-           qjson_to_boost_json(json["metadata"]).as_object()},
-          vm,
-          /*captured=*/true}
-{
-    if (!(json.contains("extra_interfaces") && json.contains("cloud_init_instance_id")))
-    {
-        persist();
-    }
-}
-
-QJsonObject mp::BaseSnapshot::serialize() const
-{
-    assert(captured && "precondition: only captured snapshots can be serialized");
-    QJsonObject ret, snapshot{};
-    const std::unique_lock lock{mutex};
-
-    snapshot.insert("name", QString::fromStdString(desc.name));
-    snapshot.insert("comment", QString::fromStdString(desc.comment));
-    snapshot.insert("cloud_init_instance_id", QString::fromStdString(desc.cloud_init_instance_id));
-    snapshot.insert("parent", get_parents_index());
-    snapshot.insert("index", desc.index);
-    snapshot.insert("creation_timestamp", desc.creation_timestamp.toString(Qt::ISODateWithMs));
-    snapshot.insert("num_cores", desc.num_cores);
-    snapshot.insert("mem_size", QString::number(desc.mem_size.in_bytes()));
-    snapshot.insert("disk_space", QString::number(desc.disk_space.in_bytes()));
-    snapshot.insert("extra_interfaces",
-                    MP_JSONUTILS.extra_interfaces_to_json_array(desc.extra_interfaces));
-    snapshot.insert("state", static_cast<int>(desc.state));
-    snapshot.insert("metadata", boost_json_to_qjson(desc.metadata));
-
-    // Extract mount serialization
-    QJsonArray json_mounts;
-    for (const auto& mount : desc.mounts)
-    {
-        auto entry = mp::boost_json_to_qjson(boost::json::value_from(mount.second)).toObject();
-        entry.insert("target_path", QString::fromStdString(mount.first));
-        json_mounts.append(entry);
-    }
-
-    snapshot.insert("mounts", json_mounts);
-    ret.insert("snapshot", snapshot);
-
-    return ret;
 }
 
 void mp::BaseSnapshot::persist() const
 {
+    assert(captured && "precondition: only captured snapshots can be persisted");
     const std::unique_lock lock{mutex};
 
     auto snapshot_filepath = storage_dir.filePath(derive_snapshot_filename());
-    MP_FILEOPS.write_transactionally(snapshot_filepath, QJsonDocument{serialize()}.toJson());
+    boost::json::value json = {{"snapshot", boost::json::value_from(desc)}};
+    MP_FILEOPS.write_transactionally(snapshot_filepath, pretty_print(json));
 }
 
 auto mp::BaseSnapshot::erase_helper()

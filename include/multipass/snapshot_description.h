@@ -30,6 +30,14 @@
 
 namespace multipass
 {
+class VirtualMachineDescription;
+
+struct snapshot_context
+{
+    const VirtualMachine& vm;
+    const VirtualMachineDescription& vm_desc;
+};
+
 struct SnapshotDescription
 {
     SnapshotDescription(std::string name,
@@ -44,7 +52,8 @@ struct SnapshotDescription
                         std::vector<NetworkInterface> extra_interfaces,
                         VirtualMachine::State state,
                         std::unordered_map<std::string, VMMount> mounts,
-                        boost::json::object metadata);
+                        boost::json::object metadata,
+                        bool upgraded = false);
 
     std::string name;
     std::string comment;
@@ -63,5 +72,15 @@ struct SnapshotDescription
     const std::unordered_map<std::string, VMMount> mounts;
     const boost::json::object metadata;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+
+    // True if this was deserialized from a legacy snapshot file.
+    bool upgraded;
 };
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const SnapshotDescription& desc);
+SnapshotDescription tag_invoke(const boost::json::value_to_tag<SnapshotDescription>&,
+                               const boost::json::value& json,
+                               const snapshot_context& ctx);
 } // namespace multipass

@@ -28,10 +28,6 @@
 #include <multipass/vm_specs.h>
 #include <shared/base_snapshot.h>
 
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-
 #include <stdexcept>
 #include <tuple>
 
@@ -78,53 +74,32 @@ struct TestBaseSnapshot : public Test
         return desc;
     }
 
-    static QJsonObject test_snapshot_json()
+    static boost::json::value test_snapshot_json()
     {
-        static auto json_doc = [] {
-            QJsonParseError parse_error{};
-            const auto ret =
-                QJsonDocument::fromJson(mpt::load_test_file(test_json_filename), &parse_error);
-            if (parse_error.error)
-                throw std::runtime_error{fmt::format("Bad JSON test data in {}; error: {}",
-                                                     test_json_filename,
-                                                     parse_error.errorString())};
-            return ret;
-        }();
-
-        return json_doc.object();
+        return boost::json::parse(std::string_view(mpt::load_test_file(test_json_filename)));
     }
 
-    static QJsonObject test_legacy_snapshot_json()
+    static boost::json::value test_legacy_snapshot_json()
     {
         auto json = test_snapshot_json();
 
         // Remove the "extra_interfaces" field.
-        auto snapshot_entry = json["snapshot"].toObject();
-        snapshot_entry.remove("extra_interfaces");
-        json["snapshot"] = snapshot_entry;
-
+        json.at("snapshot").as_object().erase("extra_interfaces");
         return json;
     }
 
-    static void mod_snapshot_json(QJsonObject& json,
-                                  const QString& key,
-                                  const QJsonValue& new_value)
+    static void mod_snapshot_json(boost::json::value& json,
+                                  std::string_view key,
+                                  const boost::json::value& new_value)
     {
-        const auto snapshot_key = QStringLiteral("snapshot");
-        auto snapshot_json_ref = json[snapshot_key];
-        auto snapshot_json_copy = snapshot_json_ref.toObject();
-        snapshot_json_copy[key] = new_value;
-        snapshot_json_ref = snapshot_json_copy;
+        json.at("snapshot").as_object()[key] = new_value;
     }
 
-    QString plant_snapshot_json(const QJsonObject& object,
+    QString plant_snapshot_json(const boost::json::value& json,
                                 const QString& filename = "snapshot.json") const
     {
         const auto file_path = vm.tmp_dir->filePath(filename);
-
-        const QJsonDocument doc{object};
-        mpt::make_file_with_content(file_path, doc.toJson().toStdString());
-
+        mpt::make_file_with_content(file_path, serialize(json));
         return file_path;
     }
 
@@ -355,7 +330,7 @@ TEST_F(TestBaseSnapshot, adoptsInstanceIdFromJson)
 {
     constexpr std::string_view new_instance_id{"vm2"};
     auto json = test_snapshot_json();
-    mod_snapshot_json(json, "cloud_init_instance_id", QJsonValue{new_instance_id.data()});
+    mod_snapshot_json(json, "cloud_init_instance_id", boost::json::value{new_instance_id.data()});
 
     const auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_cloud_init_instance_id(), new_instance_id);
@@ -415,9 +390,7 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
 {
     std::vector<mp::NetworkInterface> extra_interfaces{{"eth15", "15:15:15:15:15:15", false}};
     auto json = test_snapshot_json();
-    mod_snapshot_json(json,
-                      "extra_interfaces",
-                      MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
+    mod_snapshot_json(json, "extra_interfaces", boost::json::value_from(extra_interfaces));
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
@@ -443,7 +416,7 @@ TEST_F(TestBaseSnapshot, adoptsStateFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
 {
-    auto metadata = QJsonObject{};
+    boost::json::object metadata;
     metadata["arguments"] = "Meathook:\n"
                             "You've got a real attitude problem!\n"
                             "\n"
@@ -460,7 +433,7 @@ TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
     mod_snapshot_json(json, "metadata", metadata);
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
-    EXPECT_EQ(snapshot.get_metadata(), mp::qjson_to_boost_json(metadata).as_object());
+    EXPECT_EQ(snapshot.get_metadata(), metadata);
 }
 
 TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
@@ -470,28 +443,12 @@ TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
     constexpr auto host_uid = 1, instance_uid = 2, host_gid = 3, instance_gid = 4;
     constexpr auto mount_type = mp::VMMount::MountType::Native;
 
-    QJsonArray mounts{};
-    QJsonObject mount{};
-    QJsonArray uid_mappings{};
-    QJsonObject uid_mapping{};
-    QJsonArray gid_mappings{};
-    QJsonObject gid_mapping{};
-
-    uid_mapping["host_uid"] = host_uid;
-    uid_mapping["instance_uid"] = instance_uid;
-    uid_mappings.append(uid_mapping);
-
-    gid_mapping["host_gid"] = host_gid;
-    gid_mapping["instance_gid"] = instance_gid;
-    gid_mappings.append(gid_mapping);
-
-    mount["source_path"] = src_path;
-    mount["target_path"] = dst_path;
-    mount["uid_mappings"] = uid_mappings;
-    mount["gid_mappings"] = gid_mappings;
-    mount["mount_type"] = static_cast<int>(mount_type);
-
-    mounts.append(mount);
+    boost::json::array mounts = {
+        {{"source_path", src_path},
+         {"target_path", dst_path},
+         {"uid_mappings", {{{"host_uid", host_uid}, {"instance_uid", instance_uid}}}},
+         {"gid_mappings", {{{"host_gid", host_gid}, {"instance_gid", instance_gid}}}},
+         {"mount_type", static_cast<int>(mount_type)}}};
 
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "mounts", mounts);
@@ -506,14 +463,16 @@ TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
     EXPECT_EQ(snapshot_mount.get_source_path(), mp::fs::weakly_canonical(src_path));
     EXPECT_EQ(snapshot_mount.get_mount_type(), mount_type);
 
-    ASSERT_THAT(snapshot_mount.get_uid_mappings(), SizeIs(uid_mappings.size()));
+    ASSERT_THAT(snapshot_mount.get_uid_mappings(),
+                SizeIs(mounts.at(0).at("uid_mappings").as_array().size()));
     const auto [snapshot_host_uid, snapshot_instance_uid] =
         snapshot_mount.get_uid_mappings().front();
 
     EXPECT_EQ(snapshot_host_uid, host_uid);
     EXPECT_EQ(snapshot_instance_uid, instance_uid);
 
-    ASSERT_THAT(snapshot_mount.get_gid_mappings(), SizeIs(gid_mappings.size()));
+    ASSERT_THAT(snapshot_mount.get_gid_mappings(),
+                SizeIs(mounts.at(0).at("gid_mappings").as_array().size()));
     const auto [snapshot_host_gid, snapshot_instance_gid] =
         snapshot_mount.get_gid_mappings().front();
 
@@ -601,15 +560,14 @@ TEST_P(TestSnapshotPersistence, persistsOnEdition)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(file_path), _))
         .WillOnce(WithArg<1>([&snapshot_orig](const QByteArrayView& data) {
-            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
-            const auto& new_snapshot = obj["snapshot"];
+            auto obj = boost::json::parse({data.begin(), data.end()});
+            const auto& new_snapshot = obj.at("snapshot");
 
-            ASSERT_TRUE(new_snapshot.isObject());
-            const auto& new_obj = new_snapshot.toObject();
-
-            EXPECT_EQ(snapshot_orig.get_name(), new_obj["name"].toString().toStdString());
-            EXPECT_EQ(snapshot_orig.get_comment(), new_obj["comment"].toString().toStdString());
-            EXPECT_EQ(snapshot_orig.get_parents_index(), new_obj["parent"].toInt());
+            ASSERT_TRUE(new_snapshot.is_object());
+            EXPECT_EQ(snapshot_orig.get_name(), value_to<std::string>(new_snapshot.at("name")));
+            EXPECT_EQ(snapshot_orig.get_comment(),
+                      value_to<std::string>(new_snapshot.at("comment")));
+            EXPECT_EQ(snapshot_orig.get_parents_index(), value_to<int>(new_snapshot.at("parent")));
         }));
 
     setter(snapshot_orig);
@@ -735,12 +693,21 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
                                                HasSubstr(test_json_file_path.toStdString()))));
 }
 
-TEST_F(TestBaseSnapshot, throwsOnEmptyJson)
+TEST_F(TestBaseSnapshot, throwsOnEmptyFile)
 {
-    const auto snapshot_file_path = plant_snapshot_json(QJsonObject{});
+    const auto snapshot_file_path = vm.tmp_dir->filePath("wrong");
+    mpt::make_file_with_content(snapshot_file_path, "");
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Empty")));
+}
+
+TEST_F(TestBaseSnapshot, throwsOnEmptyJsonObject)
+{
+    const auto snapshot_file_path = plant_snapshot_json({});
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Could not parse snapshot JSON")));
 }
 
 TEST_F(TestBaseSnapshot, throwsOnBadFormat)

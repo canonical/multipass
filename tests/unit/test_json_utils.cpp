@@ -50,54 +50,6 @@ std::string tag_invoke(const boost::json::value_to_tag<std::string>&,
     return s;
 }
 
-struct ExtraInterfacesRead : public TestWithParam<std::vector<mp::NetworkInterface>>
-{
-};
-
-TEST_P(ExtraInterfacesRead, writeAndReadExtraInterfaces)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    auto read_ifaces = MP_JSONUTILS.read_extra_interfaces(doc);
-
-    ASSERT_EQ(read_ifaces, extra_ifaces);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    TestJsonUtils,
-    ExtraInterfacesRead,
-    Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
-                                             {"eth2", "52:54:00:00:00:02", false}},
-           std::vector<mp::NetworkInterface>{}));
-
-TEST(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
-{
-    QJsonObject doc;
-    doc.insert("some_data", "nothing to see here");
-
-    ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
-}
-
-TEST(TestJsonUtils, throwsOnWrongMac)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces{
-        mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    MP_ASSERT_THROW_THAT(MP_JSONUTILS.read_extra_interfaces(doc),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
-}
-
 TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
 {
     mp::VMSpecs src_specs = {1,

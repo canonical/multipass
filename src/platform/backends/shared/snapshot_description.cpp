@@ -17,14 +17,34 @@
 
 #include <multipass/snapshot_description.h>
 
+#include <multipass/cloud_init_iso.h>
+#include <multipass/constants.h>
+#include <multipass/json_utils.h>
+#include <multipass/virtual_machine_description.h>
+
 #include <fmt/format.h>
+
+namespace mp = multipass;
 
 namespace
 {
 constexpr auto max_snapshots = 9999;
-} // namespace
 
-namespace mp = multipass;
+// When it does not contain cloud_init_instance_id, it signifies that the legacy snapshot does not
+// have the item and it needs to fill cloud_init_instance_id with the current value. The current
+// value equals to the value at snapshot time because cloud_init_instance_id has been an immutable
+// variable up to this point.
+std::string choose_cloud_init_instance_id(const boost::json::value* id,
+                                          const mp::VirtualMachine& vm)
+{
+    if (id)
+        return value_to<std::string>(*id);
+
+    std::filesystem::path instance_dir{vm.instance_directory().absolutePath().toStdString()};
+    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(instance_dir /
+                                                                  mp::cloud_init_file_name);
+}
+} // namespace
 
 mp::SnapshotDescription::SnapshotDescription(std::string name_,
                                              std::string comment_,
@@ -38,7 +58,8 @@ mp::SnapshotDescription::SnapshotDescription(std::string name_,
                                              std::vector<NetworkInterface> extra_interfaces_,
                                              VirtualMachine::State state_,
                                              std::unordered_map<std::string, VMMount> mounts_,
-                                             boost::json::object metadata_)
+                                             boost::json::object metadata_,
+                                             bool upgraded_)
     : name(std::move(name_)),
       comment(std::move(comment_)),
       parent_index(parent_index_),
@@ -51,7 +72,8 @@ mp::SnapshotDescription::SnapshotDescription(std::string name_,
       extra_interfaces(std::move(extra_interfaces_)),
       state(state_),
       mounts(std::move(mounts_)),
-      metadata(std::move(metadata_))
+      metadata(std::move(metadata_)),
+      upgraded(upgraded_)
 {
     using St = VirtualMachine::State;
     if (state != St::off && state != St::stopped)
@@ -70,4 +92,52 @@ mp::SnapshotDescription::SnapshotDescription(std::string name_,
         throw std::runtime_error{fmt::format("Invalid memory size for snapshot: {}", mem_bytes)};
     if (auto disk_bytes = disk_space.in_bytes(); disk_bytes < 1)
         throw std::runtime_error{fmt::format("Invalid disk size for snapshot: {}", disk_bytes)};
+}
+
+void mp::tag_invoke(const boost::json::value_from_tag&,
+                    boost::json::value& json,
+                    const mp::SnapshotDescription& desc)
+{
+    json = {
+        {"name", desc.name},
+        {"comment", desc.comment},
+        {"parent", desc.parent_index},
+        {"cloud_init_instance_id", desc.cloud_init_instance_id},
+        {"index", desc.index},
+        {"creation_timestamp", desc.creation_timestamp.toString(Qt::ISODateWithMs).toStdString()},
+        {"num_cores", desc.num_cores},
+        {"mem_size", QString::number(desc.mem_size.in_bytes()).toStdString()},
+        {"disk_space", QString::number(desc.disk_space.in_bytes()).toStdString()},
+        {"extra_interfaces", boost::json::value_from(desc.extra_interfaces)},
+        {"state", static_cast<int>(desc.state)},
+        {"mounts", boost::json::value_from(desc.mounts, MapAsJsonArray{"target_path"})},
+        {"metadata", desc.metadata}};
+}
+
+mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::SnapshotDescription>&,
+                                       const boost::json::value& json,
+                                       const snapshot_context& ctx)
+{
+    const auto& json_obj = json.as_object();
+    bool upgraded =
+        !(json_obj.contains("extra_interfaces") && json_obj.contains("cloud_init_instance_id"));
+
+    return {
+        value_to<std::string>(json.at("name")),
+        value_to<std::string>(json.at("comment")),
+        value_to<int>(json.at("parent")),
+        choose_cloud_init_instance_id(json_obj.if_contains("cloud_init_instance_id"), ctx.vm),
+        value_to<int>(json.at("index")),
+        QDateTime::fromString(value_to<QString>(json.at("creation_timestamp")), Qt::ISODateWithMs),
+        value_to<int>(json.at("num_cores")),
+        MemorySize{value_to<std::string>(json.at("mem_size"))},
+        MemorySize{value_to<std::string>(json.at("disk_space"))},
+        lookup_or<std::vector<NetworkInterface>>(json,
+                                                 "extra_interfaces",
+                                                 std::move(ctx.vm_desc.extra_interfaces)),
+        static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
+        value_to<std::unordered_map<std::string, mp::VMMount>>(json.at("mounts"),
+                                                               MapAsJsonArray{"target_path"}),
+        json.at("metadata").as_object(),
+        upgraded};
 }
