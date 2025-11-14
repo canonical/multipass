@@ -84,6 +84,23 @@ You may need additional libraries and packages during the configuration process:
 
     brew install glib pixman
 
+If the build process lacks `distlib` when creating virtual environments, you will need to either install it using:
+
+**Option 1**:
+
+```
+python3 -m venv ~/multipass-build-env
+source ~/multipass-build-env/bin/activate
+pip install distlib
+```
+And then install all packages that are required during the build. Afterwards, add to the cmake configure command the flag `-DPYTHON_EXECUTABLE=$VIRTUAL_ENV/bin/python3`.
+
+**Option 2**:
+
+Since `distlib` is a build-time dependency, alternatively you can install the package globally.
+```
+/usr/local/bin/python3 -m pip install distlib --break-system-packages
+```
 #### Xcode setup
 
 After installing Xcode, you may need to configure the command line tools and complete the initial setup:
