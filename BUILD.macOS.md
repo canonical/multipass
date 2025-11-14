@@ -14,6 +14,10 @@ run:
 Ensure you have development Frameworks for at least OS X 10.8 installed, with the typical compiler toolchain and "git".
 Avoid the version of cmake supplied, we need a newer one (see later).
 
+### Homebrew
+
+Install Homebrew <https://brew.sh/> for package management. It is the most straightforward way of installing the build's dependencies.
+
 ### Qt6
 
 #### Installing Qt 6.10.0 using aqtinstall (recommended)
@@ -38,6 +42,8 @@ You may need to update your version of Ruby first. You can do so with RVM <https
     rvm install 3.1.0 && rvm --default use 3.1.0
 
 **Important: RVM/Ruby may require OpenSSL v1, while building Multipass requires OpenSSL v3. Make sure to switch to the right version of OpenSSL as necessary with `brew link`**
+
+**Additional note**: `gem install` may not work with `sudo`, run the command without it if that is the case.
 
 
 ### Cmake
@@ -80,6 +86,23 @@ You may need additional libraries and packages during the configuration process:
 
     brew install glib pixman
 
+If the build process lacks `distlib` when creating virtual environments, you will need to either install it using:
+
+**Option 1**:
+
+```
+python3 -m venv ~/multipass-build-env
+source ~/multipass-build-env/bin/activate
+pip install distlib
+```
+And then install all packages that are required during the build. Afterwards, add to the cmake configure command the flag `-DPYTHON_EXECUTABLE=$VIRTUAL_ENV/bin/python3`.
+
+**Option 2**:
+
+Since `distlib` is a build-time dependency, alternatively you can install the package globally.
+```
+/usr/local/bin/python3 -m pip install distlib --break-system-packages
+```
 #### Xcode setup
 
 After installing Xcode, you may need to configure the command line tools and complete the initial setup:
@@ -100,7 +123,7 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 To build with Qt installed via aqtinstall:
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos/bin
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos
 
 Alternatively if using Qt6 from Homebrew, do
 
