@@ -21,9 +21,6 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/platform.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
-
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 

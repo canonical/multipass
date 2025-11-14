@@ -20,11 +20,14 @@
 #include <QString>
 #include <QStringList>
 
+#include <boost/json.hpp>
+
+#include <multipass/json_utils.h>
+
 namespace multipass
 {
-class VMImageInfo
+struct VMImageInfo
 {
-public:
     QStringList aliases;
     QString os;
     QString release;
@@ -37,32 +40,36 @@ public:
     QString version;
     int64_t size;
     bool verify;
+
+    friend inline bool operator==(const VMImageInfo& a, const VMImageInfo& b) = default;
 };
 
-inline bool operator==(const VMImageInfo& a, const VMImageInfo& b)
+struct for_arch
 {
-    return std::tie(a.aliases,
-                    a.os,
-                    a.release,
-                    a.release_title,
-                    a.release_codename,
-                    a.supported,
-                    a.image_location,
-                    a.id,
-                    a.stream_location,
-                    a.version,
-                    a.size,
-                    a.verify) == std::tie(b.aliases,
-                                          b.os,
-                                          b.release,
-                                          b.release_title,
-                                          b.release_codename,
-                                          b.supported,
-                                          b.image_location,
-                                          b.id,
-                                          b.stream_location,
-                                          b.version,
-                                          b.size,
-                                          b.verify);
+    std::string arch;
+};
+
+inline VMImageInfo tag_invoke(const boost::json::value_to_tag<VMImageInfo>&,
+                              const boost::json::value& json,
+                              const for_arch& arch)
+{
+    QStringList aliases = QString::fromStdString(value_to<std::string>(json.at("aliases")))
+                              .split(",", Qt::SkipEmptyParts);
+    for (QString& alias : aliases)
+        alias = alias.trimmed();
+
+    const auto& arch_json = json.at("items").at(arch.arch);
+    return {aliases,
+            QString::fromStdString(value_to<std::string>(json.at("os"))),
+            QString::fromStdString(value_to<std::string>(json.at("release"))),
+            QString::fromStdString(value_to<std::string>(json.at("release_codename"))),
+            QString::fromStdString(value_to<std::string>(json.at("release_title"))),
+            true,
+            QString::fromStdString(value_to<std::string>(arch_json.at("image_location"))),
+            QString::fromStdString(value_to<std::string>(arch_json.at("id"))),
+            "",
+            QString::fromStdString(value_to<std::string>(arch_json.at("version"))),
+            lookup_or<int>(arch_json, "size", -1),
+            true};
 }
 } // namespace multipass

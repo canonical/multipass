@@ -30,6 +30,8 @@ public:
     using JsonUtils::JsonUtils;
 
     MOCK_METHOD(void, write_json, (const QJsonObject&, QString), (const, override));
+    MOCK_METHOD(void, write_json, (const boost::json::value&, QString), (const, override));
+
     MOCK_METHOD(std::string, json_to_string, (const QJsonObject& root), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockJsonUtils, JsonUtils);

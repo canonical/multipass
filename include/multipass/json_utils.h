@@ -24,6 +24,9 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
+#include <QStringList>
+
+#include <boost/json.hpp>
 
 #include <optional>
 #include <string>
@@ -41,18 +44,106 @@ public:
 
     virtual void write_json(const QJsonObject& root,
                             QString file_name) const; // transactional; creates parent dirs
+    virtual void write_json(const boost::json::value& root,
+                            QString file_name) const; // transactional; creates parent dirs
     virtual std::string json_to_string(const QJsonObject& root) const;
     virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
                                                      const std::string& src_vm_name,
                                                      const std::string& dest_vm_name) const;
-    virtual QJsonValue update_unique_identifiers_of_metadata(const QJsonValue& metadata,
-                                                             const multipass::VMSpecs& src_specs,
-                                                             const multipass::VMSpecs& dest_specs,
-                                                             const std::string& src_vm_name,
-                                                             const std::string& dest_vm_name) const;
+    virtual boost::json::object update_unique_identifiers_of_metadata(
+        const boost::json::object& metadata,
+        const multipass::VMSpecs& src_specs,
+        const multipass::VMSpecs& dest_specs,
+        const std::string& src_vm_name,
+        const std::string& dest_vm_name) const;
     virtual QJsonArray extra_interfaces_to_json_array(
         const std::vector<NetworkInterface>& extra_interfaces) const;
     virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(
         const QJsonObject& record) const;
 };
+
+namespace detail
+{
+inline auto if_contains(const boost::json::value& json, std::size_t key)
+{
+    if (auto arr = json.try_as_array())
+        return arr->if_contains(key);
+    throw std::runtime_error("wrong type"); // FIXME
+}
+
+inline auto if_contains(const boost::json::value& json, std::string_view key)
+{
+    if (auto obj = json.try_as_object())
+        return obj->if_contains(key);
+    throw std::runtime_error("wrong type"); // FIXME
+}
+} // namespace detail
+
+template <typename T, typename Key, typename Context>
+T lookup_or(const boost::json::value& json, Key&& key, T&& fallback, const Context& ctx)
+{
+    if (auto elem = detail::if_contains(json, std::forward<Key>(key)))
+        return value_to<T>(*elem, ctx);
+    else
+        return std::forward<T>(fallback);
+}
+
+template <typename T, typename Key>
+T lookup_or(const boost::json::value& json, Key&& key, T&& fallback)
+{
+    if (auto elem = detail::if_contains(json, std::forward<Key>(key)))
+        return value_to<T>(*elem);
+    else
+        return std::forward<T>(fallback);
+}
+
+// Prevent implicit conversions to `boost::json::value`.
+template <typename T, typename U, typename Key>
+T lookup_or(const U&, Key&&, T&&) = delete;
+
+// (De)serialize mappings to/from JSON arrays by setting the map key as a JSON field in each
+// element.
+struct map_as_array
+{
+    std::string key_field;
+};
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const T& mapping,
+                const map_as_array& cfg)
+{
+    auto& arr = json.emplace_array();
+    for (const auto& [key, value] : mapping)
+    {
+        auto elem = boost::json::value_from(value);
+        elem.as_object().emplace(cfg.key_field, boost::json::value_from(key));
+        arr.push_back(std::move(elem));
+    }
+}
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+T tag_invoke(const boost::json::value_to_tag<T>&,
+             const boost::json::value& json,
+             const map_as_array& cfg)
+{
+    T result;
+    for (const auto& i : json.as_array())
+    {
+        boost::json::value elem = i;
+        auto key = value_to<typename T::key_type>(elem.at(cfg.key_field));
+        elem.as_object().erase(cfg.key_field);
+        result.emplace(key, value_to<typename T::mapped_type>(elem));
+    }
+    return result;
+}
+
+boost::json::value qjson_to_boost_json(const QJsonValue& value);
+QJsonValue boost_json_to_qjson(const boost::json::value& value);
+
+boost::json::array string_list_to_boost_json(const QStringList& list);
+QStringList boost_json_to_string_list(const boost::json::array& list);
 } // namespace multipass

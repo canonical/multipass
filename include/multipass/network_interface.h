@@ -18,19 +18,46 @@
 #pragma once
 
 #include <string>
-#include <tuple>
+
+#include <boost/json.hpp>
+
+#include <fmt/format.h>
 
 namespace multipass
 {
+namespace utils
+{
+// Forward-declare to avoid a circular dependency.
+bool valid_mac_address(const std::string& mac);
+} // namespace utils
+
 struct NetworkInterface
 {
     std::string id;
     std::string mac_address;
     bool auto_mode;
+
+    friend inline bool operator==(const NetworkInterface& a, const NetworkInterface& b) = default;
 };
 
-inline bool operator==(const NetworkInterface& a, const NetworkInterface& b)
+inline void tag_invoke(const boost::json::value_from_tag&,
+                       boost::json::value& json,
+                       const NetworkInterface& interface)
 {
-    return std::tie(a.id, a.auto_mode, a.mac_address) == std::tie(b.id, b.auto_mode, b.mac_address);
+    json = {{"id", interface.id},
+            {"mac_address", interface.mac_address},
+            {"auto_mode", interface.auto_mode}};
 }
+inline NetworkInterface tag_invoke(const boost::json::value_to_tag<NetworkInterface>&,
+                                   const boost::json::value& json)
+{
+    auto mac_address = value_to<std::string>(json.at("mac_address"));
+    if (!multipass::utils::valid_mac_address(mac_address))
+        throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
+
+    return {value_to<std::string>(json.at("id")),
+            mac_address,
+            value_to<bool>(json.at("auto_mode"))};
+}
+
 } // namespace multipass
