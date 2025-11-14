@@ -42,6 +42,7 @@ You may need to update your version of Ruby first. You can do so with RVM <https
     rvm install 3.1.0 && rvm --default use 3.1.0
 
 **Important: RVM/Ruby may require OpenSSL v1, while building Multipass requires OpenSSL v3. Make sure to switch to the right version of OpenSSL as necessary with `brew link`**
+**Additional note**: `gem install` may not work with `sudo`, run the command without it if that is the case.
 
 ### Cmake/OpenSSL
 
@@ -103,7 +104,7 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 To build with Qt installed via aqtinstall:
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos/bin
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos
 
 Then start the build with:
 
