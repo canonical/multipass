@@ -22,9 +22,6 @@
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 
-#include <QJsonArray>
-#include <QJsonDocument>
-
 #include <boost/algorithm/string/replace.hpp>
 
 #include <sstream>
@@ -80,28 +77,6 @@ void pretty_print_scalar(std::ostream& os, const boost::json::value& value)
         os << serialize(value);
 }
 } // namespace
-
-mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
-    : Singleton<JsonUtils>{pass}
-{
-}
-
-std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
-{
-    // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a
-    // QByteArray.
-    return QJsonDocument(root).toJson().toStdString();
-}
-
-QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& id,
-                                                        const std::string& src_vm_name,
-                                                        const std::string& dest_vm_name) const
-{
-    std::string id_str = id.toString().toStdString();
-    assert(id_str.size() >= src_vm_name.size());
-
-    return QJsonValue{QString::fromStdString(id_str.replace(0, src_vm_name.size(), dest_vm_name))};
-}
 
 boost::json::object mp::update_unique_identifiers_of_metadata(const boost::json::object& metadata,
                                                               const multipass::VMSpecs& src_specs,
@@ -257,37 +232,6 @@ std::string mp::pretty_print(const boost::json::value& value, const PrettyPrintO
     std::ostringstream os;
     pretty_print(os, value, opts);
     return os.str();
-}
-
-boost::json::value mp::qjson_to_boost_json(const QJsonValue& value)
-{
-    QJsonDocument doc;
-    switch (value.type())
-    {
-    case QJsonValue::Array:
-        doc = QJsonDocument{value.toArray()};
-        break;
-    case QJsonValue::Object:
-        doc = QJsonDocument{value.toObject()};
-        break;
-    default:
-        assert(false && "unsupported type");
-    }
-    return boost::json::parse(std::string_view(doc.toJson()));
-}
-
-QJsonValue mp::boost_json_to_qjson(const boost::json::value& value)
-{
-    auto json_data = serialize(value);
-    auto doc = QJsonDocument::fromJson(
-        QByteArray{json_data.data(), static_cast<qsizetype>(json_data.size())});
-    if (doc.isArray())
-        return doc.array();
-    else if (doc.isObject())
-        return doc.object();
-
-    assert(false && "unsupported type");
-    std::abort();
 }
 
 void tag_invoke(const boost::json::value_from_tag&,

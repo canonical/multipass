@@ -22,8 +22,6 @@
 #include <multipass/vm_specs.h>
 
 #include <QFileDevice>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QString>
 
 #include <cctype>
@@ -87,12 +85,6 @@ TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
                                                     "src_vm",
                                                     "dst_vm"),
               dst_metadata);
-}
-
-TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
-{
-    EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
-              QJsonValue{"vm2_e_e_e"});
 }
 
 TEST(TestJsonUtils, lookupInArray)
