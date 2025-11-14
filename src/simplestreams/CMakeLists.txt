@@ -23,4 +23,5 @@ target_link_libraries(simplestreams
   settings
   utils
   Qt6::Core
-  Qt6::Network)
+  Qt6::Network
+  nlohmann_json::nlohmann_json)
