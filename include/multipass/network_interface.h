@@ -18,7 +18,6 @@
 #pragma once
 
 #include <string>
-#include <tuple>
 
 namespace multipass
 {
@@ -27,10 +26,8 @@ struct NetworkInterface
     std::string id;
     std::string mac_address;
     bool auto_mode;
+
+    friend inline bool operator==(const NetworkInterface& a, const NetworkInterface& b) = default;
 };
 
-inline bool operator==(const NetworkInterface& a, const NetworkInterface& b)
-{
-    return std::tie(a.id, a.auto_mode, a.mac_address) == std::tie(b.id, b.auto_mode, b.mac_address);
-}
 } // namespace multipass

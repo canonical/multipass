@@ -21,7 +21,6 @@
 
 #include <algorithm>
 #include <string>
-#include <tuple>
 #include <vector>
 
 namespace multipass
@@ -39,12 +38,9 @@ struct NetworkInterfaceInfo
     std::string description;
     std::vector<std::string> links = {}; // default initializer allows aggregate init of the other 3
     bool needs_authorization = false;    // idem
-};
 
-inline bool operator==(const NetworkInterfaceInfo& a, const NetworkInterfaceInfo& b)
-{
-    return std::tie(a.id, a.type, a.description, a.links, a.needs_authorization) ==
-           std::tie(b.id, b.type, b.description, b.links, b.needs_authorization);
-}
+    friend inline bool operator==(const NetworkInterfaceInfo& a,
+                                  const NetworkInterfaceInfo& b) = default;
+};
 
 } // namespace multipass
