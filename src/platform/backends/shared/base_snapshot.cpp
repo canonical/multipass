@@ -41,7 +41,6 @@ namespace
 {
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto index_digits = 4; // these two go together
-constexpr auto max_snapshots = 9999;
 const auto snapshot_template =
     QStringLiteral("@s%1"); /* avoid confusion with snapshot names by prepending a character
                                that can't be part of the name (users can call a snapshot
@@ -85,19 +84,19 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mount
     return mounts;
 }
 
-std::shared_ptr<mp::Snapshot> find_parent(const QJsonObject& json, mp::VirtualMachine& vm)
+std::shared_ptr<mp::Snapshot> find_parent(const mp::SnapshotDescription& desc,
+                                          mp::VirtualMachine& vm)
 {
-    auto parent_idx = json["parent"].toInt();
     try
     {
-        return parent_idx ? vm.get_snapshot(parent_idx) : nullptr;
+        return desc.parent_index ? vm.get_snapshot(desc.parent_index) : nullptr;
     }
     catch (std::out_of_range&)
     {
         throw std::runtime_error{
             fmt::format("Missing snapshot parent. Snapshot name: {}; parent index: {}",
-                        json["name"].toString(),
-                        parent_idx)};
+                        desc.name,
+                        desc.parent_index)};
     }
 }
 
@@ -114,55 +113,27 @@ std::string choose_cloud_init_instance_id(const QJsonObject& json,
 }
 } // namespace
 
-mp::BaseSnapshot::BaseSnapshot(const std::string& name,    // NOLINT(modernize-pass-by-value)
-                               const std::string& comment, // NOLINT(modernize-pass-by-value)
-                               const std::string& cloud_init_instance_id,
-                               std::shared_ptr<Snapshot> parent,
-                               int index,
-                               QDateTime&& creation_timestamp,
-                               int num_cores,
-                               MemorySize mem_size,
-                               MemorySize disk_space,
-                               std::vector<NetworkInterface> extra_interfaces,
-                               VirtualMachine::State state,
-                               std::unordered_map<std::string, VMMount> mounts,
-                               boost::json::object metadata,
-                               const QDir& storage_dir,
-                               bool captured)
-    : name{name},
-      comment{comment},
-      parent{std::move(parent)},
-      cloud_init_instance_id{cloud_init_instance_id},
-      index{index},
-      id{snapshot_template.arg(index)},
-      creation_timestamp{std::move(creation_timestamp)},
-      num_cores{num_cores},
-      mem_size{mem_size},
-      disk_space{disk_space},
-      extra_interfaces{extra_interfaces},
-      state{state},
-      mounts{std::move(mounts)},
-      metadata{std::move(metadata)},
-      storage_dir{storage_dir},
-      captured{captured}
+mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_,
+                               std::shared_ptr<Snapshot> parent_,
+                               VirtualMachine& vm_,
+                               bool captured_)
+    : desc{std::move(desc_)},
+      parent{std::move(parent_)},
+      id{snapshot_template.arg(desc.index)},
+      storage_dir{vm_.instance_directory()},
+      captured{captured_}
 {
-    using St = VirtualMachine::State;
-    if (state != St::off && state != St::stopped)
-        throw std::runtime_error{
-            fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
-    if (index < 1)
-        throw std::runtime_error{fmt::format("Snapshot index not positive: {}", index)};
-    if (index > max_snapshots)
-        throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", index)};
-    if (name.empty())
-        throw std::runtime_error{"Snapshot names cannot be empty"};
-    if (num_cores < 1)
-        throw std::runtime_error{
-            fmt::format("Invalid number of cores for snapshot: {}", num_cores)};
-    if (auto mem_bytes = mem_size.in_bytes(); mem_bytes < 1)
-        throw std::runtime_error{fmt::format("Invalid memory size for snapshot: {}", mem_bytes)};
-    if (auto disk_bytes = disk_space.in_bytes(); disk_bytes < 1)
-        throw std::runtime_error{fmt::format("Invalid disk size for snapshot: {}", disk_bytes)};
+    desc.parent_index = parent ? parent->get_index() : 0;
+}
+
+mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_, VirtualMachine& vm_, bool captured_)
+    : desc{std::move(desc_)},
+      id{snapshot_template.arg(desc.index)},
+      storage_dir{vm_.instance_directory()},
+      captured{captured_}
+{
+    parent = find_parent(desc, vm_);
+    desc.parent_index = parent ? parent->get_index() : 0;
 }
 
 mp::BaseSnapshot::BaseSnapshot(const std::string& name,
@@ -170,24 +141,24 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                                const std::string& cloud_init_instance_id,
                                std::shared_ptr<Snapshot> parent,
                                const VMSpecs& specs,
-                               const VirtualMachine& vm)
-    : BaseSnapshot{name,
-                   comment,
-                   cloud_init_instance_id,
+                               VirtualMachine& vm)
+    : BaseSnapshot{{name,
+                    comment,
+                    parent ? parent->get_index() : 0,
+                    cloud_init_instance_id,
+                    vm.get_snapshot_count() + 1,
+                    QDateTime::currentDateTimeUtc(),
+                    specs.num_cores,
+                    specs.mem_size,
+                    specs.disk_space,
+                    specs.extra_interfaces,
+                    specs.state,
+                    specs.mounts,
+                    specs.metadata},
                    std::move(parent),
-                   vm.get_snapshot_count() + 1,
-                   QDateTime::currentDateTimeUtc(),
-                   specs.num_cores,
-                   specs.mem_size,
-                   specs.disk_space,
-                   specs.extra_interfaces,
-                   specs.state,
-                   specs.mounts,
-                   specs.metadata,
-                   vm.instance_directory(),
+                   vm,
                    /*captured=*/false}
 {
-    assert(index > 0 && "snapshot indices need to start at 1");
 }
 
 mp::BaseSnapshot::BaseSnapshot(const QString& filename,
@@ -200,26 +171,25 @@ mp::BaseSnapshot::BaseSnapshot(const QString& filename,
 mp::BaseSnapshot::BaseSnapshot(const QJsonObject& json,
                                VirtualMachine& vm,
                                const VirtualMachineDescription& desc)
-    : BaseSnapshot{json["name"].toString().toStdString(),    // name
-                   json["comment"].toString().toStdString(), // comment
-                   choose_cloud_init_instance_id(
-                       json,
-                       std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
-                           cloud_init_file_name), // instance id from cloud init
-                   find_parent(json, vm),         // parent
-                   json["index"].toInt(),         // index
-                   QDateTime::fromString(json["creation_timestamp"].toString(),
-                                         Qt::ISODateWithMs),                // creation_timestamp
-                   json["num_cores"].toInt(),                               // num_cores
-                   MemorySize{json["mem_size"].toString().toStdString()},   // mem_size
-                   MemorySize{json["disk_space"].toString().toStdString()}, // disk_space
-                   MP_JSONUTILS.read_extra_interfaces(json).value_or(
-                       desc.extra_interfaces), // extra_interfaces
-                   static_cast<mp::VirtualMachine::State>(json["state"].toInt()), // state
-                   load_mounts(json["mounts"].toArray()),                         // mounts
-                   qjson_to_boost_json(json["metadata"]).as_object(),             // metadata
-                   vm.instance_directory(),                                       // storage_dir
-                   true}                                                          // captured
+    : BaseSnapshot{
+          {json["name"].toString().toStdString(),
+           json["comment"].toString().toStdString(),
+           json["parent"].toInt(),
+           choose_cloud_init_instance_id(
+               json,
+               std::filesystem::path{vm.instance_directory().absolutePath().toStdString()} /
+                   cloud_init_file_name),
+           json["index"].toInt(),
+           QDateTime::fromString(json["creation_timestamp"].toString(), Qt::ISODateWithMs),
+           json["num_cores"].toInt(),
+           MemorySize{json["mem_size"].toString().toStdString()},
+           MemorySize{json["disk_space"].toString().toStdString()},
+           MP_JSONUTILS.read_extra_interfaces(json).value_or(desc.extra_interfaces),
+           static_cast<mp::VirtualMachine::State>(json["state"].toInt()),
+           load_mounts(json["mounts"].toArray()),
+           qjson_to_boost_json(json["metadata"]).as_object()},
+          vm,
+          /*captured=*/true}
 {
     if (!(json.contains("extra_interfaces") && json.contains("cloud_init_instance_id")))
     {
@@ -233,23 +203,23 @@ QJsonObject mp::BaseSnapshot::serialize() const
     QJsonObject ret, snapshot{};
     const std::unique_lock lock{mutex};
 
-    snapshot.insert("name", QString::fromStdString(name));
-    snapshot.insert("comment", QString::fromStdString(comment));
-    snapshot.insert("cloud_init_instance_id", QString::fromStdString(cloud_init_instance_id));
+    snapshot.insert("name", QString::fromStdString(desc.name));
+    snapshot.insert("comment", QString::fromStdString(desc.comment));
+    snapshot.insert("cloud_init_instance_id", QString::fromStdString(desc.cloud_init_instance_id));
     snapshot.insert("parent", get_parents_index());
-    snapshot.insert("index", index);
-    snapshot.insert("creation_timestamp", creation_timestamp.toString(Qt::ISODateWithMs));
-    snapshot.insert("num_cores", num_cores);
-    snapshot.insert("mem_size", QString::number(mem_size.in_bytes()));
-    snapshot.insert("disk_space", QString::number(disk_space.in_bytes()));
+    snapshot.insert("index", desc.index);
+    snapshot.insert("creation_timestamp", desc.creation_timestamp.toString(Qt::ISODateWithMs));
+    snapshot.insert("num_cores", desc.num_cores);
+    snapshot.insert("mem_size", QString::number(desc.mem_size.in_bytes()));
+    snapshot.insert("disk_space", QString::number(desc.disk_space.in_bytes()));
     snapshot.insert("extra_interfaces",
-                    MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
-    snapshot.insert("state", static_cast<int>(state));
-    snapshot.insert("metadata", boost_json_to_qjson(metadata));
+                    MP_JSONUTILS.extra_interfaces_to_json_array(desc.extra_interfaces));
+    snapshot.insert("state", static_cast<int>(desc.state));
+    snapshot.insert("metadata", boost_json_to_qjson(desc.metadata));
 
     // Extract mount serialization
     QJsonArray json_mounts;
-    for (const auto& mount : mounts)
+    for (const auto& mount : desc.mounts)
     {
         auto entry = mp::boost_json_to_qjson(boost::json::value_from(mount.second)).toObject();
         entry.insert("target_path", QString::fromStdString(mount.first));
@@ -307,5 +277,5 @@ void mp::BaseSnapshot::erase()
 
 QString mp::BaseSnapshot::derive_snapshot_filename() const
 {
-    return QString{"%1.%2"}.arg(derive_index_string(index), snapshot_extension);
+    return QString{"%1.%2"}.arg(derive_index_string(desc.index), snapshot_extension);
 }
