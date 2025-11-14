@@ -26,6 +26,7 @@
 #include <QString>
 
 #include <cctype>
+#include <regex>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -198,6 +199,92 @@ TEST(TestJsonUtils, mapToJsonArrayDoesntRecurse)
     auto map_result = value_to<MapOfMap>(json_array, mp::MapAsJsonArray{"_where"});
     EXPECT_EQ(map_result, map_of_map);
 }
+
+class JsonPrettyPrintTest : public TestWithParam<std::string>
+{
+};
+
+TEST_P(JsonPrettyPrintTest, prettyPrintsCorrectly)
+{
+    std::string expected = GetParam();
+    boost::json::value json = boost::json::parse(expected);
+    EXPECT_EQ(mp::pretty_print(json), expected + "\n");
+}
+
+TEST_P(JsonPrettyPrintTest, prettyPrintsNoTrailingNewlineCorrectly)
+{
+    std::string expected = GetParam();
+    boost::json::value json = boost::json::parse(expected);
+    EXPECT_EQ(mp::pretty_print(json, {.trailing_newline = false}), expected);
+}
+
+TEST_P(JsonPrettyPrintTest, prettyPrintsCustomIndentCorrectly)
+{
+    std::string input = GetParam();
+    boost::json::value json = boost::json::parse(input);
+    // Replace all runs of 4 spaces with 2 spaces. NOTE: This assumes there are no runs of 4 spaces
+    // in the actual data.
+    auto expected = std::regex_replace(input, std::regex("    "), "  ") + "\n";
+    EXPECT_EQ(mp::pretty_print(json, {.indent = 2}), expected);
+}
+
+INSTANTIATE_TEST_SUITE_P(TestJsonUtils,
+                         JsonPrettyPrintTest,
+                         Values(
+                             // Null
+                             "null",
+                             // Booleans
+                             "true",
+                             "false",
+                             // Numbers
+                             "12345",
+                             "-12345",
+                             "1.234",
+                             // Strings
+                             "\"hello there\"",
+                             "\"some\\nnewlines\\n\"",
+                             // Arrays
+                             "[\n]",
+                             ("[\n"
+                              "    123,\n"
+                              "    \"hello there\"\n"
+                              "]"),
+                             // Objects
+                             "{\n}",
+                             ("{\n"
+                              "    \"foo\": \"bar\",\n"
+                              "    \"one\": 1,\n"
+                              "    \"yes\": true\n"
+                              "}"),
+                             // Nested
+                             ("[\n"
+                              "    [\n"
+                              "        1,\n"
+                              "        2\n"
+                              "    ]\n"
+                              "]"),
+                             ("{\n"
+                              "    \"foo\": {\n"
+                              "        \"bar\": true\n"
+                              "    }\n"
+                              "}"),
+                             ("[\n"
+                              "    {\n"
+                              "        \"foo\": [\n"
+                              "            1,\n"
+                              "            2\n"
+                              "        ]\n"
+                              "    }\n"
+                              "]"),
+                             ("{\n"
+                              "    \"foo\": {\n"
+                              "        \"bar\": [\n"
+                              "            1,\n"
+                              "            2\n"
+                              "        ],\n"
+                              "        \"baz\": \"quux\"\n"
+                              "    }\n"
+                              "}")));
 
 TEST(TestJsonUtils, jsonToQString)
 {
