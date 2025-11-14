@@ -1288,6 +1288,16 @@ TEST_F(Client, launchCmdCloudinitOptionReadsStdinOk)
                 Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, launchCmdCloudinitOptionFailsWithInvalidFileFromStdin)
+{
+    std::stringstream ss;
+    ss << "this is a scalar node";
+
+    EXPECT_CALL(mock_daemon, launch(_, _)).Times(0);
+    EXPECT_THAT(send_command({"launch", "--cloud-init", "-"}, trash_stream, trash_stream, ss),
+                Eq(mp::ReturnCode::CommandLineError));
+}
+
 #ifndef WIN32 // TODO make home mocking work for windows
 TEST_F(Client, launchCmdAutomountsHomeInPetenv)
 {
