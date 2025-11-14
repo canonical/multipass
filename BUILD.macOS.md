@@ -14,6 +14,10 @@ run:
 Ensure you have development Frameworks for at least OS X 10.8 installed, with the typical compiler toolchain and "git".
 Avoid the version of cmake supplied, we need a newer one (see later).
 
+### Homebrew
+
+Install Homebrew <https://brew.sh/> for package management. It is the most straightforward way of installing the build's dependencies.
+
 ### Qt6
 
 #### Installing Qt 6.10.0 using aqtinstall (recommended)
@@ -42,7 +46,7 @@ You may need to update your version of Ruby first. You can do so with RVM <https
 ### Cmake/OpenSSL
 
 Building a Multipass package requires cmake 3.9 or greater. OpenSSL is also necessary at build time. The most convenient
-means to obtain these dependencies is with Homebrew <https://brew.sh/>.
+means to obtain these dependencies is with Homebrew.
 
     brew install cmake openssl@3
 
