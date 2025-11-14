@@ -57,6 +57,33 @@ public:
         const QJsonObject& record) const;
 };
 
+namespace detail
+{
+inline auto if_contains(const boost::json::value& json, std::size_t key)
+{
+    return json.as_array().if_contains(key);
+}
+
+inline auto if_contains(const boost::json::value& json, std::string_view key)
+{
+    return json.as_object().if_contains(key);
+}
+} // namespace detail
+
+template <typename T, typename Key, typename U = T, typename... Context>
+    requires(sizeof...(Context) <= 1)
+T lookup_or(const boost::json::value& json, Key&& key, U&& fallback, const Context&... ctx)
+{
+    if (auto elem = detail::if_contains(json, std::forward<Key>(key)))
+        return value_to<T>(*elem, ctx...);
+    else
+        return std::forward<U>(fallback);
+}
+
+// Prevent implicit conversions to `boost::json::value`.
+template <typename T, typename Value, typename Key, typename U = T, typename... Context>
+T lookup_or(const Value&, Key&&, U&&, const Context&...) = delete;
+
 // (De)serialize mappings to/from JSON arrays by setting the map key as a JSON field in each
 // element.
 struct MapAsJsonArray
