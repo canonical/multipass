@@ -24,3 +24,6 @@ packaging/windows/custom-actions/x64/*
 
 # Python artifacts
 *.pyc
+# clangd cache path
+.cache/
+**/network-cache
