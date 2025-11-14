@@ -23,7 +23,6 @@
 #include <multipass/snapshot_description.h>
 #include <multipass/vm_mount.h>
 
-#include <QJsonObject>
 #include <QString>
 
 #include <boost/json.hpp>
@@ -90,9 +89,6 @@ private:
                  VirtualMachine& vm,
                  bool captured);
     BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured);
-    BaseSnapshot(const QJsonObject& json,
-                 VirtualMachine& vm,
-                 const VirtualMachineDescription& desc);
 
     auto erase_helper();
     QString derive_snapshot_filename() const;
