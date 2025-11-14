@@ -38,7 +38,7 @@ Install Qt6:
 ### Cmake
 
 Building a Multipass package requires cmake 3.9 or greater. The most convenient
-means to obtain these dependencies is with Homebrew <https://brew.sh/>.
+means to obtain cmake is with Homebrew <https://brew.sh/>.
 
     brew install cmake
 
