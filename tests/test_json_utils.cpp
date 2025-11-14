@@ -25,6 +25,7 @@
 #include <QJsonObject>
 #include <QString>
 
+#include <cctype>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -33,6 +34,20 @@ using namespace testing;
 
 namespace
 {
+struct UpcaseContext
+{
+};
+
+std::string tag_invoke(const boost::json::value_to_tag<std::string>&,
+                       const boost::json::value& json,
+                       const UpcaseContext&)
+{
+    std::string s = value_to<std::string>(json);
+    for (auto&& i : s)
+        i = std::toupper(i);
+    return s;
+}
+
 struct ExtraInterfacesRead : public TestWithParam<std::vector<mp::NetworkInterface>>
 {
 };
@@ -87,6 +102,53 @@ TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
               QJsonValue{"vm2_e_e_e"});
 }
 
+TEST(TestJsonUtils, lookupInArray)
+{
+    boost::json::value json = {"sam", "max"};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, 1, "fallback"), "max");
+    EXPECT_EQ(mp::lookup_or<std::string>(json, 1, "fallback", UpcaseContext{}), "MAX");
+}
+
+TEST(TestJsonUtils, lookupInArrayFallback)
+{
+    boost::json::value json = {"sam", "max"};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, 2, "fallback"), "fallback");
+    // The context doesn't affect the fallback value!
+    EXPECT_EQ(mp::lookup_or<std::string>(json, 2, "fallback", UpcaseContext{}), "fallback");
+}
+
+TEST(TestJsonUtils, lookupInArrayWrongType)
+{
+    boost::json::value json = {"sam", "max"};
+    EXPECT_THROW(mp::lookup_or<std::string>(json, "max", "fallback"), boost::system::system_error);
+    EXPECT_THROW(mp::lookup_or<std::string>(json, "max", "fallback", UpcaseContext{}),
+                 boost::system::system_error);
+}
+
+TEST(TestJsonUtils, lookupInObject)
+{
+    boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, "sam", "fallback"), "canine shamus");
+    EXPECT_EQ(mp::lookup_or<std::string>(json, "sam", "fallback", UpcaseContext{}),
+              "CANINE SHAMUS");
+}
+
+TEST(TestJsonUtils, lookupInObjectFallback)
+{
+    boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, "sybil", "fallback"), "fallback");
+    // The context doesn't affect the fallback value!
+    EXPECT_EQ(mp::lookup_or<std::string>(json, "sybil", "fallback", UpcaseContext{}), "fallback");
+}
+
+TEST(TestJsonUtils, lookupInObjectWrongType)
+{
+    boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
+    EXPECT_THROW(mp::lookup_or<std::string>(json, 1, "fallback"), boost::system::system_error);
+    EXPECT_THROW(mp::lookup_or<std::string>(json, 1, "fallback", UpcaseContext{}),
+                 boost::system::system_error);
+}
+
 struct Animal
 {
     std::string name;
@@ -117,6 +179,24 @@ TEST(TestJsonUtils, mapToJsonArray)
     auto map_result =
         value_to<std::map<std::string, Animal>>(json_array, mp::MapAsJsonArray{"species"});
     EXPECT_EQ(map_result, map);
+}
+
+TEST(TestJsonUtils, mapToJsonArrayDoesntRecurse)
+{
+    // MapAsJsonArray should apply only to the top-level `std::map`, but not the inner `std::map`.
+    using MapOfMap = std::map<std::string, std::map<std::string, Animal>>;
+    MapOfMap map_of_map = {{"pet", {{"dog", {"fido"}}, {"goat", {"philipp"}}}},
+                           {"wild", {{"panda", {"coco"}}}}};
+
+    boost::json::array json_array = {
+        {{"_where", "pet"}, {"dog", {{"name", "fido"}}}, {"goat", {{"name", "philipp"}}}},
+        {{"_where", "wild"}, {"panda", {{"name", "coco"}}}}};
+
+    auto json_result = boost::json::value_from(map_of_map, mp::MapAsJsonArray{"_where"});
+    EXPECT_EQ(json_result, json_array);
+
+    auto map_result = value_to<MapOfMap>(json_array, mp::MapAsJsonArray{"_where"});
+    EXPECT_EQ(map_result, map_of_map);
 }
 
 TEST(TestJsonUtils, jsonToQString)
