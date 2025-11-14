@@ -29,6 +29,7 @@
 #include <boost/json.hpp>
 
 #include <optional>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -123,6 +124,17 @@ T tag_invoke(const boost::json::value_to_tag<T>&,
     }
     return result;
 }
+
+struct PrettyPrintOptions
+{
+    int indent = 4;
+    bool trailing_newline = true;
+};
+
+void pretty_print(std::ostream& os,
+                  const boost::json::value& value,
+                  const PrettyPrintOptions& opts = {});
+std::string pretty_print(const boost::json::value& value, const PrettyPrintOptions& opts = {});
 
 // Temporary conversion functions to migrate between Qt and Boost JSON values.
 boost::json::value qjson_to_boost_json(const QJsonValue& value);
