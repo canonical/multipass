@@ -21,8 +21,6 @@
 #include <multipass/json_utils.h>
 
 #include <QFileDevice>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QString>
 
 #include <regex>
@@ -34,12 +32,6 @@ using namespace testing;
 
 namespace
 {
-TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
-{
-    EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
-              QJsonValue{"vm2_e_e_e"});
-}
-
 TEST(TestJsonUtils, lookupInArray)
 {
     boost::json::value json = {"sam", "max"};
