@@ -4,8 +4,8 @@
     "info": {
         "foo": {
             "snapshot1": {
-                "comment": "This is a sample comment",
-                "parent": ""
+                "parent": "",
+                "comment": "This is a sample comment"
             }
         }
     }
