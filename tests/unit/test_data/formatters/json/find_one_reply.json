@@ -3,12 +3,12 @@
     ],
     "images": {
         "ubuntu": {
-            "aliases": [
-            ],
             "os": "Ubuntu",
             "release": "18.04 LTS",
-            "remote": "",
-            "version": "20190516"
+            "version": "20190516",
+            "aliases": [
+            ],
+            "remote": ""
         }
     }
 }
