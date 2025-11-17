@@ -185,7 +185,7 @@ jobs:
 
       - name: Install cli-tests dependencies
         id: install-cli-test-deps
-        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} pip install -e ./tools/cli_tests/
+        run: ${{ matrix.cmd-prologue }} pip install -e ./tools/cli_tests/
 
       - name: Run cli-tests
         id: run-cli-tests
