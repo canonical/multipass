@@ -177,9 +177,15 @@ jobs:
       ##################################################################
       # Platform-agnostic
       ##################################################################
+      - name: Create virtual environment
+        run: python3 -m venv .venv
+
+      - name: Activate virtual environment
+        run: echo "PATH=${GITHUB_WORKSPACE}/.venv/bin:$PATH" >> $GITHUB_ENV
+
       - name: Install cli-tests dependencies
         id: install-cli-test-deps
-        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} pip install -e ./tools/cli_tests/ --break-system-packages
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} pip install -e ./tools/cli_tests/
 
       - name: Run cli-tests
         id: run-cli-tests
