@@ -22,6 +22,8 @@ packaging/windows/wix/obj/*
 packaging/windows/custom-actions/packages/*
 packaging/windows/custom-actions/x64/*
 
-
+# QT network download cache
 network-cache/
+
+# clangd code index cache
 .cache
