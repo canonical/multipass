@@ -34,7 +34,7 @@ from .temputils import TempDirectory
 from .textutils import strip_ansi_escape, uuid4_str, is_valid_ipv4_addr
 from .treeutils import find_lineage, merge
 from .mathutils import is_within_tolerance
-
+from .localeutils import is_locale_available
 
 if sys.platform == "win32":
     from .pexpectutils import WinptySpawn
