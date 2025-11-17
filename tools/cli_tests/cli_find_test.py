@@ -22,7 +22,7 @@ import logging
 
 import pytest
 
-from cli_tests.multipass import multipass, multipass_version_has_feature
+from cli_tests.multipass import multipass, multipass_version_has_feature, test_requires_feature
 
 supported_appliances = [
     "appliance:adguard-home",
@@ -52,9 +52,8 @@ class TestFind:
                                       "--only-blueprints"])
     def test_find_all(self, show):
 
-        if not multipass_version_has_feature("blueprints") and show in ["--only-images",
-                                                                        "--only-blueprints"]:
-            pytest.skip("The version does not support blueprints, skipping.")
+        if show in ["--only-images", "--only-blueprints"]:
+            test_requires_feature("blueprints")
 
         # Confirm that it shows at least 1 devel, 2 LTS releases
         with multipass("find", "--format=json", show).json() as output:
@@ -109,7 +108,7 @@ class TestFind:
             {"name": "18.04", "expected_release": "18.04 LTS", "unsupported": True},
         ],
     )
-    def test_query_image(self, param):
+    def test_query_image_ubuntu(self, param):
         with multipass(
             "find",
             param["name"],
@@ -123,6 +122,64 @@ class TestFind:
             expected_image = {
                 "aliases": [],
                 "os": "Ubuntu",
+                "release": param["expected_release"],
+                "remote": "",
+            }
+
+            # Pull the keys present in expected and do a comparison
+            assert {k: image[k] for k in expected_image} == expected_image
+
+    @pytest.mark.parametrize(
+        "param",
+        [
+            {"name": "debian", "expected_release": "Trixie"},
+        ],
+    )
+    def test_query_image_debian(self, param):
+        test_requires_feature("debian_images")
+
+        with multipass(
+            "find",
+            param["name"],
+            "--format=json",
+            *(["--show-unsupported"] if param.get("unsupported") else []),
+        ).json() as output:
+            assert output
+            images = output["images"]
+            image = images[param["name"]]
+
+            expected_image = {
+                "aliases": [],
+                "os": "Debian",
+                "release": param["expected_release"],
+                "remote": "",
+            }
+
+            # Pull the keys present in expected and do a comparison
+            assert {k: image[k] for k in expected_image} == expected_image
+
+    @pytest.mark.parametrize(
+        "param",
+        [
+            {"name": "fedora", "expected_release": "43"},
+        ],
+    )
+    def test_query_image_fedora(self, param):
+        test_requires_feature("fedora_images")
+
+        with multipass(
+            "find",
+            param["name"],
+            "--format=json",
+            *(["--show-unsupported"] if param.get("unsupported") else []),
+        ).json() as output:
+            assert output
+            images = output["images"]
+            image = images[param["name"]]
+
+            expected_image = {
+                "aliases": [],
+                "os": "Fedora",
                 "release": param["expected_release"],
                 "remote": "",
             }
