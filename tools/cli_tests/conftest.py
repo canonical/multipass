@@ -27,6 +27,7 @@ import logging
 import threading
 import re
 import operator
+import atexit
 from contextlib import contextmanager, ExitStack
 from functools import partial
 from packaging import version
@@ -57,7 +58,7 @@ from cli_tests.multipass import (
     get_multipass_version,
 )
 
-from cli_tests.config import config
+from cli_tests.config import cfg
 from cli_tests.controller import (
     MultipassdGovernor,
     SnapMultipassdController,
@@ -196,6 +197,45 @@ def pytest_configure(config):
             returncode=1,
         )
 
+    cfg.bin_dir = config.getoption("--bin-dir")
+    cfg.storage_dir = config.getoption("--storage-dir")
+    cfg.print_daemon_output = config.getoption(
+        "--print-daemon-output")
+    cfg.print_cli_output = config.getoption("--print-cli-output")
+
+    if config.getoption("--print-all-output"):
+        cfg.print_daemon_output = True
+        cfg.print_cli_output = True
+
+    cfg.remove_all_instances = config.getoption(
+        "--remove-all-instances")
+    cfg.driver = config.getoption("--driver")
+    cfg.daemon_controller = config.getoption("--daemon-controller")
+
+    cfg.vm.cpus = config.getoption("--vm-cpus")
+    cfg.vm.memory = config.getoption("--vm-memory")
+    cfg.vm.disk = config.getoption("--vm-disk")
+    cfg.vm.image = config.getoption("--vm-image")
+
+    for name, value in config.getoption("cmd_retries"):
+        setattr(cfg.retries, name, value)
+
+    for name, value in config.getoption("cmd_timeouts"):
+        setattr(cfg.timeouts, name, value)
+
+    # If user gave --storage-dir, use it
+    if not cfg.storage_dir:
+        if cfg.daemon_controller == "standalone":
+            cfg.storage_dir = make_temporary_storage_dir()
+        else:
+            cfg.storage_dir = determine_storage_dir()
+
+    assert cfg.storage_dir
+    cfg.bin_dir = determine_bin_dir()
+    cfg.data_dir = determine_data_dir()
+
+    logging.debug(f"pytest_configure :: final config {cfg}")
+
 
 def pytest_assertrepr_compare(op, left, right):
     """Custom assert pretty-printer for `"pattern" in Output()`"""
@@ -315,7 +355,7 @@ def remove_temporary_storage_dir(target_dir):
     shutil.rmtree(target_dir)
 
 
-def make_temporary_storage_dir(request):
+def make_temporary_storage_dir():
     # Otherwise, create a temp dir for the whole session
     with TempDirectory(delete=False) as tmpdir:
 
@@ -333,63 +373,19 @@ def make_temporary_storage_dir(request):
                     remove_temporary_storage_dir, str(tmpdir), privileged=True)
 
         # Register finalizer to cleanup on exit
-        request.addfinalizer(cleanup)
+        atexit.register(cleanup)
         return str(tmpdir)
 
 
 @pytest.fixture(autouse=True, scope="session")
-def store_config(request):
-    """Store the given command line args in a global variable so
-    they would be accessible to all functions in the module."""
-    config.bin_dir = request.config.getoption("--bin-dir")
-    config.storage_dir = request.config.getoption("--storage-dir")
-    config.print_daemon_output = request.config.getoption(
-        "--print-daemon-output")
-    config.print_cli_output = request.config.getoption("--print-cli-output")
-
-    if request.config.getoption("--print-all-output"):
-        config.print_daemon_output = True
-        config.print_cli_output = True
-
-    config.remove_all_instances = request.config.getoption(
-        "--remove-all-instances")
-    config.driver = request.config.getoption("--driver")
-    config.daemon_controller = request.config.getoption("--daemon-controller")
-
-    config.vm.cpus = request.config.getoption("--vm-cpus")
-    config.vm.memory = request.config.getoption("--vm-memory")
-    config.vm.disk = request.config.getoption("--vm-disk")
-    config.vm.image = request.config.getoption("--vm-image")
-
-    for name, value in request.config.getoption("cmd_retries"):
-        setattr(config.retries, name, value)
-
-    for name, value in request.config.getoption("cmd_timeouts"):
-        setattr(config.timeouts, name, value)
-
-    # If user gave --storage-dir, use it
-    if not config.storage_dir:
-        if config.daemon_controller == "standalone":
-            config.storage_dir = make_temporary_storage_dir(request)
-        else:
-            config.storage_dir = determine_storage_dir()
-
-    assert config.storage_dir
-    config.bin_dir = determine_bin_dir()
-    config.data_dir = determine_data_dir()
-
-    logging.debug(f"store_config :: final config {config}")
-
-
-@pytest.fixture(autouse=True, scope="session")
-def ensure_multipass_binaries_are_present(store_config):
+def ensure_multipass_binaries_are_present():
     if not get_multipass_path():
         pytest.exit(
             "ERROR: Could not locate the `multipass` binary!",
             returncode=1,
         )
 
-    if config.daemon_controller == "standalone" and not get_multipassd_path():
+    if cfg.daemon_controller == "standalone" and not get_multipassd_path():
         pytest.exit(
             "ERROR: Could not locate the `multipassd` binary!",
             returncode=1,
@@ -458,15 +454,15 @@ def ensure_sudo_auth():
 
 
 def set_driver(controller):
-    if multipass("get", "local.driver") != config.driver:
-        assert multipass("set", f"local.driver={config.driver}")
+    if multipass("get", "local.driver") != cfg.driver:
+        assert multipass("set", f"local.driver={cfg.driver}")
         controller.wait_for_restart()
 
 
 def make_daemon_controller(kind):
     # Return a partial so the controller can be instantiated on demand.
     controllers = {
-        "standalone": partial(StandaloneMultipassdController, config.storage_dir),
+        "standalone": partial(StandaloneMultipassdController, cfg.storage_dir),
         "snap": partial(SnapMultipassdController),
         "launchd": partial(LaunchdMultipassdController),
         "winsvc": partial(WindowsServiceMultipassdController),
@@ -480,8 +476,8 @@ def make_daemon_controller(kind):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def environment_setup(store_config):
-    cntrl = make_daemon_controller(config.daemon_controller)
+def environment_setup():
+    cntrl = make_daemon_controller(cfg.daemon_controller)
     controller_class = cntrl.func
 
     def has_static_method(cls, name):
@@ -503,13 +499,13 @@ def environment_setup(store_config):
 
 @contextmanager
 def multipassd_impl():
-    if config.daemon_controller == "none":
+    if cfg.daemon_controller == "none":
         sys.stdout.write("Skipping launching the daemon.")
         yield None
         return
 
     try:
-        controller = make_daemon_controller(config.daemon_controller)()
+        controller = make_daemon_controller(cfg.daemon_controller)()
     except ControllerPrerequisiteError as exc:
         Session.shouldfail = str(exc)
         raise
@@ -519,7 +515,7 @@ def multipassd_impl():
         governor = MultipassdGovernor(
             controller,
             loop,
-            config.print_daemon_output,
+            cfg.print_daemon_output,
         )
 
         # Ensure that the governor.stop() is called on context exit.
@@ -529,9 +525,9 @@ def multipassd_impl():
         # Stop the governor if already running (for cleanup)
         wait_for_future(loop.run(governor.stop_async()))
 
-        if config.remove_all_instances:
+        if cfg.remove_all_instances:
             run_in_new_interpreter(
-                nuke_all_instances, config.data_dir, config.driver, privileged=True
+                nuke_all_instances, cfg.data_dir, cfg.driver, privileged=True
             )
 
         # Start the governor
@@ -544,7 +540,7 @@ def multipassd_impl():
 
 
 @pytest.fixture(scope="function")
-def multipassd(store_config):
+def multipassd():
     with multipassd_impl() as daemon:
         yield daemon
 
@@ -555,12 +551,12 @@ def multipass_version():
 
 
 @pytest.fixture
-def feat_snapshot(store_config):
-    yield config.driver != "lxd"
+def feat_snapshot():
+    yield cfg.driver != "lxd"
 
 
 @pytest.fixture(scope="class")
-def multipassd_class_scoped(store_config, request):
+def multipassd_class_scoped(request):
     with multipassd_impl() as daemon:
         request.cls.multipassd = daemon
         yield daemon
