@@ -20,7 +20,7 @@ import math
 
 def is_within_tolerance(actual, expected, lb_tolerance=0.1, ub_tolerance=0.02):
     # Compute log-scaled decay from 25% at 1024 down to 10% at 10240
-    # This is to tolarate more at lower values.
+    # This is to tolerate more at lower values.
     log_scale = math.log(10240 / expected) / math.log(10240 / 1024)
     tol = max(lb_tolerance, lb_tolerance + (0.25 - lb_tolerance) * log_scale)
 
