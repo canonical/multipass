@@ -25,7 +25,7 @@ import pytest
 from cli_tests.multipass import multipass
 from cli_tests.utilities import TempDirectory
 
-from cli_tests.config import config
+from cli_tests.config import cfg
 
 
 @pytest.mark.authenticate
@@ -40,7 +40,7 @@ class TestAuthenticate:
         with TempDirectory() as empty_home_dir:
             # Authentication must fail since we're using an empty dif as HOME.
 
-            if config.daemon_controller == "standalone" and sys.platform != "win32":
+            if cfg.daemon_controller == "standalone" and sys.platform != "win32":
                 # Overriding home for snap is convoluted, and QT in Windows does not
                 # respect APPDATA overrides so this approach only works on platforms
                 # that respect HOME.

@@ -20,7 +20,7 @@ import re
 
 from cli_tests.multipass.cmd_json_output import JsonOutput
 from cli_tests.utilities import strip_ansi_escape
-from cli_tests.config import config
+from cli_tests.config import cfg
 
 
 def strip_lxd_deprecation_notice(text: str) -> str:
@@ -40,7 +40,7 @@ class Output:
     """A type to store text command output."""
 
     def __init__(self, content, exitstatus):
-        if config.driver == "lxd":
+        if cfg.driver == "lxd":
             content = strip_lxd_deprecation_notice(content)
         # Strip ansi escape codes.
         self.content = strip_ansi_escape(content.strip())
