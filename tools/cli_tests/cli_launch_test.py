@@ -30,7 +30,8 @@ from cli_tests.multipass import (
     snapshot_count,
     info,
     state,
-    vm_exists
+    vm_exists,
+    test_requires_feature
 )
 
 
@@ -48,8 +49,8 @@ class TestLaunch:
         ],
         indirect=True,
     )
-    def test_launch(self, instance, feat_snapshot):
-        """Try to launch an Ubuntu 24.04 VM with 2 CPUs 1GiB RAM and 6G disk.
+    def test_launch_ubuntu(self, instance, feat_snapshot):
+        """Try to launch an Ubuntu 24.04 VM with default specs.
         Then, validate the basics."""
 
         validate_list_output(
@@ -68,6 +69,114 @@ class TestLaunch:
                 "state": "Running",
                 "mounts": {},
                 "image_release": f"{image_name_to_version(instance.image)} LTS",
+                "ipv4": is_valid_ipv4_addr,
+            },
+        )
+
+        if feat_snapshot:
+            assert snapshot_count(instance) == 0
+        else:
+            assert "snapshot_count" not in info(instance)
+
+        # Try to stop the instance
+        assert multipass("stop", instance)
+        assert state(instance) == "Stopped"
+
+        # Try to start the instance
+        assert multipass("start", instance)
+        assert state(instance) == "Running"
+
+        # Remove the instance.
+        assert multipass("delete", instance)
+        assert state(instance) == "Deleted"
+
+        assert multipass("purge")
+
+        assert not vm_exists(instance)
+
+    @pytest.mark.parametrize(
+        "instance, param",
+        [
+            ({"image": "debian", "autopurge": False}, {"expected_release": "Trixie"}),
+        ],
+        indirect=["instance"],
+    )
+    def test_launch_debian(self, instance, param, feat_snapshot):
+        """Try to launch a Debian VM with default specs.
+        Then, validate the basics."""
+
+        test_requires_feature("debian_images")
+
+        validate_list_output(
+            instance,
+            {
+                "state": "Running",
+                "release": f"Debian {param["expected_release"]}",
+                "ipv4": is_valid_ipv4_addr,
+            },
+        )
+
+        validate_info_output(
+            instance,
+            {
+                "cpu_count": "2",
+                "state": "Running",
+                "mounts": {},
+                "image_release": param["expected_release"],
+                "ipv4": is_valid_ipv4_addr,
+            },
+        )
+
+        if feat_snapshot:
+            assert snapshot_count(instance) == 0
+        else:
+            assert "snapshot_count" not in info(instance)
+
+        # Try to stop the instance
+        assert multipass("stop", instance)
+        assert state(instance) == "Stopped"
+
+        # Try to start the instance
+        assert multipass("start", instance)
+        assert state(instance) == "Running"
+
+        # Remove the instance.
+        assert multipass("delete", instance)
+        assert state(instance) == "Deleted"
+
+        assert multipass("purge")
+
+        assert not vm_exists(instance)
+
+    @pytest.mark.parametrize(
+        "instance, param",
+        [
+            ({"image": "fedora", "autopurge": False}, {"expected_release": "43"}),
+        ],
+        indirect=["instance"],
+    )
+    def test_launch_fedora(self, instance, param, feat_snapshot):
+        """Try to launch a Fedora VM with default specs.
+        Then, validate the basics."""
+
+        test_requires_feature("fedora_images")
+
+        validate_list_output(
+            instance,
+            {
+                "state": "Running",
+                "release": f"Fedora {param["expected_release"]}",
+                "ipv4": is_valid_ipv4_addr,
+            },
+        )
+
+        validate_info_output(
+            instance,
+            {
+                "cpu_count": "2",
+                "state": "Running",
+                "mounts": {},
+                "image_release": param["expected_release"],
                 "ipv4": is_valid_ipv4_addr,
             },
         )
@@ -117,7 +226,6 @@ class TestLaunch:
                 assert not output
                 assert "Invalid instance name supplied" in output
                 assert not vm_exists(invalid_names)
-
 
     def test_launch_invalid_ram(self):
         name = random_vm_name()
