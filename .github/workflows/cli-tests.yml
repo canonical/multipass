@@ -73,8 +73,8 @@ jobs:
             const matrix = { include: [] };
 
             for (const [name, value] of Object.entries({ SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL }))
-            if (value === '')
-              throw new Error(`${name.toLowerCase().replaceAll('_', '-')} set but empty!`);
+              if (value === '')
+                throw new Error(`${name.toLowerCase().replaceAll('_', '-')} set but empty!`);
 
             const shortHash = str => crypto.createHash("sha256").update(str).digest("hex").slice(0, 12);
 
