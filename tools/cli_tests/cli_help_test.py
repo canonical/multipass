@@ -24,8 +24,12 @@ import pytest
 
 from cli_tests.multipass import (
     multipass,
+    multipass_version_has_feature
 )
-from cli_tests.utilities import run_in_new_interpreter
+
+from cli_tests.utilities import(
+    is_locale_available
+)
 
 LOCALES = [
     "C",
@@ -73,26 +77,15 @@ ALL_COMMANDS = [
 ]
 
 
-def set_locale(loc):
-    import locale
+def commands_to_test():
+    commands = []
+    commands += ALL_COMMANDS
 
-    locale.setlocale(locale.LC_ALL, loc)
-
-
-def locale_available(loc):
-    """Intended to be run in a subprocess."""
-    import subprocess
-
-    return (
-        run_in_new_interpreter(
-            set_locale,
-            loc,
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ).returncode
-        == 0
-    )
+    if multipass_version_has_feature("wait_ready"):
+        commands += [
+            ("wait-ready", "Wait for the Multipass daemon to be ready")
+        ]
+    return commands
 
 
 @pytest.mark.help
@@ -101,7 +94,7 @@ class TestHelp:
     """Alias command tests."""
 
     def test_help(self, loc):
-        if not locale_available(loc):
+        if not is_locale_available(loc):
             pytest.skip(f"Locale {loc} not available, skipping.")
 
         with multipass(
@@ -114,20 +107,18 @@ class TestHelp:
             assert output
 
             matches = re.findall(
-                r"^ {2}(\w+)\s+(.+?)\r?$", output.content, flags=re.MULTILINE
+                r"^ {2}([\-\w]+)\s+(.+?)\r?$", output.content, flags=re.MULTILINE
             )
 
             matches = dict(matches)
 
-            for cmd, desc_pattern in ALL_COMMANDS:
-                assert cmd in matches
-                assert re.search(desc_pattern, matches[cmd])
+            for cmd, desc_pattern in commands_to_test():
+                assert cmd in matches, f"{cmd} not found in help output."
+                assert re.search(desc_pattern, matches[cmd]), f"{cmd} description does not match {desc_pattern}"
 
-            #assert ALL_COMMANDS == matches
-
-    @pytest.mark.parametrize("cmd", (x[0] for x in ALL_COMMANDS))
+    @pytest.mark.parametrize("cmd", (x[0] for x in commands_to_test()))
     def test_per_command_help(self, loc, cmd):
-        if not locale_available(loc):
+        if not is_locale_available(loc):
             pytest.skip(f"Locale {loc} not available, skipping.")
 
         with multipass(
