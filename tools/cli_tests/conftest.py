@@ -543,12 +543,6 @@ def multipassd():
     with multipassd_impl() as daemon:
         yield daemon
 
-
-@pytest.fixture(scope="session")
-def multipass_version():
-    yield get_multipass_version(require_daemon_version=True)
-
-
 @pytest.fixture
 def feat_snapshot():
     yield cfg.driver != "lxd"
