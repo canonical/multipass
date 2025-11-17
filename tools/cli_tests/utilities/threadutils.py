@@ -242,7 +242,7 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
     Args:
         fut: The Future to wait for
         timeout: Maximum time to wait in seconds (default: 60)
-        poll_interval: How often to check if done in seconds (default: 0.1)
+        poll_interval: How often to check if done in seconds (default: 0.5)
 
     Returns:
         The result of the Future
