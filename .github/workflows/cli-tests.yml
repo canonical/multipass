@@ -65,7 +65,7 @@ jobs:
       has_targets: ${{ steps.neo.outputs.has_targets }}
     steps:
       - id: neo
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const crypto = require('crypto');
