@@ -19,11 +19,15 @@
 from packaging import version as ver
 from .helpers import get_multipass_version
 
+import pytest
+
 
 def _feature_version(name):
     feats = {
         "appliances": {"min": ver.parse("1"), "max": ver.parse("1.16")},
         "blueprints": {"max": ver.parse("1.16")},
+        "debian_images": {"min": ver.parse("1.17")},
+        "fedora_images": {"min": ver.parse("1.17")},
     }
     assert name in feats, f"No such feature: {name}"
     return feats[name]
@@ -47,3 +51,8 @@ def multipass_version_has_feature(feature_name, version=None):
             return False
 
     return True
+
+def test_requires_feature(feature_name, version=None):
+    if not multipass_version_has_feature(feature_name, version=version):
+        pytest.skip(
+            f"The version does not support `{feature_name}`, skipping.")
