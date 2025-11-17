@@ -30,7 +30,7 @@ jobs:
     steps:
     - name: Determine build matrix
       id: set-matrix
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           const matrix = { include: [] };
