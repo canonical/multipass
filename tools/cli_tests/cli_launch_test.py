@@ -225,7 +225,7 @@ class TestLaunch:
             ) as output:
                 assert not output
                 assert "Invalid instance name supplied" in output
-                assert not vm_exists(invalid_names)
+                assert not vm_exists(name)
 
     def test_launch_invalid_ram(self):
         name = random_vm_name()

@@ -35,7 +35,7 @@ def launch(cfg_override=None):
     handle, purging on exit by default."""
 
     # Default configuration
-    default_cfg = {
+    default_vm_cfg = {
         "cpus": cfg.vm.cpus,
         "memory": cfg.vm.memory,
         "disk": cfg.vm.disk,
@@ -45,54 +45,54 @@ def launch(cfg_override=None):
         "assert": {"purge": True},
     }
 
-    cfg = deepcopy(default_cfg)
+    vm_cfg = deepcopy(default_vm_cfg)
 
     if cfg_override:
-        merge(cfg, cfg_override)
+        merge(vm_cfg, cfg_override)
 
-    if "name" not in cfg:
-        cfg["name"] = random_vm_name()
+    if "name" not in vm_cfg:
+        vm_cfg["name"] = random_vm_name()
 
-    logging.debug(f"launch_new_instance: {cfg}")
+    logging.debug(f"launch_new_instance: {vm_cfg}")
 
     with multipass(
         "launch",
         "--cpus",
-        cfg["cpus"],
+        vm_cfg["cpus"],
         "--memory",
-        cfg["memory"],
+        vm_cfg["memory"],
         "--disk",
-        cfg["disk"],
+        vm_cfg["disk"],
         "--name",
-        cfg["name"],
-        cfg["image"],
-        retry=cfg["retry"],
+        vm_cfg["name"],
+        vm_cfg["image"],
+        retry=vm_cfg["retry"],
     ) as launch_r:
-        assert launch_r, f"Failed to launch VM `{cfg['name']}`: {str(launch_r)}"
+        assert launch_r, f"Failed to launch VM `{vm_cfg['name']}`: {str(launch_r)}"
 
     class VMHandle(str):
         """String-like handle (the instance name) exposing config as attributes."""
 
-        __slots__ = ("_cfg",)
+        __slots__ = ("_vm_cfg",)
 
-        def __new__(cls, cfg: dict):
-            obj = super().__new__(cls, cfg["name"])
-            obj._cfg = cfg
+        def __new__(cls, vm_cfg: dict):
+            obj = super().__new__(cls, vm_cfg["name"])
+            obj._vm_cfg = vm_cfg
             return obj
 
         # surface the config as attributes
         def __getattr__(self, item):
             try:
-                return self._cfg[item]
+                return self._vm_cfg[item]
             except KeyError as exc:
                 raise AttributeError(item) from exc
 
-    assert mounts(cfg["name"]) == {}
-    assert state(cfg["name"]) == "Running"
+    assert mounts(vm_cfg["name"]) == {}
+    assert state(vm_cfg["name"]) == "Running"
 
-    yield VMHandle(cfg)
+    yield VMHandle(vm_cfg)
 
-    if cfg["autopurge"]:
-        with multipass("delete", cfg["name"], "--purge") as result:
-            if cfg["assert"]["purge"]:
-                assert result, f"Failed to purge VM `{cfg['name']}`: {str(result)}"
+    if vm_cfg["autopurge"]:
+        with multipass("delete", vm_cfg["name"], "--purge") as result:
+            if vm_cfg["assert"]["purge"]:
+                assert result, f"Failed to purge VM `{vm_cfg['name']}`: {str(result)}"
