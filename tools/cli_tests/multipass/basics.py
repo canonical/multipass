@@ -22,7 +22,7 @@ import os
 import shutil
 from pathlib import Path
 
-from cli_tests.config import config
+from cli_tests.config import cfg
 
 
 def default_storage_dir_for_backend(backend):
@@ -62,26 +62,26 @@ def determine_storage_dir():
     Resolve storage dir: use config.storage_dir if set, else backend default.
     """
 
-    if config.storage_dir:
-        return config.storage_dir
+    if cfg.storage_dir:
+        return cfg.storage_dir
 
-    return default_storage_dir_for_backend(config.daemon_controller)
+    return default_storage_dir_for_backend(cfg.daemon_controller)
 
 
 def determine_data_dir():
     """
     Get backend-specific data dir from storage dir.
     """
-    if config.daemon_controller == "standalone":
+    if cfg.daemon_controller == "standalone":
         return str(Path(determine_storage_dir()) / "data")
-    if config.daemon_controller == "snap":
+    if cfg.daemon_controller == "snap":
         return determine_storage_dir()
-    if config.daemon_controller == "launchd":
+    if cfg.daemon_controller == "launchd":
         return determine_storage_dir()
-    if config.daemon_controller == "winsvc":
+    if cfg.daemon_controller == "winsvc":
         return str(Path(determine_storage_dir()) / "data")
     raise RuntimeError(
-        f"No data root directory defined for daemon backend {config.daemon_controller}!"
+        f"No data root directory defined for daemon backend {cfg.daemon_controller}!"
     )
 
 
@@ -90,19 +90,19 @@ def determine_bin_dir():
     Get bin dir: use config.bin_dir or backend default.
     """
 
-    if config.bin_dir:
-        return config.bin_dir
+    if cfg.bin_dir:
+        return cfg.bin_dir
 
-    if config.daemon_controller == "standalone":
+    if cfg.daemon_controller == "standalone":
         raise RuntimeError(
             "--bin-dir must be explicitly provided when 'standalone' backend is used!"
         )
 
-    if config.daemon_controller == "snap":
+    if cfg.daemon_controller == "snap":
         return "/snap/bin"
-    if config.daemon_controller == "launchd":
+    if cfg.daemon_controller == "launchd":
         return "/Library/Application Support/com.canonical.multipass/bin"
-    if config.daemon_controller == "winsvc":
+    if cfg.daemon_controller == "winsvc":
         # No explicit path, rely on environment PATH
         return None
 
@@ -111,19 +111,19 @@ def get_multipass_env():
     """Return an environment dict for running Multipass with a custom storage root."""
     multipass_env = os.environ.copy()
     if (
-        config.daemon_controller == "standalone"
-        or config.storage_dir
-        != default_storage_dir_for_backend(config.daemon_controller)
+        cfg.daemon_controller == "standalone"
+        or cfg.storage_dir
+        != default_storage_dir_for_backend(cfg.daemon_controller)
     ):
-        multipass_env["MULTIPASS_STORAGE"] = config.storage_dir
+        multipass_env["MULTIPASS_STORAGE"] = cfg.storage_dir
     return multipass_env
 
 
 def get_multipass_path():
     """Resolve the 'multipass' binary."""
-    return shutil.which("multipass", path=config.bin_dir)
+    return shutil.which("multipass", path=cfg.bin_dir)
 
 
 def get_multipassd_path():
     """Resolve the 'multipassd' binary."""
-    return shutil.which("multipassd", path=config.bin_dir)
+    return shutil.which("multipassd", path=cfg.bin_dir)

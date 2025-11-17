@@ -26,7 +26,7 @@ import pytest
 
 from cli_tests.utilities import TempDirectory, retry
 
-from cli_tests.config import config
+from cli_tests.config import cfg
 
 from cli_tests.multipass import (
     multipass,
@@ -82,7 +82,7 @@ class TestMount:
             assert path_exists(instance, mount_dst)
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass("umount", instance)
@@ -115,7 +115,7 @@ class TestMount:
             assert path_exists(instance, custom_target_path)
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass("umount", instance)
@@ -179,7 +179,7 @@ class TestMount:
             assert path_exists(instance, custom_target_path_3)
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass("umount", instance)
@@ -216,7 +216,7 @@ class TestMount:
             assert path_exists(instance, mount_dst2)
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass(
@@ -310,7 +310,7 @@ class TestMount:
             assert read_file(instance, mount_dst / "test_file.txt") == "mount doom"
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass("umount", instance)
@@ -366,7 +366,7 @@ class TestMount:
             assert not path_exists(instance, expected_subdir)
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass("umount", instance)
@@ -429,7 +429,7 @@ class TestMount:
             )
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass("umount", instance)
@@ -487,7 +487,7 @@ class TestMount:
             )
 
             # LXD cannot hot-unmount.
-            if config.driver == "lxd":
+            if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
             assert multipass("umount", instance)

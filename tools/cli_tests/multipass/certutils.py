@@ -23,7 +23,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from cli_tests.config import config
+from cli_tests.config import cfg
 
 
 def get_client_cert_path():
@@ -35,7 +35,7 @@ def get_client_cert_path():
     elif sys.platform == "darwin":
         data_location = Path.home() / "Library" / "Application Support"
     else:
-        if config.daemon_controller == "snap":
+        if cfg.daemon_controller == "snap":
             data_location = Path.home() / "snap" / "multipass" / "current" / "data"
         else:
             # Not sure about this:

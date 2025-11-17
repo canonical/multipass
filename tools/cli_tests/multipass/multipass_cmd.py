@@ -26,7 +26,7 @@ import uuid
 
 import pexpect
 
-from cli_tests.config import config
+from cli_tests.config import cfg
 from cli_tests.multipass import get_multipass_env, get_multipass_path
 from cli_tests.multipass.cmd_output import Output
 from cli_tests.utilities import retry, wrap_call_if
@@ -147,10 +147,10 @@ def multipass(*args, **kwargs):
     timeout = (
         kwargs.get("timeout")
         if "timeout" in kwargs
-        else getattr(config.timeouts, args[0], DEFAULT_CMD_TIMEOUT)
+        else getattr(cfg.timeouts, args[0], DEFAULT_CMD_TIMEOUT)
     )
     echo = kwargs.get("echo") or False
-    retry_count = kwargs.get("retry", getattr(config.retries, args[0], None))
+    retry_count = kwargs.get("retry", getattr(cfg.retries, args[0], None))
 
     if retry_count and retry_count > 0:
 
@@ -161,7 +161,7 @@ def multipass(*args, **kwargs):
 
         return retry_wrapper()
 
-    if config.print_cli_output:
+    if cfg.print_cli_output:
         # Move to the next line since the CLI modifies the current line for
         # updating progress message
         sys.stderr.write("\n")
@@ -201,7 +201,7 @@ def multipass(*args, **kwargs):
         if sys.platform == "win32":
             return WinptySpawn(
                 [get_multipass_path(), *map(str, args)],
-                logfile=(sys.stdout if config.print_cli_output else None),
+                logfile=(sys.stdout if cfg.print_cli_output else None),
                 timeout=timeout,
                 encoding="utf-8",
                 codec_errors="replace",
@@ -211,7 +211,7 @@ def multipass(*args, **kwargs):
         return pexpect.spawn(
             get_multipass_path(),
             [*map(str, args)],
-            logfile=(sys.stdout.buffer if config.print_cli_output else None),
+            logfile=(sys.stdout.buffer if cfg.print_cli_output else None),
             timeout=timeout,
             echo=echo,
             env=env,
@@ -237,7 +237,7 @@ def multipass(*args, **kwargs):
                         get_multipass_path(),
                         [*map(str, args)],
                         logfile=(
-                            sys.stdout.buffer if config.print_cli_output else None
+                            sys.stdout.buffer if cfg.print_cli_output else None
                         ),
                         timeout=timeout,
                         echo=echo,
@@ -248,7 +248,7 @@ def multipass(*args, **kwargs):
                         get_multipass_path(),
                         [*map(str, args)],
                         logfile=(
-                            sys.stdout.buffer if config.print_cli_output else None
+                            sys.stdout.buffer if cfg.print_cli_output else None
                         ),
                         timeout=timeout,
                         env=env,
