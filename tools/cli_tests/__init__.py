@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 #
-#
 # Copyright (C) Canonical, Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
