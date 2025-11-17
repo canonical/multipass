@@ -96,7 +96,7 @@ pytest tools/cli_tests/cli_version_test.py
 Also, it's possible to use pytest keyword expression by `-k`:
 
 ```bash
-pytest -s tools/cli_tests "shell_test"
+pytest tools/cli_tests -k "shell_test"
 
 # collected 310 items / 309 deselected / 1 selected
 #
