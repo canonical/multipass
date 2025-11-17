@@ -170,10 +170,10 @@ Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
 ### Run `multipass`
 
 With the `multipassd` daemon now running on another shell (or as a windows service) you can now run `multipass`.
-You can also add `<multipass>\build\bin` to the Path environment variable to be able to run the commands from anywhere.
 
 1. Press Windows Key + X, Select Windows PowerShell, or Terminal.
-2. Then, try `multipass help`.
+2. [Extend the Path variable](./BUILD.windows.md#Extend the Path variable).
+3. Then, try `multipass help`.
 
 ### Permissions/privileges for `multipassd`
 
@@ -190,9 +190,13 @@ needs to be part of the Hyper-V Administrators group:
 
 ### Run `multipass.gui`
 
-Add to the Path environment variable the following paths:
+1. [Extend the Path variable](./BUILD.windows.md#Extend the Path variable).
+2. Now you can run `multipass.gui`.
 
-- `<multipass>\build\bin`
-- `<multipass>\build\bin\windows\x64\runner\Release`
+### Extend the Path variable
 
-Now you can run `multipass.gui`.
+To avoid conflict with a multipass installation, include the necessary paths to the Path variable in your current session only:
+```
+$env:Path += ";<multipass>\build\bin"
+$env:Path += ";<multipass>\build\bin\windows\x64\runner\Release"
+```
