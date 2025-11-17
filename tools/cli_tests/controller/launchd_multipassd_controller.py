@@ -56,7 +56,9 @@ def run_sync(*args: str, timeout: int = 30) -> tuple[int, str]:
 
 
 def make_owner_root_wheel(path):
-    import pwd, grp, os
+    import pwd
+    import grp
+    import os
 
     root_uid = pwd.getpwnam("root").pw_uid
     wheel_gid = grp.getgrnam("wheel").gr_gid

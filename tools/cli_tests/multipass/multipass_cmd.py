@@ -45,7 +45,7 @@ def is_valid_uuid(in_str):
     try:
         uuid.UUID(in_str)
         return True
-    except:
+    except (ValueError, TypeError):
         return False
 
 
@@ -92,7 +92,7 @@ def restart_epilogue(args, kwargs, result, prologue_result):
         def attempt_ssh(vm_name):
             with multipass("exec", vm_name, "--", "echo", "ok") as v:
                 boot_id = get_boot_id(vm_name)
-                v.exitstatus = 0 if boot_id != prologue_result[vm_name] else 0
+                v.exitstatus = 0 if boot_id != prologue_result[vm_name] else 1
                 if v.exitstatus == 1:
                     logging.debug(
                         f"prev boot id {prologue_result[vm_name]} matches the current {boot_id}, VM hasn't restarted yet.")

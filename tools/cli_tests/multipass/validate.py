@@ -72,10 +72,10 @@ def validate_list_output(name, properties):
 
 
 def validate_info_snapshot_output(name, properties):
-    """Validate properties of a specific VM from `multipass list`.
+    """Validate properties of a specific VM from `multipass info --snapshots`.
 
-    Fetches all VM data via `multipass list --format=json`, locates the
-    VM by name, and asserts that its properties match the expected ones.
+    Fetches VM data via `multipass info --format=json --snapshots <name>`, locates the
+    VM by name, and asserts that its properties (including snapshot information) match the expected ones.
 
     Args:
         name (str): Name of the VM to validate.
