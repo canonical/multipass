@@ -2,7 +2,7 @@ name: CLI Tests
 
 on:
   workflow_call:
-    inputs:
+    inputs: &inputs
       snap-channel:
         type: string
         description: "Snap channel to install Multipass from"
@@ -23,26 +23,7 @@ on:
         description: "Extra arguments to be passed to the pytest invocation"
         default: ""
   workflow_dispatch:
-    inputs:
-      snap-channel:
-        type: string
-        description: "Snap channel to install Multipass from"
-        required: false
-        default: "<undefined>"
-      macos-pkg-url:
-        type: string
-        description: "URL to macOS package to install Multipass from"
-        required: false
-        default: "<undefined>"
-      windows-pkg-url:
-        type: string
-        description: "URL to Windows package to install Multipass from"
-        required: false
-        default: "<undefined>"
-      pytest-extra-args:
-        type: string
-        description: "Extra arguments to be passed to the pytest invocation"
-        default: ""
+    inputs: *inputs
 
 permissions:
   contents: read
