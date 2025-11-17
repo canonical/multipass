@@ -417,11 +417,10 @@ class TestMount:
             assert not path_exists(instance, mount_dst / subdir)
             assert not path_exists(instance, mount_dst / subdir / "file2.txt")
             assert path_exists(instance, mount_dst / "file1.txt")
-            assert path_exists(instance, mount_dst / mount_dst / "subdir1_moved")
+            assert path_exists(instance, mount_dst / "subdir1_moved")
             assert path_exists(
                 instance,
                 mount_dst
-                / mount_dst
                 / "subdir1_moved"
                 / "subdir2"
                 / "subdir3"
