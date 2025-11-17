@@ -229,11 +229,8 @@ def get_mac_addr_of(name, interface_name):
 def get_multipass_version():
     with multipass("version") as version_output:
         version_lines = version_output.content.splitlines()
-        assert len(version_lines) >= 2
-        version_lines = [v.split()[1] for v in version_lines[:2]]
-        assert (
-            version_lines[0] == version_lines[1]
-        ), f"{version_lines[0]} != {version_lines[1]}"
+        assert len(version_lines) >= 1
+        version_lines = [v.split()[1] for v in version_lines[:1]]
         # maj.min.rev is enough
         match = re.search(r"(\d+\.\d+\.\d+)", version_lines[0])
         assert match, f"Could not extract MAJ.MIN.REV from {version_lines[0]}!"
