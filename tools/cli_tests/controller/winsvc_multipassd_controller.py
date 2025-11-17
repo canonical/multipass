@@ -38,7 +38,7 @@ from cli_tests.utilities import (
     SilentAsyncSubprocess,
     sudo
 )
-from cli_tests.config import config
+from cli_tests.config import cfg
 from .controller_exceptions import ControllerPrerequisiteError
 
 
@@ -50,7 +50,7 @@ class WindowsServiceMultipassdController:
             raise ControllerPrerequisiteError(
                 "WindowsServiceMultipassdController requires Windows.")
 
-        if config.driver == "hyperv":
+        if cfg.driver == "hyperv":
             result = subprocess.run([*sudo(
                 'powershell', '-Command',
                 'if ((Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V).State -eq "Enabled") { exit 0 } else { exit 1 }'

@@ -20,7 +20,7 @@
 
 from types import SimpleNamespace
 
-config = SimpleNamespace()
-config.vm = SimpleNamespace()
-config.retries = SimpleNamespace()
-config.timeouts = SimpleNamespace()
+cfg = SimpleNamespace()
+cfg.vm = SimpleNamespace()
+cfg.retries = SimpleNamespace()
+cfg.timeouts = SimpleNamespace()
