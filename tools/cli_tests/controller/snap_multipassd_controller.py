@@ -36,7 +36,7 @@ class SnapMultipassdController:
 
     def __init__(self):
         if sys.platform != "linux":
-            raise ControllerPrerequisiteError("Snap controller requies a Linux host.")
+            raise ControllerPrerequisiteError("Snap controller requires a Linux host.")
 
         self._logs_proc: Optional[Process] = None
         self._active_enter_timestamp_monotonic = None
