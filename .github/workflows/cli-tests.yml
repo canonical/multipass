@@ -152,6 +152,7 @@ jobs:
           choco install gsudo -y
           echo 'C:\ProgramData\chocolatey\bin' >> "$GITHUB_PATH"
           & "C:\tools\gsudo\Current\gsudo.exe" -v
+          # Update GITHUB_PATH so gsudo can be invoked directly
           echo "C:\tools\gsudo\Current" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install package (Snap)
