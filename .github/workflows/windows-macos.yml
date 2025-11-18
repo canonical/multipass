@@ -334,7 +334,7 @@ jobs:
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
-        echo "${{ matrix.runs-on }}-${{ matrix.arch }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
+        echo "${{ matrix.runs-on }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
 
     - name: Save sccache
       uses: actions/cache/save@v4
