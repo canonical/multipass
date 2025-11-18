@@ -23,117 +23,69 @@
 #include <computecore.h>
 // clang-format on
 
-#include <functional>
-
 #include <fmt/format.h>
+
+#include <multipass/singleton.h>
 
 namespace multipass::hyperv::hcs
 {
 
-/**
- * API function table for host compute system
- * @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/apioverview
- */
-struct HCSAPITable
+struct HCSAPI : public Singleton<HCSAPI>
 {
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscreateoperation
-    std::function<decltype(HcsCreateOperation)> CreateOperation = &HcsCreateOperation;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcswaitforoperationresult
-    std::function<decltype(HcsWaitForOperationResult)> WaitForOperationResult =
-        &HcsWaitForOperationResult;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscloseoperation
-    std::function<decltype(HcsCloseOperation)> CloseOperation = &HcsCloseOperation;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscreatecomputesystem
-    std::function<decltype(HcsCreateComputeSystem)> CreateComputeSystem = &HcsCreateComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsopencomputesystem
-    std::function<decltype(HcsOpenComputeSystem)> OpenComputeSystem = &HcsOpenComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsstartcomputesystem
-    std::function<decltype(HcsStartComputeSystem)> StartComputeSystem = &HcsStartComputeSystem;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsshutdowncomputesystem
-    std::function<decltype(HcsShutDownComputeSystem)> ShutDownComputeSystem =
-        &HcsShutDownComputeSystem;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsterminatecomputesystem
-    std::function<decltype(HcsTerminateComputeSystem)> TerminateComputeSystem =
-        &HcsTerminateComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsclosecomputesystem
-    std::function<decltype(HcsCloseComputeSystem)> CloseComputeSystem = &HcsCloseComputeSystem;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcspausecomputesystem
-    std::function<decltype(HcsPauseComputeSystem)> PauseComputeSystem = &HcsPauseComputeSystem;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsresumecomputesystem
-    std::function<decltype(HcsResumeComputeSystem)> ResumeComputeSystem = &HcsResumeComputeSystem;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsmodifycomputesystem
-    std::function<decltype(HcsModifyComputeSystem)> ModifyComputeSystem = &HcsModifyComputeSystem;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsgetcomputesystemproperties
-    std::function<decltype(HcsGetComputeSystemProperties)> GetComputeSystemProperties =
-        &HcsGetComputeSystemProperties;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsgrantvmaccess
-    std::function<decltype(HcsGrantVmAccess)> GrantVmAccess = &HcsGrantVmAccess;
-    // @ref https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsrevokevmaccess
-    std::function<decltype(HcsRevokeVmAccess)> RevokeVmAccess = &HcsRevokeVmAccess;
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcsenumeratecomputesystems
-    std::function<decltype(HcsEnumerateComputeSystems)> EnumerateComputeSystems =
-        &HcsEnumerateComputeSystems;
+    HCSAPI(const Singleton<HCSAPI>::PrivatePass&) noexcept;
 
-    // @ref
-    // https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcssetcomputesystemcallback
-    std::function<decltype(HcsSetComputeSystemCallback)> SetComputeSystemCallback =
-        &HcsSetComputeSystemCallback;
-
-    /**
-     * @brief LocalAlloc/LocalFree is used by the HCS API to manage memory for the status/error
-     * messages. It's caller's responsibility to free the messages allocated by the API, that's
-     * why the LocalFree is part of the API table.
-     *
-     * @ref https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree
-     */
-    std::function<decltype(::LocalFree)> LocalFree = &::LocalFree;
+    [[nodiscard]] virtual HCS_OPERATION HcsCreateOperation(const void* context,
+                                                           HCS_OPERATION_COMPLETION callback) const;
+    [[nodiscard]] virtual HRESULT HcsWaitForOperationResult(HCS_OPERATION operation,
+                                                            DWORD timeoutMs,
+                                                            PWSTR* resultDocument) const;
+    virtual void HcsCloseOperation(HCS_OPERATION operation) const;
+    [[nodiscard]] virtual HRESULT HcsCreateComputeSystem(
+        PCWSTR id,
+        PCWSTR configuration,
+        HCS_OPERATION operation,
+        const SECURITY_DESCRIPTOR* securityDescriptor,
+        HCS_SYSTEM* computeSystem) const;
+    [[nodiscard]] virtual HRESULT HcsOpenComputeSystem(PCWSTR id,
+                                                       DWORD requestedAccess,
+                                                       HCS_SYSTEM* computeSystem) const;
+    [[nodiscard]] virtual HRESULT HcsStartComputeSystem(HCS_SYSTEM computeSystem,
+                                                        HCS_OPERATION operation,
+                                                        PCWSTR options) const;
+    [[nodiscard]] virtual HRESULT HcsShutDownComputeSystem(HCS_SYSTEM computeSystem,
+                                                           HCS_OPERATION operation,
+                                                           PCWSTR options) const;
+    [[nodiscard]] virtual HRESULT HcsTerminateComputeSystem(HCS_SYSTEM computeSystem,
+                                                            HCS_OPERATION operation,
+                                                            PCWSTR options) const;
+    virtual void HcsCloseComputeSystem(HCS_SYSTEM computeSystem) const;
+    [[nodiscard]] virtual HRESULT HcsPauseComputeSystem(HCS_SYSTEM computeSystem,
+                                                        HCS_OPERATION operation,
+                                                        PCWSTR options) const;
+    [[nodiscard]] virtual HRESULT HcsResumeComputeSystem(HCS_SYSTEM computeSystem,
+                                                         HCS_OPERATION operation,
+                                                         PCWSTR options) const;
+    [[nodiscard]] virtual HRESULT HcsModifyComputeSystem(HCS_SYSTEM computeSystem,
+                                                         HCS_OPERATION operation,
+                                                         PCWSTR configuration,
+                                                         HANDLE identity) const;
+    [[nodiscard]] virtual HRESULT HcsGetComputeSystemProperties(HCS_SYSTEM computeSystem,
+                                                                HCS_OPERATION operation,
+                                                                PCWSTR propertyQuery) const;
+    [[nodiscard]] virtual HRESULT HcsGrantVmAccess(PCWSTR vmId, PCWSTR filePath) const;
+    [[nodiscard]] virtual HRESULT HcsRevokeVmAccess(PCWSTR vmId, PCWSTR filePath) const;
+    [[nodiscard]] virtual HRESULT HcsEnumerateComputeSystems(PCWSTR query,
+                                                             HCS_OPERATION operation) const;
+    [[nodiscard]] virtual HRESULT HcsSetComputeSystemCallback(HCS_SYSTEM computeSystem,
+                                                              HCS_EVENT_OPTIONS callbackOptions,
+                                                              const void* context,
+                                                              HCS_EVENT_CALLBACK callback) const;
+    virtual HLOCAL LocalFree(HLOCAL hMem) const;
 };
+
+inline const HCSAPI& HCS()
+{
+    return HCSAPI::instance();
+}
 
 } // namespace multipass::hyperv::hcs
-
-/**
- * Formatter type specialization for HCNAPITable
- */
-template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcs::HCSAPITable, Char>
-    : formatter<basic_string_view<Char>, Char>
-{
-    template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HCSAPITable& api, FormatContext& ctx) const
-    {
-        return fmt::format_to(
-            ctx.out(),
-            "CreateOperation: ({}) | WaitForOperationResult: ({}) | CloseOperation: ({}) | "
-            "CreateComputeSystem: ({}) | OpenComputeSystem: ({}) | StartComputeSystem: ({}) | "
-            "ShutDownComputeSystem: ({}) | TerminateComputeSystem: ({}) | CloseComputeSystem: ({}) "
-            "| PauseComputeSystem: ({}) | ResumeComputeSystem: ({}) | ModifyComputeSystem: ({}) | "
-            "GetComputeSystemProperties: ({}) | GrantVmAccess: ({}) | RevokeVmAccess: ({}) | "
-            "EnumerateComputeSystems: ({}) | SetComputeSystemCallback: ({}) | LocalFree: ({})",
-            static_cast<bool>(api.CreateOperation),
-            static_cast<bool>(api.WaitForOperationResult),
-            static_cast<bool>(api.CloseOperation),
-            static_cast<bool>(api.CreateComputeSystem),
-            static_cast<bool>(api.OpenComputeSystem),
-            static_cast<bool>(api.StartComputeSystem),
-            static_cast<bool>(api.ShutDownComputeSystem),
-            static_cast<bool>(api.TerminateComputeSystem),
-            static_cast<bool>(api.CloseComputeSystem),
-            static_cast<bool>(api.PauseComputeSystem),
-            static_cast<bool>(api.ResumeComputeSystem),
-            static_cast<bool>(api.ModifyComputeSystem),
-            static_cast<bool>(api.GetComputeSystemProperties),
-            static_cast<bool>(api.GrantVmAccess),
-            static_cast<bool>(api.RevokeVmAccess),
-            static_cast<bool>(api.EnumerateComputeSystems),
-            static_cast<bool>(api.SetComputeSystemCallback),
-            static_cast<bool>(api.LocalFree));
-    }
-};
