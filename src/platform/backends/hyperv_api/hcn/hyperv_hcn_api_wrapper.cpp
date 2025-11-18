@@ -235,38 +235,8 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 {
     mpl::debug(kLogCategory, "HCNWrapper::create_network(...) > params: {} ", params);
 
-    /**
-     * HcnCreateNetwork settings JSON template
-     */
-    constexpr static auto network_settings_template = LR"""(
-    {{
-        "SchemaVersion":
-        {{
-            "Major": 2,
-            "Minor": 2
-        }},
-        "Name": "{Name}",
-        "Type": "{Type}",
-        "Ipams": [
-            {Ipams}
-        ],
-        "Flags": {Flags},
-        "Policies": [
-            {Policies}
-        ]
-    }}
-    )""";
-
-    // Render the template
-    const auto network_settings =
-        fmt::format(network_settings_template,
-                    fmt::arg(L"Name", maybe_widen{params.name}),
-                    fmt::arg(L"Type", maybe_widen{std::string{params.type}}),
-                    fmt::arg(L"Flags", fmt::underlying(params.flags)),
-                    fmt::arg(L"Ipams", fmt::join(params.ipams, L",")),
-                    fmt::arg(L"Policies", fmt::join(params.policies, L",")));
-
     UniqueHcnNetwork network{};
+    const auto network_settings = fmt::to_wstring(params);
     const auto result = perform_hcn_operation(api,
                                               api.CreateNetwork,
                                               guid_from_string(params.guid),
@@ -310,8 +280,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
 
     UniqueHcnEndpoint endpoint{};
     const auto params_json = fmt::to_wstring(params);
-    const auto result = perform_hcn_operation(std::source_location::current(),
-                                              api,
+    const auto result = perform_hcn_operation(api,
                                               api.CreateEndpoint,
                                               network.get(),
                                               guid_from_string(params.endpoint_guid),
