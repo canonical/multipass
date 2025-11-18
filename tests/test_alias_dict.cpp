@@ -46,6 +46,13 @@ namespace
 {
 struct AliasDictionary : public FakeAliasConfig, public Test
 {
+protected:
+    AliasDictionary() : trash_term(trash_stream, trash_stream, trash_stream)
+    {
+    }
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal trash_term;
 };
 
 TEST_F(AliasDictionary, worksWithEmptyFile)
@@ -55,8 +62,6 @@ TEST_F(AliasDictionary, worksWithEmptyFile)
 
     ASSERT_TRUE(db.open(QIODevice::ReadWrite)); // Create the database file.
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -67,8 +72,6 @@ TEST_F(AliasDictionary, worksWithEmptyDatabase)
 {
     mpt::make_file_with_content(QString::fromStdString(db_filename()), "{\n}\n");
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -77,8 +80,6 @@ TEST_F(AliasDictionary, worksWithEmptyDatabase)
 
 TEST_F(AliasDictionary, worksWithUnexistingFile)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -89,8 +90,6 @@ TEST_F(AliasDictionary, worksWithBrokenFile)
 {
     mpt::make_file_with_content(QString::fromStdString(db_filename()), "broken file {]");
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -116,8 +115,6 @@ TEST_F(AliasDictionary, skipsCorrectlyBrokenEntriesOldFormat)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -161,8 +158,6 @@ TEST_F(AliasDictionary, skipsCorrectlyBrokenEntries)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -196,8 +191,6 @@ TEST_F(AliasDictionary, mapDirMissingTranslatesToDefault)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     auto a3 = dict.get_alias("alias3");
@@ -219,8 +212,6 @@ TEST_F(AliasDictionary, mapDirEmptyStringTranslatesToDefault)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     auto a4 = dict.get_alias("alias4");
@@ -242,9 +233,6 @@ TEST_F(AliasDictionary, mapDirWrongThrows)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
-
     MP_ASSERT_THROW_THAT(
         mp::AliasDict dict(&trash_term),
         std::runtime_error,
@@ -263,8 +251,6 @@ TEST_P(WriteReadTestsuite, writesAndReadsFiles)
 
     populate_db_file(aliases_vector);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict reader(&trash_term);
 
     for (const auto& alias : aliases_vector)
@@ -295,8 +281,6 @@ INSTANTIATE_TEST_SUITE_P(AliasDictionary,
 
 TEST_F(AliasDictionary, addAliasWorks)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_TRUE(dict.add_alias("repeated", mp::AliasDefinition{"instance-1", "command-1", "map"}));
@@ -308,8 +292,6 @@ TEST_F(AliasDictionary, addAliasWorks)
 
 TEST_F(AliasDictionary, existsAliasWorksWithExistingAlias)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("existing", mp::AliasDefinition{"instance", "command", "map"});
@@ -319,8 +301,6 @@ TEST_F(AliasDictionary, existsAliasWorksWithExistingAlias)
 
 TEST_F(AliasDictionary, existsAliasWorksWithUnexistingAlias)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_FALSE(dict.exists_alias("unexisting"));
@@ -328,8 +308,6 @@ TEST_F(AliasDictionary, existsAliasWorksWithUnexistingAlias)
 
 TEST_F(AliasDictionary, correctlyRemovesAlias)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.active_context_name(), "default");
@@ -343,8 +321,6 @@ TEST_F(AliasDictionary, correctlyRemovesAlias)
 
 TEST_F(AliasDictionary, worksWhenRemovingUnexistingAlias)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("alias", mp::AliasDefinition{"instance", "command", "map"});
@@ -358,8 +334,6 @@ TEST_F(AliasDictionary, worksWhenRemovingUnexistingAlias)
 
 TEST_F(AliasDictionary, clearWorks)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("first", mp::AliasDefinition{"instance", "command", "default"});
@@ -371,8 +345,6 @@ TEST_F(AliasDictionary, clearWorks)
 
 TEST_F(AliasDictionary, correctlyGetsAliasInDefaultContext)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     std::string alias_name{"alias"};
@@ -388,8 +360,6 @@ TEST_F(AliasDictionary, correctlyGetsAliasInDefaultContext)
 
 TEST_F(AliasDictionary, correctlyGetsUniqueAliasInAnotherContext)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     std::string alias_name{"alias"};
@@ -406,8 +376,6 @@ TEST_F(AliasDictionary, correctlyGetsUniqueAliasInAnotherContext)
 
 TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     std::string context{"non-default"};
@@ -425,8 +393,6 @@ TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
 
 TEST_F(AliasDictionary, getUnexistingAliasReturnsNullopt)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.get_alias("unexisting"), std::nullopt);
@@ -439,8 +405,6 @@ TEST_F(AliasDictionary, throwsWhenOpenAliasFileFails)
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     MP_ASSERT_THROW_THAT(mp::AliasDict dict(&trash_term),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Error opening file '")));
@@ -458,8 +422,6 @@ TEST_P(FormatterTestsuite, table)
 {
     auto [context, aliases, csv_output, json_output, table_output, yaml_output] = GetParam();
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.set_active_context(context);
@@ -583,8 +545,6 @@ TEST_P(RemoveInstanceTestsuite, removesInstanceAliases)
 
     populate_db_file(original_aliases);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.remove_aliases_for_instance("instance_to_remove");
@@ -750,8 +710,6 @@ TEST_F(AliasDictionary, unexistingActiveContextThrows)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -786,8 +744,6 @@ TEST_F(AliasDictionary, removeContextWorks)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 2u);
@@ -832,8 +788,6 @@ TEST_F(AliasDictionary, removeDefaultContextWorks)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 2u);
@@ -878,8 +832,6 @@ TEST_F(AliasDictionary, removingUnexistingContextDoesNothing)
 
     mpt::make_file_with_content(QString::fromStdString(db_filename()), file_contents);
 
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     ASSERT_EQ(dict.size(), 1u);
@@ -894,8 +846,6 @@ TEST_F(AliasDictionary, removingUnexistingContextDoesNothing)
 
 TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInDifferentContext)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
@@ -906,8 +856,6 @@ TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInDifferentContext)
 
 TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInCurrentContext)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
@@ -919,8 +867,6 @@ TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInCurrentContext)
 
 TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksWithEquallyNamesAliasesInDifferentContext)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
@@ -934,8 +880,6 @@ TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksWithEquallyNamesAliase
 
 TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfAliasAndContextExist)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
@@ -949,8 +893,6 @@ TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfAliasAndContextExist)
 
 TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfContextDoesNotExist)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
@@ -959,8 +901,6 @@ TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfContextDoesNotExist)
 
 TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfAliasDoesNotExist)
 {
-    std::stringstream trash_stream;
-    mpt::StubTerminal trash_term(trash_stream, trash_stream, trash_stream);
     mp::AliasDict dict(&trash_term);
 
     dict.add_alias("first_alias", mp::AliasDefinition{"instance-1", "command-1", "map"});
