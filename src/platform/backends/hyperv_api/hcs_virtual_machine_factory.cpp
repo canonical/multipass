@@ -92,7 +92,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const auto networks = MP_PLATFORM.get_network_interfaces_info();
     for (const auto& extra : desc.extra_interfaces)
     {
-        std::regex pattern{kExtraInterfaceBridgeNameRegex};
+        std::regex pattern{kExtraInterfaceVswitchNameRegex};
         std::smatch match;
 
         // The origin interface name is encoded into the interface name itself.
@@ -119,10 +119,10 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
             continue;
         }
 
-        const auto bridge_name = create_bridge_with(found->second);
-        if (bridge_name.empty())
+        const auto vswitch_name = create_bridge_with(found->second);
+        if (vswitch_name.empty())
         {
-            mpl::warn(kLogCategory, "Bridge {} could not be created", found->first);
+            mpl::warn(kLogCategory, "vSwitch {} could not be created", found->first);
         }
     }
 
@@ -229,10 +229,10 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
 
 std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
 {
-    const auto bridge_name = fmt::format(kExtraInterfaceBridgeNameFmtStr, intf.id);
-    const auto params = [&intf, &bridge_name] {
+    const auto vswitch_name = fmt::format(kExtraInterfaceVswitchNameFmtStr, intf.id);
+    const auto params = [&intf, &vswitch_name] {
         hcn::CreateNetworkParameters network_params{};
-        network_params.name = bridge_name;
+        network_params.name = vswitch_name;
         network_params.type = hcn::HcnNetworkType::Transparent();
         network_params.guid = multipass::utils::make_uuid(network_params.name).toStdString();
         hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
