@@ -173,7 +173,7 @@ struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<s
             v = "unknown";
             break;
         default:
-            assert(0) && "unhandled VM state";
+            assert(0 && "unhandled VM state"); 
             break;
         }
 
