@@ -31,7 +31,7 @@ from cli_tests.multipass import (
     info,
     state,
     vm_exists,
-    test_requires_feature
+    skip_if_feature_not_supported
 )
 
 
@@ -105,7 +105,7 @@ class TestLaunch:
         """Try to launch a Debian VM with default specs.
         Then, validate the basics."""
 
-        test_requires_feature("debian_images")
+        skip_if_feature_not_supported("debian_images")
 
         validate_list_output(
             instance,
@@ -159,7 +159,7 @@ class TestLaunch:
         """Try to launch a Fedora VM with default specs.
         Then, validate the basics."""
 
-        test_requires_feature("fedora_images")
+        skip_if_feature_not_supported("fedora_images")
 
         validate_list_output(
             instance,
