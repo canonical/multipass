@@ -54,7 +54,7 @@ def multipass_version_has_feature(feature_name, version=None):
     return True
 
 
-def test_requires_feature(feature_name, version=None):
+def skip_if_feature_not_supported(feature_name, version=None):
     if not multipass_version_has_feature(feature_name, version=version):
         pytest.skip(
             f"The version does not support `{feature_name}`, skipping.")
