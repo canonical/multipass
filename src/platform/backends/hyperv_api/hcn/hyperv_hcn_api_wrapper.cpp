@@ -308,34 +308,14 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
         return {E_POINTER, L"Could not open the network!"};
     }
 
-    /**
-     * HcnCreateEndpoint settings JSON template
-     */
-    constexpr static auto endpoint_settings_template = LR"(
-    {{
-        "SchemaVersion": {{
-            "Major": 2,
-            "Minor": 16
-        }},
-        "HostComputeNetwork": "{HostComputeNetwork}",
-        "Policies": [],
-        "MacAddress" : {MacAddress}
-    }})";
-
-    // Render the template
-    const auto endpoint_settings =
-        fmt::format(endpoint_settings_template,
-                    fmt::arg(L"HostComputeNetwork", maybe_widen{params.network_guid}),
-                    fmt::arg(L"MacAddress",
-                             params.mac_address
-                                 ? fmt::format(L"\"{}\"", maybe_widen{params.mac_address.value()})
-                                 : L"null"));
     UniqueHcnEndpoint endpoint{};
-    const auto result = perform_hcn_operation(api,
+    const auto params_json = fmt::to_wstring(params);
+    const auto result = perform_hcn_operation(std::source_location::current(),
+                                              api,
                                               api.CreateEndpoint,
                                               network.get(),
                                               guid_from_string(params.endpoint_guid),
-                                              endpoint_settings.c_str(),
+                                              params_json.c_str(),
                                               out_ptr(endpoint, api.CloseEndpoint));
     return result;
 }
