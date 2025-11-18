@@ -57,6 +57,7 @@ if(WIN32)
     hcs/hyperv_hcs_create_compute_system_params.cpp
     hcs/hyperv_hcs_request.cpp
     hcs/hyperv_hcs_path.cpp
+    hcs/hyperv_hcs_api_table.cpp
     virtdisk/virtdisk_api_wrapper.cpp
     virtdisk/virtdisk_snapshot.cpp
     hcs_plan9_mount_handler.cpp
