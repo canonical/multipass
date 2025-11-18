@@ -121,21 +121,32 @@ public:
                       fs::copy_options copy_options) const;
     virtual void rename(const fs::path& old_p, const fs::path& new_p) const;
     virtual bool exists(const fs::path& path) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual bool exists(const fs::path& path, std::error_code& err) const noexcept;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual bool is_directory(const fs::path& path, std::error_code& err) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual bool create_directory(const fs::path& path, std::error_code& err) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual bool create_directories(const fs::path& path, std::error_code& err) const;
+    // [[deprecated("Use non-std::error_code overload instead!")]]
+    virtual bool exists(const fs::path& path, std::error_code& err) const noexcept;
+    // [[deprecated("Use non-std::error_code overload instead!")]]
+    virtual bool is_directory(const fs::path& path, std::error_code& err) const;
+    // [[deprecated("Use non-std::error_code overload instead!")]]
+    virtual bool create_directory(const fs::path& path, std::error_code& err) const;
+    // [[deprecated("Use non-std::error_code overload instead!")]]
+    virtual bool create_directories(const fs::path& path, std::error_code& err) const;
     virtual bool remove(const fs::path& path) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual bool remove(const fs::path& path, std::error_code& err) const noexcept;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual void create_symlink(const fs::path& to,
+    // [[deprecated("Use non-std::error_code overload instead!")]]
+    virtual bool remove(const fs::path& path, std::error_code& err) const noexcept;
+    // [[deprecated("Use non-std::error_code overload instead!")]]
+    virtual void create_symlink(const fs::path& to,
                                 const fs::path& path,
                                 std::error_code& err) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual fs::file_status symlink_status(const fs::path& path, std::error_code& err) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual std::unique_ptr<RecursiveDirIterator>
+    //[[deprecated("Use non-std::error_code overload instead!")]]
+    virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
+    //[[deprecated("Use non-std::error_code overload instead!")]]
+    virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
+    //[[deprecated("Use non-std::error_code overload instead!")]]
+    virtual fs::file_status symlink_status(const fs::path& path, std::error_code& err) const;
+    //[[deprecated("Use non-std::error_code overload instead!")]]
+    virtual std::unique_ptr<RecursiveDirIterator>
     recursive_dir_iterator(const fs::path& path, std::error_code& err) const;
-    [[deprecated("Use non-std::error_code overload instead!")]] virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path,
+    //[[deprecated("Use non-std::error_code overload instead!")]]
+    virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path,
                                                       std::error_code& err) const;
     virtual fs::path weakly_canonical(const fs::path& path) const;
 
