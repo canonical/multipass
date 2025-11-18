@@ -22,7 +22,7 @@ import logging
 
 import pytest
 
-from cli_tests.multipass import multipass, multipass_version_has_feature, test_requires_feature
+from cli_tests.multipass import multipass, multipass_version_has_feature, skip_if_feature_not_supported
 
 supported_appliances = [
     "appliance:adguard-home",
@@ -53,7 +53,7 @@ class TestFind:
     def test_find_all(self, show):
 
         if show in ["--only-images", "--only-blueprints"]:
-            test_requires_feature("blueprints")
+            skip_if_feature_not_supported("blueprints")
 
         # Confirm that it shows at least 1 devel, 2 LTS releases
         with multipass("find", "--format=json", show).json() as output:
@@ -136,7 +136,7 @@ class TestFind:
         ],
     )
     def test_query_image_debian(self, param):
-        test_requires_feature("debian_images")
+        skip_if_feature_not_supported("debian_images")
 
         with multipass(
             "find",
@@ -165,7 +165,7 @@ class TestFind:
         ],
     )
     def test_query_image_fedora(self, param):
-        test_requires_feature("fedora_images")
+        skip_if_feature_not_supported("fedora_images")
 
         with multipass(
             "find",
