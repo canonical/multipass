@@ -75,7 +75,7 @@ constexpr static auto kLogCategory = "HyperV-HCN-Wrapper";
 /**
  * Parse given GUID string into a GUID struct.
  *
- * @param guid_str GUID in string form, either 36 characters
+ * @param guid_wstr GUID in wide string form, either 36 characters
  *                  (without braces) or 38 characters (with braces.)
  *
  * @return GUID The parsed GUID
@@ -119,20 +119,21 @@ auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
  * Parse given GUID string into a GUID struct.
  *
  * @param guid_str GUID in string form, either 36 characters
- *                  (without braces) or 38 characters (with braces.)
+ *                 (without braces) or 38 characters (with braces.)
  *
  * @return GUID The parsed GUID
  */
-auto guid_from_string(const std::string& guid_wstr) -> ::GUID
+auto guid_from_string(const std::string& guid_str) -> ::GUID
 {
-    const std::wstring v = maybe_widen{guid_wstr};
+    const std::wstring v = maybe_widen{guid_str};
     return guid_from_string(v);
 }
 
 // ---------------------------------------------------------
 
 /**
- * Perform a Host Compute Network API operation
+ * Perform a Host Compute Network API operation, abstracting common memory management
+ * and low-level error handling details.
  *
  * @param fn The API function pointer
  * @param args The arguments to the function
@@ -142,31 +143,25 @@ auto guid_from_string(const std::string& guid_wstr) -> ::GUID
 template <typename FnType, typename... Args>
 OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, Args&&... args)
 {
-    // Ensure that function to call is set.
     if (nullptr == fn)
     {
         assert(0);
-        // E_POINTER means "invalid pointer", seems to be appropriate.
         return {E_POINTER, L"Operation function is unbound!"};
+        // throw std::invalid_argument{"Operation function is unbound!"};
     }
 
-    // HCN functions will use CoTaskMemAlloc to allocate the error message buffer
-    // so use UniqueCotaskmemString to auto-release it with appropriate free
-    // function.
     UniqueCotaskmemString result_msgbuf{};
 
     // Perform the operation. The last argument of the all HCN operations (except
     // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
-    // the API describing the error happened. Therefore, we can streamline all API
-    // calls through perform_hcn_operation.
+    // the API describing the error, if it occurred. Therefore, we can streamline all
+    // API calls through perform_hcn_operation.
     const auto result =
         ResultCode{fn(std::forward<Args>(args)..., out_ptr(result_msgbuf, api.CoTaskMemFree))};
 
-    mpl::debug(kLogCategory, "perform_hcn_operation(...) > result: {}", static_cast<bool>(result));
+    mpl::trace(kLogCategory, "perform_hcn_operation(...) > result: {}", static_cast<bool>(result));
 
-    // Error message is only valid when the operation resulted in an error.
-    // Passing a nullptr is well-defined in "< C++23", but it's going to be
-    // forbidden afterwards. Going an extra mile just to be future-proof.
+    // Avoid null to be forward-compatible with C++23
     return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
@@ -174,9 +169,6 @@ OperationResult perform_hcn_operation(const HCNAPITable& api, const FnType& fn, 
 
 /**
  * Open an existing Host Compute Network and return a handle to it.
- *
- * This function is used for altering network resources, e.g. adding a new
- * endpoint.
  *
  * @param api The HCN API table
  * @param network_guid GUID of the network to open
