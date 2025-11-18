@@ -41,7 +41,7 @@ struct HCSWrapper : public HCSWrapperInterface, DisabledCopyMove
      *
      * The wrapper will use the real HCN API by default.
      */
-    HCSWrapper(const HCSAPITable& api_table = {});
+    HCSWrapper();
 
     // ---------------------------------------------------------
 
@@ -224,9 +224,6 @@ struct HCSWrapper : public HCSWrapperInterface, DisabledCopyMove
         const HcsSystemHandle& target_hcs_system,
         void* context,
         void (*callback)(void* hcs_event, void* context)) const override;
-
-private:
-    const HCSAPITable api;
 };
 
 } // namespace multipass::hyperv::hcs
