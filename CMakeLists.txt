@@ -29,22 +29,6 @@ if(NOT ${IS_RUNNING_IN_CI})
   configure_linker()
 endif()
 
-cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
-
-if("${HOST_OS_NAME}" STREQUAL "macOS")
-  # needs to be set before "project"
-  set(VCPKG_HOST_OS "osx")
-  if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "macOS Deployment Target")
-  else()
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
-  endif()
-elseif("${HOST_OS_NAME}" STREQUAL "Windows")
-  set(VCPKG_HOST_OS "windows-static-md")
-else()
-  set(VCPKG_HOST_OS "linux")
-endif()
-
 # Use ccache if it's installed
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -52,46 +36,7 @@ if(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-if(NOT VCPKG_BUILD_DEFAULT)
-  message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
-  cmake_host_system_information(RESULT VCPKG_HOST_ARCH QUERY OS_PLATFORM)
-  if("${VCPKG_HOST_ARCH}" STREQUAL "x86_64" OR "${VCPKG_HOST_ARCH}" STREQUAL "AMD64")
-    set(VCPKG_HOST_ARCH "x64")
-  elseif("${VCPKG_HOST_ARCH}" STREQUAL "aarch64")
-    set(VCPKG_HOST_ARCH "arm64")
-  endif()
-
-  set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
-  set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
-else()
-  message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
-endif()
-
-message(STATUS "Bootstrapping vcpkg...")
-
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-  set(VCPKG_BOOTSTRAP_EXTENSION "bat")
-else()
-  set(VCPKG_BOOTSTRAP_EXTENSION "sh")
-endif()
-
-execute_process(
-  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/bootstrap-vcpkg.${VCPKG_BOOTSTRAP_EXTENSION}"
-  RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT
-)
-
-if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
-  message(FATAL_ERROR "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
-else()
-  message(STATUS "Bootstrapping vcpkg completed successfully.")
-endif()
-
-if(MULTIPASS_ENABLE_TESTS)
-  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
-endif()
-
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+include(src/cmake/bootstrap-vcpkg.cmake)
 
 project(Multipass)
 

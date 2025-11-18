@@ -29,7 +29,7 @@ function(add_target TARGET_NAME)
       unix_terminal.cpp)
   endif()
 
-  target_link_libraries(${TARGET_NAME}
+  target_link_libraries(${TARGET_NAME} PUBLIC
     client_platform
     platform
     libssh)

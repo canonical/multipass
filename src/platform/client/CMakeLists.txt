@@ -23,7 +23,7 @@ add_library(client_platform STATIC
   client_platform.cpp)
 endif()
 
-target_link_libraries(client_platform
+target_link_libraries(client_platform PUBLIC
   Qt6::Core
   console
   fmt::fmt-header-only)
