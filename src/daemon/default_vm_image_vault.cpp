@@ -234,7 +234,7 @@ void persist_records(const T& records, const QString& path)
         auto key = QString::fromStdString(record.first);
         json_records.insert(key, record_to_json(record.second));
     }
-    MP_JSONUTILS.write_json(json_records, path);
+    MP_FILEOPS.write_transactionally(path, QJsonDocument{json_records}.toJson());
 }
 } // namespace
 
