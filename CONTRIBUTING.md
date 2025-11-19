@@ -297,7 +297,7 @@ fully understand.<br>
 **AI6.** Contributors must submit only modifications that they have reviewed thoroughly,
 especially if it includes AI-generated content.<br>
 **AI7.** Authors are ultimately responsible for their entire contributions,
-including all components, contents, format, and presentation.<br>
+including all components, contents, format, presentation, and communication.<br>
 **AI8.** When using AI, contributors should make an extra effort to ensure good information density
 (i.e. high signal-to-noise ratio). This includes code and text.<br>
 
