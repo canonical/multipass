@@ -35,11 +35,8 @@ struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
     /**
      * Construct a new HCNWrapper
      *
-     * @param api_table The HCN API table object (optional)
-     *
-     * The wrapper will use the real HCN API by default.
      */
-    HCNWrapper(const HCNAPITable& api_table = {});
+    HCNWrapper();
 
     /**
      * Create a new Host Compute Network
@@ -82,9 +79,6 @@ struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
      * message() may contain details of failure when result is false.
      */
     [[nodiscard]] OperationResult delete_endpoint(const std::string& endpoint_guid) const override;
-
-private:
-    const HCNAPITable api;
 };
 
 } // namespace multipass::hyperv::hcn

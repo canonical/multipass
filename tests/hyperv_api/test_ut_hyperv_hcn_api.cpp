@@ -17,6 +17,7 @@
 
 #include "hyperv_test_utils.h"
 #include "tests/common.h"
+#include "tests/hyperv_api/mock_hyperv_hcn_api_table.h"
 #include "tests/mock_logger.h"
 
 #include <hyperv_api/hcn/hyperv_hcn_api_table.h>
@@ -37,6 +38,7 @@ namespace hcn = multipass::hyperv::hcn;
 
 using testing::DoAll;
 using testing::Return;
+using testing::StrictMock;
 
 namespace multipass::test
 {
@@ -48,56 +50,8 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
-    void SetUp() override
-    {
-
-        // Each of the unit tests are expected to have their own mock functions
-        // and override the mock_api_table with them. Hence, the stub mocks should
-        // not be called at all.
-        // If any of them do get called, then:
-        //
-        // a-) You have forgotten to mock something
-        // b-) The implementation is using a function that you didn't expect
-        //
-        // Either way, you should have a look.
-
-        EXPECT_NO_CALL(stub_mock_create_network);
-        EXPECT_NO_CALL(stub_mock_open_network);
-        EXPECT_NO_CALL(stub_mock_delete_network);
-        EXPECT_NO_CALL(stub_mock_close_network);
-        EXPECT_NO_CALL(stub_mock_create_endpoint);
-        EXPECT_NO_CALL(stub_mock_open_endpoint);
-        EXPECT_NO_CALL(stub_mock_delete_endpoint);
-        EXPECT_NO_CALL(stub_mock_close_endpoint);
-        EXPECT_NO_CALL(stub_mock_cotaskmemfree);
-    }
-
-    void TearDown() override
-    {
-    }
-
-    // Set of placeholder mocks in order to catch *unexpected* calls.
-    ::testing::MockFunction<decltype(HcnCreateNetwork)> stub_mock_create_network;
-    ::testing::MockFunction<decltype(HcnOpenNetwork)> stub_mock_open_network;
-    ::testing::MockFunction<decltype(HcnDeleteNetwork)> stub_mock_delete_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> stub_mock_close_network;
-    ::testing::MockFunction<decltype(HcnCreateEndpoint)> stub_mock_create_endpoint;
-    ::testing::MockFunction<decltype(HcnOpenEndpoint)> stub_mock_open_endpoint;
-    ::testing::MockFunction<decltype(HcnDeleteEndpoint)> stub_mock_delete_endpoint;
-    ::testing::MockFunction<decltype(HcnCloseEndpoint)> stub_mock_close_endpoint;
-    ::testing::MockFunction<decltype(::CoTaskMemFree)> stub_mock_cotaskmemfree;
-
-    // Initialize the API table with stub functions, so if any of these fire without
-    // our will, we'll know.
-    hcn::HCNAPITable mock_api_table{stub_mock_create_network.AsStdFunction(),
-                                    stub_mock_open_network.AsStdFunction(),
-                                    stub_mock_delete_network.AsStdFunction(),
-                                    stub_mock_close_network.AsStdFunction(),
-                                    stub_mock_create_endpoint.AsStdFunction(),
-                                    stub_mock_open_endpoint.AsStdFunction(),
-                                    stub_mock_delete_endpoint.AsStdFunction(),
-                                    stub_mock_close_endpoint.AsStdFunction(),
-                                    stub_mock_cotaskmemfree.AsStdFunction()};
+    mpt::MockHCNAPI::GuardedMock mock_hcn_api_injection = mpt::MockHCNAPI::inject<StrictMock>();
+    mpt::MockHCNAPI& mock_hcn_api = *mock_hcn_api_injection.first;
 
     // Sentinel values as mock API parameters. These handles are opaque handles and
     // they're not being dereferenced in any way -- only address values are compared.
@@ -117,20 +71,11 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-
-    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     constexpr auto expected_network_settings = LR"""(
@@ -170,7 +115,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
@@ -179,7 +124,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
@@ -200,20 +145,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-
-    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     constexpr auto expected_network_settings = LR"""(
@@ -250,7 +186,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
@@ -259,7 +195,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -283,20 +219,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_policies)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-
-    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     constexpr auto expected_network_settings = LR"""(
@@ -340,7 +267,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
@@ -349,7 +276,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -376,20 +303,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-
-    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     constexpr auto expected_network_settings = LR"""(
@@ -439,7 +357,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
@@ -448,7 +366,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -477,31 +395,21 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
 TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-
-    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     *network = mock_network_object;
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); },
                             Return(E_POINTER)));
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::create_network(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_hcn_operation(...)");
     }
@@ -516,7 +424,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
         params.ipams = {
             hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [success, error_msg] = uut.create_network(params);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
@@ -531,22 +439,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
 TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnCreateNetwork)> mock_create_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-    ::testing::MockFunction<decltype(::CoTaskMemFree)> mock_cotaskmemfree;
-
-    mock_api_table.CreateNetwork = mock_create_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-    mock_api_table.CoTaskMemFree = mock_cotaskmemfree.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
                     *network = mock_network_object;
@@ -554,15 +451,14 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
                 },
                 Return(E_POINTER)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
 
-        EXPECT_CALL(mock_cotaskmemfree, Call).WillOnce([&](void* ptr) {
+        EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([&](void* ptr) {
             EXPECT_EQ(ptr, mock_error_msg);
         });
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::create_network(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_hcn_operation(...)");
         logger_scope.mock_logger->expect_log(
@@ -580,7 +476,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         params.ipams = {
             hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [success, error_msg] = uut.create_network(params);
         ASSERT_FALSE(success);
         ASSERT_EQ(static_cast<HRESULT>(success), E_POINTER);
@@ -597,18 +493,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
 TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnDeleteNetwork)> mock_delete_network;
-
-    mock_api_table.DeleteNetwork = mock_delete_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_delete_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnDeleteNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
                     ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(guid));
@@ -618,7 +507,6 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
                 Return(NOERROR)));
 
         // Expected logs
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCNWrapper::delete_network(...) > network_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
@@ -630,7 +518,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, error_msg] =
             uut.delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status);
@@ -646,20 +534,11 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
 TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnDeleteNetwork)> mock_delete_network;
-    ::testing::MockFunction<decltype(::CoTaskMemFree)> mock_cotaskmemfree;
-
-    mock_api_table.DeleteNetwork = mock_delete_network.AsStdFunction();
-    mock_api_table.CoTaskMemFree = mock_cotaskmemfree.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_delete_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnDeleteNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID, PWSTR* error_record) {
                     ASSERT_EQ(nullptr, *error_record);
@@ -668,11 +547,10 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
                 },
                 Return(E_POINTER)));
 
-        EXPECT_CALL(mock_cotaskmemfree, Call).WillOnce([&](void* ptr) {
+        EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([&](void* ptr) {
             EXPECT_EQ(ptr, mock_error_msg);
         });
         // Expected logs
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "HCNWrapper::delete_network(...) > network_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
@@ -684,7 +562,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, error_msg] =
             uut.delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status);
@@ -701,24 +579,11 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
 TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnCreateEndpoint)> mock_create_endpoint;
-    ::testing::MockFunction<decltype(HcnCloseEndpoint)> mock_close_endpoint;
-    ::testing::MockFunction<decltype(HcnOpenNetwork)> mock_open_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-
-    mock_api_table.CreateEndpoint = mock_create_endpoint.AsStdFunction();
-    mock_api_table.CloseEndpoint = mock_close_endpoint.AsStdFunction();
-    mock_api_table.OpenNetwork = mock_open_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_endpoint, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateEndpoint)
             .WillOnce(DoAll(
                 [&](HCN_NETWORK network,
                     REFGUID id,
@@ -751,11 +616,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_endpoint, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint)
             .WillOnce(DoAll([&](HCN_ENDPOINT n) { ASSERT_EQ(n, mock_endpoint_object); },
                             Return(NOERROR)));
 
-        EXPECT_CALL(mock_open_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnOpenNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PHCN_NETWORK network, PWSTR* error_record) {
                     ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
@@ -767,11 +632,10 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "HCNWrapper::create_endpoint(...) > params: ");
         logger_scope.mock_logger->expect_log(
@@ -786,7 +650,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
@@ -805,20 +669,12 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
 TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnOpenNetwork)> mock_open_network;
-
-    mock_api_table.OpenNetwork = mock_open_network.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_open_network, Call).WillOnce(Return(E_POINTER));
+        EXPECT_CALL(mock_hcn_api, HcnOpenNetwork).WillOnce(Return(E_POINTER));
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "HCNWrapper::create_endpoint(...) > params: ");
         logger_scope.mock_logger->expect_log(
@@ -835,7 +691,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
@@ -853,27 +709,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
 TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-
-    ::testing::MockFunction<decltype(HcnCreateEndpoint)> mock_create_endpoint;
-    ::testing::MockFunction<decltype(HcnCloseEndpoint)> mock_close_endpoint;
-    ::testing::MockFunction<decltype(HcnOpenNetwork)> mock_open_network;
-    ::testing::MockFunction<decltype(HcnCloseNetwork)> mock_close_network;
-    ::testing::MockFunction<decltype(CoTaskMemFree)> mock_cotaskmemfree;
-
-    mock_api_table.CreateEndpoint = mock_create_endpoint.AsStdFunction();
-    mock_api_table.CloseEndpoint = mock_close_endpoint.AsStdFunction();
-    mock_api_table.OpenNetwork = mock_open_network.AsStdFunction();
-    mock_api_table.CloseNetwork = mock_close_network.AsStdFunction();
-    mock_api_table.CoTaskMemFree = mock_cotaskmemfree.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_endpoint, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCreateEndpoint)
             .WillOnce(DoAll(
                 [&](HCN_NETWORK network,
                     REFGUID id,
@@ -903,11 +743,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                 },
                 Return(E_POINTER)));
 
-        EXPECT_CALL(mock_close_endpoint, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint)
             .WillOnce(DoAll([&](HCN_ENDPOINT n) { ASSERT_EQ(n, mock_endpoint_object); },
                             Return(NOERROR)));
 
-        EXPECT_CALL(mock_open_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnOpenNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PHCN_NETWORK network, PWSTR* error_record) {
                     ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
@@ -917,15 +757,14 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                 },
                 Return(NOERROR)));
 
-        EXPECT_CALL(mock_close_network, Call)
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
 
-        EXPECT_CALL(mock_cotaskmemfree, Call).WillOnce([](const void* ptr) {
+        EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([](const void* ptr) {
             ASSERT_EQ(ptr, mock_error_msg);
         });
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "HCNWrapper::create_endpoint(...) > params: ");
         logger_scope.mock_logger->expect_log(
@@ -941,7 +780,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
@@ -961,18 +800,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
 TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnDeleteEndpoint)> mock_delete_endpoint;
-
-    mock_api_table.DeleteEndpoint = mock_delete_endpoint.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_delete_endpoint, Call)
+        EXPECT_CALL(mock_hcn_api, HcnDeleteEndpoint)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
                     ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(guid));
@@ -982,7 +814,6 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
                 Return(NOERROR)));
 
         // Expected logs
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "HCNWrapper::delete_endpoint(...) > endpoint_guid: "
                                              "af3fb745-2f23-463c-8ded-443f876d9e81");
@@ -994,7 +825,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, error_msg] =
             uut.delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status);
@@ -1010,29 +841,19 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
 TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
 {
     /******************************************************
-     * Override the default mock functions.
-     ******************************************************/
-    ::testing::MockFunction<decltype(HcnDeleteEndpoint)> mock_delete_endpoint;
-    ::testing::MockFunction<decltype(::CoTaskMemFree)> mock_cotaskmemfree;
-
-    mock_api_table.DeleteEndpoint = mock_delete_endpoint.AsStdFunction();
-    mock_api_table.CoTaskMemFree = mock_cotaskmemfree.AsStdFunction();
-
-    /******************************************************
      * Verify that the dependencies are called with right
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_delete_endpoint, Call)
+        EXPECT_CALL(mock_hcn_api, HcnDeleteEndpoint)
             .WillOnce(DoAll([&](REFGUID, PWSTR* error_record) { *error_record = mock_error_msg; },
                             Return(E_POINTER)));
 
-        EXPECT_CALL(mock_cotaskmemfree, Call).WillOnce([](const void* ptr) {
+        EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([](const void* ptr) {
             ASSERT_EQ(ptr, mock_error_msg);
         });
 
         // Expected logs
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::HCNWrapper(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "HCNWrapper::delete_endpoint(...) > endpoint_guid: "
                                              "af3fb745-2f23-463c-8ded-443f876d9e81");
@@ -1044,7 +865,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, error_msg] =
             uut.delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status);
