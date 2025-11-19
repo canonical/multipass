@@ -43,11 +43,16 @@ namespace multipass::hyperv::hcs
 namespace
 {
 
+inline const HCSAPI& API()
+{
+    return HCSAPI::instance();
+}
+
 struct HcsSystemCloser
 {
     void operator()(HCS_SYSTEM p) const noexcept
     {
-        HCS().HcsCloseComputeSystem(p);
+        API().HcsCloseComputeSystem(p);
     }
 };
 
@@ -57,7 +62,7 @@ struct HcsOperationCloser
 {
     void operator()(HCS_OPERATION p) const noexcept
     {
-        HCS().HcsCloseOperation(p);
+        API().HcsCloseOperation(p);
     }
 };
 
@@ -68,7 +73,7 @@ struct HlocalStringDeleter
 {
     void operator()(void* p) const noexcept
     {
-        HCS().LocalFree(p);
+        API().LocalFree(p);
     }
 };
 using UniqueHlocalString = std::unique_ptr<wchar_t, HlocalStringDeleter>;
@@ -98,7 +103,7 @@ constexpr static auto default_operation_timeout = std::chrono::seconds{240};
 UniqueHcsOperation create_operation()
 {
     mpl::trace(log_category, "create_operation(...)");
-    return UniqueHcsOperation{HCS().HcsCreateOperation(nullptr, nullptr)};
+    return UniqueHcsOperation{API().HcsCreateOperation(nullptr, nullptr)};
 }
 
 // ---------------------------------------------------------
@@ -122,7 +127,7 @@ OperationResult wait_for_operation_result(
 
     UniqueHlocalString result_msg{};
     const auto hresult_code =
-        ResultCode{HCS().HcsWaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg))};
+        ResultCode{API().HcsWaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg))};
     mpl::debug(log_category,
                "wait_for_operation_result(...) > finished ({}), result_code: {}",
                fmt::ptr(op.get()),
@@ -178,7 +183,10 @@ OperationResult perform_hcs_operation(const FnType& fn, const HcsSystemHandle& s
 
 // ---------------------------------------------------------
 
-HCSWrapper::HCSWrapper() = default;
+HCSWrapper::HCSWrapper(const Singleton<HCSWrapper>::PrivatePass& pass) noexcept
+    : Singleton<HCSWrapper>::Singleton{pass}
+{
+}
 
 // ---------------------------------------------------------
 
@@ -193,7 +201,7 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
 
     UniqueHcsSystem system{};
     const ResultCode result =
-        HCS().HcsOpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, out_ptr(system));
+        API().HcsOpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, out_ptr(system));
     if (!result)
     {
         mpl::debug(log_category,
@@ -226,7 +234,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
     const auto vm_settings = fmt::to_wstring(params);
 
     UniqueHcsSystem system{};
-    const auto result = ResultCode{HCS().HcsCreateComputeSystem(name_w.c_str(),
+    const auto result = ResultCode{API().HcsCreateComputeSystem(name_w.c_str(),
                                                                 vm_settings.c_str(),
                                                                 operation.get(),
                                                                 nullptr,
@@ -255,7 +263,7 @@ OperationResult HCSWrapper::start_compute_system(const HcsSystemHandle& target_h
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsStartComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+            return API().HcsStartComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                op,
                                                nullptr);
         },
@@ -278,7 +286,7 @@ OperationResult HCSWrapper::shutdown_compute_system(const HcsSystemHandle& targe
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsShutDownComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+            return API().HcsShutDownComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                   op,
                                                   c_shutdownOption);
         },
@@ -295,7 +303,7 @@ OperationResult HCSWrapper::terminate_compute_system(const HcsSystemHandle& targ
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsTerminateComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+            return API().HcsTerminateComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                    op,
                                                    nullptr);
         },
@@ -319,7 +327,7 @@ OperationResult HCSWrapper::pause_compute_system(const HcsSystemHandle& target_h
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsPauseComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+            return API().HcsPauseComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                op,
                                                c_pauseOption);
         },
@@ -336,7 +344,7 @@ OperationResult HCSWrapper::resume_compute_system(const HcsSystemHandle& target_
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsResumeComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+            return API().HcsResumeComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                 op,
                                                 nullptr);
         },
@@ -360,7 +368,7 @@ OperationResult HCSWrapper::get_compute_system_properties(
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsGetComputeSystemProperties(
+            return API().HcsGetComputeSystemProperties(
                 static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                 op,
                 c_VmQuery);
@@ -380,7 +388,7 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
 
     const auto path_as_wstring = file_path.generic_wstring();
     const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
-    const auto result = HCS().HcsGrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
+    const auto result = API().HcsGrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
 }
 
@@ -396,7 +404,7 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
 
     const auto path_as_wstring = file_path.wstring();
     const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
-    const auto result = HCS().HcsRevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
+    const auto result = API().HcsRevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"RevokeVmAccess failed!" : L""};
 }
 
@@ -411,7 +419,7 @@ OperationResult HCSWrapper::get_compute_system_state(const HcsSystemHandle& targ
 
     const auto result = perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsGetComputeSystemProperties(
+            return API().HcsGetComputeSystemProperties(
                 static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                 op,
                 nullptr);
@@ -456,7 +464,7 @@ OperationResult HCSWrapper::modify_compute_system(const HcsSystemHandle& target_
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return HCS().HcsModifyComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+            return API().HcsModifyComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                 op,
                                                 json.c_str(),
                                                 nullptr);
@@ -478,7 +486,7 @@ OperationResult HCSWrapper::set_compute_system_callback(const HcsSystemHandle& t
                fmt::ptr(callback));
 
     const ResultCode result =
-        HCS().HcsSetComputeSystemCallback(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+        API().HcsSetComputeSystemCallback(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                           HCS_EVENT_OPTIONS::HcsEventOptionNone,
                                           context,
                                           reinterpret_cast<HCS_EVENT_CALLBACK>(callback));

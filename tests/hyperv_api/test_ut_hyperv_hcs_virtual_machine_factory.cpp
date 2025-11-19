@@ -23,8 +23,8 @@
 #include <multipass/vm_image.h>
 
 #include "tests/common.h"
+#include "tests/hyperv_api/mock_hyperv_hcs_wrapper.h"
 #include "tests/mock_hyperv_hcn_wrapper.h"
-#include "tests/mock_hyperv_hcs_wrapper.h"
 #include "tests/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/mock_platform.h"
 #include "tests/stub_ssh_key_provider.h"
@@ -47,7 +47,11 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
     mpt::TempDir dummy_data_dir;
     mpt::StubSSHKeyProvider stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
-    std::shared_ptr<mpt::MockHCSWrapper> mock_hcs{std::make_shared<mpt::MockHCSWrapper>()};
+
+    mpt::MockHCSWrapper::GuardedMock mock_hcs_wrapper_injection =
+        mpt::MockHCSWrapper::inject<StrictMock>();
+    mpt::MockHCSWrapper& mock_hcs = *mock_hcs_wrapper_injection.first;
+
     std::shared_ptr<mpt::MockHCNWrapper> mock_hcn{std::make_shared<mpt::MockHCNWrapper>()};
     std::shared_ptr<mpt::MockVirtDiskWrapper> mock_virtdisk{
         std::make_shared<mpt::MockVirtDiskWrapper>()};
@@ -60,22 +64,16 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
 
     auto construct_factory()
     {
-        return std::make_shared<uut_t>(dummy_data_dir.path(), mock_hcs, mock_hcn, mock_virtdisk);
+        return std::make_shared<uut_t>(dummy_data_dir.path(), mock_hcn, mock_virtdisk);
     }
 };
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, construct_invalid_api_ptr)
-{
-    auto try_construct = []() { uut_t{"", nullptr, nullptr, nullptr}; };
-    EXPECT_THROW(try_construct(), multipass::hyperv::InvalidAPIPointerException);
-}
-
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_exists)
 {
     auto vm_name = "test-vm";
-    EXPECT_CALL(*mock_hcs, open_compute_system(_, _))
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
         .WillOnce(DoAll(
             [&](const std::string& name, hcs_handle_t& out_handle) {
                 ASSERT_EQ(vm_name, name);
@@ -83,7 +81,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_ex
             },
             Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(*mock_hcs, terminate_compute_system(Eq(mock_handle)))
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
     std::shared_ptr<uut_t> uut{nullptr};
@@ -94,7 +92,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_ex
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_not_exists)
 {
     auto vm_name = "test-vm";
-    EXPECT_CALL(*mock_hcs, open_compute_system(_, _))
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
         .WillOnce(DoAll(
             [&](const std::string& name, hcs_handle_t& out_handle) {
                 ASSERT_EQ(vm_name, name);
@@ -197,12 +195,12 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
             },
             Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(*mock_hcs, open_compute_system(_, _))
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
         .WillRepeatedly(DoAll(
             [this](const std::string& name, hcs_handle_t& out_handle) { out_handle = mock_handle; },
             Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(*mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
+    EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
         .WillRepeatedly(DoAll(
             [this](const hcs_handle_t& target_hcs_system,
                    void* context,
@@ -211,7 +209,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
             },
             Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(*mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
         .WillRepeatedly(DoAll(
             [this](const hcs_handle_t&, mhv::hcs::ComputeSystemState& state) {
                 state = mhv::hcs::ComputeSystemState::running;

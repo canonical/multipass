@@ -40,8 +40,7 @@ namespace multipass::hyperv
  */
 struct HCSVirtualMachine : public BaseVirtualMachine
 {
-    HCSVirtualMachine(hcs_sptr_t hcs_w,
-                      hcn_sptr_t hcn_w,
+    HCSVirtualMachine(hcn_sptr_t hcn_w,
                       virtdisk_sptr_t virtdisk_w,
                       const std::string& network_guid,
                       const VirtualMachineDescription& desc,
@@ -49,8 +48,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       const SSHKeyProvider& key_provider,
                       const Path& instance_dir);
 
-    HCSVirtualMachine(hcs_sptr_t hcs_w,
-                      hcn_sptr_t hcn_w,
+    HCSVirtualMachine(hcn_sptr_t hcn_w,
                       virtdisk_sptr_t virtdisk_w,
                       const std::string& source_vm_name,
                       const multipass::VMSpecs& src_vm_specs,
@@ -92,7 +90,6 @@ protected:
 private:
     VirtualMachineDescription description{};
     const std::string primary_network_guid{};
-    hcs_sptr_t hcs{nullptr};
     hcn_sptr_t hcn{nullptr};
     virtdisk_sptr_t virtdisk{nullptr};
     VMStatusMonitor& monitor;
