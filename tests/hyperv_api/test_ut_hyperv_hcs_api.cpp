@@ -40,7 +40,6 @@ using testing::StrictMock;
 namespace multipass::test
 {
 using namespace hyperv::hcs;
-using uut_t = HCSWrapper;
 
 struct HyperVHCSAPI_UnitTests : public ::testing::Test
 {
@@ -240,7 +239,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
      ******************************************************/
     {
         HcsSystemHandle handle{nullptr};
-        uut_t uut{};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
         params.scsi_devices.push_back(
@@ -250,7 +248,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
-        const auto& [status, status_msg] = uut.create_compute_system(params, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_TRUE(status);
         ASSERT_NE(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
@@ -393,7 +391,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
      ******************************************************/
     {
         HcsSystemHandle handle{nullptr};
-        uut_t uut{};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
         params.scsi_devices.push_back(
@@ -401,7 +398,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
-        const auto& [status, status_msg] = uut.create_compute_system(params, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_TRUE(status);
         ASSERT_NE(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
@@ -544,7 +541,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
      ******************************************************/
     {
         HcsSystemHandle handle{nullptr};
-        uut_t uut{};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
         params.scsi_devices.push_back(
@@ -552,7 +548,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
-        const auto& [status, status_msg] = uut.create_compute_system(params, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_NE(nullptr, handle);
         ASSERT_TRUE(status);
         ASSERT_FALSE(status_msg.empty());
@@ -685,13 +681,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
      ******************************************************/
     {
         HcsSystemHandle handle{nullptr};
-        uut_t uut{};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
-        const auto& [status, status_msg] = uut.create_compute_system(params, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_TRUE(status);
         ASSERT_NE(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
@@ -729,7 +724,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
      ******************************************************/
     {
         HcsSystemHandle handle{nullptr};
-        uut_t uut{};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
         params.scsi_devices.push_back(
@@ -739,7 +733,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
-        const auto& [status, status_msg] = uut.create_compute_system(params, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_FALSE(status);
         ASSERT_EQ(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
@@ -868,7 +862,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
      ******************************************************/
     {
         HcsSystemHandle handle{nullptr};
-        uut_t uut{};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
         params.scsi_devices.push_back(
@@ -878,7 +871,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
-        const auto& [status, status_msg] = uut.create_compute_system(params, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_FALSE(status);
         ASSERT_EQ(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
@@ -1030,7 +1023,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
      ******************************************************/
     {
         HcsSystemHandle handle{nullptr};
-        uut_t uut{};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
         params.scsi_devices.push_back(
@@ -1040,7 +1032,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
         params.memory_size_mb = 16384;
         params.processor_count = 8;
 
-        const auto& [status, status_msg] = uut.create_compute_system(params, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_FALSE(status);
         ASSERT_EQ(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
@@ -1079,9 +1071,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut.grant_vm_access("test_vm", "this is a path");
+        const auto& [status, status_msg] = HCS().grant_vm_access("test_vm", "this is a path");
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -1115,9 +1105,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_fail)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut.grant_vm_access("test_vm", "this is a path");
+        const auto& [status, status_msg] = HCS().grant_vm_access("test_vm", "this is a path");
         ASSERT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"GrantVmAccess failed!");
@@ -1155,9 +1143,7 @@ TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut.revoke_vm_access("test_vm", "this is a path");
+        const auto& [status, status_msg] = HCS().revoke_vm_access("test_vm", "this is a path");
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -1190,9 +1176,7 @@ TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_fail)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut.revoke_vm_access("test_vm", "this is a path");
+        const auto& [status, status_msg] = HCS().revoke_vm_access("test_vm", "this is a path");
         ASSERT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"RevokeVmAccess failed!");
@@ -1277,9 +1261,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_happy_path(UutCallableT uut_callb
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut_callback(uut);
+        const auto& [status, status_msg] = uut_callback();
         ASSERT_TRUE(status);
 
         if (nullptr == expected_status_msg)
@@ -1326,9 +1308,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_hcs_open_fail(UutCallableT uut_ca
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut_callback(uut);
+        const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
 
         if (nullptr == expected_status_msg)
@@ -1387,9 +1367,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_create_operation_fail(UutCallable
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut_callback(uut);
+        const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
 
         if (nullptr == expected_status_msg)
@@ -1451,9 +1429,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_fail(UutCallableT uut_callback,
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut_callback(uut);
+        const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
         if (nullptr == expected_status_msg)
         {
@@ -1540,9 +1516,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_wait_for_operation_fail(
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
-
-        const auto& [status, status_msg] = uut_callback(uut);
+        const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
 
         if (nullptr == expected_status_msg)
@@ -1570,12 +1544,12 @@ TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "start_compute_system(...) > handle: (0xbadcafe)");
-        return wrapper.start_compute_system(handle);
+        return HCS().start_compute_system(handle);
     });
 }
 
@@ -1583,11 +1557,11 @@ TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "start_compute_system(...)");
-        return wrapper.start_compute_system(handle);
+        return HCS().start_compute_system(handle);
     });
 }
 
@@ -1595,11 +1569,11 @@ TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "start_compute_system(...)");
-        return wrapper.start_compute_system(handle);
+        return HCS().start_compute_system(handle);
     });
 }
 
@@ -1616,11 +1590,11 @@ TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "start_compute_system(...)");
-        return wrapper.start_compute_system(handle);
+        return HCS().start_compute_system(handle);
     });
 }
 
@@ -1637,11 +1611,11 @@ TEST_F(HyperVHCSAPI_UnitTests, start_compute_system_wait_for_operation_result_fa
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "start_compute_system(...)");
-        return wrapper.start_compute_system(handle);
+        return HCS().start_compute_system(handle);
     });
 }
 
@@ -1665,12 +1639,12 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "shutdown_compute_system(...) > handle: (0xbadcafe)");
-        return wrapper.shutdown_compute_system(handle);
+        return HCS().shutdown_compute_system(handle);
     });
 }
 
@@ -1678,11 +1652,11 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "shutdown_compute_system(...)");
-        return wrapper.shutdown_compute_system(handle);
+        return HCS().shutdown_compute_system(handle);
     });
 }
 
@@ -1690,11 +1664,11 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "shutdown_compute_system(...)");
-        return wrapper.shutdown_compute_system(handle);
+        return HCS().shutdown_compute_system(handle);
     });
 }
 
@@ -1718,11 +1692,11 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "shutdown_compute_system(...)");
-        return wrapper.shutdown_compute_system(handle);
+        return HCS().shutdown_compute_system(handle);
     });
 }
 
@@ -1746,11 +1720,11 @@ TEST_F(HyperVHCSAPI_UnitTests, shutdown_compute_system_wait_for_operation_result
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "shutdown_compute_system(...)");
-        return wrapper.shutdown_compute_system(handle);
+        return HCS().shutdown_compute_system(handle);
     });
 }
 
@@ -1767,12 +1741,12 @@ TEST_F(HyperVHCSAPI_UnitTests, terminate_compute_system_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "terminate_compute_system(...) > handle: (0xbadcafe)");
-        return wrapper.terminate_compute_system(handle);
+        return HCS().terminate_compute_system(handle);
     });
 }
 
@@ -1780,11 +1754,11 @@ TEST_F(HyperVHCSAPI_UnitTests, terminate_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, terminate_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "terminate_compute_system(...)");
-        return wrapper.terminate_compute_system(handle);
+        return HCS().terminate_compute_system(handle);
     });
 }
 
@@ -1792,11 +1766,11 @@ TEST_F(HyperVHCSAPI_UnitTests, terminate_compute_system_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, terminate_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "terminate_compute_system(...)");
-        return wrapper.terminate_compute_system(handle);
+        return HCS().terminate_compute_system(handle);
     });
 }
 
@@ -1813,11 +1787,11 @@ TEST_F(HyperVHCSAPI_UnitTests, terminate_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "terminate_compute_system(...)");
-        return wrapper.terminate_compute_system(handle);
+        return HCS().terminate_compute_system(handle);
     });
 }
 
@@ -1833,11 +1807,11 @@ TEST_F(HyperVHCSAPI_UnitTests, terminate_compute_system_wait_for_operation_resul
                 ASSERT_EQ(options, nullptr);
             },
             Return(NOERROR)));
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "terminate_compute_system(...)");
-        return wrapper.terminate_compute_system(handle);
+        return HCS().terminate_compute_system(handle);
     });
 }
 
@@ -1864,12 +1838,12 @@ TEST_F(HyperVHCSAPI_UnitTests, pause_compute_system_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "pause_compute_system(...) > handle: (0xbadcafe)");
-        return wrapper.pause_compute_system(handle);
+        return HCS().pause_compute_system(handle);
     });
 }
 
@@ -1877,11 +1851,11 @@ TEST_F(HyperVHCSAPI_UnitTests, pause_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, pause_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "pause_compute_system(...)");
-        return wrapper.pause_compute_system(handle);
+        return HCS().pause_compute_system(handle);
     });
 }
 
@@ -1889,11 +1863,11 @@ TEST_F(HyperVHCSAPI_UnitTests, pause_compute_system_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, pause_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "pause_compute_system(...)");
-        return wrapper.pause_compute_system(handle);
+        return HCS().pause_compute_system(handle);
     });
 }
 
@@ -1920,11 +1894,11 @@ TEST_F(HyperVHCSAPI_UnitTests, pause_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "pause_compute_system(...)");
-        return wrapper.pause_compute_system(handle);
+        return HCS().pause_compute_system(handle);
     });
 }
 
@@ -1951,11 +1925,11 @@ TEST_F(HyperVHCSAPI_UnitTests, pause_compute_system_wait_for_operation_result_fa
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "pause_compute_system(...)");
-        return wrapper.pause_compute_system(handle);
+        return HCS().pause_compute_system(handle);
     });
 }
 
@@ -1972,12 +1946,12 @@ TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "resume_compute_system(...) > handle: (0xbadcafe)");
-        return wrapper.resume_compute_system(handle);
+        return HCS().resume_compute_system(handle);
     });
 }
 
@@ -1985,11 +1959,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "resume_compute_system(...)");
-        return wrapper.resume_compute_system(handle);
+        return HCS().resume_compute_system(handle);
     });
 }
 
@@ -1997,11 +1971,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "resume_compute_system(...)");
-        return wrapper.resume_compute_system(handle);
+        return HCS().resume_compute_system(handle);
     });
 }
 
@@ -2018,11 +1992,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "resume_compute_system(...)");
-        return wrapper.resume_compute_system(handle);
+        return HCS().resume_compute_system(handle);
     });
 }
 
@@ -2039,11 +2013,11 @@ TEST_F(HyperVHCSAPI_UnitTests, resume_compute_system_wait_for_operation_result_f
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "resume_compute_system(...)");
-        return wrapper.resume_compute_system(handle);
+        return HCS().resume_compute_system(handle);
     });
 }
 
@@ -2077,9 +2051,9 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "modify_compute_system(...) > handle: (0xbadcafe), params:");
@@ -2090,7 +2064,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_happy_path)
         HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
                                            HcsRequestType::Add(),
                                            params};
-        return wrapper.modify_compute_system(handle, add_network_adapter_req);
+        return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
 
@@ -2098,15 +2072,15 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsNetworkAdapter params{};
         HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
                                            HcsRequestType::Add(),
                                            params};
-        return wrapper.modify_compute_system(handle, add_network_adapter_req);
+        return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
 
@@ -2114,15 +2088,15 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_hcs_open_fa
 
 TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsNetworkAdapter params{};
         HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
                                            HcsRequestType::Add(),
                                            params};
-        return wrapper.modify_compute_system(handle, add_network_adapter_req);
+        return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
 
@@ -2156,9 +2130,9 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsNetworkAdapter params{};
         params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
@@ -2166,7 +2140,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_fail)
         HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
                                            HcsRequestType::Add(),
                                            params};
-        return wrapper.modify_compute_system(handle, add_network_adapter_req);
+        return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
 
@@ -2200,9 +2174,9 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_wait_for_op
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsNetworkAdapter params{};
         params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
@@ -2210,7 +2184,7 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_wait_for_op
         HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
                                            HcsRequestType::Add(),
                                            params};
-        return wrapper.modify_compute_system(handle, add_network_adapter_req);
+        return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
 
@@ -2240,9 +2214,9 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_happy_
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "modify_compute_system(...) > handle: (0xbadcafe), params:");
@@ -2250,7 +2224,7 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_happy_
         HcsRequest remove_network_adapter_req{
             HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
             HcsRequestType::Remove()};
-        return wrapper.modify_compute_system(handle, remove_network_adapter_req);
+        return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
 
@@ -2258,15 +2232,15 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_happy_
 
 TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "modify_compute_system(...) > handle: (0x0), params:");
         HcsRequest remove_network_adapter_req{
             HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
             HcsRequestType::Remove()};
-        return wrapper.modify_compute_system(handle, remove_network_adapter_req);
+        return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
 
@@ -2274,16 +2248,16 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_hcs_op
 
 TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "modify_compute_system(...) > handle: (0xbadcafe), params:");
         HcsRequest remove_network_adapter_req{
             HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
             HcsRequestType::Remove()};
-        return wrapper.modify_compute_system(handle, remove_network_adapter_req);
+        return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
 
@@ -2313,16 +2287,16 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "modify_compute_system(...) > handle: (0xbadcafe), params:");
         HcsRequest remove_network_adapter_req{
             HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
             HcsRequestType::Remove()};
-        return wrapper.modify_compute_system(handle, remove_network_adapter_req);
+        return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
 
@@ -2353,16 +2327,16 @@ TEST_F(HyperVHCSAPI_UnitTests,
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "modify_compute_system(...) > handle: (0xbadcafe), params:");
         HcsRequest remove_network_adapter_req{
             HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
             HcsRequestType::Remove()};
-        return wrapper.modify_compute_system(handle, remove_network_adapter_req);
+        return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
 
@@ -2392,9 +2366,9 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "modify_compute_system(...) > handle: (0xbadcafe), params");
@@ -2402,7 +2376,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_happy_path)
                        HcsRequestType::Update(),
                        HcsModifyMemorySettings{16384}};
 
-        return wrapper.modify_compute_system(handle, req);
+        return HCS().modify_compute_system(handle, req);
     });
 }
 
@@ -2410,14 +2384,14 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsRequest req{HcsResourcePath::Memory(),
                        HcsRequestType::Update(),
                        HcsModifyMemorySettings{16384}};
-        return wrapper.modify_compute_system(handle, req);
+        return HCS().modify_compute_system(handle, req);
     });
 }
 
@@ -2425,14 +2399,14 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsRequest req{HcsResourcePath::Memory(),
                        HcsRequestType::Update(),
                        HcsModifyMemorySettings{16384}};
-        return wrapper.modify_compute_system(handle, req);
+        return HCS().modify_compute_system(handle, req);
     });
 }
 
@@ -2462,14 +2436,14 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsRequest req{HcsResourcePath::Memory(),
                        HcsRequestType::Update(),
                        HcsModifyMemorySettings{16384}};
-        return wrapper.modify_compute_system(handle, req);
+        return HCS().modify_compute_system(handle, req);
     });
 }
 
@@ -2499,14 +2473,14 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_wait_for_operatio
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "modify_compute_system(...)");
         HcsRequest req{HcsResourcePath::Memory(),
                        HcsRequestType::Update(),
                        HcsModifyMemorySettings{16384}};
-        return wrapper.modify_compute_system(handle, req);
+        return HCS().modify_compute_system(handle, req);
     });
 }
 
@@ -2530,13 +2504,13 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_happy_path)
             },
             Return(NOERROR)));
 
-    generic_operation_happy_path([&](HCSWrapper& wrapper) {
+    generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "get_compute_system_properties(...) > handle: (0xbadcafe)");
-        return wrapper.get_compute_system_properties(handle);
+        return HCS().get_compute_system_properties(handle);
     });
 }
 
@@ -2544,12 +2518,12 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_hcs_open_fail)
 {
-    generic_operation_hcs_open_fail([&](HCSWrapper& wrapper) {
+    generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "get_compute_system_properties(...)");
-        return wrapper.get_compute_system_properties(handle);
+        return HCS().get_compute_system_properties(handle);
     });
 }
 
@@ -2557,12 +2531,12 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_hcs_open_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_create_operation_fail)
 {
-    generic_operation_create_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "get_compute_system_properties(...)");
-        return wrapper.get_compute_system_properties(handle);
+        return HCS().get_compute_system_properties(handle);
     });
 }
 
@@ -2586,12 +2560,12 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_fail)
             },
             Return(E_POINTER)));
 
-    generic_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "get_compute_system_properties(...)");
-        return wrapper.get_compute_system_properties(handle);
+        return HCS().get_compute_system_properties(handle);
     });
 }
 
@@ -2615,12 +2589,12 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_properties_wait_for_operation_
             },
             Return(NOERROR)));
 
-    generic_operation_wait_for_operation_fail([&](HCSWrapper& wrapper) {
+    generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
-        EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+        EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "get_compute_system_properties(...)");
-        return wrapper.get_compute_system_properties(handle);
+        return HCS().get_compute_system_properties(handle);
     });
 }
 
@@ -2640,14 +2614,14 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_happy_path)
             Return(NOERROR)));
 
     generic_operation_happy_path(
-        [&](HCSWrapper& wrapper) {
+        [&]() {
             HcsSystemHandle handle{nullptr};
-            EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+            EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
             logger_scope.mock_logger->expect_log(
                 mpl::Level::debug,
                 "get_compute_system_state(...) > handle: (0xbadcafe)");
             ComputeSystemState state{ComputeSystemState::unknown};
-            const auto result = wrapper.get_compute_system_state(handle, state);
+            const auto result = HCS().get_compute_system_state(handle, state);
             [state]() { ASSERT_EQ(state, decltype(state)::running); }();
             return result;
         },
@@ -2670,13 +2644,13 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_no_state)
             Return(NOERROR)));
 
     generic_operation_happy_path(
-        [&](HCSWrapper& wrapper) {
+        [&]() {
             HcsSystemHandle handle{nullptr};
-            EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+            EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
             logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                                  "get_compute_system_state(...)");
             ComputeSystemState state{ComputeSystemState::unknown};
-            const auto result = wrapper.get_compute_system_state(handle, state);
+            const auto result = HCS().get_compute_system_state(handle, state);
             [state]() { ASSERT_EQ(state, decltype(state)::stopped); }();
             return result;
         },
@@ -2690,13 +2664,13 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_hcs_open_fail)
     static wchar_t expected_status_msg[] = L"HcsCreateOperation failed!";
 
     generic_operation_hcs_open_fail(
-        [&](HCSWrapper& wrapper) {
+        [&]() {
             HcsSystemHandle handle{nullptr};
-            EXPECT_FALSE(wrapper.open_compute_system("test_vm", handle));
+            EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
             logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                                  "get_compute_system_state(...)");
             ComputeSystemState state{ComputeSystemState::unknown};
-            const auto result = wrapper.get_compute_system_state(handle, state);
+            const auto result = HCS().get_compute_system_state(handle, state);
             [state, result]() {
                 ASSERT_EQ(state, decltype(state)::unknown);
                 ASSERT_EQ(static_cast<HRESULT>(result.code), E_POINTER);
@@ -2713,13 +2687,13 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_create_operation_fail)
 {
     static wchar_t expected_status_msg[] = L"HcsCreateOperation failed!";
     generic_operation_create_operation_fail(
-        [&](HCSWrapper& wrapper) {
+        [&]() {
             HcsSystemHandle handle{nullptr};
-            EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+            EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
             logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                                  "get_compute_system_state(...)");
             ComputeSystemState state{ComputeSystemState::unknown};
-            const auto result = wrapper.get_compute_system_state(handle, state);
+            const auto result = HCS().get_compute_system_state(handle, state);
             [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
             return result;
         },
@@ -2742,13 +2716,13 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_fail)
             Return(E_POINTER)));
 
     generic_operation_fail(
-        [&](HCSWrapper& wrapper) {
+        [&]() {
             HcsSystemHandle handle{nullptr};
-            EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+            EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
             logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                                  "get_compute_system_state(...)");
             ComputeSystemState state{ComputeSystemState::unknown};
-            const auto result = wrapper.get_compute_system_state(handle, state);
+            const auto result = HCS().get_compute_system_state(handle, state);
             [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
             return result;
         },
@@ -2769,13 +2743,13 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_wait_for_operation_resul
             Return(NOERROR)));
 
     generic_operation_wait_for_operation_fail(
-        [&](HCSWrapper& wrapper) {
+        [&]() {
             HcsSystemHandle handle{nullptr};
-            EXPECT_TRUE(wrapper.open_compute_system("test_vm", handle));
+            EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
             logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                                  "get_compute_system_state(...)");
             ComputeSystemState state{ComputeSystemState::unknown};
-            const auto result = wrapper.get_compute_system_state(handle, state);
+            const auto result = HCS().get_compute_system_state(handle, state);
             [state]() { ASSERT_EQ(state, decltype(state)::unknown); }();
             return result;
         },
