@@ -3106,7 +3106,8 @@ void mp::Daemon::persist_instances()
     }
     QDir data_dir{mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name())};
-    MP_JSONUTILS.write_json(instance_records_json, data_dir.filePath(instance_db_name));
+    MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name),
+                                     QJsonDocument{instance_records_json}.toJson());
 }
 
 void mp::Daemon::release_resources(const std::string& instance)

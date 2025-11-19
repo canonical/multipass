@@ -266,7 +266,7 @@ void mp::BaseSnapshot::persist() const
     const std::unique_lock lock{mutex};
 
     auto snapshot_filepath = storage_dir.filePath(derive_snapshot_filename());
-    MP_JSONUTILS.write_json(serialize(), snapshot_filepath);
+    MP_FILEOPS.write_transactionally(snapshot_filepath, QJsonDocument{serialize()}.toJson());
 }
 
 auto mp::BaseSnapshot::erase_helper()

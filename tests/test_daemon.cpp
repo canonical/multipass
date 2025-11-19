@@ -25,7 +25,6 @@
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_image_host.h"
-#include "mock_json_utils.h"
 #include "mock_logger.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
@@ -154,10 +153,6 @@ a few more tests for `false`, since there are different portions of code dependi
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
-
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
-        mpt::MockJsonUtils::inject<NiceMock>();
-    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
 };
 
 TEST_F(Daemon, buildsConfig)
@@ -558,8 +553,6 @@ struct DaemonCreateLaunchAliasTestSuite : public Daemon,
     {
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
             .WillRepeatedly(Return(fake_alias_dir.path()));
-
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_json_utils, write_json, JsonUtils);
     }
 };
 
@@ -1105,8 +1098,8 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
     config_builder.data_directory = QString("invalid_data_directory");
     mp::Daemon daemon{config_builder.build()};
 
-    auto [mock_json_utils, guard] = mpt::MockJsonUtils::inject<StrictMock>();
-    EXPECT_CALL(*mock_json_utils, write_json).Times(1); // avoid creating directory
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally).Times(1); // avoid creating directory
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
@@ -1206,8 +1199,10 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
-        .WillOnce(WithArg<0>([&mac_addr, &extra_interfaces](const QJsonObject& obj) {
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&mac_addr, &extra_interfaces](const QByteArrayView& data) {
+            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
             check_interfaces_in_json(obj, mac_addr, extra_interfaces);
         }));
 
@@ -1285,9 +1280,12 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
-        .WillOnce(
-            WithArg<0>([&mounts](const QJsonObject& obj) { check_mounts_in_json(obj, mounts); }));
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&mounts](const QByteArrayView& data) {
+            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
+            check_mounts_in_json(obj, mounts);
+        }));
 
     daemon.persist_instances();
 }
@@ -1321,8 +1319,10 @@ TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
     send_command({"list"}, stream);
     EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
-        .WillOnce(WithArg<0>([&uid_mappings, &gid_mappings](const QJsonObject& obj) {
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&uid_mappings, &gid_mappings](const QByteArrayView& data) {
+            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
             check_maps_in_json(obj, uid_mappings, gid_mappings);
         }));
 
@@ -1549,11 +1549,12 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
-        .WillOnce(WithArg<0>([&stayed, &gone](const QJsonObject& obj) {
-            QJsonDocument doc{obj};
-            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
+        .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
+            EXPECT_THAT(data.toByteArray().toStdString(),
+                        AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
         }));
 
     mp::Daemon daemon{config_builder.build()};
@@ -2306,12 +2307,13 @@ TEST_F(Daemon, purgePersistsInstances)
     const auto [temp_dir, filename] = plant_instance_json(json_contents);
     config_builder.data_directory = temp_dir->path();
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())
-        .WillOnce(WithArg<0>([&name1, &name2](const QJsonObject& obj) {
-            QJsonDocument doc{obj};
-            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
+        .WillOnce(WithArg<1>([&name1, &name2](const QByteArrayView& data) {
+            EXPECT_THAT(data.toByteArray().toStdString(),
+                        AllOf(HasSubstr(name1), HasSubstr(name2)));
         }));
 
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
