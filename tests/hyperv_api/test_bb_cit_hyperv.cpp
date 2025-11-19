@@ -20,9 +20,9 @@
 
 #include <fmt/xchar.h>
 
-#include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_api_wrapper.h>
 
