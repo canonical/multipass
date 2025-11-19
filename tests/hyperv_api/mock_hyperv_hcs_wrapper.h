@@ -17,8 +17,10 @@
 
 #pragma once
 
-#include "common.h"
-#include <hyperv_api/hcs/hyperv_hcs_wrapper_interface.h>
+#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+
+#include "../common.h"
+#include "../mock_singleton_helpers.h"
 
 namespace multipass::test
 {
@@ -26,8 +28,10 @@ namespace multipass::test
 /**
  * Mock Host Compute System API wrapper for testing.
  */
-struct MockHCSWrapper : public hyperv::hcs::HCSWrapperInterface
+struct MockHCSWrapper : public hyperv::hcs::HCSWrapper
 {
+    using HCSWrapper::HCSWrapper;
+
     MOCK_METHOD(hyperv::OperationResult,
                 open_compute_system,
                 (const std::string& compute_system_name,
@@ -98,5 +102,7 @@ struct MockHCSWrapper : public hyperv::hcs::HCSWrapperInterface
                  void* context,
                  void (*callback)(void* hcs_event, void* context)),
                 (const, override));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockHCSWrapper, HCSWrapper);
 };
 } // namespace multipass::test

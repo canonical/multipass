@@ -17,7 +17,7 @@
 
 #include <hyperv_api/hcs_plan9_mount_handler.h>
 
-#include <hyperv_api/hcs/hyperv_hcs_wrapper_interface.h>
+#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
@@ -32,20 +32,15 @@ namespace multipass::hyperv::hcs
 
 namespace mpu = utils;
 
-constexpr static auto kLogCategory = "hcs-plan9-mount-handler";
+constexpr static auto log_category = "hcs-plan9-mount-handler";
 
 Plan9MountHandler::Plan9MountHandler(VirtualMachine* vm,
                                      const SSHKeyProvider* ssh_key_provider,
                                      VMMount mount_spec,
-                                     const std::string& target,
-                                     hcs_sptr_t hcs_w)
-    : MountHandler(vm, ssh_key_provider, mount_spec, target), hcs{hcs_w}
+                                     const std::string& target)
+    : MountHandler(vm, ssh_key_provider, mount_spec, target)
 {
     // No need to do anything special.
-    if (nullptr == hcs)
-    {
-        throw std::invalid_argument{"HCS API wrapper object cannot be null."};
-    }
     if (nullptr == vm)
     {
         throw std::invalid_argument{"VM pointer cannot be null."};
@@ -71,12 +66,12 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
     }();
 
     HcsSystemHandle handle{nullptr};
-    if (!hcs->open_compute_system(vm->vm_name, handle))
+    if (!HCS().open_compute_system(vm->vm_name, handle))
     {
         throw std::runtime_error{"Could not open Host Compute System for the mount"};
     }
 
-    const auto result = hcs->modify_compute_system(handle, req);
+    const auto result = HCS().modify_compute_system(handle, req);
 
     if (!result)
     {
@@ -97,12 +92,12 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
         if (const auto& [leading, missing] = mpu::get_path_split(session, target); missing != ".")
         {
             const auto default_uid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -u"));
-            mpl::debug(kLogCategory,
+            mpl::debug(log_category,
                        "{}(): `id -u` = {}",
                        std::source_location::current(),
                        default_uid);
             const auto default_gid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -g"));
-            mpl::debug(kLogCategory,
+            mpl::debug(log_category,
                        "{}(): `id -g` = {}",
                        std::source_location::current(),
                        default_gid);
@@ -124,14 +119,14 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
 
         if (mount_command_result.exit_code() == 0)
         {
-            mpl::info(kLogCategory,
+            mpl::info(log_category,
                       "Successfully mounted 9P share `{}` to VM `{}`",
                       req,
                       vm->vm_name);
         }
         else
         {
-            mpl::error(kLogCategory,
+            mpl::error(log_category,
                        "stdout: {} stderr: {}",
                        mount_command_result.read_std_output(),
                        mount_command_result.read_std_error());
@@ -149,7 +144,7 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
                                    hcs::HcsRequestType::Remove(),
                                    params};
         }();
-        if (!hcs->modify_compute_system(handle, req))
+        if (!HCS().modify_compute_system(handle, req))
         {
             // TODO: Warn here
         }
@@ -165,7 +160,7 @@ void Plan9MountHandler::deactivate_impl(bool force)
     if (!(session.exec(umount_command).exit_code() == 0))
     {
         // TODO: Include output?
-        mpl::warn(kLogCategory, "Plan9 share unmount failed.");
+        mpl::warn(log_category, "Plan9 share unmount failed.");
 
         if (!force)
         {
@@ -183,14 +178,14 @@ void Plan9MountHandler::deactivate_impl(bool force)
     }();
 
     HcsSystemHandle handle{nullptr};
-    if (!hcs->open_compute_system(vm->vm_name, handle))
+    if (!HCS().open_compute_system(vm->vm_name, handle))
     {
         throw std::runtime_error{"Could not open Host Compute System for the unmount"};
     }
 
-    if (!hcs->modify_compute_system(handle, req))
+    if (!HCS().modify_compute_system(handle, req))
     {
-        mpl::warn(kLogCategory, "Plan9 share removal failed.");
+        mpl::warn(log_category, "Plan9 share removal failed.");
     }
 }
 
