@@ -16,8 +16,8 @@
  */
 
 #include "tests/common.h"
-#include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
+#include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 
 #include <fmt/xchar.h>
 
