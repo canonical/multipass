@@ -21,9 +21,9 @@
 #include "tests/mock_logger.h"
 
 #include <hyperv_api/hcn/hyperv_hcn_api_table.h>
-#include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 
 #include <multipass/logging/level.h>
 #include <platform/platform_win.h>

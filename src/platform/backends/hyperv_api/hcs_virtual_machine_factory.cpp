@@ -17,9 +17,9 @@
 
 #include <hyperv_api/hcs_virtual_machine_factory.h>
 
-#include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
-#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+#include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
+#include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
