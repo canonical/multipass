@@ -41,7 +41,7 @@ if(WIN32)
   endif()
 
   add_library(hyperv_api_backend STATIC
-    hcn/hyperv_hcn_api_wrapper.cpp
+    hcn/hyperv_hcn_wrapper.cpp
     hcn/hyperv_hcn_api_table.cpp
     hcn/hyperv_hcn_route.cpp
     hcn/hyperv_hcn_subnet.cpp
@@ -49,7 +49,7 @@ if(WIN32)
     hcn/hyperv_hcn_network_policy.cpp
     hcn/hyperv_hcn_create_endpoint_params.cpp
     hcn/hyperv_hcn_create_network_params.cpp
-    hcs/hyperv_hcs_api_wrapper.cpp
+    hcs/hyperv_hcs_wrapper.cpp
     hcs/hyperv_hcs_event_type.cpp
     hcs/hyperv_hcs_scsi_device.cpp
     hcs/hyperv_hcs_schema_version.cpp

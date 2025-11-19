@@ -17,7 +17,7 @@
 
 #include <hyperv_api/hcs_plan9_mount_handler.h>
 
-#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+#include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
