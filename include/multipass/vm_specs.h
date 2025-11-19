@@ -28,8 +28,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <QJsonObject>
-
 namespace multipass
 {
 struct VMSpecs
@@ -49,5 +47,8 @@ struct VMSpecs
 
     friend inline bool operator==(const VMSpecs& a, const VMSpecs& b) = default;
 };
+
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const VMSpecs& mount);
+VMSpecs tag_invoke(const boost::json::value_to_tag<VMSpecs>&, const boost::json::value& json);
 
 } // namespace multipass

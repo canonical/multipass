@@ -23,9 +23,7 @@
 
 #include <fmt/format.h>
 
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
+#include <QString>
 
 namespace mpu = multipass::utils;
 
@@ -115,88 +113,95 @@ std::unique_ptr<mpt::TempDir> plant_instance_json(const std::string& contents)
     return temp_dir;
 }
 
-void check_interfaces_in_json(const QJsonObject& doc_object,
+void check_interfaces_in_json(const boost::json::value& doc,
                               const std::string& mac,
                               const std::vector<mp::NetworkInterface>& extra_ifaces)
 {
-    const auto instance_object = doc_object["real-zebraphant"].toObject();
-    const auto default_mac = instance_object["mac_addr"].toString().toStdString();
+    const auto instance_object = doc.at("real-zebraphant").as_object();
+    const auto default_mac = value_to<std::string>(instance_object.at("mac_addr"));
     ASSERT_EQ(default_mac, mac);
 
-    const auto extra = instance_object["extra_interfaces"].toArray();
-    ASSERT_EQ((unsigned)extra.size(), extra_ifaces.size());
+    const auto extra = instance_object.at("extra_interfaces").as_array();
+    ASSERT_EQ(extra.size(), extra_ifaces.size());
 
     auto it = extra_ifaces.cbegin();
-    for (const auto extra_i : extra)
+    for (const auto& extra_i : extra)
     {
-        const auto interface = extra_i.toObject();
-        ASSERT_EQ(interface["mac_address"].toString().toStdString(), it->mac_address);
-        ASSERT_EQ(interface["id"].toString().toStdString(), it->id);
-        ASSERT_EQ(interface["auto_mode"].toBool(), it->auto_mode);
+        const auto interface = extra_i.as_object();
+        ASSERT_EQ(value_to<std::string>(interface.at("mac_address")), it->mac_address);
+        ASSERT_EQ(value_to<std::string>(interface.at("id")), it->id);
+        ASSERT_EQ(value_to<bool>(interface.at("auto_mode")), it->auto_mode);
         ++it;
     }
 }
 
-void check_interfaces_in_json(const QString& file,
-                              const std::string& mac,
-                              const std::vector<mp::NetworkInterface>& extra_ifaces)
+void check_maps_in_json(const boost::json::value& doc,
+                        const mp::id_mappings& expected_gid_mappings,
+                        const mp::id_mappings& expected_uid_mappings)
 {
-    QByteArray json = mpt::load(file);
+    const auto instance_object = doc.at("real-zebraphant").as_object();
 
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    EXPECT_FALSE(doc.isNull());
-    EXPECT_TRUE(doc.isObject());
+    const auto mounts = instance_object.at("mounts").as_array();
 
-    check_interfaces_in_json(doc.object(), mac, extra_ifaces);
+    ASSERT_EQ(mounts.size(), 1);
+
+    auto mount = mounts.front().as_object(); // There is at most one mount in our JSON.
+
+    auto gid_mappings = mount.at("gid_mappings").as_array();
+
+    ASSERT_EQ(gid_mappings.size(), expected_gid_mappings.size());
+
+    for (unsigned i = 0; i < expected_gid_mappings.size(); ++i)
+    {
+        ASSERT_EQ(gid_mappings[i].at("host_gid"), expected_gid_mappings[i].first);
+        ASSERT_EQ(gid_mappings[i].at("instance_gid"), expected_gid_mappings[i].second);
+    }
+
+    auto uid_mappings = mount.at("uid_mappings").as_array();
+    ASSERT_EQ((unsigned)uid_mappings.size(), expected_uid_mappings.size());
+
+    for (unsigned i = 0; i < expected_uid_mappings.size(); ++i)
+    {
+        ASSERT_EQ(uid_mappings[i].at("host_uid"), expected_uid_mappings[i].first);
+        ASSERT_EQ(uid_mappings[i].at("instance_uid"), expected_uid_mappings[i].second);
+    }
 }
 
-void check_mounts_in_json(const QJsonObject& doc_object,
+void check_mounts_in_json(const boost::json::value& doc,
                           const std::unordered_map<std::string, mp::VMMount>& mounts)
 {
-    const auto instance_object = doc_object["real-zebraphant"].toObject();
-    const auto json_mounts = instance_object["mounts"].toArray();
-    ASSERT_EQ(json_mounts.count(), mounts.size());
+    const auto instance_object = doc.at("real-zebraphant").as_object();
+    const auto json_mounts = instance_object.at("mounts").as_array();
+    ASSERT_EQ(json_mounts.size(), mounts.size());
 
-    for (const QJsonValue json_mount : json_mounts)
+    for (const auto& json_mount : json_mounts)
     {
-        const auto& json_target_path = json_mount["target_path"].toString().toStdString();
-        const auto& json_source_path = json_mount["source_path"].toString().toStdString();
-        const auto& json_uid_mapping = json_mount["uid_mappings"].toArray();
-        const auto& json_gid_mapping = json_mount["gid_mappings"].toArray();
+        const auto json_target_path = value_to<std::string>(json_mount.at("target_path"));
+        const auto json_source_path = value_to<std::string>(json_mount.at("source_path"));
+        const auto& json_uid_mapping = json_mount.at("uid_mappings").as_array();
+        const auto& json_gid_mapping = json_mount.at("gid_mappings").as_array();
 
-        ASSERT_EQ(mounts.count(json_target_path), 1);
+        ASSERT_EQ(mounts.count(json_target_path), 1u);
         const auto& original_mount = mounts.at(json_target_path);
 
         ASSERT_EQ(original_mount.get_source_path(), json_source_path);
 
-        ASSERT_EQ(json_uid_mapping.count(), original_mount.get_uid_mappings().size());
-        for (auto i = 0; i < json_uid_mapping.count(); ++i)
+        ASSERT_EQ(json_uid_mapping.size(), original_mount.get_uid_mappings().size());
+        for (std::size_t i = 0; i < json_uid_mapping.size(); ++i)
         {
-            ASSERT_EQ(json_uid_mapping[i]["host_uid"], original_mount.get_uid_mappings()[i].first);
-            ASSERT_EQ(json_uid_mapping[i]["instance_uid"],
+            ASSERT_EQ(json_uid_mapping[i].at("host_uid"),
+                      original_mount.get_uid_mappings()[i].first);
+            ASSERT_EQ(json_uid_mapping[i].at("instance_uid"),
                       original_mount.get_uid_mappings()[i].second);
         }
 
-        ASSERT_EQ(json_gid_mapping.count(), original_mount.get_gid_mappings().size());
-        for (auto i = 0; i < json_gid_mapping.count(); ++i)
+        ASSERT_EQ(json_gid_mapping.size(), original_mount.get_gid_mappings().size());
+        for (std::size_t i = 0; i < json_gid_mapping.size(); ++i)
         {
-            ASSERT_EQ(json_gid_mapping[i]["host_gid"], original_mount.get_gid_mappings()[i].first);
-            ASSERT_EQ(json_gid_mapping[i]["instance_gid"],
+            ASSERT_EQ(json_gid_mapping[i].at("host_gid"),
+                      original_mount.get_gid_mappings()[i].first);
+            ASSERT_EQ(json_gid_mapping[i].at("instance_gid"),
                       original_mount.get_gid_mappings()[i].second);
         }
     }
-}
-
-void check_mounts_in_json(const QString& file,
-                          const std::unordered_map<std::string, mp::VMMount>& mounts)
-{
-    QByteArray json = mpt::load(file);
-
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    EXPECT_FALSE(doc.isNull());
-    EXPECT_TRUE(doc.isObject());
-
-    check_mounts_in_json(doc.object(), mounts);
 }

@@ -77,8 +77,9 @@ std::unordered_map<std::string, mp::VMMount> load_mounts(const QJsonArray& mount
     std::unordered_map<std::string, mp::VMMount> mounts;
     for (const auto& entry : mounts_json)
     {
-        const auto& json = entry.toObject();
-        mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
+        const auto json = mp::qjson_to_boost_json(entry);
+        mounts[entry.toObject()["target_path"].toString().toStdString()] =
+            value_to<mp::VMMount>(json);
     }
 
     return mounts;
@@ -250,7 +251,7 @@ QJsonObject mp::BaseSnapshot::serialize() const
     QJsonArray json_mounts;
     for (const auto& mount : mounts)
     {
-        auto entry = mount.second.serialize();
+        auto entry = mp::boost_json_to_qjson(boost::json::value_from(mount.second)).toObject();
         entry.insert("target_path", QString::fromStdString(mount.first));
         json_mounts.append(entry);
     }

@@ -19,7 +19,7 @@
 
 #include <multipass/id_mappings.h>
 
-#include <QJsonObject>
+#include <boost/json.hpp>
 
 #include <string>
 
@@ -35,13 +35,10 @@ public:
     };
 
     VMMount() = default;
-    explicit VMMount(const QJsonObject& json);
     VMMount(const std::string& sourcePath,
             id_mappings gidMappings,
             id_mappings uidMappings,
             MountType mountType);
-
-    QJsonObject serialize() const;
 
     const std::string& get_source_path() const noexcept;
     const id_mappings& get_gid_mappings() const noexcept;
@@ -51,6 +48,12 @@ public:
     friend inline bool operator==(const VMMount& a, const VMMount& b) noexcept = default;
 
 private:
+    friend void tag_invoke(const boost::json::value_from_tag&,
+                           boost::json::value& json,
+                           const VMMount& mount);
+    friend VMMount tag_invoke(const boost::json::value_to_tag<VMMount>&,
+                              const boost::json::value& json);
+
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;
@@ -76,6 +79,9 @@ inline VMMount::MountType VMMount::get_mount_type() const noexcept
 {
     return mount_type;
 }
+
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const VMMount& mount);
+VMMount tag_invoke(const boost::json::value_to_tag<VMMount>&, const boost::json::value& json);
 
 } // namespace multipass
 

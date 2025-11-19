@@ -84,13 +84,14 @@ TEST_F(TestVMMount, comparesEqual)
 
 TEST_F(TestVMMount, serializeAndDeserializeToAndFromJson)
 {
-    auto jsonObj = TestVMMount::a_mount.serialize();
+    auto jsonObj = boost::json::value_from(TestVMMount::a_mount);
 
-    EXPECT_EQ(jsonObj["source_path"].toString().toStdString(),
+    EXPECT_EQ(value_to<std::string>(jsonObj.at("source_path")),
               TestVMMount::a_mount.get_source_path());
-    EXPECT_EQ(jsonObj["mount_type"], static_cast<int>(TestVMMount::a_mount.get_mount_type()));
+    EXPECT_EQ(value_to<int>(jsonObj.at("mount_type")),
+              static_cast<int>(TestVMMount::a_mount.get_mount_type()));
 
-    auto b_mount = mp::VMMount{jsonObj};
+    auto b_mount = value_to<mp::VMMount>(jsonObj);
     EXPECT_EQ(TestVMMount::a_mount, b_mount);
 }
 
