@@ -15,8 +15,8 @@
  *
  */
 
-#include "hyperv_api/hcs/hyperv_hcs_wrapper.h"
 #include "hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h"
+#include "hyperv_api/hcs/hyperv_hcs_wrapper.h"
 #include "hyperv_test_utils.h"
 #include "mock_hyperv_hcs_api_table.h"
 #include "mock_schema_version.h"
