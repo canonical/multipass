@@ -429,11 +429,6 @@ int mp::HyperVVirtualMachine::ssh_port()
     return 22;
 }
 
-void mp::HyperVVirtualMachine::ensure_vm_is_running()
-{
-    ensure_vm_is_running_for();
-}
-
 void mp::HyperVVirtualMachine::update_state()
 {
     // Invalidate the management IP address on state update.

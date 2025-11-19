@@ -112,7 +112,6 @@ private:
     QemuPlatform* qemu_platform;
     VMStatusMonitor* monitor;
     MountArgs mount_args;
-    std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};

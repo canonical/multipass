@@ -90,7 +90,7 @@ mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
     return mp::utils::TimeoutAction::retry;
 };
 
-auto ssh_session_connect_lambda(mp::VirtualMachine* virtual_machine,
+auto ssh_session_connect_lambda(mp::BaseVirtualMachine* virtual_machine,
                                 const mp::SSHKeyProvider& key_provider,
                                 std::optional<mp::SSHSession>& ssh_session)
 {
@@ -125,7 +125,7 @@ auto ssh_session_connect_lambda(mp::VirtualMachine* virtual_machine,
     };
 }
 
-std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
+std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::BaseVirtualMachine* virtual_machine,
                                                        std::chrono::milliseconds timeout,
                                                        const mp::SSHKeyProvider& key_provider)
 {
@@ -294,7 +294,7 @@ bool multipass::BaseVirtualMachine::unplugged() const
     return state == State::off || state == State::stopped;
 }
 
-void mp::BaseVirtualMachine::ensure_vm_is_running_for(const std::string& detail)
+void mp::BaseVirtualMachine::ensure_vm_is_running() // TODO@ricab rename the thing
 {
     const std::lock_guard lock{state_mutex};
     if (unplugged())
@@ -303,9 +303,10 @@ void mp::BaseVirtualMachine::ensure_vm_is_running_for(const std::string& detail)
         state_wait.notify_all();
 
         auto msg = std::string{"Instance shutdown during start"};
-        if (!detail.empty())
-            msg += ": " + detail;
+        if (!saved_error_msg.empty())
+            msg += ": " + saved_error_msg;
 
+        saved_error_msg.clear();
         throw StartException(vm_name, msg);
     }
 }

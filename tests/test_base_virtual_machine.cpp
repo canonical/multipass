@@ -97,6 +97,8 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
 
+    MOCK_METHOD(void, ensure_vm_is_running, (), (override));
+
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
