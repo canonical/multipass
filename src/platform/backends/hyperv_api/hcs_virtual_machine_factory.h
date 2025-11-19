@@ -32,7 +32,6 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 
     explicit HCSVirtualMachineFactory(const Path& data_dir);
     explicit HCSVirtualMachineFactory(const Path& data_dir,
-                                      hcs_sptr_t hcs,
                                       hcn_sptr_t hcn,
                                       virtdisk_sptr_t virtdisk);
 
@@ -64,8 +63,6 @@ private:
                                                      const VirtualMachineDescription& desc,
                                                      VMStatusMonitor& monitor,
                                                      const SSHKeyProvider& key_provider) override;
-
-    hcs_sptr_t hcs_sptr{nullptr};
     hcn_sptr_t hcn_sptr{nullptr};
     virtdisk_sptr_t virtdisk_sptr{nullptr};
 
