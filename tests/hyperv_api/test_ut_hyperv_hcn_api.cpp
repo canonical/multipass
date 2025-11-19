@@ -43,7 +43,7 @@ using testing::StrictMock;
 namespace multipass::test
 {
 
-using uut_t = hcn::HCNWrapper;
+using hcn::HCN;
 
 struct HyperVHCNAPI_UnitTests : public ::testing::Test
 {
@@ -124,14 +124,13 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         params.ipams = {
             hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
-        const auto& [status, status_msg] = uut.create_network(params);
+        const auto& [status, status_msg] = HCN().create_network(params);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -195,7 +194,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -205,7 +203,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
                                      hcn::HcnNetworkPolicyNetAdapterName{"test adapter"}};
         params.policies.push_back(policy);
 
-        const auto& [status, status_msg] = uut.create_network(params);
+        const auto& [status, status_msg] = HCN().create_network(params);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -276,7 +274,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -289,7 +286,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
         params.policies.push_back(policy);
         params.policies.push_back(policy);
 
-        const auto& [status, status_msg] = uut.create_network(params);
+        const auto& [status, status_msg] = HCN().create_network(params);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -366,7 +363,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -381,7 +377,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
         params.ipams.push_back(ipam1);
         params.ipams.push_back(ipam2);
 
-        const auto& [status, status_msg] = uut.create_network(params);
+        const auto& [status, status_msg] = HCN().create_network(params);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -424,8 +420,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
         params.ipams = {
             hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
-        uut_t uut{};
-        const auto& [success, error_msg] = uut.create_network(params);
+        const auto& [success, error_msg] = HCN().create_network(params);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }
@@ -476,8 +471,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         params.ipams = {
             hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
-        uut_t uut{};
-        const auto& [success, error_msg] = uut.create_network(params);
+        const auto& [success, error_msg] = HCN().create_network(params);
         ASSERT_FALSE(success);
         ASSERT_EQ(static_cast<HRESULT>(success), E_POINTER);
         ASSERT_FALSE(error_msg.empty());
@@ -518,9 +512,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         const auto& [status, error_msg] =
-            uut.delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
+            HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status);
         ASSERT_TRUE(error_msg.empty());
     }
@@ -562,9 +555,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         const auto& [status, error_msg] =
-            uut.delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
+            HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status);
         ASSERT_FALSE(error_msg.empty());
         ASSERT_STREQ(error_msg.c_str(), mock_error_msg);
@@ -650,12 +642,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
 
-        const auto& [success, error_msg] = uut.create_endpoint(params);
+        const auto& [success, error_msg] = HCN().create_endpoint(params);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }
@@ -691,12 +682,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
 
-        const auto& [status, error_msg] = uut.create_endpoint(params);
+        const auto& [status, error_msg] = HCN().create_endpoint(params);
         ASSERT_FALSE(status);
         ASSERT_EQ(E_POINTER, static_cast<HRESULT>(status));
         ASSERT_FALSE(error_msg.empty());
@@ -780,12 +770,11 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
 
-        const auto& [success, error_msg] = uut.create_endpoint(params);
+        const auto& [success, error_msg] = HCN().create_endpoint(params);
         ASSERT_FALSE(success);
         ASSERT_FALSE(error_msg.empty());
         ASSERT_STREQ(error_msg.c_str(), mock_error_msg);
@@ -825,9 +814,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         const auto& [status, error_msg] =
-            uut.delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
+            HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status);
         ASSERT_TRUE(error_msg.empty());
     }
@@ -865,9 +853,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
      * Verify the expected outcome.
      ******************************************************/
     {
-        uut_t uut{};
         const auto& [status, error_msg] =
-            uut.delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
+            HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status);
         ASSERT_FALSE(error_msg.empty());
         ASSERT_STREQ(error_msg.c_str(), mock_error_msg);

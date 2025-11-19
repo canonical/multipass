@@ -38,7 +38,8 @@
 namespace multipass::hyperv
 {
 
-using namespace hcs;
+using hcn::HCN;
+using hcs::HCS;
 
 /**
  * Category for the log messages.
@@ -54,22 +55,17 @@ constexpr static auto kExtraInterfaceVswitchNameRegex = R"(Multipass vSwitch \((
 
 // Delegating constructor
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
-    : HCSVirtualMachineFactory(data_dir,
-                               std::make_shared<hcn::HCNWrapper>(),
-                               std::make_shared<virtdisk::VirtDiskWrapper>())
+    : HCSVirtualMachineFactory(data_dir, std::make_shared<virtdisk::VirtDiskWrapper>())
 
 {
 }
 
-HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
-                                                   hcn_sptr_t hcn,
-                                                   virtdisk_sptr_t virtdisk)
+HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir, virtdisk_sptr_t virtdisk)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
-      hcn_sptr(hcn),
       virtdisk_sptr(virtdisk)
 {
-    const std::array<void*, 2> api_ptrs = {hcn.get(), virtdisk.get()};
+    const std::array<void*, 1> api_ptrs = {virtdisk.get()};
     if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) {
             return nullptr == ptr;
         }))
@@ -84,7 +80,6 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    assert(hcn_sptr);
     assert(virtdisk_sptr);
 
     const auto networks = MP_PLATFORM.get_network_interfaces_info();
@@ -124,8 +119,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
         }
     }
 
-    return std::make_unique<HCSVirtualMachine>(hcn_sptr,
-                                               virtdisk_sptr,
+    return std::make_unique<HCSVirtualMachine>(virtdisk_sptr,
                                                kDefaultHyperVSwitchGUID,
                                                desc,
                                                monitor,
@@ -238,8 +232,7 @@ std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceI
         return network_params;
     }();
 
-    assert(hcn_sptr);
-    const auto& [status, status_msg] = hcn_sptr->create_network(params);
+    const auto& [status, status_msg] = HCN().create_network(params);
 
     if (status || static_cast<HRESULT>(status) == HCN_E_NETWORK_ALREADY_EXISTS)
     {
