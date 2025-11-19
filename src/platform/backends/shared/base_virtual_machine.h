@@ -85,6 +85,10 @@ public:
 
     QDir instance_directory() const override;
 
+    // TODO@ricab shouldn't need to be public
+    // TODO@ricab does it really need to be virtual?
+    virtual void ensure_vm_is_running();
+
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -96,7 +100,7 @@ protected:
     void renew_ssh_session();
 
     virtual bool unplugged() const;
-    void ensure_vm_is_running_for(const std::string& detail = "");
+    void save_error_msg(std::string error) noexcept;
 
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,
@@ -166,6 +170,7 @@ protected:
     std::optional<IPAddress> management_ip;
 
 private:
+    std::string saved_error_msg = "";
     std::optional<SSHSession> ssh_session = std::nullopt;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
@@ -189,4 +194,9 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 inline QDir multipass::BaseVirtualMachine::instance_directory() const
 {
     return instance_dir;
+}
+
+inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noexcept
+{
+    saved_error_msg = std::move(error);
 }

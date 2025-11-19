@@ -489,11 +489,6 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
     return *port;
 }
 
-void mp::VirtualBoxVirtualMachine::ensure_vm_is_running()
-{
-    ensure_vm_is_running_for();
-}
-
 void mp::VirtualBoxVirtualMachine::update_state()
 {
     monitor->persist_state_for(vm_name, state);

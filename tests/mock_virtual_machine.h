@@ -86,7 +86,6 @@ struct MockVirtualMachineT : public T
         return ssh_exec(cmd, false);
     }
 
-    MOCK_METHOD(void, ensure_vm_is_running, (), (override));
     MOCK_METHOD(void, wait_until_ssh_up, (std::chrono::milliseconds), (override));
     MOCK_METHOD(void, wait_for_cloud_init, (std::chrono::milliseconds), (override));
     MOCK_METHOD(void, update_state, (), (override));
