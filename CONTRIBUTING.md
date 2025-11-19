@@ -287,6 +287,8 @@ fully understand.<br>
 especially if it includes AI-generated content.<br>
 **AI8.** The author(s) of a contribution is(are) ultimately responsible for the whole contribution,
 including all components, contents, format, and presentation.<br>
+**AI9.** When using AI, contributors should make an extra effort to ensure good information density
+(i.e. high signal-to-noise ratio). This includes code and text.<br>
 
 # Further Information
 
