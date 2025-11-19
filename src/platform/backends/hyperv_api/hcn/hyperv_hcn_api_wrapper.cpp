@@ -19,7 +19,6 @@
 #include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
-#include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
@@ -31,7 +30,7 @@
 #include <computedefs.h>
 #include <computestorage.h>
 #include <computenetwork.h>
-#include <objbase.h> // HCN API uses CoTaskMem* functions to allocate memory.
+#include <objbase.h>
 // clang-format on
 
 #include <fmt/xchar.h>
@@ -234,7 +233,10 @@ auto hcn_errc_to_log_level(const OperationResult& result)
 
 // ---------------------------------------------------------
 
-HCNWrapper::HCNWrapper() = default;
+HCNWrapper::HCNWrapper(const Singleton<HCNWrapper>::PrivatePass& pass) noexcept
+    : Singleton<HCNWrapper>::Singleton{pass}
+{
+}
 
 // ---------------------------------------------------------
 

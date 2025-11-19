@@ -29,10 +29,10 @@
 namespace multipass::test
 {
 
-using hcn_wrapper_t = hyperv::hcn::HCNWrapper;
 using virtdisk_wrapper_t = multipass::hyperv::virtdisk::VirtDiskWrapper;
 
 using namespace hyperv::hcs;
+using hyperv::hcn::HCN;
 
 // Component level big bang integration tests for Hyper-V HCN/HCS + virtdisk API's.
 // These tests ensure that the API's working together as expected.
@@ -42,7 +42,6 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 {
-    hcn_wrapper_t hcn{};
     virtdisk_wrapper_t virtdisk{};
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
@@ -96,13 +95,13 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     // Create the test network
     {
-        const auto& [status, status_msg] = hcn.create_network(network_parameters);
+        const auto& [status, status_msg] = HCN().create_network(network_parameters);
         ASSERT_TRUE(status);
     }
 
     // Create the test endpoint
     {
-        const auto& [status, status_msg] = hcn.create_endpoint(endpoint_parameters);
+        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
         ASSERT_TRUE(status);
     }
 
@@ -127,13 +126,12 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     (void)HCS().terminate_compute_system(handle);
     handle.reset();
-    (void)hcn.delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)hcn.delete_network(network_parameters.guid);
+    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
+    (void)HCN().delete_network(network_parameters.guid);
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_boot)
 {
-    hcn_wrapper_t hcn{};
     virtdisk_wrapper_t virtdisk{};
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
@@ -155,8 +153,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     }();
 
     // Remove remnants from previous tests, if any.
-    (void)hcn.delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)hcn.delete_network(network_parameters.guid);
+    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
+    (void)HCN().delete_network(network_parameters.guid);
 
     const auto temp_path = make_tempfile_path(".vhdx");
 
@@ -184,11 +182,11 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Remove remnants from previous tests, if any.
     {
-        if (hcn.delete_endpoint(endpoint_parameters.endpoint_guid))
+        if (HCN().delete_endpoint(endpoint_parameters.endpoint_guid))
         {
             GTEST_LOG_(WARNING) << "The test endpoint was already present, deleted it.";
         }
-        if (hcn.delete_network(network_parameters.guid))
+        if (HCN().delete_network(network_parameters.guid))
         {
             GTEST_LOG_(WARNING) << "The test network was already present, deleted it.";
         }
@@ -205,14 +203,14 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Create the test network
     {
-        const auto& [status, status_msg] = hcn.create_network(network_parameters);
+        const auto& [status, status_msg] = HCN().create_network(network_parameters);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
 
     // Create the test endpoint
     {
-        const auto& [status, status_msg] = hcn.create_endpoint(endpoint_parameters);
+        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -252,9 +250,9 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     }
 
     EXPECT_TRUE(HCS().terminate_compute_system(handle)) << "Terminate system failed!";
-    EXPECT_TRUE(hcn.delete_endpoint(endpoint_parameters.endpoint_guid))
+    EXPECT_TRUE(HCN().delete_endpoint(endpoint_parameters.endpoint_guid))
         << "Delete endpoint failed!";
-    EXPECT_TRUE(hcn.delete_network(network_parameters.guid)) << "Delete network failed!";
+    EXPECT_TRUE(HCN().delete_network(network_parameters.guid)) << "Delete network failed!";
     handle.reset();
 }
 

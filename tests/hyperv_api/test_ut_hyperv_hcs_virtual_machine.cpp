@@ -22,8 +22,8 @@
 #include <multipass/vm_mount.h>
 
 #include "tests/common.h"
+#include "tests/hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "tests/hyperv_api/mock_hyperv_hcs_wrapper.h"
-#include "tests/mock_hyperv_hcn_wrapper.h"
 #include "tests/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_ssh_key_provider.h"
@@ -83,7 +83,10 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         mpt::MockHCSWrapper::inject<StrictMock>();
     mpt::MockHCSWrapper& mock_hcs = *mock_hcs_wrapper_injection.first;
 
-    std::shared_ptr<mpt::MockHCNWrapper> mock_hcn{std::make_shared<mpt::MockHCNWrapper>()};
+    mpt::MockHCNWrapper::GuardedMock mock_hcn_wrapper_injection =
+        mpt::MockHCNWrapper::inject<StrictMock>();
+    mpt::MockHCNWrapper& mock_hcn = *mock_hcn_wrapper_injection.first;
+
     std::shared_ptr<mpt::MockVirtDiskWrapper> mock_virtdisk{
         std::make_shared<mpt::MockVirtDiskWrapper>()};
 
@@ -137,10 +140,10 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                              hcs_system_state_t& state) { state = hcs_system_state_t::running; },
                       Return(hcs_op_result_t{0, L""})));
 
-        EXPECT_CALL(*mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
+        EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
-        EXPECT_CALL(*mock_hcn, create_endpoint(_))
+        EXPECT_CALL(mock_hcn, create_endpoint(_))
             .WillRepeatedly(DoAll(
                 [this](const multipass::hyperv::hcn::CreateEndpointParameters& params) {
                     ASSERT_TRUE(params.mac_address.has_value());
@@ -184,8 +187,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     template <typename T = uut_t>
     std::shared_ptr<T> construct_vm(multipass::VMStatusMonitor* monitor = nullptr)
     {
-        return std::make_shared<T>(mock_hcn,
-                                   mock_virtdisk,
+        return std::make_shared<T>(mock_virtdisk,
                                    "abcd",
                                    desc,
                                    monitor ? *monitor : stub_monitor,
@@ -681,7 +683,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, add_network_interface)
     ASSERT_NO_THROW(uut = construct_vm<partially_mocked_uut_t>());
 
     std::string endpoint_guid{};
-    EXPECT_CALL(*mock_hcn, create_endpoint(_))
+    EXPECT_CALL(mock_hcn, create_endpoint(_))
         .WillOnce(DoAll(
             [&](const multipass::hyperv::hcn::CreateEndpointParameters& ep) {
                 EXPECT_THAT(ep.endpoint_guid, EndsWith("ffeeddccbbaa"));

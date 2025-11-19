@@ -25,7 +25,7 @@
 namespace multipass::test
 {
 
-using uut_t = hyperv::hcn::HCNWrapper;
+using hyperv::hcn::HCN;
 
 struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
 {
@@ -33,23 +33,22 @@ struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
 {
-    uut_t uut;
     hyperv::hcn::CreateNetworkParameters params{};
     params.name = "multipass-hyperv-api-hcn-create-delete-test";
     params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
     params.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
                                          {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
 
-    (void)uut.delete_network(params.guid);
+    (void)HCN().delete_network(params.guid);
 
     {
-        const auto& [success, error_msg] = uut.create_network(params);
+        const auto& [success, error_msg] = HCN().create_network(params);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = uut.delete_network(params.guid);
+        const auto& [success, error_msg] = HCN().delete_network(params.guid);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }
@@ -57,7 +56,6 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 {
-    uut_t uut;
     hyperv::hcn::CreateNetworkParameters network_params{};
     network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
     network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
@@ -69,29 +67,29 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
     endpoint_params.network_guid = network_params.guid;
     endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
 
-    (void)uut.delete_network(network_params.guid);
+    (void)HCN().delete_network(network_params.guid);
 
     {
-        const auto& [success, error_msg] = uut.create_network(network_params);
+        const auto& [success, error_msg] = HCN().create_network(network_params);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = uut.create_endpoint(endpoint_params);
+        const auto& [success, error_msg] = HCN().create_endpoint(endpoint_params);
         std::wprintf(L"%s\n", error_msg.c_str());
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = uut.delete_endpoint(endpoint_params.endpoint_guid);
+        const auto& [success, error_msg] = HCN().delete_endpoint(endpoint_params.endpoint_guid);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = uut.delete_network(network_params.guid);
+        const auto& [success, error_msg] = HCN().delete_network(network_params.guid);
         ASSERT_TRUE(success);
         ASSERT_TRUE(error_msg.empty());
     }

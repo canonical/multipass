@@ -18,8 +18,13 @@
 #pragma once
 
 #include <hyperv_api/hcn/hyperv_hcn_api_table.h>
-#include <hyperv_api/hcn/hyperv_hcn_wrapper_interface.h>
-#include <multipass/disabled_copy_move.h>
+#include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <hyperv_api/hyperv_api_operation_result.h>
+
+#include <multipass/singleton.h>
+
+#include <string>
 
 namespace multipass::hyperv::hcn
 {
@@ -29,14 +34,14 @@ namespace multipass::hyperv::hcn
  * the common operations that Host Compute Network
  * API provide.
  */
-struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
+struct HCNWrapper : public Singleton<HCNWrapper>
 {
 
     /**
      * Construct a new HCNWrapper
      *
      */
-    HCNWrapper();
+    HCNWrapper(const Singleton<HCNWrapper>::PrivatePass&) noexcept;
 
     /**
      * Create a new Host Compute Network
@@ -46,8 +51,8 @@ struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult create_network(
-        const CreateNetworkParameters& params) const override;
+    [[nodiscard]] virtual OperationResult create_network(
+        const CreateNetworkParameters& params) const;
 
     /**
      * Delete an existing Host Compute Network
@@ -57,7 +62,7 @@ struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult delete_network(const std::string& network_guid) const override;
+    [[nodiscard]] virtual OperationResult delete_network(const std::string& network_guid) const;
 
     /**
      * Create a new Host Compute Network Endpoint
@@ -67,8 +72,8 @@ struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult create_endpoint(
-        const CreateEndpointParameters& params) const override;
+    [[nodiscard]] virtual OperationResult create_endpoint(
+        const CreateEndpointParameters& params) const;
 
     /**
      * Delete an existing Host Compute Network Endpoint
@@ -78,7 +83,12 @@ struct HCNWrapper : public HCNWrapperInterface, private DisabledCopyMove
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult delete_endpoint(const std::string& endpoint_guid) const override;
+    [[nodiscard]] virtual OperationResult delete_endpoint(const std::string& endpoint_guid) const;
 };
+
+inline const HCNWrapper& HCN()
+{
+    return HCNWrapper::instance();
+}
 
 } // namespace multipass::hyperv::hcn
