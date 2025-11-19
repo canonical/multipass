@@ -266,6 +266,19 @@ not use platform `#ifdef`s (or other platform-conditional logic) outside of thos
 **CPP13.** Avoid compilation warnings.<br>
 **CPP14.** To mock free functions and external APIs, wrap them with `MockableSingleton`.<br>
 
+### Text
+
+Prescriptive guidelines concerning text and written communication, including but not limited to:
+PR descriptions, commit messages, comments, and documentation.
+
+**TXT1.** Be clear, precise, informative, and organized.<br>
+**TXT2.** Avoid filler text or fluff.<br>
+**TXT3.** Avoid repetition.<br>
+**TXT4.** Use references, quotes, citations, or links to provide context, substantiate claims,
+and increase reliability.<br>
+**TXT5.** Express the same idea more than once only to add relevant information, improve precision,
+provide a different perspective, or help clarify complexity.<br>
+
 ### AI
 
 Prescriptive guidelines concerning the use of Artificial Intelligence (AI) when contributing to
