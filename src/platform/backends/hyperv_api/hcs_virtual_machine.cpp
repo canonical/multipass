@@ -17,11 +17,11 @@
 
 #include <hyperv_api/hcs_virtual_machine.h>
 
-#include <hyperv_api/hcn/hyperv_hcn_api_wrapper.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
-#include <hyperv_api/hcs/hyperv_hcs_api_wrapper.h>
+#include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
+#include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_plan9_mount_handler.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
