@@ -38,6 +38,8 @@
 namespace multipass::hyperv
 {
 
+using namespace hcs;
+
 /**
  * Category for the log messages.
  */
@@ -53,7 +55,6 @@ constexpr static auto kExtraInterfaceVswitchNameRegex = R"(Multipass vSwitch \((
 // Delegating constructor
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
     : HCSVirtualMachineFactory(data_dir,
-                               std::make_shared<hcs::HCSWrapper>(),
                                std::make_shared<hcn::HCNWrapper>(),
                                std::make_shared<virtdisk::VirtDiskWrapper>())
 
@@ -61,16 +62,14 @@ HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
 }
 
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
-                                                   hcs_sptr_t hcs,
                                                    hcn_sptr_t hcn,
                                                    virtdisk_sptr_t virtdisk)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
-      hcs_sptr(hcs),
       hcn_sptr(hcn),
       virtdisk_sptr(virtdisk)
 {
-    const std::array<void*, 3> api_ptrs = {hcs.get(), hcn.get(), virtdisk.get()};
+    const std::array<void*, 2> api_ptrs = {hcn.get(), virtdisk.get()};
     if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) {
             return nullptr == ptr;
         }))
@@ -85,7 +84,6 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    assert(hcs_sptr);
     assert(hcn_sptr);
     assert(virtdisk_sptr);
 
@@ -126,8 +124,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
         }
     }
 
-    return std::make_unique<HCSVirtualMachine>(hcs_sptr,
-                                               hcn_sptr,
+    return std::make_unique<HCSVirtualMachine>(hcn_sptr,
                                                virtdisk_sptr,
                                                kDefaultHyperVSwitchGUID,
                                                desc,
@@ -140,11 +137,11 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
 {
     mpl::debug(kLogCategory, "remove_resources_for_impl() -> VM: {}", name);
     hcs::HcsSystemHandle handle{nullptr};
-    if (hcs_sptr->open_compute_system(name, handle))
+    if (HCS().open_compute_system(name, handle))
     {
         // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
         // the VM is stopped. The base class will take care of the nuking the VM folder.
-        const auto& [status, status_msg] = hcs_sptr->terminate_compute_system(handle);
+        const auto& [status, status_msg] = HCS().terminate_compute_system(handle);
         if (status)
         {
             mpl::warn(kLogCategory,

@@ -83,9 +83,4 @@ struct HCSAPI : public Singleton<HCSAPI>
     virtual HLOCAL LocalFree(HLOCAL hMem) const;
 };
 
-inline const HCSAPI& HCS()
-{
-    return HCSAPI::instance();
-}
-
 } // namespace multipass::hyperv::hcs

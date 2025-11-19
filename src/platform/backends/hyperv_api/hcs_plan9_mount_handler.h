@@ -29,16 +29,13 @@ public:
     Plan9MountHandler(VirtualMachine* vm,
                       const multipass::SSHKeyProvider* ssh_key_provider,
                       VMMount mount_spec,
-                      const std::string& target,
-                      hcs_sptr_t hcs_w);
+                      const std::string& target);
 
     ~Plan9MountHandler() override;
 
 private:
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void deactivate_impl(bool force) override;
-
-    hcs_sptr_t hcs{nullptr};
 };
 
 } // namespace multipass::hyperv::hcs
