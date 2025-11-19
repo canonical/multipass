@@ -23,8 +23,8 @@
 #include <multipass/vm_image.h>
 
 #include "tests/common.h"
+#include "tests/hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "tests/hyperv_api/mock_hyperv_hcs_wrapper.h"
-#include "tests/mock_hyperv_hcn_wrapper.h"
 #include "tests/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/mock_platform.h"
 #include "tests/stub_ssh_key_provider.h"
@@ -52,7 +52,10 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
         mpt::MockHCSWrapper::inject<StrictMock>();
     mpt::MockHCSWrapper& mock_hcs = *mock_hcs_wrapper_injection.first;
 
-    std::shared_ptr<mpt::MockHCNWrapper> mock_hcn{std::make_shared<mpt::MockHCNWrapper>()};
+    mpt::MockHCNWrapper::GuardedMock mock_hcn_wrapper_injection =
+        mpt::MockHCNWrapper::inject<StrictMock>();
+    mpt::MockHCNWrapper& mock_hcn = *mock_hcn_wrapper_injection.first;
+
     std::shared_ptr<mpt::MockVirtDiskWrapper> mock_virtdisk{
         std::make_shared<mpt::MockVirtDiskWrapper>()};
 
@@ -64,7 +67,7 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
 
     auto construct_factory()
     {
-        return std::make_shared<uut_t>(dummy_data_dir.path(), mock_hcn, mock_virtdisk);
+        return std::make_shared<uut_t>(dummy_data_dir.path(), mock_virtdisk);
     }
 };
 
@@ -159,7 +162,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
             Return(std::map<std::string, multipass::NetworkInterfaceInfo>{{"aabb", interface1},
                                                                           {"bbaa", interface2}}));
 
-    EXPECT_CALL(*mock_hcn, create_network(_))
+    EXPECT_CALL(mock_hcn, create_network(_))
         .WillOnce(DoAll(
             [&](const multipass::hyperv::hcn::CreateNetworkParameters& params) {
                 EXPECT_EQ(params.name, if1.id);
