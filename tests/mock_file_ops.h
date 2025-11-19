@@ -32,6 +32,12 @@ class MockFileOps : public FileOps
 public:
     using FileOps::FileOps;
 
+    // High-level mock methods
+    MOCK_METHOD(void,
+                write_transactionally,
+                (const QString& file_name, const QByteArrayView& data),
+                (const, override));
+
     // QDir mock methods
     MOCK_METHOD(QDir, current, (), (const));
     MOCK_METHOD(bool, exists, (const QDir&), (const, override));

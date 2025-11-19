@@ -21,6 +21,7 @@
 #include "singleton.h"
 
 #include <QByteArray>
+#include <QByteArrayView>
 #include <QDir>
 #include <QFileDevice>
 #include <QFileInfoList>
@@ -51,6 +52,9 @@ class FileOps : public Singleton<FileOps>
 {
 public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
+
+    // High-level operations
+    virtual void write_transactionally(const QString& file_name, const QByteArrayView& data) const;
 
     // QDir operations
     virtual bool exists(const QDir& dir) const;

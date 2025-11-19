@@ -16,14 +16,25 @@
  */
 
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/posix.h>
+
+#include <chrono>
+#include <random>
+#include <stdexcept>
+#include <thread>
 
 #include <fcntl.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace fs = mp::fs;
 
-// LCOV_EXCL_START
+namespace
+{
+constexpr static auto kLogCategory = "FileOps";
+} // namespace
 
 mp::NamedFd::NamedFd(const fs::path& path, int fd) : path{path}, fd{fd}
 {
@@ -39,6 +50,91 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept
     : Singleton<FileOps>::Singleton{pass}
 {
 }
+
+void mp::FileOps::write_transactionally(const QString& file_name, const QByteArrayView& data) const
+{
+    constexpr static auto kStaleLockTime = std::chrono::seconds{10};
+    constexpr static auto kLockAcquireTimeout = std::chrono::seconds{10};
+    const QFileInfo fi{file_name};
+
+    const auto dir = fi.absoluteDir();
+    if (!mkpath(fi.absoluteDir(), "."))
+        throw std::runtime_error(fmt::format("Could not create path '{}'", dir.absolutePath()));
+
+    // Interprocess lock file to ensure that we can synchronize the request from
+    // both the daemon and the client.
+    QLockFile lock(fi.filePath() + ".lock");
+
+    // Make the lock file stale after a while to avoid deadlocking
+    // on process crashes, etc.
+    setStaleLockTime(lock, kStaleLockTime);
+
+    // Acquire lock file before attempting to write.
+    if (!tryLock(lock, kLockAcquireTimeout))
+    { // wait up to 10s
+        throw std::runtime_error(fmt::format("Could not acquire lock for '{}'", file_name));
+    }
+
+    constexpr static auto max_attempts = 10;
+
+    // The retry logic is here because the destination file might be locked for any reason
+    // (e.g. OS background indexing) so we will retry writing it until it's successful
+    // or the attempts are exhausted.
+    for (auto attempt = 1; attempt <= max_attempts; attempt++)
+    {
+        QSaveFile db_file{file_name};
+        if (!open(db_file, QIODevice::WriteOnly))
+            throw std::runtime_error{
+                fmt::format("Could not open transactional file for writing; filename: {}",
+                            file_name)};
+
+        if (write(db_file, data.data(), data.size()) == -1)
+            throw std::runtime_error{
+                fmt::format("Could not write to transactional file; filename: {}; error: {}",
+                            file_name,
+                            db_file.errorString())};
+
+        if (!commit(db_file))
+        {
+            auto get_jitter_amount = [] {
+                constexpr static auto kMaxJitter = 25;
+                thread_local std::mt19937 rng{std::random_device{}()};
+                thread_local std::uniform_int_distribution<int> jit(0, kMaxJitter);
+                return jit(rng);
+            };
+
+            // Delay with jitter + backoff. A typical series produced
+            // by this formula would look like as follows:
+            // [2, 14,23,60,90,168,216,213,218,218]
+            // [14,20,30,40,98,174,221,208,206,214]
+            const auto delay = std::chrono::milliseconds(std::min(200, 10 * (1 << (attempt - 1))) +
+                                                         get_jitter_amount());
+            mpl::warn(
+                kLogCategory,
+                "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} ms delay.",
+                file_name,
+                attempt,
+                db_file.errorString(),
+                delay);
+
+            std::this_thread::sleep_for(delay);
+        }
+        else
+        {
+            // Saved successfully
+            mpl::debug(kLogCategory,
+                       "Saved file `{}` successfully in attempt #{}",
+                       file_name,
+                       attempt);
+            return;
+        }
+    }
+
+    throw std::runtime_error{
+        fmt::format("Could not commit transactional file; filename: {}", file_name)};
+}
+
+// LCOV_EXCL_START
 
 bool mp::FileOps::exists(const QDir& dir) const
 {
