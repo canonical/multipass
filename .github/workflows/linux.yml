@@ -129,6 +129,46 @@ jobs:
         /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
+    - name: Dump runner disk diagnostics (before build)
+      if: always()
+      run: |
+        set -euxo pipefail
+        OUT=runner-disk-diagnostics-before-build.txt
+        echo "==== df -h ====" >> "$OUT"
+        df -h >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== df -i ====" >> "$OUT"
+        df -i >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== du top dirs ====" >> "$OUT"
+        du -sh /root /home /tmp /var /usr "${RUNNER_TEMP:-/tmp}" "${RUNNER_WORKSPACE:-/github/workspace}" 2>/dev/null >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== top 50 largest entries on / (no other FS) ====" >> "$OUT"
+        du -ahx / 2>/dev/null | sort -rh | head -n 50 >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== find files >50M ====" >> "$OUT"
+        find / -xdev -type f -size +50M -exec ls -lh {} \; 2>/dev/null | sort -k5 -h | tail -n 50 >> "$OUT" || true
+        echo "" >> "$OUT"
+        # warn if available space < 2GB
+        FREE_KB=$(df --output=avail -k / | tail -n1 | tr -d ' ')
+        if [ -n "$FREE_KB" ] && [ "$FREE_KB" -lt $((2*1024*1024)) ]; then
+          echo "##[warning] Less than 2GB available on / ($(($FREE_KB/1024)) MB)" >> "$OUT"
+        fi
+        # capture snapcraft log if present (log path seen in failing job)
+        if ls /home/runner/.local/state/snapcraft/log/snapcraft-*.log 1> /dev/null 2>&1; then
+          echo "" >> "$OUT"
+          echo "==== snapcraft log tail ====" >> "$OUT"
+          tail -n 400 /home/runner/.local/state/snapcraft/log/snapcraft-*.log >> "$OUT" || true
+        fi
+      continue-on-error: true
+
+    - name: Upload runner disk diagnostics (before build)
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: runner-disk-diagnostics-before-build-${{ matrix.build-type }}
+        path: runner-disk-diagnostics-before-build.txt
+
     - name: Build
       env:
         LABEL: ${{ steps.build-params.outputs.label }}
@@ -282,6 +322,46 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         outcome: ${{ steps.measure-coverage.outcome }}
         test-id: Error with measuring coverage in ${{ matrix.build-type }} build
+
+    - name: Dump runner disk diagnostics (before snap build)
+      if: always()
+      run: |
+        set -euxo pipefail
+        OUT=runner-disk-diagnostics-before-snap.txt
+        echo "==== df -h ====" >> "$OUT"
+        df -h >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== df -i ====" >> "$OUT"
+        df -i >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== du top dirs ====" >> "$OUT"
+        du -sh /root /home /tmp /var /usr "${RUNNER_TEMP:-/tmp}" "${RUNNER_WORKSPACE:-/github/workspace}" 2>/dev/null >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== top 50 largest entries on / (no other FS) ====" >> "$OUT"
+        du -ahx / 2>/dev/null | sort -rh | head -n 50 >> "$OUT" || true
+        echo "" >> "$OUT"
+        echo "==== find files >50M ====" >> "$OUT"
+        find / -xdev -type f -size +50M -exec ls -lh {} \; 2>/dev/null | sort -k5 -h | tail -n 50 >> "$OUT" || true
+        echo "" >> "$OUT"
+        # warn if available space < 2GB
+        FREE_KB=$(df --output=avail -k / | tail -n1 | tr -d ' ')
+        if [ -n "$FREE_KB" ] && [ "$FREE_KB" -lt $((2*1024*1024)) ]; then
+          echo "##[warning] Less than 2GB available on / ($(($FREE_KB/1024)) MB)" >> "$OUT"
+        fi
+        # capture snapcraft log if present (log path seen in failing job)
+        if ls /home/runner/.local/state/snapcraft/log/snapcraft-*.log 1> /dev/null 2>&1; then
+          echo "" >> "$OUT"
+          echo "==== snapcraft log tail ====" >> "$OUT"
+          tail -n 400 /home/runner/.local/state/snapcraft/log/snapcraft-*.log >> "$OUT" || true
+        fi
+      continue-on-error: true
+
+    - name: Upload runner disk diagnostics (before snap build)
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: runner-disk-diagnostics-before-snap-${{ matrix.build-type }}
+        path: runner-disk-diagnostics-before-snap.txt
 
     - name: Build and verify the snap
       id: build-snap
