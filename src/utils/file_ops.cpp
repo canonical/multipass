@@ -33,7 +33,36 @@ namespace fs = mp::fs;
 
 namespace
 {
-constexpr static auto kLogCategory = "FileOps";
+constexpr static auto log_category = "FileOps";
+
+class BackoffTimer
+{
+public:
+    using Duration = std::chrono::milliseconds;
+    BackoffTimer(Duration factor, Duration max_duration, Duration max_jitter)
+        : jitter(0, max_jitter.count()), factor(factor), max_duration(max_duration)
+    {
+    }
+
+    // Delay with jitter + backoff. Typical series produced by this formula would be:
+    // [2, 14,23,60,90,168,216,213,218,218]
+    // [14,20,30,40,98,174,221,208,206,214]
+    Duration operator()(int attempt)
+    {
+        return std::min(max_duration, factor * (1 << (attempt - 1))) + Duration(jitter(rng));
+    }
+
+private:
+    // Share the random engine with all `BackoffTimer` instances on this thread.
+    thread_local static std::mt19937 rng;
+
+    std::uniform_int_distribution<Duration::rep> jitter;
+    Duration factor;
+    Duration max_duration;
+};
+
+thread_local std::mt19937 BackoffTimer::rng(std::random_device{}());
+
 } // namespace
 
 mp::NamedFd::NamedFd(const fs::path& path, int fd) : path{path}, fd{fd}
@@ -53,33 +82,33 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept
 
 void mp::FileOps::write_transactionally(const QString& file_name, const QByteArrayView& data) const
 {
-    constexpr static auto kStaleLockTime = std::chrono::seconds{10};
-    constexpr static auto kLockAcquireTimeout = std::chrono::seconds{10};
+    using namespace std::literals::chrono_literals;
+    constexpr static auto stale_lock_time = 10s;
+    constexpr static auto lock_acquire_timeout = 10s;
+    constexpr static auto max_attempts = 10;
+
+    BackoffTimer backoff{/*factor=*/10ms, /*max_duration=*/200ms, /*max_jitter=*/25ms};
     const QFileInfo fi{file_name};
 
-    const auto dir = fi.absoluteDir();
-    if (!mkpath(fi.absoluteDir(), "."))
+    if (const auto dir = fi.absoluteDir(); !mkpath(dir, "."))
         throw std::runtime_error(fmt::format("Could not create path '{}'", dir.absolutePath()));
 
     // Interprocess lock file to ensure that we can synchronize the request from
     // both the daemon and the client.
     QLockFile lock(fi.filePath() + ".lock");
 
-    // Make the lock file stale after a while to avoid deadlocking
-    // on process crashes, etc.
-    setStaleLockTime(lock, kStaleLockTime);
+    // Make the lock file stale after a while to avoid deadlocking on process crashes, etc.
+    setStaleLockTime(lock, stale_lock_time);
 
     // Acquire lock file before attempting to write.
-    if (!tryLock(lock, kLockAcquireTimeout))
-    { // wait up to 10s
+    if (!tryLock(lock, lock_acquire_timeout))
+    {
         throw std::runtime_error(fmt::format("Could not acquire lock for '{}'", file_name));
     }
 
-    constexpr static auto max_attempts = 10;
-
-    // The retry logic is here because the destination file might be locked for any reason
-    // (e.g. OS background indexing) so we will retry writing it until it's successful
-    // or the attempts are exhausted.
+    // The retry logic is here because the destination file might be locked for any reason (e.g. OS
+    // background indexing) so we will retry writing it until it's successful or the attempts are
+    // exhausted.
     for (auto attempt = 1; attempt <= max_attempts; attempt++)
     {
         QSaveFile db_file{file_name};
@@ -94,44 +123,34 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
                             file_name,
                             db_file.errorString())};
 
-        if (!commit(db_file))
-        {
-            auto get_jitter_amount = [] {
-                constexpr static auto kMaxJitter = 25;
-                thread_local std::mt19937 rng{std::random_device{}()};
-                thread_local std::uniform_int_distribution<int> jit(0, kMaxJitter);
-                return jit(rng);
-            };
-
-            // Delay with jitter + backoff. A typical series produced
-            // by this formula would look like as follows:
-            // [2, 14,23,60,90,168,216,213,218,218]
-            // [14,20,30,40,98,174,221,208,206,214]
-            const auto delay = std::chrono::milliseconds(std::min(200, 10 * (1 << (attempt - 1))) +
-                                                         get_jitter_amount());
-            mpl::warn(
-                kLogCategory,
-                "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} ms delay.",
-                file_name,
-                attempt,
-                db_file.errorString(),
-                delay);
-
-            std::this_thread::sleep_for(delay);
-        }
-        else
+        if (commit(db_file))
         {
             // Saved successfully
-            mpl::debug(kLogCategory,
+            mpl::debug(log_category,
                        "Saved file `{}` successfully in attempt #{}",
                        file_name,
                        attempt);
             return;
         }
+
+        // Save failed. Throw if this was our last attempt.
+        if (attempt == max_attempts)
+            throw std::runtime_error{
+                fmt::format("Could not commit transactional file; filename: {}", file_name)};
+
+        // Otherwise, wait a bit and try again.
+        const auto delay = backoff(attempt);
+        mpl::warn(log_category,
+                  "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} ms delay.",
+                  file_name,
+                  attempt,
+                  db_file.errorString(),
+                  delay);
+
+        std::this_thread::sleep_for(delay);
     }
 
-    throw std::runtime_error{
-        fmt::format("Could not commit transactional file; filename: {}", file_name)};
+    assert(false && "We should never get here");
 }
 
 // LCOV_EXCL_START
