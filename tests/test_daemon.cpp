@@ -1370,7 +1370,7 @@ TEST_F(Daemon, refusesLaunchWithInvalidNetworkInterface)
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "eth2"}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("Invalid network options supplied"));
+    EXPECT_THAT(err_stream.str(), HasSubstr("Invalid network options."));
 }
 
 TEST_F(Daemon, refusesLaunchBecauseBridgingIsNotImplemented)
