@@ -18,13 +18,7 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
-#include "mock_logger.h"
 #include "mock_openssl_syscalls.h"
-#include "mock_ssh.h"
-#include "mock_ssh_process_exit_status.h"
-#include "mock_ssh_test_fixture.h"
-#include "mock_virtual_machine.h"
-#include "stub_ssh_key_provider.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
@@ -41,7 +35,6 @@
 #include <tuple>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 namespace mpu = mp::utils;
 

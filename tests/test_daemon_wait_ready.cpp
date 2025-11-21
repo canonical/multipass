@@ -29,8 +29,6 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/format.h>
 
-#include <future>
-
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;

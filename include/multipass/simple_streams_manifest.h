@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "disabled_copy_move.h"
 #include "vm_image_info.h"
 
 #include <QByteArray>

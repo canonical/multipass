@@ -20,7 +20,10 @@
 #include "temp_file.h"
 
 #include "mock_image_host.h"
+#include <multipass/vm_image.h>
 #include <multipass/vm_image_vault.h>
+
+namespace mp = multipass;
 
 namespace multipass
 {

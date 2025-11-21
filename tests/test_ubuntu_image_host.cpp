@@ -21,7 +21,6 @@
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "path.h"
-#include "stub_url_downloader.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>

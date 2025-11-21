@@ -20,7 +20,6 @@
 #include <multipass/id_mappings.h>
 
 #include <string>
-#include <unordered_map>
 
 namespace multipass
 {
