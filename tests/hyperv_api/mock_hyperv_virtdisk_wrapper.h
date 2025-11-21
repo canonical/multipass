@@ -17,8 +17,9 @@
 
 #pragma once
 
-#include "common.h"
-#include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
+#include <hyperv_api/virtdisk/virtdisk_wrapper.h>
+
+#include "tests/mock_singleton_helpers.h"
 
 namespace multipass::test
 {
@@ -26,8 +27,10 @@ namespace multipass::test
 /**
  * Mock virtdisk API wrapper for testing.
  */
-struct MockVirtDiskWrapper : public hyperv::virtdisk::VirtDiskWrapperInterface
+struct MockVirtDiskWrapper : public hyperv::virtdisk::VirtDiskWrapper
 {
+    using VirtDiskWrapper::VirtDiskWrapper;
+
     MOCK_METHOD(hyperv::OperationResult,
                 create_virtual_disk,
                 (const hyperv::virtdisk::CreateVirtualDiskParameters& params),
@@ -59,5 +62,7 @@ struct MockVirtDiskWrapper : public hyperv::virtdisk::VirtDiskWrapperInterface
                  std::vector<std::filesystem::path>& chain,
                  std::optional<std::size_t> max_depth),
                 (const, override));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockVirtDiskWrapper, VirtDiskWrapper);
 };
 } // namespace multipass::test
