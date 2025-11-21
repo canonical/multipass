@@ -19,7 +19,7 @@
 
 #include <hyperv_api/hcs/hyperv_hcs_api_table.h>
 
-#include "../mock_singleton_helpers.h"
+#include "tests/mock_singleton_helpers.h"
 
 namespace multipass::test
 {
