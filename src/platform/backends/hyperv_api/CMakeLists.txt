@@ -61,6 +61,7 @@ if(WIN32)
     hcs/hyperv_hcs_api_table.cpp
     virtdisk/virtdisk_api_wrapper.cpp
     virtdisk/virtdisk_snapshot.cpp
+    virtdisk/virtdisk_api_table.cpp
     hcs_plan9_mount_handler.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
