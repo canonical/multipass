@@ -24,6 +24,8 @@ parts:
       - FEED_URL: '${FEED_URL}'
       - USERNAME: '${USERNAME}'
       - GITHUB_TOKEN: '${GITHUB_TOKEN}'
+    build-packages:
+      - mono-complete
     plugin: nil
     override-pull: |
       curl -L -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
