@@ -99,7 +99,8 @@ jobs:
            -P > snap/snapcraft-ci-override.yaml
 
         # Merge / override the original snapcraft.yaml
-        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml
+        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml.tmp
+        mv snap/snapcraft.yaml.tmp snap/snapcraft.yaml
 
     - name: Set up vcpkg
       id: setup-vcpkg
