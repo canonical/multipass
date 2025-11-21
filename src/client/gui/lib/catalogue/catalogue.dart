@@ -5,10 +5,30 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
+import 'package:intersperse/intersperse.dart';
 
 import '../providers.dart';
 import 'image_card.dart';
 import 'launch_form.dart';
+
+class SelectedImageNotifier extends Notifier<ImageInfo?> {
+  SelectedImageNotifier(this.arg);
+  final String arg;
+
+  @override
+  ImageInfo? build() {
+    return null;
+  }
+
+  void set(ImageInfo image) {
+    state = image;
+  }
+}
+
+final selectedImageProvider =
+    NotifierProvider.family<SelectedImageNotifier, ImageInfo?, String>(
+  SelectedImageNotifier.new,
+);
 
 final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
   if (!ref.watch(daemonAvailableProvider)) {
@@ -46,19 +66,81 @@ List<ImageInfo> sortImages(List<ImageInfo> images) {
     return image.aliases.any((a) => a.contains('core'));
   }
 
+  bool ubuntuFilter(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
+  }
+
   int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
     return b.release.compareTo(a.release);
   }
 
-  final normalImages =
-      images.whereNot(coreFilter).sorted(decreasingReleaseSorter);
+  final ubuntuImages = images
+      .whereNot(coreFilter)
+      .where(ubuntuFilter)
+      .sorted(decreasingReleaseSorter);
   final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
+  final thirdPartyImages = images
+      .whereNot(coreFilter)
+      .whereNot(ubuntuFilter)
+      .sorted(decreasingReleaseSorter);
 
   return [
     if (lts != null) lts,
-    ...normalImages,
+    ...ubuntuImages,
     if (devel != null) devel,
     ...coreImages,
+    ...thirdPartyImages,
+  ];
+}
+
+List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
+  bool isCore(ImageInfo image) {
+    return image.aliases.any((a) => a.contains('core'));
+  }
+
+  bool isUbuntu(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
+  }
+
+  bool isOther(ImageInfo image) {
+    return !isCore(image) && !isUbuntu(image);
+  }
+
+  final ubuntuImages = images
+      .where((i) => isUbuntu(i) && !isCore(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final coreImages = images
+      .where((i) => isUbuntu(i) && isCore(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final otherImages = images
+      .where((i) => isOther(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  return [
+    if (ubuntuImages.isNotEmpty)
+      ImageCard(
+        imageKey: 'ubuntu-${ubuntuImages.first.release}',
+        parentImage: ubuntuImages.first,
+        versions: ubuntuImages.toList(),
+        width: cardWidth,
+      ),
+    if (coreImages.isNotEmpty)
+      ImageCard(
+        imageKey: 'core-${coreImages.first.release}',
+        parentImage: coreImages.first,
+        versions: coreImages.toList(),
+        width: cardWidth,
+      ),
+    ...otherImages.map((image) {
+      return ImageCard(
+        imageKey: '${image.os}-${image.release}',
+        parentImage: image,
+        versions: [image],
+        width: cardWidth,
+      );
+    }),
   ];
 }
 
@@ -132,13 +214,6 @@ class CatalogueScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            child: const Text(
-              'Images',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
           LayoutBuilder(
             builder: (_, constraints) {
               const minCardWidth = 285;
@@ -146,11 +221,29 @@ class CatalogueScreen extends ConsumerWidget {
               final nCards = constraints.maxWidth ~/ minCardWidth;
               final whiteSpace = spacing * (nCards - 1);
               final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
-              return Wrap(
-                runSpacing: spacing,
-                spacing: spacing,
+              final cards = _groupAndCreateCards(images, cardWidth);
+
+              // Group cards into rows for IntrinsicHeight
+              final rows = <Widget>[];
+              for (var i = 0; i < cards.length; i += nCards) {
+                final rowCards = cards.skip(i).take(nCards).toList();
+                rows.add(
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: rowCards
+                          .map(
+                              (card) => SizedBox(width: cardWidth, child: card))
+                          .intersperse(const SizedBox(width: spacing))
+                          .toList(),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
                 children:
-                    images.map((image) => ImageCard(image, cardWidth)).toList(),
+                    rows.intersperse(const SizedBox(height: spacing)).toList(),
               );
             },
           ),
