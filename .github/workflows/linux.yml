@@ -89,6 +89,7 @@ jobs:
       env:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CMAKE_PRESET: ${{ matrix.cmake-preset }}
 
       run: |
         go install github.com/mikefarah/yq/v4@latest
