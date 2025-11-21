@@ -22,7 +22,6 @@
 #include <scope_guard.hpp>
 
 #include <cassert>
-#include <utility>
 
 #define MP_MOCK_SINGLETON_INSTANCE(mock_class)                                                     \
 public:                                                                                            \

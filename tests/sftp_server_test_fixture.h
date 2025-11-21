@@ -18,7 +18,6 @@
 #pragma once
 
 #include "common.h"
-#include "mock_sftp.h"
 #include "mock_sftpserver.h"
 #include "mock_ssh_test_fixture.h"
 

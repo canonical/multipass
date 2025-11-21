@@ -18,8 +18,6 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
-#include "mock_logger.h"
-#include "mock_utils.h"
 #include "temp_dir.h"
 
 #include <multipass/client_cert_store.h>
@@ -27,7 +25,6 @@
 #include <multipass/utils.h>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;

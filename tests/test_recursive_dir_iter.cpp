@@ -17,7 +17,6 @@
 
 #include "common.h"
 
-#include <chrono>
 #include <fstream>
 #include <multipass/recursive_dir_iterator.h>
 

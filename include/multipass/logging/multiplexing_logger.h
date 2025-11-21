@@ -19,7 +19,6 @@
 
 #include "logger.h"
 
-#include <memory>
 #include <shared_mutex>
 #include <vector>
 

@@ -19,7 +19,6 @@
 #include "daemon_test_fixture.h"
 
 #include "common.h"
-#include "mock_image_host.h"
 #include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"

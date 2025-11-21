@@ -17,13 +17,10 @@
 
 #include "common.h"
 #include "file_operations.h"
-#include "mock_utils.h"
 #include "temp_dir.h"
 
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/utils.h>
-
-#include <thread>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

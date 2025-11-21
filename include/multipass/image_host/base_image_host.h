@@ -23,8 +23,6 @@
 #include <QStringList>
 #include <QTimer>
 
-#include <chrono>
-
 namespace multipass
 {
 
