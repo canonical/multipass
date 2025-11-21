@@ -588,7 +588,10 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
                 // TODO: show the option which triggered the error only. This will need a refactor
                 // in the LaunchError proto.
-                error_details = "Invalid network options supplied";
+                error_details =
+                    "Invalid network options. "
+                    "To troubleshoot, see "
+                    "https://documentation.ubuntu.com/multipass/stable/how-to-guides/troubleshoot/";
             }
         }
 
