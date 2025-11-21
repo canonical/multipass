@@ -22,8 +22,8 @@
 
 #include <filesystem>
 
-#include <src/platform/backends/hyperv_api/virtdisk/virtdisk_api_wrapper.h>
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_disk_info.h>
+#include <src/platform/backends/hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 namespace multipass::test
 {

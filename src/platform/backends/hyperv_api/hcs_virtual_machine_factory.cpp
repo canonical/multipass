@@ -22,7 +22,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
-#include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
+#include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
