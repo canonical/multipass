@@ -91,13 +91,10 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       run: |
-        sudo snap install yq
+        go install github.com/mikefarah/yq/v4@latest
 
         # Substitute the environment variables in the snapcraft-ci-override.yaml
-        envsubst < snap/snapcraft-ci-override.yaml.in   | yq eval '\
-          del(.. | select(. == null or . == "")) |\
-          del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))\
-        ' -P > snap/snapcraft-ci-override.yaml
+        envsubst < snap/snapcraft-ci-override.yaml.in | yq eval 'del(.. | select(. == null or . == "")) | del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))' -P > snap/snapcraft-ci-override.yaml
 
         # Merge / override the original snapcraft.yaml
         yq eval-all '. as $item ireduce ({}; . *+ $item)' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml.tmp
