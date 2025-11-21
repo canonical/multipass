@@ -52,6 +52,9 @@ class FileOps : public Singleton<FileOps>
 public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
+    // High-level operations
+    virtual void write_transactionally(const QString& file_name, const QByteArray& data) const;
+
     // QDir operations
     virtual bool exists(const QDir& dir) const;
     virtual bool isReadable(const QDir& dir) const;
