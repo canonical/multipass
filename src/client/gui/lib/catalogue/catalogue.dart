@@ -107,7 +107,7 @@ List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
   }
 
   final ubuntuImages = images
-      .where((i) => isUbuntu(i) && !isCore(i) && !isOther(i))
+      .where((i) => isUbuntu(i) && !isCore(i))
       .sorted((a, b) => b.release.compareTo(a.release));
 
   final coreImages = images
