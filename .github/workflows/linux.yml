@@ -94,12 +94,13 @@ jobs:
         sudo snap install yq
 
         # Substitute the environment variables in the snapcraft-ci-override.yaml
-        envsubst < snap/snapcraft-ci-override.yaml.in | yq eval \
-          'del(..|select(. == null or . == "" or . == {})) | del(.. | select(type == "array" and length == 0))'\
-           -P > snap/snapcraft-ci-override.yaml
+        envsubst < snap/snapcraft-ci-override.yaml.in   | yq eval '\
+          del(.. | select(. == null or . == "")) |\
+          del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))\
+        ' -P > snap/snapcraft-ci-override.yaml
 
         # Merge / override the original snapcraft.yaml
-        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml.tmp
+        yq eval-all '. as $item ireduce ({}; . *+ $item)' snap/snapcraft.yaml snap/snapcraft-ci-override.yaml > snap/snapcraft.yaml.tmp
         mv snap/snapcraft.yaml.tmp snap/snapcraft.yaml
 
     - name: Set up vcpkg
