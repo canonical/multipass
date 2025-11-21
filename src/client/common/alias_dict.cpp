@@ -32,7 +32,6 @@
 #include <QTemporaryFile>
 
 namespace mp = multipass;
-namespace mpu = multipass::utils;
 
 namespace
 {

@@ -1,6 +1,8 @@
 .idea
 .vs
 .vscode
+.clangd
+.cache
 cmake-build-*
 .DS_Store
 CMakeLists.txt.user

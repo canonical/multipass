@@ -21,8 +21,6 @@
 
 #include <libssh/libssh.h>
 
-#include <vector>
-
 #include "unix_terminal.h"
 #include <csignal>
 #include <termios.h>

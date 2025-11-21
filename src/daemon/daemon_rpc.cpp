@@ -16,7 +16,6 @@
  */
 
 #include "daemon_rpc.h"
-#include "daemon_config.h"
 
 #include <multipass/format.h>
 #include <multipass/logging/log.h>

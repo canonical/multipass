@@ -26,7 +26,6 @@
 #include <QStringList>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
 namespace
 {

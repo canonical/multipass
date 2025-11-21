@@ -23,7 +23,6 @@
 #include "windows_terminal.h"
 #else
 #include "unix_console.h"
-#include "unix_terminal.h"
 #endif
 
 namespace mp = multipass;

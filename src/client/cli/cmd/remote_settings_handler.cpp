@@ -17,6 +17,7 @@
 
 #include "remote_settings_handler.h"
 #include "common_callbacks.h"
+#include "common_cli.h"
 
 #include <multipass/cli/command.h>
 #include <multipass/exceptions/settings_exceptions.h>

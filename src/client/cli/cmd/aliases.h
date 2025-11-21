@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
 #include <QString>

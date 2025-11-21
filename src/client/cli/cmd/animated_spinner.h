@@ -16,8 +16,10 @@
 
 #pragma once
 
-#include <future>
+#include <condition_variable>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace multipass

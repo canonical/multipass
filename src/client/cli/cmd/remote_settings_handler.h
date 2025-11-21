@@ -17,9 +17,9 @@
 
 #pragma once
 
-#include "common_cli.h"
-
+#include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/settings/settings_handler.h>
+#include <multipass/terminal.h>
 
 #include <stdexcept>
 
