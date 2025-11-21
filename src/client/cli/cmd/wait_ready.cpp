@@ -24,7 +24,6 @@
 #include <multipass/timer.h>
 
 #include <chrono>
-#include <thread>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;

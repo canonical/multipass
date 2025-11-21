@@ -17,9 +17,8 @@
 
 #pragma once
 
-#include "daemon_config.h"
-
 #include <multipass/cert_provider.h>
+#include <multipass/cert_store.h>
 #include <multipass/disabled_copy_move.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 

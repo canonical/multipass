@@ -23,9 +23,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 
-#include <map>
 #include <memory>
-#include <unordered_map>
 
 namespace multipass
 {

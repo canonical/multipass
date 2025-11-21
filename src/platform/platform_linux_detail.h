@@ -20,6 +20,11 @@
 #include <multipass/network_interface_info.h>
 
 #include <map>
+#include <memory>
+
+#include <QDir>
+#include <QString>
+#include <QStringList>
 
 namespace multipass::platform::detail
 {

@@ -26,7 +26,6 @@
 #include <QString>
 
 #include <string>
-#include <vector>
 
 namespace multipass
 {

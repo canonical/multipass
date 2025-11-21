@@ -18,7 +18,6 @@
 #include <multipass/settings/settings.h>
 
 #include <memory>
-#include <stdexcept>
 
 namespace mp = multipass;
 

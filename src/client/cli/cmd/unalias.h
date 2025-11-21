@@ -20,8 +20,6 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
-#include <unordered_set>
-
 #include <QString>
 
 namespace multipass

@@ -17,7 +17,6 @@
 
 #include "restore.h"
 #include "animated_spinner.h"
-#include "common_callbacks.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>

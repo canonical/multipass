@@ -19,8 +19,6 @@
 #include <multipass/ssh/sftp_dir_iterator.h>
 #include <multipass/ssh/sftp_utils.h>
 
-#include <stdexcept>
-
 namespace multipass
 {
 void SFTPDirIterator::push_dir(const std::string& path)
