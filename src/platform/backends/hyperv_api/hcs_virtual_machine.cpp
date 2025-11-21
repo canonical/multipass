@@ -270,18 +270,20 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     // Always reset the handle and create a new one.
     hcs_system.reset();
     auto attach_callback_handler = sg::make_scope_guard([this]() noexcept {
-        assert(hcs_system);
-        top_catch_all(log_category, [this] {
-            if (!HCS().set_compute_system_callback(
-                    hcs_system,
-                    this,
-                    HCSVirtualMachine::compute_system_event_callback))
-            {
-                mpl::warn(log_category,
-                          "Could not set compute system callback for VM: `{}`!",
-                          vm_name);
-            }
-        });
+        if (hcs_system)
+        {
+            top_catch_all(log_category, [this] {
+                if (!HCS().set_compute_system_callback(
+                        hcs_system,
+                        this,
+                        HCSVirtualMachine::compute_system_event_callback))
+                {
+                    mpl::warn(log_category,
+                              "Could not set compute system callback for VM: `{}`!",
+                              vm_name);
+                }
+            });
+        }
     });
 
     const auto result = HCS().open_compute_system(vm_name, hcs_system);

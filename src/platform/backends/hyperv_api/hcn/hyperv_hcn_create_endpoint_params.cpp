@@ -35,7 +35,7 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
         }},
         "HostComputeNetwork": "{0}",
         "Policies": [],
-        "MacAddress" : {1}
+        "MacAddress" : "{1}"
     }})json");
 
     return fmt::format_to(ctx.out(),
