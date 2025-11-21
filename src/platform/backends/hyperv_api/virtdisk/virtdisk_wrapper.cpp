@@ -15,7 +15,7 @@
  *
  */
 
-#include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
+#include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <hyperv_api/virtdisk/virtdisk_api_table.h>
 
