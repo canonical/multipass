@@ -21,10 +21,9 @@
 #include <multipass/json_utils.h>
 
 #include <QFileDevice>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QString>
 
+#include <regex>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -33,210 +32,186 @@ using namespace testing;
 
 namespace
 {
-struct TestJsonUtils : public Test
+TEST(TestJsonUtils, lookupInArray)
 {
-    mpt::MockFileOps::GuardedMock guarded_mock_file_ops = mpt::MockFileOps::inject();
-    mpt::MockFileOps& mock_file_ops = *guarded_mock_file_ops.first;
-    inline static const QString dir = QStringLiteral("a/b/c");
-    inline static const QString file_name = QStringLiteral("asd.blag");
-    inline static const QString file_path = QStringLiteral("%1/%2").arg(dir, file_name);
-    inline static const QString lockfile_path = file_path + ".lock";
-    inline static const char* json_text = R"({"a": [1,2,3]})";
-    inline static const QJsonObject json = QJsonDocument::fromJson(json_text).object();
-    inline static const auto expected_stale_lock_time = std::chrono::seconds{10};
-    inline static const auto expected_lock_timeout = std::chrono::seconds{10};
-    inline static const auto expected_retry_attempts = 10;
+    boost::json::value json = {"sam", "max"};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, 1, "fallback"), "max");
+}
 
-    template <typename T>
-    static Matcher<T&>
-    file_matcher() // not using static template var to workaround bad init order in AppleClang
-    {
-        static const auto ret = Property(&T::fileName, Eq(file_path));
-        return ret;
-    }
+TEST(TestJsonUtils, lookupInArrayFallback)
+{
+    boost::json::value json = {"sam", "max"};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, 2, "fallback"), "fallback");
+}
 
-    template <typename T>
-    static Matcher<T&>
-    lockfile_matcher() // not using static template var to workaround bad init order in AppleClang
-    {
-        static const auto ret = Property(&T::fileName, Eq(lockfile_path));
-        return ret;
-    }
+TEST(TestJsonUtils, lookupInArrayWrongType)
+{
+    boost::json::value json = {"sam", "max"};
+    EXPECT_THROW(mp::lookup_or<std::string>(json, "max", "fallback"), boost::system::system_error);
+}
+
+TEST(TestJsonUtils, lookupInObject)
+{
+    boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, "sam", "fallback"), "canine shamus");
+}
+
+TEST(TestJsonUtils, lookupInObjectFallback)
+{
+    boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
+    EXPECT_EQ(mp::lookup_or<std::string>(json, "sybil", "fallback"), "fallback");
+}
+
+TEST(TestJsonUtils, lookupInObjectWrongType)
+{
+    boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
+    EXPECT_THROW(mp::lookup_or<std::string>(json, 1, "fallback"), boost::system::system_error);
+}
+
+struct Animal
+{
+    std::string name;
+    friend bool operator==(const Animal&, const Animal&) = default;
 };
 
-TEST_F(TestJsonUtils, writesJsonTransactionally)
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const Animal& animal)
 {
-    auto json_matcher = ResultOf(
-        [](auto&& text) {
-            return QJsonDocument::fromJson(std::forward<decltype(text)>(text), nullptr);
-        },
-        Property(&QJsonDocument::object, Eq(json)));
-    EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
-        .WillOnce(Return(true));
-
-    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(file_matcher<QFileDevice>(), _)).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, write(file_matcher<QFileDevice>(), json_matcher))
-        .WillOnce(Return(14));
-    EXPECT_CALL(mock_file_ops, commit(file_matcher<QSaveFile>())).WillOnce(Return(true));
-    EXPECT_NO_THROW(MP_JSONUTILS.write_json(json, file_path));
+    json = {{"name", animal.name}};
+}
+Animal tag_invoke(const boost::json::value_to_tag<Animal>&, const boost::json::value& json)
+{
+    return {value_to<std::string>(json.at("name"))};
 }
 
-TEST_F(TestJsonUtils, writesJsonTransactionallyEventually)
+TEST(TestJsonUtils, mapToJsonArray)
 {
-    auto json_matcher = ResultOf(
-        [](auto&& text) {
-            return QJsonDocument::fromJson(std::forward<decltype(text)>(text), nullptr);
-        },
-        Property(&QJsonDocument::object, Eq(json)));
-    EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
-        .WillOnce(Return(true));
+    std::map<std::string, Animal> map = {{"dog", {"fido"}},
+                                         {"goat", {"philipp"}},
+                                         {"panda", {"coco"}}};
+    boost::json::array json_array = {{{"species", "dog"}, {"name", "fido"}},
+                                     {{"species", "goat"}, {"name", "philipp"}},
+                                     {{"species", "panda"}, {"name", "coco"}}};
 
-    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(file_matcher<QFileDevice>(), _))
-        .Times(expected_retry_attempts)
-        .WillRepeatedly(Return(true));
-    EXPECT_CALL(mock_file_ops, write(file_matcher<QFileDevice>(), json_matcher))
-        .Times(expected_retry_attempts)
-        .WillRepeatedly(Return(14));
+    auto json_result = boost::json::value_from(map, mp::MapAsJsonArray{"species"});
+    EXPECT_EQ(json_result, json_array);
 
-    auto commit_called_times = 0;
-    EXPECT_CALL(mock_file_ops, commit(file_matcher<QSaveFile>()))
-        .Times(expected_retry_attempts)
-        .WillRepeatedly(
-            InvokeWithoutArgs([&]() { return ++commit_called_times == expected_retry_attempts; }));
-
-    EXPECT_NO_THROW(MP_JSONUTILS.write_json(json, file_path));
+    auto map_result =
+        value_to<std::map<std::string, Animal>>(json_array, mp::MapAsJsonArray{"species"});
+    EXPECT_EQ(map_result, map);
 }
 
-TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCreateDirectory)
-{
-    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(false));
-    MP_EXPECT_THROW_THAT(
-        MP_JSONUTILS.write_json(json, file_path),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
-}
-
-TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToOpenFile)
-{
-    EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
-        .WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(false));
-    MP_EXPECT_THROW_THAT(
-        MP_JSONUTILS.write_json(json, file_path),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(file_path.toStdString()))));
-}
-
-TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToWriteFile)
-{
-    EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
-        .WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, write(_, _)).WillOnce(Return(-1));
-    MP_EXPECT_THROW_THAT(
-        MP_JSONUTILS.write_json(json, file_path),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Could not write"), HasSubstr(file_path.toStdString()))));
-}
-
-TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToAcquireLock)
-{
-    EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
-        .WillOnce(Return(false));
-    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
-
-    MP_EXPECT_THROW_THAT(MP_JSONUTILS.write_json(json, file_path),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr("Could not acquire lock"),
-                                               HasSubstr(file_path.toStdString()))));
-}
-
-TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
-{
-    EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
-        .WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(_, _))
-        .Times(expected_retry_attempts)
-        .WillRepeatedly(Return(true));
-    EXPECT_CALL(mock_file_ops, write(_, _))
-        .Times(expected_retry_attempts)
-        .WillRepeatedly(Return(1234));
-    EXPECT_CALL(mock_file_ops, commit).Times(expected_retry_attempts).WillRepeatedly(Return(false));
-    MP_EXPECT_THROW_THAT(
-        MP_JSONUTILS.write_json(json, file_path),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
-}
-
-struct ExtraInterfacesRead : public TestJsonUtils,
-                             public WithParamInterface<std::vector<mp::NetworkInterface>>
+class JsonPrettyPrintTest : public TestWithParam<std::string>
 {
 };
 
-TEST_P(ExtraInterfacesRead, writeAndReadExtraInterfaces)
+TEST_P(JsonPrettyPrintTest, prettyPrintsCorrectly)
 {
-    std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    auto read_ifaces = MP_JSONUTILS.read_extra_interfaces(doc);
-
-    ASSERT_EQ(read_ifaces, extra_ifaces);
+    std::string expected = GetParam();
+    boost::json::value json = boost::json::parse(expected);
+    EXPECT_EQ(mp::pretty_print(json), expected + "\n");
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    TestJsonUtils,
-    ExtraInterfacesRead,
-    Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
-                                             {"eth2", "52:54:00:00:00:02", false}},
-           std::vector<mp::NetworkInterface>{}));
-
-TEST_F(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
+TEST_P(JsonPrettyPrintTest, prettyPrintsNoTrailingNewlineCorrectly)
 {
-    QJsonObject doc;
-    doc.insert("some_data", "nothing to see here");
-
-    ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
+    std::string expected = GetParam();
+    boost::json::value json = boost::json::parse(expected);
+    EXPECT_EQ(mp::pretty_print(json, {.trailing_newline = false}), expected);
 }
 
-TEST_F(TestJsonUtils, throwsOnWrongMac)
+TEST_P(JsonPrettyPrintTest, prettyPrintsCustomIndentCorrectly)
 {
-    std::vector<mp::NetworkInterface> extra_ifaces{
-        mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    MP_ASSERT_THROW_THAT(MP_JSONUTILS.read_extra_interfaces(doc),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
+    std::string input = GetParam();
+    boost::json::value json = boost::json::parse(input);
+    // Replace all runs of 4 spaces with 2 spaces. This isn't assumes there are no runs of 4 spaces
+    // in the actual data.
+    auto expected = std::regex_replace(input, std::regex("    "), "  ") + "\n";
+    EXPECT_EQ(mp::pretty_print(json, {.indent = 2}), expected);
 }
 
-TEST_F(TestJsonUtils, updateCloudInitInstanceIdSucceed)
+INSTANTIATE_TEST_SUITE_P(TestJsonUtils,
+                         JsonPrettyPrintTest,
+                         Values(
+                             // Null
+                             "null",
+                             // Booleans
+                             "true",
+                             "false",
+                             // Numbers
+                             "12345",
+                             "-12345",
+                             "1.234",
+                             // Strings
+                             "\"hello there\"",
+                             "\"some\\nnewlines\\n\"",
+                             // Arrays
+                             "[\n]",
+                             ("[\n"
+                              "    123,\n"
+                              "    \"hello there\"\n"
+                              "]"),
+                             // Objects
+                             "{\n}",
+                             ("{\n"
+                              "    \"foo\": \"bar\",\n"
+                              "    \"one\": 1,\n"
+                              "    \"yes\": true\n"
+                              "}"),
+                             // Nested
+                             ("[\n"
+                              "    [\n"
+                              "        1,\n"
+                              "        2\n"
+                              "    ]\n"
+                              "]"),
+                             ("{\n"
+                              "    \"foo\": {\n"
+                              "        \"bar\": true\n"
+                              "    }\n"
+                              "}"),
+                             ("[\n"
+                              "    {\n"
+                              "        \"foo\": [\n"
+                              "            1,\n"
+                              "            2\n"
+                              "        ]\n"
+                              "    }\n"
+                              "]"),
+                             ("{\n"
+                              "    \"foo\": {\n"
+                              "        \"bar\": [\n"
+                              "            1,\n"
+                              "            2\n"
+                              "        ],\n"
+                              "        \"baz\": \"quux\"\n"
+                              "    }\n"
+                              "}")));
+
+TEST(TestJsonUtils, jsonToQString)
 {
-    EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
-              QJsonValue{"vm2_e_e_e"});
+    boost::json::value json = "hello";
+    EXPECT_EQ(value_to<QString>(json), QString("hello"));
+}
+
+TEST(TestJsonUtils, qStringToJson)
+{
+    QString str = "hello";
+    auto json = boost::json::value_from(str);
+    EXPECT_EQ(json, boost::json::string("hello"));
+}
+
+TEST(TestJsonUtils, jsonToQStringList)
+{
+    boost::json::value json = {"hello", "goodbye"};
+    EXPECT_EQ(value_to<QStringList>(json),
+              QStringList() << "hello"
+                            << "goodbye");
+}
+
+TEST(TestJsonUtils, qStringListToJson)
+{
+    auto list = QStringList() << "hello"
+                              << "goodbye";
+    auto json = boost::json::value_from(list);
+    EXPECT_EQ(json, boost::json::array({"hello", "goodbye"}));
 }
 } // namespace
