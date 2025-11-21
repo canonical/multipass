@@ -67,8 +67,6 @@ auto construct_single_instance_list_reply()
     list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
-    list_entry->add_ipv6("fdde:2681:7a2::4ca");
-    list_entry->add_ipv6("fe80::1c3c:b703:d561:a00");
 
     return list_reply;
 }
@@ -306,8 +304,6 @@ auto construct_single_instance_info_reply()
     info_entry->mutable_instance_info()->set_current_release("Ubuntu 16.04.3 LTS");
     info_entry->mutable_instance_info()->add_ipv4("10.168.32.2");
     info_entry->mutable_instance_info()->add_ipv4("200.3.123.29");
-    info_entry->mutable_instance_info()->add_ipv6("2001:67c:1562:8007::aac:423a");
-    info_entry->mutable_instance_info()->add_ipv6("fd52:2ccf:f758:0:a342:79b5:e2ba:e05e");
     info_entry->mutable_instance_info()->set_num_snapshots(0);
 
     return info_reply;

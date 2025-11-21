@@ -112,7 +112,7 @@ std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw
     {
         const auto fields = mp::utils::split(line, delimiter);
         if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
-            return fields[ipv4_idx];
+            return IPAddress{fields[ipv4_idx]};
     }
     return std::nullopt;
 }

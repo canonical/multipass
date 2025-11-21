@@ -345,9 +345,9 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     while (machine->state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);
 
-    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(),
+    MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
                          mp::StartException,
-                         Property(&mp::StartException::name, Eq(machine->vm_name)));
+                         Property(&mp::StartException::name, Eq(machine->get_name())));
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
@@ -427,7 +427,8 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         mp::ProcessState exit_state;
         exit_state.exit_code = 1;
         emit vmproc->finished(exit_state); /* note that this waits on a condition variable that is
-                                              unblocked by ensure_vm_is_running */
+                                              unblocked by wait_for_cloud_init once it detects that
+                                              the process what interrupted */
     }};
 
     using namespace std::chrono_literals;
@@ -435,11 +436,11 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(
-        machine->ensure_vm_is_running(),
+        machine->wait_for_cloud_init(1ms),
         mp::StartException,
-        AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
+        AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
               mpt::match_what(
-                  AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+                  AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("start")))));
 }
 
 TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
@@ -992,7 +993,7 @@ TEST_F(QemuBackend, sshHostnameReturnsExpectedValue)
 
 TEST_F(QemuBackend, getsManagementIp)
 {
-    const std::string expected_ip{"10.10.0.35"};
+    const mp::IPAddress expected_ip{"10.10.0.35"};
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
     EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(expected_ip));
@@ -1022,7 +1023,7 @@ TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(), std::nullopt);
 }
 
 TEST_F(QemuBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
