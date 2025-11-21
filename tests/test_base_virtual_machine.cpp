@@ -294,6 +294,15 @@ TEST_F(BaseVM, getAllIpv4WorksWhenInstanceIsOff)
     EXPECT_EQ(vm.get_all_ipv4().size(), 0u);
 }
 
+TEST_F(BaseVM, providesInstanceDirectory)
+{
+    auto vm_dir = std::make_unique<mpt::TempDir>();
+    const auto vm_path = vm_dir->path();
+    const StubBaseVirtualMachine vm{St::off, std::move(vm_dir)};
+
+    EXPECT_EQ(vm.instance_directory().absolutePath(), vm_path);
+}
+
 TEST_F(BaseVM, addNetworkInterfaceThrows)
 {
     StubBaseVirtualMachine base_vm(St::off);
