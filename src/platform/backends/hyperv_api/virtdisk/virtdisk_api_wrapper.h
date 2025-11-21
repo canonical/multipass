@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <hyperv_api/virtdisk/virtdisk_api_table.h>
 #include <hyperv_api/virtdisk/virtdisk_disk_info.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
 
@@ -39,7 +38,7 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      *
      * The wrapper will use the real HCN API by default.
      */
-    VirtDiskWrapper(const VirtDiskAPITable& api_table = {});
+    VirtDiskWrapper();
     VirtDiskWrapper(const VirtDiskWrapper&) = default;
     VirtDiskWrapper(VirtDiskWrapper&&) = default;
     VirtDiskWrapper& operator=(const VirtDiskWrapper&) = delete;
@@ -128,9 +127,6 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
         const std::filesystem::path& vhdx_path,
         std::vector<std::filesystem::path>& chain,
         std::optional<std::size_t> max_depth = std::nullopt) const override;
-
-private:
-    const VirtDiskAPITable api{};
 };
 
 } // namespace multipass::hyperv::virtdisk
