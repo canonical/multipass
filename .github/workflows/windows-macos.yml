@@ -43,18 +43,11 @@ jobs:
 
           // macOS targets
           matrix.include.push({
-            "name": "macOS 13 Ventura (Intel Silicon)",
-            "runs-on": "macos-13"
-          },{
-            "name": "macOS 14 Sonoma (Apple Silicon)",
-            "runs-on": "macos-14"
-          },{
             "name": "macOS Latest (Apple Silicon)",
             "runs-on": "macos-latest"
           },{
             "name": "macOS 15 Sequoia (Intel Silicon)",
             "runs-on": "macos-15-intel",
-            "optional": true
           })
 
           core.setOutput('matrix', JSON.stringify(matrix));
@@ -74,15 +67,14 @@ jobs:
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
-      # Use artifacts from macos-13 and macos-14 in official package
-      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-package-artifact-name }}
-      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-package-file-name }}
-      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-package-file-name }}
+      # Use artifacts from macos-15-intel and macos-latest in official package
+      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
+      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
-    continue-on-error: ${{ matrix.optional || false }}
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
@@ -146,7 +138,6 @@ jobs:
           libev \
           libffi \
           ninja \
-          openssl@3 \
           pixman \
           pkg-config \
           python \
@@ -181,17 +172,7 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
-      # TODO: remove this when self-hosted runners are dropped
-    - name: Disable vcpkg binary cache on self-hosted runners
-      id: disable-cache
-      shell: bash
-      run: |
-        if [[ "${{ matrix['runs-on'] }}" == *multipass* ]]; then
-          echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
-        fi
-
     - name: Configure NuGet Source
-      if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
       id: setup_nuget
       continue-on-error: true
       shell: 'bash'
@@ -258,12 +239,6 @@ jobs:
         restore-keys: |
           ccache-${{ matrix.runs-on }}
         path: ${{ env.CCACHE_DIR }}
-
-    - name: Install OpenSSL from Choco
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
-      with:
-        args: install --yes openssl --version=3.1.1
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
@@ -376,7 +351,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
     - name: Check out code
