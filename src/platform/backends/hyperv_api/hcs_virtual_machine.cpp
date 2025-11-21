@@ -25,7 +25,7 @@
 #include <hyperv_api/hcs_plan9_mount_handler.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
-#include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
+#include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/top_catch_all.h>
@@ -57,6 +57,7 @@ namespace mpp = multipass::platform;
 using lvl = mpl::Level;
 using multipass::hyperv::hcn::HCN;
 using multipass::hyperv::hcs::HCS;
+using multipass::hyperv::virtdisk::VirtDisk;
 
 inline auto mac2uuid(std::string mac_addr)
 {
@@ -176,8 +177,7 @@ auto resolve_ip_addresses(const std::string& hostname)
 namespace multipass::hyperv
 {
 
-HCSVirtualMachine::HCSVirtualMachine(virtdisk_sptr_t virtdisk_w,
-                                     const std::string& network_guid,
+HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      const VirtualMachineDescription& desc,
                                      class VMStatusMonitor& monitor,
                                      const SSHKeyProvider& key_provider,
@@ -185,21 +185,8 @@ HCSVirtualMachine::HCSVirtualMachine(virtdisk_sptr_t virtdisk_w,
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
       description(desc),
       primary_network_guid(network_guid),
-      monitor(monitor),
-      virtdisk(std::move(virtdisk_w))
+      monitor(monitor)
 {
-    // Verify that the given API wrappers are not null
-    {
-        const std::array<void*, 1> api_ptrs = {virtdisk.get()};
-        if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) {
-                return nullptr == ptr;
-            }))
-        {
-            throw InvalidAPIPointerException{"One of the required API pointers is not set: {}.",
-                                             fmt::join(api_ptrs, ",")};
-        }
-    }
-
     const auto created_from_scratch = maybe_create_compute_system();
     const auto state = fetch_state_from_api();
 
@@ -400,7 +387,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         if (scsi.type == hcs::HcsScsiDeviceType::VirtualDisk())
         {
             std::vector<std::filesystem::path> lineage{};
-            if (virtdisk->list_virtual_disk_chain(scsi.path.get(), lineage))
+            if (VirtDisk().list_virtual_disk_chain(scsi.path.get(), lineage))
             {
                 grant_access_to_paths({lineage.begin(), lineage.end()});
             }
@@ -669,7 +656,7 @@ void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
                                                "snapshots. To resize, delete the snapshots first."};
     }
 
-    virtdisk->resize_virtual_disk(description.image.image_path.toStdString(), new_size.in_bytes());
+    VirtDisk().resize_virtual_disk(description.image.image_path.toStdString(), new_size.in_bytes());
     // TODO: Check if succeeded.
     description.disk_space = new_size;
 }
@@ -771,13 +758,12 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
                                                         parent,
                                                         specs,
                                                         *this,
-                                                        description,
-                                                        virtdisk);
+                                                        description);
 }
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
 {
-    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename, *this, description, virtdisk);
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename, *this, description);
 }
 
 } // namespace multipass::hyperv

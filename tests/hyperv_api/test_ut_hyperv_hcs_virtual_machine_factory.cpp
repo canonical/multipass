@@ -25,7 +25,7 @@
 #include "tests/common.h"
 #include "tests/hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "tests/hyperv_api/mock_hyperv_hcs_wrapper.h"
-#include "tests/mock_hyperv_virtdisk_wrapper.h"
+#include "tests/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/mock_platform.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
@@ -56,8 +56,9 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
         mpt::MockHCNWrapper::inject<StrictMock>();
     mpt::MockHCNWrapper& mock_hcn = *mock_hcn_wrapper_injection.first;
 
-    std::shared_ptr<mpt::MockVirtDiskWrapper> mock_virtdisk{
-        std::make_shared<mpt::MockVirtDiskWrapper>()};
+    mpt::MockVirtDiskWrapper::GuardedMock mock_virtdisk_wrapper_injection =
+        mpt::MockVirtDiskWrapper::inject<StrictMock>();
+    mpt::MockVirtDiskWrapper& mock_virtdisk = *mock_virtdisk_wrapper_injection.first;
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
@@ -67,7 +68,7 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
 
     auto construct_factory()
     {
-        return std::make_shared<uut_t>(dummy_data_dir.path(), mock_virtdisk);
+        return std::make_shared<uut_t>(dummy_data_dir.path());
     }
 };
 
@@ -118,7 +119,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image)
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
     EXPECT_CALL(
-        *mock_virtdisk,
+        mock_virtdisk,
         resize_virtual_disk(Eq(img.image_path.toStdString()), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
@@ -136,7 +137,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image_failed)
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
     EXPECT_CALL(
-        *mock_virtdisk,
+        mock_virtdisk,
         resize_virtual_disk(Eq(img.image_path.toStdString()), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{1, L""}));
 
