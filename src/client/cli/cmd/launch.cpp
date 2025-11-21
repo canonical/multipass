@@ -48,8 +48,6 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
-namespace mcp = multipass::cli::platform;
-namespace fs = std::filesystem;
 
 namespace
 {

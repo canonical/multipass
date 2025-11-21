@@ -32,7 +32,6 @@
 #include <QThread>
 
 #include <memory>
-#include <optional>
 #include <unordered_map>
 
 using namespace testing;

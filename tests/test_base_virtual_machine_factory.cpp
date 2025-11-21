@@ -18,7 +18,6 @@
 #include "common.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
-#include "stub_ssh_key_provider.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
 
@@ -29,7 +28,6 @@
 #include <multipass/vm_status_monitor.h>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;

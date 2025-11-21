@@ -20,9 +20,6 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
-#include <algorithm>
-#include <iterator>
-#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>

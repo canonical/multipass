@@ -23,7 +23,6 @@
 
 #include <random>
 #include <string>
-#include <vector>
 
 namespace multipass
 {

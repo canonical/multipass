@@ -22,8 +22,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <algorithm>
-
 // Extra macros for testing exceptions.
 //
 //    * MP_{ASSERT|EXPECT}_THROW_THAT(statement, expected_exception, matcher):

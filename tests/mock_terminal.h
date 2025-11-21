@@ -19,6 +19,7 @@
 
 #include "common.h"
 
+#include <multipass/console.h>
 #include <multipass/terminal.h>
 
 namespace multipass

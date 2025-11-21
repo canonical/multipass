@@ -27,7 +27,6 @@
 #include <multipass/settings/settings.h>
 #include <multipass/timer.h>
 
-#include <chrono>
 #include <cstdlib>
 
 namespace mp = multipass;

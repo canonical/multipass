@@ -21,7 +21,6 @@
 
 #include <memory>
 #include <thread>
-#include <unordered_map>
 
 namespace multipass
 {

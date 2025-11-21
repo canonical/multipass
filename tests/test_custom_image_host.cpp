@@ -18,10 +18,8 @@
 
 #include "common.h"
 #include "file_operations.h"
-#include "image_host_remote_count.h"
 #include "mock_logger.h"
 #include "mock_url_downloader.h"
-#include "path.h"
 
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/image_not_found_exception.h>

@@ -29,7 +29,6 @@
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
-namespace mcp = multipass::cli::platform;
 namespace fs = mp::fs;
 
 namespace

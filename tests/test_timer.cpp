@@ -22,9 +22,7 @@
 
 #include <atomic>
 #include <chrono>
-#include <thread>
 
-namespace mp = multipass;
 namespace mpu = multipass::utils;
 
 using namespace std::chrono;
