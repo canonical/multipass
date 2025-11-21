@@ -25,6 +25,9 @@
 namespace multipass::hyperv::hcn
 {
 
+/**
+ * Hcn IP Address Management structure
+ */
 struct HcnIpam
 {
     /**
