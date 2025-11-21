@@ -17,6 +17,7 @@
 
 #include "hyperv_test_utils.h"
 #include "tests/common.h"
+#include "tests/hyperv_api/mock_virtdisk_api_table.h"
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
 
@@ -39,35 +40,9 @@ struct HyperVVirtDisk_UnitTests : public ::testing::Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
-    template <typename F>
-    using StrictMockFunction = ::testing::StrictMock<::testing::MockFunction<F>>;
-
-    virtual void SetUp() override
-    {
-        logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "VirtDiskWrapper::VirtDiskWrapper(...)");
-    }
-
-    // Set of placeholder mocks in order to catch *unexpected* calls.
-    StrictMockFunction<decltype(::CreateVirtualDisk)> mock_create_virtual_disk;
-    StrictMockFunction<decltype(::OpenVirtualDisk)> mock_open_virtual_disk;
-    StrictMockFunction<decltype(::ResizeVirtualDisk)> mock_resize_virtual_disk;
-    StrictMockFunction<decltype(::MergeVirtualDisk)> mock_merge_virtual_disk;
-    StrictMockFunction<decltype(::GetVirtualDiskInformation)> mock_get_virtual_disk_information;
-    StrictMockFunction<decltype(::SetVirtualDiskInformation)> mock_set_virtual_disk_information;
-    StrictMockFunction<decltype(::CloseHandle)> mock_close_handle;
-
-    // Initialize the API table with stub functions, so if any of these fire without
-    // our will, we'll know.
-    hyperv::virtdisk::VirtDiskAPITable mock_api_table{
-        mock_create_virtual_disk.AsStdFunction(),
-        mock_open_virtual_disk.AsStdFunction(),
-        mock_resize_virtual_disk.AsStdFunction(),
-        mock_merge_virtual_disk.AsStdFunction(),
-        mock_get_virtual_disk_information.AsStdFunction(),
-        mock_set_virtual_disk_information.AsStdFunction(),
-        mock_close_handle.AsStdFunction(),
-    };
+    mpt::MockVirtDiskAPI::GuardedMock mock_virtdisk_api_injection =
+        mpt::MockVirtDiskAPI::inject<StrictMock>();
+    mpt::MockVirtDiskAPI& mock_virtdisk_api = *mock_virtdisk_api_injection.first;
 
     // Sentinel values as mock API parameters. These handles are opaque handles and
     // they're not being dereferenced in any way -- only address values are compared.
@@ -80,7 +55,7 @@ struct HyperVVirtDisk_UnitTests : public ::testing::Test
          * data.
          ******************************************************/
 
-        EXPECT_CALL(mock_open_virtual_disk, Call).WillOnce(Return(ERROR_PATH_NOT_FOUND));
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk).WillOnce(Return(ERROR_PATH_NOT_FOUND));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "open_virtual_disk(...) > vhdx_path:");
         logger_scope.mock_logger->expect_log(
@@ -98,7 +73,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -132,7 +107,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
 
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
@@ -144,7 +119,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
     params.size_in_bytes = 2097152;
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.create_virtual_disk(params);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
@@ -160,7 +135,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -194,7 +169,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
 
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
@@ -206,7 +181,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
     params.size_in_bytes = 2097152;
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.create_virtual_disk(params);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
@@ -226,7 +201,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -266,7 +241,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_open_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -290,7 +265,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
                 Return(ERROR_SUCCESS)));
 
         // The API will be called for several times.
-        EXPECT_CALL(mock_get_virtual_disk_information, Call)
+        EXPECT_CALL(mock_virtdisk_api, GetVirtualDiskInformation)
             .WillRepeatedly(DoAll(
                 [](HANDLE VirtualDiskHandle,
                    PULONG VirtualDiskInfoSize,
@@ -313,7 +288,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object)))
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object)))
             .Times(2)
             .WillRepeatedly(Return(true));
 
@@ -337,7 +312,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
     params.size_in_bytes = 0;
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.create_virtual_disk(params);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
@@ -353,7 +328,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_create_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll([](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                                PCWSTR Path,
                                VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
@@ -380,7 +355,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
     params.size_in_bytes = 2097152;
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.create_virtual_disk(params);
         EXPECT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
@@ -397,7 +372,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_open_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -419,7 +394,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_resize_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, ResizeVirtualDisk)
             .WillOnce(DoAll(
                 [](HANDLE VirtualDiskHandle,
                    RESIZE_VIRTUAL_DISK_FLAG Flags,
@@ -434,7 +409,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "resize_virtual_disk(...) > vhdx_path: test.vhdx, new_size_bytes: 1234567");
@@ -443,7 +418,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
@@ -466,7 +441,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_open_failed)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
@@ -484,7 +459,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_open_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll([](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                                PCWSTR Path,
                                VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
@@ -493,14 +468,14 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
                                PHANDLE Handle) { *Handle = mock_handle_object; },
                             Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_resize_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, ResizeVirtualDisk)
             .WillOnce(DoAll([](HANDLE VirtualDiskHandle,
                                RESIZE_VIRTUAL_DISK_FLAG Flags,
                                PRESIZE_VIRTUAL_DISK_PARAMETERS Parameters,
                                LPOVERLAPPED Overlapped) {},
                             Return(ERROR_INVALID_PARAMETER)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "resize_virtual_disk(...) > vhdx_path: test.vhdx, new_size_bytes: 1234567");
@@ -512,7 +487,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
@@ -529,7 +504,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_open_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -553,7 +528,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
                 Return(ERROR_SUCCESS)));
 
         // The API will be called for several times.
-        EXPECT_CALL(mock_get_virtual_disk_information, Call)
+        EXPECT_CALL(mock_virtdisk_api, GetVirtualDiskInformation)
             .WillOnce(DoAll(
                 [](HANDLE VirtualDiskHandle,
                    PULONG VirtualDiskInfoSize,
@@ -617,7 +592,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "get_virtual_disk_info(...) > vhdx_path: test.vhdx");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
@@ -625,7 +600,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hyperv::virtdisk::VirtualDiskInfo info{};
         const auto& [status, status_msg] = uut.get_virtual_disk_info("test.vhdx", info);
         ASSERT_TRUE(status);
@@ -656,7 +631,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
      * data.
      ******************************************************/
     {
-        EXPECT_CALL(mock_open_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -680,7 +655,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
                 Return(ERROR_SUCCESS)));
 
         // The API will be called for several times.
-        EXPECT_CALL(mock_get_virtual_disk_information, Call)
+        EXPECT_CALL(mock_virtdisk_api, GetVirtualDiskInformation)
             .WillOnce(DoAll(
                 [](HANDLE VirtualDiskHandle,
                    PULONG VirtualDiskInfoSize,
@@ -729,7 +704,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "open_virtual_disk(...) > vhdx_path: test.vhdx");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
@@ -739,7 +714,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         hyperv::virtdisk::VirtualDiskInfo info{};
         const auto& [status, status_msg] = uut.get_virtual_disk_info("test.vhdx", info);
         ASSERT_TRUE(status);
@@ -770,7 +745,7 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
      ******************************************************/
     {
 
-        EXPECT_CALL(mock_open_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -793,7 +768,7 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_set_virtual_disk_information, Call)
+        EXPECT_CALL(mock_virtdisk_api, SetVirtualDiskInformation)
             .WillOnce(DoAll(
                 [](HANDLE VirtualDiskHandle, PSET_VIRTUAL_DISK_INFO VirtualDiskInfo) {
                     ASSERT_EQ(VirtualDiskHandle, mock_handle_object);
@@ -806,7 +781,7 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "reparent_virtual_disk(...) > child: child.avhdx, new parent: parent.vhdx");
@@ -815,7 +790,7 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.reparent_virtual_disk("child.avhdx", "parent.vhdx");
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
@@ -839,7 +814,7 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_open_disk_failure)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.reparent_virtual_disk("child.avhdx", "parent.vhdx");
         EXPECT_FALSE(status);
         EXPECT_FALSE(status_msg.empty());
@@ -856,7 +831,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
      ******************************************************/
     {
 
-        EXPECT_CALL(mock_open_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                    PCWSTR Path,
@@ -880,7 +855,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_merge_virtual_disk, Call)
+        EXPECT_CALL(mock_virtdisk_api, MergeVirtualDisk)
             .WillOnce(DoAll(
                 [](HANDLE VirtualDiskHandle,
                    MERGE_VIRTUAL_DISK_FLAG Flags,
@@ -896,7 +871,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
                 },
                 Return(ERROR_SUCCESS)));
 
-        EXPECT_CALL(mock_close_handle, Call(Eq(mock_handle_object))).WillOnce(Return(true));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
             "merge_virtual_disk_to_parent(...) > child: child.avhdx");
@@ -905,7 +880,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.merge_virtual_disk_to_parent("child.avhdx");
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
@@ -929,7 +904,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_open_disk_failure)
     }
 
     {
-        uut_t uut{mock_api_table};
+        uut_t uut{};
         const auto& [status, status_msg] = uut.merge_virtual_disk_to_parent("child.avhdx");
         EXPECT_FALSE(status);
         EXPECT_FALSE(status_msg.empty());

@@ -27,6 +27,8 @@
 
 #include <fmt/format.h>
 
+#include <multipass/singleton.h>
+
 namespace multipass::hyperv::virtdisk
 {
 
@@ -34,54 +36,40 @@ namespace multipass::hyperv::virtdisk
  * API function table for the virtdisk API
  * @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/
  */
-struct VirtDiskAPITable
+struct VirtDiskAPI : public Singleton<VirtDiskAPI>
 {
-    // @ref
-    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-createvirtualdisk
-    std::function<decltype(::CreateVirtualDisk)> CreateVirtualDisk = &::CreateVirtualDisk;
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-openvirtualdisk
-    std::function<decltype(::OpenVirtualDisk)> OpenVirtualDisk = &::OpenVirtualDisk;
-    // @ref
-    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-resizevirtualdisk
-    std::function<decltype(::ResizeVirtualDisk)> ResizeVirtualDisk = &::ResizeVirtualDisk;
-    // @ref
-    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-mergevirtualdisk
-    std::function<decltype(::MergeVirtualDisk)> MergeVirtualDisk = &::MergeVirtualDisk;
-    // @ref
-    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-getvirtualdiskinformation
-    std::function<decltype(::GetVirtualDiskInformation)> GetVirtualDiskInformation =
-        &::GetVirtualDiskInformation;
-    // @ref
-    // https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-setvirtualdiskinformation
-    std::function<decltype(::SetVirtualDiskInformation)> SetVirtualDiskInformation =
-        &::SetVirtualDiskInformation;
-    // @ref https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
-    std::function<decltype(::CloseHandle)> CloseHandle = &::CloseHandle;
+    VirtDiskAPI(const Singleton<VirtDiskAPI>::PrivatePass&) noexcept;
+    [[nodiscard]] virtual DWORD CreateVirtualDisk(PVIRTUAL_STORAGE_TYPE VirtualStorageType,
+                                                  PCWSTR Path,
+                                                  VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
+                                                  PSECURITY_DESCRIPTOR SecurityDescriptor,
+                                                  CREATE_VIRTUAL_DISK_FLAG Flags,
+                                                  ULONG ProviderSpecificFlags,
+                                                  PCREATE_VIRTUAL_DISK_PARAMETERS Parameters,
+                                                  LPOVERLAPPED Overlapped,
+                                                  PHANDLE Handle) const;
+    [[nodiscard]] virtual DWORD OpenVirtualDisk(PVIRTUAL_STORAGE_TYPE VirtualStorageType,
+                                                PCWSTR Path,
+                                                VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
+                                                OPEN_VIRTUAL_DISK_FLAG Flags,
+                                                POPEN_VIRTUAL_DISK_PARAMETERS Parameters,
+                                                PHANDLE Handle) const;
+    [[nodiscard]] virtual DWORD ResizeVirtualDisk(HANDLE VirtualDiskHandle,
+                                                  RESIZE_VIRTUAL_DISK_FLAG Flags,
+                                                  PRESIZE_VIRTUAL_DISK_PARAMETERS Parameters,
+                                                  LPOVERLAPPED Overlapped) const;
+    [[nodiscard]] virtual DWORD MergeVirtualDisk(HANDLE VirtualDiskHandle,
+                                                 MERGE_VIRTUAL_DISK_FLAG Flags,
+                                                 PMERGE_VIRTUAL_DISK_PARAMETERS Parameters,
+                                                 LPOVERLAPPED Overlapped) const;
+    [[nodiscard]] virtual DWORD GetVirtualDiskInformation(HANDLE VirtualDiskHandle,
+                                                          PULONG VirtualDiskInfoSize,
+                                                          PGET_VIRTUAL_DISK_INFO VirtualDiskInfo,
+                                                          PULONG SizeUsed) const;
+    [[nodiscard]] virtual DWORD SetVirtualDiskInformation(
+        HANDLE VirtualDiskHandle,
+        PSET_VIRTUAL_DISK_INFO VirtualDiskInfo) const;
+    [[nodiscard]] virtual BOOL CloseHandle(HANDLE hObject) const;
 };
 
 } // namespace multipass::hyperv::virtdisk
-
-/**
- * Formatter type specialization for VirtDiskAPITable
- */
-template <typename Char>
-struct fmt::formatter<multipass::hyperv::virtdisk::VirtDiskAPITable, Char>
-    : formatter<basic_string_view<Char>, Char>
-{
-    template <typename FormatContext>
-    auto format(const multipass::hyperv::virtdisk::VirtDiskAPITable& api, FormatContext& ctx) const
-    {
-        return fmt::format_to(
-            ctx.out(),
-            "CreateVirtualDisk: ({}) | OpenVirtualDisk ({}) | ResizeVirtualDisk: ({}) | "
-            "MergeVirtualDisk: ({}) | GetVirtualDiskInformation: ({}) | SetVirtualDiskInformation: "
-            "({}) | CloseHandle: ({})",
-            static_cast<bool>(api.CreateVirtualDisk),
-            static_cast<bool>(api.OpenVirtualDisk),
-            static_cast<bool>(api.ResizeVirtualDisk),
-            static_cast<bool>(api.MergeVirtualDisk),
-            static_cast<bool>(api.GetVirtualDiskInformation),
-            static_cast<bool>(api.SetVirtualDiskInformation),
-            static_cast<bool>(api.CloseHandle));
-    }
-};

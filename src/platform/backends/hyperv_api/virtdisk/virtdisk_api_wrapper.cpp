@@ -17,6 +17,8 @@
 
 #include <hyperv_api/virtdisk/virtdisk_api_wrapper.h>
 
+#include <hyperv_api/virtdisk/virtdisk_api_table.h>
+
 // clang-format off
 #include <windows.h>
 #include <initguid.h>
@@ -36,6 +38,12 @@ namespace multipass::hyperv::virtdisk
 
 namespace
 {
+
+inline const VirtDiskAPI& API()
+{
+    return VirtDiskAPI::instance();
+}
+
 // helper type for the visitor #4
 template <class... Ts>
 struct overloaded : Ts...
@@ -52,8 +60,15 @@ auto normalize_path(std::filesystem::path p)
     return p;
 }
 
-using UniqueHandle =
-    std::unique_ptr<std::remove_pointer_t<HANDLE>, decltype(VirtDiskAPITable::CloseHandle)>;
+struct HandleCloser
+{
+    void operator()(HANDLE h) const noexcept
+    {
+        (void)API().CloseHandle(h);
+    }
+};
+
+using UniqueHandle = std::unique_ptr<std::remove_pointer_t<HANDLE>, HandleCloser>;
 
 namespace mpl = logging;
 using lvl = mpl::Level;
@@ -69,7 +84,6 @@ struct VirtDiskCreateError : FormattedExceptionBase<>
 constexpr static auto kLogCategory = "HyperV-VirtDisk-Wrapper";
 
 UniqueHandle open_virtual_disk(
-    const VirtDiskAPITable& api,
     const std::filesystem::path& vhdx_path,
     VIRTUAL_DISK_ACCESS_MASK access_mask = VIRTUAL_DISK_ACCESS_MASK::VIRTUAL_DISK_ACCESS_ALL,
     OPEN_VIRTUAL_DISK_FLAG flags = OPEN_VIRTUAL_DISK_FLAG::OPEN_VIRTUAL_DISK_FLAG_NONE,
@@ -87,7 +101,7 @@ UniqueHandle open_virtual_disk(
     HANDLE handle{nullptr};
     const auto path_w = vhdx_path.generic_wstring();
 
-    const ResultCode result = api.OpenVirtualDisk(
+    const ResultCode result = API().OpenVirtualDisk(
         // [in] PVIRTUAL_STORAGE_TYPE VirtualStorageType
         &type,
         //  [in] PCWSTR Path
@@ -106,20 +120,17 @@ UniqueHandle open_virtual_disk(
         mpl::error(kLogCategory,
                    "open_virtual_disk(...) > OpenVirtualDisk failed with: {}",
                    static_cast<std::error_code>(result));
-        return UniqueHandle{nullptr, api.CloseHandle};
+        return UniqueHandle{nullptr};
     }
 
-    return {handle, api.CloseHandle};
+    return UniqueHandle{handle};
 }
 
 } // namespace
 
 // ---------------------------------------------------------
 
-VirtDiskWrapper::VirtDiskWrapper(const VirtDiskAPITable& api_table) : api{api_table}
-{
-    mpl::debug(kLogCategory, "VirtDiskWrapper::VirtDiskWrapper(...) > api_table: {}", api);
-}
+VirtDiskWrapper::VirtDiskWrapper() = default;
 
 // ---------------------------------------------------------
 
@@ -247,27 +258,27 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
     HANDLE result_handle{nullptr};
 
     const auto result =
-        api.CreateVirtualDisk(&type,
-                              // [in] PCWSTR Path
-                              target_path_normalized.c_str(),
-                              // [in] VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
-                              VIRTUAL_DISK_ACCESS_NONE,
-                              // [in, optional] PSECURITY_DESCRIPTOR SecurityDescriptor,
-                              nullptr,
-                              // [in] CREATE_VIRTUAL_DISK_FLAG Flags,
-                              flags,
-                              // [in] ULONG ProviderSpecificFlags,
-                              0,
-                              // [in] PCREATE_VIRTUAL_DISK_PARAMETERS Parameters,
-                              &parameters,
-                              // [in, optional] LPOVERLAPPED Overlapped
-                              nullptr,
-                              // [out] PHANDLE Handle
-                              &result_handle);
+        API().CreateVirtualDisk(&type,
+                                // [in] PCWSTR Path
+                                target_path_normalized.c_str(),
+                                // [in] VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
+                                VIRTUAL_DISK_ACCESS_NONE,
+                                // [in, optional] PSECURITY_DESCRIPTOR SecurityDescriptor,
+                                nullptr,
+                                // [in] CREATE_VIRTUAL_DISK_FLAG Flags,
+                                flags,
+                                // [in] ULONG ProviderSpecificFlags,
+                                0,
+                                // [in] PCREATE_VIRTUAL_DISK_PARAMETERS Parameters,
+                                &parameters,
+                                // [in, optional] LPOVERLAPPED Overlapped
+                                nullptr,
+                                // [out] PHANDLE Handle
+                                &result_handle);
 
     if (result == ERROR_SUCCESS)
     {
-        [[maybe_unused]] UniqueHandle _{result_handle, api.CloseHandle};
+        [[maybe_unused]] UniqueHandle _{result_handle};
         return OperationResult{NOERROR, L""};
     }
 
@@ -286,7 +297,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
                "resize_virtual_disk(...) > vhdx_path: {}, new_size_bytes: {}",
                vhdx_path,
                new_size_bytes);
-    const auto disk_handle = open_virtual_disk(api, vhdx_path);
+    const auto disk_handle = open_virtual_disk(vhdx_path);
 
     if (nullptr == disk_handle)
     {
@@ -298,7 +309,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
     params.Version1 = {};
     params.Version1.NewSize = new_size_bytes;
 
-    const auto resize_result = api.ResizeVirtualDisk(
+    const auto resize_result = API().ResizeVirtualDisk(
         // [in] HANDLE VirtualDiskHandle
         disk_handle.get(),
         // [in] RESIZE_VIRTUAL_DISK_FLAG Flags
@@ -326,7 +337,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
     const std::filesystem::path& child) const
 {
-    // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/master/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI.cpp
+    // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/master/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI().cpp
     mpl::debug(kLogCategory, "merge_virtual_disk_to_parent(...) > child: {}", child);
 
     OPEN_VIRTUAL_DISK_PARAMETERS open_params{};
@@ -334,8 +345,7 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
     open_params.Version1.RWDepth = 2;
 
     const auto child_handle =
-        open_virtual_disk(api,
-                          child,
+        open_virtual_disk(child,
                           VIRTUAL_DISK_ACCESS_METAOPS | VIRTUAL_DISK_ACCESS_GET_INFO,
                           OPEN_VIRTUAL_DISK_FLAG_NONE,
                           &open_params);
@@ -348,10 +358,10 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
     params.Version = MERGE_VIRTUAL_DISK_VERSION_1;
     params.Version1.MergeDepth = MERGE_VIRTUAL_DISK_DEFAULT_MERGE_DEPTH;
 
-    if (const auto r = api.MergeVirtualDisk(child_handle.get(),
-                                            MERGE_VIRTUAL_DISK_FLAG_NONE,
-                                            &params,
-                                            nullptr);
+    if (const auto r = API().MergeVirtualDisk(child_handle.get(),
+                                              MERGE_VIRTUAL_DISK_FLAG_NONE,
+                                              &params,
+                                              nullptr);
         r == ERROR_SUCCESS)
         return OperationResult{NOERROR, L""};
     else
@@ -378,8 +388,7 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
     open_parameters.Version = OPEN_VIRTUAL_DISK_VERSION_2;
     open_parameters.Version2.GetInfoOnly = false;
 
-    const auto child_handle = open_virtual_disk(api,
-                                                child,
+    const auto child_handle = open_virtual_disk(child,
                                                 VIRTUAL_DISK_ACCESS_NONE,
                                                 OPEN_VIRTUAL_DISK_FLAG_NO_PARENTS,
                                                 &open_parameters);
@@ -398,7 +407,8 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
     info.ParentPathWithDepthInfo.ParentFilePath = parent_path_wstr.c_str();
     info.ParentPathWithDepthInfo.ChildDepth = 1; // immediate child
 
-    if (const auto r = api.SetVirtualDiskInformation(child_handle.get(), &info); r == ERROR_SUCCESS)
+    if (const auto r = API().SetVirtualDiskInformation(child_handle.get(), &info);
+        r == ERROR_SUCCESS)
         return OperationResult{NOERROR, L""};
     else
     {
@@ -419,7 +429,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp
     //
 
-    const auto disk_handle = open_virtual_disk(api, vhdx_path);
+    const auto disk_handle = open_virtual_disk(vhdx_path);
 
     if (nullptr == disk_handle)
     {
@@ -439,7 +449,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
         ULONG sz = sizeof(disk_info);
 
         const auto result =
-            api.GetVirtualDiskInformation(disk_handle.get(), &sz, &disk_info, nullptr);
+            API().GetVirtualDiskInformation(disk_handle.get(), &sz, &disk_info, nullptr);
 
         if (ERROR_SUCCESS == result)
         {
@@ -543,7 +553,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
         auto disk_info = alloc();
         disk_info->Version = GET_VIRTUAL_DISK_INFO_PARENT_LOCATION;
 
-        const auto disk_handle = open_virtual_disk(api, current);
+        const auto disk_handle = open_virtual_disk(current);
 
         if (nullptr == disk_handle)
             return OperationResult{E_FAIL, L"open_virtual_disk failed!"};
