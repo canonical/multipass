@@ -11,11 +11,10 @@ parts:
       https://security.ubuntu.com/ubuntu/	priority:3
       EOF
 
-      codename=jammy
       cat <<EOF > /etc/apt/sources.list
-      deb mirror+file:/etc/apt/apt-mirrors.txt $codename main restricted universe multiverse
-      deb mirror+file:/etc/apt/apt-mirrors.txt $codename-updates main restricted universe multiverse
-      deb mirror+file:/etc/apt/apt-mirrors.txt $codename-security main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt jammy main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt jammy-updates main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt jammy-security main restricted universe multiverse
       EOF
 
       apt-get update
