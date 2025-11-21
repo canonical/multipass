@@ -30,8 +30,7 @@ namespace multipass::hyperv
 struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 
-    explicit HCSVirtualMachineFactory(const Path& data_dir);
-    explicit HCSVirtualMachineFactory(const Path& data_dir, virtdisk_sptr_t virtdisk);
+    HCSVirtualMachineFactory(const Path& data_dir);
 
     [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                               const SSHKeyProvider& key_provider,
@@ -61,8 +60,6 @@ private:
                                                      const VirtualMachineDescription& desc,
                                                      VMStatusMonitor& monitor,
                                                      const SSHKeyProvider& key_provider) override;
-    virtdisk_sptr_t virtdisk_sptr{nullptr};
-
     /**
      * Retrieve a list of available network adapters.
      */
