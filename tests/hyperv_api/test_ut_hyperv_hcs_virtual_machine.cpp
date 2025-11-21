@@ -24,7 +24,7 @@
 #include "tests/common.h"
 #include "tests/hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "tests/hyperv_api/mock_hyperv_hcs_wrapper.h"
-#include "tests/mock_hyperv_virtdisk_wrapper.h"
+#include "tests/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/mock_status_monitor.h"
 #include "tests/stub_ssh_key_provider.h"
 #include "tests/stub_status_monitor.h"
@@ -87,8 +87,9 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         mpt::MockHCNWrapper::inject<StrictMock>();
     mpt::MockHCNWrapper& mock_hcn = *mock_hcn_wrapper_injection.first;
 
-    std::shared_ptr<mpt::MockVirtDiskWrapper> mock_virtdisk{
-        std::make_shared<mpt::MockVirtDiskWrapper>()};
+    mpt::MockVirtDiskWrapper::GuardedMock mock_virtdisk_wrapper_injection =
+        mpt::MockVirtDiskWrapper::inject<StrictMock>();
+    mpt::MockVirtDiskWrapper& mock_virtdisk = *mock_virtdisk_wrapper_injection.first;
 
     inline static auto mock_handle_raw = reinterpret_cast<void*>(0xbadf00d);
     hcs_handle_t mock_handle{mock_handle_raw, [](void*) {}};
@@ -152,7 +153,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                 },
                 Return(hcs_op_result_t{0, L""})));
 
-        EXPECT_CALL(*mock_virtdisk,
+        EXPECT_CALL(mock_virtdisk,
                     list_virtual_disk_chain(Eq(dummy_image.name().toStdString()), _, _))
             .WillRepeatedly(
                 DoAll([this](const std::filesystem::path& vhdx_path,
@@ -187,8 +188,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     template <typename T = uut_t>
     std::shared_ptr<T> construct_vm(multipass::VMStatusMonitor* monitor = nullptr)
     {
-        return std::make_shared<T>(mock_virtdisk,
-                                   "abcd",
+        return std::make_shared<T>("abcd",
                                    desc,
                                    monitor ? *monitor : stub_monitor,
                                    stub_key_provider,
@@ -635,7 +635,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
                      hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
                   Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(*mock_virtdisk,
+    EXPECT_CALL(mock_virtdisk,
                 resize_virtual_disk(Eq(desc.image.image_path.toStdString()), Eq(123456)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 

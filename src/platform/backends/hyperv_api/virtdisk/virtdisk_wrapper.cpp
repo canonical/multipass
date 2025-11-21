@@ -130,7 +130,10 @@ UniqueHandle open_virtual_disk(
 
 // ---------------------------------------------------------
 
-VirtDiskWrapper::VirtDiskWrapper() = default;
+VirtDiskWrapper::VirtDiskWrapper(const Singleton<VirtDiskWrapper>::PrivatePass& pass) noexcept
+    : Singleton<VirtDiskWrapper>::Singleton(pass)
+{
+}
 
 // ---------------------------------------------------------
 

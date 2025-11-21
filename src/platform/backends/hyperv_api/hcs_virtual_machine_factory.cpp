@@ -40,6 +40,7 @@ namespace multipass::hyperv
 
 using hcn::HCN;
 using hcs::HCS;
+using virtdisk::VirtDisk;
 
 /**
  * Category for the log messages.
@@ -53,26 +54,10 @@ constexpr static auto kExtraInterfaceVswitchNameFmtStr = "Multipass vSwitch ({})
  */
 constexpr static auto kExtraInterfaceVswitchNameRegex = R"(Multipass vSwitch \((.*)\))";
 
-// Delegating constructor
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
-    : HCSVirtualMachineFactory(data_dir, std::make_shared<virtdisk::VirtDiskWrapper>())
-
-{
-}
-
-HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir, virtdisk_sptr_t virtdisk)
     : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir)),
-      virtdisk_sptr(virtdisk)
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
 {
-    const std::array<void*, 1> api_ptrs = {virtdisk.get()};
-    if (std::any_of(std::begin(api_ptrs), std::end(api_ptrs), [](const void* ptr) {
-            return nullptr == ptr;
-        }))
-    {
-        throw InvalidAPIPointerException{"One of the required API pointers is not set: {}.",
-                                         fmt::join(api_ptrs, ",")};
-    }
 }
 
 VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
@@ -80,8 +65,6 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    assert(virtdisk_sptr);
-
     const auto networks = MP_PLATFORM.get_network_interfaces_info();
     for (const auto& extra : desc.extra_interfaces)
     {
@@ -119,8 +102,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
         }
     }
 
-    return std::make_unique<HCSVirtualMachine>(virtdisk_sptr,
-                                               kDefaultHyperVSwitchGUID,
+    return std::make_unique<HCSVirtualMachine>(kDefaultHyperVSwitchGUID,
                                                desc,
                                                monitor,
                                                key_provider,
@@ -206,10 +188,9 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
                                                       const VirtualMachineDescription& desc)
 {
     // Resize the instance image to the desired size
-    assert(virtdisk_sptr);
     const auto& [status, status_msg] =
-        virtdisk_sptr->resize_virtual_disk(instance_image.image_path.toStdString(),
-                                           desc.disk_space.in_bytes());
+        VirtDisk().resize_virtual_disk(instance_image.image_path.toStdString(),
+                                       desc.disk_space.in_bytes());
     if (!status)
     {
         throw ImageResizeException{"Failed to resize VHDX file `{}`, virtdisk API error code `{}`",
@@ -279,7 +260,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     clone_vhdx_params.path = desc.image.image_path.toStdString();
     clone_vhdx_params.size_in_bytes = 0; // use source disk size
 
-    const auto& [status, msg] = virtdisk_sptr->create_virtual_disk(clone_vhdx_params);
+    const auto& [status, msg] = VirtDisk().create_virtual_disk(clone_vhdx_params);
 
     if (!status)
     {

@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
 #include <shared/base_snapshot.h>
 
 #include <QString>
@@ -54,8 +53,7 @@ public:
                      std::shared_ptr<Snapshot> parent,
                      const VMSpecs& specs,
                      const VirtualMachine& vm,
-                     const VirtualMachineDescription& desc,
-                     virtdisk_sptr_t virtdisk);
+                     const VirtualMachineDescription& desc);
 
     /**
      * Load an existing VirtDiskSnapshot from file
@@ -67,8 +65,7 @@ public:
      */
     VirtDiskSnapshot(const QString& filename,
                      VirtualMachine& vm,
-                     const VirtualMachineDescription& desc,
-                     virtdisk_sptr_t virtdisk);
+                     const VirtualMachineDescription& desc);
 
     /**
      * Create a consistent filename for a snapshot
@@ -134,11 +131,6 @@ private:
      * The owning VM
      */
     const VirtualMachine& vm;
-
-    /**
-     * VirtDisk API object
-     */
-    virtdisk_sptr_t virtdisk{nullptr};
 };
 
 } // namespace multipass::hyperv::virtdisk
