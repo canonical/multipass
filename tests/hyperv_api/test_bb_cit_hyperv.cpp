@@ -29,10 +29,9 @@
 namespace multipass::test
 {
 
-using virtdisk_wrapper_t = multipass::hyperv::virtdisk::VirtDiskWrapper;
-
 using namespace hyperv::hcs;
 using hyperv::hcn::HCN;
+using hyperv::virtdisk::VirtDisk;
 
 // Component level big bang integration tests for Hyper-V HCN/HCS + virtdisk API's.
 // These tests ensure that the API's working together as expected.
@@ -42,7 +41,6 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 {
-    virtdisk_wrapper_t virtdisk{};
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
     const auto network_parameters = []() {
@@ -107,7 +105,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     // Create the test VHDX (empty)
     {
-        const auto& [status, status_msg] = virtdisk.create_virtual_disk(create_disk_parameters);
+        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(create_disk_parameters);
         ASSERT_TRUE(status);
     }
 
@@ -132,7 +130,6 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_boot)
 {
-    virtdisk_wrapper_t virtdisk{};
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
     const auto network_parameters = []() {
@@ -217,7 +214,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Create the test VHDX (empty)
     {
-        const auto& [status, status_msg] = virtdisk.create_virtual_disk(create_disk_parameters);
+        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(create_disk_parameters);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
     }

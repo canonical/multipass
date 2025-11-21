@@ -17,32 +17,26 @@
 
 #pragma once
 
+#include <hyperv_api/hyperv_api_operation_result.h>
+#include <hyperv_api/virtdisk/virtdisk_create_virtual_disk_params.h>
 #include <hyperv_api/virtdisk/virtdisk_disk_info.h>
-#include <hyperv_api/virtdisk/virtdisk_wrapper_interface.h>
+
+#include <multipass/singleton.h>
 
 namespace multipass::hyperv::virtdisk
 {
 
 /**
  * A high-level wrapper class that defines
- * the common operations that Host Compute System
- * API provide.
+ * the common operations that VirtDisk API
+ * provide.
  */
-struct VirtDiskWrapper : public VirtDiskWrapperInterface
+struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
 {
-
     /**
-     * Construct a new HCNWrapper
-     *
-     * @param api_table The HCN API table object (optional)
-     *
-     * The wrapper will use the real HCN API by default.
+     * Construct a new VirtDiskWrapper
      */
-    VirtDiskWrapper();
-    VirtDiskWrapper(const VirtDiskWrapper&) = default;
-    VirtDiskWrapper(VirtDiskWrapper&&) = default;
-    VirtDiskWrapper& operator=(const VirtDiskWrapper&) = delete;
-    VirtDiskWrapper& operator=(VirtDiskWrapper&&) = delete;
+    VirtDiskWrapper(const Singleton<VirtDiskWrapper>::PrivatePass&) noexcept;
 
     // ---------------------------------------------------------
 
@@ -54,8 +48,8 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult create_virtual_disk(
-        const CreateVirtualDiskParameters& params) const override;
+    [[nodiscard]] virtual OperationResult create_virtual_disk(
+        const CreateVirtualDiskParameters& params) const;
 
     // ---------------------------------------------------------
 
@@ -68,9 +62,8 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] virtual OperationResult resize_virtual_disk(
-        const std::filesystem::path& vhdx_path,
-        std::uint64_t new_size_bytes) const override;
+    [[nodiscard]] virtual OperationResult
+    resize_virtual_disk(const std::filesystem::path& vhdx_path, std::uint64_t new_size_bytes) const;
 
     // ---------------------------------------------------------
 
@@ -82,8 +75,8 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] OperationResult merge_virtual_disk_to_parent(
-        const std::filesystem::path& child) const override;
+    [[nodiscard]] virtual OperationResult merge_virtual_disk_to_parent(
+        const std::filesystem::path& child) const;
 
     // ---------------------------------------------------------
 
@@ -98,7 +91,7 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      */
     [[nodiscard]] virtual OperationResult reparent_virtual_disk(
         const std::filesystem::path& child,
-        const std::filesystem::path& parent) const override;
+        const std::filesystem::path& parent) const;
 
     // ---------------------------------------------------------
 
@@ -111,9 +104,8 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
      * @return An object that evaluates to true on success, false otherwise.
      * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] virtual OperationResult get_virtual_disk_info(
-        const std::filesystem::path& vhdx_path,
-        VirtualDiskInfo& vdinfo) const override;
+    [[nodiscard]] virtual OperationResult
+    get_virtual_disk_info(const std::filesystem::path& vhdx_path, VirtualDiskInfo& vdinfo) const;
 
     /**
      * List all the virtual disks in a virtual disk chain.
@@ -126,7 +118,12 @@ struct VirtDiskWrapper : public VirtDiskWrapperInterface
     [[nodiscard]] virtual OperationResult list_virtual_disk_chain(
         const std::filesystem::path& vhdx_path,
         std::vector<std::filesystem::path>& chain,
-        std::optional<std::size_t> max_depth = std::nullopt) const override;
+        std::optional<std::size_t> max_depth = std::nullopt) const;
 };
+
+inline const VirtDiskWrapper& VirtDisk()
+{
+    return VirtDiskWrapper::instance();
+}
 
 } // namespace multipass::hyperv::virtdisk
