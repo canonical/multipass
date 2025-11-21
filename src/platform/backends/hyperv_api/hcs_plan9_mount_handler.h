@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
 #include <multipass/mount_handler.h>
 
 namespace multipass::hyperv::hcs

@@ -17,8 +17,6 @@
 
 #pragma once
 
-#include <hyperv_api/hyperv_api_wrapper_fwdecl.h>
-
 #include <shared/base_virtual_machine_factory.h>
 
 namespace multipass::hyperv
