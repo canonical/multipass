@@ -34,7 +34,7 @@ using namespace testing;
 namespace multipass::test
 {
 
-using uut_t = hyperv::virtdisk::VirtDiskWrapper;
+using hyperv::virtdisk::VirtDisk;
 
 struct HyperVVirtDisk_UnitTests : public ::testing::Test
 {
@@ -119,8 +119,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
     params.size_in_bytes = 2097152;
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.create_virtual_disk(params);
+        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
     }
@@ -181,8 +180,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
     params.size_in_bytes = 2097152;
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.create_virtual_disk(params);
+        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
     }
@@ -312,8 +310,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
     params.size_in_bytes = 0;
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.create_virtual_disk(params);
+        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
     }
@@ -355,8 +352,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
     params.size_in_bytes = 2097152;
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.create_virtual_disk(params);
+        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
         EXPECT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"CreateVirtualDisk failed with 3!");
@@ -418,8 +414,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
     }
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.resize_virtual_disk("test.vhdx", 1234567);
+        const auto& [status, status_msg] = VirtDisk().resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
     }
@@ -441,8 +436,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_open_failed)
     }
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.resize_virtual_disk("test.vhdx", 1234567);
+        const auto& [status, status_msg] = VirtDisk().resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"open_virtual_disk failed!");
@@ -487,8 +481,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
     }
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.resize_virtual_disk("test.vhdx", 1234567);
+        const auto& [status, status_msg] = VirtDisk().resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"ResizeVirtualDisk failed with 87!");
@@ -600,9 +593,8 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
     }
 
     {
-        uut_t uut{};
         hyperv::virtdisk::VirtualDiskInfo info{};
-        const auto& [status, status_msg] = uut.get_virtual_disk_info("test.vhdx", info);
+        const auto& [status, status_msg] = VirtDisk().get_virtual_disk_info("test.vhdx", info);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
 
@@ -714,9 +706,8 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
     }
 
     {
-        uut_t uut{};
         hyperv::virtdisk::VirtualDiskInfo info{};
-        const auto& [status, status_msg] = uut.get_virtual_disk_info("test.vhdx", info);
+        const auto& [status, status_msg] = VirtDisk().get_virtual_disk_info("test.vhdx", info);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
 
@@ -790,8 +781,8 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
     }
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.reparent_virtual_disk("child.avhdx", "parent.vhdx");
+        const auto& [status, status_msg] =
+            VirtDisk().reparent_virtual_disk("child.avhdx", "parent.vhdx");
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
     }
@@ -814,8 +805,8 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_open_disk_failure)
     }
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.reparent_virtual_disk("child.avhdx", "parent.vhdx");
+        const auto& [status, status_msg] =
+            VirtDisk().reparent_virtual_disk("child.avhdx", "parent.vhdx");
         EXPECT_FALSE(status);
         EXPECT_FALSE(status_msg.empty());
     }
@@ -880,8 +871,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
     }
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.merge_virtual_disk_to_parent("child.avhdx");
+        const auto& [status, status_msg] = VirtDisk().merge_virtual_disk_to_parent("child.avhdx");
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
     }
@@ -904,8 +894,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_open_disk_failure)
     }
 
     {
-        uut_t uut{};
-        const auto& [status, status_msg] = uut.merge_virtual_disk_to_parent("child.avhdx");
+        const auto& [status, status_msg] = VirtDisk().merge_virtual_disk_to_parent("child.avhdx");
         EXPECT_FALSE(status);
         EXPECT_FALSE(status_msg.empty());
     }
