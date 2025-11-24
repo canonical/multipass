@@ -96,6 +96,13 @@ protected:
 
     virtual void drop_ssh_session(); // virtual to allow mocking
     virtual bool unplugged();
+
+    /**
+     * Refresh the VM, if possible, when the startup appears stuck.
+     *
+     * This method does nothing by default. It is meant to give concrete implementations a chance to
+     * perform some backend-specific action to increase the chance of a successful start.
+     */
     virtual void refresh_start();
 
     void renew_ssh_session();
