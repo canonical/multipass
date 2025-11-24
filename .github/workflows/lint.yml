@@ -41,6 +41,10 @@ jobs:
             'docs/.sphinx/'     `# vendored starter pack`
             'tests/test_data/'  `# test data`
 
+      - name: Check codecov.yml
+        shell: bash
+        run: curl --fail-with-body -X POST --data-binary @.github/.codecov.yml https://codecov.io/validate
+
       - name: Install clang-format
         shell: bash
         run: sudo apt-get install --no-install-recommends --yes clang-format-16
