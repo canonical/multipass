@@ -35,13 +35,18 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
         }},
         "HostComputeNetwork": "{0}",
         "Policies": [],
-        "MacAddress" : "{1}"
+        "MacAddress" : {1}
     }})json");
+
+    constexpr static auto fmt_placeholder = MULTIPASS_UNIVERSAL_LITERAL("\"{}\"");
+    constexpr static auto null = MULTIPASS_UNIVERSAL_LITERAL("null");
 
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),
                           maybe_widen{params.network_guid},
-                          maybe_widen{params.mac_address ? params.mac_address.value() : "null"});
+                          params.mac_address ? fmt::format(fmt_placeholder.as<Char>(),
+                                                           maybe_widen{params.mac_address.value()})
+                                             : null.as<Char>());
 }
 
 template auto fmt::formatter<CreateEndpointParameters, char>::format<fmt::format_context>(
