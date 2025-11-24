@@ -123,15 +123,15 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 To build with Qt installed via aqtinstall:
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos -DCMAKE_BUILD_TYPE=Debug
 
 Alternatively if using Qt6 from Homebrew, do
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt6
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt6 -DCMAKE_BUILD_TYPE=Debug
 
 or, if on Apple silicon, brew will store the Qt binaries in a different location.
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt6
+    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt6 -DCMAKE_BUILD_TYPE=Debug
 
 Then start the build with:
 
