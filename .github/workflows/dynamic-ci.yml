@@ -45,6 +45,7 @@ jobs:
             code:
               - ".github/workflows/linux*"
               - ".github/workflows/windows-macos.yml"
+              - ".github/.codecov.yml"
               - "3rd-party/**"
               - "completions/**"
               - "data/*"
