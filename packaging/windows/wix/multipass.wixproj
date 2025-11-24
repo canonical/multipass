@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="WixToolset.Sdk/5.0.0">
+<Project Sdk="WixToolset.Sdk/5.0.2">
     <PropertyGroup>
         <BuildVersion>0.0</BuildVersion>
         <DefineConstants>Version=$(BuildVersion)</DefineConstants>
@@ -36,6 +36,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\custom-actions\custom-actions.vcxproj" />
+        <ProjectReference Include="..\custom-actions\custom-actions.vcxproj">
+            <Project>{D4E3F6C1-1A2B-4C5D-8E9F-0A1B2C3D4E5F}</Project>
+            <SetPlatform>Platform=x64</SetPlatform>
+        </ProjectReference>
     </ItemGroup>
 </Project>

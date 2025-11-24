@@ -30,6 +30,13 @@ if(NOT ${IS_RUNNING_IN_CI})
 endif()
 
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
+cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
+
+if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
+  set(VCPKG_HOST_ARCH "arm64")
+else()
+  set(VCPKG_HOST_ARCH "x64")
+endif()
 
 include(CMakeDependentOption)
 cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
@@ -37,7 +44,7 @@ cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
-  if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+  if ("${VCPKG_HOST_ARCH}" STREQUAL "arm64")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "macOS Deployment Target")
   else()
     set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
@@ -57,11 +64,17 @@ endif()
 
 if(NOT VCPKG_BUILD_DEFAULT)
   message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
-  cmake_host_system_information(RESULT VCPKG_HOST_ARCH QUERY OS_PLATFORM)
-  if("${VCPKG_HOST_ARCH}" STREQUAL "x86_64" OR "${VCPKG_HOST_ARCH}" STREQUAL "AMD64")
-    set(VCPKG_HOST_ARCH "x64")
-  elseif("${VCPKG_HOST_ARCH}" STREQUAL "aarch64")
-    set(VCPKG_HOST_ARCH "arm64")
+
+  # Propagate macOS deployment target to vcpkg triplet
+  if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+    configure_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
+      "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
+      @ONLY
+    )
+    set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
+    message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
 
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
@@ -178,7 +191,7 @@ if(UNIX)
 endif()
 
 # OpenSSL config
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL CONFIG REQUIRED)
 
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)
