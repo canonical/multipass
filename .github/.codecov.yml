@@ -1,5 +1,3 @@
 coverage:
   round: up
   precision: 2
-ignore:
-  - "src/utils/file_ops.cpp" # std::filesystem wrapper
