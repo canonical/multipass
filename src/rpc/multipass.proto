@@ -211,6 +211,8 @@ message InstanceDetails {
     string memory_usage = 5;
     string disk_usage = 6;
     repeated string ipv4 = 7;
+    reserved 8;
+    reserved "ipv6";
     optional int32 num_snapshots = 9;
     string cpu_times = 10;
     string uptime = 11;
