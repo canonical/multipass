@@ -243,7 +243,7 @@ bool multipass::BaseVirtualMachine::unplugged()
 
 void mp::BaseVirtualMachine::detect_aborted_start()
 {
-    const std::lock_guard lock{state_mutex};
+    std::lock_guard lock{state_mutex};
     if (unplugged())
     {
         shutdown_while_starting = true;
