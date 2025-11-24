@@ -3,7 +3,8 @@
   "dependencies": [
     "poco",
     "grpc",
-    "fmt"
+    "fmt",
+    "openssl"
   ],
   "overrides": [
     {
