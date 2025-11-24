@@ -249,7 +249,7 @@ void mp::BaseVirtualMachine::detect_aborted_start()
         shutdown_while_starting = true;
         state_wait.notify_all();
 
-        auto msg = std::string{"Instance shutdown during start"};
+        std::string msg{"Instance shutdown during start"};
         if (!saved_error_msg.empty())
             msg += ": " + saved_error_msg;
 
