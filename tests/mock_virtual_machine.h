@@ -25,15 +25,15 @@
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 
+#include <concepts>
 #include <memory>
-#include <type_traits>
 
 using namespace testing;
 
 namespace multipass::test
 {
-template <typename T = VirtualMachine,
-          typename = std::enable_if_t<std::is_base_of_v<VirtualMachine, T>>>
+template <typename T = VirtualMachine>
+    requires std::derived_from<T, VirtualMachine>
 struct MockVirtualMachineT : public T
 {
     template <typename... Args>
@@ -43,7 +43,7 @@ struct MockVirtualMachineT : public T
     }
 
     template <typename... Args>
-        requires(std::is_same_v<VirtualMachine, T>)
+        requires(std::same_as<VirtualMachine, T>)
     explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
         : T{std::forward<Args>(args)...}, tmp_dir{std::move(tmp_dir)}
     {
@@ -51,7 +51,7 @@ struct MockVirtualMachineT : public T
     }
 
     template <typename... Args>
-        requires(!std::is_same_v<VirtualMachine, T>)
+        requires(!std::same_as<VirtualMachine, T>)
     explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
         : T{std::forward<Args>(args)..., tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
     {
