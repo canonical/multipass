@@ -28,7 +28,6 @@
 #include "mock_vm_image_vault.h"
 #include "stub_mount_handler.h"
 #include "temp_dir.h"
-#include "temp_file.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>

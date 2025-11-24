@@ -20,6 +20,7 @@
 #include "temp_file.h"
 
 #include "mock_image_host.h"
+#include <multipass/vm_image.h>
 #include <multipass/vm_image_vault.h>
 
 namespace multipass
@@ -61,20 +62,20 @@ struct StubVMImageVault final : public multipass::VMImageVault
 
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const override
     {
-        return std::vector<std::pair<std::string, mp::VMImageInfo>>{
-            std::pair<std::string, mp::VMImageInfo>{"default",
-                                                    {{default_alias},
-                                                     "Ubuntu",
-                                                     "bionic",
-                                                     default_release_info,
-                                                     "Bionic Beaver",
-                                                     true,
-                                                     dummy_image.url(),
-                                                     default_id,
-                                                     default_stream_location,
-                                                     default_version,
-                                                     1,
-                                                     true}}};
+        return std::vector<std::pair<std::string, multipass::VMImageInfo>>{
+            std::pair<std::string, multipass::VMImageInfo>{"default",
+                                                           {{default_alias},
+                                                            "Ubuntu",
+                                                            "bionic",
+                                                            default_release_info,
+                                                            "Bionic Beaver",
+                                                            true,
+                                                            dummy_image.url(),
+                                                            default_id,
+                                                            default_stream_location,
+                                                            default_version,
+                                                            1,
+                                                            true}}};
     }
 
     void clone(const std::string& source_instance_name,

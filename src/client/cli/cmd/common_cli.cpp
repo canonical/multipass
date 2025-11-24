@@ -30,7 +30,6 @@
 
 #include <chrono>
 #include <fmt/ostream.h>
-#include <sstream>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;

@@ -23,7 +23,6 @@
 
 #include <multipass/exceptions/ssh_exception.h>
 
-#include <string>
 #include <type_traits>
 
 namespace multipass

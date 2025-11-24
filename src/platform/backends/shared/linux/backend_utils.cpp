@@ -17,7 +17,6 @@
 
 #include "backend_utils.h"
 #include "dbus_wrappers.h"
-#include "process_factory.h"
 
 #include <multipass/file_ops.h>
 #include <multipass/format.h>

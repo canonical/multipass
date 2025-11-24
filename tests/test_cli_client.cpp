@@ -35,7 +35,6 @@
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
-#include "stub_console.h"
 #include "stub_terminal.h"
 
 #include <src/client/cli/client.h>
