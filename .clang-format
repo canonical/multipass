@@ -44,4 +44,5 @@ DisableFormat: true
 ---
 Language: Json
 IndentWidth: 4
+InsertNewlineAtEOF: true
 ...
