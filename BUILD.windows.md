@@ -133,17 +133,30 @@ cd <multipass>
 git submodule update --init --recursive
 mkdir build
 cd build
+cmake -GNinja ..
 ```
+
+CMake will automatically fetch all necessary content, build vcpkg dependencies, and initialize
+the build system. If it doesn't pick it up automatically,
+specify the vcpkg toolchain manually with
+`-DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake `.
+Use `CMAKE_PREFIX_PATH` to select a specific Qt version.
+To specify the build type, use `-DCMAKE_BUILD_TYPE` option to set the build type (e.g.,
+`Debug`, `Release`, `Coverage`, etc.).
+
+Another example:
 
 ```[batch]
 cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.10.0\msvc2022_64\ ../
 ```
 
+Finally, to build the project, run:
+
 ```[batch]
-cmake --build .
+cmake --build . --parallel
 ```
 
-This builds `multipass` and `multipassd`.
+This builds `multipass`, `multipassd`, and `multipass_tests`.
 To create an installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
