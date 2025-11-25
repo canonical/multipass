@@ -23,6 +23,8 @@
 namespace mp = multipass;
 namespace fs = mp::fs;
 
+// LCOV_EXCL_START
+
 mp::NamedFd::NamedFd(const fs::path& path, int fd) : path{path}, fd{fd}
 {
 }
@@ -312,3 +314,5 @@ fs::perms mp::FileOps::get_permissions(const fs::path& file) const
 {
     return fs::status(file).permissions();
 }
+
+// LCOV_EXCL_STOP
