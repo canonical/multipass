@@ -76,6 +76,7 @@
 #include <functional>
 #include <optional>
 #include <stdexcept>
+#include <thread>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -1585,6 +1586,45 @@ mp::Daemon::~Daemon()
         // before the daemon object destructs.
         QCoreApplication::processEvents(QEventLoop::AllEvents);
     });
+
+    /**
+     * Destroy VMs concurrently to speed up shutdown when multiple VMs
+     * need to be suspended. Each VM destructor may take up to 15 seconds
+     * to perform a CPR checkpoint, so with many VMs this can significantly
+     * reduce total shutdown time.
+     */
+    if (!operative_instances.empty())
+    {
+        mp::top_catch_all(category, [this] {
+            // Move VMs to temporary storage so we can destroy them concurrently
+            std::vector<std::pair<std::string, VirtualMachine::ShPtr>> vms_to_destroy;
+            vms_to_destroy.reserve(operative_instances.size());
+            for (auto& [name, vm] : operative_instances)
+            {
+                vms_to_destroy.emplace_back(name, std::move(vm));
+            }
+            operative_instances.clear();
+
+            // Destroy all VMs concurrently using std::thread
+            std::vector<std::thread> destruction_threads;
+            destruction_threads.reserve(vms_to_destroy.size());
+
+            for (auto& [name, vm] : vms_to_destroy)
+            {
+                destruction_threads.emplace_back([vm = std::move(vm), name]() {
+                    // VM destructor will run here, performing suspend if needed
+                    // The shared_ptr going out of scope triggers destruction
+                });
+            }
+
+            // Wait for all VM destructions to complete
+            for (auto& thread : destruction_threads)
+            {
+                if (thread.joinable())
+                    thread.join();
+            }
+        });
+    }
 }
 
 void mp::Daemon::shutdown_grpc_server()

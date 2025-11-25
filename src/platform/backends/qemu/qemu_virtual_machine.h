@@ -112,6 +112,7 @@ private:
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};
+    std::atomic<bool> migration_complete{false};
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;

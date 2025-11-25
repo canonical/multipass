@@ -90,42 +90,40 @@ TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
 
 TEST_F(TestQemuVMProcessSpec, resumeArgumentsTakenFromResumedata)
 {
-    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
+    const mp::QemuVMProcessSpec::ResumeData resume_data{"/path/to/suspend.cpr",
                                                         "machine_type",
                                                         {"-one", "-two"}};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
 
     EXPECT_EQ(spec.arguments(),
-              QStringList({"-one", "-two", "-loadvm", "suspend_tag", "-machine", "machine_type"})
+              QStringList({"-one", "-two", "-incoming", "defer", "-machine", "machine_type"})
                   << mount_args.begin()->second.second);
 }
 
 TEST_F(TestQemuVMProcessSpec, resumeWithMissingMachineTypeGuessesCorrectly)
 {
     mp::QemuVMProcessSpec::ResumeData resume_data_missing_machine_info;
-    resume_data_missing_machine_info.suspend_tag = "suspend_tag";
+    resume_data_missing_machine_info.cpr_file_path = "/path/to/suspend.cpr";
     resume_data_missing_machine_info.arguments = QStringList{"-args"};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data_missing_machine_info);
 
     EXPECT_EQ(spec.arguments(),
-              QStringList({"-args", "-loadvm", "suspend_tag"})
-                  << mount_args.begin()->second.second);
+              QStringList({"-args", "-incoming", "defer"}) << mount_args.begin()->second.second);
 }
 
 TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
 {
-    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
+    const mp::QemuVMProcessSpec::ResumeData resume_data{"/path/to/suspend.cpr",
                                                         "machine_type",
                                                         {"vmnet-macos,mode=shared,foo"}};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
 
-    EXPECT_EQ(
-        spec.arguments(),
-        QStringList({"vmnet-shared,foo", "-loadvm", "suspend_tag", "-machine", "machine_type"})
-            << mount_args.begin()->second.second);
+    EXPECT_EQ(spec.arguments(),
+              QStringList({"vmnet-shared,foo", "-incoming", "defer", "-machine", "machine_type"})
+                  << mount_args.begin()->second.second);
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)

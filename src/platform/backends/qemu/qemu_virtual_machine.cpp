@@ -35,6 +35,7 @@
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -42,6 +43,7 @@
 #include <QProcess>
 #include <QString>
 #include <QTemporaryFile>
+#include <QThread>
 
 #include <cassert>
 
@@ -52,7 +54,6 @@ using namespace std::chrono_literals;
 
 namespace
 {
-constexpr auto suspend_tag = "suspend";
 constexpr auto machine_type_key = "machine_type";
 constexpr auto arguments_key = "arguments";
 constexpr auto mount_data_key = "mount_data";
@@ -107,7 +108,8 @@ auto mount_args_from_json(const QJsonObject& object)
 auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                        const std::optional<QJsonObject>& resume_metadata,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
-                       const QStringList& platform_args)
+                       const QStringList& platform_args,
+                       const mp::Path& instance_dir)
 {
     if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
@@ -118,7 +120,8 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
     if (resume_metadata)
     {
         const auto& data = resume_metadata.value();
-        resume_data = mp::QemuVMProcessSpec::ResumeData{suspend_tag,
+        auto cpr_file_path = QDir{instance_dir}.filePath("suspend.cpr");
+        resume_data = mp::QemuVMProcessSpec::ResumeData{cpr_file_path,
                                                         get_vm_machine(data),
                                                         get_arguments(data)};
     }
@@ -137,18 +140,6 @@ auto qmp_execute_json(const QString& cmd)
 {
     QJsonObject qmp;
     qmp.insert("execute", cmd);
-    return QJsonDocument(qmp).toJson();
-}
-
-auto hmc_to_qmp_json(const QString& command_line)
-{
-    auto qmp = QJsonDocument::fromJson(qmp_execute_json("human-monitor-command")).object();
-
-    QJsonObject cmd_line;
-    cmd_line.insert("command-line", command_line);
-
-    qmp.insert("arguments", cmd_line);
-
     return QJsonDocument(qmp).toJson();
 }
 
@@ -238,8 +229,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            const SSHKeyProvider& key_provider,
                                            const Path& instance_dir,
                                            bool remove_snapshots)
-    : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path,
-                                                                  suspend_tag)
+    : BaseVirtualMachine{QFile::exists(QDir{instance_dir}.filePath("suspend.cpr"))
                              ? State::suspended
                              : State::off,
                          desc.vm_name,
@@ -268,7 +258,56 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
         mp::top_catch_all(vm_name, [this]() {
             if (state == State::running)
             {
-                suspend();
+                // During destruction, do a quick suspend without event processing
+                // to avoid segfaults when Qt event loop is being destroyed
+                mpl::info(vm_name, "Quick suspend during destruction");
+
+                drop_ssh_session();
+
+                auto cpr_file_path = QDir(instance_dir).absoluteFilePath("suspend.cpr");
+
+                // Reset migration complete flag
+                migration_complete = false;
+
+                // Set migration mode to cpr-reboot
+                QJsonObject set_params_cmd;
+                set_params_cmd.insert("execute", "migrate-set-parameters");
+                QJsonObject mode_args;
+                mode_args.insert("mode", "cpr-reboot");
+                set_params_cmd.insert("arguments", mode_args);
+                vm_process->write(QJsonDocument(set_params_cmd).toJson());
+
+                QThread::msleep(100);
+
+                // Execute migrate to file
+                QJsonObject migrate_cmd;
+                migrate_cmd.insert("execute", "migrate");
+                QJsonObject migrate_args;
+                migrate_args.insert("uri", QString("file://%1").arg(cpr_file_path));
+                migrate_cmd.insert("arguments", migrate_args);
+                vm_process->write(QJsonDocument(migrate_cmd).toJson());
+
+                // Simple polling without event processing
+                const int max_iterations = 30; // 15 seconds total
+                for (int i = 0; i < max_iterations && vm_process->running() && !migration_complete;
+                     ++i)
+                {
+                    vm_process->write(qmp_execute_json("query-migrate"));
+                    QThread::msleep(500);
+                }
+
+                if (migration_complete)
+                {
+                    vm_process->write(qmp_execute_json("quit"));
+                    vm_process->wait_for_finished(5000);
+                }
+                else
+                {
+                    mpl::warn(vm_name,
+                              "Migration did not complete during destruction, killing process");
+                    vm_process->kill();
+                    vm_process->wait_for_finished(2000);
+                }
             }
             else
             {
@@ -329,6 +368,33 @@ void mp::QemuVirtualMachine::start()
     }
 
     vm_process->write(qmp_execute_json("qmp_capabilities"));
+
+    if (is_starting_from_suspend)
+    {
+        auto cpr_file_path = QDir(instance_dir).absoluteFilePath("suspend.cpr");
+
+        mpl::info(vm_name, "Resuming from CPR checkpoint: {}", cpr_file_path);
+
+        // Set migration mode to cpr-reboot
+        QJsonObject set_params_cmd;
+        set_params_cmd.insert("execute", "migrate-set-parameters");
+        QJsonObject mode_args;
+        mode_args.insert("mode", "cpr-reboot");
+        set_params_cmd.insert("arguments", mode_args);
+        auto set_params_json = QJsonDocument(set_params_cmd).toJson();
+        mpl::debug(vm_name, "Sending QMP: {}", set_params_json.toStdString());
+        vm_process->write(set_params_json);
+
+        // Execute migrate-incoming from file (URI format: file://absolute-path)
+        QJsonObject migrate_cmd;
+        migrate_cmd.insert("execute", "migrate-incoming");
+        QJsonObject migrate_args;
+        migrate_args.insert("uri", QString("file://%1").arg(cpr_file_path));
+        migrate_cmd.insert("arguments", migrate_args);
+        auto migrate_json = QJsonDocument(migrate_cmd).toJson();
+        mpl::debug(vm_name, "Sending QMP: {}", migrate_json.toStdString());
+        vm_process->write(migrate_json);
+    }
 }
 
 void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -368,17 +434,18 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mpl::debug(vm_name, "No process to kill");
         }
 
-        const auto has_suspend_snapshot =
-            mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag);
-        if (has_suspend_snapshot != (state == State::suspended)) // clang-format off
-            mpl::warn(vm_name, "Image has {} suspension snapshot, but the state is {}",
-                                                               has_suspend_snapshot ? "a" : "no",
-                                                               static_cast<short>(state)); // clang-format on
+        const auto cpr_file_path = instance_dir.filePath("suspend.cpr");
+        const auto has_cpr_file = QFile::exists(cpr_file_path);
+        if (has_cpr_file != (state == State::suspended))
+            mpl::warn(vm_name,
+                      "Instance has {} CPR checkpoint, but the state is {}",
+                      has_cpr_file ? "a" : "no",
+                      static_cast<short>(state));
 
-        if (has_suspend_snapshot)
+        if (has_cpr_file)
         {
-            mpl::info(vm_name, "Deleting suspend image");
-            mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+            mpl::info(vm_name, "Deleting CPR checkpoint file");
+            QFile::remove(cpr_file_path);
         }
 
         state = State::off;
@@ -396,6 +463,14 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             {
                 lock.lock();
                 state = State::off;
+
+                // Clean up CPR checkpoint if it exists
+                const auto cpr_file_path = instance_dir.filePath("suspend.cpr");
+                if (QFile::exists(cpr_file_path))
+                {
+                    mpl::info(vm_name, "Deleting CPR checkpoint file after shutdown");
+                    QFile::remove(cpr_file_path);
+                }
             }
             else
             {
@@ -415,14 +490,93 @@ void mp::QemuVirtualMachine::suspend()
         {
             state = State::suspending;
             update_state();
-            update_shutdown_status = false;
         }
 
         drop_ssh_session();
-        vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
-        vm_process->wait_for_finished(shutdown_timeout);
 
+        // Use CPR (CheckPoint and Restart) mode for suspend
+        auto cpr_file_path = QDir(instance_dir).absoluteFilePath("suspend.cpr");
+
+        mpl::info(vm_name, "Suspending to CPR checkpoint: {}", cpr_file_path);
+
+        // Reset migration complete flag
+        migration_complete = false;
+
+        // Set migration mode to cpr-reboot
+        QJsonObject set_params_cmd;
+        set_params_cmd.insert("execute", "migrate-set-parameters");
+        QJsonObject mode_args;
+        mode_args.insert("mode", "cpr-reboot");
+        set_params_cmd.insert("arguments", mode_args);
+        auto set_params_json = QJsonDocument(set_params_cmd).toJson();
+        mpl::debug(vm_name, "Sending QMP: {}", set_params_json.toStdString());
+        vm_process->write(set_params_json);
+
+        // Small delay to allow migrate-set-parameters to complete
+        QThread::msleep(100);
+
+        // Execute migrate to file (URI format: file://absolute-path)
+        QJsonObject migrate_cmd;
+        migrate_cmd.insert("execute", "migrate");
+        QJsonObject migrate_args;
+        migrate_args.insert("uri", QString("file://%1").arg(cpr_file_path));
+        migrate_cmd.insert("arguments", migrate_args);
+        auto migrate_json = QJsonDocument(migrate_cmd).toJson();
+        mpl::debug(vm_name, "Sending QMP: {}", migrate_json.toStdString());
+        vm_process->write(migrate_json);
+
+        // Poll migration status since MIGRATION events might not be reliably delivered for CPR
+        const auto poll_interval = 500; // ms
+        const auto max_wait_time = shutdown_timeout;
+        auto elapsed = 0;
+
+        while (elapsed < max_wait_time && vm_process->running() && !migration_complete)
+        {
+            // Query migration status - the response will be handled by the QMP output handler
+            mpl::debug(vm_name,
+                       "Polling migration status (elapsed: {} ms, complete: {})",
+                       elapsed,
+                       migration_complete.load());
+            vm_process->write(qmp_execute_json("query-migrate"));
+
+            // Process events to allow signal handlers to fire
+            QCoreApplication::processEvents(QEventLoop::AllEvents, poll_interval);
+
+            // Additional wait if needed
+            QThread::msleep(poll_interval / 2);
+            elapsed += poll_interval;
+        }
+
+        mpl::info(vm_name,
+                  "Exited polling loop: elapsed={} ms, complete={}, running={}",
+                  elapsed,
+                  migration_complete.load(),
+                  vm_process->running());
+
+        if (!migration_complete)
+        {
+            mpl::error(vm_name, "Migration did not complete after polling for {} ms", elapsed);
+            vm_process->kill();
+            throw std::runtime_error{
+                fmt::format("Migration did not complete after polling for {} ms", elapsed)};
+        }
+
+        // Wait for the process to finish after sending quit
+        if (!vm_process->wait_for_finished(5000))
+        {
+            mpl::error(vm_name, "QEMU process did not exit after quit command");
+            vm_process->kill();
+            if (!vm_process->wait_for_finished(2000))
+            {
+                throw std::runtime_error{fmt::format(
+                    "The QEMU process did not finish within {} milliseconds during suspend",
+                    shutdown_timeout)};
+            }
+        }
+
+        // Successfully suspended - transition to suspended state
         vm_process.reset(nullptr);
+        on_suspend();
     }
     else if (state == State::off || state == State::suspended)
     {
@@ -574,7 +728,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name))
                                      : std::nullopt),
         mount_args,
-        qemu_platform->vm_platform_args(desc));
+        qemu_platform->vm_platform_args(desc),
+        instance_dir.path());
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::info(vm_name, "process started");
@@ -584,42 +739,127 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
         auto qmp_output = vm_process->read_all_standard_output();
         mpl::debug(vm_name, "QMP: {}", qmp_output);
-        auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
-        auto event = qmp_object["event"];
 
-        if (!event.isNull())
+        // Process each line separately as QMP can send multiple events
+        auto lines = qmp_output.split('\n');
+        for (const auto& line : lines)
         {
-            if (event.toString() == "RESET" && state != State::restarting)
+            if (line.trimmed().isEmpty())
+                continue;
+
+            auto qmp_object = QJsonDocument::fromJson(line).object();
+            if (qmp_object.isEmpty())
+                continue;
+
+            auto event = qmp_object["event"];
+
+            if (!event.isNull())
             {
-                mpl::info(vm_name, "VM restarting");
-                on_restart();
-            }
-            else if (event.toString() == "POWERDOWN")
-            {
-                mpl::info(vm_name, "VM powering down");
-            }
-            else if (event.toString() == "SHUTDOWN")
-            {
-                mpl::info(vm_name, "VM shut down");
-            }
-            else if (event.toString() == "STOP")
-            {
-                mpl::info(vm_name, "VM suspending");
-            }
-            else if (event.toString() == "RESUME")
-            {
-                mpl::info(vm_name, "VM suspended");
-                if (state == State::suspending || state == State::running)
+                mpl::debug(vm_name, "QMP event: {}", event.toString());
+
+                if (event.toString() == "RESET" && state != State::restarting)
                 {
-                    vm_process->kill();
-                    on_suspend();
+                    mpl::info(vm_name, "VM restarting");
+                    on_restart();
+                }
+                else if (event.toString() == "POWERDOWN")
+                {
+                    mpl::info(vm_name, "VM powering down");
+                }
+                else if (event.toString() == "SHUTDOWN")
+                {
+                    mpl::info(vm_name, "VM shut down");
+                }
+                else if (event.toString() == "STOP")
+                {
+                    mpl::info(vm_name, "VM stopped (paused)");
+                    if (state == State::suspending)
+                    {
+                        mpl::debug(vm_name,
+                                   "VM stopped during CPR migration, waiting for completion");
+                        // With CPR, STOP means the VM is paused during migration
+                        // We need to wait for MIGRATION event to know when it's done
+                    }
+                }
+                else if (event.toString() == "RESUME")
+                {
+                    mpl::info(vm_name, "VM resumed");
+                    // This shouldn't happen during CPR suspend
+                }
+                else if (event.toString() == "MIGRATION")
+                {
+                    auto data = qmp_object["data"].toObject();
+                    auto status = data["status"].toString();
+                    mpl::info(vm_name, "Migration status: {}", status);
+
+                    if (status == "completed" && state == State::suspending)
+                    {
+                        mpl::info(vm_name, "CPR migration completed, shutting down QEMU");
+                        vm_process->write(qmp_execute_json("quit"));
+                    }
+                    else if (status == "failed" && state == State::suspending)
+                    {
+                        mpl::error(vm_name, "CPR migration failed");
+                        vm_process->kill();
+                        on_error();
+                    }
+                }
+                else
+                {
+                    // Log any other events we receive during suspend for debugging
+                    if (state == State::suspending)
+                    {
+                        mpl::debug(vm_name,
+                                   "Received unhandled QMP event during suspend: {}",
+                                   event.toString());
+                    }
                 }
             }
-        }
-        else if (qmp_object.contains("error"))
-        {
-            const auto error = qmp_object["error"].toObject();
-            mpl::error(vm_name, "QMP error: {}", error["desc"].toString());
+            else if (qmp_object.contains("error"))
+            {
+                const auto error = qmp_object["error"].toObject();
+                mpl::error(vm_name, "QMP error: {}", error["desc"].toString());
+
+                // If we get an error during suspend/migration, abort
+                if (state == State::suspending)
+                {
+                    mpl::error(vm_name, "QMP error during suspend, aborting migration");
+                    vm_process->kill();
+                    on_error();
+                }
+            }
+            else if (qmp_object.contains("return"))
+            {
+                mpl::debug(vm_name,
+                           "QMP return: {}",
+                           QJsonDocument(qmp_object).toJson().toStdString());
+
+                // Check if this is a query-migrate response during suspend
+                if (state == State::suspending)
+                {
+                    auto return_obj = qmp_object["return"].toObject();
+                    if (return_obj.contains("status"))
+                    {
+                        auto status = return_obj["status"].toString();
+                        mpl::debug(vm_name, "Migration status from return: {}", status);
+
+                        if (status == "completed")
+                        {
+                            migration_complete = true;
+                            mpl::info(vm_name,
+                                      "CPR migration completed (detected in handler), shutting "
+                                      "down QEMU");
+                            vm_process->write(qmp_execute_json("quit"));
+                        }
+                        else if (status == "failed")
+                        {
+                            mpl::error(vm_name, "CPR migration failed (detected in handler)");
+                            vm_process->kill();
+                            on_error();
+                        }
+                    }
+                }
+            }
         }
     });
 
@@ -698,8 +938,19 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         &QemuVirtualMachine::on_delete_memory_snapshot,
         this,
         [this] {
-            mpl::debug(vm_name, "Deleted memory snapshot");
-            vm_process->write(hmc_to_qmp_json(QString("delvm ") + suspend_tag));
+            mpl::debug(vm_name, "Deleting CPR checkpoint after successful resume");
+            auto cpr_file_path = QDir(instance_dir).absoluteFilePath("suspend.cpr");
+            if (QFile::exists(cpr_file_path))
+            {
+                if (QFile::remove(cpr_file_path))
+                {
+                    mpl::info(vm_name, "Deleted CPR checkpoint file: {}", cpr_file_path);
+                }
+                else
+                {
+                    mpl::warn(vm_name, "Failed to delete CPR checkpoint file: {}", cpr_file_path);
+                }
+            }
             is_starting_from_suspend = false;
         },
         Qt::QueuedConnection);

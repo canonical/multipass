@@ -43,8 +43,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     {
         args = resume_data->arguments;
 
-        // need to append extra arguments for resume
-        args << "-loadvm" << resume_data->suspend_tag;
+        // need to append extra arguments for CPR resume
+        args << "-incoming" << "defer";
 
         QString machine_type = resume_data->machine_type;
         if (!machine_type.isEmpty())
@@ -186,6 +186,7 @@ profile %1 flags=(attach_disconnected) {
   # Disk images
   %6 rwk,  # QCow2 filesystem image
   %7 rk,   # cloud-init ISO
+  %9 rwk,  # CPR checkpoint file
 
   # allow full access just to user-specified mount directories on the host
   %8
@@ -217,6 +218,9 @@ profile %1 flags=(attach_disconnected) {
         firmware = "/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/*";
     }
 
+    // CPR checkpoint file path (only needed when resuming)
+    QString cpr_file = resume_data ? resume_data->cpr_file_path : QString();
+
     return profile_template.arg(apparmor_profile_name(),
                                 signal_peer,
                                 firmware,
@@ -224,7 +228,8 @@ profile %1 flags=(attach_disconnected) {
                                 program(),
                                 desc.image.image_path,
                                 desc.cloud_init_iso,
-                                mount_dirs);
+                                mount_dirs,
+                                cpr_file);
 }
 
 QString mp::QemuVMProcessSpec::identifier() const

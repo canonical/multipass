@@ -32,7 +32,7 @@ class QemuVMProcessSpec : public QemuBaseProcessSpec
 public:
     struct ResumeData
     {
-        QString suspend_tag;
+        QString cpr_file_path;  // Path to CPR checkpoint file
         QString machine_type;
         QStringList arguments;
     };
