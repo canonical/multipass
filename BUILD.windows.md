@@ -142,7 +142,7 @@ specify the vcpkg toolchain manually with
 `-DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake `.
 Use `CMAKE_PREFIX_PATH` to select a specific Qt version.
 To specify the build type, use `-DCMAKE_BUILD_TYPE` option to set the build type (e.g.,
-`Debug`, `Release`, `Coverage`, etc.).
+`Debug`, `Release`, etc.).
 
 To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
 It should point to the root vcpkg location, where the top bootstrap scripts are located.

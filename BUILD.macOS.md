@@ -123,7 +123,7 @@ The second command runs Xcode's first launch setup, which installs additional co
 
 CMake will fetch all necessary content, build vcpkg dependencies, and initialize the build system.
 You can also specify the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g., `Debug`,
-`Release`, `Coverage`, etc.).
+`Release`, etc.).
 
 To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
 It should point to the root vcpkg location, where the top bootstrap scripts are located.
