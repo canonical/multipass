@@ -118,25 +118,32 @@ The second command runs Xcode's first launch setup, which installs additional co
 
     cd <multipass>
     git submodule update --init --recursive
+    mkdir build
+    cd build
+
+CMake will fetch all necessary content, build vcpkg dependencies, and initialize the build system.
+You can also specify the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g., `Debug`,
+`Release`, etc.).
+
+To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
+It should point to the root vcpkg location, where the top bootstrap scripts are located.
 
 ### Build Multipass
 
-To build with Qt installed via aqtinstall:
-
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos -DCMAKE_BUILD_TYPE=Debug
+    cmake -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos
 
 Alternatively if using Qt6 from Homebrew, do
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt6 -DCMAKE_BUILD_TYPE=Debug
+    cmake -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt6
 
-or, if on Apple silicon, brew will store the Qt binaries in a different location.
+or, if on Apple silicon, brew will store the Qt binaries in a different location. Additionally, OpenSSL will be in a
+similar location; `/opt/homebrew/Cellar/openssl@3`, which can be set in the project level `CMakeLists.txt` file.
 
-    cmake -Bbuild -H. -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt6 -DCMAKE_BUILD_TYPE=Debug
+    cmake -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt6
 
-Then start the build with:
+Finally, to build the project, run:
 
-    cd build/
-    cmake --build .
+    cmake --build . --parallel
 
 Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about
 missing Qt6.
