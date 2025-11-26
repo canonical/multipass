@@ -51,6 +51,12 @@ class ImageCard extends ConsumerWidget {
     };
   }
 
+  String _getVersionLabel(ImageInfo version) {
+    return version.release.toLowerCase() == version.codename.toLowerCase()
+        ? version.release
+        : '${version.release} (${version.codename})';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedImage =
@@ -116,7 +122,7 @@ class ImageCard extends ConsumerWidget {
                     .map((v) => DropdownMenuItem(
                           value: v.release,
                           child: Text(
-                            '${v.release} (${v.codename})',
+                            _getVersionLabel(v),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
