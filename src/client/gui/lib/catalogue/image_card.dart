@@ -111,6 +111,9 @@ class ImageCard extends ConsumerWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: const Color(0xfff5f5f5),
+                border: Border(
+                  bottom: BorderSide(color: Colors.black, width: 1),
+                ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: DropdownButton<String>(
@@ -118,6 +121,7 @@ class ImageCard extends ConsumerWidget {
                 icon: const Icon(Icons.keyboard_arrow_down),
                 focusColor: Colors.transparent,
                 isExpanded: true,
+                underline: const SizedBox(),
                 items: versions
                     .map((v) => DropdownMenuItem(
                           value: v.release,
