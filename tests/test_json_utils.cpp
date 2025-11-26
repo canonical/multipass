@@ -46,22 +46,6 @@ struct TestJsonUtils : public Test
     inline static const auto expected_stale_lock_time = std::chrono::seconds{10};
     inline static const auto expected_lock_timeout = std::chrono::seconds{10};
     inline static const auto expected_retry_attempts = 10;
-
-    template <typename T>
-    static Matcher<T&>
-    file_matcher() // not using static template var to workaround bad init order in AppleClang
-    {
-        static const auto ret = Property(&T::fileName, Eq(file_path));
-        return ret;
-    }
-
-    template <typename T>
-    static Matcher<T&>
-    lockfile_matcher() // not using static template var to workaround bad init order in AppleClang
-    {
-        static const auto ret = Property(&T::fileName, Eq(lockfile_path));
-        return ret;
-    }
 };
 
 TEST_F(TestJsonUtils, writesJsonTransactionally)
@@ -72,15 +56,19 @@ TEST_F(TestJsonUtils, writesJsonTransactionally)
         },
         Property(&QJsonDocument::object, Eq(json)));
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
 
     EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(file_matcher<QFileDevice>(), _)).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, write(file_matcher<QFileDevice>(), json_matcher))
+    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, write(mpt::FileNameMatches(Eq(file_path)), json_matcher))
         .WillOnce(Return(14));
-    EXPECT_CALL(mock_file_ops, commit(file_matcher<QSaveFile>())).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, commit(mpt::FileNameMatches<QSaveFile&>(Eq(file_path))))
+        .WillOnce(Return(true));
     EXPECT_NO_THROW(MP_JSONUTILS.write_json(json, file_path));
 }
 
@@ -92,20 +80,23 @@ TEST_F(TestJsonUtils, writesJsonTransactionallyEventually)
         },
         Property(&QJsonDocument::object, Eq(json)));
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
 
     EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(file_matcher<QFileDevice>(), _))
+    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _))
         .Times(expected_retry_attempts)
         .WillRepeatedly(Return(true));
-    EXPECT_CALL(mock_file_ops, write(file_matcher<QFileDevice>(), json_matcher))
+    EXPECT_CALL(mock_file_ops, write(mpt::FileNameMatches(Eq(file_path)), json_matcher))
         .Times(expected_retry_attempts)
         .WillRepeatedly(Return(14));
 
     auto commit_called_times = 0;
-    EXPECT_CALL(mock_file_ops, commit(file_matcher<QSaveFile>()))
+    EXPECT_CALL(mock_file_ops, commit(mpt::FileNameMatches<QSaveFile&>(Eq(file_path))))
         .Times(expected_retry_attempts)
         .WillRepeatedly(
             InvokeWithoutArgs([&]() { return ++commit_called_times == expected_retry_attempts; }));
@@ -125,8 +116,11 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCreateDirectory)
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToOpenFile)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(false));
@@ -139,8 +133,11 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToOpenFile)
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToWriteFile)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
@@ -154,8 +151,11 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToWriteFile)
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToAcquireLock)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(false));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
 
@@ -168,8 +168,11 @@ TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToAcquireLock)
 TEST_F(TestJsonUtils, writeJsonThrowsOnFailureToCommit)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(lockfile_matcher<QLockFile>(), Eq(expected_stale_lock_time)));
-    EXPECT_CALL(mock_file_ops, tryLock(lockfile_matcher<QLockFile>(), Eq(expected_lock_timeout)))
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _))

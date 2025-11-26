@@ -732,7 +732,7 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq(test_json_file_path)), _))
+    EXPECT_CALL(*mock_file_ops, open(mpt::FileNameMatches(Eq(test_json_file_path)), _))
         .WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm, desc}),
