@@ -23,37 +23,6 @@ else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
 
-# Get list of portfile overrides
-file(GLOB vcpkg_port_entries RELATIVE ${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports ${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/*)
-set(WRAPPED_VCPKG_PACKAGES "")
-
-foreach(entry ${vcpkg_port_entries})
-    if(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/${entry})
-        list(APPEND WRAPPED_VCPKG_PACKAGES ${entry})
-    endif()
-endforeach()
-
-set(VCPKG_OVERLAY_PORTS "" CACHE STRING "vcpkg Overlay Ports (dynamically populated)" FORCE)
-
-# Iterate over all wrapped packages to set up the wrapper and the hook.
-foreach(PACKAGE ${WRAPPED_VCPKG_PACKAGES})
-  message(STATUS "Copying the original vcpkg port for ${PACKAGE} to override.")
-  # Copy the port to build/ folder
-  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg/ports/${PACKAGE}" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/")
-  # Rename the original portfile
-  file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile-original.cmake")
-  # Copy the portfile wrapper
-  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/${PACKAGE}/portfile-wrapper.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/")
-  # Rename the portfile-wrapper.cmake to portfile.cmake
-  file(RENAME "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile-wrapper.cmake" "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}/portfile.cmake")
-  # Copy the target filter hook
-  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-vcpkg-target-filter-hook.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
-  # Copy the override vcpkg function module
-  file(COPY "${CMAKE_SOURCE_DIR}/3rd-party/vcpkg-ports/multipass-override-vcpkg-function.cmake" DESTINATION "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
-  # Add it to overlay ports
-  list(APPEND VCPKG_OVERLAY_PORTS "${CMAKE_BINARY_DIR}/vcpkg-ports/${PACKAGE}")
-endforeach()
-
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
@@ -73,9 +42,9 @@ if(NOT VCPKG_BUILD_DEFAULT)
 
   # Propagate macOS deployment target to vcpkg triplet
   if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-overlays/triplets")
     configure_file(
-      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-overlays/triplets/osx-release.cmake.in"
       "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
       @ONLY
     )
@@ -89,7 +58,8 @@ else()
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
-message(STATUS "Bootstrapping vcpkg...")
+message(STATUS "Bootstrapping vcpkg, triplet: ${VCPKG_TARGET_TRIPLET}...")
+
 
 set(MULTIPASS_VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
   "Root vcpkg location, where the top bootstrap scripts are located")
