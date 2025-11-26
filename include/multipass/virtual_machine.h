@@ -20,14 +20,14 @@
 #include "disabled_copy_move.h"
 #include "network_interface.h"
 
-#include <QDir>
-#include <QJsonObject>
-
 #include <chrono>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
+
+#include <QDir>
+#include <QJsonObject>
 
 namespace multipass
 {
