@@ -51,10 +51,6 @@ class ImageCard extends ConsumerWidget {
     };
   }
 
-  bool _shouldShowVersionDropdown() {
-    return versions.length > 1;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedImage =
@@ -105,43 +101,42 @@ class ImageCard extends ConsumerWidget {
                 style: const TextStyle(fontWeight: FontWeight.w300)),
             const SizedBox(height: 16),
             const Spacer(),
-            if (_shouldShowVersionDropdown()) ...[
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xfff5f5f5),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: DropdownButton<String>(
-                  value: selectedImage.release,
-                  icon: const Icon(Icons.keyboard_arrow_down),
-                  focusColor: Colors.transparent,
-                  isExpanded: true,
-                  items: versions
-                      .map((v) => DropdownMenuItem(
-                            value: v.release,
-                            child: Text(
-                              '${v.release} (${v.codename})',
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ))
-                      .toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      final newImage = versions.firstWhere(
-                        (v) => v.release == newValue,
-                      );
-                      ref
-                          .read(selectedImageProvider(imageKey).notifier)
-                          .set(newImage);
-                    }
-                  },
-                ),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xfff5f5f5),
               ),
-              const SizedBox(height: 8),
-            ] else
-              const SizedBox(height: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: DropdownButton<String>(
+                value: selectedImage.release,
+                icon: const Icon(Icons.keyboard_arrow_down),
+                focusColor: Colors.transparent,
+                isExpanded: true,
+                items: versions
+                    .map((v) => DropdownMenuItem(
+                          value: v.release,
+                          child: Text(
+                            '${v.release} (${v.codename})',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ))
+                    .toList(),
+                onChanged: versions.length > 1
+                    ? (String? newValue) {
+                        if (newValue != null) {
+                          final newImage = versions.firstWhere(
+                            (v) => v.release == newValue,
+                          );
+                          ref
+                              .read(selectedImageProvider(imageKey).notifier)
+                              .set(newImage);
+                        }
+                      }
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 8),
             const SizedBox(height: 16),
             Row(children: [
               TextButton(
