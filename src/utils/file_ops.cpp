@@ -68,11 +68,6 @@ bool mp::FileOps::rmdir(QDir& dir, const QString& dirName) const
     return dir.rmdir(dirName);
 }
 
-bool mp::FileOps::exists(const QFile& file) const
-{
-    return file.exists();
-}
-
 bool mp::FileOps::isDir(const QFileInfo& file) const
 {
     return file.isDir();
@@ -98,29 +93,29 @@ uint mp::FileOps::groupId(const QFileInfo& file) const
     return file.groupId();
 }
 
-bool mp::FileOps::is_open(const QFile& file) const
+bool mp::FileOps::exists(const QFile& file) const
+{
+    return file.exists();
+}
+
+bool mp::FileOps::is_open(const QIODevice& file) const
 {
     return file.isOpen();
 }
 
-bool mp::FileOps::open(QFileDevice& file, QIODevice::OpenMode mode) const
+bool mp::FileOps::open(QIODevice& file, QIODevice::OpenMode mode) const
 {
     return file.open(mode);
 }
 
-qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
+qint64 mp::FileOps::read(QIODevice& file, char* data, qint64 maxSize) const
 {
     return file.read(data, maxSize);
 }
 
-QByteArray mp::FileOps::read_all(QFile& file) const
+QByteArray mp::FileOps::read_all(QIODevice& file) const
 {
     return file.readAll();
-}
-
-QString mp::FileOps::read_line(QTextStream& text_stream) const
-{
-    return text_stream.readLine();
 }
 
 bool mp::FileOps::remove(QFile& file) const
@@ -133,34 +128,39 @@ bool mp::FileOps::rename(QFile& file, const QString& newName) const
     return file.rename(newName);
 }
 
-bool mp::FileOps::resize(QFile& file, qint64 sz) const
+bool mp::FileOps::resize(QFileDevice& file, qint64 sz) const
 {
     return file.resize(sz);
 }
 
-bool mp::FileOps::seek(QFile& file, qint64 pos) const
+bool mp::FileOps::seek(QIODevice& file, qint64 pos) const
 {
     return file.seek(pos);
 }
 
-qint64 mp::FileOps::size(QFile& file) const
+qint64 mp::FileOps::size(QIODevice& file) const
 {
     return file.size();
 }
 
-qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize) const
+qint64 mp::FileOps::write(QIODevice& file, const char* data, qint64 maxSize) const
 {
     return file.write(data, maxSize);
 }
 
-qint64 mp::FileOps::write(QFileDevice& file, const QByteArray& data) const
+qint64 mp::FileOps::write(QIODevice& file, const QByteArray& data) const
 {
     return file.write(data);
 }
 
-bool mp::FileOps::flush(QFile& file) const
+bool mp::FileOps::flush(QFileDevice& file) const
 {
     return file.flush();
+}
+
+QString mp::FileOps::read_line(QTextStream& text_stream) const
+{
+    return text_stream.readLine();
 }
 
 bool mp::FileOps::copy(const QString& from, const QString& to) const

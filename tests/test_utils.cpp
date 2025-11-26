@@ -246,7 +246,7 @@ TEST(Utils, makeFileWithContentThrowsOnWriteError)
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
+    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
                          std::runtime_error,
@@ -262,8 +262,9 @@ TEST(Utils, makeFileWithContentThrowsOnFailureToFlush)
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(file_contents.size()));
-    EXPECT_CALL(*mock_file_ops, flush(A<QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _))
+        .WillOnce(Return(file_contents.size()));
+    EXPECT_CALL(*mock_file_ops, flush(A<QFileDevice&>())).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
                          std::runtime_error,
