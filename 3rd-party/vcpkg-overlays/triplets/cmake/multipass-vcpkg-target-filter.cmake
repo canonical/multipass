@@ -16,12 +16,14 @@
 
 include_guard(GLOBAL)
 
-separate_arguments(MP_VCPKG_DISABLE_CMAKE_TARGETS)
+if(DEFINED MP_VCPKG_DISABLE_${PROJECT_NAME}_CMAKE_TARGETS)
+    separate_arguments(MP_VCPKG_DISABLE_${PROJECT_NAME}_CMAKE_TARGETS)
+endif()
 
 function(do_target_postprocessing)
     get_property(DIR_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(TARGET_NAME IN LISTS DIR_TARGETS)
-        if(TARGET_NAME IN_LIST MP_VCPKG_DISABLE_CMAKE_TARGETS)
+        if(TARGET_NAME IN_LIST MP_VCPKG_DISABLE_${PROJECT_NAME}_CMAKE_TARGETS)
             message(STATUS "${TARGET_NAME} is excluded from ALL")
             set_property(TARGET "${TARGET_NAME}" PROPERTY EXCLUDE_FROM_ALL TRUE)
         endif()
@@ -44,7 +46,7 @@ function(${INSTALL_TO_HOOK})
 
     if(ARG_TARGETS)
         foreach(target ${ARG_TARGETS})
-            if(target IN_LIST MP_VCPKG_DISABLE_CMAKE_TARGETS)
+            if(target IN_LIST MP_VCPKG_DISABLE_${PROJECT_NAME}_CMAKE_TARGETS)
                 # If we get here, skip this install command
                 message(STATUS "Skipping install for: ${ARG_TARGETS}")
                 return()

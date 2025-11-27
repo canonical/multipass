@@ -12,7 +12,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(PLUGINS_TO_SKIP grpc_php_plugin grpc_python_plugin grpc_node_plugin grpc_objective_c_plugin grpc_csharp_plugin grpc_ruby_plugin)
-set(TARGETS_TO_SKIP grpc_unsecure grpc++_unsecure grpc_authorization_provider grpc_objective_c_plugin grpc++_alts grpc++_reflection ${PLUGINS_TO_SKIP})
-
-set(MP_VCPKG_DISABLE_CMAKE_TARGETS "${TARGETS_TO_SKIP}")
+set(MP_VCPKG_DISABLE_CMAKE_TARGETS grpc_unsecure grpc++_unsecure grpc_authorization_provider grpc_objective_c_plugin grpc++_alts grpc++_reflection grpc_php_plugin grpc_python_plugin grpc_node_plugin grpc_objective_c_plugin grpc_csharp_plugin grpc_ruby_plugin)
