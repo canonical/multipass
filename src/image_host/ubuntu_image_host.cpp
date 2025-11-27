@@ -219,6 +219,7 @@ void mp::UbuntuVMImageHost::fetch_manifests(const bool force_update)
                 manifest_bytes_from_official,
                 manifest_bytes_from_mirror,
                 mirror_site.value_or(official_site),
+                // TODO: Remove `= remote_info` part once snap clang is updated to >15
                 [&remote_info = remote_info](VMImageInfo& info) {
                     return remote_info.apply_image_mutator(info);
                 });
