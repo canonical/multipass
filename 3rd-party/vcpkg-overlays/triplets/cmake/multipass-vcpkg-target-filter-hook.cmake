@@ -18,24 +18,18 @@ include_guard(GLOBAL)
 
 separate_arguments(MP_VCPKG_DISABLE_CMAKE_TARGETS)
 
-function(maybe_exclude_target TARGET_NAME)
-    if(TARGET_NAME IN_LIST MP_VCPKG_DISABLE_CMAKE_TARGETS)
-        message(STATUS "${TARGET_NAME} is excluded from ALL")
-        set_property(TARGET "${TARGET_NAME}" PROPERTY EXCLUDE_FROM_ALL TRUE)
-    endif()
+function(do_target_postprocessing)
+    get_property(DIR_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(TARGET_NAME IN LISTS DIR_TARGETS)
+        if(TARGET_NAME IN_LIST MP_VCPKG_DISABLE_CMAKE_TARGETS)
+            message(STATUS "${TARGET_NAME} is excluded from ALL")
+            set_property(TARGET "${TARGET_NAME}" PROPERTY EXCLUDE_FROM_ALL TRUE)
+        endif()
+    endforeach()
+
 endfunction()
 
-function(_add_executable)
-    list(GET ARGN 0 target_name)
-    __add_executable(${ARGN})
-    maybe_exclude_target(${target_name})
-endfunction()
-
-function(_add_library)
-    list(GET ARGN 0 target_name)
-    __add_library(${ARGN})
-    maybe_exclude_target(${target_name})
-endfunction()
+cmake_language(DEFER CALL do_target_postprocessing)
 
 # vcpkg conditionally overrides the install, so check that.
 if(COMMAND _install)
