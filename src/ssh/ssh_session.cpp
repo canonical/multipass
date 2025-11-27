@@ -48,8 +48,8 @@ mp::SSHSession::SSHSession(const std::string& host,
      * in order to prevent that from happening. The established timeout
      * is used afterward to prevent timing out in connected state.
      */
-    constexpr long kConnectTimeoutSecs = 5; // < how long to wait for ssh_connect
-    constexpr long kEstablishedTimeoutSecs = std::numeric_limits<long>::max();
+    constexpr long connect_timeout_secs = 5; // < how long to wait for ssh_connect
+    constexpr long established_timeout_secs = std::numeric_limits<long>::max();
 
     const int nodelay{1};
     auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation))
@@ -59,14 +59,14 @@ mp::SSHSession::SSHSession(const std::string& host,
     set_option(SSH_OPTIONS_HOST, host.c_str());
     set_option(SSH_OPTIONS_PORT, &port);
     set_option(SSH_OPTIONS_USER, username.c_str());
-    set_option(SSH_OPTIONS_TIMEOUT, &kConnectTimeoutSecs);
+    set_option(SSH_OPTIONS_TIMEOUT, &connect_timeout_secs);
     set_option(SSH_OPTIONS_NODELAY, &nodelay);
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
     SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
-    set_option(SSH_OPTIONS_TIMEOUT, &kEstablishedTimeoutSecs);
+    set_option(SSH_OPTIONS_TIMEOUT, &established_timeout_secs);
     SSH::throw_on_error(session,
                         "ssh failed to authenticate",
                         ssh_userauth_publickey,
