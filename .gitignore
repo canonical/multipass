@@ -26,3 +26,6 @@ packaging/windows/custom-actions/x64/*
 
 # Python artifacts
 *.pyc
+
+# Rust builds
+rxx/target
