@@ -70,6 +70,12 @@ else()
   endif()
 endif()
 
+add_custom_command(TARGET multipassd POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:multipassd>"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Stripping symbols..."
+)
+
 target_link_libraries(multipassd
   fmt::fmt-header-only
   daemon)
