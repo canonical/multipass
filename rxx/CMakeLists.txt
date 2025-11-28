@@ -4,9 +4,11 @@ find_program(CARGO_EXECUTABLE cargo)
 if (cmake_build_type_lower MATCHES "release")
   set(rust_build "release")
   set(rust_build_flag "--release")
+  set(strip_command "strip" "-d")
 else()
   set(rust_build "debug")
   set(rust_build_flag "")
+  set(strip_command "touch")
 endif()
 #So that paths are agnostic to directory name
 get_filename_component(DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
@@ -84,6 +86,8 @@ foreach(crate_name ${CRATES})
     add_dependencies(${crate_name}_rs build_rust_libs)
 
     #CXX glue generation
+    #The strip command will remove all existing debuginfo from the rust staticlib
+    #only in release builds, the rest will contain debuginfo
     set(crate_rs "${crate_path}/src/lib.rs")
     set(bridge_h "${RUST_GENSRC_DIR}/${crate_name}.h")
     set(bridge_cc "${RUST_GENSRC_DIR}/${crate_name}.cc")
@@ -91,6 +95,7 @@ foreach(crate_name ${CRATES})
         OUTPUT ${bridge_h} ${bridge_cc}
         COMMAND cxxbridge "${crate_rs}" --header --output "${bridge_h}"
         COMMAND cxxbridge "${crate_rs}" --output "${bridge_cc}"
+        COMMAND ${strip_command} "${rust_out}"
         DEPENDS "${crate_rs}" "${CXX_HEADER}"
         COMMENT "Generating cxxbridge glue for ${crate_name}"
     )
