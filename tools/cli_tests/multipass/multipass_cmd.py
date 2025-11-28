@@ -71,7 +71,7 @@ def get_boot_id(name):
 
 
 def restart_prologue(args, kwargs):
-    logging.debug(f"restart_prologue: args: {args}, kwargs{kwargs}")
+    logging.debug(f"restart_prologue: args: {args}, kwargs: {kwargs}")
     filtered_args = _restart_hook_common(args)
 
     boot_ids = {}
@@ -83,7 +83,7 @@ def restart_prologue(args, kwargs):
 
 def restart_epilogue(args, kwargs, result, prologue_result):
     logging.debug(
-        f"epilogue: args: {args}, kwargs{kwargs}, result: {result}, prologue_result: {prologue_result}")
+        f"epilogue: args: {args}, kwargs: {kwargs}, result: {result}, prologue_result: {prologue_result}")
     filtered_args = _restart_hook_common(args)
     for vm_name in filtered_args:
         assert vm_name in prologue_result
