@@ -20,7 +20,7 @@ insert_final_newline = true
 max_line_length = 80
 trim_trailing_whitespace = true
 
-[*.{json,json5}]
+[*.{json,json5,proto}]
 indent_size = 4
 indent_style = space
 insert_final_newline = true

@@ -18,8 +18,8 @@
 #include "virtualbox_virtual_machine.h"
 #include "virtualbox_snapshot.h"
 
-#include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
@@ -29,8 +29,6 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
-
-#include <shared/shared_backend_utils.h>
 
 #include <fmt/format.h>
 
@@ -354,7 +352,7 @@ mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
 void mp::VirtualBoxVirtualMachine::start()
 {
     state = State::starting;
-    update_state();
+    handle_state_update();
 
     mpu::process_throw_on_error("VBoxManage",
                                 {"startvm", name, "--type", "headless"},
@@ -417,7 +415,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
 
     port = std::nullopt;
-    update_state();
+    handle_state_update();
 }
 
 void mp::VirtualBoxVirtualMachine::suspend()
@@ -435,7 +433,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
         if (update_suspend_status)
         {
             state = State::suspended;
-            update_state();
+            handle_state_update();
         }
     }
     else if (present_state == State::stopped)
@@ -491,14 +489,7 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
     return *port;
 }
 
-void mp::VirtualBoxVirtualMachine::ensure_vm_is_running()
-{
-    auto is_vm_running = [this] { return state != State::stopped; };
-
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
-}
-
-void mp::VirtualBoxVirtualMachine::update_state()
+void mp::VirtualBoxVirtualMachine::handle_state_update()
 {
     monitor->persist_state_for(vm_name, state);
 }
@@ -513,24 +504,20 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::VirtualBoxVirtualMachine::management_ipv4()
+std::optional<mp::IPAddress> mp::VirtualBoxVirtualMachine::management_ipv4()
 {
-    return "N/A";
+    return std::nullopt;
 }
 
-std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4()
+std::vector<mp::IPAddress> mp::VirtualBoxVirtualMachine::get_all_ipv4()
 {
     using namespace std;
 
+    const auto internal_ip = IPAddress{"10.0.2.15"};
     auto all_ipv4 = BaseVirtualMachine::get_all_ipv4();
-    all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), "10.0.2.15"), end(all_ipv4));
+    std::erase(all_ipv4, internal_ip);
 
     return all_ipv4;
-}
-
-std::string mp::VirtualBoxVirtualMachine::ipv6()
-{
-    return {};
 }
 
 void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)

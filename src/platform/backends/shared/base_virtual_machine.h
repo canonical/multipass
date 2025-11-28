@@ -18,15 +18,11 @@
 #pragma once
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
-#include <multipass/logging/log.h>
+#include <multipass/exceptions/start_exception.h>
+#include <multipass/ip_address.h>
 #include <multipass/path.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
-
-#include <fmt/format.h>
-
-#include <QRegularExpression>
-#include <QString>
 
 #include <memory>
 #include <mutex>
@@ -54,7 +50,7 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
-    std::vector<std::string> get_all_ipv4() override;
+    std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override
@@ -87,6 +83,9 @@ public:
     std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
+    QDir instance_directory() const override;
+    const std::string& get_name() const override;
+
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -94,8 +93,21 @@ protected:
                                                              const std::string& instance_id,
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
+
     virtual void drop_ssh_session(); // virtual to allow mocking
+    virtual bool unplugged();
+
+    /**
+     * Refresh the VM, if possible, when the startup appears stuck.
+     *
+     * This method does nothing by default. It is meant to give concrete implementations a chance to
+     * perform some backend-specific action to increase the chance of a successful start.
+     */
+    virtual void refresh_start();
+
     void renew_ssh_session();
+    void detect_aborted_start();
+    void save_error_msg(std::string error) noexcept;
 
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,
@@ -156,10 +168,19 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
+    utils::TimeoutAction try_to_ssh();
+    void ssh_and_cross_to_running();
+    void timeout_ssh();
+
 protected:
+    const std::string vm_name;
     const SSHKeyProvider& key_provider;
+    const QDir instance_dir;
+    std::optional<IPAddress> management_ip;
+    bool shutdown_while_starting = false;
 
 private:
+    std::string saved_error_msg = "";
     std::optional<SSHSession> ssh_session = std::nullopt;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
@@ -178,4 +199,24 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
 {
     const std::unique_lock lock{snapshot_mutex};
     return snapshot_count;
+}
+
+inline QDir multipass::BaseVirtualMachine::instance_directory() const
+{
+    return instance_dir;
+}
+
+inline const std::string& multipass::BaseVirtualMachine::get_name() const
+{
+    return vm_name;
+}
+
+inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noexcept
+{
+    saved_error_msg = std::move(error);
+}
+
+inline void multipass::BaseVirtualMachine::refresh_start()
+{
+    // nothing to do in the general case
 }

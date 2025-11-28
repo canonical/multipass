@@ -186,11 +186,15 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
       // share name must be unique and 80 chars max
       // UUIDS are 36 chars each, and +1 for dash: 73 characters.
       share_name{QString::fromStdString(
-          fmt::format("{}-{}", MP_UTILS.make_uuid(vm->vm_name), MP_UTILS.make_uuid(target)))},
+          fmt::format("{}-{}", MP_UTILS.make_uuid(vm->get_name()), MP_UTILS.make_uuid(target)))},
       cred_dir{cred_dir},
       smb_manager{&smb_manager}
 {
-    mpl::info(category, "Initializing native mount {} => {} in '{}'", source, target, vm->vm_name);
+    mpl::info(category,
+              "Initializing native mount {} => {} in '{}'",
+              source,
+              target,
+              vm->get_name());
 
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
     auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys")};
@@ -226,7 +230,7 @@ catch (const std::exception& e)
     mpl::warn(category,
               "Failed checking SSHFS mount \"{}\" in instance '{}': {}",
               target,
-              vm->vm_name,
+              vm->get_name(),
               e.what());
     return false;
 }
@@ -254,7 +258,7 @@ try
         };
 
         std::visit(visitor, server);
-        install_cifs_for(vm->vm_name, session, timeout);
+        install_cifs_for(vm->get_name(), session, timeout);
     }
 
     const auto rtext = decrypt_credentials_from_file(cred_filename, iv_filename);
@@ -297,7 +301,7 @@ try
     if (mkdir_proc.exit_code() != 0)
         throw std::runtime_error(fmt::format("Cannot create \"{}\" in instance '{}': {}",
                                              target,
-                                             vm->vm_name,
+                                             vm->get_name(),
                                              mkdir_proc.read_std_error()));
 
     auto smb_creds = fmt::format("username={}\npassword={}", username, password);
@@ -323,7 +327,7 @@ try
     if (rm_proc.exit_code() != 0)
         mpl::warn(category,
                   "Failed deleting credentials file in \'{}\': {}",
-                  vm->vm_name,
+                  vm->get_name(),
                   rm_proc.read_std_error());
 
     if (mount_exit_code != 0)
@@ -341,7 +345,7 @@ catch (...)
 void SmbMountHandler::deactivate_impl(bool force)
 try
 {
-    mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name);
+    mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->get_name());
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     MP_UTILS.run_in_ssh_session(
         session,
@@ -355,7 +359,7 @@ catch (const std::exception& e)
     mpl::warn(category,
               "Failed to gracefully stop mount \"{}\" in instance '{}': {}",
               target,
-              vm->vm_name,
+              vm->get_name(),
               e.what());
     smb_manager->remove_share(share_name);
 }

@@ -22,7 +22,6 @@
 #include "tests/mock_singleton_helpers.h"
 #include "tests/mock_utils.h"
 
-#include <shared/shared_backend_utils.h>
 #include <src/platform/backends/shared/linux/backend_utils.h>
 #include <src/platform/backends/shared/linux/dbus_wrappers.h>
 
