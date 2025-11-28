@@ -1,0 +1,12 @@
+[package]
+name = "petnamers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type=["staticlib"]
+[dependencies]
+cxx.workspace = true
+rust_logger = {path="../rust_logger"}
+cxx-build.workspace = true
