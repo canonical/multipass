@@ -11,7 +11,9 @@ The tests are located in the Multipass repository, and do not require anything f
 All the runtime dependencies for the tests are listed in the `pyproject.toml` file, under `project.dependencies`. The following command installs the dependencies:
 
 ```bash
-sudo pip install -e ./tools/cli_tests/ --break-system-packages
+python3 -m venv .venv
+source ./.venv/bin/activate
+pip install -e ./tools/cli_tests
 ```
 
 ### Rust dependency in Windows
