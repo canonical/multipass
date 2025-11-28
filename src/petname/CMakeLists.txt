@@ -21,6 +21,12 @@ file(MAKE_DIRECTORY ${PETNAME_GENERATED_SOURCE_DIR})
 add_executable(text_to_string_array
   text_to_string_array.cpp)
 
+add_custom_command(TARGET text_to_string_array POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:text_to_string_array>"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Stripping symbols..."
+)
+
 add_custom_command(
   OUTPUT "${PETNAME_GENERATED_HEADER}"
   COMMAND $<TARGET_FILE:text_to_string_array>

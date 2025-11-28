@@ -41,6 +41,12 @@ endif()
 add_executable(sshfs_server
   sshfs_server.cpp)
 
+add_custom_command(TARGET sshfs_server POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:sshfs_server>"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Stripping symbols..."
+)
+
 target_link_libraries(sshfs_server
   logger
   sshfs_mount)
