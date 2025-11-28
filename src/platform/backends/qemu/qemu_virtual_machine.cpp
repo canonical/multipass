@@ -509,7 +509,7 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-auto mp::QemuVirtualMachine::management_ipv4() -> std::optional<IPAddress>
+std::optional<mp::IPAddress> mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)
         management_ip = qemu_platform->get_ip_for(desc.default_mac_address);

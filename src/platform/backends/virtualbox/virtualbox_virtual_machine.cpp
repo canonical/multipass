@@ -504,12 +504,12 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-auto mp::VirtualBoxVirtualMachine::management_ipv4() -> std::optional<IPAddress>
+std::optional<mp::IPAddress> mp::VirtualBoxVirtualMachine::management_ipv4()
 {
     return std::nullopt;
 }
 
-auto mp::VirtualBoxVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
+std::vector<mp::IPAddress> mp::VirtualBoxVirtualMachine::get_all_ipv4()
 {
     using namespace std;
 

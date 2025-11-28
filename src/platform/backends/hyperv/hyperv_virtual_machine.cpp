@@ -452,7 +452,7 @@ std::string mp::HyperVVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-auto mp::HyperVVirtualMachine::management_ipv4() -> std::optional<IPAddress>
+std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
     // Not using cached SSH session for this because a) the underlying functions do not
     // guarantee constness; b) we endure the penalty of creating a new session only when we
