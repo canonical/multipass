@@ -422,6 +422,8 @@ include_directories(
 add_subdirectory(data)
 add_subdirectory(src)
 
+add_subdirectory(rxx)
+
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests)
