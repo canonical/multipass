@@ -18,7 +18,7 @@
 
 from .multipassd_governor import MultipassdGovernor
 from .multipassd_controller import MultipassdController
-from .standalone_mulitpassd_controller import StandaloneMultipassdController
+from .standalone_multipassd_controller import StandaloneMultipassdController
 from .snap_multipassd_controller import SnapMultipassdController
 from .winsvc_multipassd_controller import WindowsServiceMultipassdController
 from .launchd_multipassd_controller import LaunchdMultipassdController
