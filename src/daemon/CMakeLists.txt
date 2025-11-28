@@ -41,6 +41,7 @@ target_link_libraries(daemon
   ssh
   sshfs_mount
   utils
+  petnamers
   Qt6::Core
   Qt6::Network
   xz_image_decoder
