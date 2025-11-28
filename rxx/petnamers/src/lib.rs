@@ -1,4 +1,5 @@
 use std::os::raw::c_char;
+use std::string::ParseError;
 #[cxx::bridge(namespace = "petnamers")]
 pub mod ffi {
     pub enum NumWords {
@@ -8,7 +9,7 @@ pub mod ffi {
     }
 
     extern "Rust" {
-        fn generate_petname(n_w: NumWords, sep: c_char) -> String;
+        fn generate_petname(n_w: NumWords, sep: c_char) -> Result<String>;
     }
     #[namespace = "multipass::logging"]
     extern "C++" {
@@ -22,11 +23,11 @@ pub mod ffi {
 //    type Kind = cxx::kind::Trivial; // enum is trivially copyable
 //}
 
-fn generate_petname(n_w: ffi::NumWords, sep: c_char) -> String {
+fn generate_petname(n_w: ffi::NumWords, sep: c_char) -> Result<String, ParseError> {
     rust_logger::log_message(
         ffi::Level::error,
         String::from("rust error"),
         String::from("You found out!"),
     );
-    String::from("curious-scoundrel")
+    Ok(String::from("curious-scoundrel"))
 }
