@@ -326,9 +326,7 @@ def pytest_runtest_setup(item):
     if not mark:
         return
 
-    cli_v, daemon_v = get_multipass_version()
-
-    assert cli_v == daemon_v
+    multipass_version = get_multipass_version()
 
     expr = mark.args[0]
     match = re.match(r"(<=|>=|==|!=|<|>)(.+)", expr)
@@ -337,7 +335,7 @@ def pytest_runtest_setup(item):
 
     op_str, ver_str = match.groups()
 
-    current = version.parse(cli_v)
+    current = version.parse(multipass_version)
     target = version.parse(ver_str)
 
     op = OPS.get(op_str)
