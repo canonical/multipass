@@ -1,0 +1,11 @@
+[package]
+name = "rust_logger"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type=["staticlib","rlib"]
+[dependencies]
+cxx.workspace = true
+cxx-build.workspace = true
