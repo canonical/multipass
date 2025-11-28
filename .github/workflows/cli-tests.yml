@@ -164,7 +164,7 @@ jobs:
 
           Write-Host "msiexec exit code: $code"
           if (Test-Path $log) {
-            Get-Content -Path $log -Tail 200
+            Get-Content -Path $log
           } else {
             Write-Warning "Log not found at: $log"
           }
