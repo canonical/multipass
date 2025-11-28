@@ -142,7 +142,7 @@ jobs:
 
       - name: Install package (macOS)
         if: runner.os == 'macOS'
-        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} installer -pkg ${{ matrix['pkg-download-destination'] }} -target /
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} installer -verboseR -pkg ${{ matrix['pkg-download-destination'] }} -target /
 
       - name: Install package (Windows)
         if: runner.os == 'Windows'
