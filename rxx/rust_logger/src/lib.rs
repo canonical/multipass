@@ -18,10 +18,15 @@ pub mod ffi {
         //fn level_from(in_: i32) -> Level;
         include!("multipass/logging/log.h");
         #[namespace = "multipass::logging::rust"]
-        fn log_message(level: Level, category: String, message: String);
+        fn log_message(level: Level, category: String, message: String) -> Result<()>;
     }
 }
 
 pub fn log_message(level: ffi::Level, category: String, message: String) {
-    ffi::log_message(level, category, message);
+    match ffi::log_message(level, category, message) {
+        Ok(()) => (),
+        Err(e) => {
+            println!("Log message exception: {e}");
+        }
+    };
 }
