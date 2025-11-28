@@ -1,0 +1,20 @@
+[workspace]
+members = [
+  "petnamers", "rust_logger",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.91"
+
+[workspace.dependencies]
+cxx = "1.0"
+cxx-build = "1.0"
+
+[profile.dev]
+lto = true
+
+[profile.release]
+lto = true
