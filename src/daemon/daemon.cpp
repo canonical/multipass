@@ -39,6 +39,7 @@
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
+#include <multipass/name_generator_rs.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -749,8 +750,9 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
-    -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer,
+                fmt::format_string<Ts...> fmt,
+                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
@@ -1613,6 +1615,7 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         std::promise<grpc::Status>* status_promise)
 try
 {
+    std::cout << mp::petname::generate_petname(petnamers::NumWords::One, '-').c_str();
     mpl::ClientLogger<LaunchReply, LaunchRequest> logger{
         mpl::level_from(request->verbosity_level()),
         *config->logger,
