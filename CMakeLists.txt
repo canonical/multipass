@@ -69,7 +69,7 @@ if(NOT VCPKG_BUILD_DEFAULT)
   if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
     set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
     configure_file(
-      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-overlays/triplets/osx-release.cmake.in"
       "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
       @ONLY
     )
