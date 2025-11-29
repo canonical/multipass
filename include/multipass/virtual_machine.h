@@ -23,7 +23,6 @@
 #include "path.h"
 
 #include <QDir>
-#include <QJsonObject>
 
 #include <chrono>
 #include <condition_variable>

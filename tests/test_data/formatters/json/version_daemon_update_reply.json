@@ -2,8 +2,8 @@
     "multipass": "Client version",
     "multipassd": "Daemon version",
     "update": {
-        "description": "update description information",
         "title": "update title information",
+        "description": "update description information",
         "url": "http://multipass.web"
     }
 }

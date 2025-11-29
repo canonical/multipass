@@ -21,6 +21,7 @@
 #include "singleton.h"
 
 #include <QByteArray>
+#include <QByteArrayView>
 #include <QDir>
 #include <QFileDevice>
 #include <QFileInfoList>
@@ -52,6 +53,9 @@ class FileOps : public Singleton<FileOps>
 public:
     FileOps(const Singleton<FileOps>::PrivatePass&) noexcept;
 
+    // High-level operations
+    virtual void write_transactionally(const QString& file_name, const QByteArrayView& data) const;
+
     // QDir operations
     virtual bool exists(const QDir& dir) const;
     virtual bool isReadable(const QDir& dir) const;
@@ -69,21 +73,22 @@ public:
     virtual uint ownerId(const QFileInfo& file) const;
     virtual uint groupId(const QFileInfo& file) const;
 
-    // QFile operations
+    // QFile (and parent classes) operations
     virtual bool exists(const QFile& file) const;
-    virtual bool is_open(const QFile& file) const;
-    virtual bool open(QFileDevice& file, QIODevice::OpenMode mode) const;
-    virtual qint64 read(QFile& file, char* data, qint64 maxSize) const;
-    virtual QByteArray read_all(QFile& file) const;
-    virtual QString read_line(QTextStream& text_stream) const;
+    virtual bool is_open(const QIODevice& file) const;
+    virtual bool open(QIODevice& file, QIODevice::OpenMode mode) const;
+    virtual qint64 read(QIODevice& file, char* data, qint64 maxSize) const;
+    virtual QByteArray read_all(QIODevice& file) const;
     virtual bool remove(QFile& file) const;
     virtual bool rename(QFile& file, const QString& newName) const;
-    virtual bool resize(QFile& file, qint64 sz) const;
-    virtual bool seek(QFile& file, qint64 pos) const;
-    virtual qint64 size(QFile& file) const;
-    virtual qint64 write(QFile& file, const char* data, qint64 maxSize) const;
-    virtual qint64 write(QFileDevice& file, const QByteArray& data) const;
-    virtual bool flush(QFile& file) const;
+    virtual bool resize(QFileDevice& file, qint64 sz) const;
+    virtual bool seek(QIODevice& file, qint64 pos) const;
+    virtual qint64 size(QIODevice& file) const;
+    virtual qint64 write(QIODevice& file, const char* data, qint64 maxSize) const;
+    virtual qint64 write(QIODevice& file, const QByteArray& data) const;
+    virtual bool flush(QFileDevice& file) const;
+
+    virtual QString read_line(QTextStream& text_stream) const;
 
     virtual bool copy(const QString& from, const QString& to) const;
 
