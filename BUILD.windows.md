@@ -44,31 +44,13 @@ For Windows 11:
 1. Go to "Developer Settings"
 2. Enable "Developer mode"
 
-### Qt6
-
-To install Qt6, use `aqt`. First install it with chocolatey:
-
-```[pwsh]
-choco install aqt -yfd
-```
-
-Then specify the following options in the installation command:
-
-```[pwsh]
-aqt install-qt windows desktop 6.10.0 win64_msvc2022_64 -O C:/Qt
-```
-
-Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6100/qt6_6100/qt.qt6.6100.win64_msvc2022_64/6.10.0-0-202510021201qtbase-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z)
-and extract it to `C:\Qt\6.10.0`.
-
 ### Path setup
 
-You'll have to manually add CMake and Qt to your account's PATH variable.
+You'll have to manually add CMake to your account's PATH variable.
 
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.10.0\msvc2022_64\bin`
 
 ### Console setup
 
@@ -140,7 +122,6 @@ CMake will automatically fetch all necessary content, build vcpkg dependencies, 
 the build system. If it doesn't pick it up automatically,
 specify the vcpkg toolchain manually with
 `-DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake `.
-Use `CMAKE_PREFIX_PATH` to select a specific Qt version.
 To specify the build type, use `-DCMAKE_BUILD_TYPE` option to set the build type (e.g.,
 `Debug`, `Release`, etc.).
 
@@ -150,7 +131,7 @@ It should point to the root vcpkg location, where the top bootstrap scripts are 
 Another example:
 
 ```[batch]
-cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.10.0\msvc2022_64\ ../
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake ../
 ```
 
 Finally, to build the project, run:
