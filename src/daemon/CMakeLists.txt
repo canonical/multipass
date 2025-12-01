@@ -62,12 +62,6 @@ if(MSVC)
   qt6_disable_unicode_defines(multipassd)
 else()
   add_executable(multipassd daemon_main.cpp)
-  # Hide OpenSSL symbols to prevent conflicts with Qt's dynamically loaded SSL plugin
-  if(UNIX AND NOT APPLE)
-    target_link_options(multipassd PRIVATE
-      "-Wl,--exclude-libs,libssl.a"
-      "-Wl,--exclude-libs,libcrypto.a")
-  endif()
 endif()
 
 target_link_libraries(multipassd
