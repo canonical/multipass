@@ -18,6 +18,11 @@ on:
         description: "URL to Windows package to install Multipass from"
         required: false
         default: "<undefined>"
+      backend-driver:
+        type: string
+        description: "Backend driver to use"
+        required: false
+        default: "auto"
       pytest-extra-args:
         type: string
         description: "Extra arguments to be passed to the pytest invocation"
@@ -35,6 +40,7 @@ env:
   MACOS_PKG_URL: ${{ inputs['macos-pkg-url'] }}
   WINDOWS_PKG_URL: ${{ inputs['windows-pkg-url'] }}
   PYTEST_EXTRA_ARGS: ${{ inputs['pytest-extra-args'] }}
+  BACKEND_DRIVER: ${{ inputs['backend-driver'] }}
   PYTHONUTF8: "1" # force Python UTF-8 mode (needed for Windows)
   PYTHONIOENCODING: "utf-8"
 
@@ -50,7 +56,7 @@ jobs:
         with:
           script: |
             const crypto = require('crypto');
-            const {SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL, PYTEST_EXTRA_ARGS} = process.env
+            const {SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL, PYTEST_EXTRA_ARGS, BACKEND_DRIVER} = process.env
             const matrix = { include: [] };
 
             for (const [name, value] of Object.entries({ SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL }))
@@ -64,6 +70,7 @@ jobs:
                 os: 'ubuntu-latest',
                 label: 'Snap',
                 'daemon-controller': 'snap',
+                'backend-driver': BACKEND_DRIVER,
                 'sudo-cmd': 'sudo',
                 'pkg-url': '',
                 'cmd-prologue': '',
@@ -77,6 +84,7 @@ jobs:
                 os: 'macos-13',
                 label: 'macOS',
                 'daemon-controller': 'launchd',
+                'backend-driver': BACKEND_DRIVER,
                 'sudo-cmd': 'sudo',
                 'pkg-url': MACOS_PKG_URL,
                 'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg',
@@ -90,6 +98,7 @@ jobs:
                 os: 'windows-latest',
                 label: 'Windows',
                 'daemon-controller': 'winsvc',
+                'backend-driver': BACKEND_DRIVER,
                 'sudo-cmd': 'gsudo',
                 'pkg-url': WINDOWS_PKG_URL,
                 'pkg-download-destination': '$env:RUNNER_TEMP\\multipass.msi',
@@ -190,7 +199,7 @@ jobs:
 
       - name: Run cli-tests
         id: run-cli-tests
-        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
+        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
 
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
