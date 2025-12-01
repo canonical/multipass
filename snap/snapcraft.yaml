@@ -118,6 +118,8 @@ parts:
     build-environment:
     - PATH: /snap/bin:$PATH
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
+    - PYTHON: /usr/bin/python3
+    - PYTHONPATH: ""
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
@@ -133,6 +135,8 @@ parts:
     - libkeybinder-3.0-dev
     - clang
     - ninja-build
+    # https://github.com/microsoft/vcpkg/issues/47920
+    - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     stage-packages:
     - apparmor
     - libpng16-16
@@ -197,6 +201,9 @@ parts:
     - -DMULTIPASS_UPSTREAM=origin
     - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
     override-build: |
+      # https://github.com/microsoft/vcpkg/issues/37279
+      # vcpkg-systemd: required for meson.build
+      python3 -m pip install jinja2
       craftctl default
       set -e
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
