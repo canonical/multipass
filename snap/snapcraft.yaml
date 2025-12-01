@@ -133,8 +133,6 @@ parts:
     - libsystemd-dev
     - libssl-dev
     - pkg-config
-    - qt6-base-dev
-    - qt6-base-dev-tools
     - zip
     - unzip
     - curl
@@ -143,8 +141,6 @@ parts:
     stage-packages:
     - apparmor
     - libpng16-16
-    - libqt6core6
-    - libqt6network6
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
