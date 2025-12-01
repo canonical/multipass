@@ -253,15 +253,6 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: lukka/get-cmake@v4.2.0
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: 6.10.0
-        setup-python: false
-        aqtversion: '==3.3.*'
-        py7zrversion: '==0.20.*'
-      timeout-minutes: 20
-
     - name: Set up MSVC
       if: ${{ runner.os == 'Windows' }}
       uses: ilammy/msvc-dev-cmd@v1
@@ -272,7 +263,6 @@ jobs:
         -B${{ env.BUILD_DIR }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
-        -DCMAKE_PREFIX_PATH=${{ env.Qt6_Dir }}
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
