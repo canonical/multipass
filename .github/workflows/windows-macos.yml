@@ -143,6 +143,9 @@ jobs:
           python \
           wget
 
+        # vcpkg-libb2: libb2 currently requires the following programs:
+        brew install autoconf autoconf-archive automake libtool
+
         # Force brew nuget & mono
         brew install nuget || true
         brew install mono || true
