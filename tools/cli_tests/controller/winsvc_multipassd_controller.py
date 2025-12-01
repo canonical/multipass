@@ -85,7 +85,7 @@ class WindowsServiceMultipassdController:
             await start.communicate()
 
         while not await self.is_active():
-            asyncio.sleep(0.5)
+            await asyncio.sleep(0.5)
 
         # Cache current PID for auto-restart detection
         self._daemon_pid = await self._get_pid()
