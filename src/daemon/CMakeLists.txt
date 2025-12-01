@@ -72,8 +72,7 @@ endif()
 
 add_custom_command(TARGET multipassd POST_BUILD
     COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:multipassd>"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Stripping symbols..."
+    COMMENT "Stripping symbols from daemon..."
 )
 
 target_link_libraries(multipassd

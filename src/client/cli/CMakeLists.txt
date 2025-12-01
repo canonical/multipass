@@ -31,8 +31,7 @@ add_executable(multipass
 
 add_custom_command(TARGET multipass POST_BUILD
     COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:multipass>"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Stripping symbols..."
+    COMMENT "Stripping symbols from CLI..."
 )
 
 target_link_libraries(multipass
