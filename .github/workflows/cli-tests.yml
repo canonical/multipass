@@ -93,18 +93,22 @@ jobs:
               });
             }
 
-            if (WINDOWS_PKG_URL !== '<undefined>') {
-              matrix.include.push({
-                os: 'windows-latest',
-                label: 'Windows',
-                'daemon-controller': 'winsvc',
-                'backend-driver': BACKEND_DRIVER,
-                'sudo-cmd': 'gsudo',
-                'pkg-url': WINDOWS_PKG_URL,
-                'pkg-download-destination': '$env:RUNNER_TEMP\\multipass.msi',
-                'cmd-prologue': '',
-                'concurrency-key': shortHash(WINDOWS_PKG_URL)
-              });
+            // Hyper-V is not supported because Windows runners does not have
+            // the full Hyper-V feature enabled.
+            if(!['auto', 'hyperv'].includes(BACKEND_DRIVER)) {
+              if (WINDOWS_PKG_URL !== '<undefined>') {
+                matrix.include.push({
+                  os: 'windows-latest',
+                  label: 'Windows',
+                  'daemon-controller': 'winsvc',
+                  'backend-driver': BACKEND_DRIVER,
+                  'sudo-cmd': 'gsudo',
+                  'pkg-url': WINDOWS_PKG_URL,
+                  'pkg-download-destination': '$env:RUNNER_TEMP\\multipass.msi',
+                  'cmd-prologue': '',
+                  'concurrency-key': shortHash(WINDOWS_PKG_URL)
+                });
+              }
             }
 
             core.setOutput('matrix', JSON.stringify(matrix));
