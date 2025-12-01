@@ -9,4 +9,7 @@ crate-type=["staticlib"]
 [dependencies]
 cxx.workspace = true
 rust_logger = {path="../rust_logger"}
+
+[build-dependencies]
 cxx-build.workspace = true
+

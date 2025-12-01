@@ -10,9 +10,8 @@ edition = "2024"
 rust-version = "1.91"
 
 [workspace.dependencies]
-cxx = "1.0"
-cxx-build = "1.0"
-
+cxx = "^1.0.0"
+cxx-build = "^1.0.0"
 # This is debug
 [profile.dev]
 opt-level = 0
@@ -29,14 +28,10 @@ rpath = false
 [profile.release]
 lto = true
 debug = false
-strip = true#"debuginfo"
+strip = "debuginfo"
 opt-level = "s"
-codegen-units = 1
+codegen-units = 1 #Lower codegen count improves compiler optimization
 panic = "abort"
 debug-assertions = false
 overflow-checks = false
-incremental = false
-
-[profile.release.build-override]
-opt-level = "s"
-codegen-units = 256
+incremental = false #Removing incremental compilation allows lower codegen count

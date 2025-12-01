@@ -8,4 +8,7 @@ rust-version.workspace = true
 crate-type=["staticlib","rlib"]
 [dependencies]
 cxx.workspace = true
+
+[build-dependencies]
 cxx-build.workspace = true
+
