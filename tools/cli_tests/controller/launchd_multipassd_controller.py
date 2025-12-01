@@ -209,7 +209,7 @@ class LaunchdMultipassdController:
         prop = await self._get_service_property("state")
         if not prop:
             return False
-        return prop.lower() in ("running", 'xpcproxy')
+        return prop.lower() in ("running", "xpcproxy")
 
     async def wait_exit(self) -> Optional[int]:
         """Return exit code if available; else None. Should return promptly if stopped."""
