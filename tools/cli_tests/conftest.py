@@ -113,15 +113,15 @@ def pytest_addoption(parser):
 
     parser.addoption(
         "--driver",
-        default=default_driver_name(),
+        default="auto",
         help="Backend to use.",
     )
 
     parser.addoption(
         "--daemon-controller",
-        default=default_daemon_controller(),
+        default="auto",
         help="Daemon controller to use.",
-        choices=["standalone", "snap", "launchd", "winsvc", "none"],
+        choices=["standalone", "snap", "launchd", "winsvc", "none", "auto"],
     )
 
     parser.addoption(
@@ -208,8 +208,11 @@ def pytest_configure(config):
 
     cfg.remove_all_instances = config.getoption(
         "--remove-all-instances")
-    cfg.driver = config.getoption("--driver")
-    cfg.daemon_controller = config.getoption("--daemon-controller")
+    driver_option = config.getoption("--driver")
+    daemon_controller_option = config.getoption("--daemon-controller")
+    cfg.driver = default_driver_name() if driver_option == "auto" else driver_option
+    cfg.daemon_controller = default_daemon_controller(
+    ) if daemon_controller_option == "auto" else daemon_controller_option
 
     cfg.vm.cpus = config.getoption("--vm-cpus")
     cfg.vm.memory = config.getoption("--vm-memory")
@@ -540,6 +543,7 @@ def multipassd_impl():
 def multipassd():
     with multipassd_impl() as daemon:
         yield daemon
+
 
 @pytest.fixture
 def feat_snapshot():
