@@ -38,7 +38,7 @@ Remote source to obtain disk images from. As of now, these are public online rep
 
 ## Networking
 
-Multipass creates a local network for virtual machines to communicate. This network has a random private subnet assigned to it, and each virtual machine would obtain an IP address via DHCP from this network by default. The virtual machines are accessible to each other through the private network. This virtual network is bridged to the primary host network by default to provide web connectivity to the VMs (meaning all the VMs are behind a NAT).
+Multipass creates a virtual network using a dedicated subnet on the host. Each instance obtains an IP address from this private network, via DHCP. Within this private network, instances can initiate outbound connections (egress), communicate with each other, and be reached from the host, but they remain inaccessible from outside the host. For that, instances can be bridged to the host's physical network, allowing inbound connections (ingress) from other nodes (e.g. other computers on a home network).
 
 ## Web
 
