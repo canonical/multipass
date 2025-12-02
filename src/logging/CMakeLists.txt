@@ -19,6 +19,7 @@ add_library(logger STATIC
   standard_logger.cpp)
 
 target_link_libraries(logger
-  petnamers #This is because the staticlib contains the cxx bridge
+  rust_logger #This is because every staticlib contains the cxx bridge,
+  # But the cxx bridge source cannot be isolated
   fmt::fmt-header-only
   Qt6::Core)

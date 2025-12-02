@@ -2,23 +2,24 @@
 find_program(CARGO_EXECUTABLE cargo)
 #Set build variables
 if (WIN32)
-  set(CMAKE_DIR_COPY ${CMAKE_COMMAND} -E copy_directory)
-  set(CMAKE_FILE_COPY ${CMAKE_COMMAND} -E copy)
+  set(strip_command "touch")
 else()
-  set(CMAKE_DIR_COPY  "cp" "-rL")
-  set(CMAKE_FILE_COPY "cp" "-L")
+  if (cmake_build_type_lower MATCHES "release")
+    if (LINUX)
+      set(strip_command "strip" "--strip-unneeded")
+    else()
+      set(strip_command "strip" "--strip-unneeded")
+    endif()
+  endif()
 endif()
 
 if (cmake_build_type_lower MATCHES "release")
   set(rust_build "release")
   set(rust_build_flag "--release")
-  set(strip_command "strip" "-d")
 else()
   set(rust_build "debug")
   set(rust_build_flag "")
-  set(strip_command "touch")
 endif()
-set(CXX_BRIDGE_CMD "cargo" "run" "--bin" "cxxbridge" "--")
 #So that paths are agnostic to directory name
 get_filename_component(DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 #We need cxxbridge-cmd to be installed for CXX glue code generation.
@@ -45,8 +46,8 @@ get_filename_component(DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 #  endif()
 #endif()
 #Directory where the headers and source of CXX glue will be placed
-set(RUST_GENSRC_DIR "${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/${DIR_NAME}")
-file(MAKE_DIRECTORY ${RUST_GENSRC_DIR})
+#set(RUST_GENSRC_DIR "${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/${DIR_NAME}")
+#file(MAKE_DIRECTORY ${RUST_GENSRC_DIR})
 set(RUST_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target/${rust_build}")
 #Crates to build. Both consumers and providers of code to the C++ side
 #have to be built, since the CXX glue code has to be generated and compiled
@@ -80,13 +81,9 @@ if(NOT CRATES STREQUAL "")
   #  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   #  OUTPUT_STRIP_TRAILING_WHITESPACE
   #)
-  file(MAKE_DIRECTORY "${MULTIPASS_GENERATED_SOURCE_DIR}/rxx")
-  add_custom_target(copy_header
-    COMMAND ${CMAKE_FILE_COPY} "${CMAKE_CURRENT_SOURCE_DIR}/target/cxxbridge/rust/cxx.h" "${MULTIPASS_GENERATED_SOURCE_DIR}/rxx/cxx.h"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    DEPENDS build_rust_libs
-  )
-
+  #file(MAKE_DIRECTORY "${MULTIPASS_GENERATED_SOURCE_DIR}/rxx")
+  add_library(cxx INTERFACE)
+  target_include_directories(cxx INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/target/cxxbridge")
 endif()
 
 foreach(crate_name ${CRATES})
@@ -116,18 +113,13 @@ foreach(crate_name ${CRATES})
     #    DEPENDS "${crate_rs}" "${CXX_HEADER}"
     #    COMMENT "Generating cxxbridge glue for ${crate_name}"
     #)
-    add_custom_target(
-      ${crate_name}_h
-      COMMAND ${CMAKE_FILE_COPY} "${bridge_header}" "${RUST_GENSRC_DIR}/${crate_name}.h"
-      DEPENDS build_rust_libs
-    )
 
     #Library creation to compile the CXX glue source
     add_library(${crate_name} STATIC ${bridge_cc})
     #Here we can place the crate-wise dependencies
     add_subdirectory(${crate_name})
     #The CXX glue staticlib must link the rust staticlib
-    target_link_libraries(${crate_name} PUBLIC ${crate_name}_rs)
-    add_dependencies(${crate_name} ${crate_name}_rs build_rust_libs copy_header ${crate_name}_h)
+    target_link_libraries(${crate_name} PUBLIC ${crate_name}_rs cxx)
+    add_dependencies(${crate_name} ${crate_name}_rs build_rust_libs cxx)
   endif()
 endforeach()
