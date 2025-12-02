@@ -101,6 +101,9 @@ jobs:
         yq eval-all '. as $item ireduce ({}; . *+ $item)' snap/snapcraft.yaml snap/local/snapcraft-ci-override.yaml > snap/snapcraft.yaml.tmp
         mv snap/snapcraft.yaml.tmp snap/snapcraft.yaml
 
+        # Add CI=true environment variable to all parts' build-environment
+        yq -i '.parts |= with_entries(.value.build-environment += [{"CI": "true"}])' snap/snapcraft.yaml
+
     - name: Set up vcpkg
       id: setup-vcpkg
       uses: lukka/run-vcpkg@v11
