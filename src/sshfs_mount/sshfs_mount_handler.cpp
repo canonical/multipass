@@ -125,7 +125,7 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
       config{"",
              0,
              vm->ssh_username(),
-             vm->vm_name,
+             vm->get_name(),
              ssh_key_provider->private_key_as_base64(),
              source,
              target,
@@ -136,13 +136,13 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
               "initializing mount {} => {} in '{}'",
               this->mount_spec.get_source_path(),
               target,
-              vm->vm_name);
+              vm->get_name());
 }
 
 void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    if (!has_sshfs(vm->vm_name, session))
+    if (!has_sshfs(vm->get_name(), session))
     {
         auto visitor = [](auto server) {
             if (server)
@@ -153,7 +153,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
             }
         };
         std::visit(visitor, server);
-        install_sshfs_for(vm->vm_name, session, timeout);
+        install_sshfs_for(vm->get_name(), session, timeout);
     }
 
     // Can't obtain hostname/IP address until instance is running
@@ -165,7 +165,10 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
     QObject::connect(process.get(), &Process::finished, [this](const ProcessState& exit_state) {
         if (exit_state.completed_successfully())
         {
-            mpl::info(category, "Mount \"{}\" in instance '{}' has stopped", target, vm->vm_name);
+            mpl::info(category,
+                      "Mount \"{}\" in instance '{}' has stopped",
+                      target,
+                      vm->get_name());
         }
         else
         {
@@ -173,7 +176,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
             mpl::warn(category,
                       "Mount \"{}\" in instance '{}' has stopped unsuccessfully: {}",
                       target,
-                      vm->vm_name,
+                      vm->get_name(),
                       exit_state.failure_message());
         }
     });
@@ -184,7 +187,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
             mpl::error(
                 category,
                 "There was an error with sshfs_server for instance '{}' with path \"{}\": {} - {}",
-                vm->vm_name,
+                vm->get_name(),
                 target,
                 mpu::qenum_to_string(error),
                 error_string);
@@ -216,7 +219,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
 
 void SSHFSMountHandler::deactivate_impl(bool force)
 {
-    mpl::info(category, "Stopping mount \"{}\" in instance '{}'", target, vm->vm_name);
+    mpl::info(category, "Stopping mount \"{}\" in instance '{}'", target, vm->get_name());
     QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
 
     constexpr auto kProcessWaitTimeout = std::chrono::milliseconds{5000};
@@ -235,7 +238,7 @@ void SSHFSMountHandler::deactivate_impl(bool force)
                       "Failed to gracefully stop mount \"{}\" in instance '{}': {}, trying to stop "
                       "it forcefully.",
                       target,
-                      vm->vm_name,
+                      vm->get_name(),
                       err);
             /**
              * Let's try brute force this time.
@@ -247,7 +250,7 @@ void SSHFSMountHandler::deactivate_impl(bool force)
                       "{} to forcefully stop mount \"{}\" in instance '{}': {}",
                       result ? "Succeeded" : "Failed",
                       target,
-                      vm->vm_name,
+                      vm->get_name(),
                       result ? "" : fetch_stderr(*process.get()));
         }
         else

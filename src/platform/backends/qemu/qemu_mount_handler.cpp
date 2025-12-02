@@ -50,13 +50,13 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
                   "Found native mount {} => {} in '{}' while suspended",
                   source,
                   target,
-                  vm->vm_name);
+                  vm->get_name());
         return;
     }
 
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
     {
-        throw mp::NativeMountNeedsStoppedVMException(vm->vm_name);
+        throw mp::NativeMountNeedsStoppedVMException(vm->get_name());
     }
 
     // Need to ensure no more than one uid/gid map is passed in here.
@@ -64,7 +64,11 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
         this->mount_spec.get_gid_mappings().size() > 1)
         throw std::runtime_error("Only one mapping per native mount allowed.");
 
-    mpl::info(category, "initializing native mount {} => {} in '{}'", source, target, vm->vm_name);
+    mpl::info(category,
+              "initializing native mount {} => {} in '{}'",
+              source,
+              target,
+              vm->get_name());
 
     const auto uid_map = this->mount_spec.get_uid_mappings().empty()
                              ? std::make_pair(1000, 1000)
@@ -101,7 +105,7 @@ catch (const std::exception& e)
     mpl::warn(category,
               "Failed checking 9p mount \"{}\" in instance '{}': {}",
               target,
-              vm->vm_name,
+              vm->get_name(),
               e.what());
     return false;
 }
@@ -144,7 +148,7 @@ void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
 void QemuMountHandler::deactivate_impl(bool force)
 try
 {
-    mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->vm_name);
+    mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->get_name());
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
     MP_UTILS.run_in_ssh_session(
         session,
@@ -157,7 +161,7 @@ catch (const std::exception& e)
     mpl::warn(category,
               "Failed to gracefully stop mount \"{}\" in instance '{}': {}",
               target,
-              vm->vm_name,
+              vm->get_name(),
               e.what());
 }
 
