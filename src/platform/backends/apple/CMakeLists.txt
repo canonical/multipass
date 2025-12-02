@@ -27,16 +27,8 @@ set_source_files_properties(apple_vz_bridge.mm PROPERTIES
   COMPILE_FLAGS "-fobjc-arc"
 )
 
-find_library(FOUNDATION_FRAMEWORK Foundation)
-find_library(VIRTUALIZATION_FRAMEWORK Virtualization)
-
-if(NOT FOUNDATION_FRAMEWORK)
-  message(FATAL_ERROR "Could not find Foundation framework")
-endif()
-
-if(NOT VIRTUALIZATION_FRAMEWORK)
-  message(FATAL_ERROR "Could not find Virtualization framework. Ensure you're building on a macOS SDK that provides it.")
-endif()
+find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
+find_library(VIRTUALIZATION_FRAMEWORK Virtualization REQUIRED)
 
 target_link_libraries(apple_backend
   PRIVATE
