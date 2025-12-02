@@ -19,6 +19,8 @@ pub mod ffi {
         include!("multipass/logging/log.h");
         #[namespace = "multipass::logging::rust"]
         fn log_message(level: Level, category: String, message: String) -> Result<()>;
+        //Result<1Type> in a CXX bridge unsafe extern C++ will convert to a try-catch in the C++
+        //side which will convert the C++ exception to a rust error.
     }
 }
 
