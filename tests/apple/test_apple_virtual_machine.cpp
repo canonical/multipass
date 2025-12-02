@@ -15,9 +15,10 @@
  *
  */
 
-#include <apple/apple_virtual_machine.h>
-
+#include "mock_apple_vz_wrapper.h"
 #include "tests/common.h"
+
+#include <apple/apple_virtual_machine.h>
 
 namespace multipass::test
 {
