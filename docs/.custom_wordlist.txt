@@ -11,6 +11,7 @@ IPs
 Junos
 Kaspersky
 misconfiguration
+multipassd
 NIC
 NICs
 overallocate
@@ -20,4 +21,5 @@ Symantec
 teardown
 unmount
 unmounts
+Vcpkg
 VPNs
