@@ -34,7 +34,7 @@ Instances - A Linux virtual machine hosted by the user’s machine. Multipass us
 
 ## Image Hosts
 
-Source to obtain disk images for the virtual machines. As of now, Multipass only supports communicating with image hosts that support Simplestreams. Multipass periodically fetches and updates the image metadata from image hosts and downloads virtual machine images on demand.
+Remote source to obtain disk images from. As of now, these are public online repositories of cloud Linux images that Multipass creates new instances from. Multipass periodically fetches and updates the image metadata from image hosts, pruning old images and downloading new ones on demand.
 
 ## Networking
 
