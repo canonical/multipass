@@ -15,9 +15,10 @@
  *
  */
 
-#include <applevz/applevz_virtual_machine.h>
+#include "mock_applevz_wrapper.h"
+#include "tests/common.h"
 
-#include "tests/unit/common.h"
+#include <applevz/applevz_virtual_machine.h>
 
 namespace multipass::test
 {
