@@ -19,7 +19,7 @@
 
 #include <multipass/logging/level.h>
 #include <multipass/logging/logger.h>
-#include <rxx/cxx.h>
+#include <rust/cxx.h>
 
 #include <fmt/std.h>   // standard library formatters
 #include <fmt/xchar.h> // char-type agnostic formatting
