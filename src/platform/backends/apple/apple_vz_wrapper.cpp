@@ -38,7 +38,7 @@ CFError AppleVZ::create_vm(const VirtualMachineDescription& desc, VMHandle& out_
     if (!err)
         mpl::debug(kLogCategory, "AppleVZ::create_vm(...) succeeded");
 
-    return CFError(err);
+    return err;
 }
 
 CFError AppleVZ::start_vm(VMHandle& vm_handle) const
@@ -53,7 +53,7 @@ CFError AppleVZ::start_vm(VMHandle& vm_handle) const
     if (!err)
         mpl::debug(kLogCategory, "AppleVZ::start_vm(...) succeeded");
 
-    return CFError(err);
+    return err;
 }
 
 CFError AppleVZ::stop_vm(bool force, VMHandle& vm_handle) const
@@ -66,14 +66,14 @@ CFError AppleVZ::stop_vm(bool force, VMHandle& vm_handle) const
         if (!can_stop(vm_handle))
             mpl::debug(kLogCategory, "VM not in a state that allows stopping");
 
-        err = CFError(stop_with_completion_handler(vm_handle));
+        err = stop_with_completion_handler(vm_handle);
     }
     else
     {
         if (!can_request_stop(vm_handle))
             mpl::debug(kLogCategory, "VM not in a state that allows stopping");
 
-        err = CFError(request_stop_with_error(vm_handle));
+        err = request_stop_with_error(vm_handle);
     }
 
     if (!err)
