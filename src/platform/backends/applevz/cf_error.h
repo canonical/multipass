@@ -73,7 +73,8 @@ struct CFError
     {
         if (this != &other)
         {
-            CFRelease(ref);
+            if (ref)
+                CFRelease(ref);
 
             ref = other.ref;
             other.ref = nullptr;
@@ -83,13 +84,14 @@ struct CFError
 
     ~CFError() noexcept
     {
-        CFRelease(ref);
+        if (ref)
+            CFRelease(ref);
     }
 
-    // Allow implicit conversion to CFErrorRef for easy passing
-    operator CFErrorRef() const
+    // Check if error is present
+    explicit operator bool() const noexcept
     {
-        return ref;
+        return ref != nullptr;
     }
 };
 
@@ -98,7 +100,7 @@ struct CFError
 namespace fmt
 {
 template <>
-struct formatter<CFErrorRef>
+struct formatter<multipass::applevz::CFError>
 {
     template <typename ParseContext>
     constexpr auto parse(ParseContext& ctx)
@@ -107,24 +109,28 @@ struct formatter<CFErrorRef>
     }
 
     template <typename FormatContext>
-    auto format(CFErrorRef e, FormatContext& ctx)
+    auto format(const multipass::applevz::CFError& e, FormatContext& ctx) const
     {
-        if (!e)
-            return format_to(ctx.out(), "<null CFErrorRef>");
+        if (!e.ref)
+            return format_to(ctx.out(), "<null CFError>");
 
-        CFIndex code = CFErrorGetCode(e);
-        CFStringRef domain = CFErrorGetDomain(e);
-        CFStringRef desc = CFErrorCopyDescription(e);
-        std::string sdomain = multipass::applevz::cfstring_to_std_string(domain);
-        std::string sdesc = multipass::applevz::cfstring_to_std_string(desc);
+        CFIndex code = CFErrorGetCode(e.ref);
+        CFStringRef domain = CFErrorGetDomain(e.ref);
+        CFStringRef desc = CFErrorCopyDescription(e.ref);
 
-        CFRelease(desc);
+        std::string domain_str = multipass::applevz::cfstring_to_std_string(domain);
+        std::string desc_str = multipass::applevz::cfstring_to_std_string(desc);
 
-        return format_to(ctx.out(),
-                         "{} ({}): {}",
-                         sdomain.empty() ? "CFError" : sdomain,
-                         code,
-                         sdesc);
+        auto result = format_to(ctx.out(),
+                                "{} ({}): {}",
+                                domain_str.empty() ? "CFError" : domain_str,
+                                code,
+                                desc_str.empty() ? "<unknown error>" : desc_str);
+
+        if (desc)
+            CFRelease(desc);
+
+        return result;
     }
 };
 

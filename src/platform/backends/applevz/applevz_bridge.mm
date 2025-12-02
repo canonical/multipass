@@ -35,8 +35,8 @@ NSString* nsstring_from_qstring(const QString& s)
 
 namespace multipass::applevz
 {
-CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& desc,
-                                   VMHandle& out_handle)
+CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
+                                VMHandle& out_handle)
 {
     @autoreleasepool
     {
@@ -56,7 +56,7 @@ CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& d
         VZDiskImageStorageDeviceAttachment* diskAttachment =
             [[VZDiskImageStorageDeviceAttachment alloc] initWithURL:diskURL readOnly:NO error:&err];
         if (err)
-            return (CFErrorRef)CFBridgingRetain(err);
+            return CFError((__bridge_retained CFErrorRef)err);
 
         VZVirtioBlockDeviceConfiguration* disk =
             [[VZVirtioBlockDeviceConfiguration alloc] initWithAttachment:diskAttachment];
@@ -70,7 +70,7 @@ CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& d
                                                            readOnly:YES
                                                               error:&err];
         if (err)
-            return (CFErrorRef)CFBridgingRetain(err);
+            return CFError((__bridge_retained CFErrorRef)err);
 
         VZVirtioBlockDeviceConfiguration* cloudIso =
             [[VZVirtioBlockDeviceConfiguration alloc] initWithAttachment:cloudAttachment];
@@ -91,7 +91,7 @@ CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& d
                                    options:VZEFIVariableStoreInitializationOptionAllowOverwrite
                                      error:&err];
         if (err)
-            return (CFErrorRef)CFBridgingRetain(err);
+            return CFError((__bridge_retained CFErrorRef)err);
 
         config.bootLoader = efi;
 
@@ -123,7 +123,7 @@ CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& d
         if (![config validateWithError:&err])
         {
             if (err)
-                return (CFErrorRef)CFBridgingRetain(err);
+                return CFError((__bridge_retained CFErrorRef)err);
         }
 
         // Create VM handle
@@ -132,22 +132,22 @@ CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& d
         void* cfRef = (void*)CFBridgingRetain(virtualMachine);
         out_handle = VMHandle(cfRef, [](void* p) { CFRelease(p); });
 
-        return nullptr;
+        return CFError();
     }
 }
 
-CFErrorRef start_with_completion_handler(VMHandle& vm_handle) {
+CFError start_with_completion_handler(VMHandle& vm_handle)
+{
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-    // __block does not retain; we return ownership to caller.
-    __block CFErrorRef err = nullptr;
+    __block CFErrorRef err_ref = nullptr;
 
     [vm startWithCompletionHandler:^(NSError* _Nullable error) {
-      if (err) {
-          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
-          err = (CFErrorRef)CFBridgingRetain(error);
+      if (error)
+      {
+          err_ref = (__bridge_retained CFErrorRef)error;
       }
 
       dispatch_semaphore_signal(sema);
@@ -155,21 +155,21 @@ CFErrorRef start_with_completion_handler(VMHandle& vm_handle) {
 
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
-    return err;
+    return CFError(err_ref);
 }
 
-CFErrorRef stop_with_completion_handler(VMHandle& vm_handle) {
+CFError stop_with_completion_handler(VMHandle& vm_handle)
+{
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-    // __block does not retain; we return ownership to caller.
-    __block CFErrorRef err = nullptr;
+    __block CFErrorRef err_ref = nullptr;
 
     [vm stopWithCompletionHandler:^(NSError* _Nullable error) {
-      if (err) {
-          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
-          err = (CFErrorRef)CFBridgingRetain(error);
+      if (error)
+      {
+          err_ref = (__bridge_retained CFErrorRef)error;
       }
 
       dispatch_semaphore_signal(sema);
@@ -177,30 +177,31 @@ CFErrorRef stop_with_completion_handler(VMHandle& vm_handle) {
 
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
-    return err;
+    return CFError(err_ref);
 }
 
-CFErrorRef request_stop_with_error(VMHandle& vm_handle) {
+CFError request_stop_with_error(VMHandle& vm_handle)
+{
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
     NSError* err = nil;
     [vm requestStopWithError:&err];
 
-    return err ? (CFErrorRef)CFBridgingRetain(err) : nullptr;
+    return err ? CFError((__bridge_retained CFErrorRef)err) : CFError();
 }
 
-CFErrorRef pause_with_completion_handler(VMHandle& vm_handle) {
+CFError pause_with_completion_handler(VMHandle& vm_handle)
+{
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-    // __block does not retain; we return ownership to caller.
-    __block CFErrorRef err = nullptr;
+    __block CFErrorRef err_ref = nullptr;
 
     [vm pauseWithCompletionHandler:^(NSError* _Nullable error) {
-      if (err) {
-          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
-          err = (CFErrorRef)CFBridgingRetain(error);
+      if (error)
+      {
+          err_ref = (__bridge_retained CFErrorRef)error;
       }
 
       dispatch_semaphore_signal(sema);
@@ -208,21 +209,21 @@ CFErrorRef pause_with_completion_handler(VMHandle& vm_handle) {
 
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
-    return err;
+    return CFError(err_ref);
 }
 
-CFErrorRef resume_with_completion_handler(VMHandle& vm_handle) {
+CFError resume_with_completion_handler(VMHandle& vm_handle)
+{
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-    // __block does not retain; we return ownership to caller.
-    __block CFErrorRef err = nullptr;
+    __block CFErrorRef err_ref = nullptr;
 
     [vm resumeWithCompletionHandler:^(NSError* _Nullable error) {
-      if (err) {
-          // Take ownership of NSError as CFErrorRef; caller must CFRelease().
-          err = (CFErrorRef)CFBridgingRetain(error);
+      if (error)
+      {
+          err_ref = (__bridge_retained CFErrorRef)error;
       }
 
       dispatch_semaphore_signal(sema);
@@ -230,7 +231,7 @@ CFErrorRef resume_with_completion_handler(VMHandle& vm_handle) {
 
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
-    return err;
+    return CFError(err_ref);
 }
 
 bool can_start(VMHandle& vm_handle) {
