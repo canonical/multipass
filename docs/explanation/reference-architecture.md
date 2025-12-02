@@ -17,7 +17,7 @@ A term we borrow from the client/server model. Multipass clients provide users w
 
 ## CLI (Command Line Interface)
 
-Is one of the two user interfaces that Multipass offers, in a client program that communicates with the daemon and which can be invoked on the command line: multipass. It is through this client that users can control Multipass and its instances in the terminal, with commands like multipass launch or multipass startstart.
+Is one of the two user interfaces that Multipass offers, in a client program that communicates with the daemon and which can be invoked on the command line: multipass. It is through this client that users can control Multipass and its instances in the terminal, with commands like multipass launch or `multipass start`.
 
 ## GUI (Graphical User Interface)
 
@@ -30,7 +30,9 @@ A long living process responsible for a variety of tasks; managing instances, cl
 ## Storage/Mounts
 
 A filesystem share between the host machine and a guest instance. Mounts expose host directories inside the virtual machine and can be used for bidirectional file transfer. The underlying technology depends on the mount type and host platform, and it can be either SSHFS/SFTP, 9P, or SMB.
-Instances - A Linux virtual machine hosted by the user’s machine. Multipass uses a hypervisor technology specific to the user’s native operating system which is used to emulate the instance.
+
+## Instances
+A Linux virtual machine hosted by the user’s machine. Multipass uses a hypervisor technology specific to the user’s native operating system which is used to emulate the instance.
 
 ## Image Hosts
 
