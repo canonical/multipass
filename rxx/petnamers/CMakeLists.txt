@@ -8,3 +8,6 @@
 set_target_properties(${crate_name}_rs PROPERTIES
   INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:rust_logger>"
 )
+#Add necessary sources for wrappers (advised that the source is named after
+# the header in include/multipass/)
+target_sources(${crate_name} PRIVATE "src/name_generator_rs.cpp")
