@@ -81,7 +81,7 @@ jobs:
 
             if (MACOS_PKG_URL !== '<undefined>') {
               matrix.include.push({
-                os: 'macos-13',
+                os: 'macos-15-intel',
                 label: 'macOS',
                 'daemon-controller': 'launchd',
                 'backend-driver': BACKEND_DRIVER,
