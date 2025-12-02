@@ -1,14 +1,14 @@
 {
     "list": [
         {
-            "description": "Ether",
             "name": "en0",
-            "type": "eth"
+            "type": "eth",
+            "description": "Ether"
         },
         {
-            "description": "Wireless",
             "name": "wlx0123456789ab",
-            "type": "wifi"
+            "type": "wifi",
+            "description": "Wireless"
         }
     ]
 }

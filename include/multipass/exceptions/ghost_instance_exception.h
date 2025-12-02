@@ -17,21 +17,15 @@
 
 #pragma once
 
-#include "common.h"
-#include "mock_singleton_helpers.h"
+#include <stdexcept>
 
-#include <multipass/json_utils.h>
-
-namespace multipass::test
+namespace multipass
 {
-class MockJsonUtils : public JsonUtils
+class GhostInstanceException : public std::runtime_error
 {
 public:
-    using JsonUtils::JsonUtils;
-
-    MOCK_METHOD(void, write_json, (const QJsonObject&, QString), (const, override));
-    MOCK_METHOD(std::string, json_to_string, (const QJsonObject& root), (const, override));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(MockJsonUtils, JsonUtils);
+    explicit GhostInstanceException() : runtime_error{"Ghost instance"}
+    {
+    }
 };
-} // namespace multipass::test
+} // namespace multipass

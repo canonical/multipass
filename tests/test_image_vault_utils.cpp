@@ -105,7 +105,7 @@ TEST_F(TestImageVaultUtils, computeHashComputesSha256)
 TEST_F(TestImageVaultUtils, computeFileHashThrowsWhenCantOpen)
 {
     EXPECT_CALL(mock_file_ops,
-                open(Property(&QFileDevice::fileName, test_path),
+                open(mpt::FileNameMatches(Eq(test_path)),
                      Truly([](const auto& mode) { return (mode & QFile::ReadOnly) > 0; })))
         .WillOnce(Return(false));
 
