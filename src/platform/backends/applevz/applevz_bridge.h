@@ -17,25 +17,23 @@
 
 #pragma once
 
-#include <multipass/virtual_machine_description.h>
+#include <applevz/cf_error.h>
 
-#include <CoreFoundation/CoreFoundation.h>
+#include <multipass/virtual_machine_description.h>
 
 namespace multipass::applevz
 {
 using VMHandle = std::shared_ptr<void>;
 
-extern "C"
-{
-CFErrorRef init_with_configuration(const multipass::VirtualMachineDescription& desc,
-                                   VMHandle& out_handle);
+CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
+                                VMHandle& out_handle);
 
 // Starting and stopping VM
-CFErrorRef start_with_completion_handler(VMHandle& vm_handle);
-CFErrorRef stop_with_completion_handler(VMHandle& vm_handle);
-CFErrorRef request_stop_with_error(VMHandle& vm_handle);
-CFErrorRef pause_with_completion_handler(VMHandle& vm_handle);
-CFErrorRef resume_with_completion_handler(VMHandle& vm_handle);
+CFError start_with_completion_handler(VMHandle& vm_handle);
+CFError stop_with_completion_handler(VMHandle& vm_handle);
+CFError request_stop_with_error(VMHandle& vm_handle);
+CFError pause_with_completion_handler(VMHandle& vm_handle);
+CFError resume_with_completion_handler(VMHandle& vm_handle);
 
 // Getting the state of VM
 bool can_start(VMHandle& vm_handle);
@@ -43,5 +41,4 @@ bool can_pause(VMHandle& vm_handle);
 bool can_resume(VMHandle& vm_handle);
 bool can_stop(VMHandle& vm_handle);
 bool can_request_stop(VMHandle& vm_handle);
-}
 } // namespace multipass::applevz
