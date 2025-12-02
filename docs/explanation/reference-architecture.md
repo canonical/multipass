@@ -42,4 +42,4 @@ Multipass creates a virtual network using a dedicated subnet on the host. Each i
 
 ## Web
 
-Multipass communicates with Web servers to obtain image metadata and perform latest version checks. All communication between the web and Multipass occurs through the daemon, and it’s one-way in the sense that Multipass only consumes the data.
+Multipass instances are online by default (provided the host is). They can reach the web via either the private or the public network. The Multipass daemon also fetches information from the web, in particular image hosts.
