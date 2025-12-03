@@ -32,7 +32,7 @@ struct TestQemuVmStateProcessSpec : public Test
 TEST_F(TestQemuVmStateProcessSpec, defaultArgumentsCorrect)
 {
     mp::QemuVmStateProcessSpec spec{file_name};
-#if defined Q_PROCESSOR_X86
+#if defined Q_PROCESSOR_X86 or defined Q_PROCESSOR_S390_X
     const QStringList default_arguments = {"-nographic", "-dump-vmstate", file_name};
 #elif defined Q_PROCESSOR_ARM
     const QStringList default_arguments = {"-machine",
