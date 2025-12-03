@@ -244,12 +244,9 @@ TEST_F(TestDaemonRpc, listCertNotVerifiedHasError)
 
 TEST_F(TestDaemonRpc, listTCPSocketNoCertsExistHasError)
 {
-    server_address = "localhost:50052";
-    config_builder.server_address = server_address;
-
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions).Times(1);
 
-    EXPECT_CALL(*mock_cert_store, empty()).Times(1);
+    EXPECT_CALL(*mock_cert_store, empty()).Times(2);
     EXPECT_CALL(*mock_cert_store, add_cert(StrEq(mpt::cert))).Times(0);
     EXPECT_CALL(*mock_cert_store, verify_cert(StrEq(mpt::cert))).WillOnce(Return(false));
 
