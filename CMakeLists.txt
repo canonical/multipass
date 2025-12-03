@@ -34,6 +34,8 @@ cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
 
 if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
   set(VCPKG_HOST_ARCH "arm64")
+elseif ("${HOST_ARCH}" STREQUAL "s390x")
+  set(VCPKG_HOST_ARCH "s390x")
 else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
