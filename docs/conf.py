@@ -209,14 +209,14 @@ linkcheck_ignore = [
     "https://sourceforge.net/projects/xming/",
     "http://www.straightrunning.com/XmingNotes/",
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
-    "https://developer.hashicorp.com/packer"
+    "https://developer.hashicorp.com/packer",
 ]
 
 linkcheck_retries = 3
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 
-linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*"]
+linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*",r"https://matrix\.to/.*"]
 
 
 ########################
