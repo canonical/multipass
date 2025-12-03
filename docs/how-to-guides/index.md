@@ -32,7 +32,7 @@ You may also want to customise Multipass to address specific needs, from managin
 
 - [Set up the driver](customise-multipass/set-up-the-driver)
 - [Migrate from Hyperkit to QEMU on macOS](customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)
-- [Authenticate clients with the Multipass service](customise-multipass/authenticate-clients-with-the-multipass-service)
+- [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
 - [Build Multipass images with Packer](customise-multipass/build-multipass-images-with-packer)
 - [Set up a graphical interface](customise-multipass/set-up-a-graphical-interface)
 - [Use a different terminal from the system icon](customise-multipass/use-a-different-terminal-from-the-system-icon)
