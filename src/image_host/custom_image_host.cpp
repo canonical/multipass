@@ -99,6 +99,14 @@ auto fetch_image_info(const QString& arch,
     {
         const QString distro_name = it.key();
         const QJsonObject distro_obj = it.value().toObject();
+        if (!distro_obj.value("items").toObject().contains(arch))
+        {
+            mpl::debug(category,
+                       "Skipping unsupported distro '{}' for arch '{}'",
+                       distro_name,
+                       arch);
+            continue;
+        }
 
         QStringList aliases = distro_obj.value("aliases").toString().split(",", Qt::SkipEmptyParts);
         for (QString& alias : aliases)
