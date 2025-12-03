@@ -27,7 +27,7 @@ jobs:
       hooks: ${{ steps.filter.outputs.hooks }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Detect changed files
         id: filter

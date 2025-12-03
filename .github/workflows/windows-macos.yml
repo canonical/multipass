@@ -82,7 +82,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
@@ -355,7 +355,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf

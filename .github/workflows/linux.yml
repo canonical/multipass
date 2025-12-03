@@ -76,7 +76,7 @@ jobs:
       uses: canonical/setup-lxd@5d3e1e0e23e2dd47404cfa6756d6a5b5717dd470
 
     - name: Check out code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
