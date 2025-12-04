@@ -39,7 +39,7 @@ namespace mpl = mp::logging;
 
 namespace
 {
-constexpr auto log_category = "ssl-cert-provider";
+constexpr auto kLogCategory = "ssl-cert-provider";
 template <typename T>
 concept pointer_like = requires(T t)
 {
