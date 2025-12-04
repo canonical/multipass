@@ -16,6 +16,7 @@ base: core24
 platforms:
   arm64:
   amd64:
+  s390x:
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
