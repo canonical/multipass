@@ -41,5 +41,23 @@ public:
                 stop_vm,
                 (bool force, multipass::applevz::VMHandle& vm_handle),
                 (const, override));
+    MOCK_METHOD(applevz::CFError,
+                pause_vm,
+                (multipass::applevz::VMHandle & vm_handle),
+                (const, override));
+    MOCK_METHOD(applevz::CFError,
+                resume_vm,
+                (multipass::applevz::VMHandle & vm_handle),
+                (const, override));
+    MOCK_METHOD(bool, can_start, (multipass::applevz::VMHandle & vm_handle), (const, override));
+    MOCK_METHOD(bool, can_pause, (multipass::applevz::VMHandle & vm_handle), (const, override));
+    MOCK_METHOD(bool, can_resume, (multipass::applevz::VMHandle & vm_handle), (const, override));
+    MOCK_METHOD(bool, can_stop, (multipass::applevz::VMHandle & vm_handle), (const, override));
+    MOCK_METHOD(bool,
+                can_request_stop,
+                (multipass::applevz::VMHandle & vm_handle),
+                (const, override));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZ, AppleVZ);
 };
 } // namespace multipass::test
