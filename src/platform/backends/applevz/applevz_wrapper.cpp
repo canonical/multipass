@@ -45,9 +45,6 @@ CFError AppleVZ::start_vm(VMHandle& vm_handle) const
 {
     mpl::debug(kLogCategory, "AppleVZ::start_vm(...)");
 
-    if (!can_start(vm_handle))
-        mpl::debug(kLogCategory, "VM not in a state that allows starting");
-
     auto err = start_with_completion_handler(vm_handle);
 
     if (!err)
@@ -62,19 +59,9 @@ CFError AppleVZ::stop_vm(bool force, VMHandle& vm_handle) const
 
     CFError err;
     if (force)
-    {
-        if (!can_stop(vm_handle))
-            mpl::debug(kLogCategory, "VM not in a state that allows stopping");
-
         err = stop_with_completion_handler(vm_handle);
-    }
     else
-    {
-        if (!can_request_stop(vm_handle))
-            mpl::debug(kLogCategory, "VM not in a state that allows stopping");
-
         err = request_stop_with_error(vm_handle);
-    }
 
     if (!err)
         mpl::debug(kLogCategory, "AppleVZ::stop_vm(...) succeeded");
@@ -85,9 +72,6 @@ CFError AppleVZ::stop_vm(bool force, VMHandle& vm_handle) const
 CFError AppleVZ::pause_vm(VMHandle& vm_handle) const
 {
     mpl::debug(kLogCategory, "AppleVZ::pause_vm(...)");
-
-    if (!can_pause(vm_handle))
-        mpl::debug(kLogCategory, "VM not in a state that allows pausing");
 
     auto err = pause_with_completion_handler(vm_handle);
 
@@ -100,9 +84,6 @@ CFError AppleVZ::pause_vm(VMHandle& vm_handle) const
 CFError AppleVZ::resume_vm(VMHandle& vm_handle) const
 {
     mpl::debug(kLogCategory, "AppleVZ::resume_vm(...)");
-
-    if (!can_resume(vm_handle))
-        mpl::debug(kLogCategory, "VM not in a state that allows resuming");
 
     auto err = resume_with_completion_handler(vm_handle);
 
