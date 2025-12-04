@@ -28,7 +28,7 @@ namespace
 
 constexpr std::size_t default_interface_index = 0;
 constexpr std::size_t extra_interface_index_start = default_interface_index + 1;
-constexpr std::string_view k_interface_name_pattern = "eth{}";
+constexpr std::string_view interface_name_pattern = "eth{}";
 
 struct interface_details
 {
@@ -40,7 +40,7 @@ struct interface_details
     interface_details(const std::string& mac_addr,
                       std::size_t index = default_interface_index,
                       bool optional = false)
-        : name(fmt::format(k_interface_name_pattern, index)),
+        : name(fmt::format(interface_name_pattern, index)),
           mac_addr(mac_addr),
           optional(optional),
           route_metric(optional ? std::make_optional(200) : std::nullopt)
