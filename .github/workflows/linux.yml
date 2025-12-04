@@ -141,6 +141,8 @@ jobs:
     - name: Set up vcpkg
       id: setup-vcpkg
       uses: lukka/run-vcpkg@v11
+      env:
+        VCPKG_FORCE_SYSTEM_BINARIES: "${{ matrix.runs-on == 'self-hosted-linux-s390x-noble-medium' && 1 || 0 }}"
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
