@@ -139,11 +139,19 @@ jobs:
         /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
+    - name: Configure
+      run: |
+        /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
+        /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
+        /snap/bin/snapcraft pull --use-lxd multipass
+
+    - name: Run clang-tidy through the diff
+      run: |
+        /snap/bin/snapcraft pull --use-lxd run-clang-tidy
+
     - name: Build
       run: |
         # Build the `multipass` part.
-        /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
-        /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
         /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Run clang-tidy through the diff
