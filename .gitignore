@@ -44,3 +44,5 @@ network-cache/
 
 # clangd code index cache
 .cache
+# Python artifacts
+*.pyc
