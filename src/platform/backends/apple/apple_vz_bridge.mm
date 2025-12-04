@@ -17,4 +17,6 @@
 
 #include <apple/apple_vz_bridge.h>
 
-namespace multipass::apple {} // namespace multipass::apple
+namespace multipass::apple
+{
+} // namespace multipass::apple
