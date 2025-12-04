@@ -151,6 +151,17 @@
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "ci-snap-gui-less",
+            "description": "Preset for snap builds without the Flutter GUI.",
+            "inherits": "ci-snap",
+            "cacheVariables": {
+                "MULTIPASS_ENABLE_FLUTTER_GUI": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
         }
     ],
     "buildPresets": [
