@@ -111,4 +111,39 @@ CFError AppleVZ::resume_vm(VMHandle& vm_handle) const
 
     return err;
 }
+
+bool AppleVZ::can_start(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::can_start(...)");
+
+    return multipass::apple::can_start(vm_handle);
+}
+
+bool AppleVZ::can_pause(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::can_pause(...)");
+
+    return multipass::apple::can_pause(vm_handle);
+}
+
+bool AppleVZ::can_resume(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::can_resume(...)");
+
+    return multipass::apple::can_resume(vm_handle);
+}
+
+bool AppleVZ::can_stop(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::can_stop(...)");
+
+    return multipass::apple::can_stop(vm_handle);
+}
+
+bool AppleVZ::can_request_stop(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::can_request_stop(...)");
+
+    return multipass::apple::can_request_stop(vm_handle);
+}
 } // namespace multipass::apple
