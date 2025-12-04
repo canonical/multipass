@@ -86,6 +86,11 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
+    - name: Install vcpkg dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake curl ninja-build zip unzip tar golang-go
+
     - name: Apply snapcraft-ci-override.yaml
       env:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
@@ -126,11 +131,6 @@ jobs:
 
         # Replace the install hook with GUI-less version
         cp snap/hooks/install-gui-less snap/hooks/install
-
-    - name: Install vcpkg dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake curl ninja-build zip unzip tar golang-go
 
     - name: Set up vcpkg
       id: setup-vcpkg
