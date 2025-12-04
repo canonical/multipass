@@ -5,7 +5,7 @@
 [Mount](explanation-mount), [GUI Client](reference-gui-client), [Instance](explanation-instance)
 ```
 
-Multipass is a tool to generate cloud-style Ubuntu VMs quickly on Linux, macOS and Windows. It provides a simple but powerful CLI that enables you to quickly access an Ubuntu command line or create your own local mini-cloud.
+Multipass is a tool to generate cloud-style Ubuntu VMs quickly on Linux, macOS and Windows. It provides a GUI and a simple but powerful CLI, enabling you to quickly access an Ubuntu command line or create your own local mini-cloud.
 
 ```{figure} /images/multipass-reference-architecture.jpg
    :alt: Multipass reference architecture diagram
@@ -13,7 +13,7 @@ Multipass is a tool to generate cloud-style Ubuntu VMs quickly on Linux, macOS a
 
 ## Clients
 
-A term we borrow from the client/server model. Multipass clients provide users with an interface to Multipass and its instances, delegating requests on the Multipass daemon. There are two clients in Multipass, both offering a user interface: CLI and GUI.
+A term we borrow from the client/server model. Multipass clients provide users with an interface to Multipass and its instances, delegating requests on the Multipass daemon. There are two clients in Multipass, both offering a user interface: one on the command line — the Command Line Interface, or CLI — and one graphical — The Graphical User Interface, or GUI.
 
 ## CLI (Command Line Interface)
 
@@ -21,11 +21,11 @@ Is one of the two user interfaces that Multipass offers, in a client program tha
 
 ## GUI (Graphical User Interface)
 
-The Multipass GUI provides a visual, point-and-click interface for managing Multipass and its instances. It runs as a separate client application that communicates with, and delegates operations to, the Multipass daemon. The Multipass GUI provides a visual, point-and-click interface for managing Multipass and its instances. It runs as a separate client application that communicates with, and delegates operations to, the Multipass daemon.
+The Multipass GUI provides a visual, point-and-click interface for managing Multipass and its instances. It runs as a separate client application which (like the CLI) communicates with, and delegates operations to, the Multipass daemon. The Multipass GUI provides a visual, point-and-click interface for managing Multipass and its instances.
 
 ## Daemon/Service
 
-A long living process responsible for a variety of tasks; managing instances, client authentication, storing configuration settings, and providing file system shares. The daemon runs as a privileged user allowing it to interact directly with system resources and control which users have access to Multipass’s instances.
+A long living background process that is responsible for a variety of tasks, like managing instances, client authentication, storing configuration settings, or providing file system shares. The daemon provides the services that the clients use. It runs as a privileged user allowing it to interact directly with system resources and control which users have access to Multipass’s instances.
 
 ## Storage/Mounts
 
