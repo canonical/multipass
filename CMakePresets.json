@@ -1,0 +1,38 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 19,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "clang-sanitizers-debug",
+            "displayName": "Debug with ASan/UBSan/Leak Sanitizers",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_C_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG -fsanitize-undefined-trap-on-error",
+                "CMAKE_CXX_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize=pointer-compare,pointer-subtract -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG -fsanitize-undefined-trap-on-error",
+                "CMAKE_EXE_LINKER_FLAGS_DEBUG": "-fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error",
+                "CMAKE_SHARED_LINKER_FLAGS_DEBUG": "-fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/3rd-party/vcpkg_triplets",
+                "VCPKG_TARGET_TRIPLET": "x64-linux-sanitizers"
+            },
+            "environment": {
+                "CC": "clang",
+                "CXX": "clang++"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "clang-sanitizers-debug",
+            "configurePreset": "clang-sanitizers-debug"
+        }
+    ]
+}
