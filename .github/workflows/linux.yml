@@ -25,7 +25,8 @@ jobs:
 
         MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
                 {"build-type": "Clang", "cmake-preset": "ci-snap-clang-15"}
-                {"build-type": "Release", "cmake-preset": "ci-snap"}'
+                {"build-type": "Release", "cmake-preset": "ci-snap"}
+                {"build-type": "GUI-less", "cmake-preset": "ci-snap-gui-less"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
             MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage" }'
