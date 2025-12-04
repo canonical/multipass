@@ -180,7 +180,7 @@ Please follow the platform-specific build instructions in the files below:
 ### Generic build tips
 
 **Qt version compatibility**
-Multipass is tested with **Qt 6.9.0**. Newer patch versions along the 6.9 track (e.g. 6.9.1) should be fine. Newer minor versions may work, but they may cause compatibility issues.
+Multipass is tested with **Qt 6.9.1**. Newer patch versions along the 6.9 track (e.g. 6.9.2) should be fine. Newer minor versions may work, but they may cause compatibility issues.
 
 You may use your preferred package manager to install Multipass.
 Note that only the official installers are supported.
