@@ -109,7 +109,7 @@ std::string choose_cloud_init_instance_id(const QJsonObject& json,
 {
     return json.contains("cloud_init_instance_id")
                ? json["cloud_init_instance_id"].toString().toStdString()
-               : MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_iso_path);
+               : MP_cloud_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_iso_path);
 }
 } // namespace
 

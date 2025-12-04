@@ -453,7 +453,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
             if (root_cert && cert)
             {
-                mpl::debug(log_category,
+                mpl::debug(kLogCategory,
                            "Certificates for the gRPC server (root: {}, subordinate: {}) are valid "
                            "X.509 files",
                            root_cert_path,
@@ -462,14 +462,14 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                 // TODO: Remove in Multipass 1.18
                 if (!cert_has_eku_nid(*cert.get(), NID_server_auth))
                 {
-                    mpl::warn(log_category,
+                    mpl::warn(kLogCategory,
                               "Existing gRPC server certificate (`{}`) does not contain the "
                               "correct extensions",
                               cert_path.toStdString());
                 }
                 else if (!is_issuer_of(*root_cert.get(), *cert.get()))
                 {
-                    mpl::warn(log_category,
+                    mpl::warn(kLogCategory,
                               "Existing root certificate (`{}`) is not the signer of the gRPC "
                               "server certificate (`{}`)",
                               root_cert_path,
@@ -478,13 +478,13 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                 else if (is_expired(*cert.get()))
                 {
                     mpl::warn(
-                        log_category,
+                        kLogCategory,
                         "Existing gRPC server certificate (`{}`) validity period is not valid",
                         cert_path.toStdString());
                 }
                 else
                 {
-                    mpl::info(log_category, "Re-using existing certificates for the gRPC server");
+                    mpl::info(kLogCategory, "Re-using existing certificates for the gRPC server");
 
                     // Unlike other daemon files, the root certificate needs to be accessible by
                     // everyone
@@ -498,14 +498,14 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
             }
             else
             {
-                mpl::warn(log_category,
+                mpl::warn(kLogCategory,
                           "Could not load either of the root (`{}`) or subordinate (`{}`) "
                           "certificates for the gRPC server",
                           root_cert_path,
                           cert_path.toStdString());
             }
         }
-        mpl::info(log_category, "Regenerating certificates for the gRPC server");
+        mpl::info(kLogCategory, "Regenerating certificates for the gRPC server");
 
         const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
 
