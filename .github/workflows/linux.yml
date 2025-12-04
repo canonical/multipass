@@ -133,6 +133,11 @@ jobs:
         # Replace the install hook with GUI-less version
         cp snap/hooks/install-gui-less snap/hooks/install
 
+    - name: Install vcpkg dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake curl ninja-build zip unzip tar
+
     - name: Set up vcpkg
       id: setup-vcpkg
       uses: lukka/run-vcpkg@v11
