@@ -6,7 +6,17 @@
         "scope-guard",
         "yaml-cpp",
         "neargye-semver",
-        "openssl"
+        "openssl",
+        {
+            "name": "qtbase",
+            "default-features": false,
+            "features": [
+                "network",
+                "concurrent",
+                "openssl",
+                "dbus"
+            ]
+        }
     ],
     "overrides": [
         {

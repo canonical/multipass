@@ -18,19 +18,6 @@ Avoid the version of cmake supplied, we need a newer one (see later).
 
 Install Homebrew <https://brew.sh/> for package management. It is the most straightforward way of installing the build's dependencies.
 
-### Qt6
-
-#### Installing Qt 6.10.0 using aqtinstall (recommended)
-
-Install aqtinstall and use it to download Qt 6.10.0:
-
-    brew install aqtinstall
-    aqt install-qt mac desktop 6.10.0 --outputdir ~/Qt
-
-This will install Qt 6.10.0 to `~/Qt/6.10.0/macos`.
-
-Adjust accordingly if you customized the Qt install directory.
-
 ### CocoaPods
 
 CocoaPods is required to build the Flutter GUI
@@ -130,23 +117,11 @@ It should point to the root vcpkg location, where the top bootstrap scripts are 
 
 ### Build Multipass
 
-    cmake -GNinja -DCMAKE_PREFIX_PATH=~/Qt/6.10.0/macos
-
-Alternatively if using Qt6 from Homebrew, do
-
-    cmake -GNinja -DCMAKE_PREFIX_PATH=/usr/local/opt/qt6
-
-or, if on Apple silicon, brew will store the Qt binaries in a different location. Additionally, OpenSSL will be in a
-similar location; `/opt/homebrew/Cellar/openssl@3`, which can be set in the project level `CMakeLists.txt` file.
-
-    cmake -GNinja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt6
+    cmake -GNinja
 
 Finally, to build the project, run:
 
     cmake --build . --parallel
-
-Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about
-missing Qt6.
 
 Creating a Package
 ------------------

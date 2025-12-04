@@ -62,12 +62,6 @@ if(MSVC)
   qt6_disable_unicode_defines(multipassd)
 else()
   add_executable(multipassd daemon_main.cpp)
-  # Hide OpenSSL symbols to prevent conflicts with Qt's dynamically loaded SSL plugin
-  if(UNIX AND NOT APPLE)
-    target_link_options(multipassd PRIVATE
-      "-Wl,--exclude-libs,libssl.a"
-      "-Wl,--exclude-libs,libcrypto.a")
-  endif()
 endif()
 
 target_link_libraries(multipassd
@@ -88,10 +82,6 @@ if (NOT IS_DIRECTORY ${QT_PLUGINS_DIR}/tls)
     message(FATAL_ERROR "Failed to retrieve Qt 'tls' plugin directory")
 endif()
 
-if (NOT IS_DIRECTORY ${QT_PLUGINS_DIR}/networkinformation)
-    message(FATAL_ERROR "Failed to retrieve Qt 'networkinformation' plugin directory")
-endif()
-
 if(APPLE)
   set_target_properties( multipassd PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
 
@@ -104,8 +94,6 @@ if(APPLE)
   file(GLOB QT_TLS_PLUGIN_FILES "${QT_PLUGINS_DIR}/tls/*.dylib")
   install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION plugins/tls COMPONENT multipassd)
 
-  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${QT_PLUGINS_DIR}/networkinformation/*.dylib")
-  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION plugins/networkinformation COMPONENT multipassd)
 endif(APPLE)
 
 install(TARGETS multipassd
@@ -124,6 +112,4 @@ if(MSVC)
   file(GLOB QT_TLS_PLUGIN_FILES "${QT_PLUGINS_DIR}/tls/*.dll")
   install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION bin/tls COMPONENT multipassd)
 
-  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${QT_PLUGINS_DIR}/networkinformation/*.dll")
-  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION bin/networkinformation COMPONENT multipassd)
 endif()
