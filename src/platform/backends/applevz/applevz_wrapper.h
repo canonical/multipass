@@ -37,5 +37,11 @@ public:
     virtual CFError stop_vm(bool force, VMHandle& vm_handle) const;
     virtual CFError pause_vm(VMHandle& vm_handle) const;
     virtual CFError resume_vm(VMHandle& vm_handle) const;
+
+    virtual bool can_start(VMHandle& vm_handle) const;
+    virtual bool can_pause(VMHandle& vm_handle) const;
+    virtual bool can_resume(VMHandle& vm_handle) const;
+    virtual bool can_stop(VMHandle& vm_handle) const;
+    virtual bool can_request_stop(VMHandle& vm_handle) const;
 };
 } // namespace multipass::applevz
