@@ -118,9 +118,15 @@ parts:
     build-environment:
     - PATH: /snap/bin:$PATH
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
+    - CMAKE_PRESET: snap
+    - CXX: clang++-15
+    - CC: clang-15
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
+    - ccache
+    - lcov
+    - clang-15
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
@@ -133,7 +139,6 @@ parts:
     - unzip
     - curl
     - libkeybinder-3.0-dev
-    - clang
     - ninja-build
     stage-packages:
     - apparmor
@@ -194,14 +199,14 @@ parts:
     prime:
     - -protobuf
     source: .
-    cmake-parameters:
-    - -DCMAKE_BUILD_TYPE=Release
-    - -DCMAKE_INSTALL_PREFIX=/
-    - -DMULTIPASS_ENABLE_TESTS=off
-    - -DMULTIPASS_UPSTREAM=origin
-    - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
     override-build: |
-      craftctl default
+      # Update default clang
+      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
+      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
+      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
+      cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
+      DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
+
       set -e
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass

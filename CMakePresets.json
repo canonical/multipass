@@ -1,0 +1,163 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "common",
+            "description": "Base preset for all.",
+            "binaryDir": "${sourceDir}/build",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "debug",
+            "description": "Additive preset for debug builds.",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "snap",
+            "description": "Preset for snap builds.",
+            "inherits": "common",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_GENERATOR": {
+                    "type": "STRING",
+                    "value": "Unix Makefiles"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "CMAKE_INSTALL_PREFIX": {
+                    "type": "STRING",
+                    "value": "/"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "MULTIPASS_UPSTREAM": {
+                    "type": "STRING",
+                    "value": "origin"
+                },
+                "MULTIPASS_ENABLE_FLUTTER_GUI": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "snap-debug",
+            "description": "Preset for snap builds in CI for test runs (debug).",
+            "inherits": [
+                "snap",
+                "debug"
+            ]
+        },
+        {
+            "name": "ci-snap",
+            "description": "Preset for snap builds in CI.",
+            "inherits": "snap",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "CMAKE_C_COMPILER_LAUNCHER": {
+                    "type": "STRING",
+                    "value": "ccache"
+                },
+                "CMAKE_CXX_COMPILER_LAUNCHER": {
+                    "type": "STRING",
+                    "value": "ccache"
+                },
+                "MULTIPASS_BUILD_LABEL": {
+                    "type": "STRING",
+                    "value": "$env{MULTIPASS_BUILD_LABEL}"
+                }
+            }
+        },
+        {
+            "name": "ci-snap-clang-15",
+            "description": "Preset for snap builds in CI (clang-15 build).",
+            "inherits": "ci-snap",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": {
+                    "type": "STRING",
+                    "value": "clang-15"
+                },
+                "CMAKE_CXX_COMPILER": {
+                    "type": "STRING",
+                    "value": "clang++-15"
+                }
+            }
+        },
+        {
+            "name": "ci-snap-coverage",
+            "description": "Preset for snap builds in CI for code coverage runs.",
+            "inherits": "ci-snap",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": {
+                    "type": "STRING",
+                    "value": "gcc"
+                },
+                "CMAKE_CXX_COMPILER": {
+                    "type": "STRING",
+                    "value": "g++"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Coverage"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-snap-debug",
+            "description": "Preset for snap builds in CI for test runs.",
+            "inherits": [
+                "ci-snap",
+                "debug"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "configured-at-present",
+            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "configurePreset": "common"
+        }
+    ]
+}

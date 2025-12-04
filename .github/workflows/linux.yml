@@ -23,12 +23,12 @@ jobs:
       run: |
         set -euo pipefail
 
-        MATRIX='{"build-type": "Debug"}
-                {"build-type": "Clang"}
-                {"build-type": "Release"}'
+        MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
+                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-15"}
+                {"build-type": "Release", "cmake-preset": "ci-snap"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
-            MATRIX+='{"build-type": "Coverage" }'
+            MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage" }'
         fi
 
         echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
@@ -85,14 +85,24 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - name: Patch
+    - name: Apply snapcraft-ci-override.yaml
       env:
-        PATCH_PREFIX: .github/workflows/linux
-      run: >
-        [ ! -f ${PATCH_PREFIX}.patch ] || patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}.patch
+        MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CMAKE_PRESET: ${{ matrix.cmake-preset }}
 
-        [ ! -f ${PATCH_PREFIX}-${{ matrix.build-type }}.patch ] ||
-          patch -p1 --no-backup-if-mismatch < ${PATCH_PREFIX}-${{ matrix.build-type }}.patch
+      run: |
+        go install github.com/mikefarah/yq/v4@latest
+
+        # Substitute the environment variables in the snapcraft-ci-override.yaml
+        envsubst < snap/local/snapcraft-ci-override.yaml.in | yq eval 'del(.. | select(. == null or . == "")) | del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))' -P > snap/local/snapcraft-ci-override.yaml
+
+        # Merge / override the original snapcraft.yaml
+        yq eval-all '. as $item ireduce ({}; . *+ $item)' snap/snapcraft.yaml snap/local/snapcraft-ci-override.yaml > snap/snapcraft.yaml.tmp
+        mv snap/snapcraft.yaml.tmp snap/snapcraft.yaml
+
+        # Add CI=true environment variable to all parts' build-environment
+        yq -i '.parts |= with_entries(.value.build-environment += [{"CI": "true"}])' snap/snapcraft.yaml
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -130,47 +140,10 @@ jobs:
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
     - name: Build
-      env:
-        LABEL: ${{ steps.build-params.outputs.label }}
       run: |
-        # Inject the build label.
-        sed -i "/cmake-parameters:/a \    - -DMULTIPASS_BUILD_LABEL=${LABEL}" snap/snapcraft.yaml
-
-        # Inject vcpkg GH Actions cache env vars if they exist
-        if [ -n "${ACTIONS_CACHE_URL}" ]; then
-          sed -i "/build-environment:/a \    - ACTIONS_CACHE_URL: ${ACTIONS_CACHE_URL}" snap/snapcraft.yaml
-        fi
-        if [ -n "${ACTIONS_RUNTIME_TOKEN}" ]; then
-          sed -i "/build-environment:/a \    - ACTIONS_RUNTIME_TOKEN: ${ACTIONS_RUNTIME_TOKEN}" snap/snapcraft.yaml
-        fi
-
-        if [ -n "${VCPKG_BINARY_SOURCES}" ]; then
-          sed -i '/build-environment:/ {
-          a\
-            - VCPKG_BINARY_SOURCES: '"${VCPKG_BINARY_SOURCES}"'\
-            - FEED_URL: '"${FEED_URL}"'\
-            - USERNAME: '"${USERNAME}"'\
-            - GITHUB_TOKEN: '"${{ secrets.GITHUB_TOKEN }}"'
-          }' snap/snapcraft.yaml
-          sed -i "/build-packages:/a \    - mono-complete" snap/snapcraft.yaml
-          sed -i '0,/override-build: |/ {
-            /override-build: |/ a\
-              curl -L -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe\
-              ln -sf /usr/local/bin/nuget.exe /usr/local/bin/nuget\
-              export PATH=$PATH:/usr/local/bin\
-              if ! mono /usr/local/bin/nuget.exe sources list -format short | grep ${FEED_URL} &> /dev/null; then\
-                mono /usr/local/bin/nuget.exe sources add -name GitHubPackages -source "${FEED_URL}" -username "${USERNAME}" -password "${GITHUB_TOKEN}" -storePasswordInClearText\
-              fi\
-              mono /usr/local/bin/nuget.exe setapikey "${GITHUB_TOKEN}" -source "${FEED_URL}"
-          }' snap/snapcraft.yaml
-        fi
-
-        if [ -n "${GITHUB_ACTIONS}" ]; then
-          sed -i "/build-environment:/a \    - GITHUB_ACTIONS: \"${GITHUB_ACTIONS}\"" snap/snapcraft.yaml
-        fi
-
         # Build the `multipass` part.
         /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
+        /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
         /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Clear CCache stats
