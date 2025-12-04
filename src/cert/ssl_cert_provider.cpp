@@ -495,12 +495,6 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                     return {mp::utils::contents_of(cert_path),
                             mp::utils::contents_of(priv_key_path)};
                 }
-
-                mpl::warn(log_category,
-                          "Existing root certificate (`{}`) is not the signer of the gRPC "
-                          "server certificate (`{}`)",
-                          root_cert_path,
-                          cert_path.toStdString());
             }
             else
             {
