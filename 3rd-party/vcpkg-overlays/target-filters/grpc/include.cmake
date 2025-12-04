@@ -11,31 +11,5 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-function(add_target TARGET_NAME)
-  add_library(${TARGET_NAME} STATIC
-    console.cpp
-    terminal.cpp)
-
-  if(MSVC)
-    target_sources(${TARGET_NAME} PRIVATE
-      windows_console.cpp
-      windows_terminal.cpp)
-    qt6_disable_unicode_defines(${TARGET_NAME})
-  else()
-    target_sources(${TARGET_NAME} PRIVATE
-      unix_console.cpp
-      unix_terminal.cpp)
-  endif()
-
-  target_link_libraries(${TARGET_NAME} PUBLIC
-    client_platform
-    platform
-    libssh)
-endfunction()
-
-add_target(console)
-if(MULTIPASS_ENABLE_TESTS)
-  add_target(console_test)
-endif()
+set(MP_VCPKG_DISABLE_CMAKE_TARGETS grpc_unsecure grpc++_unsecure grpc_authorization_provider grpc_objective_c_plugin grpc++_alts grpc++_reflection grpc_php_plugin grpc_python_plugin grpc_node_plugin grpc_objective_c_plugin grpc_csharp_plugin grpc_ruby_plugin)
