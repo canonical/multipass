@@ -31,6 +31,10 @@ FetchContent_Declare(qemu
 )
 FetchContent_MakeAvailable(qemu)
 
+if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+  set(MACOS_DEPLOYMENT_TARGET_FLAG "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
+
 ExternalProject_Add(qemu
   SOURCE_DIR ${QEMU_SOURCE_DIR}
   CONFIGURE_COMMAND test -f <BINARY_DIR>/config-host.mak ||
@@ -64,7 +68,8 @@ ExternalProject_Add(qemu
       --disable-gnutls
       --disable-libvduse
       --disable-vduse-blk-export
-  BUILD_COMMAND ninja
+  BUILD_COMMAND
+    ${CMAKE_COMMAND} -E env ${MACOS_DEPLOYMENT_TARGET_FLAG} ninja
   TEST_COMMAND ""
 )
 

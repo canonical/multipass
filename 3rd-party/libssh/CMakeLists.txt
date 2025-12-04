@@ -22,6 +22,10 @@ if(MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4996")
 else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion -Wno-deprecated-declarations")
+
+  if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(MACOSX_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  endif()
 endif()
 
 set(LIBSSH_INCLUDE_DIRS
