@@ -104,7 +104,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
 
     const fs::path cloud_init_path = dest_instance_dir / cloud_init_file_name;
 
-    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_spec.default_mac_address,
+    MP_cloud_INIT_FILE_OPS.update_identifiers(dest_spec.default_mac_address,
                                               dest_spec.extra_interfaces,
                                               dest_name,
                                               cloud_init_path);

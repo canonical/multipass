@@ -412,7 +412,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
-    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
+    EXPECT_NO_THROW(MP_cloud_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
         default_mac_addr,
         extra_interfaces,
         "vm2",
@@ -438,7 +438,7 @@ TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 
     const std::string& default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> empty_extra_interfaces{};
-    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
+    EXPECT_NO_THROW(MP_cloud_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
         default_mac_addr,
         empty_extra_interfaces,
         std::string(),
@@ -462,7 +462,7 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
     const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
-    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_identifiers(default_mac_addr,
+    EXPECT_NO_THROW(MP_cloud_INIT_FILE_OPS.update_identifiers(default_mac_addr,
                                                               extra_interfaces,
                                                               "vm1-clone1",
                                                               iso_path));
@@ -485,7 +485,7 @@ TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
     original_iso.write_to(iso_path);
 
     const mp::NetworkInterface dummy_extra_interface{};
-    EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init("",
+    EXPECT_NO_THROW(MP_cloud_INIT_FILE_OPS.add_extra_interface_to_cloud_init("",
                                                                              dummy_extra_interface,
                                                                              iso_path));
 }
@@ -496,5 +496,5 @@ TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
     original_iso.add_file("meta-data", default_meta_data_content);
     original_iso.write_to(iso_path);
 
-    EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path), "vm1");
+    EXPECT_EQ(MP_cloud_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path), "vm1");
 }
