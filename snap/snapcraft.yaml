@@ -16,6 +16,7 @@ base: core22
 architectures:
   - build-on: amd64
   - build-on: arm64
+  - build-on: s390x
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
