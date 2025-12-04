@@ -10,8 +10,24 @@
             "name": "common",
             "description": "Base preset for all.",
             "binaryDir": "${sourceDir}/build",
+            "hidden": true,
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "debug",
+            "description": "Additive preset for debug builds.",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "MULTIPASS_ENABLE_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
                 }
@@ -48,6 +64,14 @@
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "snap-debug",
+            "description": "Preset for snap builds in CI for test runs (debug).",
+            "inherits": [
+                "snap",
+                "debug"
+            ]
         },
         {
             "name": "ci-snap",
@@ -113,7 +137,10 @@
         {
             "name": "ci-snap-debug",
             "description": "Preset for snap builds in CI for test runs.",
-            "inherits": "ci-snap",
+            "inherits": [
+                "ci-snap",
+                "debug"
+            ],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": {
                     "type": "STRING",
