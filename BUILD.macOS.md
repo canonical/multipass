@@ -14,22 +14,11 @@ run:
 Ensure you have development Frameworks for at least OS X 10.8 installed, with the typical compiler toolchain and "git".
 Avoid the version of cmake supplied, we need a newer one (see later).
 
-### Qt6
+### Homebrew
 
-#### Option 1: Using Qt official sources
+Install Homebrew <https://brew.sh/> for package management. It is the most straightforward way of installing the build's dependencies.
 
-Install the latest stable version of Qt6 LTS (6.10.0 at the moment): <http://www.qt.io/download-open-source/>.
-
-If it tells you that XCode 5.0.0 needs to be installed, go to XCode > Preferences > Locations and make a selection in
-the _Command Line Tools_ box.
-
-Add Qt6 to your PATH environment variable, adding to your `.bash_profile` file the following line:
-
-    export PATH=$PATH:~/Qt/6.10.0/clang_64/bin
-
-Adjust accordingly if you customized the Qt install directory.
-
-#### Option 2: Using Homebrew
+### CocoaPods
 
 Install Qt6:
 
@@ -64,17 +53,6 @@ Then start the build with:
 
     cd build/
     ninja
-
-Take care to adjust the `CMAKE_PREFIX_PATH` to the location you installed Qt above, or else cmake will complain about
-missing Qt6.
-
-Building in QtCreator
----------------------
-QtCreator will be missing all the environment adjustments made above. To get cmake to successfully configure, open the
-project and adjust the Build Environment (click the "Projects" icon of the left pane, scroll down). Then add the entries
-to the $PATH as above, and add the variables reported by `opem config env`. CMake should now succeed, and QtCreator
-allow you to edit the project files.
-
 
 Creating a Package
 ------------------

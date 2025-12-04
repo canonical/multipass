@@ -39,29 +39,18 @@ compiler and related tooling or fix a broken `visualstudio2022buildtools` instal
 You need to enable symlinks in Windows Git, have a look at
 [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
-### Qt6
+For Windows 11:
 
-Install the latest stable version of Qt6 (6.2.4 at the moment): <https://www.qt.io/download-thank-you?os=windows/>.
-
-In the online installer, under Qt, select MSVC 2019 64-bit.
-
-If you already have Qt installed, run the MaintenanceTool included in the Qt directory to update to the latest version.
-
-```[pwsh]
-aqt install-qt windows desktop 6.10.0 win64_msvc2022_64 -O C:/Qt
-```
-
-Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6100/qt6_6100/qt.qt6.6100.win64_msvc2022_64/6.10.0-0-202510021201qtbase-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64.7z)
-and extract it to `C:\Qt\6.10.0`.
+1. Go to "Developer Settings"
+2. Enable "Developer mode"
 
 ### Path setup
 
-You'll have to manually add CMake and Qt to your account's PATH variable.
+You'll have to manually add CMake to your account's PATH variable.
 
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.10.0\bin`
 
 ### Cmder setup
 

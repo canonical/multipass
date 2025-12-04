@@ -25,14 +25,12 @@ else()
 
   # Determine whether journald is available.
   find_package(PkgConfig)
-  pkg_check_modules(JOURNALD libsystemd)
+  pkg_check_modules(libsystemd IMPORTED_TARGET libsystemd)
 
   # Declare the journald target if found.
-  if(JOURNALD_FOUND)
-    set(JOURNALD_FOUND "${JOURNALD_FOUND}" PARENT_SCOPE)
+  if(libsystemd_FOUND)
     add_library(logger_linux_journald STATIC journald_wrapper.cpp journald_logger.cpp)
-    target_include_directories(logger_linux_journald PRIVATE ${JOURNALD_INCLUDE_DIRS})
-    target_link_libraries(logger_linux_journald logger_linux_common ${JOURNALD_LIBRARIES})
+    target_link_libraries(logger_linux_journald logger_linux_common PkgConfig::libsystemd)
   endif()
 
 
@@ -55,7 +53,7 @@ else()
   if(MULTIPASS_ENABLE_SYSLOG)
     add_library(logger_linux ALIAS logger_linux_syslog)
     message(STATUS "[logging] will use the syslog backend")
-  elseif(JOURNALD_FOUND)
+  elseif(libsystemd_FOUND)
     add_library(logger_linux ALIAS logger_linux_journald)
     message(STATUS "[logging] will use the journald backend")
   else()
