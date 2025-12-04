@@ -36,6 +36,14 @@ parts:
       fi
       mono /usr/local/bin/nuget.exe setapikey "${GITHUB_TOKEN}" -source "${FEED_URL}"
 
+  run-clang-tidy:
+    plugin: nil
+    build-packages:
+      - clang-tidy-15
+    override-pull: |
+      set -e
+      git diff -U0 | clang-tidy-diff-15.py -p1 -path build/
+
   multipass:
     build-environment:
       - MULTIPASS_BUILD_LABEL: ${MULTIPASS_BUILD_LABEL}
