@@ -13,9 +13,10 @@ adopt-info: multipass
 confinement: strict
 base: core22
 
-architectures:
-  - build-on: amd64
-  - build-on: arm64
+platforms:
+  arm64:
+  amd64:
+  s390x:
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
