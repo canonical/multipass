@@ -81,4 +81,34 @@ CFError AppleVZ::stop_vm(bool force, VMHandle& vm_handle) const
 
     return err;
 }
+
+CFError AppleVZ::pause_vm(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::pause_vm(...)");
+
+    if (!can_pause(vm_handle))
+        mpl::debug(kLogCategory, "VM not in a state that allows pausing");
+
+    auto err = pause_with_completion_handler(vm_handle);
+
+    if (!err)
+        mpl::debug(kLogCategory, "AppleVZ::pause_vm(...) succeeded");
+
+    return err;
+}
+
+CFError AppleVZ::resume_vm(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::resume_vm(...)");
+
+    if (!can_resume(vm_handle))
+        mpl::debug(kLogCategory, "VM not in a state that allows resuming");
+
+    auto err = resume_with_completion_handler(vm_handle);
+
+    if (!err)
+        mpl::debug(kLogCategory, "AppleVZ::resume_vm(...) succeeded");
+
+    return err;
+}
 } // namespace multipass::applevz
