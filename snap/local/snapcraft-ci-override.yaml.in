@@ -42,7 +42,7 @@ parts:
       - clang-tidy-15
     override-pull: |
       set -e
-      git diff -U0 | clang-tidy-diff-15.py -p1 -path build/
+      git -C /root/parts/multipass/src diff -U0 --no-color HEAD^1 | clang-tidy-diff-15.py -p1 -path /root/parts/multipass/build/
 
   multipass:
     build-environment:
