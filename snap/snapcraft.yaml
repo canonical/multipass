@@ -211,7 +211,7 @@ parts:
       update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
 
       # Do the CMake configure at the pull step so we can generate the compile_commands.json
-      # for the tool comsumption.
+      # for the tool consumption.
       craftctl default
       cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
     override-build: |
