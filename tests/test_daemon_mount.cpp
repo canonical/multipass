@@ -356,7 +356,7 @@ TEST_F(TestDaemonMount, mountUsesResolvedSource)
     MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*mock_file_ops,
                                                  open,
                                                  FileOps,
-                                                 (A<QFileDevice&>(), A<QIODevice::OpenMode>()));
+                                                 (A<QIODevice&>(), A<QIODevice::OpenMode>()));
 
     mp::Daemon daemon{config_builder.build()};
 

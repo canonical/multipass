@@ -568,7 +568,7 @@ TEST(LinuxBackendUtils, getSubnetNotInFileWritesNewSubnetReturnsExpectedData)
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, size(_)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _))
+    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _))
         .WillOnce([&generated_subnet](auto&, auto data, auto) {
             generated_subnet = std::string(data);
 

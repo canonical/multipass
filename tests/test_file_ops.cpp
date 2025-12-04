@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_file_ops.h"
 
 #include <multipass/file_ops.h>
 
@@ -23,6 +24,7 @@
 
 using namespace testing;
 namespace fs = multipass::fs;
+namespace mpt = multipass::test;
 
 struct FileOps : public Test
 {
@@ -197,4 +199,159 @@ TEST_F(FileOps, removeExtension)
     EXPECT_EQ(MP_FILEOPS.remove_extension("tests/test.test.txt"), "tests/test.test");
     EXPECT_EQ(MP_FILEOPS.remove_extension("tests/bar.foo.tar.gz"), "tests/bar.foo.tar");
     EXPECT_EQ(MP_FILEOPS.remove_extension("/sets/test.png"), "/sets/test");
+}
+
+struct TestWriteTransactionally : public Test
+{
+    TestWriteTransactionally()
+    {
+        EXPECT_CALL(mock_file_ops, write_transactionally)
+            .WillRepeatedly([this]<typename... Args>(Args&&... args) {
+                return mock_file_ops.FileOps::write_transactionally(
+                    std::forward<Args>(args)...); // call the real thing
+            });
+    }
+
+    mpt::MockFileOps::GuardedMock guarded_mock_file_ops = mpt::MockFileOps::inject<StrictMock>();
+    mpt::MockFileOps& mock_file_ops = *guarded_mock_file_ops.first;
+    inline static const QString dir = QStringLiteral("a/b/c");
+    inline static const QString file_name = QStringLiteral("asd.blag");
+    inline static const QString file_path = QStringLiteral("%1/%2").arg(dir, file_name);
+    inline static const QString lockfile_path = file_path + ".lock";
+    inline static const char* file_text = R"({"a": [1,2,3]})";
+    inline static const auto expected_stale_lock_time = std::chrono::seconds{10};
+    inline static const auto expected_lock_timeout = std::chrono::seconds{10};
+    inline static const auto expected_retry_attempts = 10;
+};
+
+TEST_F(TestWriteTransactionally, writesTransactionally)
+{
+    EXPECT_CALL(mock_file_ops,
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        .WillOnce(Return(true));
+
+    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops,
+                write(mpt::FileNameMatches(Eq(file_path)), Eq(file_text), Eq(strlen(file_text))))
+        .WillOnce(Return(14));
+    EXPECT_CALL(mock_file_ops, commit(mpt::FileNameMatches<QSaveFile&>(Eq(file_path))))
+        .WillOnce(Return(true));
+    EXPECT_NO_THROW(mock_file_ops.write_transactionally(file_path, file_text));
+}
+
+TEST_F(TestWriteTransactionally, writesTransactionallyEventually)
+{
+    EXPECT_CALL(mock_file_ops,
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        .WillOnce(Return(true));
+
+    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _))
+        .Times(expected_retry_attempts)
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(mock_file_ops,
+                write(mpt::FileNameMatches(Eq(file_path)), Eq(file_text), Eq(strlen(file_text))))
+        .Times(expected_retry_attempts)
+        .WillRepeatedly(Return(14));
+
+    auto commit_called_times = 0;
+    EXPECT_CALL(mock_file_ops, commit(mpt::FileNameMatches<QSaveFile&>(Eq(file_path))))
+        .Times(expected_retry_attempts)
+        .WillRepeatedly(
+            InvokeWithoutArgs([&]() { return ++commit_called_times == expected_retry_attempts; }));
+
+    EXPECT_NO_THROW(mock_file_ops.write_transactionally(file_path, file_text));
+}
+
+TEST_F(TestWriteTransactionally, throwsOnFailureToCreateDirectory)
+{
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(false));
+    MP_EXPECT_THROW_THAT(
+        mock_file_ops.write_transactionally(file_path, file_text),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
+}
+
+TEST_F(TestWriteTransactionally, throwsOnFailureToOpenFile)
+{
+    EXPECT_CALL(mock_file_ops,
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        .WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(false));
+    MP_EXPECT_THROW_THAT(
+        mock_file_ops.write_transactionally(file_path, file_text),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(file_path.toStdString()))));
+}
+
+TEST_F(TestWriteTransactionally, throwsOnFailureToWriteFile)
+{
+    EXPECT_CALL(mock_file_ops,
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        .WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(-1));
+    MP_EXPECT_THROW_THAT(
+        mock_file_ops.write_transactionally(file_path, file_text),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not write"), HasSubstr(file_path.toStdString()))));
+}
+
+TEST_F(TestWriteTransactionally, throwsOnFailureToAcquireLock)
+{
+    EXPECT_CALL(mock_file_ops,
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        .WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
+
+    MP_EXPECT_THROW_THAT(mock_file_ops.write_transactionally(file_path, file_text),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("Could not acquire lock"),
+                                               HasSubstr(file_path.toStdString()))));
+}
+
+TEST_F(TestWriteTransactionally, throwsOnFailureToCommit)
+{
+    EXPECT_CALL(mock_file_ops,
+                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                                 Eq(expected_stale_lock_time)));
+    EXPECT_CALL(
+        mock_file_ops,
+        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        .WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _))
+        .Times(expected_retry_attempts)
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(mock_file_ops, write(A<QIODevice&>(), _, _))
+        .Times(expected_retry_attempts)
+        .WillRepeatedly(Return(1234));
+    EXPECT_CALL(mock_file_ops, commit).Times(expected_retry_attempts).WillRepeatedly(Return(false));
+    MP_EXPECT_THROW_THAT(
+        mock_file_ops.write_transactionally(file_path, file_text),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
 }

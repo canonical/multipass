@@ -653,7 +653,7 @@ TEST(PlatformWin, createAliasScriptThrowsIfCannotWriteScript)
 
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
+    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(
         MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),

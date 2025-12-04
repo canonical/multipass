@@ -200,8 +200,9 @@ TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)
 TEST_F(ClientCertStore, writingFileFailsAndThrows)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _))
-        .WillOnce([](QFileDevice& file, QIODevice::OpenMode mode) { return file.open(mode); });
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce([](QIODevice& file, QIODevice::OpenMode mode) {
+        return file.open(mode);
+    });
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_file_ops, commit).WillOnce(Return(false));
 

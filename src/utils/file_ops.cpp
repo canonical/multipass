@@ -16,14 +16,54 @@
  */
 
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <multipass/posix.h>
+
+#include <chrono>
+#include <random>
+#include <stdexcept>
+#include <thread>
 
 #include <fcntl.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace fs = mp::fs;
 
-// LCOV_EXCL_START
+namespace
+{
+constexpr static auto log_category = "FileOps";
+
+class BackoffTimer
+{
+public:
+    using Duration = std::chrono::milliseconds;
+    BackoffTimer(Duration factor, Duration max_duration, Duration max_jitter)
+        : jitter(0, max_jitter.count()), factor(factor), max_duration(max_duration)
+    {
+    }
+
+    // Delay with jitter + backoff. Typical series produced by this formula would be:
+    // [2, 14,23,60,90,168,216,213,218,218]
+    // [14,20,30,40,98,174,221,208,206,214]
+    Duration operator()(int attempt)
+    {
+        return std::min(max_duration, factor * (1 << (attempt - 1))) + Duration(jitter(rng));
+    }
+
+private:
+    // Share the random engine with all `BackoffTimer` instances on this thread.
+    thread_local static std::mt19937 rng;
+
+    std::uniform_int_distribution<Duration::rep> jitter;
+    Duration factor;
+    Duration max_duration;
+};
+
+thread_local std::mt19937 BackoffTimer::rng(std::random_device{}());
+
+} // namespace
 
 mp::NamedFd::NamedFd(const fs::path& path, int fd) : path{path}, fd{fd}
 {
@@ -39,6 +79,81 @@ mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept
     : Singleton<FileOps>::Singleton{pass}
 {
 }
+
+void mp::FileOps::write_transactionally(const QString& file_name, const QByteArrayView& data) const
+{
+    using namespace std::literals::chrono_literals;
+    constexpr static auto stale_lock_time = 10s;
+    constexpr static auto lock_acquire_timeout = 10s;
+    constexpr static auto max_attempts = 10;
+
+    BackoffTimer backoff{/*factor=*/10ms, /*max_duration=*/200ms, /*max_jitter=*/25ms};
+    const QFileInfo fi{file_name};
+
+    if (const auto dir = fi.absoluteDir(); !mkpath(dir, "."))
+        throw std::runtime_error(fmt::format("Could not create path '{}'", dir.absolutePath()));
+
+    // Interprocess lock file to ensure that we can synchronize the request from
+    // both the daemon and the client.
+    QLockFile lock(fi.filePath() + ".lock");
+
+    // Make the lock file stale after a while to avoid deadlocking on process crashes, etc.
+    setStaleLockTime(lock, stale_lock_time);
+
+    // Acquire lock file before attempting to write.
+    if (!tryLock(lock, lock_acquire_timeout))
+    {
+        throw std::runtime_error(fmt::format("Could not acquire lock for '{}'", file_name));
+    }
+
+    // The retry logic is here because the destination file might be locked for any reason (e.g. OS
+    // background indexing) so we will retry writing it until it's successful or the attempts are
+    // exhausted.
+    for (auto attempt = 1; attempt <= max_attempts; attempt++)
+    {
+        QSaveFile db_file{file_name};
+        if (!open(db_file, QIODevice::WriteOnly))
+            throw std::runtime_error{
+                fmt::format("Could not open transactional file for writing; filename: {}",
+                            file_name)};
+
+        if (write(db_file, data.data(), data.size()) == -1)
+            throw std::runtime_error{
+                fmt::format("Could not write to transactional file; filename: {}; error: {}",
+                            file_name,
+                            db_file.errorString())};
+
+        if (commit(db_file))
+        {
+            // Saved successfully
+            mpl::debug(log_category,
+                       "Saved file `{}` successfully in attempt #{}",
+                       file_name,
+                       attempt);
+            return;
+        }
+
+        // Save failed. Throw if this was our last attempt.
+        if (attempt == max_attempts)
+            throw std::runtime_error{
+                fmt::format("Could not commit transactional file; filename: {}", file_name)};
+
+        // Otherwise, wait a bit and try again.
+        const auto delay = backoff(attempt);
+        mpl::warn(log_category,
+                  "Failed to write `{}` in attempt #{} (reason: {}), will retry after {} ms delay.",
+                  file_name,
+                  attempt,
+                  db_file.errorString(),
+                  delay);
+
+        std::this_thread::sleep_for(delay);
+    }
+
+    assert(false && "We should never get here");
+}
+
+// LCOV_EXCL_START
 
 bool mp::FileOps::exists(const QDir& dir) const
 {
@@ -68,11 +183,6 @@ bool mp::FileOps::rmdir(QDir& dir, const QString& dirName) const
     return dir.rmdir(dirName);
 }
 
-bool mp::FileOps::exists(const QFile& file) const
-{
-    return file.exists();
-}
-
 bool mp::FileOps::isDir(const QFileInfo& file) const
 {
     return file.isDir();
@@ -98,29 +208,29 @@ uint mp::FileOps::groupId(const QFileInfo& file) const
     return file.groupId();
 }
 
-bool mp::FileOps::is_open(const QFile& file) const
+bool mp::FileOps::exists(const QFile& file) const
+{
+    return file.exists();
+}
+
+bool mp::FileOps::is_open(const QIODevice& file) const
 {
     return file.isOpen();
 }
 
-bool mp::FileOps::open(QFileDevice& file, QIODevice::OpenMode mode) const
+bool mp::FileOps::open(QIODevice& file, QIODevice::OpenMode mode) const
 {
     return file.open(mode);
 }
 
-qint64 mp::FileOps::read(QFile& file, char* data, qint64 maxSize) const
+qint64 mp::FileOps::read(QIODevice& file, char* data, qint64 maxSize) const
 {
     return file.read(data, maxSize);
 }
 
-QByteArray mp::FileOps::read_all(QFile& file) const
+QByteArray mp::FileOps::read_all(QIODevice& file) const
 {
     return file.readAll();
-}
-
-QString mp::FileOps::read_line(QTextStream& text_stream) const
-{
-    return text_stream.readLine();
 }
 
 bool mp::FileOps::remove(QFile& file) const
@@ -133,34 +243,39 @@ bool mp::FileOps::rename(QFile& file, const QString& newName) const
     return file.rename(newName);
 }
 
-bool mp::FileOps::resize(QFile& file, qint64 sz) const
+bool mp::FileOps::resize(QFileDevice& file, qint64 sz) const
 {
     return file.resize(sz);
 }
 
-bool mp::FileOps::seek(QFile& file, qint64 pos) const
+bool mp::FileOps::seek(QIODevice& file, qint64 pos) const
 {
     return file.seek(pos);
 }
 
-qint64 mp::FileOps::size(QFile& file) const
+qint64 mp::FileOps::size(QIODevice& file) const
 {
     return file.size();
 }
 
-qint64 mp::FileOps::write(QFile& file, const char* data, qint64 maxSize) const
+qint64 mp::FileOps::write(QIODevice& file, const char* data, qint64 maxSize) const
 {
     return file.write(data, maxSize);
 }
 
-qint64 mp::FileOps::write(QFileDevice& file, const QByteArray& data) const
+qint64 mp::FileOps::write(QIODevice& file, const QByteArray& data) const
 {
     return file.write(data);
 }
 
-bool mp::FileOps::flush(QFile& file) const
+bool mp::FileOps::flush(QFileDevice& file) const
 {
     return file.flush();
+}
+
+QString mp::FileOps::read_line(QTextStream& text_stream) const
+{
+    return text_stream.readLine();
 }
 
 bool mp::FileOps::copy(const QString& from, const QString& to) const
