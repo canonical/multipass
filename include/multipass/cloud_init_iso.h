@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-#define MP_CLOUD_INIT_FILE_OPS multipass::CloudInitFileOps::instance()
+#define MP_cloud_INIT_FILE_OPS multipass::CloudInitFileOps::instance()
 
 namespace multipass
 {
