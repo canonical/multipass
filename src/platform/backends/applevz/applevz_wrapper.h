@@ -38,6 +38,8 @@ public:
     virtual CFError pause_vm(VMHandle& vm_handle) const;
     virtual CFError resume_vm(VMHandle& vm_handle) const;
 
+    virtual AppleVMState get_state(VMHandle& vm_handle) const;
+
     virtual bool can_start(VMHandle& vm_handle) const;
     virtual bool can_pause(VMHandle& vm_handle) const;
     virtual bool can_resume(VMHandle& vm_handle) const;
