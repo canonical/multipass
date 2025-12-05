@@ -72,6 +72,9 @@ jobs:
       mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
+      # Edge packages with feature flags enabled
+      mac-x86-edge-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-edge-package-artifact-name }}
+      mac-arm-edge-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-edge-package-artifact-name }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -261,6 +264,7 @@ jobs:
       run: >
         cmake
         -B${{ env.BUILD_DIR }}
+        ${{ matrix.cmake-preset && format('--preset={0}', matrix.cmake-preset) || '' }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
         -DMULTIPASS_UPSTREAM=origin
@@ -303,7 +307,8 @@ jobs:
     - name: Upload package
       uses: actions/upload-artifact@v5
       with:
-        name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
+        name: ${{ matrix.cmake-preset && format('{0}-edge-{1}', matrix.runs-on, steps.cmake-package.outputs.name) ||
+                  format('{0}-{1}', matrix.runs-on, steps.cmake-package.outputs.name) }}
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
         retention-days: 7
@@ -332,7 +337,8 @@ jobs:
       shell: bash
       run: |
         NAME="${{ steps.cmake-package.outputs.name }}"
-        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        SUFFIX="${{ matrix.cmake-preset && '-edge' || '' }}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}${SUFFIX}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
         FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
 
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
