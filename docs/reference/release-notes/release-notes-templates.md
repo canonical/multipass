@@ -5,13 +5,11 @@ orphan: true
 
 These release notes cover new features and changes in Multipass < version >.
 
-
 < Include a brief description of the release here. Mention if it's a minor or patch release, and highlight key changes or themes of the release. >
 
 ## New features & improvements
 
 < List features here as sub sections>
-
 
 ## Removed functionality
 
