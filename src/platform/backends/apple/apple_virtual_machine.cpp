@@ -92,6 +92,7 @@ std::optional<IPAddress> AppleVirtualMachine::management_ipv4()
 
 void AppleVirtualMachine::handle_state_update()
 {
+    monitor->persist_state_for(vm_name, state);
 }
 
 void AppleVirtualMachine::update_cpus(int num_cores)
