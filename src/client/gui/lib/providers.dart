@@ -360,6 +360,13 @@ class GuiSettingNotifier extends Notifier<String?> {
   @override
   String? build() {
     final sharedPreferences = ref.read(sharedPreferencesProvider);
+    
+    // Default values for the first run
+    if (arg == onAppCloseKey) {
+      return sharedPreferences.getString(arg) ?? 'ask';
+    }
+  
+
     return sharedPreferences.getString(arg);
   }
 
