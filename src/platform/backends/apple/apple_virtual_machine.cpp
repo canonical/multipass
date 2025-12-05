@@ -31,8 +31,7 @@ AppleVirtualMachine::AppleVirtualMachine(const VirtualMachineDescription& desc,
 {
 }
 
-AppleVirtualMachine::~AppleVirtualMachine()
-{
+    mpl::debug(log_category, "Created handle for VM '{}'", vm_name);
 }
 
 void AppleVirtualMachine::start()
