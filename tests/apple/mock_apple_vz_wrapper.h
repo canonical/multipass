@@ -49,6 +49,10 @@ public:
                 resume_vm,
                 (multipass::apple::VMHandle & vm_handle),
                 (const, override));
+    MOCK_METHOD(apple::AppleVMState,
+                get_state,
+                (multipass::apple::VMHandle & vm_handle),
+                (const, override));
     MOCK_METHOD(bool, can_start, (multipass::apple::VMHandle & vm_handle), (const, override));
     MOCK_METHOD(bool, can_pause, (multipass::apple::VMHandle & vm_handle), (const, override));
     MOCK_METHOD(bool, can_resume, (multipass::apple::VMHandle & vm_handle), (const, override));
