@@ -54,6 +54,52 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
 
 void AppleVZVirtualMachine::start()
 {
+    mpl::debug(log_category, "start() -> Starting VM `{}`, current state {}", vm_name, state);
+
+    state = State::starting;
+    handle_state_update();
+
+    CFError error;
+    auto curr_state = MP_APPLEVZ.get_state(vm_handle);
+
+    mpl::debug(log_category, "start() -> VM `{}` VM state is `{}`", vm_name, curr_state);
+    if (curr_state == applevz::AppleVMState::paused && MP_APPLEVZ.can_resume(vm_handle))
+    {
+        mpl::debug(log_category, "start() -> VM `{}` is in paused state, resuming", vm_name);
+        error = MP_APPLEVZ.resume_vm(vm_handle);
+    }
+    else if (MP_APPLEVZ.can_start(vm_handle))
+    {
+        mpl::debug(log_category,
+                   "start() -> VM `{}` is in {} state, starting",
+                   vm_name,
+                   curr_state);
+        error = MP_APPLEVZ.start_vm(vm_handle);
+    }
+    else
+    {
+        mpl::debug(log_category,
+                   "start() -> VM `{}` cannot be started from state `{}`",
+                   vm_name,
+                   curr_state);
+
+        throw VMStateIdempotentException(
+            fmt::format("VM `{}` cannot be started from state `{}`", vm_name, curr_state));
+    }
+
+    // Reflect compute system's state
+    curr_state = MP_APPLEVZ.get_state(vm_handle);
+    set_state(curr_state);
+    handle_state_update();
+
+    if (error)
+    {
+        mpl::error(log_category, "start() -> VM '{}' failed to start: {}", vm_name, error);
+        throw std::runtime_error(
+            fmt::format("VM '{}' failed to start, check logs for more details", vm_name));
+    }
+
+    mpl::debug(log_category, "start() -> Started/resumed VM `{}`", vm_name);
 }
 
 void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
