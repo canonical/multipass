@@ -189,7 +189,7 @@ if(UNIX)
       list(APPEND MULTIPASS_BACKENDS virtualbox)
   endif()
 
-  list(APPEND MULTIPASS_BACKENDS qemu)
+  list(APPEND MULTIPASS_BACKENDS qemu apple)
 endif()
 
 # OpenSSL config
