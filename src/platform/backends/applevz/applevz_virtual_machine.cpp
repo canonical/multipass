@@ -21,6 +21,13 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_status_monitor.h>
 
+namespace mpl = multipass::logging;
+
+namespace
+{
+constexpr static auto log_category = "applevz-vm";
+} // namespace
+
 namespace multipass::applevz
 {
 AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& desc,
@@ -83,5 +90,46 @@ void AppleVZVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
 {
+}
+
+void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
+{
+    mpl::debug(log_category, "set_state() -> VM `{}` VZ state `{}`", vm_name, vm_state);
+
+    const auto prev_state = state;
+    switch (vm_state)
+    {
+    case applevz::AppleVMState::stopped:
+        state = State::stopped;
+        break;
+    case applevz::AppleVMState::running:
+    case applevz::AppleVMState::stopping:
+        state = State::running;
+        break;
+    case applevz::AppleVMState::paused:
+        state = State::suspended;
+        break;
+    case applevz::AppleVMState::error:
+        state = State::unknown;
+        break;
+    case applevz::AppleVMState::starting:
+    case applevz::AppleVMState::resuming:
+    case applevz::AppleVMState::restoring:
+        state = State::starting;
+        break;
+    case applevz::AppleVMState::pausing:
+    case applevz::AppleVMState::saving:
+        state = State::suspending;
+        break;
+    }
+
+    if (state == prev_state)
+        return;
+
+    mpl::info(log_category,
+              "set_state() > VM {} state changed from {} to {}",
+              vm_name,
+              prev_state,
+              state);
 }
 } // namespace multipass::applevz
