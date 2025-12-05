@@ -151,6 +151,12 @@
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "feature-flags-enabled",
+            "description": "Preset with all feature flags enabled for testing purposes.",
+            "inherits": ["common"]
+        }
         }
     ],
     "buildPresets": [
