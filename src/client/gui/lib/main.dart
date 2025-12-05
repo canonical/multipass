@@ -168,7 +168,16 @@ class _AppState extends ConsumerState<App> with WindowListener {
     final daemonAvailable = ref.read(daemonAvailableProvider);
     final vmsRunning =
         ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
-    final closeJob = ref.read(guiSettingProvider(onAppCloseKey));
+    var closeJob = ref.read(guiSettingProvider(onAppCloseKey));
+
+// Fix for Issue #4506: enforce default when setting is empty or not set
+if (closeJob == null || closeJob.toString().trim().isEmpty) {
+  const defaultCloseAction = 'ask';
+  // Update provider so future reads are correct
+  ref.read(guiSettingProvider(onAppCloseKey).notifier).state = defaultCloseAction;
+  // Use default for this run
+  closeJob = defaultCloseAction;
+}
 
     // nothing to do
     if (!daemonAvailable || !vmsRunning || closeJob == 'nothing') {
