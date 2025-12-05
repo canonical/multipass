@@ -31,10 +31,6 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
 {
 }
 
-AppleVZVirtualMachine::~AppleVZVirtualMachine()
-{
-}
-
 void AppleVZVirtualMachine::start()
 {
 }

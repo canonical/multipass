@@ -35,7 +35,6 @@ public:
                           VMStatusMonitor& monitor,
                           const SSHKeyProvider& key_provider,
                           const Path& instance_dir);
-    ~AppleVZVirtualMachine();
 
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
