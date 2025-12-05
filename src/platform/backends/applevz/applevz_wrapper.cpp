@@ -93,6 +93,13 @@ CFError AppleVZ::resume_vm(VMHandle& vm_handle) const
     return err;
 }
 
+AppleVMState AppleVZ::get_state(VMHandle& vm_handle) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::get_state(...)");
+
+    return multipass::applevz::get_state(vm_handle);
+}
+
 bool AppleVZ::can_start(VMHandle& vm_handle) const
 {
     mpl::debug(kLogCategory, "AppleVZ::can_start(...)");
