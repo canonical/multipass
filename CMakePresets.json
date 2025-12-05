@@ -155,8 +155,39 @@
         {
             "name": "feature-flags-enabled",
             "description": "Preset with all feature flags enabled for testing purposes.",
-            "inherits": ["common"]
-        }
+            "inherits": [
+                "common",
+                "macOS-feature-flags",
+                "linux-feature-flags",
+                "windows-feature-flags"
+            ]
+        },
+        {
+            "name": "macOS-feature-flags",
+            "description": "Preset for macOS specific feature flags",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "linux-feature-flags",
+            "description": "Preset for Linux specific feature flags",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "windows-feature-flags",
+            "description": "Preset for Windows specific feature flags",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
         }
     ],
     "buildPresets": [
