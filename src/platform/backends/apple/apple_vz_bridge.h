@@ -21,6 +21,8 @@
 
 #include <multipass/virtual_machine_description.h>
 
+#include <fmt/format.h>
+
 namespace multipass::apple
 {
 using VMHandle = std::shared_ptr<void>;
@@ -60,3 +62,55 @@ bool can_stop(VMHandle& vm_handle);
 bool can_request_stop(VMHandle& vm_handle);
 
 } // namespace multipass::apple
+
+template <>
+struct fmt::formatter<multipass::apple::AppleVMState>
+{
+    constexpr auto parse(format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::apple::AppleVMState& state, FormatContext& ctx) const
+    {
+        std::string_view v = "(undefined)";
+        switch (state)
+        {
+        case multipass::apple::AppleVMState::stopped:
+            v = "stopped";
+            break;
+        case multipass::apple::AppleVMState::running:
+            v = "running";
+            break;
+        case multipass::apple::AppleVMState::paused:
+            v = "paused";
+            break;
+        case multipass::apple::AppleVMState::error:
+            v = "error";
+            break;
+        case multipass::apple::AppleVMState::starting:
+            v = "starting";
+            break;
+        case multipass::apple::AppleVMState::pausing:
+            v = "pausing";
+            break;
+        case multipass::apple::AppleVMState::resuming:
+            v = "resuming";
+            break;
+        case multipass::apple::AppleVMState::stopping:
+            v = "stopping";
+            break;
+        case multipass::apple::AppleVMState::saving:
+            v = "saving";
+            break;
+        case multipass::apple::AppleVMState::restoring:
+            v = "restoring";
+            break;
+        default:
+            v = "unknown";
+            break;
+        }
+        return format_to(ctx.out(), "{}", v);
+    }
+};
