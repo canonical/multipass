@@ -36,6 +36,20 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
+    vm_handle.reset();
+    if (const auto& error = MP_APPLEVZ.create_vm(desc, vm_handle); error)
+    {
+        mpl::error(log_category, "Failed to create handle for VM '{}': ", vm_name, error);
+    }
+
+    mpl::debug(log_category,
+               "AppleVZVirtualMachine::AppleVZVirtualMachine() -> Created handle for VM '{}'",
+               vm_name);
+
+    // Reflect compute system's state
+    const auto curr_state = MP_APPLEVZ.get_state(vm_handle);
+    set_state(curr_state);
+    handle_state_update();
 }
 
 void AppleVZVirtualMachine::start()
