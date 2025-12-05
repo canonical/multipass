@@ -60,5 +60,6 @@ private:
 private:
     VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
+    VMHandle vm_handle{nullptr};
 };
 } // namespace multipass::apple
