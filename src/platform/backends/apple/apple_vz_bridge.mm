@@ -234,6 +234,13 @@ CFError resume_with_completion_handler(VMHandle& vm_handle)
     return CFError(err_ref);
 }
 
+AppleVMState get_state(VMHandle& vm_handle)
+{
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    return AppleVMState([vm state]);
+}
+
 bool can_start(VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
