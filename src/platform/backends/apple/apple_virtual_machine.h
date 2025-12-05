@@ -17,9 +17,10 @@
 
 #pragma once
 
-#include <shared/base_virtual_machine.h>
+#include <apple/apple_vz_wrapper.h>
 
 #include <multipass/virtual_machine_description.h>
+#include <shared/base_virtual_machine.h>
 
 namespace multipass
 {
@@ -39,15 +40,22 @@ public:
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
+
     State current_state() override;
+
     int ssh_port() override;
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
+
     void handle_state_update() override;
+
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
+
+private:
+    void set_state(apple::AppleVMState vm_state);
 
 private:
     VirtualMachineDescription desc;
