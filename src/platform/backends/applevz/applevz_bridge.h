@@ -21,8 +21,11 @@
 
 #include <multipass/virtual_machine_description.h>
 
+#include <fmt/format.h>
+
 namespace multipass::applevz
 {
+
 using VMHandle = std::shared_ptr<void>;
 
 enum class AppleVMState
@@ -58,4 +61,57 @@ bool can_pause(VMHandle& vm_handle);
 bool can_resume(VMHandle& vm_handle);
 bool can_stop(VMHandle& vm_handle);
 bool can_request_stop(VMHandle& vm_handle);
+
 } // namespace multipass::applevz
+
+template <>
+struct fmt::formatter<multipass::applevz::AppleVMState>
+{
+    constexpr auto parse(format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::applevz::AppleVMState& state, FormatContext& ctx) const
+    {
+        std::string_view v = "(undefined)";
+        switch (state)
+        {
+        case multipass::applevz::AppleVMState::stopped:
+            v = "stopped";
+            break;
+        case multipass::applevz::AppleVMState::running:
+            v = "running";
+            break;
+        case multipass::applevz::AppleVMState::paused:
+            v = "paused";
+            break;
+        case multipass::applevz::AppleVMState::error:
+            v = "error";
+            break;
+        case multipass::applevz::AppleVMState::starting:
+            v = "starting";
+            break;
+        case multipass::applevz::AppleVMState::pausing:
+            v = "pausing";
+            break;
+        case multipass::applevz::AppleVMState::resuming:
+            v = "resuming";
+            break;
+        case multipass::applevz::AppleVMState::stopping:
+            v = "stopping";
+            break;
+        case multipass::applevz::AppleVMState::saving:
+            v = "saving";
+            break;
+        case multipass::applevz::AppleVMState::restoring:
+            v = "restoring";
+            break;
+        default:
+            v = "unknown";
+            break;
+        }
+        return format_to(ctx.out(), "{}", v);
+    }
+};
