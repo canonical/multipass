@@ -25,6 +25,20 @@ namespace multipass::apple
 {
 using VMHandle = std::shared_ptr<void>;
 
+enum class AppleVMState
+{
+    stopped,
+    running,
+    paused,
+    error,
+    starting,
+    pausing,
+    resuming,
+    stopping,
+    saving,
+    restoring
+};
+
 CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
                                 VMHandle& out_handle);
 
