@@ -49,7 +49,10 @@ CFError request_stop_with_error(VMHandle& vm_handle);
 CFError pause_with_completion_handler(VMHandle& vm_handle);
 CFError resume_with_completion_handler(VMHandle& vm_handle);
 
-// Getting the state of VM
+// Getting VM state
+AppleVMState get_state(VMHandle& vm_handle);
+
+// Validate the state of VM
 bool can_start(VMHandle& vm_handle);
 bool can_pause(VMHandle& vm_handle);
 bool can_resume(VMHandle& vm_handle);
