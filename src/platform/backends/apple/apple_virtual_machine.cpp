@@ -87,4 +87,45 @@ void AppleVirtualMachine::resize_memory(const MemorySize& new_size)
 void AppleVirtualMachine::resize_disk(const MemorySize& new_size)
 {
 }
+
+void AppleVirtualMachine::set_state(apple::AppleVMState vm_state)
+{
+    mpl::debug(log_category, "set_state() -> VM `{}` VZ state `{}`", vm_name, vm_state);
+
+    const auto prev_state = state;
+    switch (vm_state)
+    {
+    case apple::AppleVMState::stopped:
+        state = State::stopped;
+        break;
+    case apple::AppleVMState::running:
+    case apple::AppleVMState::stopping:
+        state = State::running;
+        break;
+    case apple::AppleVMState::paused:
+        state = State::suspended;
+        break;
+    case apple::AppleVMState::error:
+        state = State::unknown;
+        break;
+    case apple::AppleVMState::starting:
+    case apple::AppleVMState::resuming:
+    case apple::AppleVMState::restoring:
+        state = State::starting;
+        break;
+    case apple::AppleVMState::pausing:
+    case apple::AppleVMState::saving:
+        state = State::suspending;
+        break;
+    }
+
+    if (state == prev_state)
+        return;
+
+    mpl::info(log_category,
+              "set_state() > VM {} state changed from {} to {}",
+              vm_name,
+              prev_state,
+              state);
+}
 } // namespace multipass::apple
