@@ -36,6 +36,21 @@ parts:
       fi
       mono /usr/local/bin/nuget.exe setapikey "${GITHUB_TOKEN}" -source "${FEED_URL}"
 
+  run-clang-tidy:
+    plugin: nil
+    build-packages:
+      - clang-tidy-15
+    override-pull: |
+      set -e
+      cd /root/parts/multipass/src
+      cmake --build ../build --target rpc
+      git diff -U0 --no-color HEAD^1 | clang-tidy-diff-15.py -p1 -path ../build/ -clang-tidy-binary=clang-tidy-15 -j$(nproc) -quiet | sed '/^$/d' | tee clang-tidy-diff
+
+      if [ "$( stat --printf='%s' clang-tidy-diff )" -ne 0 ]; then
+        echo "##[error] Please apply the above diff to correct lint errors"
+        exit 1
+      fi
+
   multipass:
     build-environment:
       - MULTIPASS_BUILD_LABEL: ${MULTIPASS_BUILD_LABEL}

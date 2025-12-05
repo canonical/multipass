@@ -199,7 +199,7 @@ parts:
     prime:
     - -protobuf
     source: .
-    override-build: |
+    override-pull: |
       set -e
 
       # https://github.com/microsoft/vcpkg/issues/37279
@@ -210,8 +210,12 @@ parts:
       update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
       update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
 
-      # Configure-build-install
+      # Do the CMake configure at the pull step so we can generate the compile_commands.json
+      # for the tool consumption.
+      craftctl default
       cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
+    override-build: |
+      # Build the project.
       cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
       DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
 

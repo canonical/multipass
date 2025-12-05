@@ -41,5 +41,8 @@ protobuf_generate(
     PLUGIN protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
     GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
 )
-
+# protobuf_generate adds the generated stuff via target_sources.
+# Mark the generated folder  as SYSTEM so the linters and other
+# tooling won't complain.
+target_include_directories(rpc SYSTEM PUBLIC ${GRPC_GENERATED_SOURCE_DIR})
 target_link_libraries(rpc gRPC)
