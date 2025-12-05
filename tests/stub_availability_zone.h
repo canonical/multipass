@@ -36,9 +36,9 @@ struct StubAvailabilityZone final : public AvailabilityZone
         return name;
     }
 
-    const std::string& get_subnet() const override
+    const Subnet& get_subnet() const override
     {
-        static std::string subnet{"192.168.123"};
+        static Subnet subnet{"192.168.123.0/24"};
         return subnet;
     }
 

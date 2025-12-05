@@ -17,6 +17,7 @@
 
 #include "backend_utils.h"
 #include "dbus_wrappers.h"
+#include "multipass/subnet.h"
 #include "process_factory.h"
 
 #include <multipass/file_ops.h>
@@ -55,12 +56,6 @@ Q_DECLARE_METATYPE(VariantMapMap) // for DBus
 
 namespace
 {
-std::default_random_engine gen = [] {
-    // seed the rng with the time at initialization
-    auto seed = std::chrono::system_clock::now().time_since_epoch().count();
-    return std::default_random_engine(seed);
-}();
-std::uniform_int_distribution<int> dist{0, 255};
 const auto nm_bus_name = QStringLiteral("org.freedesktop.NetworkManager");
 const auto nm_root_obj = QStringLiteral("/org/freedesktop/NetworkManager");
 const auto nm_root_ifc = QStringLiteral("org.freedesktop.NetworkManager");
@@ -68,45 +63,6 @@ const auto nm_settings_obj = QStringLiteral("/org/freedesktop/NetworkManager/Set
 const auto nm_settings_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings");
 const auto nm_connection_ifc = QStringLiteral("org.freedesktop.NetworkManager.Settings.Connection");
 constexpr auto max_bridge_name_len = 15; // maximum number of characters in a bridge name
-
-bool subnet_used_locally(const std::string& subnet)
-{
-    // CLI equivalent: ip -4 route show | grep -q ${SUBNET}
-    const auto output =
-        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
-    return output.contains(QString::fromStdString(subnet));
-}
-
-bool can_reach_gateway(const std::string& ip)
-{
-    return MP_UTILS.run_cmd_for_status("ping", {"-n", "-q", ip.c_str(), "-c", "1", "-W", "1"});
-}
-
-auto virtual_switch_subnet(const QString& bridge_name)
-{
-    // CLI equivalent: ip -4 route show | grep ${BRIDGE_NAME} | cut -d ' ' -f1 | cut -d '.' -f1-3
-    QString subnet;
-
-    const auto output =
-        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}))
-            .split('\n');
-    for (const auto& line : output)
-    {
-        if (line.contains(bridge_name))
-        {
-            subnet = line.section('.', 0, 2);
-            break;
-        }
-    }
-
-    if (subnet.isNull())
-    {
-        mpl::info("daemon",
-                  "Unable to determine subnet for the {} subnet",
-                  qUtf8Printable(bridge_name));
-    }
-    return subnet.toStdString();
-}
 
 const mpdbus::DBusConnection& get_checked_system_bus()
 {
@@ -196,27 +152,6 @@ auto make_bridge_rollback_guard(std::string_view log_category,
     });
 }
 
-std::string generate_random_subnet()
-{
-    // TODO don't rely on pure randomness
-    for (auto i = 0; i < 100; ++i)
-    {
-        auto subnet = fmt::format("10.{}.{}", dist(gen), dist(gen));
-        if (subnet_used_locally(subnet))
-            continue;
-
-        if (can_reach_gateway(fmt::format("{}.1", subnet)))
-            continue;
-
-        if (can_reach_gateway(fmt::format("{}.254", subnet)))
-            continue;
-
-        return subnet;
-    }
-
-    throw std::runtime_error("Could not determine a subnet for networking.");
-}
-
 } // namespace
 
 // @precondition no bridge exists for this interface
@@ -273,22 +208,6 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     mpl::info(log_category_create, "Created bridge: {}", ret);
 
     return ret;
-}
-
-std::string mp::Backend::get_subnet(const mp::Path& network_dir, const QString& bridge_name) const
-{
-    auto subnet = virtual_switch_subnet(bridge_name);
-    if (!subnet.empty())
-        return subnet;
-
-    QFile subnet_file{network_dir + "/multipass_subnet_" + bridge_name};
-    MP_FILEOPS.open(subnet_file, QIODevice::ReadWrite | QIODevice::Text);
-    if (MP_FILEOPS.size(subnet_file) > 0)
-        return MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
-
-    auto new_subnet = generate_random_subnet();
-    MP_FILEOPS.write(subnet_file, new_subnet.data(), new_subnet.length());
-    return new_subnet;
 }
 
 void mp::Backend::check_for_kvm_support()

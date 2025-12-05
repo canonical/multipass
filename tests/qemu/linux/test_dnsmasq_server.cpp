@@ -75,7 +75,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
             fmt::format(
                 "0 {} {} dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12",
                 expected_hw_addr,
-                expected_ip));
+                expected_ip.as_string()));
     }
 
     void make_lease_entry()
@@ -89,17 +89,14 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     std::shared_ptr<CapturingLogger> logger = std::make_shared<CapturingLogger>();
 
     const QString dummy_bridge{"dummy-bridge"};
-    const std::string default_subnet{"192.168.64"};
-    const std::string error_subnet{
-        "0.0.0"}; // This forces the mock dnsmasq process to exit with error
+    const mp::Subnet default_subnet{"192.168.64.0/24"};
+    const mp::Subnet error_subnet{
+        "0.0.0.0/24"}; // This forces the mock dnsmasq process to exit with error
     const std::string hw_addr{"00:01:02:03:04:05"};
-    const std::string expected_ip{"10.177.224.22"};
-    const std::string lease_entry =
-        "0 "s + hw_addr + " "s + expected_ip +
-        " dummy_name 00:01:02:03:04:05:06:07:08:09:0a:0b:0c:0d:0e:0f:10:11:12";
+    const mp::IPAddress expected_ip{"10.177.224.22"};
 
-    [[nodiscard]] static mp::SubnetList make_subnets(const QString& bridge,
-                                                     const std::string& subnet)
+    [[nodiscard]] static mp::BridgeSubnetList make_subnets(const QString& bridge,
+                                                           const mp::Subnet& subnet)
     {
         return {{bridge, subnet}};
     }
@@ -204,7 +201,7 @@ TEST_F(DNSMasqServer, releaseMacCrashesLogsFailure)
 
     EXPECT_THAT(logger->logged_lines,
                 Contains(fmt::format("failed to release ip addr {} with mac {}: Crashed",
-                                     expected_ip,
+                                     expected_ip.as_string(),
                                      crash_hw_addr)));
 }
 

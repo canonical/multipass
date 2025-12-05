@@ -115,6 +115,7 @@ add_executable(multipass_tests
   test_sshfsmount.cpp
   test_sshfs_mount_handler.cpp
   test_ssl_cert_provider.cpp
+  test_subnet.cpp
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
