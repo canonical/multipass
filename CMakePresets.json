@@ -169,6 +169,12 @@
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "MULTIPASS_BACKENDS": {
+                    "type": "STRING",
+                    "value": "apple"
+                }
             }
         },
         {
