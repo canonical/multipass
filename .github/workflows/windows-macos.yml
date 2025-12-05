@@ -68,8 +68,6 @@ jobs:
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
       # Use artifacts from macos-15-intel and macos-latest in official package
-      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
 
@@ -332,10 +330,7 @@ jobs:
       shell: bash
       run: |
         NAME="${{ steps.cmake-package.outputs.name }}"
-        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
         FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
-
-        echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
   CombineAndPublishMacOSPackage:
@@ -361,13 +356,13 @@ jobs:
       id: retrieve-x86
       uses: actions/download-artifact@v6
       with:
-        name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
+        name: ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
       uses: actions/download-artifact@v6
       with:
-        name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+        name: ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }}
 
     - name: Combine the macOS package
       id: combine-package
@@ -428,6 +423,6 @@ jobs:
       uses: geekyeggo/delete-artifact@v5
       with:
         name: |
-          ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
-          ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+          ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
+          ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }}
         failOnError: false
