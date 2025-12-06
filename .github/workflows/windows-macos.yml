@@ -345,6 +345,7 @@ jobs:
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
   CombineAndPublishMacOSPackage:
+    name: Combine and Publish macOS Package (${{ matrix.variant.name }})
     # Want to run even if one of the builds above failed
     if: ${{ !cancelled() && always() }}
 
@@ -352,13 +353,21 @@ jobs:
 
     runs-on: macos-latest
 
+    strategy:
+      matrix:
+        variant:
+          - name: "Release"
+            x86-artifact: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
+            arm-artifact: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+          - name: "Edge"
+            x86-artifact: ${{ needs.BuildAndTest.outputs.mac-x86-edge-package-artifact-name }}
+            arm-artifact: ${{ needs.BuildAndTest.outputs.mac-arm-edge-package-artifact-name }}
     steps:
     - name: Check out code
       uses: actions/checkout@v6
 
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
-      if: ${{ runner.os == 'macOS' }}
       run: |
         mkdir -p ~/.pip
         echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
