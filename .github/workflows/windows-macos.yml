@@ -427,18 +427,10 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-  DeleteSeparateMacPackages:
-    if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
-
-    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
-
-    runs-on: ubuntu-latest
-
-    steps:
     - name: Delete unused artifacts from github
       uses: geekyeggo/delete-artifact@v5
       with:
         name: |
-          ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
-          ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }}
+          ${{ matrix.variant.x86-package }}
+          ${{ matrix.variant.arm-package }}
         failOnError: false
