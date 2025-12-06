@@ -151,12 +151,68 @@
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "feature-flags-enabled",
+            "description": "Preset with all feature flags enabled for testing purposes.",
+            "inherits": [
+                "common",
+                "macOS-feature-flags",
+                "linux-feature-flags",
+                "windows-feature-flags"
+            ]
+        },
+        {
+            "name": "macOS-feature-flags",
+            "description": "Preset for macOS specific feature flags",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "MULTIPASS_BACKENDS": {
+                    "type": "STRING",
+                    "value": "apple"
+                }
+            },
+            "vendor": {
+                "enabled-in-ci": true
+            }
+        },
+        {
+            "name": "linux-feature-flags",
+            "description": "Preset for Linux specific feature flags",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "vendor": {
+                "enabled-in-ci": false
+            }
+        },
+        {
+            "name": "windows-feature-flags",
+            "description": "Preset for Windows specific feature flags",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "vendor": {
+                "enabled-in-ci": false
+            }
         }
     ],
     "buildPresets": [
         {
             "name": "configured-at-present",
-            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "description":
+                "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
             "configurePreset": "common"
         }
     ]
