@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -33,7 +34,8 @@ constexpr auto log_category = "base factory";
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    explicit BaseVirtualMachineFactory(const Path& instances_dir);
+    explicit BaseVirtualMachineFactory(const Path& instances_dir,
+                                       AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
                                        const VMSpecs& dest_spec,
                                        const std::string& src_name,
@@ -83,6 +85,7 @@ public:
 
 protected:
     static const Path instances_subdir;
+    AvailabilityZoneManager& az_manager;
 
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override

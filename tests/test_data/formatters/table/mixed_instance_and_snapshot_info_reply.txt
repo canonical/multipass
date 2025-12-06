@@ -1,5 +1,6 @@
 Name:           bombastic
 State:          Stopped
+Zone:           zone2(u/a)
 Snapshots:      3
 IPv4:           --
 Release:        --

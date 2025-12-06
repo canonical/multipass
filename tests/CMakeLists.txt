@@ -42,6 +42,8 @@ add_executable(multipass_tests
   temp_file.cpp
   test_alias_dict.cpp
   test_argparser.cpp
+  test_base_availability_zone.cpp
+  test_base_availability_zone_manager.cpp
   test_base_snapshot.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
@@ -65,6 +67,7 @@ add_executable(multipass_tests
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
   test_daemon_wait_ready.cpp
+  test_daemon_zones.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_format_utils.cpp
@@ -101,6 +104,7 @@ add_executable(multipass_tests
   test_sshfsmount.cpp
   test_sshfs_mount_handler.cpp
   test_ssl_cert_provider.cpp
+  test_subnet.cpp
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp

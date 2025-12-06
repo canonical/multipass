@@ -33,7 +33,47 @@ using namespace testing;
 
 namespace
 {
-struct ExtraInterfacesRead : public TestWithParam<std::vector<mp::NetworkInterface>>
+struct TestJsonUtils : public Test
+{
+    mpt::MockFileOps::GuardedMock guarded_mock_file_ops = mpt::MockFileOps::inject();
+    mpt::MockFileOps& mock_file_ops = *guarded_mock_file_ops.first;
+};
+
+TEST_F(TestJsonUtils, readObjectFromFileReadsFromFile)
+{
+    auto filedata = std::make_unique<std::stringstream>();
+    *filedata << "{ \"test\": 123 }";
+
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
+    const auto json = MP_JSONUTILS.read_object_from_file(":)");
+
+    ASSERT_NE(json.find("test"), json.end());
+    ASSERT_TRUE(json.find("test").value().isDouble());
+    EXPECT_EQ(json.find("test").value().toInt(), 123);
+}
+
+TEST_F(TestJsonUtils, readObjectFromFileThrowsOnFailbit)
+{
+    auto filedata = std::make_unique<std::stringstream>();
+    filedata->setstate(std::ios_base::failbit);
+
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
+
+    EXPECT_THROW(MP_JSONUTILS.read_object_from_file(":("), std::ios_base::failure);
+}
+
+TEST_F(TestJsonUtils, readObjectFromFileThrowsOnBadbit)
+{
+    auto filedata = std::make_unique<std::stringstream>();
+    filedata->setstate(std::ios_base::badbit);
+
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
+
+    EXPECT_THROW(MP_JSONUTILS.read_object_from_file(":("), std::ios_base::failure);
+}
+
+struct ExtraInterfacesRead : public TestJsonUtils,
+                             public WithParamInterface<std::vector<mp::NetworkInterface>>
 {
 };
 
@@ -58,7 +98,7 @@ INSTANTIATE_TEST_SUITE_P(
                                              {"eth2", "52:54:00:00:00:02", false}},
            std::vector<mp::NetworkInterface>{}));
 
-TEST(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
+TEST_F(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
 {
     QJsonObject doc;
     doc.insert("some_data", "nothing to see here");
@@ -66,7 +106,7 @@ TEST(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
     ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
 }
 
-TEST(TestJsonUtils, throwsOnWrongMac)
+TEST_F(TestJsonUtils, throwsOnWrongMac)
 {
     std::vector<mp::NetworkInterface> extra_ifaces{
         mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
@@ -81,7 +121,7 @@ TEST(TestJsonUtils, throwsOnWrongMac)
                          mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
 }
 
-TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
+TEST_F(TestJsonUtils, updateCloudInitInstanceIdSucceed)
 {
     EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
               QJsonValue{"vm2_e_e_e"});
