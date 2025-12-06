@@ -362,6 +362,10 @@ jobs:
           - name: "Edge"
             x86-artifact: ${{ needs.BuildAndTest.outputs.mac-x86-edge-package-artifact-name }}
             arm-artifact: ${{ needs.BuildAndTest.outputs.mac-arm-edge-package-artifact-name }}
+        exclude:
+          - variant:
+              x86-artifact: ""
+              arm-artifact: ""
     steps:
     - name: Check out code
       uses: actions/checkout@v6
