@@ -211,7 +211,8 @@
     "buildPresets": [
         {
             "name": "configured-at-present",
-            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "description":
+                "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
             "configurePreset": "common"
         }
     ]
