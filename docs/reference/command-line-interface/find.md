@@ -1,7 +1,7 @@
 (reference-command-line-interface-find)=
 # find
 
-The `multipass find` command without any argument lists the images and blueprints Multipass can use to run instances with [`launch`](/reference/command-line-interface/launch) on your system and associated version information. For example:
+The `multipass find` command without any argument lists the images Multipass can use to run instances with [`launch`](/reference/command-line-interface/launch) on your system and associated version information. For example:
 
 ```{code-block} text
 Image                       Aliases           Version          Description
@@ -13,18 +13,7 @@ core22                                        20230717         Ubuntu Core 22
 22.04                       jammy,lts         20240126         Ubuntu 22.04 LTS
 23.10                       mantic            20240206         Ubuntu 23.10
 daily:24.04                 noble,devel       20240129         Ubuntu 24.04 LTS
-
-Blueprint                   Aliases           Version          Description
-anbox-cloud-appliance                         latest           Anbox Cloud Appliance
-charm-dev                                     latest           A development and testing environment for charmers
-docker                                        0.4              A Docker environment with Portainer and related tools
-jellyfin                                      latest           Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media.
-minikube                                      latest           minikube is local Kubernetes
-ros-noetic                                    0.1              A development and testing environment for ROS Noetic.
-ros2-humble                                   0.1              A development and testing environment for ROS 2 Humble.
 ```
-
-The output is separated in two sections: one for the images and one for the blueprints. Restricting the output to only one of these two categories can be done, respectively, with the `--only-images` and `--only-blueprints` options.
 
 Launch aliases, version information and a brief description are shown next to each name in the command output.
 
@@ -40,7 +29,7 @@ The available aliases are:
 - `<c>` - the first letter of the code name
 - `<XX.YY>` - the version number of a series
 
-The list of available images and blueprints is updated periodically. The option `--force-update` forces an immediate update of the list from the servers, before showing the output.
+The list of available images is updated periodically. The option `--force-update` forces an immediate update of the list from the servers, before showing the output.
 
 The option `--show-unsupported` includes old Ubuntu images, which were available at some point but are not supported anymore. This means that some features of Multipass might now work on these images and no user support is given. However, they are still available for testing.
 
@@ -67,8 +56,6 @@ Options:
                       option for more detail. Maximum verbosity is obtained with
                       4 (or more) v's, i.e. -vvvv.
   --show-unsupported  Show unsupported cloud images as well
-  --only-images       Show only images
-  --only-blueprints   Show only blueprints
   --format <format>   Output list in the requested format.
                       Valid formats are: table (default), json, csv and yaml
   --force-update      Force the image information to update from the network

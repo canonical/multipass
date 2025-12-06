@@ -20,8 +20,6 @@
 #include "petname.h"
 #include "multipass/petname/names.h"
 
-#include <iostream>
-
 namespace mp = multipass;
 namespace
 {

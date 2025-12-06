@@ -1,0 +1,18 @@
+Name:           foo
+State:          Running
+Zone:           zone1(a)
+Snapshots:      0
+IPv4:           10.168.32.2
+                200.3.123.29
+Release:        Ubuntu 16.04.3 LTS
+Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)
+CPU(s):         1
+Load:           0.45 0.51 0.15
+Disk usage:     1.2GiB out of 4.8GiB
+Memory usage:   58.0MiB out of 1.4GiB
+Mounts:         /home/user/foo      => foo
+                    UID map: 1000:1000
+                    GID map: 1000:1000
+                /home/user/test_dir => test_dir
+                    UID map: 1000:1000
+                    GID map: 1000:1000

@@ -19,11 +19,9 @@
 #include "tests/mock_backend_utils.h"
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
-#include "tests/mock_process_factory.h"
 #include "tests/mock_singleton_helpers.h"
 #include "tests/mock_utils.h"
 
-#include <shared/shared_backend_utils.h>
 #include <src/platform/backends/shared/linux/backend_utils.h>
 #include <src/platform/backends/shared/linux/dbus_wrappers.h>
 
@@ -92,6 +90,13 @@ struct CreateBridgeTest : public Test
     void SetUp() override
     {
         logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+        // TODO: It seems like this behavior is only present in Qt 6.9.
+        // Remove when Qt is updated to 6.10.
+        EXPECT_CALL(*logger_scope.mock_logger,
+                    log(mpl::Level::warning,
+                        Eq("Qt"),
+                        HasSubstr("QDBusMessage: replying to a message that isn't a method call")))
+            .Times(AnyNumber());
 
         // These will accept any number of calls (0..N) but they can still be shadowed
         EXPECT_CALL(*mock_dbus_provider, get_system_bus).WillRepeatedly(ReturnRef(mock_bus));

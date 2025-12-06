@@ -1,10 +1,8 @@
 ---
 # We'll use defaults from the LLVM style, but with 4 columns indentation.
 BasedOnStyle: LLVM
----
-Language: Cpp
-Standard: c++20
 
+IndentWidth: 4
 AccessModifierOffset: -4
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -34,11 +32,18 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: true
 Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 IndentExternBlock: NoIndent
-IndentWidth: 4
 InsertNewlineAtEOF: true
 PenaltyReturnTypeOnItsOwnLine: 120
 PointerAlignment: Left
+
+---
+Language: Cpp
+Standard: c++20
+---
+Language: ObjC
 ---
 Language: Proto
 DisableFormat: true
+---
+Language: Json
 ...

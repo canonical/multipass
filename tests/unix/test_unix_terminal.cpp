@@ -22,10 +22,7 @@
 #include <src/platform/console/unix_console.h>
 #include <src/platform/console/unix_terminal.h>
 
-#include <tuple>
-
 namespace mp = multipass;
-namespace mpt = multipass::test;
 
 using namespace testing;
 

@@ -19,8 +19,9 @@ set(WITH_SFTP TRUE)
 
 if(MSVC)
   add_definitions(-Dssize_t=SSIZE_T)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4996")
 else()
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion -Wno-deprecated-declarations")
 endif()
 
 set(LIBSSH_INCLUDE_DIRS
@@ -38,6 +39,9 @@ if(LINUX)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 else()
     # This applies to other platforms (e.g., Windows, macOS)
+    if(MSVC)
+      set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    endif()
     set(BUILD_SHARED_LIBS ON)
 endif()
 

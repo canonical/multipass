@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <memory>
 #include <thread>
 
 namespace multipass

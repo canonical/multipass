@@ -232,7 +232,7 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
     QFile test_file{download_file};
     ASSERT_TRUE(test_file.exists());
 
-    test_file.open(QIODevice::ReadOnly);
+    ASSERT_TRUE(test_file.open(QIODevice::ReadOnly));
     auto file_data = test_file.readAll();
     EXPECT_EQ(file_data, test_data);
 }
@@ -291,7 +291,7 @@ TEST_F(URLDownloader, fileDownloadErrorTriesCache)
     QFile test_file{download_file};
     ASSERT_TRUE(test_file.exists());
 
-    test_file.open(QIODevice::ReadOnly);
+    ASSERT_TRUE(test_file.open(QIODevice::ReadOnly));
     auto file_data = test_file.readAll();
     EXPECT_EQ(file_data, test_data);
 }

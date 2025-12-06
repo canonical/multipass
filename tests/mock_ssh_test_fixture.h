@@ -36,7 +36,7 @@ struct MockSSHTestFixture
         request_exec.returnValue(SSH_OK);
         channel_read.returnValue(0);
         is_eof.returnValue(true);
-        get_exit_status.returnValue(SSH_OK);
+        get_exit_state.returnValue(SSH_OK);
         channel_is_open.returnValue(true);
         channel_is_closed.returnValue(0);
         options_set.returnValue(SSH_OK);
@@ -49,7 +49,7 @@ struct MockSSHTestFixture
     decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
     decltype(MOCK(ssh_channel_read_timeout)) channel_read{MOCK(ssh_channel_read_timeout)};
     decltype(MOCK(ssh_channel_is_eof)) is_eof{MOCK(ssh_channel_is_eof)};
-    decltype(MOCK(ssh_channel_get_exit_status)) get_exit_status{MOCK(ssh_channel_get_exit_status)};
+    decltype(MOCK(ssh_channel_get_exit_state)) get_exit_state{MOCK(ssh_channel_get_exit_state)};
     decltype(MOCK(ssh_channel_is_open)) channel_is_open{MOCK(ssh_channel_is_open)};
     decltype(MOCK(ssh_channel_is_closed)) channel_is_closed{MOCK(ssh_channel_is_closed)};
     decltype(MOCK(ssh_options_set)) options_set{MOCK(ssh_options_set)};

@@ -249,7 +249,9 @@ void mp::URLDownloader::download_to(const QUrl& url,
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
     QFile file{file_name};
-    file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+    if (!file.open(QIODevice::ReadWrite | QIODevice::Truncate))
+        throw std::runtime_error(
+            fmt::format("unable to write to file \"{}\"", file_name.toStdString()));
 
     auto progress_monitor = [this, &abort_download, &monitor, download_type, size](
                                 QNetworkReply* reply,
@@ -314,7 +316,7 @@ QByteArray mp::URLDownloader::download(const QUrl& url)
     return download(url, false);
 }
 
-QByteArray mp::URLDownloader::download(const QUrl& url, const bool is_force_update_from_network)
+QByteArray mp::URLDownloader::download(const QUrl& url, const bool force_update)
 {
     auto manager{MP_NETMGRFACTORY.make_network_manager(cache_dir_path)};
 
@@ -331,8 +333,8 @@ QByteArray mp::URLDownloader::download(const QUrl& url, const bool is_force_upda
     };
 
     const QNetworkRequest::CacheLoadControl cache_load_control =
-        is_force_update_from_network ? QNetworkRequest::CacheLoadControl::AlwaysNetwork
-                                     : QNetworkRequest::CacheLoadControl::PreferNetwork;
+        force_update ? QNetworkRequest::CacheLoadControl::AlwaysNetwork
+                     : QNetworkRequest::CacheLoadControl::PreferNetwork;
 
     return ::download(
         manager.get(),

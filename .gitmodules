@@ -1,19 +1,9 @@
-[submodule "3rd-party/yaml-cpp"]
-	path = 3rd-party/yaml-cpp
-	url = https://github.com/jbeder/yaml-cpp.git
-	ignore = dirty
 [submodule "3rd-party/libssh/libssh"]
 	path = 3rd-party/libssh/libssh
 	url = https://github.com/CanonicalLtd/libssh.git
 [submodule "3rd-party/xz-decoder/xz-embedded"]
 	path = 3rd-party/xz-decoder/xz-embedded
 	url = https://github.com/tukaani-project/xz-embedded.git
-[submodule "3rd-party/semver"]
-	path = 3rd-party/semver
-	url = https://github.com/CanonicalLtd/semver.git
-[submodule "3rd-party/scope_guard"]
-	path = 3rd-party/scope_guard
-	url = https://github.com/ricab/scope_guard.git
 [submodule "3rd-party/jsoncpp"]
 	path = 3rd-party/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git

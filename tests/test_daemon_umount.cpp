@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
-#include "mock_logger.h"
 #include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
@@ -102,7 +101,8 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false));
     EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false));
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path + "2", _))
@@ -146,7 +146,8 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
     EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false)).Times(0);
     EXPECT_CALL(*mock_mount_handler3, deactivate_impl(false));
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path + "2", _))
@@ -181,8 +182,9 @@ TEST_F(TestDaemonUmount, mountNotFound)
         plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
-    EXPECT_CALL(*mock_factory, create_virtual_machine)
-        .WillOnce(Return(std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name)));
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -219,7 +221,8 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false))
         .WillOnce(Throw(std::runtime_error{error}));
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(mock_instance_name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
         .WillOnce(Return(std::move(mock_mount_handler)));
 

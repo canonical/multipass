@@ -34,6 +34,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/level.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
@@ -52,10 +53,11 @@ namespace
 struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualMachine>
 {
     template <typename... Args>
-    MockBaseVirtualMachine(Args&&... args)
+    explicit MockBaseVirtualMachine(Args&&... args)
         : mpt::MockVirtualMachineT<mp::BaseVirtualMachine>{std::forward<Args>(args)...}
     {
         const auto& const_self = *this;
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_name, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_all_ipv4, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, view_snapshots, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, get_num_snapshots, mp::BaseVirtualMachine);
@@ -174,25 +176,16 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "ubuntu";
     }
 
-    std::string management_ipv4() override
+    std::optional<mp::IPAddress> management_ipv4() override
     {
-        return "1.2.3.4";
-    }
-
-    std::string ipv6() override
-    {
-        return "";
+        return mp::IPAddress{"1.2.3.4"};
     }
 
     void wait_until_ssh_up(std::chrono::milliseconds) override
     {
     }
 
-    void ensure_vm_is_running() override
-    {
-    }
-
-    void update_state() override
+    void handle_state_update() override
     {
     }
 
@@ -308,6 +301,15 @@ TEST_F(BaseVM, getAllIpv4WorksWhenInstanceIsOff)
     EXPECT_EQ(vm.get_all_ipv4().size(), 0u);
 }
 
+TEST_F(BaseVM, providesInstanceDirectory)
+{
+    auto vm_dir = std::make_unique<mpt::TempDir>();
+    const auto vm_path = vm_dir->path();
+    const StubBaseVirtualMachine vm{St::off, zone, std::move(vm_dir)};
+
+    EXPECT_EQ(vm.instance_directory().absolutePath(), vm_path);
+}
+
 TEST_F(BaseVM, addNetworkInterfaceThrows)
 {
     StubBaseVirtualMachine base_vm(zone, St::off);
@@ -321,7 +323,7 @@ struct IpTestParams
 {
     int exit_status;
     std::string output;
-    std::vector<std::string> expected_ips;
+    std::vector<mp::IPAddress> expected_ips;
 };
 
 struct IpExecution : public BaseVM, public WithParamInterface<IpTestParams>
@@ -370,17 +372,20 @@ TEST_P(IpExecution, getAllIpv4WorksWhenSshWorks)
 INSTANTIATE_TEST_SUITE_P(
     BaseVM,
     IpExecution,
-    Values(
-        IpTestParams{0, "eth0             UP             192.168.2.168/24 \n", {"192.168.2.168"}},
-        IpTestParams{0,
-                     "eth1             UP             192.168.2.169/24 metric 100 \n",
-                     {"192.168.2.169"}},
-        IpTestParams{0,
-                     "wlp4s0           UP             192.168.2.8/24 \n"
-                     "virbr0           DOWN           192.168.3.1/24 \n"
-                     "tun0             UNKNOWN        10.172.66.5/18 \n",
-                     {"192.168.2.8", "192.168.3.1", "10.172.66.5"}},
-        IpTestParams{0, "", {}}));
+    Values(IpTestParams{0,
+                        "eth0             UP             192.168.2.168/24 \n",
+                        {mp::IPAddress{"192.168.2.168"}}},
+           IpTestParams{0,
+                        "eth1             UP             192.168.2.169/24 metric 100 \n",
+                        {mp::IPAddress{"192.168.2.169"}}},
+           IpTestParams{0,
+                        "wlp4s0           UP             192.168.2.8/24 \n"
+                        "virbr0           DOWN           192.168.3.1/24 \n"
+                        "tun0             UNKNOWN        10.172.66.5/18 \n",
+                        {mp::IPAddress{"192.168.2.8"},
+                         mp::IPAddress{"192.168.3.1"},
+                         mp::IPAddress{"10.172.66.5"}}},
+           IpTestParams{0, "", {}}));
 
 TEST_F(BaseVM, startsWithNoSnapshots)
 {
@@ -565,7 +570,7 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByIndex)
         MP_EXPECT_THROW_THAT(
             vm.get_snapshot(i),
             std::runtime_error,
-            mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(std::to_string(i)))));
+            mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(std::to_string(i)))));
     };
 
     for (int i = -2; i < 4; ++i)
@@ -590,7 +595,7 @@ TEST_F(BaseVM, throwsOnMissingSnapshotByName)
         {
             MP_EXPECT_THROW_THAT(vm.get_snapshot(name),
                                  mp::NoSuchSnapshotException,
-                                 mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(name))));
+                                 mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(name))));
         }
     };
 
@@ -642,7 +647,7 @@ TEST_F(BaseVM, snapshotDeletionThrowsOnMissingSnapshot)
     const auto name = "missing";
     MP_EXPECT_THROW_THAT(vm.delete_snapshot(name),
                          mp::NoSuchSnapshotException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(name))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(name))));
 }
 
 TEST_F(BaseVM, providesChildrenNames)
@@ -719,7 +724,7 @@ TEST_F(BaseVM, throwsOnRequestToRenameMissingSnapshot)
 
     MP_EXPECT_THROW_THAT(vm.rename_snapshot(missing_name, "Filipe"),
                          mp::NoSuchSnapshotException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(missing_name))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(missing_name))));
 
     EXPECT_EQ(vm.get_snapshot(good_name), snapshot_album[0]);
 }
@@ -739,10 +744,10 @@ TEST_F(BaseVM, throwsOnRequestToRenameSnapshotWithRepeatedName)
 
     MP_EXPECT_THROW_THAT(vm.rename_snapshot(names[0], names[1]),
                          mp::SnapshotNameTakenException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(names[1]))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(names[1]))));
     MP_EXPECT_THROW_THAT(vm.rename_snapshot(names[1], names[0]),
                          mp::SnapshotNameTakenException,
-                         mpt::match_what(AllOf(HasSubstr(vm.vm_name), HasSubstr(names[0]))));
+                         mpt::match_what(AllOf(HasSubstr(vm.get_name()), HasSubstr(names[0]))));
 
     EXPECT_EQ(vm.get_snapshot(names[0]), snapshot_album[0]);
     EXPECT_EQ(vm.get_snapshot(names[1]), snapshot_album[1]);
@@ -1284,7 +1289,7 @@ TEST_F(BaseVM, rollsbackFailedRestore)
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
 
     std::chrono::milliseconds timeout(1);
@@ -1294,7 +1299,7 @@ TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
 
     std::chrono::milliseconds timeout(1);
@@ -1304,10 +1309,29 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
+TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
+{
+    vm.simulate_cloud_init();
+    EXPECT_CALL(vm, current_state)
+        .WillOnce(Return(mp::VirtualMachine::State::running))    // when 1st waiting for cloud-init
+        .WillOnce(Return(mp::VirtualMachine::State::restarting)) // when retrying to ssh
+        .WillOnce(Return(mp::VirtualMachine::State::running));   // back waiting for cloud-init
+    EXPECT_CALL(vm, ssh_hostname(_));
+    EXPECT_CALL(vm, ssh_port());
+    EXPECT_CALL(vm, ssh_username());
+    EXPECT_CALL(vm, ssh_exec)
+        .WillOnce(Throw(mp::SSHVMNotRunning{"VM is touching grass"}))
+        .WillOnce(Return(""));
+
+    std::chrono::milliseconds timeout(2000);
+    EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
+}
+
 TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
 {
     vm.simulate_waiting_for_ssh();
     constexpr auto action = "determine IP address";
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(vm, ssh_hostname(_))
         .WillOnce(Throw(mp::InternalTimeoutException{action, std::chrono::milliseconds{0}}));
 
@@ -1331,8 +1355,8 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     static constexpr auto thrower = [](const auto& e) { throw e; };
 
     vm.simulate_waiting_for_ssh();
-    EXPECT_CALL(vm, ensure_vm_is_running()).WillRepeatedly(Return());
-    EXPECT_CALL(vm, update_state()).WillRepeatedly(Return());
+    EXPECT_CALL(vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
+    EXPECT_CALL(vm, handle_state_update).WillRepeatedly(Return());
 
     auto timeout = std::chrono::milliseconds{100};
     EXPECT_CALL(vm, ssh_hostname(_))

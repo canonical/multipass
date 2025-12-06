@@ -30,9 +30,7 @@
 #include <multipass/utils.h>
 
 #include <algorithm>
-#include <iterator>
 #include <tuple>
-#include <unordered_set>
 #include <vector>
 
 namespace mp = multipass;
@@ -203,6 +201,18 @@ struct SshfsMount : public mp::test::SftpServerTest
             << "\"" << next_expected_cmd->first << "\" not executed";
     }
 
+    sftp_client_message_struct make_init_message()
+    {
+        sftp_client_message_struct mock_init_client_message{};
+        mock_init_client_message.type = SSH_FXP_INIT;
+        return mock_init_client_message;
+    }
+
+    auto mock_sftp_get_cli_msg(sftp_client_message message)
+    {
+        return [message](sftp_session) mutable { return std::exchange(message, nullptr); };
+    }
+
     mpt::ExitStatusMock exit_status_mock;
 
     std::string default_source{"source"};
@@ -252,12 +262,6 @@ struct SshfsMountExecuteThrowInvArg : public SshfsMount,
 {
 };
 
-// Mocks the server raising a std::runtime_error.
-struct SshfsMountExecuteThrowRuntErr : public SshfsMount,
-                                       public testing::WithParamInterface<CommandVector>
-{
-};
-
 } // namespace
 
 //
@@ -292,6 +296,10 @@ TEST_P(SshfsMountFail, testFailedInvocation)
 
 TEST_P(SshfsMountExecute, testSuccessfulInvocation)
 {
+    sftp_client_message_struct message{make_init_message()};
+    auto mock_get_client_msg = mock_sftp_get_cli_msg(&message);
+    REPLACE(sftp_get_client_message, mock_get_client_msg);
+
     std::string target = GetParam().first;
     CommandVector commands = GetParam().second;
 
@@ -300,6 +308,10 @@ TEST_P(SshfsMountExecute, testSuccessfulInvocation)
 
 TEST_P(SshfsMountExecuteAndNoFail, testSuccessfulInvocationAndFail)
 {
+    sftp_client_message_struct message{make_init_message()};
+    auto mock_get_client_msg = mock_sftp_get_cli_msg(&message);
+    REPLACE(sftp_get_client_message, mock_get_client_msg);
+
     std::string target = std::get<0>(GetParam());
     CommandVector commands = std::get<1>(GetParam());
     std::string fail_command = std::get<2>(GetParam());
@@ -310,11 +322,6 @@ TEST_P(SshfsMountExecuteAndNoFail, testSuccessfulInvocationAndFail)
 TEST_P(SshfsMountExecuteThrowInvArg, testInvalidArgWhenExecuting)
 {
     EXPECT_THROW(test_command_execution(GetParam()), std::invalid_argument);
-}
-
-TEST_P(SshfsMountExecuteThrowRuntErr, testRuntimeErrorWhenExecuting)
-{
-    EXPECT_THROW(test_command_execution(GetParam()), std::runtime_error);
 }
 
 //
@@ -415,11 +422,9 @@ CommandVector invalid_fuse_ver_cmds = {
 
 INSTANTIATE_TEST_SUITE_P(SshfsMountThrowInvArg,
                          SshfsMountExecuteThrowInvArg,
-                         testing::Values(non_int_uid_cmds, non_int_gid_cmds));
-
-INSTANTIATE_TEST_SUITE_P(SshfsMountThrowRuntErr,
-                         SshfsMountExecuteThrowRuntErr,
-                         testing::Values(invalid_fuse_ver_cmds));
+                         testing::Values(non_int_uid_cmds,
+                                         non_int_gid_cmds,
+                                         invalid_fuse_ver_cmds));
 
 //
 // Finally, individual test fixtures.
@@ -438,13 +443,20 @@ TEST_F(SshfsMount, throwsWhenSshfsDoesNotExist)
 
 TEST_F(SshfsMount, unblocksWhenSftpserverExits)
 {
+    sftp_client_message_struct message{make_init_message()};
+    sftp_client_message message_ptr = &message;
     mp::Signal client_message;
-    auto get_client_msg = [&client_message](sftp_session) {
-        client_message.wait();
-        return nullptr;
-    };
-    REPLACE(sftp_get_client_message, get_client_msg);
-
+    auto sftp_get_client_message_lambda =
+        [&client_message, message_ptr, calls = 0](sftp_session) mutable {
+            if (calls == 0)
+            {
+                calls++;
+                return message_ptr;
+            }
+            client_message.wait();
+            return static_cast<sftp_client_message>(nullptr);
+        };
+    REPLACE(sftp_get_client_message, sftp_get_client_message_lambda);
     bool stopped_ok = false;
     std::thread mount([&] {
         test_command_execution(CommandVector());
@@ -461,7 +473,9 @@ TEST_F(SshfsMount, blankFuseVersionLogsError)
 {
     CommandVector commands = {
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:\n"}};
-
+    sftp_client_message_struct message{make_init_message()};
+    auto mock_get_client_msg = mock_sftp_get_cli_msg(&message);
+    REPLACE(sftp_get_client_message, mock_get_client_msg);
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::warning),

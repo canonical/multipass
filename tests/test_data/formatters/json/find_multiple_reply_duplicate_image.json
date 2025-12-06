@@ -1,0 +1,22 @@
+{
+    "errors": [
+    ],
+    "images": {
+        "core:core18": {
+            "aliases": [
+            ],
+            "os": "Ubuntu",
+            "release": "Core 18",
+            "remote": "core",
+            "version": "20190520"
+        },
+        "snapcraft:core18": {
+            "aliases": [
+            ],
+            "os": "",
+            "release": "Snapcraft builder for core18",
+            "remote": "snapcraft",
+            "version": "20190520"
+        }
+    }
+}

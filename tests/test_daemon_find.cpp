@@ -153,9 +153,9 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
     send_command({"find", remote_name}, stream);
 
     EXPECT_THAT(stream.str(),
-                AllOf(HasSubstr(fmt::format("{}{}", remote_name, mpt::default_alias)),
+                AllOf(HasSubstr(fmt::format("{}", mpt::default_alias)),
                       HasSubstr(mpt::default_release_info),
-                      HasSubstr(fmt::format("{}{}", remote_name, mpt::another_alias)),
+                      HasSubstr(fmt::format("{}", mpt::another_alias)),
                       HasSubstr(mpt::another_release_info)));
 
     EXPECT_EQ(total_lines_of_output(stream), 4);

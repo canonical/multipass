@@ -49,7 +49,6 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
-namespace mpu = multipass::utils;
 using namespace testing;
 
 namespace
@@ -446,9 +445,9 @@ TEST_F(PlatformLinux, findOsReleaseEtc)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     InSequence seq;
-    EXPECT_CALL(*mock_file_ops,
-                open(Property(&QFileDevice::fileName, Eq(expected_filename)),
-                     QIODevice::ReadOnly | QIODevice::Text))
+    EXPECT_CALL(
+        *mock_file_ops,
+        open(mpt::FileNameMatches(Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
         .Times(1)
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
@@ -465,12 +464,12 @@ TEST_F(PlatformLinux, findOsReleaseUsrLib)
 
     InSequence seq;
     EXPECT_CALL(*mock_file_ops,
-                open(Property(&QFileDevice::fileName, Eq("/var/lib/snapd/hostfs/etc/os-release")),
+                open(mpt::FileNameMatches(Eq("/var/lib/snapd/hostfs/etc/os-release")),
                      QIODevice::ReadOnly | QIODevice::Text))
         .WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops,
-                open(Property(&QFileDevice::fileName, Eq(expected_filename)),
-                     QIODevice::ReadOnly | QIODevice::Text))
+    EXPECT_CALL(
+        *mock_file_ops,
+        open(mpt::FileNameMatches(Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
 
@@ -484,7 +483,7 @@ TEST_F(PlatformLinux, readOsReleaseFromFileNotFound)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(2).WillRepeatedly(Return(false));
-    EXPECT_CALL(*mock_file_ops, is_open(testing::A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_open(testing::A<const QIODevice&>())).WillOnce(Return(false));
 
     auto output = multipass::platform::detail::read_os_release();
 
@@ -500,7 +499,7 @@ TEST_F(PlatformLinux, readOsReleaseFromFile)
 
     InSequence seq;
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, is_open(testing::A<const QFile&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(testing::A<const QIODevice&>())).WillOnce(Return(true));
 
     for (const auto& line : input)
         EXPECT_CALL(*mock_file_ops, read_line).WillOnce(Return(line)).RetiresOnSaturation();
@@ -534,7 +533,7 @@ TEST_F(PlatformLinux, createAliasScriptWorksUnconfined)
                                         mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
-    checked_script.open(QFile::ReadOnly);
+    ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
@@ -562,7 +561,7 @@ TEST_F(PlatformLinux, createAliasScriptWorksConfined)
                                         mp::AliasDefinition{"instance", "command", "map"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
-    checked_script.open(QFile::ReadOnly);
+    ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
 
     EXPECT_EQ(checked_script.readLine().toStdString(), "#!/bin/sh\n");
     EXPECT_EQ(checked_script.readLine().toStdString(), "\n");
@@ -615,7 +614,7 @@ TEST_F(PlatformLinux, createAliasScriptThrowsIfCannotWriteScript)
 
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
+    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(
         MP_PLATFORM.create_alias_script("alias_name",

@@ -28,7 +28,8 @@ done
 
 if [ $DELETE_VMS -eq 1 ]; then
     echo "Removing VMs:"
-    multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
+    sudo -u "$(logname)" multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
+
 fi
 
 LAUNCH_AGENT_DEST="/Library/LaunchDaemons/com.canonical.multipassd.plist"

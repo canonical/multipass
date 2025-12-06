@@ -28,6 +28,7 @@
 #include <QObject>
 #include <QStringList>
 
+#include <chrono>
 #include <unordered_map>
 
 namespace multipass
@@ -57,11 +58,9 @@ public:
     int ssh_port() override;
     std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     std::string ssh_username() override;
-    std::string management_ipv4() override;
-    std::string ipv6() override;
-    void ensure_vm_is_running() override;
+    std::optional<IPAddress> management_ipv4() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
-    void update_state() override;
+    void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
@@ -93,6 +92,9 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
 
+    bool unplugged() override;
+    void refresh_start() override;
+
 private:
     void on_started();
     void on_error();
@@ -103,6 +105,8 @@ private:
 
     void connect_vm_signals();
     void disconnect_vm_signals();
+    void fetch_ip(std::chrono::milliseconds timeout);
+
     void remove_snapshots_from_backend() const;
 
     VirtualMachineDescription desc;
@@ -110,7 +114,6 @@ private:
     QemuPlatform* qemu_platform;
     VMStatusMonitor* monitor;
     MountArgs mount_args;
-    std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};

@@ -266,6 +266,41 @@ not use platform `#ifdef`s (or other platform-conditional logic) outside of thos
 **CPP13.** Avoid compilation warnings.<br>
 **CPP14.** To mock free functions and external APIs, wrap them with `MockableSingleton`.<br>
 
+### Text
+
+Prescriptive guidelines concerning text and written communication, including but not limited to:
+PR descriptions, commit messages, comments, and documentation.
+
+**TXT1.** Be clear, precise, informative, and organized.<br>
+**TXT2.** Avoid filler text or fluff.<br>
+**TXT3.** Avoid repetition.<br>
+**TXT4.** Use references, quotes, citations, or links to provide context, substantiate claims,
+and increase reliability.<br>
+**TXT5.** Express the same idea more than once only to add relevant information, improve precision,
+provide a different perspective, or help clarify complexity.<br>
+
+### AI
+
+Prescriptive guidelines concerning the use of Artificial Intelligence (AI) when contributing to
+Multipass, in particular generative AI and LLMs.
+
+**AI1.** Every contribution must be authored by human beings (one or more),
+possibly with the help of AI tools. In addition to code contributions, this applies to issues, pull
+requests, discussions, and any other comments or communications, regardless of the platform.<br>
+**AI2.** Contributors are free to use any tools they see fit, including AI tools, provided they do
+so lawfully and ethically.<br>
+**AI3.** Git commits must have a human author, with a valid human-managed email address.<br>
+**AI4.** The author(s) of a contribution must be able to explain the contribution in detail,
+including any code or textual changes.<br>
+**AI5.** Contributors must refrain from submitting code, text, or any other content that they don't
+fully understand.<br>
+**AI6.** Contributors must submit only modifications that they have reviewed thoroughly,
+especially if it includes AI-generated content.<br>
+**AI7.** When using AI, contributors should make an extra effort to ensure good information density
+(i.e. high signal-to-noise ratio). This includes code and text.<br>
+**AI8.** Authors are ultimately responsible for their entire contributions,
+including all components, contents, format, presentation, and communication.<br>
+
 # Further Information
 
 - https://github.com/canonical/desktop-engineering/blob/main/project-repo/review-process.md

@@ -20,7 +20,6 @@
 
 #include <QDir>
 
-namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 

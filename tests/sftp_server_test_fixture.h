@@ -18,7 +18,6 @@
 #pragma once
 
 #include "common.h"
-#include "mock_sftp.h"
 #include "mock_sftpserver.h"
 #include "mock_ssh_test_fixture.h"
 
@@ -29,23 +28,23 @@ namespace test
 struct SftpServerTest : public testing::Test
 {
     SftpServerTest()
-        : free_sftp{mock_sftp_free, [](sftp_session sftp) {
-                        std::free(sftp->handles);
-                        std::free(sftp);
-                    }}
+        : free_server_sftp{mock_sftp_server_free, [](sftp_session sftp) {
+                               std::free(sftp->handles);
+                               std::free(sftp);
+                           }}
     {
-        init_sftp.returnValue(SSH_OK);
         reply_status.returnValue(SSH_OK);
         get_client_msg.returnValue(nullptr);
         handle_sftp.returnValue(nullptr);
+        reply_version.returnValue(SSH_OK);
     }
 
-    decltype(MOCK(sftp_server_init)) init_sftp{MOCK(sftp_server_init)};
     decltype(MOCK(sftp_reply_status)) reply_status{MOCK(sftp_reply_status)};
     decltype(MOCK(sftp_get_client_message)) get_client_msg{MOCK(sftp_get_client_message)};
     decltype(MOCK(sftp_client_message_free)) msg_free{MOCK(sftp_client_message_free)};
     decltype(MOCK(sftp_handle)) handle_sftp{MOCK(sftp_handle)};
-    MockScope<decltype(mock_sftp_free)> free_sftp;
+    decltype(MOCK(sftp_reply_version)) reply_version{MOCK(sftp_reply_version)};
+    MockScope<decltype(mock_sftp_server_free)> free_server_sftp;
 
     MockSSHTestFixture mock_ssh_test_fixture;
 };

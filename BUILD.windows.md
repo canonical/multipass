@@ -15,7 +15,7 @@ After chocolatey is installed you can now install the rest of the dependencies f
 Powershell(Admin). To get the best results, in the following order:
 
 ```[pwsh]
-choco install cmake ninja qemu openssl git wget unzip -yfd
+choco install cmake ninja qemu-img git wget unzip -yfd
 ```
 
 ```[pwsh]
@@ -31,7 +31,8 @@ compiler and related tooling or fix a broken `visualstudio2022buildtools` instal
 3. Click Modify
 4. Click Modify in the Installer interface
 5. For Windows 11, add "C++/CLI support for v143 build tools" in the "Desktop development with C++" kit
-6. Complete the installation
+6. Make sure that `vcpkg` is not installed in the same selection
+7. Complete the installation
 
 ### Git
 
@@ -43,31 +44,13 @@ For Windows 11:
 1. Go to "Developer Settings"
 2. Enable "Developer mode"
 
-### Qt6
-
-To install Qt6, use `aqt`. First install it with chocolatey:
-
-```[pwsh]
-choco install aqt -yfd
-```
-
-Then specify the following options in the installation command:
-
-```[pwsh]
-aqt install-qt windows desktop 6.2.4 win64_msvc2019_64 -O C:/Qt
-```
-
-Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_624/qt.qt6.624.win64_msvc2019_64/6.2.4-0-202203140926qtbase-Windows-Windows_10_21H2-MSVC2019-Windows-Windows_10_21H2-X86_64.7z)
-and extract it to `C:\Qt` (so it ends up in `C:\Qt\6.2.4`).
-
 ### Path setup
 
-You'll have to manually add CMake and Qt to your account's PATH variable.
+You'll have to manually add CMake to your account's PATH variable.
 
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.2.4\msvc2019_64\bin`
 
 ### Console setup
 
@@ -132,17 +115,32 @@ cd <multipass>
 git submodule update --init --recursive
 mkdir build
 cd build
+cmake -GNinja ..
 ```
+
+CMake will automatically fetch all necessary content, build vcpkg dependencies, and initialize
+the build system. If it doesn't pick it up automatically,
+specify the vcpkg toolchain manually with
+`-DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake `.
+To specify the build type, use `-DCMAKE_BUILD_TYPE` option to set the build type (e.g.,
+`Debug`, `Release`, etc.).
+
+To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
+It should point to the root vcpkg location, where the top bootstrap scripts are located.
+
+Another example:
 
 ```[batch]
-cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.2.4\msvc2019_64\ ../
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake ../
 ```
+
+Finally, to build the project, run:
 
 ```[batch]
-cmake --build .
+cmake --build . --parallel
 ```
 
-This builds `multipass` and `multipassd`.
+This builds `multipass`, `multipassd`, and `multipass_tests`.
 To create an installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
@@ -171,7 +169,8 @@ Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
 With the `multipassd` daemon now running on another shell (or as a windows service) you can now run `multipass`.
 
 1. Press Windows Key + X, Select Windows PowerShell, or Terminal.
-2. Then, try `multipass help`.
+2. [Extend the Path variable](./BUILD.windows.md#Extend the Path variable).
+3. Then, try `multipass help`.
 
 ### Permissions/privileges for `multipassd`
 
@@ -185,3 +184,16 @@ needs to be part of the Hyper-V Administrators group:
 2. Under System Tools->Local Users and Groups->Groups
 3. Select on Hyper-V Administrators, add your account
 4. Sign out or reboot for changes to take effect
+
+### Run `multipass.gui`
+
+1. [Extend the Path variable](./BUILD.windows.md#Extend the Path variable).
+2. Now you can run `multipass.gui`.
+
+### Extend the Path variable
+
+To avoid conflict with a multipass installation, include the necessary paths to the Path variable in your current session only:
+```
+$env:Path += ";<multipass>\build\bin"
+$env:Path += ";<multipass>\build\bin\windows\x64\runner\Release"
+```

@@ -16,7 +16,6 @@
 
 #include "animated_spinner.h"
 
-#include <iomanip>
 #include <iostream>
 
 namespace mp = multipass;

@@ -19,7 +19,6 @@
 #include "file_operations.h"
 #include "mock_cloud_init_file_ops.h"
 #include "mock_file_ops.h"
-#include "mock_json_utils.h"
 #include "mock_virtual_machine.h"
 #include "path.h"
 
@@ -138,12 +137,9 @@ struct TestBaseSnapshot : public Test
     static constexpr auto* test_json_filename = "test_snapshot.json";
     mp::VMSpecs specs = stub_specs();
     mp::VirtualMachineDescription desc = stub_desc();
-    NiceMock<mpt::MockVirtualMachine> vm{"a-vm"};
+    NiceMock<mpt::MockVirtualMachine> vm{};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
-        mpt::MockJsonUtils::inject<NiceMock>();
-    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
     QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
 };
 
@@ -426,7 +422,7 @@ TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
     auto json = test_snapshot_json();
     mod_snapshot_json(json,
                       "extra_interfaces",
-                      MP_JSONUTILS.JsonUtils::extra_interfaces_to_json_array(extra_interfaces));
+                      MP_JSONUTILS.extra_interfaces_to_json_array(extra_interfaces));
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_extra_interfaces(), extra_interfaces);
@@ -607,8 +603,10 @@ TEST_P(TestSnapshotPersistence, persistsOnEdition)
     MockBaseSnapshot snapshot_orig{plant_snapshot_json(json), vm, desc};
     const auto file_path = derive_persisted_snapshot_file_path(index);
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(file_path)))
-        .WillOnce(WithArg<0>([&snapshot_orig](const QJsonObject& obj) {
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(file_path), _))
+        .WillOnce(WithArg<1>([&snapshot_orig](const QByteArrayView& data) {
+            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
             const auto& new_snapshot = obj["snapshot"];
 
             ASSERT_TRUE(new_snapshot.isObject());
@@ -633,7 +631,8 @@ TEST_F(TestBaseSnapshot, capturePersists)
     NiceMock<MockBaseSnapshot> snapshot{"Big Whoop", "treasure", "", nullptr, specs, vm};
     const auto expected_file = derive_persisted_snapshot_file_path(snapshot.get_index());
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(expected_file)));
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(expected_file), _));
 
     snapshot.capture();
 }
@@ -668,10 +667,10 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
     NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm};
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(expected_file_path)));
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(expected_file_path), _));
     snapshot.capture();
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops,
                 rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
         .WillOnce(Return(true));
@@ -689,7 +688,7 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
                                         vm};
     snapshot.capture();
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
     EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), _))
         .WillOnce(Return(false));
@@ -713,10 +712,10 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
         vm};
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(expected_file_path)));
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(expected_file_path), _));
     snapshot.capture();
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops,
                 rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
         .WillOnce(Return(true));
@@ -730,9 +729,9 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
 
 TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
 {
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
 
-    EXPECT_CALL(*mock_file_ops, open(Property(&QFileDevice::fileName, Eq(test_json_file_path)), _))
+    EXPECT_CALL(*mock_file_ops, open(mpt::FileNameMatches(Eq(test_json_file_path)), _))
         .WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm, desc}),

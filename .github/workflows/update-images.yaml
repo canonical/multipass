@@ -1,0 +1,59 @@
+name: Update Cloud Images
+
+on:
+  workflow_dispatch:
+  schedule:
+  # 04:11 UTC every Sunday
+  - cron: 11 4 * * 0
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+
+      - name: Install distro-scraper package
+        run: pip install ./tools/distro-scraper
+
+      - name: Check for updated Cloud Images
+        run: distro-scraper ${{ github.workspace }}/data/distributions/distribution-info.json
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "[distro] Update Cloud Images info"
+          branch: "update-cloud-images"
+          title: "[distro] Update Cloud Images information"
+          body: "Automatic update of cloud image information."
+          sign-commits: true
+          add-paths: |
+            data/distributions/distribution-info.json
+
+      - name: Report workflow failure
+        if: ${{ failure() }}
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: multipass
+          TEXT: |
+            :red_circle: @mp
+            Scheduled [Update Cloud Images](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow failed.
+          MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+          MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

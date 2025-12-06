@@ -34,6 +34,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
@@ -53,7 +54,6 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
 
@@ -160,23 +160,29 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
-    config["packages"].push_back("pollinate");
 
-    auto pollinate_user_agent_string =
-        fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
-    pollinate_user_agent_string +=
-        fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
-    pollinate_user_agent_string += fmt::format("multipass/host/{} # written by Multipass\n",
-                                               multipass::platform::host_version());
-    pollinate_user_agent_string += fmt::format("multipass/alias/{}{} # written by Multipass\n",
-                                               !remote_name.empty() ? remote_name + ":" : "",
-                                               pollinate_alias);
+    // Pollinate is not available as a RPM package and also dependencies that are inherent to
+    // Ubuntu/Debian systems
+    if (request->image() != "fedora")
+    {
+        config["packages"].push_back("pollinate");
 
-    YAML::Node pollinate_user_agent_node;
-    pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
-    pollinate_user_agent_node["content"] = pollinate_user_agent_string;
+        auto pollinate_user_agent_string =
+            fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
+        pollinate_user_agent_string +=
+            fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
+        pollinate_user_agent_string += fmt::format("multipass/host/{} # written by Multipass\n",
+                                                   multipass::platform::host_version());
+        pollinate_user_agent_string += fmt::format("multipass/alias/{}{} # written by Multipass\n",
+                                                   !remote_name.empty() ? remote_name + ":" : "",
+                                                   pollinate_alias);
 
-    config["write_files"].push_back(pollinate_user_agent_node);
+        YAML::Node pollinate_user_agent_node;
+        pollinate_user_agent_node["path"] = "/etc/pollinate/add-user-agent";
+        pollinate_user_agent_node["content"] = pollinate_user_agent_string;
+
+        config["write_files"].push_back(pollinate_user_agent_node);
+    }
 
     return config;
 }
@@ -435,7 +441,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
 
         dont_allow_auto = no_bridging_remote.find(specified_image) != no_bridging_remote.end();
 
-        if (!dont_allow_auto && (remote == "release" || remote == "daily"))
+        if (!dont_allow_auto && (remote == mp::release_remote || remote == mp::daily_remote))
             dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
     }
 
@@ -1200,26 +1206,21 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
 
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
                  const std::string& remote_name,
-                 const mp::VMImageInfo& info,
-                 const std::string& default_remote)
+                 const mp::VMImageInfo& info)
 {
     if (!info.aliases.empty())
     {
         auto entry = container->Add();
         for (const auto& alias : info.aliases)
         {
-            auto alias_entry = entry->add_aliases_info();
-            if (remote_name != default_remote)
-            {
-                alias_entry->set_remote_name(remote_name);
-            }
-            alias_entry->set_alias(alias.toStdString());
+            entry->add_aliases(alias.toStdString());
         }
 
         entry->set_os(info.os.toStdString());
         entry->set_release(info.release_title.toStdString());
         entry->set_version(info.version.toStdString());
         entry->set_codename(info.release_codename.toStdString());
+        entry->set_remote_name(remote_name);
     }
 }
 
@@ -1352,7 +1353,7 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     auto snapshot_info = info->mutable_snapshot_info();
     auto fundamentals = snapshot_info->mutable_fundamentals();
 
-    info->set_name(vm.vm_name);
+    info->set_name(vm.get_name());
     info->mutable_instance_status()->set_status(grpc_instance_status_for(snapshot->get_state()));
     info->set_memory_total(snapshot->get_mem_size().human_readable());
     info->set_disk_total(snapshot->get_disk_space().human_readable());
@@ -1699,8 +1700,6 @@ try
                                                      server};
     FindReply response;
 
-    const auto default_remote{"release"};
-
     if (!request->search_string().empty())
     {
         if (!request->remote_name().empty())
@@ -1744,11 +1743,11 @@ try
 
             auto remote_name = (!request->remote_name().empty() ||
                                 (request->remote_name().empty() && vm_images_info.size() > 1 &&
-                                 remote != default_remote))
+                                 remote != mp::release_remote))
                                    ? remote
                                    : "";
 
-            add_aliases(response.mutable_images_info(), remote_name, info, "");
+            add_aliases(response.mutable_images_info(), remote_name, info);
         }
     }
     else if (request->remote_name().empty())
@@ -1758,17 +1757,16 @@ try
         for (const auto& image_host : config->image_hosts)
         {
             std::unordered_set<std::string> images_found;
-            auto action =
-                [&images_found, &default_remote, request, &response](const std::string& remote,
-                                                                     const mp::VMImageInfo& info) {
-                    if (remote != mp::snapcraft_remote &&
-                        (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                        images_found.find(info.release_title.toStdString()) == images_found.end())
-                    {
-                        add_aliases(response.mutable_images_info(), remote, info, default_remote);
-                        images_found.insert(info.release_title.toStdString());
-                    }
-                };
+            auto action = [&images_found, request, &response](const std::string& remote,
+                                                              const mp::VMImageInfo& info) {
+                if (remote != mp::snapcraft_remote &&
+                    (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                    images_found.find(info.release_title.toStdString()) == images_found.end())
+                {
+                    add_aliases(response.mutable_images_info(), remote, info);
+                    images_found.insert(info.release_title.toStdString());
+                }
+            };
 
             image_host->for_each_entry_do(action);
         }
@@ -1782,7 +1780,7 @@ try
         auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
 
         for (const auto& info : vm_images_info)
-            add_aliases(response.mutable_images_info(), remote, info, "");
+            add_aliases(response.mutable_images_info(), remote, info);
     }
 
     server->Write(response);
@@ -1829,7 +1827,7 @@ try
                                   &have_mounts,
                                   &deleted](VirtualMachine& vm) {
         fmt::memory_buffer errors;
-        const auto& name = vm.vm_name;
+        const auto& name = vm.get_name();
 
         const auto& it = instance_snapshots_map.find(name);
         const auto& snapshot_pick =
@@ -1910,7 +1908,7 @@ try
     bool deleted = false;
 
     auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
-        const auto& name = vm.vm_name;
+        const auto& name = vm.get_name();
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
@@ -1922,9 +1920,9 @@ try
         else
             entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-        // FIXME: Set the release to the cached current version when supported
         auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
         auto current_release = vm_image.original_release;
+        auto os = vm_image.os;
 
         if (!vm_image.id.empty() && current_release.empty())
         {
@@ -1940,20 +1938,19 @@ try
         }
 
         entry->set_current_release(current_release);
+        entry->set_os(os);
 
         if (request->request_ipv4() && MP_UTILS.is_running(present_state))
         {
-            std::string management_ip = vm.management_ipv4();
+            auto management_ip = vm.management_ipv4();
             auto all_ipv4 = vm.get_all_ipv4();
 
-            if (MP_UTILS.is_ipv4_valid(management_ip))
-                entry->add_ipv4(management_ip);
-            else if (all_ipv4.empty())
-                entry->add_ipv4("N/A");
+            if (management_ip)
+                entry->add_ipv4(management_ip->as_string());
 
             for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
-                    entry->add_ipv4(extra_ipv4);
+                    entry->add_ipv4(extra_ipv4.as_string());
         }
 
         return grpc::Status::OK;
@@ -1961,7 +1958,7 @@ try
 
     auto fetch_snapshot = [&response](VirtualMachine& vm) {
         fmt::memory_buffer errors;
-        const auto& name = vm.vm_name;
+        const auto& name = vm.get_name();
 
         try
         {
@@ -2379,12 +2376,12 @@ try
             if (vm.current_state() == VirtualMachine::State::unavailable)
             {
                 mpl::log(mpl::Level::info,
-                         vm.vm_name,
+                         vm.get_name(),
                          "Ignoring suspend since instance is unavailable.");
                 return grpc::Status::OK;
             }
 
-            stop_mounts(vm.vm_name);
+            stop_mounts(vm.get_name());
 
             vm.suspend();
             return grpc::Status::OK;
@@ -2425,7 +2422,7 @@ try
 
     const auto& instance_targets = instance_selection.operative_selection;
     status = cmd_vms(instance_targets, [this](auto& vm) {
-        stop_mounts(vm.vm_name);
+        stop_mounts(vm.get_name());
 
         return reboot_vm(vm);
     }); // 1st pass to reboot all targets
@@ -2558,8 +2555,7 @@ try
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto target_path =
-            QDir::cleanPath(QString::fromStdString(path_entry.target_path())).toStdString();
+        const auto target_path = mpu::normalize_path(path_entry.target_path());
 
         auto vm = operative_instances.find(name);
         if (vm == operative_instances.end())
@@ -3188,7 +3184,7 @@ void mp::Daemon::on_restart(const std::string& name)
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
                 virtual_machine->state_mutex};
             virtual_machine->state = VirtualMachine::State::running;
-            virtual_machine->update_state();
+            virtual_machine->handle_state_update();
         }
         catch (const std::out_of_range&)
         {
@@ -3234,7 +3230,8 @@ void mp::Daemon::persist_instances()
     }
     QDir data_dir{mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name())};
-    MP_JSONUTILS.write_json(instance_records_json, data_dir.filePath(instance_db_name));
+    MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name),
+                                     QJsonDocument{instance_records_json}.toJson());
 }
 
 void mp::Daemon::release_resources(const std::string& instance)
@@ -3568,7 +3565,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
 {
     if (vm.state == VirtualMachine::State::delayed_shutdown)
-        delayed_shutdown_instances.erase(vm.vm_name);
+        delayed_shutdown_instances.erase(vm.get_name());
 
     if (auto st = vm.current_state(); !MP_UTILS.is_running(st))
     {
@@ -3576,19 +3573,19 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
         if (st == VirtualMachine::State::unknown)
             msg = fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
                               "Try to stop and start it instead.",
-                              vm.vm_name);
+                              vm.get_name());
         else
-            msg = fmt::format("Instance '{0}' is not running", vm.vm_name);
+            msg = fmt::format("Instance '{0}' is not running", vm.get_name());
         return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, std::move(msg), ""};
     }
 
-    mpl::debug(category, "Rebooting {}", vm.vm_name);
+    mpl::debug(category, "Rebooting {}", vm.get_name());
     return ssh_reboot(vm);
 }
 
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
 {
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     delayed_shutdown_instances.erase(name);
 
     auto stop_all_mounts = [this](const std::string& name) { stop_mounts(name); };
@@ -3606,7 +3603,7 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
 
 grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
 {
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     delayed_shutdown_instances.erase(name);
 
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
@@ -3616,18 +3613,18 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
 
 grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
 {
-    auto it = delayed_shutdown_instances.find(vm.vm_name);
+    auto it = delayed_shutdown_instances.find(vm.get_name());
     if (it != delayed_shutdown_instances.end())
         delayed_shutdown_instances.erase(it);
     else
-        mpl::debug(category, "no delayed shutdown to cancel on instance \"{}\"", vm.vm_name);
+        mpl::debug(category, "no delayed shutdown to cancel on instance \"{}\"", vm.get_name());
 
     return grpc::Status::OK;
 }
 
 grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response)
 {
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     if (vm.current_state() == VirtualMachine::State::unknown)
         throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
@@ -3704,7 +3701,7 @@ bool mp::Daemon::create_missing_mounts(
                           R"(Removing mount "{}" => "{}" from '{}': {})",
                           mount_spec.get_source_path(),
                           target,
-                          vm->vm_name,
+                          vm->get_name(),
                           e.what());
 
                 return true;
@@ -3921,12 +3918,11 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
         async_op_result.status_promise->set_value(async_op_result.status);
 }
 
-void mp::Daemon::update_manifests_all(const bool is_force_update_from_network)
+void mp::Daemon::update_manifests_all(const bool force_update)
 {
     auto launch_update_manifests_from_vm_image_host =
-        [is_force_update_from_network](
-            const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
-        vm_image_host_ptr->update_manifests(is_force_update_from_network);
+        [force_update](const std::unique_ptr<VMImageHost>& vm_image_host_ptr) -> void {
+        vm_image_host_ptr->update_manifests(force_update);
     };
 
     utils::parallel_for_each(config->image_hosts, launch_update_manifests_from_vm_image_host);
@@ -3960,7 +3956,7 @@ void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* se
 }
 
 void mp::Daemon::populate_instance_info(VirtualMachine& vm,
-                                        mp::InfoReply& response,
+                                        InfoReply& response,
                                         bool no_runtime_info,
                                         bool deleted,
                                         bool& have_mounts)
@@ -3969,7 +3965,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     auto instance_info = info->mutable_instance_info();
     auto present_state = vm.current_state();
 
-    const auto& name = vm.vm_name;
+    const auto& name = vm.get_name();
     info->set_name(name);
     const auto zone = info->mutable_zone();
     const auto& az = vm.get_zone();
@@ -3983,6 +3979,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
     auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
     auto original_release = vm_image.original_release;
+    auto os = vm_image.os;
 
     if (!vm_image.id.empty() && original_release.empty())
     {
@@ -4007,6 +4004,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         assert(std::string{e.what()}.find("snapshots") != std::string::npos);
     }
     instance_info->set_image_release(original_release);
+    instance_info->set_os(os);
     instance_info->set_id(vm_image.id);
 
     auto vm_specs = vm_instance_specs[name];

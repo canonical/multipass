@@ -32,7 +32,6 @@
 #include <QTemporaryFile>
 
 namespace mp = multipass;
-namespace mpu = multipass::utils;
 
 namespace
 {
@@ -407,7 +406,9 @@ void mp::AliasDict::load_dict()
 void mp::AliasDict::save_dict()
 {
     sanitize_contexts();
-    MP_JSONUTILS.write_json(to_json(), QString::fromStdString(aliases_file));
+
+    MP_FILEOPS.write_transactionally(QString::fromStdString(aliases_file),
+                                     QJsonDocument{to_json()}.toJson());
 }
 
 // This function removes the contexts which do not contain aliases, except the active context.

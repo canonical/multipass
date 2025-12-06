@@ -26,7 +26,6 @@ target_include_directories(qemu_platform_detail PRIVATE ../)
 
 target_link_libraries(qemu_platform_detail
   logger
-  semver
   shared_linux
   utils
   Qt6::Core)

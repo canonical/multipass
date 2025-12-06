@@ -1,11 +1,11 @@
 name: multipass
 title: Multipass
 icon: data/multipass.gui.svg
-summary: Instant Ubuntu VMs
+summary: Instant cloud VMs
 description: |
-  Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that
-  simulates a cloud environment with support for cloud-init. Get Ubuntu
-  on-demand with clean integration to your IDE and version control on your
+  Multipass is a tool to launch and manage cloud VMs on Windows, Mac and Linux
+  that simulates a cloud environment with support for cloud-init. Get on-demand
+  cloud VMs with clean integration to your IDE and version control on your
   native platform.
 license: GPL-3.0
 
@@ -117,30 +117,34 @@ parts:
     - cmake
     build-environment:
     - PATH: /snap/bin:$PATH
+    - PYTHON: /usr/bin/python3
+    - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
+    - CMAKE_PRESET: snap
+    - CXX: clang++-15
+    - CC: clang-15
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
+    - ccache
+    - lcov
+    - clang-15
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
     - libsystemd-dev
     - libssl-dev
     - pkg-config
-    - qt6-base-dev
-    - qt6-base-dev-tools
     - zip
     - unzip
     - curl
     - libkeybinder-3.0-dev
-    - clang
     - ninja-build
+    # https://github.com/microsoft/vcpkg/issues/47920
+    - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     stage-packages:
     - apparmor
     - libpng16-16
-    - libqt6core6
-    - libqt6network6
-    - libssl3
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
@@ -195,15 +199,22 @@ parts:
     prime:
     - -protobuf
     source: .
-    cmake-parameters:
-    - -DCMAKE_BUILD_TYPE=Release
-    - -DCMAKE_INSTALL_PREFIX=/
-    - -DMULTIPASS_ENABLE_TESTS=off
-    - -DMULTIPASS_UPSTREAM=origin
-    - -DMULTIPASS_ENABLE_FLUTTER_GUI=on
     override-build: |
-      craftctl default
       set -e
+
+      # https://github.com/microsoft/vcpkg/issues/37279
+      # vcpkg-systemd: required for meson.build
+      python3 -m pip install jinja2
+
+      # Update default clang
+      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
+      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
+
+      # Configure-build-install
+      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
+      cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
+      DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
+
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass

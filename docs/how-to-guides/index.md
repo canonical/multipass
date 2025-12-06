@@ -10,7 +10,7 @@ Installing Multipass is a straightforward process but may require some prerequis
 
 ## Manage instances
 
-Multipass allows you to create Ubuntu instances with a single command. As your needs grow, you can modify and customise instances as well as use and create blueprints for customised instances: <!--- This line added by @nielsenjared -->
+Multipass allows you to create Ubuntu instances with a single command. As your needs grow, you can modify and customise instances via different options or with the use of cloud-init files: <!--- This line added by @nielsenjared -->
 
 - [Create an instance](manage-instances/create-an-instance)
 - [Modify an instance](manage-instances/modify-an-instance)
@@ -22,8 +22,8 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 - [Remove an instance](manage-instances/remove-an-instance)
 - [Add a network to an existing instance](manage-instances/add-a-network-to-an-existing-instance)
 - [Configure static IPs](manage-instances/configure-static-ips)
-- [Use a blueprint](manage-instances/use-a-blueprint)
-- [Use the Docker blueprint](manage-instances/use-the-docker-blueprint)
+- [Use a blueprint (removed)](manage-instances/use-a-blueprint)
+- {ref}`how-to-guides-manage-instances-use-the-docker-blueprint`
 - [Run a Docker container in Multipass](manage-instances/run-a-docker-container-in-multipass)
 
 ## Customise Multipass
@@ -32,7 +32,7 @@ You may also want to customise Multipass to address specific needs, from managin
 
 - [Set up the driver](customise-multipass/set-up-the-driver)
 - [Migrate from Hyperkit to QEMU on macOS](customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)
-- [Authenticate clients with the Multipass service](customise-multipass/authenticate-clients-with-the-multipass-service)
+- [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
 - [Build Multipass images with Packer](customise-multipass/build-multipass-images-with-packer)
 - [Set up a graphical interface](customise-multipass/set-up-a-graphical-interface)
 - [Use a different terminal from the system icon](customise-multipass/use-a-different-terminal-from-the-system-icon)

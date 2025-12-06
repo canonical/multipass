@@ -76,6 +76,7 @@ struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks,
             break;
         default:
             assert(false && "shouldn't be here");
+            std::abort();
         }
     }
 };

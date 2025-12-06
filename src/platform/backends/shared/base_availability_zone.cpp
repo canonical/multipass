@@ -152,7 +152,7 @@ void BaseAvailabilityZone::set_available(const bool new_available)
             if (vm.get().current_state() == VirtualMachine::State::unavailable)
             {
                 vm.get().state = VirtualMachine::State::off;
-                vm.get().update_state();
+                vm.get().handle_state_update();
             }
         }
 
@@ -163,18 +163,18 @@ void BaseAvailabilityZone::set_available(const bool new_available)
 
 void BaseAvailabilityZone::add_vm(VirtualMachine& vm)
 {
-    mpl::debug(m.name, "adding vm '{}' to AZ", vm.vm_name);
+    mpl::debug(m.name, "adding vm '{}' to AZ", vm.get_name());
     const std::unique_lock lock{m.mutex};
     m.vms.emplace_back(vm);
 }
 
 void BaseAvailabilityZone::remove_vm(VirtualMachine& vm)
 {
-    mpl::debug(m.name, "removing vm '{}' from AZ", vm.vm_name);
+    mpl::debug(m.name, "removing vm '{}' from AZ", vm.get_name());
     const std::unique_lock lock{m.mutex};
     // as of now, we use vm names to uniquely identify vms, so we can do the same here
     const auto to_remove = std::remove_if(m.vms.begin(), m.vms.end(), [&](const auto& some_vm) {
-        return some_vm.get().vm_name == vm.vm_name;
+        return some_vm.get().get_name() == vm.get_name();
     });
     m.vms.erase(to_remove, m.vms.end());
 }
@@ -189,6 +189,7 @@ void BaseAvailabilityZone::serialize() const
         {available_key, m.available},
     };
 
-    MP_JSONUTILS.write_json(json, QString::fromStdU16String(m.file_path.u16string()));
+    MP_FILEOPS.write_transactionally(QString::fromStdU16String(m.file_path.u16string()),
+                                     QJsonDocument{json}.toJson());
 }
 } // namespace multipass

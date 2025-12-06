@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "file_operations.h"
 #include "mock_format_utils.h"
 #include "mock_settings.h"
 
@@ -63,10 +64,9 @@ auto construct_single_instance_list_reply()
     list_entry->set_name("foo");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
+    list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
-    list_entry->add_ipv6("fdde:2681:7a2::4ca");
-    list_entry->add_ipv6("fe80::1c3c:b703:d561:a00");
     const auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -82,6 +82,7 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_name("bogus-instance");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("16.04 LTS");
+    list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.21.124.56");
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
@@ -91,6 +92,7 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("18.04 LTS");
+    list_entry->set_os("Ubuntu");
     zone = list_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
@@ -105,7 +107,8 @@ auto construct_unsorted_list_reply()
     auto list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1542");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("12");
+    list_entry->set_os("Debian");
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -113,7 +116,8 @@ auto construct_unsorted_list_reply()
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
-    list_entry->set_current_release("N/A");
+    list_entry->set_current_release("42");
+    list_entry->set_os("Fedora");
     zone = list_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
@@ -284,6 +288,7 @@ auto construct_single_instance_info_reply()
     info_entry->set_name("foo");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
     const auto zone = info_entry->mutable_zone();
@@ -326,8 +331,6 @@ auto construct_single_instance_info_reply()
     info_entry->mutable_instance_info()->set_current_release("Ubuntu 16.04.3 LTS");
     info_entry->mutable_instance_info()->add_ipv4("10.168.32.2");
     info_entry->mutable_instance_info()->add_ipv4("200.3.123.29");
-    info_entry->mutable_instance_info()->add_ipv6("2001:67c:1562:8007::aac:423a");
-    info_entry->mutable_instance_info()->add_ipv6("fd52:2ccf:f758:0:a342:79b5:e2ba:e05e");
     info_entry->mutable_instance_info()->set_num_snapshots(0);
 
     return info_reply;
@@ -341,6 +344,7 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
     auto zone = info_entry->mutable_zone();
@@ -376,6 +380,7 @@ auto construct_multiple_instances_info_reply()
     info_entry->set_name("bombastic");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -510,6 +515,7 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     zone->set_available(false);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -525,6 +531,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_name("bogus-instance");
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     info_entry->mutable_instance_info()->set_image_release("16.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
     auto zone = info_entry->mutable_zone();
@@ -553,6 +560,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->mutable_instance_info()->set_disk_usage("1932735284");
     info_entry->set_disk_total("6764573492");
     info_entry->mutable_instance_info()->set_current_release("Ubuntu 16.04.3 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->add_ipv4("10.21.124.56");
     info_entry->mutable_instance_info()->set_num_snapshots(2);
 
@@ -606,6 +614,7 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     zone->set_available(false);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
+    info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
@@ -641,6 +650,7 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
         zone->set_available(true);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
         entry->mutable_instance_info()->set_image_release("18.10");
+        entry->mutable_instance_info()->set_os("Ubuntu");
         entry->mutable_instance_info()->set_id(
             "1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd");
     }
@@ -670,9 +680,7 @@ auto construct_find_one_reply()
     image_entry->set_os("Ubuntu");
     image_entry->set_release("18.04 LTS");
     image_entry->set_version("20190516");
-
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("ubuntu");
+    image_entry->add_aliases("ubuntu");
 
     return reply;
 }
@@ -684,10 +692,8 @@ auto construct_find_one_reply_no_os()
     auto image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
     image_entry->set_version("20190520");
-
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("core18");
-    alias_entry->set_remote_name("snapcraft");
+    image_entry->add_aliases("core18");
+    image_entry->set_remote_name("snapcraft");
 
     return reply;
 }
@@ -698,28 +704,29 @@ auto construct_find_multiple_reply()
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
-    image_entry->set_release("18.04 LTS");
+    image_entry->set_release("19.04");
     image_entry->set_version("20190516");
+    image_entry->add_aliases("19.04");
+    image_entry->add_aliases("disco");
+    image_entry->set_remote_name("release");
 
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("ubuntu");
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("lts");
+    image_entry = reply.add_images_info();
+    image_entry->set_os("Ubuntu");
+    image_entry->set_release("18.04 LTS");
+    image_entry->set_version("20180421");
+    image_entry->add_aliases("18.04");
+    image_entry->add_aliases("bionic");
+    image_entry->add_aliases("lts");
+    image_entry->set_remote_name("release");
 
     image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
     image_entry->set_release("19.10");
     image_entry->set_version("20190516");
-
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("19.10");
-    alias_entry->set_remote_name("daily");
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("eoan");
-    alias_entry->set_remote_name("daily");
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("devel");
-    alias_entry->set_remote_name("daily");
+    image_entry->add_aliases("19.10");
+    image_entry->add_aliases("eoan");
+    image_entry->add_aliases("devel");
+    image_entry->set_remote_name("daily");
 
     return reply;
 }
@@ -732,17 +739,14 @@ auto construct_find_multiple_reply_duplicate_image()
     image_entry->set_os("Ubuntu");
     image_entry->set_release("Core 18");
     image_entry->set_version("20190520");
-
-    auto alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("core18");
+    image_entry->add_aliases("core18");
+    image_entry->set_remote_name("core");
 
     image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
     image_entry->set_version("20190520");
-
-    alias_entry = image_entry->add_aliases_info();
-    alias_entry->set_alias("core18");
-    alias_entry->set_remote_name("snapcraft");
+    image_entry->add_aliases("core18");
+    image_entry->set_remote_name("snapcraft");
 
     return reply;
 }
@@ -864,1360 +868,293 @@ const auto multiple_mixed_instances_and_snapshots_info_reply =
     construct_multiple_mixed_instances_and_snapshots_info_reply();
 
 const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
-    {&table_formatter, &empty_list_reply, "No instances found.\n", "table_list_empty"},
+    {&table_formatter,
+     &empty_list_reply,
+     mpt::load_test_file("formatters/table/empty_list_reply.txt").toStdString(),
+     "table_list_empty"},
     {&table_formatter,
      &empty_list_snapshot_reply,
-     "No snapshots found.\n",
+     mpt::load_test_file("formatters/table/empty_list_snapshot_reply.txt").toStdString(),
      "table_list_snapshot_empty"},
     {&table_formatter,
      &single_instance_list_reply,
-     "Name                    State             IPv4             Image               Zone\n"
-     "foo                     Running           10.168.32.2      Ubuntu 16.04 LTS    zone1(a)\n"
-     "                                          200.3.123.30\n",
+     mpt::load_test_file("formatters/table/single_instance_list_reply.txt").toStdString(),
      "table_list_single"},
-
     {&table_formatter,
      &multiple_instances_list_reply,
-     "Name                    State             IPv4             Image               Zone\n"
-     "bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS    zone1(a)\n"
-     "bombastic               Stopped           --               Ubuntu 18.04 LTS    zone2(u/a)\n",
+     mpt::load_test_file("formatters/table/multiple_instances_list_reply.txt").toStdString(),
      "table_list_multiple"},
-
     {&table_formatter,
      &unsorted_list_reply,
-     "Name                    State             IPv4             Image               Zone\n"
-     "trusty-190611-1529      Deleted           --               Not Available       zone2(u/a)\n"
-     "trusty-190611-1535      Stopped           --               Ubuntu N/A          zone2(u/a)\n"
-     "trusty-190611-1539      Suspended         --               Not Available       zone1(a)\n"
-     "trusty-190611-1542      Running           --               Ubuntu N/A          zone1(a)\n",
+     mpt::load_test_file("formatters/table/unsorted_list_reply.txt").toStdString(),
      "table_list_unsorted"},
     {&table_formatter,
      &single_snapshot_list_reply,
-     "Instance   Snapshot    Parent   Comment\n"
-     "foo        snapshot1   --       This is a sample comment\n",
+     mpt::load_test_file("formatters/table/single_snapshot_list_reply.txt").toStdString(),
      "table_list_single_snapshot"},
     {&table_formatter,
      &multiple_snapshots_list_reply,
-     "Instance               Snapshot     Parent      Comment\n"
-     "hale-roller            pristine     --          A first snapshot\n"
-     "hale-roller            rocking      pristine    A very long comment that should be truncated "
-     "by t…\n"
-     "hale-roller            rolling      pristine    Loaded with stuff\n"
-     "prosperous-spadefish   snapshot2    --          Before restoring snap1…\n"
-     "prosperous-spadefish   snapshot10   snapshot2   --\n",
+     mpt::load_test_file("formatters/table/multiple_snapshots_list_reply.txt").toStdString(),
      "table_list_multiple_snapshots"},
 
-    {&table_formatter, &empty_info_reply, "No instances found.\n", "table_info_empty"},
+    {&table_formatter,
+     &empty_info_reply,
+     mpt::load_test_file("formatters/table/empty_info_reply.txt").toStdString(),
+     "table_info_empty"},
     {&table_formatter,
      &empty_info_snapshot_reply,
-     "No snapshots found.\n",
+     mpt::load_test_file("formatters/table/empty_info_snapshot_reply.txt").toStdString(),
      "table_info_snapshot_empty"},
     {&table_formatter,
      &single_instance_info_reply,
-     "Name:           foo\n"
-     "State:          Running\n"
-     "Zone:           zone1(a)\n"
-     "Snapshots:      0\n"
-     "IPv4:           10.168.32.2\n"
-     "                200.3.123.29\n"
-     "IPv6:           2001:67c:1562:8007::aac:423a\n"
-     "                fd52:2ccf:f758:0:a342:79b5:e2ba:e05e\n"
-     "Release:        Ubuntu 16.04.3 LTS\n"
-     "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
-     "CPU(s):         1\n"
-     "Load:           0.45 0.51 0.15\n"
-     "Disk usage:     1.2GiB out of 4.8GiB\n"
-     "Memory usage:   58.0MiB out of 1.4GiB\n"
-     "Mounts:         /home/user/foo      => foo\n"
-     "                    UID map: 1000:1000\n"
-     "                    GID map: 1000:1000\n"
-     "                /home/user/test_dir => test_dir\n"
-     "                    UID map: 1000:1000\n"
-     "                    GID map: 1000:1000\n",
+     mpt::load_test_file("formatters/table/single_instance_info_reply.txt").toStdString(),
      "table_info_single_instance"},
     {&table_formatter,
      &multiple_instances_info_reply,
-     "Name:           bogus-instance\n"
-     "State:          Running\n"
-     "Zone:           zone1(a)\n"
-     "Snapshots:      1\n"
-     "IPv4:           10.21.124.56\n"
-     "Release:        Ubuntu 16.04.3 LTS\n"
-     "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
-     "CPU(s):         4\n"
-     "Load:           0.03 0.10 0.15\n"
-     "Disk usage:     1.8GiB out of 6.3GiB\n"
-     "Memory usage:   37.0MiB out of 1.5GiB\n"
-     "Mounts:         /home/user/source => source\n"
-     "                    UID map: 1000:501\n"
-     "                    GID map: 1000:501\n\n"
-     "Name:           bombastic\n"
-     "State:          Stopped\n"
-     "Zone:           zone2(u/a)\n"
-     "Snapshots:      3\n"
-     "IPv4:           --\n"
-     "Release:        --\n"
-     "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
-     "CPU(s):         --\n"
-     "Load:           --\n"
-     "Disk usage:     --\n"
-     "Memory usage:   --\n"
-     "Mounts:         --\n",
+     mpt::load_test_file("formatters/table/multiple_instances_info_reply.txt").toStdString(),
      "table_info_multiple_instances"},
     {&table_formatter,
      &single_snapshot_info_reply,
-     "Snapshot:       snapshot2\n"
-     "Instance:       bogus-instance\n"
-     "Size:           128MiB\n"
-     "CPU(s):         2\n"
-     "Disk space:     4.9GiB\n"
-     "Memory size:    0.9GiB\n"
-     "Mounts:         /home/user/source => source\n"
-     "                /home/user => Home\n"
-     "Created:        1972-01-01T10:00:20.021Z\n"
-     "Parent:         snapshot1\n"
-     "Children:       snapshot3\n"
-     "                snapshot4\n"
-     "Comment:        This is a comment with some\n"
-     "                new\r\n"
-     "                lines.\n",
+     mpt::load_test_file("formatters/table/single_snapshot_info_reply.txt").toStdString(),
      "table_info_single_snapshot"},
     {&table_formatter,
      &multiple_snapshots_info_reply,
-     "Snapshot:       snapshot2\n"
-     "Instance:       bogus-instance\n"
-     "CPU(s):         2\n"
-     "Disk space:     4.9GiB\n"
-     "Memory size:    0.9GiB\n"
-     "Mounts:         /home/user/source => source\n"
-     "                /home/user => Home\n"
-     "Created:        1972-01-01T10:00:20.021Z\n"
-     "Parent:         snapshot1\n"
-     "Children:       snapshot3\n"
-     "                snapshot4\n"
-     "Comment:        --\n\n"
-     "Snapshot:       black-hole\n"
-     "Instance:       messier-87\n"
-     "CPU(s):         1\n"
-     "Disk space:     1024GiB\n"
-     "Memory size:    128GiB\n"
-     "Mounts:         --\n"
-     "Created:        2019-04-10T11:59:59Z\n"
-     "Parent:         --\n"
-     "Children:       --\n"
-     "Comment:        Captured by EHT\n",
+     mpt::load_test_file("formatters/table/multiple_snapshots_info_reply.txt").toStdString(),
      "table_info_multiple_snapshots"},
     {&table_formatter,
      &mixed_instance_and_snapshot_info_reply,
-     "Name:           bombastic\n"
-     "State:          Stopped\n"
-     "Zone:           zone2(u/a)\n"
-     "Snapshots:      3\n"
-     "IPv4:           --\n"
-     "Release:        --\n"
-     "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
-     "CPU(s):         --\n"
-     "Load:           --\n"
-     "Disk usage:     --\n"
-     "Memory usage:   --\n"
-     "Mounts:         --\n\n"
-     "Snapshot:       snapshot2\n"
-     "Instance:       bogus-instance\n"
-     "CPU(s):         2\n"
-     "Disk space:     4.9GiB\n"
-     "Memory size:    0.9GiB\n"
-     "Mounts:         /home/user/source => source\n"
-     "                /home/user => Home\n"
-     "Created:        1972-01-01T10:00:20.021Z\n"
-     "Parent:         snapshot1\n"
-     "Children:       snapshot3\n"
-     "                snapshot4\n"
-     "Comment:        --\n",
+     mpt::load_test_file("formatters/table/mixed_instance_and_snapshot_info_reply.txt")
+         .toStdString(),
      "table_info_mixed_instance_and_snapshot"},
     {&table_formatter,
      &multiple_mixed_instances_and_snapshots_info_reply,
-     "Name:           bogus-instance\n"
-     "State:          Running\n"
-     "Zone:           zone1(a)\n"
-     "Snapshots:      2\n"
-     "IPv4:           10.21.124.56\n"
-     "Release:        Ubuntu 16.04.3 LTS\n"
-     "Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)\n"
-     "CPU(s):         4\n"
-     "Load:           0.03 0.10 0.15\n"
-     "Disk usage:     1.8GiB out of 6.3GiB\n"
-     "Memory usage:   37.0MiB out of 1.5GiB\n"
-     "Mounts:         /home/user/source => source\n"
-     "                    UID map: 1000:501\n"
-     "                    GID map: 1000:501\n\n"
-     "Name:           bombastic\n"
-     "State:          Stopped\n"
-     "Zone:           zone2(u/a)\n"
-     "Snapshots:      3\n"
-     "IPv4:           --\n"
-     "Release:        --\n"
-     "Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)\n"
-     "CPU(s):         --\n"
-     "Load:           --\n"
-     "Disk usage:     --\n"
-     "Memory usage:   --\n"
-     "Mounts:         --\n\n"
-     "Snapshot:       snapshot1\n"
-     "Instance:       bogus-instance\n"
-     "CPU(s):         2\n"
-     "Disk space:     4.9GiB\n"
-     "Memory size:    0.9GiB\n"
-     "Mounts:         --\n"
-     "Created:        1972-01-01T09:59:59.021Z\n"
-     "Parent:         --\n"
-     "Children:       --\n"
-     "Comment:        --\n\n"
-     "Snapshot:       snapshot2\n"
-     "Instance:       bogus-instance\n"
-     "CPU(s):         2\n"
-     "Disk space:     4.9GiB\n"
-     "Memory size:    0.9GiB\n"
-     "Mounts:         /home/user/source => source\n"
-     "                /home/user => Home\n"
-     "Created:        1972-01-01T10:00:20.021Z\n"
-     "Parent:         snapshot1\n"
-     "Children:       snapshot3\n"
-     "                snapshot4\n"
-     "Comment:        --\n\n"
-     "Snapshot:       black-hole\n"
-     "Instance:       messier-87\n"
-     "CPU(s):         1\n"
-     "Disk space:     1024GiB\n"
-     "Memory size:    128GiB\n"
-     "Mounts:         --\n"
-     "Created:        2019-04-10T11:59:59Z\n"
-     "Parent:         --\n"
-     "Children:       --\n"
-     "Comment:        Captured by EHT\n",
+     mpt::load_test_file("formatters/table/multiple_mixed_instances_and_snapshots_info_reply.txt")
+         .toStdString(),
      "table_info_multiple_mixed_instances_and_snapshots"},
 
     {&csv_formatter,
      &empty_list_reply,
-     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n",
+     mpt::load_test_file("formatters/csv/empty_list_reply.csv").toStdString(),
      "csv_list_empty"},
     {&csv_formatter,
      &single_instance_list_reply,
-     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n"
-     "foo,Running,10.168.32.2,fdde:2681:7a2::4ca,Ubuntu 16.04 "
-     "LTS,\"10.168.32.2,200.3.123.30\",zone1,true\n",
+     mpt::load_test_file("formatters/csv/single_instance_list_reply.csv").toStdString(),
      "csv_list_single"},
     {&csv_formatter,
      &multiple_instances_list_reply,
-     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n"
-     "bogus-instance,Running,10.21.124.56,,Ubuntu 16.04 LTS,\"10.21.124.56\",zone1,true\n"
-     "bombastic,Stopped,,,Ubuntu 18.04 LTS,\"\",zone2,false\n",
+     mpt::load_test_file("formatters/csv/multiple_instances_list_reply.csv").toStdString(),
      "csv_list_multiple"},
     {&csv_formatter,
      &unsorted_list_reply,
-     "Name,State,IPv4,IPv6,Release,AllIPv4,Zone,Zone available\n"
-     "trusty-190611-1529,Deleted,,,Not Available,\"\",zone2,false\n"
-     "trusty-190611-1535,Stopped,,,Ubuntu N/A,\"\",zone2,false\n"
-     "trusty-190611-1539,Suspended,,,Not Available,\"\",zone1,true\n"
-     "trusty-190611-1542,Running,,,Ubuntu N/A,\"\",zone1,true\n",
+     mpt::load_test_file("formatters/csv/unsorted_list_reply.csv").toStdString(),
      "csv_list_unsorted"},
     {&csv_formatter,
      &empty_list_snapshot_reply,
-     "Instance,Snapshot,Parent,Comment\n",
+     mpt::load_test_file("formatters/csv/empty_list_snapshot_reply.csv").toStdString(),
      "csv_list_snapshot_empty"},
     {&csv_formatter,
      &single_snapshot_list_reply,
-     "Instance,Snapshot,Parent,Comment\nfoo,snapshot1,,\"This is a sample comment\"\n",
+     mpt::load_test_file("formatters/csv/single_snapshot_list_reply.csv").toStdString(),
      "csv_list_single_snapshot"},
     {&csv_formatter,
      &multiple_snapshots_list_reply,
-     "Instance,Snapshot,Parent,Comment\nhale-roller,pristine,,\"A first "
-     "snapshot\"\nhale-roller,rocking,pristine,\"A very long comment that should be truncated by "
-     "the table "
-     "formatter\"\nhale-roller,rolling,pristine,\"Loaded with "
-     "stuff\"\nprosperous-spadefish,snapshot2,,\"Before "
-     "restoring snap1\nContains a newline that\r\nshould be "
-     "truncated\"\nprosperous-spadefish,snapshot10,snapshot2,\"\"\n",
+     mpt::load_test_file("formatters/csv/multiple_snapshots_list_reply.csv").toStdString(),
      "csv_list_multiple_snapshots"},
 
     {&csv_formatter, &empty_info_reply, "", "csv_info_empty"},
     {&csv_formatter,
      &single_instance_info_reply,
-     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk "
-     "usage,Disk total,Memory "
-     "usage,Memory "
-     "total,Mounts,AllIPv4,CPU(s),Snapshots\nfoo,Running,zone1,true,10.168.32.2,2001:67c:1562:8007:"
-     ":aac:423a,Ubuntu "
-     "16.04.3 "
-     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.45 0.51 "
-     "0.15,1288490188,5153960756,60817408,1503238554,/home/user/foo => foo;/home/user/test_dir "
-     "=> test_dir,10.168.32.2;200.3.123.29,1,0\n",
+     mpt::load_test_file("formatters/csv/single_instance_info_reply.csv").toStdString(),
      "csv_info_single_instance"},
     {&csv_formatter,
      &single_snapshot_info_reply,
-     "Snapshot,Instance,CPU(s),Disk space,Memory "
-     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/"
-     "user/source "
-     "=> "
-     "source;/home/user => Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"This is a "
-     "comment with "
-     "some\nnew\r\nlines.\"\n",
+     mpt::load_test_file("formatters/csv/single_snapshot_info_reply.csv").toStdString(),
      "csv_info_single_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_snapshots_info_reply,
-     "Snapshot,Instance,CPU(s),Disk space,Memory "
-     "size,Mounts,Created,Parent,Children,Comment\nsnapshot2,bogus-instance,2,4.9GiB,0.9GiB,/home/"
-     "user/source => "
-     "source;/home/user => "
-     "Home,1972-01-01T10:00:20.021Z,snapshot1,snapshot3;snapshot4,\"\"\nblack-hole,messier-87,1,"
-     "1024GiB,128GiB,,"
-     "2019-04-10T11:59:59Z,,,\"Captured by EHT\"\n",
+     mpt::load_test_file("formatters/csv/multiple_snapshots_info_reply.csv").toStdString(),
      "csv_info_multiple_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_instances_info_reply,
-     "Name,State,Zone,Zone available,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk "
-     "usage,Disk total,Memory "
-     "usage,Memory "
-     "total,Mounts,AllIPv4,CPU(s),Snapshots\nbogus-instance,Running,zone1,true,10.21.124.56,,"
-     "Ubuntu "
-     "16.04.3 "
-     "LTS,1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac,16.04 LTS,0.03 0.10 "
-     "0.15,1932735284,6764573492,38797312,1610612736,/home/user/source => "
-     "source,10.21.124.56,4,1\nbombastic,Stopped,zone2,false,,,,"
-     "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509,18.04 LTS,,,,,,,,,3\n",
+     mpt::load_test_file("formatters/csv/multiple_instances_info_reply.csv").toStdString(),
      "csv_info_multiple_instances"},
 
-    {&yaml_formatter, &empty_list_reply, "\n", "yaml_list_empty"},
+    {&yaml_formatter,
+     &empty_list_reply,
+     mpt::load_test_file("formatters/yaml/empty_list_reply.yaml").toStdString(),
+     "yaml_list_empty"},
     {&yaml_formatter,
      &single_instance_list_reply,
-     "foo:\n"
-     "  - state: Running\n"
-     "    zone:\n"
-     "      name: zone1\n"
-     "      available: true\n"
-     "    ipv4:\n"
-     "      - 10.168.32.2\n"
-     "      - 200.3.123.30\n"
-     "    release: Ubuntu 16.04 LTS\n",
+     mpt::load_test_file("formatters/yaml/single_instance_list_reply.yaml").toStdString(),
      "yaml_list_single"},
     {&yaml_formatter,
      &multiple_instances_list_reply,
-     "bogus-instance:\n"
-     "  - state: Running\n"
-     "    zone:\n"
-     "      name: zone1\n"
-     "      available: true\n"
-     "    ipv4:\n"
-     "      - 10.21.124.56\n"
-     "    release: Ubuntu 16.04 LTS\n"
-     "bombastic:\n"
-     "  - state: Stopped\n"
-     "    zone:\n"
-     "      name: zone2\n"
-     "      available: false\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    release: Ubuntu 18.04 LTS\n",
+     mpt::load_test_file("formatters/yaml/multiple_instances_list_reply.yaml").toStdString(),
      "yaml_list_multiple"},
     {&yaml_formatter,
      &unsorted_list_reply,
-     "trusty-190611-1529:\n"
-     "  - state: Deleted\n"
-     "    zone:\n"
-     "      name: zone2\n"
-     "      available: false\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    release: Not Available\n"
-     "trusty-190611-1535:\n"
-     "  - state: Stopped\n"
-     "    zone:\n"
-     "      name: zone2\n"
-     "      available: false\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    release: Ubuntu N/A\n"
-     "trusty-190611-1539:\n"
-     "  - state: Suspended\n"
-     "    zone:\n"
-     "      name: zone1\n"
-     "      available: true\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    release: Not Available\n"
-     "trusty-190611-1542:\n"
-     "  - state: Running\n"
-     "    zone:\n"
-     "      name: zone1\n"
-     "      available: true\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    release: Ubuntu N/A\n",
+     mpt::load_test_file("formatters/yaml/unsorted_list_reply.yaml").toStdString(),
      "yaml_list_unsorted"},
     {&yaml_formatter, &empty_list_snapshot_reply, "\n", "yaml_list_snapshot_empty"},
     {&yaml_formatter,
      &single_snapshot_list_reply,
-     "foo:\n"
-     "  - snapshot1:\n"
-     "      - parent: ~\n"
-     "        comment: This is a sample comment\n",
+     mpt::load_test_file("formatters/yaml/single_snapshot_list_reply.yaml").toStdString(),
      "yaml_list_single_snapshot"},
     {&yaml_formatter,
      &multiple_snapshots_list_reply,
-     "hale-roller:\n"
-     "  - pristine:\n"
-     "      - parent: ~\n"
-     "        comment: A first snapshot\n"
-     "  - rocking:\n"
-     "      - parent: pristine\n"
-     "        comment: A very long comment that should be truncated by the table formatter\n"
-     "  - rolling:\n"
-     "      - parent: pristine\n"
-     "        comment: Loaded with stuff\n"
-     "prosperous-spadefish:\n"
-     "  - snapshot2:\n"
-     "      - parent: ~\n"
-     "        comment: \"Before restoring snap1\\nContains a newline that\\r\\nshould be "
-     "truncated\"\n"
-     "  - snapshot10:\n"
-     "      - parent: snapshot2\n"
-     "        comment: ~\n",
+     mpt::load_test_file("formatters/yaml/multiple_snapshots_list_reply.yaml").toStdString(),
      "yaml_list_multiple_snapshots"},
 
-    {&yaml_formatter, &empty_info_reply, "errors:\n  - ~\n", "yaml_info_empty"},
+    {&yaml_formatter,
+     &empty_info_reply,
+     mpt::load_test_file("formatters/yaml/empty_info_reply.yaml").toStdString(),
+     "yaml_info_empty"},
     {&yaml_formatter,
      &single_instance_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "foo:\n"
-     "  - state: Running\n"
-     "    zone:\n"
-     "      name: zone1\n"
-     "      available: true\n"
-     "    snapshot_count: 0\n"
-     "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-     "    image_release: 16.04 LTS\n"
-     "    release: Ubuntu 16.04.3 LTS\n"
-     "    cpu_count: 1\n"
-     "    load:\n"
-     "      - 0.45\n"
-     "      - 0.51\n"
-     "      - 0.15\n"
-     "    disks:\n"
-     "      - sda1:\n"
-     "          used: 1288490188\n"
-     "          total: 5153960756\n"
-     "    memory:\n"
-     "      usage: 60817408\n"
-     "      total: 1503238554\n"
-     "    ipv4:\n"
-     "      - 10.168.32.2\n"
-     "      - 200.3.123.29\n"
-     "    mounts:\n"
-     "      foo:\n"
-     "        uid_mappings:\n"
-     "          - \"1000:1000\"\n"
-     "        gid_mappings:\n"
-     "          - \"1000:1000\"\n"
-     "        source_path: /home/user/foo\n"
-     "      test_dir:\n"
-     "        uid_mappings:\n"
-     "          - \"1000:1000\"\n"
-     "        gid_mappings:\n"
-     "          - \"1000:1000\"\n"
-     "        source_path: /home/user/test_dir\n",
+     mpt::load_test_file("formatters/yaml/single_instance_info_reply.yaml").toStdString(),
      "yaml_info_single_instance"},
     {&yaml_formatter,
      &multiple_instances_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "bogus-instance:\n"
-     "  - state: Running\n"
-     "    zone:\n"
-     "      name: zone1\n"
-     "      available: true\n"
-     "    snapshot_count: 1\n"
-     "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-     "    image_release: 16.04 LTS\n"
-     "    release: Ubuntu 16.04.3 LTS\n"
-     "    cpu_count: 4\n"
-     "    load:\n"
-     "      - 0.03\n"
-     "      - 0.10\n"
-     "      - 0.15\n"
-     "    disks:\n"
-     "      - sda1:\n"
-     "          used: 1932735284\n"
-     "          total: 6764573492\n"
-     "    memory:\n"
-     "      usage: 38797312\n"
-     "      total: 1610612736\n"
-     "    ipv4:\n"
-     "      - 10.21.124.56\n"
-     "    mounts:\n"
-     "      source:\n"
-     "        uid_mappings:\n"
-     "          - \"1000:501\"\n"
-     "        gid_mappings:\n"
-     "          - \"1000:501\"\n"
-     "        source_path: /home/user/source\n"
-     "bombastic:\n"
-     "  - state: Stopped\n"
-     "    zone:\n"
-     "      name: zone2\n"
-     "      available: false\n"
-     "    snapshot_count: 3\n"
-     "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
-     "    image_release: 18.04 LTS\n"
-     "    release: ~\n"
-     "    cpu_count: ~\n"
-     "    disks:\n"
-     "      - sda1:\n"
-     "          used: ~\n"
-     "          total: ~\n"
-     "    memory:\n"
-     "      usage: ~\n"
-     "      total: ~\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    mounts: ~\n",
+     mpt::load_test_file("formatters/yaml/multiple_instances_info_reply.yaml").toStdString(),
      "yaml_info_multiple_instances"},
     {&yaml_formatter,
      &single_snapshot_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "bogus-instance:\n"
-     "  - snapshots:\n"
-     "      - snapshot2:\n"
-     "          size: 128MiB\n"
-     "          cpu_count: 2\n"
-     "          disk_space: 4.9GiB\n"
-     "          memory_size: 0.9GiB\n"
-     "          mounts:\n"
-     "            source:\n"
-     "              source_path: /home/user/source\n"
-     "            Home:\n"
-     "              source_path: /home/user\n"
-     "          created: \"1972-01-01T10:00:20.021Z\"\n"
-     "          parent: snapshot1\n"
-     "          children:\n"
-     "            - snapshot3\n"
-     "            - snapshot4\n"
-     "          comment: \"This is a comment with some\\nnew\\r\\nlines.\"\n",
+     mpt::load_test_file("formatters/yaml/single_snapshot_info_reply.yaml").toStdString(),
      "yaml_info_single_snapshot_info_reply"},
     {&yaml_formatter,
      &multiple_snapshots_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "bogus-instance:\n"
-     "  - snapshots:\n"
-     "      - snapshot2:\n"
-     "          size: ~\n"
-     "          cpu_count: 2\n"
-     "          disk_space: 4.9GiB\n"
-     "          memory_size: 0.9GiB\n"
-     "          mounts:\n"
-     "            source:\n"
-     "              source_path: /home/user/source\n"
-     "            Home:\n"
-     "              source_path: /home/user\n"
-     "          created: \"1972-01-01T10:00:20.021Z\"\n"
-     "          parent: snapshot1\n"
-     "          children:\n"
-     "            - snapshot3\n"
-     "            - snapshot4\n"
-     "          comment: ~\n"
-     "messier-87:\n"
-     "  - snapshots:\n"
-     "      - black-hole:\n"
-     "          size: ~\n"
-     "          cpu_count: 1\n"
-     "          disk_space: 1024GiB\n"
-     "          memory_size: 128GiB\n"
-     "          mounts: ~\n"
-     "          created: \"2019-04-10T11:59:59Z\"\n"
-     "          parent: ~\n"
-     "          children:\n"
-     "            []\n"
-     "          comment: Captured by EHT\n",
+     mpt::load_test_file("formatters/yaml/multiple_snapshots_info_reply.yaml").toStdString(),
      "yaml_info_multiple_snapshots_info_reply"},
     {&yaml_formatter,
      &mixed_instance_and_snapshot_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "bombastic:\n"
-     "  - state: Stopped\n"
-     "    zone:\n"
-     "      name: zone2\n"
-     "      available: false\n"
-     "    snapshot_count: 3\n"
-     "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
-     "    image_release: 18.04 LTS\n"
-     "    release: ~\n"
-     "    cpu_count: ~\n"
-     "    disks:\n"
-     "      - sda1:\n"
-     "          used: ~\n"
-     "          total: ~\n"
-     "    memory:\n"
-     "      usage: ~\n"
-     "      total: ~\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    mounts: ~\n"
-     "bogus-instance:\n"
-     "  - snapshots:\n"
-     "      - snapshot2:\n"
-     "          size: ~\n"
-     "          cpu_count: 2\n"
-     "          disk_space: 4.9GiB\n"
-     "          memory_size: 0.9GiB\n"
-     "          mounts:\n"
-     "            source:\n"
-     "              source_path: /home/user/source\n"
-     "            Home:\n"
-     "              source_path: /home/user\n"
-     "          created: \"1972-01-01T10:00:20.021Z\"\n"
-     "          parent: snapshot1\n"
-     "          children:\n"
-     "            - snapshot3\n"
-     "            - snapshot4\n"
-     "          comment: ~\n",
+     mpt::load_test_file("formatters/yaml/mixed_instance_and_snapshot_info_reply.yaml")
+         .toStdString(),
      "yaml_info_mixed_instance_and_snapshot_info_reply"},
     {&yaml_formatter,
      &multiple_mixed_instances_and_snapshots_info_reply,
-     "errors:\n"
-     "  - ~\n"
-     "bogus-instance:\n"
-     "  - state: Running\n"
-     "    zone:\n"
-     "      name: zone1\n"
-     "      available: true\n"
-     "    snapshot_count: 2\n"
-     "    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\n"
-     "    image_release: 16.04 LTS\n"
-     "    release: Ubuntu 16.04.3 LTS\n"
-     "    cpu_count: 4\n"
-     "    load:\n"
-     "      - 0.03\n"
-     "      - 0.10\n"
-     "      - 0.15\n"
-     "    disks:\n"
-     "      - sda1:\n"
-     "          used: 1932735284\n"
-     "          total: 6764573492\n"
-     "    memory:\n"
-     "      usage: 38797312\n"
-     "      total: 1610612736\n"
-     "    ipv4:\n"
-     "      - 10.21.124.56\n"
-     "    mounts:\n"
-     "      source:\n"
-     "        uid_mappings:\n"
-     "          - \"1000:501\"\n"
-     "        gid_mappings:\n"
-     "          - \"1000:501\"\n"
-     "        source_path: /home/user/source\n"
-     "    snapshots:\n"
-     "      - snapshot1:\n"
-     "          size: ~\n"
-     "          cpu_count: 2\n"
-     "          disk_space: 4.9GiB\n"
-     "          memory_size: 0.9GiB\n"
-     "          mounts: ~\n"
-     "          created: \"1972-01-01T09:59:59.021Z\"\n"
-     "          parent: ~\n"
-     "          children:\n"
-     "            []\n"
-     "          comment: ~\n"
-     "      - snapshot2:\n"
-     "          size: ~\n"
-     "          cpu_count: 2\n"
-     "          disk_space: 4.9GiB\n"
-     "          memory_size: 0.9GiB\n"
-     "          mounts:\n"
-     "            source:\n"
-     "              source_path: /home/user/source\n"
-     "            Home:\n"
-     "              source_path: /home/user\n"
-     "          created: \"1972-01-01T10:00:20.021Z\"\n"
-     "          parent: snapshot1\n"
-     "          children:\n"
-     "            - snapshot3\n"
-     "            - snapshot4\n"
-     "          comment: ~\n"
-     "bombastic:\n"
-     "  - state: Stopped\n"
-     "    zone:\n"
-     "      name: zone2\n"
-     "      available: false\n"
-     "    snapshot_count: 3\n"
-     "    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\n"
-     "    image_release: 18.04 LTS\n"
-     "    release: ~\n"
-     "    cpu_count: ~\n"
-     "    disks:\n"
-     "      - sda1:\n"
-     "          used: ~\n"
-     "          total: ~\n"
-     "    memory:\n"
-     "      usage: ~\n"
-     "      total: ~\n"
-     "    ipv4:\n"
-     "      []\n"
-     "    mounts: ~\n"
-     "messier-87:\n"
-     "  - snapshots:\n"
-     "      - black-hole:\n"
-     "          size: ~\n"
-     "          cpu_count: 1\n"
-     "          disk_space: 1024GiB\n"
-     "          memory_size: 128GiB\n"
-     "          mounts: ~\n"
-     "          created: \"2019-04-10T11:59:59Z\"\n"
-     "          parent: ~\n"
-     "          children:\n"
-     "            []\n"
-     "          comment: Captured by EHT\n",
+     mpt::load_test_file("formatters/yaml/multiple_mixed_instances_and_snapshots_info_reply.yaml")
+         .toStdString(),
      "yaml_info_multiple_mixed_instances_and_snapshots"}};
 
 const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
     {&json_formatter,
      &empty_list_reply,
-     "{\n"
-     "    \"list\": [\n"
-     "    ]\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/empty_list_reply.json").toStdString(),
      "json_list_empty"},
     {&json_formatter,
      &single_instance_list_reply,
-     "{\n"
-     "    \"list\": [\n"
-     "        {\n"
-     "            \"ipv4\": [\n"
-     "                \"10.168.32.2\",\n"
-     "                \"200.3.123.30\"\n"
-     "            ],\n"
-     "            \"name\": \"foo\",\n"
-     "            \"release\": \"Ubuntu 16.04 LTS\",\n"
-     "            \"state\": \"Running\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": true,\n"
-     "                \"name\": \"zone1\"\n"
-     "            }\n"
-     "        }\n"
-     "    ]\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/single_instance_list_reply.json").toStdString(),
      "json_list_single"},
     {&json_formatter,
      &multiple_instances_list_reply,
-     "{\n"
-     "    \"list\": [\n"
-     "        {\n"
-     "            \"ipv4\": [\n"
-     "                \"10.21.124.56\"\n"
-     "            ],\n"
-     "            \"name\": \"bogus-instance\",\n"
-     "            \"release\": \"Ubuntu 16.04 LTS\",\n"
-     "            \"state\": \"Running\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": true,\n"
-     "                \"name\": \"zone1\"\n"
-     "            }\n"
-     "        },\n"
-     "        {\n"
-     "            \"ipv4\": [\n"
-     "            ],\n"
-     "            \"name\": \"bombastic\",\n"
-     "            \"release\": \"Ubuntu 18.04 LTS\",\n"
-     "            \"state\": \"Stopped\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": false,\n"
-     "                \"name\": \"zone2\"\n"
-     "            }\n"
-     "        }\n"
-     "    ]\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/multiple_instances_list_reply.json").toStdString(),
      "json_list_multiple"},
     {&json_formatter,
      &single_snapshot_list_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"foo\": {\n"
-     "            \"snapshot1\": {\n"
-     "                \"comment\": \"This is a sample comment\",\n"
-     "                \"parent\": \"\"\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/single_snapshot_list_reply.json").toStdString(),
      "json_list_single_snapshot"},
     {&json_formatter,
      &multiple_snapshots_list_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"hale-roller\": {\n"
-     "            \"pristine\": {\n"
-     "                \"comment\": \"A first snapshot\",\n"
-     "                \"parent\": \"\"\n"
-     "            },\n"
-     "            \"rocking\": {\n"
-     "                \"comment\": \"A very long comment that should be truncated by the table "
-     "formatter\",\n"
-     "                \"parent\": \"pristine\"\n"
-     "            },\n"
-     "            \"rolling\": {\n"
-     "                \"comment\": \"Loaded with stuff\",\n"
-     "                \"parent\": \"pristine\"\n"
-     "            }\n"
-     "        },\n"
-     "        \"prosperous-spadefish\": {\n"
-     "            \"snapshot10\": {\n"
-     "                \"comment\": \"\",\n"
-     "                \"parent\": \"snapshot2\"\n"
-     "            },\n"
-     "            \"snapshot2\": {\n"
-     "                \"comment\": \"Before restoring snap1\\nContains a newline that\\r\\nshould "
-     "be truncated\",\n"
-     "                \"parent\": \"\"\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/multiple_snapshots_list_reply.json").toStdString(),
      "json_list_multiple_snapshots"},
     {&json_formatter,
      &empty_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/empty_info_reply.json").toStdString(),
      "json_info_empty"},
     {&json_formatter,
      &single_instance_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"foo\": {\n"
-     "            \"cpu_count\": \"1\",\n"
-     "            \"disks\": {\n"
-     "                \"sda1\": {\n"
-     "                    \"total\": \"5153960756\",\n"
-     "                    \"used\": \"1288490188\"\n"
-     "                }\n"
-     "            },\n"
-     "            \"image_hash\": "
-     "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-     "            \"image_release\": \"16.04 LTS\",\n"
-     "            \"ipv4\": [\n"
-     "                \"10.168.32.2\",\n"
-     "                \"200.3.123.29\"\n"
-     "            ],\n"
-     "            \"load\": [\n"
-     "                0.45,\n"
-     "                0.51,\n"
-     "                0.15\n"
-     "            ],\n"
-     "            \"memory\": {\n"
-     "                \"total\": 1503238554,\n"
-     "                \"used\": 60817408\n"
-     "            },\n"
-     "            \"mounts\": {\n"
-     "                \"foo\": {\n"
-     "                    \"gid_mappings\": [\n"
-     "                        \"1000:1000\"\n"
-     "                    ],\n"
-     "                    \"source_path\": \"/home/user/foo\",\n"
-     "                    \"uid_mappings\": [\n"
-     "                        \"1000:1000\"\n"
-     "                    ]\n"
-     "                },\n"
-     "                \"test_dir\": {\n"
-     "                    \"gid_mappings\": [\n"
-     "                        \"1000:1000\"\n"
-     "                    ],\n"
-     "                    \"source_path\": \"/home/user/test_dir\",\n"
-     "                    \"uid_mappings\": [\n"
-     "                        \"1000:1000\"\n"
-     "                    ]\n"
-     "                }\n"
-     "            },\n"
-     "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
-     "            \"snapshot_count\": \"0\",\n"
-     "            \"state\": \"Running\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": true,\n"
-     "                \"name\": \"zone1\"\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/single_instance_info_reply.json").toStdString(),
      "json_info_single_instance"},
     {&json_formatter,
      &multiple_instances_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"bogus-instance\": {\n"
-     "            \"cpu_count\": \"4\",\n"
-     "            \"disks\": {\n"
-     "                \"sda1\": {\n"
-     "                    \"total\": \"6764573492\",\n"
-     "                    \"used\": \"1932735284\"\n"
-     "                }\n"
-     "            },\n"
-     "            \"image_hash\": "
-     "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-     "            \"image_release\": \"16.04 LTS\",\n"
-     "            \"ipv4\": [\n"
-     "                \"10.21.124.56\"\n"
-     "            ],\n"
-     "            \"load\": [\n"
-     "                0.03,\n"
-     "                0.1,\n"
-     "                0.15\n"
-     "            ],\n"
-     "            \"memory\": {\n"
-     "                \"total\": 1610612736,\n"
-     "                \"used\": 38797312\n"
-     "            },\n"
-     "            \"mounts\": {\n"
-     "                \"source\": {\n"
-     "                    \"gid_mappings\": [\n"
-     "                        \"1000:501\"\n"
-     "                    ],\n"
-     "                    \"source_path\": \"/home/user/source\",\n"
-     "                    \"uid_mappings\": [\n"
-     "                        \"1000:501\"\n"
-     "                    ]\n"
-     "                }\n"
-     "            },\n"
-     "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
-     "            \"snapshot_count\": \"1\",\n"
-     "            \"state\": \"Running\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": true,\n"
-     "                \"name\": \"zone1\"\n"
-     "            }\n"
-     "        },\n"
-     "        \"bombastic\": {\n"
-     "            \"cpu_count\": \"\",\n"
-     "            \"disks\": {\n"
-     "                \"sda1\": {\n"
-     "                }\n"
-     "            },\n"
-     "            \"image_hash\": "
-     "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
-     "            \"image_release\": \"18.04 LTS\",\n"
-     "            \"ipv4\": [\n"
-     "            ],\n"
-     "            \"load\": [\n"
-     "            ],\n"
-     "            \"memory\": {\n"
-     "            },\n"
-     "            \"mounts\": {\n"
-     "            },\n"
-     "            \"release\": \"\",\n"
-     "            \"snapshot_count\": \"3\",\n"
-     "            \"state\": \"Stopped\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": false,\n"
-     "                \"name\": \"zone2\"\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/multiple_instances_info_reply.json").toStdString(),
      "json_info_multiple_instances"},
     {&json_formatter,
      &single_snapshot_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"bogus-instance\": {\n"
-     "            \"snapshots\": {\n"
-     "                \"snapshot2\": {\n"
-     "                    \"children\": [\n"
-     "                        \"snapshot3\",\n"
-     "                        \"snapshot4\"\n"
-     "                    ],\n"
-     "                    \"comment\": \"This is a comment with some\\nnew\\r\\nlines.\",\n"
-     "                    \"cpu_count\": \"2\",\n"
-     "                    \"created\": \"1972-01-01T10:00:20.021Z\",\n"
-     "                    \"disk_space\": \"4.9GiB\",\n"
-     "                    \"memory_size\": \"0.9GiB\",\n"
-     "                    \"mounts\": {\n"
-     "                        \"Home\": {\n"
-     "                            \"source_path\": \"/home/user\"\n"
-     "                        },\n"
-     "                        \"source\": {\n"
-     "                            \"source_path\": \"/home/user/source\"\n"
-     "                        }\n"
-     "                    },\n"
-     "                    \"parent\": \"snapshot1\",\n"
-     "                    \"size\": \"128MiB\"\n"
-     "                }\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/single_snapshot_info_reply.json").toStdString(),
      "json_info_single_snapshot_info_reply"},
     {&json_formatter,
      &multiple_snapshots_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"bogus-instance\": {\n"
-     "            \"snapshots\": {\n"
-     "                \"snapshot2\": {\n"
-     "                    \"children\": [\n"
-     "                        \"snapshot3\",\n"
-     "                        \"snapshot4\"\n"
-     "                    ],\n"
-     "                    \"comment\": \"\",\n"
-     "                    \"cpu_count\": \"2\",\n"
-     "                    \"created\": \"1972-01-01T10:00:20.021Z\",\n"
-     "                    \"disk_space\": \"4.9GiB\",\n"
-     "                    \"memory_size\": \"0.9GiB\",\n"
-     "                    \"mounts\": {\n"
-     "                        \"Home\": {\n"
-     "                            \"source_path\": \"/home/user\"\n"
-     "                        },\n"
-     "                        \"source\": {\n"
-     "                            \"source_path\": \"/home/user/source\"\n"
-     "                        }\n"
-     "                    },\n"
-     "                    \"parent\": \"snapshot1\",\n"
-     "                    \"size\": \"\"\n"
-     "                }\n"
-     "            }\n"
-     "        },\n"
-     "        \"messier-87\": {\n"
-     "            \"snapshots\": {\n"
-     "                \"black-hole\": {\n"
-     "                    \"children\": [\n"
-     "                    ],\n"
-     "                    \"comment\": \"Captured by EHT\",\n"
-     "                    \"cpu_count\": \"1\",\n"
-     "                    \"created\": \"2019-04-10T11:59:59Z\",\n"
-     "                    \"disk_space\": \"1024GiB\",\n"
-     "                    \"memory_size\": \"128GiB\",\n"
-     "                    \"mounts\": {\n"
-     "                    },\n"
-     "                    \"parent\": \"\",\n"
-     "                    \"size\": \"\"\n"
-     "                }\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/multiple_snapshots_info_reply.json").toStdString(),
      "json_info_multiple_snapshots_info_reply"},
     {&json_formatter,
      &mixed_instance_and_snapshot_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"bogus-instance\": {\n"
-     "            \"snapshots\": {\n"
-     "                \"snapshot2\": {\n"
-     "                    \"children\": [\n"
-     "                        \"snapshot3\",\n"
-     "                        \"snapshot4\"\n"
-     "                    ],\n"
-     "                    \"comment\": \"\",\n"
-     "                    \"cpu_count\": \"2\",\n"
-     "                    \"created\": \"1972-01-01T10:00:20.021Z\",\n"
-     "                    \"disk_space\": \"4.9GiB\",\n"
-     "                    \"memory_size\": \"0.9GiB\",\n"
-     "                    \"mounts\": {\n"
-     "                        \"Home\": {\n"
-     "                            \"source_path\": \"/home/user\"\n"
-     "                        },\n"
-     "                        \"source\": {\n"
-     "                            \"source_path\": \"/home/user/source\"\n"
-     "                        }\n"
-     "                    },\n"
-     "                    \"parent\": \"snapshot1\",\n"
-     "                    \"size\": \"\"\n"
-     "                }\n"
-     "            }\n"
-     "        },\n"
-     "        \"bombastic\": {\n"
-     "            \"cpu_count\": \"\",\n"
-     "            \"disks\": {\n"
-     "                \"sda1\": {\n"
-     "                }\n"
-     "            },\n"
-     "            \"image_hash\": "
-     "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
-     "            \"image_release\": \"18.04 LTS\",\n"
-     "            \"ipv4\": [\n"
-     "            ],\n"
-     "            \"load\": [\n"
-     "            ],\n"
-     "            \"memory\": {\n"
-     "            },\n"
-     "            \"mounts\": {\n"
-     "            },\n"
-     "            \"release\": \"\",\n"
-     "            \"snapshot_count\": \"3\",\n"
-     "            \"state\": \"Stopped\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": false,\n"
-     "                \"name\": \"zone2\"\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/mixed_instance_and_snapshot_info_reply.json")
+         .toStdString(),
      "json_info_mixed_instance_and_snapshot_info_reply"},
     {&json_formatter,
      &multiple_mixed_instances_and_snapshots_info_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"info\": {\n"
-     "        \"bogus-instance\": {\n"
-     "            \"cpu_count\": \"4\",\n"
-     "            \"disks\": {\n"
-     "                \"sda1\": {\n"
-     "                    \"total\": \"6764573492\",\n"
-     "                    \"used\": \"1932735284\"\n"
-     "                }\n"
-     "            },\n"
-     "            \"image_hash\": "
-     "\"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac\",\n"
-     "            \"image_release\": \"16.04 LTS\",\n"
-     "            \"ipv4\": [\n"
-     "                \"10.21.124.56\"\n"
-     "            ],\n"
-     "            \"load\": [\n"
-     "                0.03,\n"
-     "                0.1,\n"
-     "                0.15\n"
-     "            ],\n"
-     "            \"memory\": {\n"
-     "                \"total\": 1610612736,\n"
-     "                \"used\": 38797312\n"
-     "            },\n"
-     "            \"mounts\": {\n"
-     "                \"source\": {\n"
-     "                    \"gid_mappings\": [\n"
-     "                        \"1000:501\"\n"
-     "                    ],\n"
-     "                    \"source_path\": \"/home/user/source\",\n"
-     "                    \"uid_mappings\": [\n"
-     "                        \"1000:501\"\n"
-     "                    ]\n"
-     "                }\n"
-     "            },\n"
-     "            \"release\": \"Ubuntu 16.04.3 LTS\",\n"
-     "            \"snapshot_count\": \"2\",\n"
-     "            \"snapshots\": {\n"
-     "                \"snapshot1\": {\n"
-     "                    \"children\": [\n"
-     "                    ],\n"
-     "                    \"comment\": \"\",\n"
-     "                    \"cpu_count\": \"2\",\n"
-     "                    \"created\": \"1972-01-01T09:59:59.021Z\",\n"
-     "                    \"disk_space\": \"4.9GiB\",\n"
-     "                    \"memory_size\": \"0.9GiB\",\n"
-     "                    \"mounts\": {\n"
-     "                    },\n"
-     "                    \"parent\": \"\",\n"
-     "                    \"size\": \"\"\n"
-     "                },\n"
-     "                \"snapshot2\": {\n"
-     "                    \"children\": [\n"
-     "                        \"snapshot3\",\n"
-     "                        \"snapshot4\"\n"
-     "                    ],\n"
-     "                    \"comment\": \"\",\n"
-     "                    \"cpu_count\": \"2\",\n"
-     "                    \"created\": \"1972-01-01T10:00:20.021Z\",\n"
-     "                    \"disk_space\": \"4.9GiB\",\n"
-     "                    \"memory_size\": \"0.9GiB\",\n"
-     "                    \"mounts\": {\n"
-     "                        \"Home\": {\n"
-     "                            \"source_path\": \"/home/user\"\n"
-     "                        },\n"
-     "                        \"source\": {\n"
-     "                            \"source_path\": \"/home/user/source\"\n"
-     "                        }\n"
-     "                    },\n"
-     "                    \"parent\": \"snapshot1\",\n"
-     "                    \"size\": \"\"\n"
-     "                }\n"
-     "            },\n"
-     "            \"state\": \"Running\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": true,\n"
-     "                \"name\": \"zone1\"\n"
-     "            }\n"
-     "        },\n"
-     "        \"bombastic\": {\n"
-     "            \"cpu_count\": \"\",\n"
-     "            \"disks\": {\n"
-     "                \"sda1\": {\n"
-     "                }\n"
-     "            },\n"
-     "            \"image_hash\": "
-     "\"ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509\",\n"
-     "            \"image_release\": \"18.04 LTS\",\n"
-     "            \"ipv4\": [\n"
-     "            ],\n"
-     "            \"load\": [\n"
-     "            ],\n"
-     "            \"memory\": {\n"
-     "            },\n"
-     "            \"mounts\": {\n"
-     "            },\n"
-     "            \"release\": \"\",\n"
-     "            \"snapshot_count\": \"3\",\n"
-     "            \"state\": \"Stopped\",\n"
-     "            \"zone\": {\n"
-     "                \"available\": false,\n"
-     "                \"name\": \"zone2\"\n"
-     "            }\n"
-     "        },\n"
-     "        \"messier-87\": {\n"
-     "            \"snapshots\": {\n"
-     "                \"black-hole\": {\n"
-     "                    \"children\": [\n"
-     "                    ],\n"
-     "                    \"comment\": \"Captured by EHT\",\n"
-     "                    \"cpu_count\": \"1\",\n"
-     "                    \"created\": \"2019-04-10T11:59:59Z\",\n"
-     "                    \"disk_space\": \"1024GiB\",\n"
-     "                    \"memory_size\": \"128GiB\",\n"
-     "                    \"mounts\": {\n"
-     "                    },\n"
-     "                    \"parent\": \"\",\n"
-     "                    \"size\": \"\"\n"
-     "                }\n"
-     "            }\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/multiple_mixed_instances_and_snapshots_info_reply.json")
+         .toStdString(),
      "json_info_multiple_mixed_instances_and_snapshots"}};
 
 const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
     {&table_formatter,
      &empty_networks_reply,
-     "No network interfaces found.\n",
+     mpt::load_test_file("formatters/table/empty_networks_reply.txt").toStdString(),
      "table_networks_empty"},
     {&table_formatter,
      &one_short_line_networks_reply,
-     "Name   Type   Description\n"
-     "en0    eth    Ether\n",
+     mpt::load_test_file("formatters/table/one_short_line_networks_reply.txt").toStdString(),
      "table_networks_one_short_line"},
     {&table_formatter,
      &one_long_line_networks_reply,
-     "Name     Type       Description\n"
-     "enp3s0   ethernet   Amazingly fast and robust ethernet adapter\n",
+     mpt::load_test_file("formatters/table/one_long_line_networks_reply.txt").toStdString(),
      "table_networks_one_long_line"},
     {&table_formatter,
      &multiple_lines_networks_reply,
-     "Name              Type   Description\n"
-     "en0               eth    Ether\n"
-     "wlx0123456789ab   wifi   Wireless\n",
+     mpt::load_test_file("formatters/table/multiple_lines_networks_reply.txt").toStdString(),
      "table_networks_multiple_lines"},
 
-    {&csv_formatter, &empty_networks_reply, "Name,Type,Description\n", "csv_networks_empty"},
+    {&csv_formatter,
+     &empty_networks_reply,
+     mpt::load_test_file("formatters/csv/empty_networks_reply.csv").toStdString(),
+     "csv_networks_empty"},
     {&csv_formatter,
      &one_short_line_networks_reply,
-     "Name,Type,Description\n"
-     "en0,eth,\"Ether\"\n",
+     mpt::load_test_file("formatters/csv/one_short_line_networks_reply.csv").toStdString(),
      "csv_networks_one_short_line"},
     {&csv_formatter,
      &one_long_line_networks_reply,
-     "Name,Type,Description\n"
-     "enp3s0,ethernet,\"Amazingly fast and robust ethernet adapter\"\n",
+     mpt::load_test_file("formatters/csv/one_long_line_networks_reply.csv").toStdString(),
      "csv_networks_one_long_line"},
     {&csv_formatter,
      &multiple_lines_networks_reply,
-     "Name,Type,Description\n"
-     "en0,eth,\"Ether\"\n"
-     "wlx0123456789ab,wifi,\"Wireless\"\n",
+     mpt::load_test_file("formatters/csv/multiple_lines_networks_reply.csv").toStdString(),
      "csv_networks_multiple_lines"},
 
-    {&yaml_formatter, &empty_networks_reply, "\n", "yaml_networks_empty"},
+    {&yaml_formatter,
+     &empty_networks_reply,
+     mpt::load_test_file("formatters/yaml/empty_networks_reply.yaml").toStdString(),
+     "yaml_networks_empty"},
     {&yaml_formatter,
      &one_short_line_networks_reply,
-     "en0:\n"
-     "  - type: eth\n"
-     "    description: Ether\n",
+     mpt::load_test_file("formatters/yaml/one_short_line_networks_reply.yaml").toStdString(),
      "yaml_networks_one_short_line"},
     {&yaml_formatter,
      &one_long_line_networks_reply,
-     "enp3s0:\n"
-     "  - type: ethernet\n"
-     "    description: Amazingly fast and robust ethernet adapter\n",
+     mpt::load_test_file("formatters/yaml/one_long_line_networks_reply.yaml").toStdString(),
      "yaml_networks_one_long_line"},
     {&yaml_formatter,
      &multiple_lines_networks_reply,
-     "en0:\n"
-     "  - type: eth\n"
-     "    description: Ether\n"
-     "wlx0123456789ab:\n"
-     "  - type: wifi\n"
-     "    description: Wireless\n",
+     mpt::load_test_file("formatters/yaml/multiple_lines_networks_reply.yaml").toStdString(),
      "yaml_networks_multiple_lines"},
 
     {&json_formatter,
      &empty_networks_reply,
-     "{\n"
-     "    \"list\": [\n"
-     "    ]\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/empty_networks_reply.json").toStdString(),
      "json_networks_empty"},
     {&json_formatter,
      &one_short_line_networks_reply,
-     "{\n"
-     "    \"list\": [\n"
-     "        {\n"
-     "            \"description\": \"Ether\",\n"
-     "            \"name\": \"en0\",\n"
-     "            \"type\": \"eth\"\n"
-     "        }\n"
-     "    ]\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/one_short_line_networks_reply.json").toStdString(),
      "json_networks_one_short_line"},
     {&json_formatter,
      &one_long_line_networks_reply,
-     "{\n"
-     "    \"list\": [\n"
-     "        {\n"
-     "            \"description\": \"Amazingly fast and robust ethernet adapter\",\n"
-     "            \"name\": \"enp3s0\",\n"
-     "            \"type\": \"ethernet\"\n"
-     "        }\n"
-     "    ]\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/one_long_line_networks_reply.json").toStdString(),
      "json_networks_one_long_line"},
     {&json_formatter,
      &multiple_lines_networks_reply,
-     "{\n"
-     "    \"list\": [\n"
-     "        {\n"
-     "            \"description\": \"Ether\",\n"
-     "            \"name\": \"en0\",\n"
-     "            \"type\": \"eth\"\n"
-     "        },\n"
-     "        {\n"
-     "            \"description\": \"Wireless\",\n"
-     "            \"name\": \"wlx0123456789ab\",\n"
-     "            \"type\": \"wifi\"\n"
-     "        }\n"
-     "    ]\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/multiple_lines_networks_reply.json").toStdString(),
      "json_networks_multiple_lines"}};
 
 const auto empty_find_reply = construct_empty_reply();
@@ -2226,188 +1163,74 @@ const auto find_multiple_reply = construct_find_multiple_reply();
 const auto find_one_reply_no_os = construct_find_one_reply_no_os();
 const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_duplicate_image();
 
-const auto json_empty_find_reply = "{\n"
-                                   "    \"errors\": [\n"
-                                   "    ],\n"
-                                   "    \"images\": {\n"
-                                   "    }\n"
-                                   "}\n";
-const auto csv_empty_find_reply = "Image,Remote,Aliases,OS,Release,Version,Type\n";
-const auto yaml_empty_find_reply = "errors:\n"
-                                   "  []\n"
-                                   "images:\n"
-                                   "  {}\n";
-
 const std::vector<FormatterParamType> find_formatter_outputs{
-    {&table_formatter, &empty_find_reply, "No images found.\n", "table_find_empty"},
+    {&table_formatter,
+     &empty_find_reply,
+     mpt::load_test_file("formatters/table/empty_find_reply.txt").toStdString(),
+     "table_find_empty"},
     {&table_formatter,
      &find_one_reply,
-     "Image                       Aliases           Version          Description\n"
-     "ubuntu                                        20190516         Ubuntu 18.04 LTS\n"
-     "\n",
+     mpt::load_test_file("formatters/table/find_one_reply.txt").toStdString(),
      "table_find_one_image"},
     {&table_formatter,
      &find_multiple_reply,
-     "Image                       Aliases           Version          Description\n"
-     "lts                                           20190516         Ubuntu 18.04 LTS\n"
-     "daily:19.10                 eoan,devel        20190516         Ubuntu 19.10\n"
-     "\n",
+     mpt::load_test_file("formatters/table/find_multiple_reply.txt").toStdString(),
      "table_find_multiple"},
     {&table_formatter,
      &find_one_reply_no_os,
-     "Image                       Aliases           Version          Description\n"
-     "snapcraft:core18                              20190520         Snapcraft builder for core18\n"
-     "\n",
+     mpt::load_test_file("formatters/table/find_one_reply_no_os.txt").toStdString(),
      "table_find_no_os"},
     {&table_formatter,
      &find_multiple_reply_duplicate_image,
-     "Image                       Aliases           Version          Description\n"
-     "core18                                        20190520         Ubuntu Core 18\n"
-     "snapcraft:core18                              20190520         Snapcraft builder for core18\n"
-     "\n",
+     mpt::load_test_file("formatters/table/find_multiple_reply_duplicate_image.txt").toStdString(),
      "table_find_multiple_duplicate_image"},
-    {&json_formatter, &empty_find_reply, json_empty_find_reply, "json_find_empty"},
+    {&json_formatter,
+     &empty_find_reply,
+     mpt::load_test_file("formatters/json/empty_find_reply.json").toStdString(),
+     "json_find_empty"},
     {&json_formatter,
      &find_one_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"images\": {\n"
-     "        \"ubuntu\": {\n"
-     "            \"aliases\": [\n"
-     "            ],\n"
-     "            \"os\": \"Ubuntu\",\n"
-     "            \"release\": \"18.04 LTS\",\n"
-     "            \"remote\": \"\",\n"
-     "            \"version\": \"20190516\"\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/find_one_reply.json").toStdString(),
      "json_find_one"},
     {&json_formatter,
      &find_multiple_reply,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"images\": {\n"
-     "        \"daily:19.10\": {\n"
-     "            \"aliases\": [\n"
-     "                \"eoan\",\n"
-     "                \"devel\"\n"
-     "            ],\n"
-     "            \"os\": \"Ubuntu\",\n"
-     "            \"release\": \"19.10\",\n"
-     "            \"remote\": \"daily\",\n"
-     "            \"version\": \"20190516\"\n"
-     "        },\n"
-     "        \"lts\": {\n"
-     "            \"aliases\": [\n"
-     "            ],\n"
-     "            \"os\": \"Ubuntu\",\n"
-     "            \"release\": \"18.04 LTS\",\n"
-     "            \"remote\": \"\",\n"
-     "            \"version\": \"20190516\"\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/find_multiple_reply.json").toStdString(),
      "json_find_multiple"},
     {&json_formatter,
      &find_multiple_reply_duplicate_image,
-     "{\n"
-     "    \"errors\": [\n"
-     "    ],\n"
-     "    \"images\": {\n"
-     "        \"core18\": {\n"
-     "            \"aliases\": [\n"
-     "            ],\n"
-     "            \"os\": \"Ubuntu\",\n"
-     "            \"release\": \"Core 18\",\n"
-     "            \"remote\": \"\",\n"
-     "            \"version\": \"20190520\"\n"
-     "        },\n"
-     "        \"snapcraft:core18\": {\n"
-     "            \"aliases\": [\n"
-     "            ],\n"
-     "            \"os\": \"\",\n"
-     "            \"release\": \"Snapcraft builder for core18\",\n"
-     "            \"remote\": \"snapcraft\",\n"
-     "            \"version\": \"20190520\"\n"
-     "        }\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/find_multiple_reply_duplicate_image.json").toStdString(),
      "json_find_multiple_duplicate_image"},
-    {&csv_formatter, &empty_find_reply, csv_empty_find_reply, "csv_find_empty"},
+    {&csv_formatter,
+     &empty_find_reply,
+     mpt::load_test_file("formatters/csv/empty_find_reply.csv").toStdString(),
+     "csv_find_empty"},
     {&csv_formatter,
      &find_one_reply,
-     "Image,Remote,Aliases,OS,Release,Version,Type\n"
-     "ubuntu,,,Ubuntu,18.04 LTS,20190516,Cloud Image\n",
+     mpt::load_test_file("formatters/csv/find_one_reply.csv").toStdString(),
      "csv_find_one"},
     {&csv_formatter,
      &find_multiple_reply,
-     "Image,Remote,Aliases,OS,Release,Version,Type\n"
-     "lts,,,Ubuntu,18.04 LTS,20190516,Cloud Image\n"
-     "daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,Cloud Image\n",
+     mpt::load_test_file("formatters/csv/find_multiple_reply.csv").toStdString(),
      "csv_find_multiple"},
     {&csv_formatter,
      &find_multiple_reply_duplicate_image,
-     "Image,Remote,Aliases,OS,Release,Version,Type\n"
-     "core18,,,Ubuntu,Core 18,20190520,Cloud Image\n"
-     "snapcraft:core18,snapcraft,,,Snapcraft builder for core18,20190520,Cloud Image\n",
+     mpt::load_test_file("formatters/csv/find_multiple_reply_duplicate_image.csv").toStdString(),
      "csv_find_multiple_duplicate_image"},
-    {&yaml_formatter, &empty_find_reply, yaml_empty_find_reply, "yaml_find_empty"},
+    {&yaml_formatter,
+     &empty_find_reply,
+     mpt::load_test_file("formatters/yaml/empty_find_reply.yaml").toStdString(),
+     "yaml_find_empty"},
     {&yaml_formatter,
      &find_one_reply,
-     "errors:\n"
-     "  []\n"
-     "images:\n"
-     "  ubuntu:\n"
-     "    aliases:\n"
-     "      []\n"
-     "    os: Ubuntu\n"
-     "    release: 18.04 LTS\n"
-     "    version: 20190516\n"
-     "    remote: \"\"\n",
+     mpt::load_test_file("formatters/yaml/find_one_reply.yaml").toStdString(),
      "yaml_find_one"},
     {&yaml_formatter,
      &find_multiple_reply,
-     "errors:\n"
-     "  []\n"
-     "images:\n"
-     "  \"daily:19.10\":\n"
-     "    aliases:\n"
-     "      - eoan\n"
-     "      - devel\n"
-     "    os: Ubuntu\n"
-     "    release: 19.10\n"
-     "    version: 20190516\n"
-     "    remote: daily\n"
-     "  lts:\n"
-     "    aliases:\n"
-     "      []\n"
-     "    os: Ubuntu\n"
-     "    release: 18.04 LTS\n"
-     "    version: 20190516\n"
-     "    remote: \"\"\n",
+     mpt::load_test_file("formatters/yaml/find_multiple_reply.yaml").toStdString(),
      "yaml_find_multiple"},
     {&yaml_formatter,
      &find_multiple_reply_duplicate_image,
-     "errors:\n"
-     "  []\n"
-     "images:\n"
-     "  core18:\n"
-     "    aliases:\n"
-     "      []\n"
-     "    os: Ubuntu\n"
-     "    release: Core 18\n"
-     "    version: 20190520\n"
-     "    remote: \"\"\n"
-     "  \"snapcraft:core18\":\n"
-     "    aliases:\n"
-     "      []\n"
-     "    os: \"\"\n"
-     "    release: Snapcraft builder for core18\n"
-     "    version: 20190520\n"
-     "    remote: snapcraft\n",
+     mpt::load_test_file("formatters/yaml/find_multiple_reply_duplicate_image.yaml").toStdString(),
      "yaml_find_multiple_duplicate_image"}};
 
 const auto version_client_reply = mp::VersionReply();
@@ -2417,77 +1240,51 @@ const auto version_daemon_update_reply = construct_version_info_multipassd_updat
 const std::vector<FormatterParamType> version_formatter_outputs{
     {&table_formatter,
      &version_client_reply,
-     "multipass   Client version\n",
+     mpt::load_test_file("formatters/table/version_client_reply.txt").toStdString(),
      "table_version_client"},
     {&table_formatter,
      &version_daemon_no_update_reply,
-     "multipass   Client version\n"
-     "multipassd  Daemon version\n",
+     mpt::load_test_file("formatters/table/version_daemon_no_update_reply.txt").toStdString(),
      "table_version_daemon_no_updates"},
     {&table_formatter,
      &version_daemon_update_reply,
-     "multipass   Client version\n"
-     "multipassd  Daemon version\n"
-     "\n##################################################\n"
-     "update title information\n"
-     "update description information\n"
-     "\nGo here for more information: http://multipass.web\n"
-     "##################################################\n",
+     mpt::load_test_file("formatters/table/version_daemon_update_reply.txt").toStdString(),
      "table_version_daemon_updates"},
     {&json_formatter,
      &version_client_reply,
-     "{\n"
-     "    \"multipass\": \"Client version\"\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/version_client_reply.json").toStdString(),
      "json_version_client"},
     {&json_formatter,
      &version_daemon_no_update_reply,
-     "{\n"
-     "    \"multipass\": \"Client version\",\n"
-     "    \"multipassd\": \"Daemon version\"\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/version_daemon_no_update_reply.json").toStdString(),
      "json_version_daemon_no_updates"},
     {&json_formatter,
      &version_daemon_update_reply,
-     "{\n"
-     "    \"multipass\": \"Client version\",\n"
-     "    \"multipassd\": \"Daemon version\",\n"
-     "    \"update\": {\n"
-     "        \"description\": \"update description information\",\n"
-     "        \"title\": \"update title information\",\n"
-     "        \"url\": \"http://multipass.web\"\n"
-     "    }\n"
-     "}\n",
+     mpt::load_test_file("formatters/json/version_daemon_update_reply.json").toStdString(),
      "json_version_daemon_updates"},
     {&csv_formatter,
      &version_client_reply,
-     "Multipass,Multipassd,Title,Description,URL\n"
-     "Client version,,,,\n",
+     mpt::load_test_file("formatters/csv/version_client_reply.csv").toStdString(),
      "csv_version_client"},
     {&csv_formatter,
      &version_daemon_no_update_reply,
-     "Multipass,Multipassd,Title,Description,URL\n"
-     "Client version,Daemon version,,,\n",
+     mpt::load_test_file("formatters/csv/version_daemon_no_update_reply.csv").toStdString(),
      "csv_version_daemon_no_updates"},
     {&csv_formatter,
      &version_daemon_update_reply,
-     "Multipass,Multipassd,Title,Description,URL\n"
-     "Client version,Daemon version,update title information,update description "
-     "information,http://multipass.web\n",
+     mpt::load_test_file("formatters/csv/version_daemon_update_reply.csv").toStdString(),
      "csv_version_daemon_updates"},
-    {&yaml_formatter, &version_client_reply, "multipass: Client version\n", "yaml_version_client"},
+    {&yaml_formatter,
+     &version_client_reply,
+     mpt::load_test_file("formatters/yaml/version_client_reply.yaml").toStdString(),
+     "yaml_version_client"},
     {&yaml_formatter,
      &version_daemon_no_update_reply,
-     "multipass: Client version\n"
-     "multipassd: Daemon version\n",
+     mpt::load_test_file("formatters/yaml/version_daemon_no_update_reply.yaml").toStdString(),
      "yaml_version_daemon_no_updates"},
     {&yaml_formatter,
      &version_daemon_update_reply,
-     "multipass: Client version\n"
-     "multipassd: Daemon version\n"
-     "update:\n  title: update title information\n"
-     "  description: update description information\n"
-     "  url: \"http://multipass.web\"\n",
+     mpt::load_test_file("formatters/yaml/version_daemon_update_reply.yaml").toStdString(),
      "yaml_version_daemon_updates"}};
 
 } // namespace

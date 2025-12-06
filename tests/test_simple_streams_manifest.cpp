@@ -21,6 +21,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/manifest_exceptions.h>
+#include <multipass/image_host/image_mutators.h>
 #include <multipass/simple_streams_manifest.h>
 
 #include <optional>
@@ -47,29 +48,30 @@ struct TestSimpleStreamsManifest : public Test
 
 TEST_F(TestSimpleStreamsManifest, canParseImageInfo)
 {
-    auto json = mpt::load_test_file("good_manifest.json");
+    auto json = mpt::load_test_file("simple_streams_manifest/good_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
 
     EXPECT_THAT(manifest->updated_at, Eq("Wed, 20 May 2020 16:47:50 +0000"));
     EXPECT_THAT(manifest->products.size(), Eq(2u));
 
-    const auto info = manifest->image_records["default"];
+    const auto info = manifest->image_records.at("default");
     ASSERT_THAT(info, NotNull());
     EXPECT_FALSE(info->image_location.isEmpty());
 }
 
 TEST_F(TestSimpleStreamsManifest, canFindInfoByAlias)
 {
-    auto json = mpt::load_test_file("good_manifest.json");
+    auto json = mpt::load_test_file("simple_streams_manifest/good_manifest.json");
     const auto host_url{"http://stream/url"};
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, host_url);
 
     const QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
     const QString expected_location =
-        QString("server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-%1-disk1.img")
+        QString("http://stream/urlserver/releases/xenial/release-20170516/"
+                "ubuntu-16.04-server-cloudimg-%1-disk1.img")
             .arg(MANIFEST_ARCH);
 
-    const auto info = manifest->image_records[expected_id];
+    const auto info = manifest->image_records.at(expected_id);
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
@@ -85,46 +87,87 @@ TEST_F(TestSimpleStreamsManifest, throwsOnInvalidJson)
 
 TEST_F(TestSimpleStreamsManifest, throwsOnInvalidTopLevelType)
 {
-    auto json = mpt::load_test_file("invalid_top_level.json");
+    auto json = mpt::load_test_file("simple_streams_manifest/invalid_top_level.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
                  mp::GenericManifestException);
 }
 
 TEST_F(TestSimpleStreamsManifest, throwsWhenMissingProducts)
 {
-    auto json = mpt::load_test_file("missing_products_manifest.json");
+    auto json = mpt::load_test_file("simple_streams_manifest/missing_products_manifest.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
                  mp::GenericManifestException);
 }
 
 TEST_F(TestSimpleStreamsManifest, throwsWhenFailedToParseAnyProducts)
 {
-    auto json = mpt::load_test_file("missing_versions_manifest.json");
+    auto json = mpt::load_test_file("simple_streams_manifest/missing_versions_manifest.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
                  mp::EmptyManifestException);
 
-    json = mpt::load_test_file("missing_versions_manifest.json");
+    json = mpt::load_test_file("simple_streams_manifest/missing_versions_manifest.json");
     EXPECT_THROW(mp::SimpleStreamsManifest::fromJson(json, std::nullopt, ""),
                  mp::EmptyManifestException);
 }
 
 TEST_F(TestSimpleStreamsManifest, choosesNewestVersion)
 {
-    auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
+    auto json = mpt::load_test_file("simple_streams_manifest/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
 
     const QString expected_id{"8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"};
     const QString expected_location{"newest_image.img"};
 
-    const auto info = manifest->image_records["default"];
+    const auto info = manifest->image_records.at("default");
     ASSERT_THAT(info, NotNull());
     EXPECT_THAT(info->image_location, Eq(expected_location));
     EXPECT_THAT(info->id, Eq(expected_id));
 }
 
+TEST_F(TestSimpleStreamsManifest, ltsReceivesUbuntuAlias)
+{
+    auto json = mpt::load_test_file("simple_streams_manifest/multiple_versions_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json,
+                                                        std::nullopt,
+                                                        "",
+                                                        mp::image_mutators::release_mutator);
+
+    auto info = manifest->image_records.at("lts");
+    ASSERT_THAT(info, NotNull());
+    EXPECT_THAT(info->aliases.indexOf("ubuntu"), Gt(0));
+
+    info = manifest->image_records.at("zesty");
+    ASSERT_THAT(info, NotNull());
+    EXPECT_THAT(info->aliases.indexOf("ubuntu"), Lt(0));
+}
+
+TEST_F(TestSimpleStreamsManifest, filtersSnapcraftImages)
+{
+    auto json = mpt::load_test_file("simple_streams_manifest/snapcraft_test_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json,
+                                                        std::nullopt,
+                                                        "",
+                                                        mp::image_mutators::snapcraft_mutator);
+
+    auto info = manifest->image_records.find("24.04");
+    EXPECT_NE(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("25.10");
+    EXPECT_NE(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("16.04");
+    EXPECT_EQ(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("22.10");
+    EXPECT_EQ(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("25.04");
+    EXPECT_EQ(info, manifest->image_records.end());
+}
+
 TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
 {
-    auto json = mpt::load_test_file("releases/multiple_versions_manifest.json");
+    auto json = mpt::load_test_file("simple_streams_manifest/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
 
     QStringList all_known_hashes;
@@ -135,9 +178,30 @@ TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
 
     for (const auto& hash : all_known_hashes)
     {
-        const auto info = manifest->image_records[hash];
+        const auto info = manifest->image_records.at(hash);
         EXPECT_THAT(info, NotNull());
     }
+}
+
+TEST_F(TestSimpleStreamsManifest, correctlyMutatesCoreImages)
+{
+    auto json = mpt::load_test_file("simple_streams_manifest/core_test_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json,
+                                                        std::nullopt,
+                                                        "",
+                                                        mp::image_mutators::core_mutator);
+
+    EXPECT_THAT(manifest->updated_at, Eq("Fri, 05 Sep 2025 18:04:12 +0000"));
+    EXPECT_THAT(manifest->products.size(), Eq(2u));
+
+    const auto info = manifest->image_records.at("core22");
+    ASSERT_THAT(info, NotNull());
+
+    EXPECT_EQ(info->image_location.last(6), "img.xz");
+    EXPECT_EQ(info->os, "Ubuntu");
+    EXPECT_EQ(info->release, "core-22");
+    EXPECT_EQ(info->release_title, "Core 22");
+    EXPECT_EQ(info->release_codename, "Core 22");
 }
 
 } // namespace

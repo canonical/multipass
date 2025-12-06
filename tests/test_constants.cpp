@@ -25,8 +25,8 @@ using namespace testing;
 
 TEST(Constants, constantsConstraints)
 {
-    EXPECT_NO_THROW(std::stoi(mp::min_cpu_cores));
-    EXPECT_NO_THROW(std::stoi(mp::default_cpu_cores));
+    EXPECT_NO_THROW([[maybe_unused]] auto _ = std::stoi(mp::min_cpu_cores));
+    EXPECT_NO_THROW([[maybe_unused]] auto _ = std::stoi(mp::default_cpu_cores));
     EXPECT_NO_THROW(mp::MemorySize{mp::min_memory_size});
     EXPECT_NO_THROW(mp::MemorySize{mp::default_memory_size});
     EXPECT_NO_THROW(mp::MemorySize{mp::min_disk_size});

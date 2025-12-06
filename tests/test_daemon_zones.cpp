@@ -18,7 +18,6 @@
 #include "daemon_test_fixture.h"
 #include "mock_availability_zone.h"
 #include "mock_availability_zone_manager.h"
-#include "mock_json_utils.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -66,9 +65,6 @@ struct TestDaemonZones : public mpt::DaemonTestFixture
     mpt::MockSettings::GuardedMock mock_settings_injection =
         mpt::MockSettings::inject<StrictMock>();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
-
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
-        mpt::MockJsonUtils::inject<NiceMock>();
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();

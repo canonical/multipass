@@ -86,7 +86,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       "",
                                                       {},
                                                       "",
-                                                      {dummy_image.name(), "", "", "", {}, {}},
+                                                      {dummy_image.name(), "", "", "", "", {}, {}},
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},
@@ -273,6 +273,51 @@ TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
     machine->suspend();
 }
 
+TEST_F(QemuBackend, QMPErrorGetsLogged)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    process_factory->register_callback([](mpt::MockProcess* process) {
+        if (process->program().startsWith(
+                "qemu-system-")) // we only care about the actual vm process
+        {
+            EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
+                QJsonParseError parse_error;
+                auto json = QJsonDocument::fromJson(data, &parse_error);
+                if (parse_error.error == QJsonParseError::NoError)
+                {
+                    auto json_object = json.object();
+                    auto execute = json_object["execute"];
+
+                    if (execute == "qmp_capabilities") // Use the qmp_capabilities process write to
+                                                       // cause an error
+                    {
+                        EXPECT_CALL(*process, read_all_standard_output())
+                            .WillRepeatedly(Return("{\"error\": {\"desc\": \"some error\"}} "));
+                        emit process->ready_read_standard_output();
+                    }
+                }
+
+                return data.size();
+            });
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "QMP error: some error");
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running; // Necessary to properly shutdown
+}
+
 TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
 {
     mpt::MockProcess* vmproc = nullptr;
@@ -305,9 +350,9 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     while (machine->state != mp::VirtualMachine::State::off)
         std::this_thread::sleep_for(1ms);
 
-    MP_EXPECT_THROW_THAT(machine->ensure_vm_is_running(),
+    MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
                          mp::StartException,
-                         Property(&mp::StartException::name, Eq(machine->vm_name)));
+                         Property(&mp::StartException::name, Eq(machine->get_name())));
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
@@ -387,7 +432,8 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         mp::ProcessState exit_state;
         exit_state.exit_code = 1;
         emit vmproc->finished(exit_state); /* note that this waits on a condition variable that is
-                                              unblocked by ensure_vm_is_running */
+                                              unblocked by wait_for_cloud_init once it detects that
+                                              the process what interrupted */
     }};
 
     using namespace std::chrono_literals;
@@ -395,11 +441,11 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(
-        machine->ensure_vm_is_running(),
+        machine->wait_for_cloud_init(1ms),
         mp::StartException,
-        AllOf(Property(&mp::StartException::name, Eq(machine->vm_name)),
+        AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
               mpt::match_what(
-                  AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("starting")))));
+                  AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("start")))));
 }
 
 TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
@@ -953,7 +999,7 @@ TEST_F(QemuBackend, sshHostnameReturnsExpectedValue)
 
 TEST_F(QemuBackend, getsManagementIp)
 {
-    const std::string expected_ip{"10.10.0.35"};
+    const mp::IPAddress expected_ip{"10.10.0.35"};
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
     EXPECT_CALL(mock_qemu_platform, get_ip_for(_)).WillOnce(Return(expected_ip));
@@ -985,7 +1031,7 @@ TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.management_ipv4(), "UNKNOWN");
+    EXPECT_EQ(machine.management_ipv4(), std::nullopt);
 }
 
 TEST_F(QemuBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)

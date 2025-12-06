@@ -18,6 +18,7 @@
 #include "tests/common.h"
 #include "tests/mock_environment_helpers.h"
 
+#include <multipass/snap_utils.h>
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
 #include <QDir>
@@ -27,6 +28,7 @@
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace mpu = multipass::utils;
 using namespace testing;
 
 struct TestQemuVMProcessSpec : public Test
@@ -39,7 +41,7 @@ struct TestQemuVMProcessSpec : public Test
                                              "00:11:22:33:44:55",
                                              {},
                                              "ssh_username",
-                                             {"/path/to/image", "", "", "", "", {}}, // VMImage
+                                             {"/path/to/image", "", "", "", "", "", {}}, // VMImage
                                              mp::Path{"/path/to/cloud_init.iso"},
                                              {},
                                              {},
@@ -131,23 +133,24 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("path/to/source/ rw"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("path/to/source/** rwlk"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("path/to/source/ rw"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("path/to/source/** rwlk"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileHasCorrectName)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.vm_name.qemu-system-"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr("profile multipass.vm_name.qemu-system-"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesDiskImages)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/image rwk,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/cloud_init.iso rk,"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("/path/to/image rwk,"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("/path/to/cloud_init.iso rk,"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIdentifier)
@@ -166,11 +169,12 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr("signal (receive) peer=snap.multipass.multipassd"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr(QString("%1/qemu/* r,").arg(snap_dir.path()).toStdString()));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path()).toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
@@ -185,9 +189,10 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1/qemu/* r,").arg(snap_dir.path())));
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path())));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr(QString("%1/qemu/* r,").arg(snap_dir.path()).toStdString()));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path()).toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
@@ -198,10 +203,12 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains("/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/* r,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains(" /usr/bin/qemu-system-")); // space wanted
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr("signal (receive) peer=unconfined"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr("/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/* r,"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr(" /usr/bin/qemu-system-")); // space wanted
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunInSnap)
@@ -213,8 +220,8 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunInSnap)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains(QString(" %1/bin/bridge_helper").arg(snap_dir.path())));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+                HasSubstr(QString(" %1/bin/bridge_helper").arg(mpu::snap_dir()).toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunOutsideSnap)
@@ -225,5 +232,5 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunOutsideSnap)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(" /bin/bridge_helper"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(" /bin/bridge_helper"));
 }

@@ -21,7 +21,6 @@
 
 #include <libssh/libssh.h>
 
-#include <chrono>
 #include <memory>
 #include <mutex>
 #include <string>

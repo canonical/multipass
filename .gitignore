@@ -1,6 +1,8 @@
 .idea
 .vs
 .vscode
+.clangd
+.cache
 cmake-build-*
 .DS_Store
 CMakeLists.txt.user
@@ -24,3 +26,6 @@ packaging/windows/custom-actions/x64/*
 
 # Python artifacts
 *.pyc
+
+# https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
+CMakeUserPresets.json

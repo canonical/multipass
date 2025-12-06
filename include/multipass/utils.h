@@ -71,6 +71,13 @@ bool is_dir(const std::string& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
 std::string contents_of(const multipass::Path& file_path);
 
+// path normalization: returns the lexically-normal form of the path with any trailing directory
+// separator removed. The string overloads additionally convert directory separators to generic
+// form ("/").
+std::filesystem::path normalize_path(const std::filesystem::path& path);
+std::string normalize_path(const std::string& path);
+QString normalize_path(const QString& path);
+
 // filesystem mount helpers
 void make_target_dir(SSHSession& session,
                      const std::string& root,
@@ -125,6 +132,7 @@ template <typename Str, typename Filter>
 Str&& trim(Str&& s, Filter&& filter);
 template <typename Str>
 Str&& trim(Str&& s);
+bool iequals(std::string_view lhs, std::string_view rhs);
 std::string& trim_newline(std::string& s);
 std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
@@ -307,6 +315,13 @@ template <typename Str>
 Str&& multipass::utils::trim(Str&& s)
 {
     return trim(std::forward<Str>(s), detail::is_space);
+}
+
+inline bool multipass::utils::iequals(std::string_view lhs, std::string_view rhs)
+{
+    return std::ranges::equal(lhs, rhs, [](char c1, char c2) {
+        return tolower(c1) == tolower(c2);
+    });
 }
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>

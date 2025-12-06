@@ -18,8 +18,6 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
-#include "mock_logger.h"
-#include "mock_utils.h"
 #include "temp_dir.h"
 
 #include <multipass/client_cert_store.h>
@@ -27,7 +25,6 @@
 #include <multipass/utils.h>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 
 using namespace testing;
@@ -203,8 +200,9 @@ TEST_F(ClientCertStore, openingFileForWritingFailsAndThrows)
 TEST_F(ClientCertStore, writingFileFailsAndThrows)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, open(_, _))
-        .WillOnce([](QFileDevice& file, QIODevice::OpenMode mode) { return file.open(mode); });
+    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce([](QIODevice& file, QIODevice::OpenMode mode) {
+        return file.open(mode);
+    });
     EXPECT_CALL(*mock_file_ops, write(_, _)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_file_ops, commit).WillOnce(Return(false));
 

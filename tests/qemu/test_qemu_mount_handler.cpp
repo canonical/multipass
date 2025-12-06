@@ -236,7 +236,7 @@ TEST_F(QemuMountHandlerTest, mountLogsInit)
                                          fmt::format("initializing native mount {} => {} in '{}'",
                                                      mount.get_source_path(),
                                                      default_target,
-                                                     vm.vm_name));
+                                                     vm.get_name()));
     EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
 }
 
@@ -249,7 +249,7 @@ TEST_F(QemuMountHandlerTest, recoverFromSuspended)
         fmt::format("Found native mount {} => {} in '{}' while suspended",
                     mount.get_source_path(),
                     default_target,
-                    vm.vm_name));
+                    vm.get_name()));
     EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
 }
 
@@ -293,7 +293,7 @@ TEST_F(QemuMountHandlerTest, stopFailForceLogs)
         mpl::Level::warning,
         fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}",
                     default_target,
-                    vm.vm_name,
+                    vm.get_name(),
                     error));
 }
 

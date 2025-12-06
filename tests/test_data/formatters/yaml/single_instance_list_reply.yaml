@@ -1,0 +1,9 @@
+foo:
+  - state: Running
+    zone:
+      name: zone1
+      available: true
+    ipv4:
+      - 10.168.32.2
+      - 200.3.123.30
+    release: Ubuntu 16.04 LTS

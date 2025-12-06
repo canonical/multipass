@@ -18,13 +18,7 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
-#include "mock_logger.h"
 #include "mock_openssl_syscalls.h"
-#include "mock_ssh.h"
-#include "mock_ssh_process_exit_status.h"
-#include "mock_ssh_test_fixture.h"
-#include "mock_virtual_machine.h"
-#include "stub_ssh_key_provider.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
@@ -41,7 +35,6 @@
 #include <tuple>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 namespace mpu = mp::utils;
 
@@ -53,7 +46,7 @@ std::string file_contents{"line 1 of file contents\nline 2\n"};
 
 void check_file_contents(QFile& checked_file, const std::string& checked_contents)
 {
-    checked_file.open(QIODevice::ReadOnly | QIODevice::Text);
+    ASSERT_TRUE(checked_file.open(QIODevice::ReadOnly | QIODevice::Text));
 
     QString actual_contents;
 
@@ -253,7 +246,7 @@ TEST(Utils, makeFileWithContentThrowsOnWriteError)
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(747));
+    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
 
     MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
                          std::runtime_error,
@@ -269,8 +262,9 @@ TEST(Utils, makeFileWithContentThrowsOnFailureToFlush)
     EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QFile&>(), _, _)).WillOnce(Return(file_contents.size()));
-    EXPECT_CALL(*mock_file_ops, flush(A<QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _))
+        .WillOnce(Return(file_contents.size()));
+    EXPECT_CALL(*mock_file_ops, flush(A<QFileDevice&>())).WillOnce(Return(false));
 
     MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
                          std::runtime_error,
@@ -642,9 +636,97 @@ TEST(Utils, checkFilesystemBytesAvailableReturnsNonNegative)
     EXPECT_GE(bytes_available, 0);
 }
 
-using NormalizeMountTargetParam = std::tuple<std::string, std::string>;
+using PathPairParam = std::tuple<std::filesystem::path, std::filesystem::path>;
 
-class NormalizeMountTargetTest : public TestWithParam<NormalizeMountTargetParam>
+class NormalizePathTest : public TestWithParam<PathPairParam>
+{
+};
+
+TEST_P(NormalizePathTest, normalizesPathCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    auto result = mpu::normalize_path(input);
+    EXPECT_EQ(result, expected_output);
+}
+
+TEST_P(NormalizePathTest, normalizesStringCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    // This is like normalizing path objects, but the output is always in generic ("/") form.
+    auto result = mpu::normalize_path(input.string());
+    EXPECT_EQ(result, expected_output.generic_string());
+}
+
+std::vector<PathPairParam> normalize_path_values = {
+    {"", ""},
+    {".", "."},
+    {"..", ".."},
+    {"../", ".."},
+    {"../.", ".."},
+    {"../..", "../.."},
+    {"../../", "../.."},
+    {".././..", "../.."},
+    {"Documents", "Documents"},
+    {"Documents/", "Documents"},
+    {"Documents/.", "Documents"},
+    {"Documents/..", "."},
+    {"Documents/../", "."},
+    {"folder/../other", "other"},
+    {"/home/user/Desktop", "/home/user/Desktop"},
+    {"/home/user/Desktop/", "/home/user/Desktop"},
+    {"/", "/"},
+    {"/.", "/"},
+    {"/folder/..", "/"},
+    {"/folder/subfolder/..", "/folder"},
+    {"/folder/../other", "/other"},
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {R"(Documents\)", "Documents"},
+    {R"(folder\..\other)", "other"},
+    {R"(C:\Users\user\Documents)", R"(C:\Users\user\Documents)"},
+    {R"(C:\Users\user\Documents\)", R"(C:\Users\user\Documents)"},
+    {"//server/folder", R"(\\server\folder)"},
+    {R"(\\server\folder)", R"(\\server\folder)"},
+#endif
+};
+
+INSTANTIATE_TEST_SUITE_P(Utils, NormalizePathTest, ValuesIn(normalize_path_values));
+
+using StringPairParam = std::tuple<std::string, std::string>;
+
+class DefaultMountTargetTest : public TestWithParam<StringPairParam>
+{
+};
+
+TEST_P(DefaultMountTargetTest, mountTargetsDefaultCorrectly)
+{
+    const auto& [input, expected_output] = GetParam();
+
+    auto result = MP_UTILS.default_mount_target(QString::fromStdString(input));
+    EXPECT_EQ(result.toStdString(), expected_output);
+}
+
+std::vector<StringPairParam> default_mount_target_values = {
+    {"", ""},
+    {"/", ""},
+    {"/.", ""},
+    {"Documents", "/home/ubuntu/Documents"},
+    {"Documents/", "/home/ubuntu/Documents"},
+    {"Documents/.", "/home/ubuntu/Documents"},
+    {"/home/user/Desktop", "/home/ubuntu/Desktop"},
+    {"/home/user/Desktop/", "/home/ubuntu/Desktop"},
+    {"/folder/subfolder/..", "/home/ubuntu/folder"},
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {R"(Documents\)", "/home/ubuntu/Documents"},
+    {R"(C:\Users\user\Documents)", "/home/ubuntu/Documents"},
+    {R"(C:\Users\user\Documents\)", "/home/ubuntu/Documents"},
+#endif
+};
+
+INSTANTIATE_TEST_SUITE_P(Utils, DefaultMountTargetTest, ValuesIn(default_mount_target_values));
+
+class NormalizeMountTargetTest : public TestWithParam<StringPairParam>
 {
 };
 
@@ -656,19 +738,27 @@ TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
     EXPECT_EQ(result.toStdString(), expected_output);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    Utils,
-    NormalizeMountTargetTest,
-    Values(std::make_tuple("Documents", "/home/ubuntu/Documents"),
-           std::make_tuple("./folder", "/home/ubuntu/folder"),
-           std::make_tuple("../folder", "/home/folder"),
-           std::make_tuple("../..//folder", "/folder"),
-           std::make_tuple("/usr/local/bin//.././/.//bin/././", "/usr/local/bin"),
-           std::make_tuple("folder//subfolder", "/home/ubuntu/folder/subfolder"),
-           std::make_tuple("./Documents/../Downloads", "/home/ubuntu/Downloads"),
-           std::make_tuple("", "/home/ubuntu"),
-           std::make_tuple(".", "/home/ubuntu"),
-           std::make_tuple("..", "/home"),
-           std::make_tuple("folder/./subfolder", "/home/ubuntu/folder/subfolder"),
-           std::make_tuple("folder/../other-folder", "/home/ubuntu/other-folder"),
-           std::make_tuple("//", "/")));
+std::vector<StringPairParam> normalize_mount_target_values = {
+    {"Documents", "/home/ubuntu/Documents"},
+    {"", "/home/ubuntu"},
+    {".", "/home/ubuntu"},
+    {"..", "/home"},
+    {"./", "/home/ubuntu"},
+    {"folder/", "/home/ubuntu/folder"},
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {R"(.\)", "/home/ubuntu"},
+    {R"(folder\)", "/home/ubuntu/folder"},
+    {R"(folder\subfolder)", "/home/ubuntu/folder/subfolder"},
+#endif
+    {"./folder", "/home/ubuntu/folder"},
+    {"../folder", "/home/folder"},
+    {"../..//folder", "/folder"},
+    {"/usr/local/bin//.././/.//bin/././", "/usr/local/bin"},
+    {"folder//subfolder", "/home/ubuntu/folder/subfolder"},
+    {"./Documents/../Downloads", "/home/ubuntu/Downloads"},
+    {"folder/./subfolder", "/home/ubuntu/folder/subfolder"},
+    {"folder/../other-folder", "/home/ubuntu/other-folder"},
+    {"//", "/"},
+};
+
+INSTANTIATE_TEST_SUITE_P(Utils, NormalizeMountTargetTest, ValuesIn(normalize_mount_target_values));

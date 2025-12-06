@@ -30,7 +30,6 @@
 #include <fmt/ostream.h>
 
 #include <cassert>
-#include <chrono>
 #include <cstdlib>
 
 namespace mp = multipass;

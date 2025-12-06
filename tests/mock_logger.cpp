@@ -21,7 +21,6 @@
 
 #include <type_traits>
 
-namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;

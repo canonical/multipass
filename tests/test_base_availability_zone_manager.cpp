@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "mock_file_ops.h"
-#include "mock_json_utils.h"
 #include "mock_logger.h"
 
 #include <multipass/base_availability_zone_manager.h>
@@ -44,14 +43,13 @@ struct BaseAvailabilityZoneManagerTest : public Test
     const QString manager_file_qstr{QString::fromStdU16String(manager_file.u16string())};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
-    mpt::MockJsonUtils::GuardedMock mock_json_utils_guard{mpt::MockJsonUtils::inject()};
     mpt::MockLogger::Scope mock_logger{mpt::MockLogger::inject()};
 };
 
 TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
-        .WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
+        .WillOnce(Return(mpt::mock_read_data("{}")));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
@@ -61,15 +59,15 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
-            .WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdU16String(zone_file.u16string())));
+        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
+            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first,
+                    write_transactionally(QString::fromStdU16String(zone_file.u16string()), _));
     }
 
     // Manager file gets written with default zone (once in constructor and once in
     // get_automatic_zone_name)
-    EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(2);
+    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _)).Times(2);
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
@@ -84,8 +82,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 
 TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
-        .WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
+        .WillOnce(Return(mpt::mock_read_data("{}")));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
@@ -94,15 +92,16 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
-            .WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdU16String(zone_file.u16string())))
+        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
+            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first,
+                    write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
     }
 
     // Manager file will be written multiple times
-    EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
+    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _))
+        .Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
@@ -131,8 +130,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 
 TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
-        .WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
+        .WillOnce(Return(mpt::mock_read_data("{}")));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -140,14 +139,15 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
-            .WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdU16String(zone_file.u16string())))
+        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
+            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first,
+                    write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
     }
 
-    EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
+    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _))
+        .Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
@@ -156,8 +156,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 
 TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
 {
-    EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(manager_file))
-        .WillOnce(Return(QJsonObject{}));
+    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
+        .WillOnce(Return(mpt::mock_read_data("{}")));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -165,14 +165,15 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_json_utils_guard.first, read_object_from_file(zone_file))
-            .WillOnce(Return(QJsonObject{}));
-        EXPECT_CALL(*mock_json_utils_guard.first,
-                    write_json(_, QString::fromStdU16String(zone_file.u16string())))
+        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
+            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first,
+                    write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
     }
 
-    EXPECT_CALL(*mock_json_utils_guard.first, write_json(_, manager_file_qstr)).Times(AnyNumber());
+    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _))
+        .Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 

@@ -48,13 +48,16 @@ auto make_dnsmasq_process(const mp::Path& data_dir,
 mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const BridgeSubnetList& subnets)
     : data_dir{data_dir}, conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
-    conf_file.open();
+    if (!conf_file.open())
+        throw std::runtime_error("unable to create temporary dnsmasq conf file");
     conf_file.close();
 
     QFile dnsmasq_hosts(QDir(data_dir).filePath("dnsmasq.hosts"));
     if (!dnsmasq_hosts.exists())
     {
-        dnsmasq_hosts.open(QIODevice::WriteOnly);
+        if (!dnsmasq_hosts.open(QIODevice::WriteOnly))
+            throw std::runtime_error(
+                fmt::format("unable to create file {}", dnsmasq_hosts.filesystemFileName()));
     }
 
     dnsmasq_cmd = make_dnsmasq_process(data_dir, subnets, conf_file.fileName());
@@ -102,7 +105,7 @@ std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw
     {
         const auto fields = mp::utils::split(line, delimiter);
         if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
-            return fields[ipv4_idx];
+            return IPAddress{fields[ipv4_idx]};
     }
     return std::nullopt;
 }

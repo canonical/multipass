@@ -27,7 +27,6 @@
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_image_host.h"
-#include "mock_json_utils.h"
 #include "mock_logger.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
@@ -49,13 +48,12 @@
 #include <src/daemon/instance_settings_handler.h>
 
 #include <multipass/constants.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/signal.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_host.h>
-#include <multipass/vm_image_info.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -161,11 +159,6 @@ a few more tests for `false`, since there are different portions of code dependi
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
-
-    const mpt::MockJsonUtils::GuardedMock mock_json_utils_injection =
-        mpt::MockJsonUtils::inject<NiceMock>();
-    mpt::MockJsonUtils& mock_json_utils = *mock_json_utils_injection.first;
-
     mpt::StubAvailabilityZone zone{};
 };
 
@@ -437,17 +430,18 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("yakety-yak");
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{"yakety-yak"}));
     EXPECT_CALL(*mock_vm, current_state)
         .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
-    // update_state is called by the finished() handler of the future. If it's called, then
+    // handle_state_update is called by the finished() handler of the future. If it's called, then
     // everything's ok.
-    EXPECT_CALL(*mock_vm, update_state).WillOnce([&sig] {
-        // Ensure that update_state is delayed until daemon's destructor call.
+    EXPECT_CALL(*mock_vm, handle_state_update).WillOnce([&sig] {
+        // Ensure that handle_state_update is delayed until daemon's destructor call.
         sig.wait();
         // Wait a bit to ensure that daemon's destructor has been run
         std::this_thread::sleep_for(std::chrono::milliseconds{50});
@@ -472,12 +466,13 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, current_state)
         .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -495,12 +490,13 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, current_state)
         .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -518,12 +514,13 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, current_state)
         .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, update_state).Times(1);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -542,10 +539,11 @@ TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(vm_props.name);
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, current_state).Times(0);
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, update_state).Times(0);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
@@ -581,8 +579,6 @@ struct DaemonCreateLaunchAliasTestSuite : public Daemon,
     {
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), writableLocation(_))
             .WillRepeatedly(Return(fake_alias_dir.path()));
-
-        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_json_utils, write_json, JsonUtils);
     }
 };
 
@@ -1134,8 +1130,8 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
     config_builder.data_directory = QString("invalid_data_directory");
     mp::Daemon daemon{config_builder.build()};
 
-    auto [mock_json_utils, guard] = mpt::MockJsonUtils::inject<StrictMock>();
-    EXPECT_CALL(*mock_json_utils, write_json).Times(1); // avoid creating directory
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally).Times(1); // avoid creating directory
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
@@ -1235,8 +1231,10 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
-        .WillOnce(WithArg<0>([&mac_addr, &extra_interfaces](const QJsonObject& obj) {
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&mac_addr, &extra_interfaces](const QByteArrayView& data) {
+            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
             check_interfaces_in_json(obj, mac_addr, extra_interfaces);
         }));
 
@@ -1314,9 +1312,12 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
-        .WillOnce(
-            WithArg<0>([&mounts](const QJsonObject& obj) { check_mounts_in_json(obj, mounts); }));
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&mounts](const QByteArrayView& data) {
+            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
+            check_mounts_in_json(obj, mounts);
+        }));
 
     daemon.persist_instances();
 }
@@ -1350,8 +1351,10 @@ TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
     send_command({"list"}, stream);
     EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
-        .WillOnce(WithArg<0>([&uid_mappings, &gid_mappings](const QJsonObject& obj) {
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&uid_mappings, &gid_mappings](const QByteArrayView& data) {
+            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
             check_maps_in_json(obj, uid_mappings, gid_mappings);
         }));
 
@@ -1404,7 +1407,7 @@ TEST_F(Daemon, refusesLaunchWithInvalidNetworkInterface)
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "eth2"}, trash_stream, err_stream);
-    EXPECT_THAT(err_stream.str(), HasSubstr("Invalid network options supplied"));
+    EXPECT_THAT(err_stream.str(), HasSubstr("Invalid network options."));
 }
 
 TEST_F(Daemon, refusesLaunchBecauseBridgingIsNotImplemented)
@@ -1560,10 +1563,10 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         .WillRepeatedly(
             DoDefault()); // returns an image that can be verified to exist for this instance
     EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, gone), _, _, _, _))
-        .WillOnce(
-            Return(mp::VMImage{"/path/to/nowhere", "", "", "", "", {}})); // an image that can't be
-                                                                          // verified to exist for
-                                                                          // this instance
+        .WillOnce(Return(
+            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})); // an image that can't be
+                                                                       // verified to exist for
+                                                                       // this instance
     config_builder.vault = std::move(mock_image_vault);
 
     auto mock_factory = use_a_mock_vm_factory();
@@ -1578,11 +1581,12 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
-        .WillOnce(WithArg<0>([&stayed, &gone](const QJsonObject& obj) {
-            QJsonDocument doc{obj};
-            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
+        .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
+            EXPECT_THAT(data.toByteArray().toStdString(),
+                        AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
         }));
 
     mp::Daemon daemon{config_builder.build()};
@@ -1603,7 +1607,7 @@ TEST_P(ListIP, listsWithIp)
 
     mp::Daemon daemon{config_builder.build()};
 
-    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>("mock");
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
         return std::move(instance_ptr);
     });
@@ -1611,8 +1615,6 @@ TEST_P(ListIP, listsWithIp)
     auto [state, cmd, strs] = GetParam();
 
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
-    EXPECT_CALL(*instance_ptr, ensure_vm_is_running())
-        .WillRepeatedly(Throw(std::runtime_error("Not running")));
     EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
@@ -1694,8 +1696,9 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image)
         .WillOnce(Return(
-            mp::VMImage{"/path/to/nowhere", "", "", "", "", {}})) // cause the Daemon's ctor to fail
-                                                                  // verifying that the img exists
+            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})) // cause the Daemon's ctor to
+                                                                      // fail verifying that the img
+                                                                      // exists
         .WillRepeatedly(DoDefault());
     config_builder.vault = std::move(mock_image_vault);
 
@@ -2102,7 +2105,7 @@ TEST_F(Daemon, addBridgedInterfaceWorks)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
@@ -2113,6 +2116,7 @@ TEST_F(Daemon, addBridgedInterfaceWorks)
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
     EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _)).Times(1);
+    EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
@@ -2127,7 +2131,7 @@ TEST_F(Daemon, addBridgedInterfaceWarnsAndNoopIfAlreadyBridged)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
@@ -2136,6 +2140,7 @@ TEST_F(Daemon, addBridgedInterfaceWarnsAndNoopIfAlreadyBridged)
     EXPECT_CALL(*mock_factory, networks).Times(1);
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
     EXPECT_CALL(*instance_ptr, add_network_interface).Times(0);
+    EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr, specs));
 }
@@ -2149,7 +2154,7 @@ TEST_F(Daemon, addBridgedInterfaceHonorsPreparedBridge)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
     std::vector<mp::NetworkInterfaceInfo> net_info{
         {if_name, "Ethernet", "A regular adapter", {}, false}};
@@ -2158,6 +2163,7 @@ TEST_F(Daemon, addBridgedInterfaceHonorsPreparedBridge)
                 prepare_networking(Contains(Field(&mp::NetworkInterface::id, StrEq("eth8")))))
         .WillOnce(SetArgReferee<0>(std::vector{br_net}));
     EXPECT_CALL(*instance_ptr, add_network_interface(0, _, Eq(br_net))).Times(1);
+    EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
 }
@@ -2168,7 +2174,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfBackendThrows)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
@@ -2181,6 +2187,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfBackendThrows)
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
     EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _))
         .WillOnce(Throw(std::runtime_error("something bad")));
+    EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     std::string msg{"Cannot update instance settings; instance: " + instance_name +
                     "; reason: Failure to bridge eth8"};
@@ -2195,13 +2202,14 @@ TEST_F(Daemon, addBridgedInterfaceThrowsOnBadBridgedNetworkSetting)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
     std::vector<mp::NetworkInterfaceInfo> net_info{
         {"eth9", "Ethernet", "An invalid network adapter", {}, false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
     EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     std::string msg{"Invalid network 'eth8' set as bridged interface, use `multipass set "
                     "local.bridged-network=<name>` "
@@ -2217,13 +2225,14 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfNeedsAuthorization)
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
     std::vector<mp::NetworkInterfaceInfo> net_info{
         {"eth8", "Ethernet", "A network adapter", {}, true}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
     EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     std::string msg{"Cannot update instance settings; instance: glass-elevator; reason: Need user "
                     "authorization to bridge eth8"};
@@ -2260,7 +2269,8 @@ TEST_P(DaemonIsBridged, isBridgedWorks)
     auto mock_factory = use_a_mock_vm_factory();
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(host_nets));
     mpt::MockDaemon daemon{config_builder.build()};
-    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(instance_name);
+    auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     EXPECT_EQ(daemon.test_is_bridged(instance_name, specs), result);
 }
@@ -2337,12 +2347,13 @@ TEST_F(Daemon, purgePersistsInstances)
     const auto [temp_dir, filename] = plant_instance_json(json_contents);
     config_builder.data_directory = temp_dir->path();
 
-    EXPECT_CALL(mock_json_utils, write_json(_, Eq(filename)))
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())
-        .WillOnce(WithArg<0>([&name1, &name2](const QJsonObject& obj) {
-            QJsonDocument doc{obj};
-            EXPECT_THAT(doc.toJson().toStdString(), AllOf(HasSubstr(name1), HasSubstr(name2)));
+        .WillOnce(WithArg<1>([&name1, &name2](const QByteArrayView& data) {
+            EXPECT_THAT(data.toByteArray().toStdString(),
+                        AllOf(HasSubstr(name1), HasSubstr(name2)));
         }));
 
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();

@@ -16,17 +16,17 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.13'
+        python-version: '3.14'
 
     - name: Install Python dependencies
       uses: BSFishy/pip-action@v1
       with:
-        requirements: tools/requirements.txt
+        requirements: tools/process-snaps/requirements.txt
 
     - name: Install Snap dependencies
       run: |
@@ -39,4 +39,4 @@ jobs:
         contents: ${{ secrets.LAUNCHPAD_CREDENTIALS }}
 
     - name: Check for USNs
-      run: tools/process_snaps.py lp_credentials
+      run: tools/process-snaps/process_snaps.py lp_credentials

@@ -52,10 +52,10 @@ class CpuUsagesNotifier extends Notifier<Queue<double>> {
 
   var lastTotal = 0;
   var lastIdle = 0;
+  var usages = Queue.of(Iterable.generate(50, (_) => 0.0));
 
   @override
   Queue<double> build() {
-    final usages = stateOrNull ?? Queue.of(Iterable.generate(50, (_) => 0.0));
     final cpuTimes = ref
         .watch(vmInfoProvider(arg))
         .instanceInfo

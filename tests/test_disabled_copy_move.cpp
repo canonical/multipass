@@ -19,8 +19,6 @@
 
 #include <type_traits>
 
-namespace mp = multipass;
-
 namespace
 {
 class Foo : private multipass::DisabledCopyMove

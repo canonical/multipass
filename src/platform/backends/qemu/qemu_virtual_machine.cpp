@@ -22,14 +22,13 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
-#include <shared/shared_backend_utils.h>
-
+#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
-#include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
@@ -46,7 +45,8 @@
 #include <cassert>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
+namespace mpl = mp::logging;
+namespace mpu = mp::utils;
 
 using namespace std::chrono_literals;
 
@@ -416,7 +416,7 @@ void mp::QemuVirtualMachine::suspend()
         if (update_shutdown_status)
         {
             state = State::suspending;
-            update_state();
+            handle_state_update();
             update_shutdown_status = false;
         }
 
@@ -444,42 +444,37 @@ int mp::QemuVirtualMachine::ssh_port()
     return 22;
 }
 
-void mp::QemuVirtualMachine::update_state()
+void mp::QemuVirtualMachine::handle_state_update()
 {
     monitor->persist_state_for(vm_name, state);
 }
 
 void mp::QemuVirtualMachine::on_started()
 {
-    state = VirtualMachine::State::starting;
-    update_state();
+    state = State::starting;
+    handle_state_update();
     monitor->on_resume();
 }
 
 void mp::QemuVirtualMachine::on_error()
 {
     state = State::off;
-    update_state();
+    handle_state_update();
 }
 
 void mp::QemuVirtualMachine::on_shutdown()
 {
     {
-        std::unique_lock<decltype(state_mutex)> lock{state_mutex};
-        auto current_state = state;
+        std::unique_lock lock{state_mutex};
+        auto old_state = state;
 
         state = State::off;
-        if (current_state == State::starting)
-        {
-            if (!saved_error_msg.empty() && saved_error_msg.back() != '\n')
-                saved_error_msg.append("\n");
-            saved_error_msg.append(fmt::format("{}: shutdown called while starting", vm_name));
+        if (old_state == State::starting)
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
-        }
 
         management_ip = std::nullopt;
         drop_ssh_session();
-        update_state();
+        handle_state_update();
         vm_process.reset(nullptr);
     }
 
@@ -497,42 +492,19 @@ void mp::QemuVirtualMachine::on_restart()
 {
     drop_ssh_session();
     state = State::restarting;
-    update_state();
+    handle_state_update();
 
     management_ip = std::nullopt;
 
     monitor->on_restart(vm_name);
 }
 
-void mp::QemuVirtualMachine::ensure_vm_is_running()
-{
-    if (is_starting_from_suspend)
-    {
-        // Due to https://github.com/canonical/multipass/issues/2374, the DHCP address is removed
-        // from the dnsmasq leases file, so if the daemon restarts while an instance is suspended
-        // and then starts the instance, the daemon won't be able to reach the instance since the
-        // instance won't refresh it's IP address.  The following will force the instance to refresh
-        // by resetting the network at 5 seconds and then every 30 seconds until the start timeout
-        // is reached.
-        if (std::chrono::steady_clock::now() > network_deadline)
-        {
-            network_deadline = std::chrono::steady_clock::now() + 30s;
-            emit on_reset_network();
-        }
-    }
-
-    auto is_vm_running = [this] { return (vm_process && vm_process->running()); };
-
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, saved_error_msg);
-}
-
 std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    auto get_ip = [this]() -> std::optional<IPAddress> {
-        return qemu_platform->get_ip_for(desc.default_mac_address);
-    };
+    fetch_ip(timeout);
 
-    return mp::backend::ip_address_for(this, get_ip, timeout);
+    assert(management_ip && "Should have thrown otherwise");
+    return management_ip->as_string();
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
@@ -540,23 +512,12 @@ std::string mp::QemuVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::QemuVirtualMachine::management_ipv4()
+std::optional<mp::IPAddress> mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)
-    {
-        auto result = qemu_platform->get_ip_for(desc.default_mac_address);
-        if (result)
-            management_ip.emplace(result.value());
-        else
-            return "UNKNOWN";
-    }
+        management_ip = qemu_platform->get_ip_for(desc.default_mac_address);
 
-    return management_ip.value().as_string();
-}
-
-std::string mp::QemuVirtualMachine::ipv6()
-{
-    return {};
+    return management_ip;
 }
 
 void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
@@ -619,11 +580,18 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                 }
             }
         }
+        else if (qmp_object.contains("error"))
+        {
+            const auto error = qmp_object["error"].toObject();
+            mpl::error(vm_name, "QMP error: {}", error["desc"].toString());
+        }
     });
 
     QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {
-        saved_error_msg = vm_process->read_all_standard_error().data();
-        mpl::log_message(mpl::Level::warning, vm_name, saved_error_msg);
+        const auto error_buf = vm_process->read_all_standard_error(); // keep alive while using data
+        const auto* error_data = error_buf.data();
+        save_error_msg(error_data);
+        mpl::log_message(mpl::Level::warning, vm_name, error_data);
     });
 
     QObject::connect(
@@ -823,9 +791,52 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                           *this,
                                           desc);
 }
+bool multipass::QemuVirtualMachine::unplugged()
+{
+    return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running();
+}
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
     return std::make_shared<QemuSnapshot>(filename, *this, desc);
+}
+
+void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
+{
+    if (!management_ip)
+    {
+        auto action = [this] {
+            detect_aborted_start();
+            return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
+                       ? mpu::TimeoutAction::done
+                       : mpu::TimeoutAction::retry;
+        };
+
+        auto on_timeout = [this, &timeout] {
+            state = State::unknown;
+            throw InternalTimeoutException{"determine IP address", timeout};
+        };
+
+        mpu::try_action_for(on_timeout, timeout, action);
+    }
+}
+
+void mp::QemuVirtualMachine::refresh_start()
+{
+    if (is_starting_from_suspend)
+    {
+        // Due to https://github.com/canonical/multipass/issues/2374, the DHCP address is removed
+        // from the dnsmasq leases file, so if the daemon restarts while an instance is suspended
+        // and then starts the instance, the daemon won't be able to reach the instance since the
+        // instance won't refresh it's IP address.  The following will force the instance to refresh
+        // by resetting the network at 5 seconds and then every 30 seconds until the start timeout
+        // is reached.
+
+        if (std::chrono::steady_clock::now() > network_deadline)
+        {
+            network_deadline = std::chrono::steady_clock::now() + 30s;
+            emit on_reset_network();
+        }
+    }
 }

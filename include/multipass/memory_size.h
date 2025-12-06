@@ -24,12 +24,8 @@ namespace multipass
 class MemorySize
 {
 public:
-    friend bool operator==(const MemorySize& a, const MemorySize& b) noexcept;
-    friend bool operator!=(const MemorySize& a, const MemorySize& b) noexcept;
-    friend bool operator<(const MemorySize& a, const MemorySize& b) noexcept;
-    friend bool operator>(const MemorySize& a, const MemorySize& b) noexcept;
-    friend bool operator<=(const MemorySize& a, const MemorySize& b) noexcept;
-    friend bool operator>=(const MemorySize& a, const MemorySize& b) noexcept;
+    friend inline bool operator==(const MemorySize& a, const MemorySize& b) noexcept = default;
+    friend inline auto operator<=>(const MemorySize& a, const MemorySize& b) noexcept = default;
 
     MemorySize() noexcept;
     explicit MemorySize(const std::string& val);
@@ -48,12 +44,5 @@ private:
 };
 
 long long in_bytes(const std::string& mem_value);
-
-bool operator==(const MemorySize& a, const MemorySize& b) noexcept;
-bool operator!=(const MemorySize& a, const MemorySize& b) noexcept;
-bool operator<(const MemorySize& a, const MemorySize& b) noexcept;
-bool operator>(const MemorySize& a, const MemorySize& b) noexcept;
-bool operator<=(const MemorySize& a, const MemorySize& b) noexcept;
-bool operator>=(const MemorySize& a, const MemorySize& b) noexcept;
 
 } // namespace multipass

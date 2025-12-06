@@ -37,11 +37,14 @@
 #include <scope_guard.hpp>
 
 #include <QDir>
+#include <QRegularExpression>
+#include <QString>
 
 #include <chrono>
 #include <functional>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -80,80 +83,35 @@ std::string trimmed_contents_of(const QString& file_path)
 }
 
 template <typename ExceptionT>
-mp::utils::TimeoutAction log_and_retry(const ExceptionT& e,
-                                       const mp::VirtualMachine* vm,
-                                       mpl::Level log_level = mpl::Level::trace)
+mpu::TimeoutAction log_and_retry(const ExceptionT& e,
+                                 const mp::VirtualMachine* vm,
+                                 mpl::Level log_level = mpl::Level::trace)
 {
     assert(vm);
-    mpl::log_message(log_level, vm->vm_name, e.what());
-    return mp::utils::TimeoutAction::retry;
+    mpl::log_message(log_level, vm->get_name(), e.what());
+    return mpu::TimeoutAction::retry;
 };
-
-std::optional<mp::SSHSession> wait_until_ssh_up_helper(mp::VirtualMachine* virtual_machine,
-                                                       std::chrono::milliseconds timeout,
-                                                       const mp::SSHKeyProvider& key_provider)
-{
-    static constexpr auto wait_step = 1s;
-    mpl::debug(virtual_machine->vm_name, "Waiting for SSH to be up");
-
-    std::optional<mp::SSHSession> session = std::nullopt;
-    auto action = [virtual_machine, &key_provider, &session] {
-        virtual_machine->ensure_vm_is_running();
-        try
-        {
-            session.emplace(virtual_machine->ssh_hostname(wait_step),
-                            virtual_machine->ssh_port(),
-                            virtual_machine->ssh_username(),
-                            key_provider);
-
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
-                virtual_machine->state_mutex};
-            virtual_machine->state = mp::VirtualMachine::State::running;
-            virtual_machine->update_state();
-            return mp::utils::TimeoutAction::done;
-        }
-        catch (const mp::InternalTimeoutException& e)
-        {
-            return log_and_retry(e, virtual_machine);
-        }
-        catch (const mp::SSHException& e)
-        {
-            return log_and_retry(e, virtual_machine);
-        }
-        catch (const mp::IPUnavailableException& e)
-        {
-            return log_and_retry(e, virtual_machine);
-        }
-    };
-
-    auto on_timeout = [virtual_machine] {
-        std::lock_guard<decltype(virtual_machine->state_mutex)> lock{virtual_machine->state_mutex};
-        virtual_machine->state = mp::VirtualMachine::State::unknown;
-        virtual_machine->update_state();
-        throw std::runtime_error(
-            fmt::format("{}: timed out waiting for response", virtual_machine->vm_name));
-    };
-
-    mp::utils::try_action_for(on_timeout, timeout, action);
-    return session;
-}
 } // namespace
-
-mp::BaseVirtualMachine::BaseVirtualMachine(VirtualMachine::State state,
-                                           const std::string& vm_name,
-                                           const SSHKeyProvider& key_provider,
-                                           AvailabilityZone& zone,
-                                           const Path& instance_dir)
-    : VirtualMachine{state, vm_name, instance_dir}, key_provider{key_provider}, zone{zone}
-{
-    zone.add_vm(*this);
-}
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : VirtualMachine{vm_name, instance_dir}, key_provider{key_provider}, zone{zone}
+    : vm_name{vm_name}, key_provider{key_provider}, zone{zone}, instance_dir{instance_dir}
+{
+    zone.add_vm(*this);
+}
+
+mp::BaseVirtualMachine::BaseVirtualMachine(State state,
+                                           const std::string& vm_name,
+                                           const SSHKeyProvider& key_provider,
+                                           AvailabilityZone& zone,
+                                           const Path& instance_dir)
+    : VirtualMachine{state},
+      vm_name{vm_name},
+      key_provider{key_provider},
+      zone{zone},
+      instance_dir{instance_dir}
 {
     zone.add_vm(*this);
 }
@@ -250,14 +208,14 @@ void mp::BaseVirtualMachine::set_available(bool available)
     if (available)
     {
         state = State::off;
-        update_state();
+        handle_state_update();
         if (was_running)
         {
             start();
 
             // normally the daemon sets the state to running...
             state = State::running;
-            update_state();
+            handle_state_update();
         }
         return;
     }
@@ -265,7 +223,7 @@ void mp::BaseVirtualMachine::set_available(bool available)
     was_running = state == State::running || state == State::starting || state == State::restarting;
     shutdown(ShutdownPolicy::Poweroff);
     state = State::unavailable;
-    update_state();
+    handle_state_update();
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
@@ -311,52 +269,82 @@ void mp::BaseVirtualMachine::renew_ssh_session()
 {
     {
         const std::unique_lock lock{state_mutex};
-        if (!MP_UTILS.is_running(
-                current_state())) // spend time updating state only if we need a new session
-            throw SSHException{fmt::format("SSH unavailable on instance {}: not running", vm_name)};
+        if (!MP_UTILS.is_running(current_state())) // avoid wasting time
+            throw SSHVMNotRunning{"SSH unavailable on instance {}: not running", vm_name};
     }
 
     mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
-
     ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+}
+bool multipass::BaseVirtualMachine::unplugged()
+{
+    auto st = current_state();
+    return st == State::off || st == State::stopped;
+}
+
+void mp::BaseVirtualMachine::detect_aborted_start()
+{
+    std::lock_guard lock{state_mutex};
+    if (unplugged())
+    {
+        shutdown_while_starting = true;
+        state_wait.notify_all();
+
+        std::string msg{"Instance shutdown during start"};
+        if (!saved_error_msg.empty())
+            msg += ": " + saved_error_msg;
+
+        saved_error_msg.clear();
+        throw StartException(vm_name, msg);
+    }
 }
 
 void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     drop_ssh_session();
-    ssh_session = wait_until_ssh_up_helper(this, timeout, key_provider);
-    mpl::log(logging::Level::debug, vm_name, "Caching initial SSH session");
+    mpl::debug(vm_name, "Waiting for SSH to be up");
+
+    auto action = std::bind_front(&BaseVirtualMachine::try_to_ssh, this);
+    auto timeout_action = std::bind_front(&BaseVirtualMachine::timeout_ssh, this);
+    mpu::try_action_for(timeout_action, timeout, action);
+
+    mpl::debug(vm_name, "Caching initial SSH session");
 }
 
 void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
     auto action = [this] {
-        ensure_vm_is_running();
+        detect_aborted_start();
         try
         {
             ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
-            return mp::utils::TimeoutAction::done;
+            return mpu::TimeoutAction::done;
+        }
+        catch (const SSHVMNotRunning& e)
+        {
+            try_to_ssh();
+            return mpu::TimeoutAction::retry;
         }
         catch (const SSHExecFailure& e)
         {
-            return mp::utils::TimeoutAction::retry;
+            return mpu::TimeoutAction::retry;
         }
         catch (const std::exception& e) // transitioning away from catching generic runtime errors
         {                               // TODO remove once we're confident this is an anomaly
             mpl::log_message(mpl::Level::warning, vm_name, e.what());
-            return mp::utils::TimeoutAction::retry;
+            return mpu::TimeoutAction::retry;
         }
     };
 
     auto on_timeout = [] {
         throw std::runtime_error("timed out waiting for initialization to complete");
     };
-    mp::utils::try_action_for(on_timeout, timeout, action);
+    mpu::try_action_for(on_timeout, timeout, action);
 }
 
-std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
+auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
-    std::vector<std::string> all_ipv4;
+    std::vector<IPAddress> all_ipv4;
 
     if (MP_UTILS.is_running(current_state()))
     {
@@ -373,9 +361,9 @@ std::vector<std::string> mp::BaseVirtualMachine::get_all_ipv4()
             while (ip_it.hasNext())
             {
                 auto ip_match = ip_it.next();
-                auto ip = ip_match.captured(1).toStdString();
+                auto ip_str = ip_match.captured(1).toStdString();
 
-                all_ipv4.push_back(ip);
+                all_ipv4.push_back(IPAddress{ip_str});
             }
         }
         catch (const SSHException& e)
@@ -874,4 +862,45 @@ void mp::BaseVirtualMachine::drop_ssh_session()
         mpl::debug(vm_name, "Dropping cached SSH session");
         ssh_session.reset();
     }
+}
+
+auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
+{
+    detect_aborted_start();
+    refresh_start();
+    try
+    {
+        ssh_and_cross_to_running();
+        return utils::TimeoutAction::done;
+    }
+    catch (const InternalTimeoutException& e)
+    {
+        return log_and_retry(e, this);
+    }
+    catch (const SSHException& e)
+    {
+        return log_and_retry(e, this);
+    }
+    catch (const IPUnavailableException& e)
+    {
+        return log_and_retry(e, this);
+    }
+}
+
+void mp::BaseVirtualMachine::ssh_and_cross_to_running()
+{
+    static constexpr auto wait_step = 1s;
+    ssh_session.emplace(ssh_hostname(wait_step), ssh_port(), ssh_username(), key_provider);
+
+    std::lock_guard lock{state_mutex};
+    state = State::running;
+    handle_state_update();
+}
+
+void mp::BaseVirtualMachine::timeout_ssh()
+{
+    std::lock_guard lock{state_mutex};
+    state = State::unknown;
+    handle_state_update();
+    throw std::runtime_error(fmt::format("{}: timed out waiting for response", vm_name));
 }

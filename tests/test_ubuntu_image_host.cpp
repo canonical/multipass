@@ -21,13 +21,12 @@
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "path.h"
-#include "stub_url_downloader.h"
-
-#include <src/daemon/ubuntu_image_host.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/query.h>
 
 #include <QUrl>
@@ -313,6 +312,18 @@ TEST_F(UbuntuImageHost, allImagesForReleaseUnsupportedReturnsFiveMatches)
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
+TEST_F(UbuntuImageHost, allImagesForThrowsForUnknownRemote)
+{
+    const auto remote_name = "unknown_remote";
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
+    host.update_manifests(false);
+
+    MP_EXPECT_THROW_THAT(host.all_images_for(remote_name, false),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr(
+                             fmt::format("Remote \"{}\" is unknown or unreachable", remote_name))));
+}
+
 TEST_F(UbuntuImageHost, allImagesForDailyReturnsAllMatches)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
@@ -481,4 +492,27 @@ TEST_F(UbuntuImageHost, allInfoForUnsupportedImageThrow)
         host.all_info_for(make_query(release, release_remote_spec.first)),
         mp::UnsupportedImageException,
         mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
+}
+
+TEST_F(UbuntuImageHost, infoForFullHashFindsImage)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
+    host.update_manifests(false);
+
+    auto image_info =
+        host.info_for_full_hash("AB115B83E7A8BEBF3D3A02BF55AD0CB75A0ED515FCBC65FB0C9ABE76C752921C");
+
+    EXPECT_EQ(image_info.release, "zesty");
+}
+
+TEST_F(UbuntuImageHost, unknownHashThrows)
+{
+    const auto bad_hash = "1234";
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
+    host.update_manifests(false);
+
+    MP_EXPECT_THROW_THAT(
+        host.info_for_full_hash(bad_hash),
+        mp::ImageNotFoundException,
+        mpt::match_what(StrEq(fmt::format("Image with hash \"{}\" not found", bad_hash))));
 }

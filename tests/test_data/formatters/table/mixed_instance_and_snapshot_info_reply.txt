@@ -1,0 +1,25 @@
+Name:           bombastic
+State:          Stopped
+Zone:           zone2(u/a)
+Snapshots:      3
+IPv4:           --
+Release:        --
+Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)
+CPU(s):         --
+Load:           --
+Disk usage:     --
+Memory usage:   --
+Mounts:         --
+
+Snapshot:       snapshot2
+Instance:       bogus-instance
+CPU(s):         2
+Disk space:     4.9GiB
+Memory size:    0.9GiB
+Mounts:         /home/user/source => source
+                /home/user => Home
+Created:        1972-01-01T10:00:20.021Z
+Parent:         snapshot1
+Children:       snapshot3
+                snapshot4
+Comment:        --

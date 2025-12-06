@@ -62,4 +62,4 @@ target_link_libraries(commands
   Qt6::Core
   Qt6::Network
   utils
-  yaml)
+  yaml-cpp::yaml-cpp)

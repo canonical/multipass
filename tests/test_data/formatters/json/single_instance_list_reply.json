@@ -1,0 +1,17 @@
+{
+    "list": [
+        {
+            "ipv4": [
+                "10.168.32.2",
+                "200.3.123.30"
+            ],
+            "name": "foo",
+            "release": "Ubuntu 16.04 LTS",
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
+        }
+    ]
+}

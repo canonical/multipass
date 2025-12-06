@@ -12,11 +12,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(src/cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
+
+option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
+option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
 
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
@@ -26,14 +30,24 @@ if(NOT ${IS_RUNNING_IN_CI})
 endif()
 
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
+cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
+
+if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
+  set(VCPKG_HOST_ARCH "arm64")
+else()
+  set(VCPKG_HOST_ARCH "x64")
+endif()
+
+include(CMakeDependentOption)
+cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
-  if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
+  if ("${VCPKG_HOST_ARCH}" STREQUAL "arm64")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "macOS Deployment Target")
   else()
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
   endif()
 elseif("${HOST_OS_NAME}" STREQUAL "Windows")
   set(VCPKG_HOST_OS "windows-static-md")
@@ -48,34 +62,41 @@ if(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  set(VCPKG_BUILD_DEFAULT TRUE)
-endif()
+if(NOT VCPKG_BUILD_DEFAULT)
+  message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
 
-if(NOT DEFINED VCPKG_BUILD_DEFAULT)
-  cmake_host_system_information(RESULT VCPKG_HOST_ARCH QUERY OS_PLATFORM)
-  if("${VCPKG_HOST_ARCH}" STREQUAL "x86_64" OR "${VCPKG_HOST_ARCH}" STREQUAL "AMD64")
-    set(VCPKG_HOST_ARCH "x64")
-  elseif("${VCPKG_HOST_ARCH}" STREQUAL "aarch64")
-    set(VCPKG_HOST_ARCH "arm64")
+  # Propagate macOS deployment target to vcpkg triplet
+  if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+    configure_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
+      "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
+      @ONLY
+    )
+    set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
+    message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
 
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+else()
+  message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
 message(STATUS "Bootstrapping vcpkg...")
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-  set(VCPKG_BOOTSTRAP_EXTENSION "bat")
-else()
-  set(VCPKG_BOOTSTRAP_EXTENSION "sh")
-endif()
+set(MULTIPASS_VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
+  "Root vcpkg location, where the top bootstrap scripts are located")
 
-execute_process(
-  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/bootstrap-vcpkg.${VCPKG_BOOTSTRAP_EXTENSION}"
-  RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT
-)
+set(VCPKG_CMD "${MULTIPASS_VCPKG_LOCATION}/bootstrap-vcpkg.")
+if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+  string(APPEND VCPKG_CMD "bat")
+  list(PREPEND VCPKG_CMD "cmd" "/c") # run in cmd; otherwise, we'd fail when called from PowerShell
+else ()
+  string(APPEND VCPKG_CMD "sh")
+endif ()
+
+execute_process(COMMAND ${VCPKG_CMD} RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT)
 
 if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
   message(FATAL_ERROR "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
@@ -83,13 +104,14 @@ else()
   message(STATUS "Bootstrapping vcpkg completed successfully.")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+if(MULTIPASS_ENABLE_TESTS)
+  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
+endif()
+
+set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
-
-option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
-option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
 
 include(GNUInstallDirs)
 
@@ -163,7 +185,7 @@ if(UNIX)
     set(HOST_ARCH "aarch64")
   endif ()
 
-  if (APPLE AND ${HOST_ARCH} MATCHES "x86_64")
+  if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND ${HOST_ARCH} MATCHES "x86_64"))
       list(APPEND MULTIPASS_BACKENDS virtualbox)
   endif()
 
@@ -171,14 +193,28 @@ if(UNIX)
 endif()
 
 # OpenSSL config
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL CONFIG REQUIRED)
 
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)
 
+
+# SG_REQUIRE_NOEXCEPT_IN_CPP17
 # fmt config
 find_package(fmt CONFIG REQUIRED)
 # targets: fmt::fmt, fmt::fmt-header-only
+
+# scope_guard config
+find_path(SCOPE_GUARD_INCLUDE_DIRS "scope_guard.hpp")
+add_library(scope_guard INTERFACE)
+target_include_directories(scope_guard INTERFACE ${SCOPE_GUARD_INCLUDE_DIRS})
+target_compile_definitions(scope_guard INTERFACE SG_REQUIRE_NOEXCEPT_IN_CPP17)
+
+# yaml-cpp config
+find_package(yaml-cpp CONFIG REQUIRED)
+
+# neargye-semver config
+find_package(semver CONFIG REQUIRED)
 
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
@@ -307,7 +343,7 @@ if(MSVC)
   set(MULTIPASS_BACKENDS hyperv virtualbox)
   set(MULTIPASS_PLATFORM windows)
 else()
-  add_compile_options(-Werror -Wall -pedantic -fPIC -Wno-error=deprecated-declarations)
+  add_compile_options(-Werror -Wall -pedantic -fPIC)
 
   if(APPLE)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
@@ -331,8 +367,6 @@ else()
     endif()
 
     add_definitions(-DMULTIPASS_PLATFORM_LINUX)
-    set(MULTIPASS_BACKENDS qemu)
-
     set(MULTIPASS_PLATFORM linux)
     set(LINUX TRUE)
   endif()

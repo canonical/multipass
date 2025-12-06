@@ -1,0 +1,71 @@
+{
+    "errors": [
+    ],
+    "info": {
+        "bogus-instance": {
+            "cpu_count": "4",
+            "disks": {
+                "sda1": {
+                    "total": "6764573492",
+                    "used": "1932735284"
+                }
+            },
+            "image_hash": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+            "image_release": "16.04 LTS",
+            "ipv4": [
+                "10.21.124.56"
+            ],
+            "load": [
+                0.03,
+                0.1,
+                0.15
+            ],
+            "memory": {
+                "total": 1610612736,
+                "used": 38797312
+            },
+            "mounts": {
+                "source": {
+                    "gid_mappings": [
+                        "1000:501"
+                    ],
+                    "source_path": "/home/user/source",
+                    "uid_mappings": [
+                        "1000:501"
+                    ]
+                }
+            },
+            "release": "Ubuntu 16.04.3 LTS",
+            "snapshot_count": "1",
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
+        },
+        "bombastic": {
+            "cpu_count": "",
+            "disks": {
+                "sda1": {
+                }
+            },
+            "image_hash": "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509",
+            "image_release": "18.04 LTS",
+            "ipv4": [
+            ],
+            "load": [
+            ],
+            "memory": {
+            },
+            "mounts": {
+            },
+            "release": "",
+            "snapshot_count": "3",
+            "state": "Stopped",
+            "zone": {
+                "available": false,
+                "name": "zone2"
+            }
+        }
+    }
+}

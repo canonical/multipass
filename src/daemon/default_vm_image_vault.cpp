@@ -22,6 +22,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/file_ops.h>
+#include <multipass/format.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -31,8 +32,6 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image.h>
-
-#include <multipass/format.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -69,6 +68,7 @@ auto image_to_json(const mp::VMImage& image)
     json.insert("original_release", QString::fromStdString(image.original_release));
     json.insert("current_release", QString::fromStdString(image.current_release));
     json.insert("release_date", QString::fromStdString(image.release_date));
+    json.insert("os", QString::fromStdString(image.os));
 
     QJsonArray aliases;
     for (const auto& alias : image.aliases)
@@ -128,6 +128,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         auto original_release = image["original_release"].toString().toStdString();
         auto current_release = image["current_release"].toString().toStdString();
         auto release_date = image["release_date"].toString().toStdString();
+        auto os = image["os"].toString().toStdString();
 
         std::vector<std::string> aliases;
         for (QJsonValueRef entry : image["aliases"].toArray())
@@ -145,7 +146,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         if (!persistent.isBool())
             return {};
         auto remote_name = query["remote_name"].toString();
-        auto query_type = static_cast<mp::Query::Type>(query["type"].toInt());
+        auto query_type = static_cast<mp::Query::Type>(query["query_type"].toInt());
 
         std::chrono::system_clock::time_point last_accessed;
         auto last_accessed_count = static_cast<qint64>(record["last_accessed"].toDouble());
@@ -160,7 +161,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
         }
 
         reconstructed_records[key] = {
-            {image_path, image_id, original_release, current_release, release_date, aliases},
+            {image_path, image_id, original_release, current_release, release_date, os, aliases},
             {"", release.toStdString(), persistent.toBool(), remote_name.toStdString(), query_type},
             last_accessed};
     }
@@ -233,7 +234,7 @@ void persist_records(const T& records, const QString& path)
         auto key = QString::fromStdString(record.first);
         json_records.insert(key, record_to_json(record.second));
     }
-    MP_JSONUTILS.write_json(json_records, path);
+    MP_FILEOPS.write_transactionally(path, QJsonDocument{json_records}.toJson());
 }
 } // namespace
 
@@ -251,6 +252,12 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
       prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
       instance_image_records{load_db(data_dir.filePath(instance_db_name))}
 {
+    // TODO: Remove after Multipass 1.17
+    // The OS field will be unpopulated for existing images in the vault. As of 1.16, the only
+    // images in the prepared image records are Ubuntu images. Therefore, we can safely assume that
+    // if the OS field is empty, it was a previously existing Ubuntu cloud image. The same can be
+    // said for instance image records with instances created with the Alias Query::Type.
+    amend_db();
 }
 
 mp::DefaultVMImageVault::~DefaultVMImageVault()
@@ -670,6 +677,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         source_image.image_path = image_dir.filePath(file_info.fileName());
         source_image.original_release = info.release_title.toStdString();
         source_image.release_date = info.version.toStdString();
+        source_image.os = info.os.toStdString();
 
         for (const auto& alias : info.aliases)
         {
@@ -737,6 +745,7 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared
             prepared_image.original_release,
             prepared_image.current_release,
             prepared_image.release_date,
+            prepared_image.os,
             {}};
 }
 
@@ -783,4 +792,27 @@ void mp::DefaultVMImageVault::persist_instance_records()
 void mp::DefaultVMImageVault::persist_image_records()
 {
     persist_records(prepared_image_records, cache_dir.filePath(image_db_name));
+}
+
+void mp::DefaultVMImageVault::amend_db()
+{
+    for (auto& instance_image_entry : prepared_image_records)
+    {
+        auto& record = instance_image_entry.second;
+
+        if (record.image.os.empty())
+        {
+            record.image.os = "Ubuntu";
+        }
+    }
+
+    for (auto& instance_image_entry : instance_image_records)
+    {
+        auto& record = instance_image_entry.second;
+
+        if (record.query.query_type == Query::Type::Alias && record.image.os.empty())
+        {
+            record.image.os = "Ubuntu";
+        }
+    }
 }

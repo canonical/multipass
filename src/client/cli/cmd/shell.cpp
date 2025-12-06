@@ -18,7 +18,6 @@
 #include "shell.h"
 #include "common_cli.h"
 
-#include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
@@ -26,7 +25,6 @@
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/timer.h>
 
-#include <chrono>
 #include <cstdlib>
 
 namespace mp = multipass;

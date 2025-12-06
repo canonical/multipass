@@ -1,0 +1,44 @@
+{
+    "Debian": {
+        "aliases": "debian, trixie",
+        "items": {
+            "arm64": {
+                "id": "sha512:16aec381ff8d17712a78aad122486cfae2795d313db52cbb9e269ec20e2c129b8753d086e6ca0e11d31704f0ee1cade6399a4d65f9aecb1e75b976c748638311",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20251117-2299/debian-13-generic-arm64-20251117-2299.qcow2",
+                "size": 415498240,
+                "version": "20251117"
+            },
+            "x86_64": {
+                "id": "sha512:1882f2d0debfb52254db1b0fc850d222fa68470a644a914d181f744ac1511a6caa1835368362db6dee88504a13c726b3ee9de0e43648353f62e90e075f497026",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20251117-2299/debian-13-generic-amd64-20251117-2299.qcow2",
+                "size": 434176000,
+                "version": "20251117"
+            }
+        },
+        "os": "Debian",
+        "release": "trixie",
+        "release_codename": "Trixie",
+        "release_title": "13"
+    },
+    "Fedora": {
+        "aliases": "fedora",
+        "items": {
+            "arm64": {
+                "id": "66031aea9ec61e6d0d5bba12b9454e80ca94e8a79c913d37ded4c60311705b8b",
+                "image_location": "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-43-1.6.aarch64.qcow2",
+                "size": 544997376,
+                "version": "20251023"
+            },
+            "x86_64": {
+                "id": "846574c8a97cd2d8dc1f231062d73107cc85cbbbda56335e264a46e3a6c8ab2f",
+                "image_location": "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-43-1.6.x86_64.qcow2",
+                "size": 583335936,
+                "version": "20251023"
+            }
+        },
+        "os": "Fedora",
+        "release": "",
+        "release_codename": "43",
+        "release_title": "43"
+    }
+}

@@ -47,7 +47,8 @@ class StubUpdateJson
 public:
     StubUpdateJson(QString version, QString url)
     {
-        json_file.open();
+        if (!json_file.open())
+            throw std::runtime_error("test failed to create temporary file");
         json_file.write(json_template.arg(url).arg(version).toUtf8());
         json_file.close();
     }
@@ -156,4 +157,11 @@ TEST(NewReleaseMonitor, devRcReleaseOrderingCorrect1)
     auto new_release = check_for_new_release("0.6.0-dev.238+g3245235.win", "0.6.0-rc.238+g5c642f4");
 
     EXPECT_TRUE(new_release);
+}
+
+TEST(NewReleaseMonitor, not_a_semver)
+{
+    auto new_release =
+        check_for_new_release("untitled-txt-final-edit-backup123", "0.6.0-rc.238+g5c642f4");
+    EXPECT_FALSE(new_release);
 }

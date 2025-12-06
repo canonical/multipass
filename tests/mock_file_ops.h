@@ -20,6 +20,9 @@
 #include "common.h"
 #include "mock_singleton_helpers.h"
 
+#include <concepts>
+#include <type_traits>
+
 #include <multipass/file_ops.h>
 
 namespace multipass::test
@@ -28,6 +31,12 @@ class MockFileOps : public FileOps
 {
 public:
     using FileOps::FileOps;
+
+    // High-level mock methods
+    MOCK_METHOD(void,
+                write_transactionally,
+                (const QString& file_name, const QByteArrayView& data),
+                (const, override));
 
     // QDir mock methods
     MOCK_METHOD(QDir, current, (), (const));
@@ -43,21 +52,22 @@ public:
     MOCK_METHOD(uint, ownerId, (const QFileInfo&), (const, override));
     MOCK_METHOD(uint, groupId, (const QFileInfo&), (const, override));
 
-    // QFile mock methods
+    // QFile (and parent classes) mock methods
     MOCK_METHOD(bool, exists, (const QFile&), (const, override));
-    MOCK_METHOD(bool, is_open, (const QFile&), (const, override));
-    MOCK_METHOD(bool, open, (QFileDevice&, QIODevice::OpenMode), (const, override));
-    MOCK_METHOD(qint64, read, (QFile&, char*, qint64), (const, override));
-    MOCK_METHOD(QByteArray, read_all, (QFile&), (const, override));
-    MOCK_METHOD(QString, read_line, (QTextStream&), (const, override));
+    MOCK_METHOD(bool, is_open, (const QIODevice&), (const, override));
+    MOCK_METHOD(bool, open, (QIODevice&, QIODevice::OpenMode), (const, override));
+    MOCK_METHOD(qint64, read, (QIODevice&, char*, qint64), (const, override));
+    MOCK_METHOD(QByteArray, read_all, (QIODevice&), (const, override));
     MOCK_METHOD(bool, remove, (QFile&), (const, override));
-    MOCK_METHOD(bool, rename, (QFile&, const QString& newName), (const, override));
-    MOCK_METHOD(bool, resize, (QFile&, qint64 sz), (const, override));
-    MOCK_METHOD(bool, seek, (QFile&, qint64 pos), (const, override));
-    MOCK_METHOD(qint64, size, (QFile&), (const, override));
-    MOCK_METHOD(qint64, write, (QFile&, const char*, qint64), (const, override));
-    MOCK_METHOD(qint64, write, (QFileDevice&, const QByteArray&), (const, override));
-    MOCK_METHOD(bool, flush, (QFile & file), (const, override));
+    MOCK_METHOD(bool, rename, (QFile&, const QString&), (const, override));
+    MOCK_METHOD(bool, resize, (QFileDevice&, qint64 sz), (const, override));
+    MOCK_METHOD(bool, seek, (QIODevice&, qint64 pos), (const, override));
+    MOCK_METHOD(qint64, size, (QIODevice&), (const, override));
+    MOCK_METHOD(qint64, write, (QIODevice&, const char*, qint64), (const, override));
+    MOCK_METHOD(qint64, write, (QIODevice&, const QByteArray&), (const, override));
+    MOCK_METHOD(bool, flush, (QFileDevice&), (const, override));
+
+    MOCK_METHOD(QString, read_line, (QTextStream&), (const, override));
 
     MOCK_METHOD(bool, copy, (const QString&, const QString&), (const, override));
 
@@ -137,4 +147,24 @@ public:
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
+
+inline std::unique_ptr<std::stringstream> mock_read_data(std::string_view data)
+{
+    auto filestream = std::make_unique<std::stringstream>();
+    *filestream << data;
+    return filestream;
+}
+
+// Match a Qt object's file name, mainly for use in EXPECT_CALL matchers. The optional first
+// template type is the expected type of the argument.
+template <typename T = QIODevice&, typename InnerMatcher = void>
+testing::Matcher<T> FileNameMatches(const InnerMatcher& m)
+{
+    using ValueType = std::remove_cvref_t<T>;
+    using namespace testing;
+    if constexpr (std::derived_from<ValueType, QIODevice>)
+        return WhenDynamicCastTo<const QFileDevice&>(Property(&QFileDevice::fileName, m));
+    else
+        return Property(&ValueType::fileName, m);
+}
 } // namespace multipass::test

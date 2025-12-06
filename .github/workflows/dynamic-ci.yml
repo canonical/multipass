@@ -27,7 +27,7 @@ jobs:
       hooks: ${{ steps.filter.outputs.hooks }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Detect changed files
         id: filter
@@ -45,9 +45,10 @@ jobs:
             code:
               - ".github/workflows/linux*"
               - ".github/workflows/windows-macos.yml"
+              - ".github/.codecov.yml"
               - "3rd-party/**"
               - "completions/**"
-              - "data/**"
+              - "data/*"
               - "debian/**"
               - "include/**"
               - "packaging/**"
@@ -55,7 +56,6 @@ jobs:
               - "snap-wrappers/**"
               - "src/**"
               - "tests/**"
-              - "tools/**"
               - ".gitmodules"
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"

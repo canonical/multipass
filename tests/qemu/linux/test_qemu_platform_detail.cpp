@@ -23,10 +23,10 @@
 #include "tests/mock_backend_utils.h"
 #include "tests/mock_file_ops.h"
 #include "tests/mock_logger.h"
-#include "tests/mock_process_factory.h"
 #include "tests/mock_utils.h"
 #include "tests/temp_dir.h"
 
+#include <multipass/process/process.h>
 #include <src/platform/backends/qemu/linux/qemu_platform_detail.h>
 
 #include <QCoreApplication>

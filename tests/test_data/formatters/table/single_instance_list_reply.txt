@@ -1,0 +1,3 @@
+Name                    State             IPv4             Image               Zone
+foo                     Running           10.168.32.2      Ubuntu 16.04 LTS    zone1(a)
+                                          200.3.123.30

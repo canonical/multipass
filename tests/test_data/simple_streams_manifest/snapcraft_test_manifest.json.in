@@ -1,0 +1,301 @@
+{
+  "content_id": "com.ubuntu.cloud:daily:download",
+  "creator": "climdb-download-streams-export",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "https://ubuntu.com/legal/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud.daily:buildd:16.04:@MANIFEST_ARCH@": {
+      "aliases": "16.04,x,xenial,core",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "support_eol": "2021-04-30",
+      "supported": false,
+      "version": "16.04",
+      "versions": {
+        "20210721": {
+          "items": {
+            "lxd_combined.manifest": {
+              "ftype": "lxd_combined.manifest",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.manifest",
+              "sha256": "6b91c14be4bccedc19074ccd353c5bd2347cab9afc1488dc0d31b105058c5014",
+              "size": 5062
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.tar.gz",
+              "sha256": "5a9817001ef7478eee1340eb1b38d36f3ef69668af78097f5ddefd5d09bee9ed",
+              "size": 104022889
+            },
+            "root.manifest": {
+              "ftype": "root.manifest",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-root.manifest",
+              "sha256": "6b91c14be4bccedc19074ccd353c5bd2347cab9afc1488dc0d31b105058c5014",
+              "size": 5062
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "xenial/20210721/xenial-server-cloudimg-@MANIFEST_ARCH@-root.tar.gz",
+              "sha256": "26e6115d3b22886e7a0112449f38d9fc2a01040cf663961314379887c51e245f",
+              "size": 104666236
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-xenial-daily-@MANIFEST_ARCH@-buildd-20210721"
+        }
+      }
+    },
+     "com.ubuntu.cloud.daily:buildd:22.10:@MANIFEST_ARCH@": {
+      "aliases": "22.10,k,kinetic",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "kinetic",
+      "release_codename": "Kinetic Kudu",
+      "release_title": "22.10",
+      "support_eol": "2023-07-20",
+      "supported": false,
+      "version": "22.10",
+      "versions": {
+        "20230721": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-@MANIFEST_ARCH@-disk1.img",
+              "sha256": "488c9afb6f9682c81ea8401d7ce83ea233922ed4a40a62d09d4865d568ecfcdd",
+              "size": 388235264
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "c95e8c8cf7e40961469c32f2f57dcbe6fbe6b50bb63f30748e43d7a9b9f1576e",
+              "ftype": "lxd.tar.xz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "65f03924a82f8c146af0ecd4c84bd235d1e539b547c1735b423d6f5593e79d90",
+              "size": 408
+            },
+            "lxd_combined.manifest": {
+              "ftype": "lxd_combined.manifest",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.manifest",
+              "sha256": "98f746965305eb9aa81464dd797cf1323135c7470bb2eaccc5a4f7e82d783639",
+              "size": 5058
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.tar.gz",
+              "sha256": "baf3d428e947c6e0486062a419a7326fffe28040c6ceaa79ea1d9e824709bfe4",
+              "size": 165420956
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-@MANIFEST_ARCH@-disk1.manifest",
+              "sha256": "c307b9abd4ce543c67111e6de26889f8f68788ffd651a7d27151ba22fdded0c4",
+              "size": 8362
+            },
+            "root.manifest": {
+              "ftype": "root.manifest",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-@MANIFEST_ARCH@-root.manifest",
+              "sha256": "98f746965305eb9aa81464dd797cf1323135c7470bb2eaccc5a4f7e82d783639",
+              "size": 5058
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-@MANIFEST_ARCH@-root.tar.gz",
+              "sha256": "83715566ff9f0d4ac30d371e9f59824a5566ccb852dfb5275af71a9a470e124c",
+              "size": 166404907
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-kinetic-daily-@MANIFEST_ARCH@-buildd-20230721"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:24.04:@MANIFEST_ARCH@": {
+      "aliases": "24.04,n,noble,lts,default,core24",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "noble",
+      "release_codename": "Noble Numbat",
+      "release_title": "24.04 LTS",
+      "support_eol": "2029-05-31",
+      "supported": true,
+      "version": "24.04",
+      "versions": {
+        "20250823": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-disk1.img",
+              "sha256": "640230c05a8ddb05a9e170d2ebeff4c63304c36f9873408e6bed0551bd70b60b",
+              "size": 385040384
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "61953b6acf6df258d0fc6273a23fce38c68008c4d9dae54fac409f4b1dfefde1",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "53a4cacf13964b1708d02fc6bdf680610ac85f03d3205a125d4bdae8e02a828e",
+              "size": 408
+            },
+            "lxd_combined.manifest": {
+              "ftype": "lxd_combined.manifest",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.manifest",
+              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
+              "size": 6044
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.tar.gz",
+              "sha256": "5d298223a1f6b3040adc5fc6a3df74125fffa50e02bc56739842f42121f2d697",
+              "size": 181347374
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@.manifest",
+              "sha256": "b41bd25a1929d8cb799c07f5b83b1939e7eaa9fbc9e305c5b54266f826925aa8",
+              "size": 6722
+            },
+            "root.manifest": {
+              "ftype": "root.manifest",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-root.manifest",
+              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
+              "size": 6044
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250823/noble-server-cloudimg-@MANIFEST_ARCH@-root.tar.gz",
+              "sha256": "bfdd60d2db3fcdc1d9688cd9bb7358da8d1d79171e6e96232d7da023c26723e0",
+              "size": 182421332
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-@MANIFEST_ARCH@-buildd-20250823"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:25.04:@MANIFEST_ARCH@": {
+      "aliases": "25.04,p,plucky",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "plucky",
+      "release_codename": "Plucky Puffin",
+      "release_title": "25.04",
+      "support_eol": "2026-01-15",
+      "supported": true,
+      "version": "25.04",
+      "versions": {
+        "20250624": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "plucky/20250624/plucky-server-cloudimg-@MANIFEST_ARCH@-disk1.img",
+              "sha256": "da4c0a759e6bed72e392aabaaf6c60d4f4607b6da621f95689a38ee01cd23cce",
+              "size": 420362752
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "6579101e2bcf85078e993b1a82bc3050f04c23b0db769a5c9d49f635bbd92373",
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250624/plucky-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "c52d05cdf3ad95ba57ff3080e4ef16ac59a58c75324eb4c7f4995e5f34beb3ac",
+              "size": 404
+            },
+            "lxd_combined.manifest": {
+              "ftype": "lxd_combined.manifest",
+              "path": "plucky/20250624/plucky-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.manifest",
+              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
+              "size": 5425
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.tar.gz",
+              "sha256": "ceb4c4463297e12da5df12f085a68974119e8346c0d580d808aea59ee9f7a5a1",
+              "size": 195977093
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "plucky/20250624/plucky-server-cloudimg-@MANIFEST_ARCH@-disk1.manifest",
+              "sha256": "cc8ae278df72a4bfa8b6a1200a77269b7ef677c2619d77709444ba55b1327fdf",
+              "size": 8851
+            },
+            "root.manifest": {
+              "ftype": "root.manifest",
+              "path": "plucky/20250624/plucky-server-cloudimg-@MANIFEST_ARCH@-root.manifest",
+              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
+              "size": 5425
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-@MANIFEST_ARCH@-root.tar.gz",
+              "sha256": "daae74898a02dd7665286da57490aafc1d65633d86f78f019541745bd6e49acb",
+              "size": 197395634
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-@MANIFEST_ARCH@-buildd-20250624"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:25.10:@MANIFEST_ARCH@": {
+      "aliases": "25.10,q,questing,devel",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "questing",
+      "release_codename": "Questing Quokka",
+      "release_title": "25.10",
+      "support_eol": "2026-07-09",
+      "supported": false,
+      "version": "25.10",
+      "versions": {
+        "20250926": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "questing/20250926/questing-server-cloudimg-@MANIFEST_ARCH@-disk1.img",
+              "sha256": "6acde41d01c43edbd7ab1a5f1cde11eecbf827e9264eaa459dcdfddef9b6a6ca",
+              "size": 581763072
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "c01e4ec1f90fa983d837f683e216e7bc8cd8afc517e5ea6d9a74cd5ddf05e573",
+              "ftype": "lxd.tar.xz",
+              "path": "questing/20250926/questing-server-cloudimg-@MANIFEST_ARCH@-lxd.tar.xz",
+              "sha256": "afb7421e5c98cf7ffe7bac488bc45a7de1a4838d052aaf5f2240c146d603762d",
+              "size": 408
+            },
+            "lxd_combined.manifest": {
+              "ftype": "lxd_combined.manifest",
+              "path": "questing/20250926/questing-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.manifest",
+              "sha256": "7ae13ecd1c2fe489f2e89a84461281f4688a7c928c2133ba0486c152600f82b4",
+              "size": 5126
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "questing/20250926/questing-server-cloudimg-@MANIFEST_ARCH@-lxd_combined.tar.gz",
+              "sha256": "2212a4fe53679191e94c4a4e7cc4e065472d8df6ea32a0398c80c99949f4e28e",
+              "size": 203591454
+            },
+            "manifest": {
+              "ftype": "manifest",
+              "path": "questing/20250926/questing-server-cloudimg-@MANIFEST_ARCH@.manifest",
+              "sha256": "a05bf665c14aa6ea6bfc2fef49b0c0c11797f1fbdf2f84398fec70c28c2b8207",
+              "size": 6136
+            },
+            "root.manifest": {
+              "ftype": "root.manifest",
+              "path": "questing/20250926/questing-server-cloudimg-@MANIFEST_ARCH@-root.manifest",
+              "sha256": "7ae13ecd1c2fe489f2e89a84461281f4688a7c928c2133ba0486c152600f82b4",
+              "size": 5126
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "questing/20250926/questing-server-cloudimg-@MANIFEST_ARCH@-root.tar.gz",
+              "sha256": "317be5118d0f71869999734c3f7af24f675b313f57e0b298a6479a6af72e69b8",
+              "size": 205091777
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-questing-daily-@MANIFEST_ARCH@-buildd-20250926"
+        }
+      }
+    }
+  },
+  "updated": "Sat, 06 Sep 2025 03:59:48 +0000"
+}

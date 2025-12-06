@@ -26,7 +26,6 @@
 #include <QStringList>
 
 namespace mp = multipass;
-namespace mpl = multipass::logging;
 
 namespace
 {
@@ -106,7 +105,7 @@ void check_state_for_update(mp::VirtualMachine& instance)
     auto st = instance.current_state();
     if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
         throw mp::InstanceStateSettingsException{operation_msg(Operation::Modify),
-                                                 instance.vm_name,
+                                                 instance.get_name(),
                                                  "Instance must be stopped for modification"};
 }
 

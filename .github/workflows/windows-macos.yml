@@ -30,17 +30,27 @@ jobs:
     steps:
     - name: Determine build matrix
       id: set-matrix
-      run: |
-        set -euo pipefail
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const matrix = { include: [] };
 
-        MATRIX='{"include": ['
-        MATRIX+='{"runs-on": "windows-latest"},'
-        MATRIX+='{"runs-on": "macos-13", "arch": "x86_64", "mono": "mono"},'
-        MATRIX+='{"runs-on": "macos-14", "arch": "arm64"},'
-        MATRIX+='{"runs-on": "macos-latest", "arch": "arm64"}'
-        MATRIX+=']}'
+          // Windows targets
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025"
+          });
 
-        echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+          // macOS targets
+          matrix.include.push({
+            "name": "macOS Latest (Apple Silicon)",
+            "runs-on": "macos-latest"
+          },{
+            "name": "macOS 15 Sequoia (Intel Silicon)",
+            "runs-on": "macos-15-intel",
+          })
+
+          core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
     needs: GetMatrix
@@ -57,12 +67,13 @@ jobs:
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
-      # Use artifacts from macos-13 and macos-14 in official package
-      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-artifact-name }}
-      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-13-x86_64-package-file-name }}
-      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-14-arm64-package-file-name }}
+      # Use artifacts from macos-15-intel and macos-latest in official package
+      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
+      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
 
+    name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
 
     env:
@@ -71,7 +82,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
@@ -105,10 +116,6 @@ jobs:
         # Needed for cache: https://github.com/actions/cache?tab=readme-ov-file#pre-requisites
         echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
 
-    - name: Set the arch wrapper
-      if: ${{ matrix.arch }}
-      run: echo "ARCH_WRAPPER=arch -arch ${{ matrix.arch }}" >> ${GITHUB_ENV}
-
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
       if: ${{ runner.os == 'macOS' }}
@@ -120,10 +127,8 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: |
         # Avoid reinstalling cmake
-        ${{ env.ARCH_WRAPPER }} brew list cmake > /dev/null || \
-            ${{ env.ARCH_WRAPPER }} brew install cmake
+        brew list cmake > /dev/null || brew install cmake
 
-        ${{ env.ARCH_WRAPPER }} \
         brew install \
           coreutils \
           dylibbundler \
@@ -133,16 +138,24 @@ jobs:
           libev \
           libffi \
           ninja \
-          openssl@3 \
           pixman \
           pkg-config \
           python \
           wget
 
+        # vcpkg-libb2: libb2 currently requires the following programs:
+        brew install autoconf autoconf-archive automake libtool
+
+        # Force brew nuget & mono
+        brew install nuget || true
+        brew install mono || true
+        brew link --overwrite mono
+        brew link --overwrite nuget
+
     - name: Install dependencies from pip
       if: ${{ runner.os == 'macOS' }}
       run: |
-        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade distlib
+        python3 -m pip install --user --upgrade distlib
 
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
@@ -162,54 +175,58 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
-      # TODO: remove this when self-hosted runners are dropped
-    - name: Disable vcpkg binary cache on self-hosted runners
-      id: disable-cache
-      shell: bash
-      run: |
-        if [[ "${{ matrix['runs-on'] }}" == *multipass* ]]; then
-          echo "VCPKG_BINARY_SOURCES=" >> $GITHUB_ENV
-        fi
-
-    - name: Install nuget
-      if: ${{ matrix.arch == 'arm64' }}
-      run: |
-        brew install nuget mono
-
     - name: Configure NuGet Source
-      if: ${{ env.VCPKG_BINARY_SOURCES }} # TODO: remove this when self-hosted runners are dropped
       id: setup_nuget
       continue-on-error: true
       shell: 'bash'
       run: |
+        echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        # Retrieve vcpkg's nuget.
+        NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        MONO_WRAPPER=""
+
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+            # Check if we actually need to call NuGet through mono.
+            # That would be the case if NuGet is the real PE32 executable
+            # instead of a shim.
+            if file "$NUGET_PATH" | grep -q "PE32"; then
+                MONO_WRAPPER="mono"
+            fi
+        fi
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           sources add \
           -source "${{ env.FEED_URL }}" \
           -storepasswordincleartext \
           -name "GitHubPackages" \
           -username "${{ env.USERNAME }}" \
           -password "${{ secrets.GITHUB_TOKEN }}"
-        ${{ matrix.mono }} "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)" \
+
+        $MONO_WRAPPER "$NUGET_PATH" \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -source "${{ env.FEED_URL }}"
 
     - name: Overwrite Homebrew nuget shim with nuget DLL
       continue-on-error: true
-      if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' && matrix.arch == 'arm64' }}
+      if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' }}
       run: |
         # Locate the real NuGet.exe in Homebrew’s Cellar
         NUGET_EXE="$(brew --prefix nuget)/libexec/NuGet.exe"
-        # Remove the old shim and replace it with a symlink
-        sudo rm -f /opt/homebrew/bin/nuget
-        sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
-        sudo chmod +x /opt/homebrew/bin/nuget
+        if file "/opt/homebrew/bin/nuget" | grep -q "text"; then
+          # Remove the old shim and replace it with a symlink
+          echo "/opt/homebrew/bin/nuget is a shim, replacing it with $NUGET_EXE"
+          sudo rm -f /opt/homebrew/bin/nuget
+          sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
+          sudo chmod +x /opt/homebrew/bin/nuget
+        fi
 
     - name: Set up CCache
       if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
       run: |
-        ${{ env.ARCH_WRAPPER }} brew install ccache
+        brew install ccache
 
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
@@ -226,12 +243,6 @@ jobs:
           ccache-${{ matrix.runs-on }}
         path: ${{ env.CCACHE_DIR }}
 
-    - name: Install OpenSSL from Choco
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
-      with:
-        args: install --yes openssl --version=3.1.1
-
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
       uses: crazy-max/ghaction-chocolatey@v3
@@ -240,16 +251,7 @@ jobs:
 
     - name: Install cmake
       if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v4.1.2
-
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: 6.2.4
-        setup-python: false
-        aqtversion: '==3.1.*'
-        py7zrversion: '==0.20.*'
-      timeout-minutes: 20
+      uses: lukka/get-cmake@v4.2.0
 
     - name: Set up MSVC
       if: ${{ runner.os == 'Windows' }}
@@ -257,19 +259,17 @@ jobs:
 
     - name: Configure
       run: >
-        ${{ env.ARCH_WRAPPER }}
         cmake
         -B${{ env.BUILD_DIR }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
-        -DCMAKE_PREFIX_PATH=${{ env.Qt6_Dir }}
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ github.workspace }}
 
     - name: Build
-      run: ${{ env.ARCH_WRAPPER }} cmake --build ${{ env.BUILD_DIR }}
+      run: cmake --build ${{ env.BUILD_DIR }}
 
     - name: Clear CCache stats
       if: ${{ runner.os == 'macOS' }}
@@ -278,13 +278,13 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        ${{ env.ARCH_WRAPPER }} bin/multipass_tests
+        bin/multipass_tests
 
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
       run: >
-        ${{ env.ARCH_WRAPPER }} cmake --build . --target package
+        cmake --build . --target package
 
         echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' ||
         '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >>
@@ -301,7 +301,7 @@ jobs:
         runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
@@ -332,8 +332,8 @@ jobs:
       shell: bash
       run: |
         NAME="${{ steps.cmake-package.outputs.name }}"
-        ARTIFACT_NAME="${{ matrix.runs-on }}-${{ matrix.arch }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
-        FILE_NAME="${{ matrix.runs-on }}-${{ matrix.arch }}-package-file-name=${NAME}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
 
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
@@ -344,11 +344,11 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
@@ -359,39 +359,32 @@ jobs:
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
-      if: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
-      if: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
-
-    - name: Set the arch wrapper
-      run: >
-        echo "ARCH_WRAPPER=arch -arch $( sysctl machdep.cpu.brand_string | grep -q Apple &&
-          echo arm64 || echo x86_64 )" >> ${GITHUB_ENV}
 
     - name: Combine the macOS package
       id: combine-package
       if: ${{ steps.retrieve-x86.outputs.download-path && steps.retrieve-arm.outputs.download-path }}
       run: |
-        ${ARCH_WRAPPER} brew install python
-        ${ARCH_WRAPPER} brew install coreutils
-        ${ARCH_WRAPPER} python3 -m pip install --user --upgrade lxml
+        brew install python
+        brew install coreutils
+        python3 -m pip install --user --upgrade lxml
 
         PKG=${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
         PKG=${PKG/.x86_64/}
-        ${ARCH_WRAPPER} packaging/macos/merge_pkgs.py \
+        packaging/macos/merge_pkgs.py \
           ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }} \
           ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }} \
           ${PKG}
 
-        ${ARCH_WRAPPER} packaging/macos/sign-and-notarize.sh \
+        packaging/macos/sign-and-notarize.sh \
           --app-signer - \
           ${PKG}
 
@@ -400,7 +393,7 @@ jobs:
 
     - name: Upload combined macOS package
       if: ${{ steps.combine-package.outputs.path }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ steps.combine-package.outputs.name }}
         path: ${{ steps.combine-package.outputs.path }}

@@ -1,0 +1,62 @@
+Name:           bogus-instance
+State:          Running
+Zone:           zone1(a)
+Snapshots:      2
+IPv4:           10.21.124.56
+Release:        Ubuntu 16.04.3 LTS
+Image hash:     1797c5c82016 (Ubuntu 16.04 LTS)
+CPU(s):         4
+Load:           0.03 0.10 0.15
+Disk usage:     1.8GiB out of 6.3GiB
+Memory usage:   37.0MiB out of 1.5GiB
+Mounts:         /home/user/source => source
+                    UID map: 1000:501
+                    GID map: 1000:501
+
+Name:           bombastic
+State:          Stopped
+Zone:           zone2(u/a)
+Snapshots:      3
+IPv4:           --
+Release:        --
+Image hash:     ab5191cc1725 (Ubuntu 18.04 LTS)
+CPU(s):         --
+Load:           --
+Disk usage:     --
+Memory usage:   --
+Mounts:         --
+
+Snapshot:       snapshot1
+Instance:       bogus-instance
+CPU(s):         2
+Disk space:     4.9GiB
+Memory size:    0.9GiB
+Mounts:         --
+Created:        1972-01-01T09:59:59.021Z
+Parent:         --
+Children:       --
+Comment:        --
+
+Snapshot:       snapshot2
+Instance:       bogus-instance
+CPU(s):         2
+Disk space:     4.9GiB
+Memory size:    0.9GiB
+Mounts:         /home/user/source => source
+                /home/user => Home
+Created:        1972-01-01T10:00:20.021Z
+Parent:         snapshot1
+Children:       snapshot3
+                snapshot4
+Comment:        --
+
+Snapshot:       black-hole
+Instance:       messier-87
+CPU(s):         1
+Disk space:     1024GiB
+Memory size:    128GiB
+Mounts:         --
+Created:        2019-04-10T11:59:59Z
+Parent:         --
+Children:       --
+Comment:        Captured by EHT

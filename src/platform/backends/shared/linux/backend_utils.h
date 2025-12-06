@@ -20,7 +20,6 @@
 #include <multipass/path.h>
 #include <multipass/singleton.h>
 
-#include <chrono>
 #include <stdexcept>
 #include <string>
 

@@ -1,0 +1,57 @@
+{
+    "errors": [
+    ],
+    "info": {
+        "foo": {
+            "cpu_count": "1",
+            "disks": {
+                "sda1": {
+                    "total": "5153960756",
+                    "used": "1288490188"
+                }
+            },
+            "image_hash": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+            "image_release": "16.04 LTS",
+            "ipv4": [
+                "10.168.32.2",
+                "200.3.123.29"
+            ],
+            "load": [
+                0.45,
+                0.51,
+                0.15
+            ],
+            "memory": {
+                "total": 1503238554,
+                "used": 60817408
+            },
+            "mounts": {
+                "foo": {
+                    "gid_mappings": [
+                        "1000:1000"
+                    ],
+                    "source_path": "/home/user/foo",
+                    "uid_mappings": [
+                        "1000:1000"
+                    ]
+                },
+                "test_dir": {
+                    "gid_mappings": [
+                        "1000:1000"
+                    ],
+                    "source_path": "/home/user/test_dir",
+                    "uid_mappings": [
+                        "1000:1000"
+                    ]
+                }
+            },
+            "release": "Ubuntu 16.04.3 LTS",
+            "snapshot_count": "0",
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
+        }
+    }
+}

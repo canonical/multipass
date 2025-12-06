@@ -19,11 +19,9 @@
 
 #pragma once
 
-#include "disabled_copy_move.h"
 #include "vm_image_info.h"
 
 #include <QByteArray>
-#include <QMap>
 #include <QString>
 
 #include <memory>
@@ -32,17 +30,17 @@
 
 namespace multipass
 {
-
 struct SimpleStreamsManifest
 {
     static std::unique_ptr<SimpleStreamsManifest> fromJson(
         const QByteArray& json,
         const std::optional<QByteArray>& json_from_mirror,
-        const QString& host_url);
+        const QString& host_url,
+        std::function<bool(VMImageInfo&)> mutator = [](VMImageInfo&) { return true; });
 
     const QString updated_at;
     const std::vector<VMImageInfo> products;
-    const QMap<QString, const VMImageInfo*> image_records;
+    const std::unordered_map<QString, const VMImageInfo*> image_records;
 
     SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images);
 };

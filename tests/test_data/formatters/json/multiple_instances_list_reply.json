@@ -1,0 +1,27 @@
+{
+    "list": [
+        {
+            "ipv4": [
+                "10.21.124.56"
+            ],
+            "name": "bogus-instance",
+            "release": "Ubuntu 16.04 LTS",
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
+        },
+        {
+            "ipv4": [
+            ],
+            "name": "bombastic",
+            "release": "Ubuntu 18.04 LTS",
+            "state": "Stopped",
+            "zone": {
+                "available": false,
+                "name": "zone2"
+            }
+        }
+    ]
+}

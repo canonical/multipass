@@ -38,7 +38,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <vector>
 
 #define MP_PLATFORM multipass::platform::Platform::instance()
 

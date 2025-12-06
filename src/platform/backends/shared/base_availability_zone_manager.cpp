@@ -137,7 +137,8 @@ void BaseAvailabilityZoneManager::serialize() const
         {automatic_zone_key, QString::fromStdString(m.zone_collection.last_used())},
     };
 
-    MP_JSONUTILS.write_json(json, QString::fromStdU16String(m.file_path.u16string()));
+    MP_FILEOPS.write_transactionally(QString::fromStdU16String(m.file_path.u16string()),
+                                     QJsonDocument{json}.toJson());
 }
 
 const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray&

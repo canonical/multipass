@@ -53,8 +53,42 @@ private:
         std::pair{Keys::loadavg_key, "cat /proc/loadavg | cut -d ' ' -f1-3"},
         std::pair{Keys::mem_usage_key, R"(free -b | grep 'Mem:' | awk '{printf \$3}')"},
         std::pair{Keys::mem_total_key, R"(free -b | grep 'Mem:' | awk '{printf \$2}')"},
-        std::pair{Keys::disk_usage_key, "df -t ext4 -t vfat --total -B1 --output=used | tail -n 1"},
-        std::pair{Keys::disk_total_key, "df -t ext4 -t vfat --total -B1 --output=size | tail -n 1"},
+        std::pair{Keys::disk_usage_key,
+                  R"(
+                    bash -c '
+                      declare -A seen
+                      sum=0
+                      while read -r src size mp; do
+                        fsid=\$(stat -f -c \"%d\" \$mp)
+                        if [[ -z \${seen[\$fsid]} ]]; then
+                          sum=\$(( sum + size ))
+                          seen[\$fsid]=1
+                        fi
+                      done < <(
+                        df -B1 -t ext4 -t btrfs -t vfat --output=source,used,target \
+                        | tail -n +2
+                      )
+                      printf \"%d\" \$sum
+                    '
+                  )"},
+        std::pair{Keys::disk_total_key,
+                  R"(
+                    bash -c '
+                      declare -A seen
+                      sum=0
+                      while read -r src size mp; do
+                        fsid=\$(stat -f -c \"%d\" \$mp)
+                        if [[ -z \${seen[\$fsid]} ]]; then
+                          sum=\$(( sum + size ))
+                          seen[\$fsid]=1
+                        fi
+                      done < <(
+                        df -B1 -t ext4 -t btrfs -t vfat --output=source,size,target \
+                        | tail -n +2
+                      )
+                      printf \"%d\" \$sum
+                    '
+                  )"},
         std::pair{Keys::cpus_key, "nproc"},
         std::pair{Keys::cpu_times_key, "head -n1 /proc/stat"},
         std::pair{Keys::uptime_key, "uptime -p | tail -c+4"},
@@ -106,15 +140,13 @@ void mp::RuntimeInstanceInfoHelper::populate_runtime_info(mp::VirtualMachine& vm
     instance_info->set_current_release(!current_release.empty() ? current_release
                                                                 : original_release);
 
-    std::string management_ip = vm.management_ipv4();
+    auto management_ip = vm.management_ipv4();
     auto all_ipv4 = vm.get_all_ipv4();
 
-    if (MP_UTILS.is_ipv4_valid(management_ip))
-        instance_info->add_ipv4(management_ip);
-    else if (all_ipv4.empty())
-        instance_info->add_ipv4("N/A");
+    if (management_ip)
+        instance_info->add_ipv4(management_ip->as_string());
 
     for (const auto& extra_ipv4 : all_ipv4)
         if (extra_ipv4 != management_ip)
-            instance_info->add_ipv4(extra_ipv4);
+            instance_info->add_ipv4(extra_ipv4.as_string());
 }

@@ -1,0 +1,52 @@
+errors:
+  - ~
+bogus-instance:
+  - state: Running
+    zone:
+      name: zone1
+      available: true
+    snapshot_count: 1
+    image_hash: 1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac
+    image_release: 16.04 LTS
+    release: Ubuntu 16.04.3 LTS
+    cpu_count: 4
+    load:
+      - 0.03
+      - 0.10
+      - 0.15
+    disks:
+      - sda1:
+          used: 1932735284
+          total: 6764573492
+    memory:
+      usage: 38797312
+      total: 1610612736
+    ipv4:
+      - 10.21.124.56
+    mounts:
+      source:
+        uid_mappings:
+          - "1000:501"
+        gid_mappings:
+          - "1000:501"
+        source_path: /home/user/source
+bombastic:
+  - state: Stopped
+    zone:
+      name: zone2
+      available: false
+    snapshot_count: 3
+    image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509
+    image_release: 18.04 LTS
+    release: ~
+    cpu_count: ~
+    disks:
+      - sda1:
+          used: ~
+          total: ~
+    memory:
+      usage: ~
+      total: ~
+    ipv4:
+      []
+    mounts: ~
