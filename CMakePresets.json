@@ -175,6 +175,9 @@
                     "type": "STRING",
                     "value": "apple"
                 }
+            },
+            "vendor": {
+                "enabled-in-ci": true
             }
         },
         {
@@ -184,6 +187,9 @@
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Linux"
+            },
+            "vendor": {
+                "enabled-in-ci": false
             }
         },
         {
@@ -193,6 +199,9 @@
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
+            },
+            "vendor": {
+                "enabled-in-ci": false
             }
         }
     ],
