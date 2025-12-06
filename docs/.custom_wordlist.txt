@@ -6,11 +6,13 @@ CPUs
 dev
 echoless
 ethernet
+failover
 Hyperkit
 IPs
 Junos
 Kaspersky
 misconfiguration
+mysqldump
 NIC
 NICs
 overallocate
