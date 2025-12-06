@@ -340,6 +340,7 @@ jobs:
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
   CombineAndPublishMacOSPackage:
+    name: Combine and Publish macOS Package (${{ matrix.variant.name }})
     # Want to run even if one of the builds above failed
     if: ${{ !cancelled() && always() }}
 
@@ -347,13 +348,22 @@ jobs:
 
     runs-on: macos-latest
 
+    strategy:
+      matrix:
+        variant:
+          - name: "Release"
+            x86-package: ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
+            arm-package: ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }}
+          - name: "Edge"
+            x86-package: ${{ needs.BuildAndTest.outputs.mac-x86-edge-package-file-name }}
+            arm-package: ${{ needs.BuildAndTest.outputs.mac-arm-edge-package-file-name }}
+
     steps:
     - name: Check out code
       uses: actions/checkout@v6
 
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
-      if: ${{ runner.os == 'macOS' }}
       run: |
         mkdir -p ~/.pip
         echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
@@ -378,11 +388,11 @@ jobs:
         brew install coreutils
         python3 -m pip install --user --upgrade lxml
 
-        PKG=${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
+        PKG=${{ matrix.variant.x86-package }}
         PKG=${PKG/.x86_64/}
         packaging/macos/merge_pkgs.py \
-          ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }} \
-          ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }} \
+          ${{ matrix.variant.x86-package }} \
+          ${{ matrix.variant.arm-package }} \
           ${PKG}
 
         packaging/macos/sign-and-notarize.sh \
