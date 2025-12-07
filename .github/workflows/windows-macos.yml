@@ -366,7 +366,7 @@ jobs:
       with:
         path: ${{ steps.cmake-package.outputs.path }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ steps.build-params.outputs.label }}
+        prefix: ${{ matrix.cmake-preset && format('{0}-edge', steps.build-params.outputs.label) || steps.build-params.outputs.label }}
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
@@ -425,13 +425,13 @@ jobs:
       id: retrieve-x86
       uses: actions/download-artifact@v6
       with:
-        name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
+        name: ${{ matrix.variant.x86-artifact }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
       uses: actions/download-artifact@v6
       with:
-        name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+        name: ${{ matrix.variant.arm-artifact }}
 
     - name: Combine the macOS package
       id: combine-package
@@ -460,7 +460,7 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: ${{ steps.combine-package.outputs.name }}
-        path: ${{ steps.combine-package.outputs.path }}
+        path: ${{ matrix.cmake-preset && format('edge-{0}', steps.combine-package.outputs.path) || steps.combine-package.outputs.path }}
         if-no-files-found: error
         retention-days: 7
 
@@ -471,7 +471,7 @@ jobs:
       with:
         path: ${{ steps.combine-package.outputs.path }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ needs.BuildAndTest.outputs.build-label }}
+        prefix: ${{ matrix.cmake-preset && format('{0}-edge', steps.build-params.outputs.label) || steps.build-params.outputs.label }}
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
@@ -484,8 +484,6 @@ jobs:
       uses: geekyeggo/delete-artifact@v5
       with:
         name: |
-          ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
-          ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
-          ${{ needs.BuildAndTest.outputs.mac-x86-edge-package-artifact-name }}
-          ${{ needs.BuildAndTest.outputs.mac-arm-edge-package-artifact-name }}
+          ${{ matrix.variant.x86-artifact }}
+          ${{ matrix.variant.arm-artifact }}
         failOnError: false
