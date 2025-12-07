@@ -459,8 +459,8 @@ jobs:
       if: ${{ steps.combine-package.outputs.path }}
       uses: actions/upload-artifact@v5
       with:
-        name: ${{ steps.combine-package.outputs.name }}
-        path: ${{ matrix.cmake-preset && format('edge-{0}', steps.combine-package.outputs.path) || steps.combine-package.outputs.path }}
+        name: ${{ matrix.variant.name == 'Edge' && format('edge-{0}', steps.combine-package.outputs.name) || steps.combine-package.outputs.name }}
+        path: ${{ steps.combine-package.outputs.path }}
         if-no-files-found: error
         retention-days: 7
 
@@ -471,7 +471,7 @@ jobs:
       with:
         path: ${{ steps.combine-package.outputs.path }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ matrix.cmake-preset && format('{0}-edge', steps.build-params.outputs.label) || steps.build-params.outputs.label }}
+        prefix: ${{ matrix.variant.name == 'Edge' && format('{0}-edge', steps.build-params.outputs.label) || steps.build-params.outputs.label }}
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
