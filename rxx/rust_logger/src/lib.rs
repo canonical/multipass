@@ -24,11 +24,14 @@ pub mod ffi {
     }
 }
 
-pub fn log_message(level: ffi::Level, category: String, message: String) {
+fn log_message(level: ffi::Level, category: String, message: String) {
     match ffi::log_message(level, category, message) {
         Ok(()) => (),
         Err(e) => {
             println!("Log message exception: {e}");
         }
     };
+}
+pub fn log_error(category: String, message: String) {
+    log_message(ffi::Level::error, category, message)
 }
