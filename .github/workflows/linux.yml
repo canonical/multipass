@@ -20,18 +20,53 @@ jobs:
     steps:
     - name: Determine job matrix
       id: set-matrix
-      run: |
-        set -euo pipefail
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const fs = require('fs');
+          const presets = JSON.parse(fs.readFileSync('CMakePresets.json', 'utf8'));
 
-        MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
-                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-15"}
-                {"build-type": "Release", "cmake-preset": "ci-snap"}'
+          // Find the feature-flags-enabled preset
+          const featureFlagsPreset = presets.configurePresets.find(p => p.name === 'feature-flags-enabled');
 
-        if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
-            MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage" }'
-        fi
+          // Check which platform-specific presets have CI enabled via metadata
+          const platformHasChanges = {};
+          if (featureFlagsPreset && featureFlagsPreset.inherits) {
+            for (const inheritedName of featureFlagsPreset.inherits) {
+              const inherited = presets.configurePresets.find(p => p.name === inheritedName);
+              if (inherited?.vendor?.['enabled-in-ci'] === true && inherited.condition) {
+                const hostSystem = inherited.condition.rhs;
+                platformHasChanges['linux'] = hostSystem === 'Linux';
+              }
+            }
+          }
 
-        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
+          const matrix = { include: [{
+            "build-type": "Debug",
+            "cmake-preset": "ci-snap-debug"
+          },{
+            "build-type": "Clang",
+            "cmake-preset": "ci-snap-clang-15"
+          },{
+            "build-type": "Release",
+            "cmake-preset": "ci-snap"
+          }] };
+
+          if (platformHasChanges['linux']) {
+            matrix.include.push({
+              "build-type": "Feature flags",
+              "cmake-preset": "feature-flags-enabled"
+            });
+          }
+
+          if (context.eventName !== 'merge_group' && context.repo.owner === 'canonical' && context.repo.repo === 'multipass') {
+            matrix.include.push({
+              "build-type": "Coverage",
+              "cmake-preset": "ci-snap-coverage"
+            });
+          }
+
+          core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
     needs: GetMatrix
