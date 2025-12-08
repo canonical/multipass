@@ -18,6 +18,12 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+      with:
+        sparse-checkout: |
+          CMakePresets.json
+
     - name: Determine job matrix
       id: set-matrix
       uses: actions/github-script@v8
