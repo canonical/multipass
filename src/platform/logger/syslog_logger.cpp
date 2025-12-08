@@ -30,9 +30,9 @@ void mpl::SyslogLogger::log(mpl::Level level,
 {
     if (level <= logging_level)
     {
-        constexpr static std::string_view kFormatString = "[%.*s] %.*s";
+        constexpr static std::string_view format_string = "[%.*s] %.*s";
         mpl::SyslogWrapper::instance().write_syslog(to_syslog_priority(level),
-                                                    kFormatString,
+                                                    format_string,
                                                     category,
                                                     message);
     }

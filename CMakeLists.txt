@@ -332,6 +332,7 @@ message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(MSVC)
   add_definitions(-DMULTIPASS_COMPILER_MSVC)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
@@ -428,3 +429,10 @@ if(MULTIPASS_ENABLE_TESTS)
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)
+
+# Disable .clang-tidy in build folder
+file(WRITE "${CMAKE_BINARY_DIR}/.clang-tidy"
+"---
+Checks: >
+  -*,
+")
