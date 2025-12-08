@@ -30,17 +30,9 @@ pub mod ffi {
     extern "Rust" {
         fn generate_petname(n_w: NumWords, sep: c_char) -> Result<String>;
     }
-    #[namespace = "multipass::logging"]
-    extern "C++" {
-        type Level = rust_logger::ffi::Level;
-    }
 }
 
 fn generate_petname(n_w: ffi::NumWords, sep: c_char) -> Result<String, ParseError> {
-    rust_logger::log_message(
-        ffi::Level::error,
-        String::from("rust error"),
-        String::from("You found out!"),
-    );
+    rust_logger::log_error(String::from("rust error"), String::from("You found out!"));
     Ok(String::from("curious-scoundrel"))
 }
