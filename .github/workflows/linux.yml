@@ -61,7 +61,7 @@ jobs:
           if (platformHasChanges['linux']) {
             matrix.include.push({
               "build-type": "Feature flags",
-              "cmake-preset": "feature-flags-enabled"
+              "cmake-preset": "feature-flags-ci-snap"
             });
           }
 

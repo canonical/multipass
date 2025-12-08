@@ -153,6 +153,14 @@
             }
         },
         {
+            "name": "feature-flags-ci-snap",
+            "description": "Compose feature flags for in CI.",
+            "inherits": [
+                "feature-flags-enabled",
+                "ci-snap-debug"
+            ]
+        },
+        {
             "name": "feature-flags-enabled",
             "description": "Preset with all feature flags enabled for testing purposes.",
             "inherits": [
