@@ -153,32 +153,14 @@
             }
         },
         {
-            "name": "feature-flags-ci-snap",
-            "description": "Compose feature flags for in CI.",
-            "inherits": [
-                "feature-flags-enabled",
-                "ci-snap-debug"
-            ]
-        },
-        {
-            "name": "feature-flags-enabled",
-            "description": "Preset with all feature flags enabled for testing purposes.",
-            "inherits": [
-                "common",
-                "macOS-feature-flags",
-                "linux-feature-flags",
-                "windows-feature-flags"
-            ]
+            "name": "common-feature-flags",
+            "description": "Preset with platform agnositic feature flags enabled.",
+            "inherits": "common"
         },
         {
             "name": "macOS-feature-flags",
             "description": "Preset for macOS specific feature flags",
-            "hidden": true,
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
-            },
+            "inherits": "common-feature-flags",
             "cacheVariables": {
                 "MULTIPASS_BACKENDS": {
                     "type": "STRING",
@@ -192,12 +174,10 @@
         {
             "name": "linux-feature-flags",
             "description": "Preset for Linux specific feature flags",
-            "hidden": true,
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Linux"
-            },
+            "inherits": [
+                "common-feature-flags",
+                "ci-snap-debug"
+            ],
             "vendor": {
                 "enabled-in-ci": false
             }
@@ -205,12 +185,7 @@
         {
             "name": "windows-feature-flags",
             "description": "Preset for Windows specific feature flags",
-            "hidden": true,
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            },
+            "inherits": "common-feature-flags",
             "vendor": {
                 "enabled-in-ci": false
             }

@@ -29,24 +29,6 @@ jobs:
       uses: actions/github-script@v8
       with:
         script: |
-          const fs = require('fs');
-          const presets = JSON.parse(fs.readFileSync('CMakePresets.json', 'utf8'));
-
-          // Find the feature-flags-enabled preset
-          const featureFlagsPreset = presets.configurePresets.find(p => p.name === 'feature-flags-enabled');
-
-          // Check which platform-specific presets have CI enabled via metadata
-          const platformHasChanges = {};
-          if (featureFlagsPreset && featureFlagsPreset.inherits) {
-            for (const inheritedName of featureFlagsPreset.inherits) {
-              const inherited = presets.configurePresets.find(p => p.name === inheritedName);
-              if (inherited?.vendor?.['enabled-in-ci'] === true && inherited.condition) {
-                const hostSystem = inherited.condition.rhs;
-                platformHasChanges['linux'] = hostSystem === 'Linux';
-              }
-            }
-          }
-
           const matrix = { include: [{
             "build-type": "Debug",
             "cmake-preset": "ci-snap-debug"
@@ -58,10 +40,16 @@ jobs:
             "cmake-preset": "ci-snap"
           }] };
 
-          if (platformHasChanges['linux']) {
+          const fs = require('fs');
+          const presets = JSON.parse(fs.readFileSync('CMakePresets.json', 'utf8'));
+
+          // Find the feature-flags-enabled preset
+          const featureFlagsPreset = presets.configurePresets.find(p => p.name === 'linux-feature-flags');
+
+          if (featureFlagsPreset?.vendor?.['enabled-in-ci'] === true) {
             matrix.include.push({
               "build-type": "Feature flags",
-              "cmake-preset": "feature-flags-ci-snap"
+              "cmake-preset": "linux-feature-flags"
             });
           }
 
@@ -92,7 +80,7 @@ jobs:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
 
-    continue-on-error: ${{ matrix.build-type == 'Feature flags' }}
+    continue-on-error: ${{ contains(matrix.cmake-preset, 'feature-flags') }}
 
     runs-on: ubuntu-latest
 

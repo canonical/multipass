@@ -39,59 +39,43 @@ jobs:
       uses: actions/github-script@v8
       with:
         script: |
-          const fs = require('fs');
-          const presets = JSON.parse(fs.readFileSync('CMakePresets.json', 'utf8'));
-
-          // Find the feature-flags-enabled preset
-          const featureFlagsPreset = presets.configurePresets.find(p => p.name === 'feature-flags-enabled');
-
-          // Check which platform-specific presets have CI enabled via metadata
-          const platformHasChanges = {};
-          if (featureFlagsPreset && featureFlagsPreset.inherits) {
-            for (const inheritedName of featureFlagsPreset.inherits) {
-              const inherited = presets.configurePresets.find(p => p.name === inheritedName);
-              if (inherited?.vendor?.['enabled-in-ci'] === true && inherited.condition) {
-                const hostSystem = inherited.condition.rhs;
-                platformHasChanges['macos'] = hostSystem === 'Darwin';
-                platformHasChanges['windows'] = hostSystem === 'Windows';
-              }
-            }
-          }
-
-          const matrix = { include: [] };
-
-          // Windows targets
-          matrix.include.push({
-              "name": "Windows Server 2025",
-              "runs-on": "windows-2025"
-          });
-
-          if (platformHasChanges['windows']) {
-            matrix.include.push({
-              "name": "Windows Server 2025 Edge",
-              "runs-on": "windows-2025",
-              "cmake-preset": "feature-flags-enabled"
-            });
-          }
-
-          // macOS targets
-          matrix.include.push({
+          const matrix = { include: [{
+            "name": "Windows Server 2025",
+            "runs-on": "windows-2025"
+          },{
             "name": "macOS Latest (Apple Silicon)",
             "runs-on": "macos-latest"
           },{
             "name": "macOS 15 Sequoia (Intel Silicon)",
             "runs-on": "macos-15-intel",
-          });
+          }] };
 
-          if (platformHasChanges['macos']) {
+          const fs = require('fs');
+          const presets = JSON.parse(fs.readFileSync('CMakePresets.json', 'utf8'));
+
+          // Find the feature-flags-enabled preset for Windows
+          featureFlagsPreset = presets.configurePresets.find(p => p.name === 'windows-feature-flags');
+
+          if (featureFlagsPreset?.vendor?.['enabled-in-ci'] === true) {
+            matrix.include.push({
+              "name": "Windows Server 2025 Edge",
+              "runs-on": "windows-2025",
+              "cmake-preset": "windows-feature-flags"
+            });
+          }
+
+          // Find the feature-flags-enabled preset for macOS
+          featureFlagsPreset = presets.configurePresets.find(p => p.name === 'macOS-feature-flags');
+
+          if (featureFlagsPreset?.vendor?.['enabled-in-ci'] === true) {
             matrix.include.push({
               "name": "macOS Latest (Apple Silicon) Edge",
               "runs-on": "macos-latest",
-              "cmake-preset": "feature-flags-enabled"
+              "cmake-preset": "macOS-feature-flags"
             },{
               "name": "macOS 15 Sequoia (Intel Silicon) Edge",
               "runs-on": "macos-15-intel",
-              "cmake-preset": "feature-flags-enabled"
+              "cmake-preset": "macOS-feature-flags"
             });
           }
 
@@ -110,7 +94,7 @@ jobs:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
 
-    continue-on-error: ${{ matrix.cmake-preset == 'feature-flags-enabled' }}
+    continue-on-error: ${{ contains(matrix.cmake-preset, 'feature-flags') }}
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
