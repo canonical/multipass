@@ -412,6 +412,8 @@ jobs:
               x86-artifact: ""
           - variant:
               arm-artifact: ""
+      fail-fast: false
+
     steps:
     - name: Check out code
       uses: actions/checkout@v6
