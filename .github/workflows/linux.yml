@@ -345,3 +345,9 @@ jobs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
+
+    - name: Delete unused artifacts from github
+      uses: geekyeggo/delete-artifact@v5
+      with:
+        name: ${{ needs.BuildAndTest.outputs.snap-file }}
+        failOnError: false
