@@ -22,6 +22,10 @@ pub mod ffi {
         //Result<1Type> in a CXX bridge unsafe extern C++ will convert to a try-catch in the C++
         //side which will convert the C++ exception to a rust error.
     }
+    extern "Rust" {
+        #[cfg(feature = "ffi-test")]
+        fn rust_test_bridge();
+    }
 }
 
 fn log_message(level: ffi::Level, category: String, message: String) {
@@ -35,3 +39,4 @@ fn log_message(level: ffi::Level, category: String, message: String) {
 pub fn log_error(category: String, message: String) {
     log_message(ffi::Level::error, category, message)
 }
+fn rust_test_bridge() {}
