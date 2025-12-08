@@ -33,7 +33,7 @@ Along with bug fixes and general improvements, Multipass 1.16.x includes:
 Multipass follows a defined release cycle with regular releases.
 
 Minor releases
-: A new minor release of Multipass is released approximately every 2-3 months. It includes new features and bug fixes.
+: A new minor release of Multipass is released approximately every 6 months. It includes new features and bug fixes.
 
 Patch releases
 : A patch release for Multipass is released as needed and includes critical bug fixes and security updates.
