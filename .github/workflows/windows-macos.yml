@@ -384,7 +384,7 @@ jobs:
       run: |
         NAME="${{ steps.cmake-package.outputs.name }}"
         SUFFIX="${{ matrix.cmake-preset && '-edge' || '' }}"
-        ARTIFACT_NAME="${{ matrix.runs-on }}${SUFFIX}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}${SUFFIX}-package-artifact-name=${{ matrix.runs-on }}${SUFFIX}-${NAME}"
         FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
 
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
