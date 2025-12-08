@@ -410,6 +410,7 @@ jobs:
         exclude:
           - variant:
               x86-artifact: ""
+          - variant:
               arm-artifact: ""
     steps:
     - name: Check out code
