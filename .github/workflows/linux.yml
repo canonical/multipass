@@ -80,7 +80,7 @@ jobs:
     outputs:
       label: ${{ steps.build-params.outputs.label }}
       channel: ${{ steps.build-params.outputs.channel }}
-      snap-file: ${{ steps.build-snap.outputs.snap-file }}
+      snap-file: ${{ matrix.build-type == 'Release' && steps.build-snap.outputs.snap-file || '' }}
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
@@ -293,7 +293,7 @@ jobs:
 
     - name: Build and verify the snap
       id: build-snap
-      if: ${{ matrix.build-type == 'Release' }}
+      if: ${{ matrix.build-type == 'Release'  || matrix.build-type == 'Feature flags' }}
       env:
         SNAP_ENFORCE_RESQUASHFS: 0
       run: |
@@ -307,12 +307,13 @@ jobs:
 
     - name: Upload the snap
       uses: actions/upload-artifact@v5
-      if: ${{ matrix.build-type == 'Release' }}
+      if: ${{ matrix.build-type == 'Release'  || matrix.build-type == 'Feature flags' }}
       with:
-        name: ${{ steps.build-snap.outputs.snap-file }}
+        name: ${{ matrix.build-type == 'Feature flags' && format('edge-{0}', steps.build-snap.outputs.snap-file) ||
+              steps.build-snap.outputs.snap-file }}
         path: ${{ steps.build-snap.outputs.snap-file }}
         if-no-files-found: error
-        retention-days: 30
+        retention-days: 7
 
   # Publish the snap to the store if all is good, a channel was determined, and we have access to secrets.
   Publish-Snap:
