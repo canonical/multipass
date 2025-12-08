@@ -350,6 +350,7 @@ jobs:
         runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
+      id: upload-package
       uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.cmake-preset && format('{0}-edge-{1}', matrix.runs-on, steps.cmake-package.outputs.name) ||
@@ -377,7 +378,7 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
     - name: Store publishing outputs
-      if: always()
+      if: ${{ steps.upload-package.outcome == 'success' }}
       id: publish-data
       shell: bash
       run: |
