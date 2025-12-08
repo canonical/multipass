@@ -179,7 +179,7 @@
                 "ci-snap-debug"
             ],
             "vendor": {
-                "enabled-in-ci": false
+                "enabled-in-ci": true
             }
         },
         {
@@ -187,7 +187,7 @@
             "description": "Preset for Windows specific feature flags",
             "inherits": "common-feature-flags",
             "vendor": {
-                "enabled-in-ci": false
+                "enabled-in-ci": true
             }
         }
     ],
