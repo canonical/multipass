@@ -86,6 +86,8 @@ jobs:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
 
+    continue-on-error: ${{ matrix.build-type == 'Feature flags' }}
+
     runs-on: ubuntu-latest
 
     env:

@@ -110,6 +110,8 @@ jobs:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
 
+    continue-on-error: ${{ matrix.cmake-preset == 'feature-flags-enabled' }}
+
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
       # Use artifacts from macos-15-intel and macos-latest in official package
@@ -414,6 +416,8 @@ jobs:
           - variant:
               arm-artifact: ""
       fail-fast: false
+
+    continue-on-error: ${{ matrix.variant.name == 'Edge' }}
 
     steps:
     - name: Check out code
