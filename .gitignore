@@ -38,3 +38,6 @@ network-cache/
 
 # clangd code index cache
 .cache
+
+#Rust builds
+rxx/target
