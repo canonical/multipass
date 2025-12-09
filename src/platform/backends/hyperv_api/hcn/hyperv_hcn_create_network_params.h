@@ -76,5 +76,5 @@ struct fmt::formatter<multipass::hyperv::hcn::CreateNetworkParameters, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcn::CreateNetworkParameters& params,
-                FormatContext& ctx) const -> typename FormatContext::iterator;
+                FormatContext& ctx) const -> FormatContext::iterator;
 };

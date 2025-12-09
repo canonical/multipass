@@ -42,5 +42,5 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsNetworkAdapter, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcs::HcsNetworkAdapter& policy, FormatContext& ctx) const
-        -> typename FormatContext::iterator;
+        -> FormatContext::iterator;
 };

@@ -28,7 +28,7 @@ template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
     const HcsAddPlan9ShareParameters& params,
-    FormatContext& ctx) const -> typename FormatContext::iterator
+    FormatContext& ctx) const -> FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
@@ -52,7 +52,7 @@ template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(
     const HcsRemovePlan9ShareParameters& params,
-    FormatContext& ctx) const -> typename FormatContext::iterator
+    FormatContext& ctx) const -> FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{

@@ -43,6 +43,6 @@ struct fmt::formatter<multipass::hyperv::hcn::HcnSubnet, Char>
     : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnSubnet& route, FormatContext& ctx) const ->
-        typename FormatContext::iterator;
+    auto format(const multipass::hyperv::hcn::HcnSubnet& route, FormatContext& ctx) const
+        -> FormatContext::iterator;
 };

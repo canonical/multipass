@@ -111,8 +111,8 @@ using multipass::hyperv::hcs::HcsSchemaVersion;
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcsSchemaVersion, Char>::format(const HcsSchemaVersion& schema_version,
-                                                    FormatContext& ctx) const ->
-    typename FormatContext::iterator
+                                                    FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto fmt_str = MULTIPASS_UNIVERSAL_LITERAL("{}");
 

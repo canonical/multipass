@@ -27,8 +27,8 @@ using multipass::hyperv::hcs::HcsScsiDeviceType;
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_device,
-                                                 FormatContext& ctx) const ->
-    typename FormatContext::iterator
+                                                 FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto scsi_device_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         "{0}": {{

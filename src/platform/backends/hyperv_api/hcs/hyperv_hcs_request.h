@@ -55,6 +55,6 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsRequest, Char>
     : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HcsRequest& param, FormatContext& ctx) const ->
-        typename FormatContext::iterator;
+    auto format(const multipass::hyperv::hcs::HcsRequest& param, FormatContext& ctx) const
+        -> FormatContext::iterator;
 };

@@ -26,9 +26,10 @@ using multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName;
 template <typename Char>
 struct NetworkPolicySettingsFormatters
 {
-    auto operator()(const HcnNetworkPolicyNetAdapterName& policy)
+    auto operator()(const HcnNetworkPolicyNetAdapterName& policy) const
     {
-        constexpr static auto netadaptername_settings_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+        constexpr static auto netadaptername_settings_template =
+            MULTIPASS_UNIVERSAL_LITERAL(R"json(
             "NetworkAdapterName": "{}"
         )json");
 
@@ -40,8 +41,8 @@ struct NetworkPolicySettingsFormatters
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcnNetworkPolicy, Char>::format(const HcnNetworkPolicy& policy,
-                                                    FormatContext& ctx) const ->
-    typename FormatContext::iterator
+                                                    FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto route_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{

@@ -24,8 +24,8 @@ using multipass::hyperv::hcn::CreateNetworkParameters;
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<CreateNetworkParameters, Char>::format(const CreateNetworkParameters& params,
-                                                           FormatContext& ctx) const ->
-    typename FormatContext::iterator
+                                                           FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
