@@ -492,40 +492,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_hostname)
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
-    EXPECT_EQ(uut->ssh_hostname(), uut->vm_name + ".mshome.net");
-}
-
-// ---------------------------------------------------------
-
-TEST_F(HyperVHCSVirtualMachine_UnitTests, ensure_vm_is_running)
-{
-    default_open_success();
-
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
-                        Return(hcs_op_result_t{0, L""})));
-
-    std::shared_ptr<uut_t> uut{nullptr};
-    ASSERT_NO_THROW(uut = construct_vm());
-    ASSERT_NO_THROW(uut->ensure_vm_is_running());
-}
-
-// ---------------------------------------------------------
-
-TEST_F(HyperVHCSVirtualMachine_UnitTests, ensure_vm_is_running_throws)
-{
-    default_open_success();
-
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
-                        Return(hcs_op_result_t{0, L""})));
-
-    std::shared_ptr<uut_t> uut{nullptr};
-    ASSERT_NO_THROW(uut = construct_vm());
-
-    EXPECT_THROW(uut->ensure_vm_is_running(), multipass::StartException);
+    EXPECT_EQ(uut->ssh_hostname(), uut->get_name() + ".mshome.net");
 }
 
 // ---------------------------------------------------------
@@ -548,7 +515,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm(&mock_monitor));
 
-    uut->update_state();
+    uut->handle_state_update();
 }
 
 // ---------------------------------------------------------

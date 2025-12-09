@@ -66,7 +66,7 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
     }();
 
     HcsSystemHandle handle{nullptr};
-    if (!HCS().open_compute_system(vm->vm_name, handle))
+    if (!HCS().open_compute_system(vm->get_name(), handle))
     {
         throw std::runtime_error{"Could not open Host Compute System for the mount"};
     }
@@ -122,7 +122,7 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
             mpl::info(log_category,
                       "Successfully mounted 9P share `{}` to VM `{}`",
                       req,
-                      vm->vm_name);
+                      vm->get_name());
         }
         else
         {
@@ -178,7 +178,7 @@ void Plan9MountHandler::deactivate_impl(bool force)
     }();
 
     HcsSystemHandle handle{nullptr};
-    if (!HCS().open_compute_system(vm->vm_name, handle))
+    if (!HCS().open_compute_system(vm->get_name(), handle))
     {
         throw std::runtime_error{"Could not open Host Compute System for the unmount"};
     }

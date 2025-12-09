@@ -59,10 +59,9 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     int ssh_port() override;
     [[nodiscard]] std::string ssh_hostname(std::chrono::milliseconds timeout = {}) override;
     [[nodiscard]] std::string ssh_username() override;
-    [[nodiscard]] std::string management_ipv4() override;
-    [[nodiscard]] std::string ipv6() override;
-    void ensure_vm_is_running() override;
-    void update_state() override;
+    [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
+
+    void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
