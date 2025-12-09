@@ -39,6 +39,13 @@ PointerAlignment: Left
 ---
 Language: Cpp
 Standard: c++20
+IncludeCategories:
+  - Regex: '^<windows\.h>$'
+    Priority: 0
+  - Regex: '^<virtdisk\.h>$'
+    Priority: 1
+  - Regex: '*'
+    Priority: 2
 ---
 Language: ObjC
 ---

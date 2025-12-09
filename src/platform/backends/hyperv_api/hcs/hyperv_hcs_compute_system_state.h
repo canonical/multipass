@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <multipass/utils/static_bimap.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <optional>
@@ -24,8 +26,6 @@
 #include <unordered_map>
 
 #include <fmt/format.h>
-
-#include <multipass/utils/static_bimap.h>
 
 namespace multipass::hyperv::hcs
 {

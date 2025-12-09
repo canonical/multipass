@@ -19,11 +19,9 @@
 
 #include <multipass/singleton.h>
 
-// clang-format off
 #include <windows.h>
 #include <computenetwork.h>
 #include <objbase.h> // for CoTaskMemFree
-// clang-format on
 
 namespace multipass::hyperv::hcn
 {

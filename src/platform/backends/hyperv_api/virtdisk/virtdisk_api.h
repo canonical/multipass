@@ -19,11 +19,9 @@
 
 #include <multipass/singleton.h>
 
-// clang-format off
 #include <windows.h>
-#include <initguid.h>
 #include <Virtdisk.h>
-// clang-format on
+#include <initguid.h>
 
 #include <fmt/format.h>
 
