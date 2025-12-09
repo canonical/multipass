@@ -47,9 +47,9 @@ namespace
 /**
  * Category for the log messages.
  */
-constexpr static auto log_category = "HyperV-Virtual-Machine";
-constexpr static auto vhdx_filename = "current.vhdx";
-constexpr static auto default_ssh_port = 22;
+constexpr auto log_category = "HyperV-Virtual-Machine";
+constexpr auto vhdx_filename = "current.vhdx";
+constexpr auto default_ssh_port = 22;
 
 namespace mpl = multipass::logging;
 namespace mpp = multipass::platform;
@@ -62,7 +62,7 @@ inline auto mac2uuid(std::string mac_addr)
 {
     mac_addr.erase(std::remove(mac_addr.begin(), mac_addr.end(), ':'), mac_addr.end());
     mac_addr.erase(std::remove(mac_addr.begin(), mac_addr.end(), '-'), mac_addr.end());
-    constexpr static auto format_str = "db4bdbf0-dc14-407f-9780-{}";
+    constexpr auto format_str = "db4bdbf0-dc14-407f-9780-{}";
     return fmt::format(format_str, mac_addr);
 }
 
@@ -120,9 +120,8 @@ auto resolve_ip_addresses(const std::string& hostname)
             {
             case AF_INET:
             {
-                constexpr static auto kSockaddrInSize =
-                    sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
-                if (ptr->ai_addrlen >= kSockaddrInSize)
+                constexpr auto sockaddr_in_size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
+                if (ptr->ai_addrlen >= sockaddr_in_size)
                 {
                     const auto sockaddr_ipv4 = reinterpret_cast<LPSOCKADDR_IN>(ptr->ai_addr);
                     char addr[INET_ADDRSTRLEN] = {};
@@ -135,14 +134,13 @@ auto resolve_ip_addresses(const std::string& hostname)
                            "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address "
                            "data while expecting {}!",
                            ptr->ai_addrlen,
-                           kSockaddrInSize);
+                           sockaddr_in_size);
             }
             break;
             case AF_INET6:
             {
-                constexpr static auto kSockaddrIn6Size =
-                    sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
-                if (ptr->ai_addrlen >= kSockaddrIn6Size)
+                constexpr auto sockaddr_in6_size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
+                if (ptr->ai_addrlen >= sockaddr_in6_size)
                 {
                     const auto sockaddr_ipv6 = reinterpret_cast<LPSOCKADDR_IN6>(ptr->ai_addr);
                     char addr[INET6_ADDRSTRLEN] = {};
@@ -154,7 +152,7 @@ auto resolve_ip_addresses(const std::string& hostname)
                            "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address "
                            "data while expecting {}!",
                            ptr->ai_addrlen,
-                           kSockaddrIn6Size);
+                           sockaddr_in6_size);
             }
             break;
             default:
