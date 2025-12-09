@@ -27,7 +27,7 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
                                                             FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
     {{
         "SchemaVersion": {{
             "Major": 2,
@@ -38,8 +38,8 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
         "MacAddress" : {1}
     }})json");
 
-    constexpr static auto fmt_placeholder = MULTIPASS_UNIVERSAL_LITERAL("\"{}\"");
-    constexpr static auto null = MULTIPASS_UNIVERSAL_LITERAL("null");
+    constexpr auto fmt_placeholder = MULTIPASS_UNIVERSAL_LITERAL("\"{}\"");
+    constexpr auto null = MULTIPASS_UNIVERSAL_LITERAL("null");
 
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),

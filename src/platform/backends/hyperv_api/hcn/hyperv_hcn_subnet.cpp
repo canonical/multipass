@@ -27,7 +27,7 @@ template <typename FormatContext>
 auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
             {{
                 "Policies": [],
                 "Routes" : [
@@ -38,7 +38,7 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
             }}
         )json");
 
-    constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+    constexpr auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
 
     return fmt::format_to(ctx.out(),
                           subnet_template.as<Char>(),
