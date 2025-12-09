@@ -50,9 +50,6 @@ struct overloaded : Ts...
 {
     using Ts::operator()...;
 };
-// explicit deduction guide (not needed as of C++20)
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
 
 auto normalize_path(std::filesystem::path p)
 {
@@ -81,7 +78,7 @@ struct VirtDiskCreateError : FormattedExceptionBase<>
 /**
  * Category for the log messages.
  */
-constexpr static auto kLogCategory = "HyperV-VirtDisk-Wrapper";
+constexpr static auto log_category = "HyperV-VirtDisk-Wrapper";
 
 UniqueHandle open_virtual_disk(
     const std::filesystem::path& vhdx_path,
@@ -89,7 +86,7 @@ UniqueHandle open_virtual_disk(
     OPEN_VIRTUAL_DISK_FLAG flags = OPEN_VIRTUAL_DISK_FLAG::OPEN_VIRTUAL_DISK_FLAG_NONE,
     POPEN_VIRTUAL_DISK_PARAMETERS params = nullptr)
 {
-    mpl::debug(kLogCategory, "open_virtual_disk(...) > vhdx_path: {}", vhdx_path);
+    mpl::debug(log_category, "open_virtual_disk(...) > vhdx_path: {}", vhdx_path);
     //
     // Specify UNKNOWN for both device and vendor so the system will use the
     // file extension to determine the correct VHD format.
@@ -117,7 +114,7 @@ UniqueHandle open_virtual_disk(
 
     if (!result)
     {
-        mpl::error(kLogCategory,
+        mpl::error(log_category,
                    "open_virtual_disk(...) > OpenVirtualDisk failed with: {}",
                    static_cast<std::error_code>(result));
         return UniqueHandle{nullptr};
@@ -140,7 +137,7 @@ VirtDiskWrapper::VirtDiskWrapper(const Singleton<VirtDiskWrapper>::PrivatePass& 
 OperationResult VirtDiskWrapper::create_virtual_disk(
     const CreateVirtualDiskParameters& params) const
 {
-    mpl::debug(kLogCategory, "create_virtual_disk(...) > params: {}", params);
+    mpl::debug(log_category, "create_virtual_disk(...) > params: {}", params);
 
     const auto target_path_normalized = normalize_path(params.path).generic_wstring();
     //
@@ -183,7 +180,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
         target_path = predecessor_path.c_str();
         VirtualDiskInfo predecessor_disk_info{};
         const auto result = get_virtual_disk_info(predecessor_path, predecessor_disk_info);
-        mpl::debug(kLogCategory,
+        mpl::debug(log_category,
                    "create_virtual_disk(...) > source disk info fetch result `{}`",
                    result);
         target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
@@ -239,7 +236,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
                                    parameters.Version2.SourcePath,
                                    parameters.Version2.SourceVirtualStorageType);
                        flags |= CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK;
-                       mpl::debug(kLogCategory,
+                       mpl::debug(log_category,
                                   "create_virtual_disk(...) > cloning `{}` to `{}`",
                                   std::filesystem::path{predecessor_path_normalized},
                                   std::filesystem::path{target_path_normalized});
@@ -285,7 +282,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
         return OperationResult{NOERROR, L""};
     }
 
-    mpl::error(kLogCategory,
+    mpl::error(log_category,
                "create_virtual_disk(...) > CreateVirtualDisk failed with {}!",
                result);
     return OperationResult{E_FAIL, fmt::format(L"CreateVirtualDisk failed with {}!", result)};
@@ -296,7 +293,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
 OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path& vhdx_path,
                                                      std::uint64_t new_size_bytes) const
 {
-    mpl::debug(kLogCategory,
+    mpl::debug(log_category,
                "resize_virtual_disk(...) > vhdx_path: {}, new_size_bytes: {}",
                vhdx_path,
                new_size_bytes);
@@ -327,7 +324,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
         return OperationResult{NOERROR, L""};
     }
 
-    mpl::error(kLogCategory,
+    mpl::error(log_category,
                "resize_virtual_disk(...) > ResizeVirtualDisk failed with {}!",
                resize_result);
 
@@ -341,7 +338,7 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
     const std::filesystem::path& child) const
 {
     // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/master/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI().cpp
-    mpl::debug(kLogCategory, "merge_virtual_disk_to_parent(...) > child: {}", child);
+    mpl::debug(log_category, "merge_virtual_disk_to_parent(...) > child: {}", child);
 
     OPEN_VIRTUAL_DISK_PARAMETERS open_params{};
     open_params.Version = OPEN_VIRTUAL_DISK_VERSION_1;
@@ -370,7 +367,7 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
     else
     {
         std::error_code ec{static_cast<int>(r), std::system_category()};
-        mpl::error(kLogCategory,
+        mpl::error(log_category,
                    "merge_virtual_disk_to_parent(...) > MergeVirtualDisk failed with {}!",
                    ec.message());
         return OperationResult{E_FAIL, fmt::format(L"MergeVirtualDisk failed with {}!", r)};
@@ -382,7 +379,7 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
 OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::path& child,
                                                        const std::filesystem::path& parent) const
 {
-    mpl::debug(kLogCategory,
+    mpl::debug(log_category,
                "reparent_virtual_disk(...) > child: {}, new parent: {}",
                child,
                parent);
@@ -415,7 +412,7 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
         return OperationResult{NOERROR, L""};
     else
     {
-        mpl::error(kLogCategory,
+        mpl::error(log_category,
                    "reparent_virtual_disk(...) > SetVirtualDiskInformation failed with {}!",
                    r);
         return OperationResult{E_FAIL, fmt::format(L"reparent_virtual_disk failed with {}!", r)};
@@ -427,7 +424,7 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
 OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::path& vhdx_path,
                                                        VirtualDiskInfo& vdinfo) const
 {
-    mpl::debug(kLogCategory, "get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path);
+    mpl::debug(log_category, "get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path);
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp
     //
@@ -523,7 +520,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
         }
         else
         {
-            mpl::warn(kLogCategory,
+            mpl::warn(log_category,
                       "get_virtual_disk_info(...) > failed to get {}",
                       fmt::underlying(version));
         }
@@ -537,7 +534,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
                                                          std::optional<std::size_t> max_depth) const
 {
 
-    mpl::debug(kLogCategory, "list_virtual_disk_chain(...) > vhdx_path: {}", vhdx_path);
+    mpl::debug(log_category, "list_virtual_disk_chain(...) > vhdx_path: {}", vhdx_path);
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp#L285
 
     // Check if given vhdx is a differencing disk.
@@ -619,7 +616,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
                 return OperationResult{E_FAIL, L"Parent virtual disk path resolution failed!"};
         }
     } while (!max_depth || --(*max_depth));
-    mpl::debug(kLogCategory,
+    mpl::debug(log_category,
                "list_virtual_disk_chain(...) > final chain: {}",
                fmt::join(chain, " | --> | "));
     return {NOERROR, L""};

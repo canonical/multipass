@@ -91,9 +91,6 @@ using lvl = mpl::Level;
 
 // ---------------------------------------------------------
 
-/**
- * Category for the log messages.
- */
 constexpr static auto log_category = "HyperV-HCN-Wrapper";
 
 // ---------------------------------------------------------
@@ -108,16 +105,16 @@ constexpr static auto log_category = "HyperV-HCN-Wrapper";
  */
 auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
 {
-    constexpr static auto kGUIDLength = 36;
-    constexpr static auto kGUIDLengthWithBraces = kGUIDLength + 2;
+    constexpr static auto guid_length = 36;
+    constexpr static auto guid_length_with_braces = guid_length + 2;
 
     const auto input = [&guid_wstr]() {
         switch (guid_wstr.length())
         {
-        case kGUIDLength:
+        case guid_length:
             // CLSIDFromString requires GUIDs to be wrapped with braces.
             return fmt::format(L"{{{}}}", guid_wstr);
-        case kGUIDLengthWithBraces:
+        case guid_length_with_braces:
         {
             if (guid_wstr.front() != L'{' || guid_wstr.back() != L'}')
             {
@@ -157,15 +154,6 @@ auto guid_from_string(const std::string& guid_str) -> ::GUID
 
 // ---------------------------------------------------------
 
-/**
- * Perform a Host Compute Network API operation, abstracting common memory management
- * and low-level error handling details.
- *
- * @param fn The API function pointer
- * @param args The arguments to the function
- *
- * @return HCNOperationResult Result of the performed operation
- */
 template <typename FnType>
 OperationResult perform_hcn_operation(const FnType& fn)
 {
@@ -185,14 +173,6 @@ OperationResult perform_hcn_operation(const FnType& fn)
 
 // ---------------------------------------------------------
 
-/**
- * Open an existing Host Compute Network and return a handle to it.
- *
- * @param api The HCN API table
- * @param network_guid GUID of the network to open
- *
- * @return UniqueHcnNetwork Unique handle to the network. Non-nullptr when successful.
- */
 UniqueHcnNetwork open_network(const std::string& network_guid)
 {
     mpl::debug(log_category, "open_network(...) > network_guid: {} ", network_guid);
@@ -208,12 +188,6 @@ UniqueHcnNetwork open_network(const std::string& network_guid)
     return network;
 }
 
-/**
- * Determine the log severity level for a HCN error.
- *
- * @param [in] result Operation result
- * @return mpl::Level The determined severity level
- */
 auto hcn_errc_to_log_level(const OperationResult& result)
 {
     /**
