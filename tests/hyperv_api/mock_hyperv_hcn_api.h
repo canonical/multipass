@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <hyperv_api/hcn/hyperv_hcn_api_table.h>
+#include <hyperv_api/hcn/hyperv_hcn_api.h>
 
 #include "tests/mock_singleton_helpers.h"
 
