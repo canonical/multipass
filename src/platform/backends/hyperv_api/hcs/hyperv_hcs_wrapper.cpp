@@ -16,7 +16,7 @@
  */
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 
-#include <hyperv_api/hcs/hyperv_hcs_api_table.h>
+#include <hyperv_api/hcs/hyperv_hcs_api.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
