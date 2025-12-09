@@ -30,7 +30,7 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
                                                  FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto scsi_device_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto scsi_device_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         "{0}": {{
             "Attachments": {{
                 "0": {{

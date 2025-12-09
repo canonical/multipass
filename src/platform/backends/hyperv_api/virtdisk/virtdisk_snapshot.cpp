@@ -26,7 +26,7 @@
 
 namespace
 {
-constexpr static auto log_category = "virtdisk-snapshot";
+constexpr auto log_category = "virtdisk-snapshot";
 }
 
 namespace multipass::hyperv::virtdisk
@@ -59,8 +59,8 @@ VirtDiskSnapshot::VirtDiskSnapshot(const QString& filename,
 
 std::string VirtDiskSnapshot::make_snapshot_filename(const Snapshot& ss)
 {
-    constexpr static auto kSnapshotNameFormat = "{}.avhdx";
-    return fmt::format(kSnapshotNameFormat, ss.get_name());
+    constexpr auto snapshot_name_format = "{}.avhdx";
+    return fmt::format(snapshot_name_format, ss.get_name());
 }
 
 std::filesystem::path VirtDiskSnapshot::make_snapshot_path(const Snapshot& ss) const

@@ -24,10 +24,10 @@ using multipass::hyperv::hcn::HcnIpam;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& ctx) const ->
-    FormatContext::iterator
+auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& ctx) const
+    -> FormatContext::iterator
 {
-    constexpr static auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
             "Type": "{}",
             "Subnets": [
@@ -36,7 +36,7 @@ auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& c
         }}
     )json");
 
-    constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+    constexpr auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
 
     return fmt::format_to(ctx.out(),
                           subnet_template.as<Char>(),

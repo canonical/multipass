@@ -91,7 +91,7 @@ using lvl = mpl::Level;
 
 // ---------------------------------------------------------
 
-constexpr static auto log_category = "HyperV-HCN-Wrapper";
+constexpr auto log_category = "HyperV-HCN-Wrapper";
 
 // ---------------------------------------------------------
 
@@ -105,8 +105,8 @@ constexpr static auto log_category = "HyperV-HCN-Wrapper";
  */
 auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
 {
-    constexpr static auto guid_length = 36;
-    constexpr static auto guid_length_with_braces = guid_length + 2;
+    constexpr auto guid_length = 36;
+    constexpr auto guid_length_with_braces = guid_length + 2;
 
     const auto input = [&guid_wstr]() {
         switch (guid_wstr.length())
