@@ -35,14 +35,14 @@ struct HcnIpamType
         return std::string{value};
     }
 
-    [[nodiscard]] static inline const auto Dhcp()
+    [[nodiscard]] static HcnIpamType Dhcp()
     {
-        return HcnIpamType{"DHCP"};
+        return {"DHCP"};
     }
 
-    [[nodiscard]] static inline const auto Static()
+    [[nodiscard]] static HcnIpamType Static()
     {
-        return HcnIpamType{"static"};
+        return {"static"};
     }
 
 private:
