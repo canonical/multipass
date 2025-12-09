@@ -17,17 +17,15 @@
 
 #pragma once
 
+#include <multipass/singleton.h>
+
 // clang-format off
 #include <windows.h>
 #include <initguid.h>
 #include <Virtdisk.h>
 // clang-format on
 
-#include <functional>
-
 #include <fmt/format.h>
-
-#include <multipass/singleton.h>
 
 namespace multipass::hyperv::virtdisk
 {

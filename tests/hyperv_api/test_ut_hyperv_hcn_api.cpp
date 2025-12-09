@@ -17,10 +17,10 @@
 
 #include "hyperv_test_utils.h"
 #include "tests/common.h"
-#include "tests/hyperv_api/mock_hyperv_hcn_api_table.h"
+#include "tests/hyperv_api/mock_hyperv_hcn_api.h"
 #include "tests/mock_logger.h"
 
-#include <hyperv_api/hcn/hyperv_hcn_api_table.h>
+#include <hyperv_api/hcn/hyperv_hcn_api.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>

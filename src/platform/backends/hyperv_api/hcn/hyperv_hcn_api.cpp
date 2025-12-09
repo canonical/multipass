@@ -15,7 +15,7 @@
  *
  */
 
-#include <hyperv_api/hcn/hyperv_hcn_api_table.h>
+#include <hyperv_api/hcn/hyperv_hcn_api.h>
 
 namespace multipass::hyperv::hcn
 {
