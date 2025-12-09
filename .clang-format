@@ -41,11 +41,12 @@ Language: Cpp
 Standard: c++20
 IncludeCategories:
   - Regex: '^<windows\.h>$'
-    Priority: 0
+    Priority: 100
+  - Regex: '^<initguid\.h>$'
+    Priority: 200
   - Regex: '^<virtdisk\.h>$'
-    Priority: 1
-  - Regex: '*'
-    Priority: 2
+    Priority: 300
+    # "If none of the regular expressions match, INT_MAX is assigned as category."
 ---
 Language: ObjC
 ---
