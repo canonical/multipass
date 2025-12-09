@@ -43,12 +43,5 @@ public:
 
 protected:
     Formatter() = default;
-
-    template <class D>
-    std::map<typename D::key_type, typename D::mapped_type> sort_dict(const D& unsorted_dict) const
-    {
-        return std::map<typename D::key_type, typename D::mapped_type>(unsorted_dict.cbegin(),
-                                                                       unsorted_dict.cend());
-    }
 };
 } // namespace multipass
