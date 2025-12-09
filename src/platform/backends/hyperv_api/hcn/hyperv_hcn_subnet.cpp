@@ -24,8 +24,8 @@ using multipass::hyperv::hcn::HcnSubnet;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatContext& ctx) const ->
-    typename FormatContext::iterator
+auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
             {{

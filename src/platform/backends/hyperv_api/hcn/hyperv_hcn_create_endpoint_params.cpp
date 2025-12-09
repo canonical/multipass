@@ -24,8 +24,8 @@ using multipass::hyperv::hcn::CreateEndpointParameters;
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpointParameters& params,
-                                                            FormatContext& ctx) const ->
-    typename FormatContext::iterator
+                                                            FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
     {{
