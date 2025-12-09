@@ -20,8 +20,8 @@
 #include <hyperv_api/virtdisk/virtdisk_api.h>
 
 #include <windows.h>
-#include <virtdisk.h>
 #include <initguid.h>
+#include <virtdisk.h>
 #include <strsafe.h>
 
 #include <fmt/std.h>
