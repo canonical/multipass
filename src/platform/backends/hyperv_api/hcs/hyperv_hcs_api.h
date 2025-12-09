@@ -17,15 +17,12 @@
 
 #pragma once
 
-// clang-format off
-// (xmkg): clang-format is messing with the include order.
+#include <multipass/singleton.h>
+
 #include <windows.h>
 #include <computecore.h>
-// clang-format on
 
 #include <fmt/format.h>
-
-#include <multipass/singleton.h>
 
 namespace multipass::hyperv::hcs
 {
