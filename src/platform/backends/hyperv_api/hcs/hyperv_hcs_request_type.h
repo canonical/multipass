@@ -35,19 +35,19 @@ struct HcsRequestType
         return std::string{value};
     }
 
-    [[nodiscard]] constexpr static auto Add()
+    [[nodiscard]] static HcsRequestType Add()
     {
-        return HcsRequestType{"Add"};
+        return {"Add"};
     }
 
-    [[nodiscard]] constexpr static auto Remove()
+    [[nodiscard]] static HcsRequestType Remove()
     {
-        return HcsRequestType{"Remove"};
+        return {"Remove"};
     }
 
-    [[nodiscard]] constexpr static auto Update()
+    [[nodiscard]] static HcsRequestType Update()
     {
-        return HcsRequestType{"Update"};
+        return {"Update"};
     }
 
     [[nodiscard]] bool operator==(const HcsRequestType& rhs) const
@@ -56,7 +56,7 @@ struct HcsRequestType
     }
 
 private:
-    constexpr HcsRequestType(std::string_view v) : value(v)
+    HcsRequestType(std::string_view v) : value(v)
     {
     }
 
