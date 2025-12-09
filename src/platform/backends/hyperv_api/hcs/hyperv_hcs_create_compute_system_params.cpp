@@ -28,7 +28,7 @@ template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
     const CreateComputeSystemParameters& params,
-    FormatContext& ctx) const -> typename FormatContext::iterator
+    FormatContext& ctx) const -> FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
     {{
