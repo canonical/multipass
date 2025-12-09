@@ -46,7 +46,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                "AppleVZVirtualMachine::AppleVZVirtualMachine() -> Created handle for VM '{}'",
                vm_name);
 
-    // Reflect compute system's state
+    // Reflect vm's state
     const auto curr_state = MP_APPLEVZ.get_state(vm_handle);
     set_state(curr_state);
     handle_state_update();
@@ -78,16 +78,13 @@ void AppleVZVirtualMachine::start()
     }
     else
     {
-        mpl::debug(log_category,
-                   "start() -> VM `{}` cannot be started from state `{}`",
-                   vm_name,
-                   curr_state);
-
-        throw VMStateIdempotentException(
-            fmt::format("VM `{}` cannot be started from state `{}`", vm_name, curr_state));
+        mpl::warn(log_category,
+                  "start() -> VM `{}` cannot be started from state `{}`",
+                  vm_name,
+                  curr_state);
     }
 
-    // Reflect compute system's state
+    // Reflect vm's state
     curr_state = MP_APPLEVZ.get_state(vm_handle);
     set_state(curr_state);
     handle_state_update();
@@ -99,7 +96,7 @@ void AppleVZVirtualMachine::start()
             fmt::format("VM '{}' failed to start, check logs for more details", vm_name));
     }
 
-    mpl::debug(log_category, "start() -> Started/resumed VM `{}`", vm_name);
+    mpl::debug(log_category, "start() -> VM `{}` running", vm_name);
 }
 
 void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -113,7 +110,7 @@ void AppleVZVirtualMachine::suspend()
 
 VirtualMachine::State AppleVZVirtualMachine::current_state()
 {
-    return VirtualMachine::State::unknown;
+    return state;
 }
 
 int AppleVZVirtualMachine::ssh_port()
