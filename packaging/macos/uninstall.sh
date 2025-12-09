@@ -26,10 +26,24 @@ while true; do
     esac
 done
 
+
 if [ $DELETE_VMS -eq 1 ]; then
     echo "Removing VMs:"
-    sudo -u "$(logname)" multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
+    # Prompt for username
+    read -p "Enter the username that owns the Multipass VMs (default: $(logname)): " MP_USER
+    if [ -z "$MP_USER" ]; then
+        MP_USER="$(logname)"
+    fi
 
+    # Check if multipass is available for that user
+    if ! sudo -u "$MP_USER" command -v multipass >/dev/null 2>&1; then
+        echo "Error: 'multipass' command not found for user '$MP_USER'. Please ensure Multipass is installed and available in their PATH." >&2
+    else
+        sudo -u "$MP_USER" multipass delete -vv --purge --all
+        if [ $? -ne 0 ]; then
+            echo "Failed to delete Multipass VMs for user '$MP_USER'. Please check permissions and try manually." >&2
+        fi
+    fi
 fi
 
 LAUNCH_AGENT_DEST="/Library/LaunchDaemons/com.canonical.multipassd.plist"
