@@ -75,10 +75,7 @@ struct VirtDiskCreateError : FormattedExceptionBase<>
     using FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-/**
- * Category for the log messages.
- */
-constexpr static auto log_category = "HyperV-VirtDisk-Wrapper";
+constexpr auto log_category = "HyperV-VirtDisk-Wrapper";
 
 UniqueHandle open_virtual_disk(
     const std::filesystem::path& vhdx_path,
