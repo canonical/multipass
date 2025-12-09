@@ -28,9 +28,6 @@
 namespace multipass::hyperv::hcs
 {
 
-/**
- * Parameters for creating a network endpoint.
- */
 struct CreateComputeSystemParameters
 {
     /**
@@ -51,7 +48,7 @@ struct CreateComputeSystemParameters
     /**
      * List of SCSI devices that are attached on boot
      */
-    std::vector<HcsScsiDevice> scsi_devices;
+    std::vector<HcsScsiDevice> scsi_devices{};
 
     /**
      * List of endpoints that'll be added to the compute system
