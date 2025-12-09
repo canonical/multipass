@@ -24,8 +24,7 @@ namespace multipass::hyperv::hcs
 {
 
 /**
- * Strongly-typed string values for
- * SCSI device type.
+ * Strongly-typed string values for SCSI device type.
  */
 struct HcsScsiDeviceType
 {
@@ -39,14 +38,14 @@ struct HcsScsiDeviceType
         return std::string{value};
     }
 
-    [[nodiscard]] constexpr static auto Iso()
+    [[nodiscard]] static HcsScsiDeviceType Iso()
     {
-        return HcsScsiDeviceType{"Iso"};
+        return {"Iso"};
     }
 
-    [[nodiscard]] constexpr static auto VirtualDisk()
+    [[nodiscard]] static HcsScsiDeviceType VirtualDisk()
     {
-        return HcsScsiDeviceType{"VirtualDisk"};
+        return {"VirtualDisk"};
     }
 
     [[nodiscard]] bool operator==(const HcsScsiDeviceType& rhs) const
@@ -55,7 +54,7 @@ struct HcsScsiDeviceType
     }
 
 private:
-    constexpr HcsScsiDeviceType(std::string_view v) : value(v)
+    HcsScsiDeviceType(std::string_view v) : value(v)
     {
     }
 
