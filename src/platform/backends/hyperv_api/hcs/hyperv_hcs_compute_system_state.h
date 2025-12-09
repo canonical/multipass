@@ -25,6 +25,8 @@
 
 #include <fmt/format.h>
 
+#include <multipass/utils/static_bimap.h>
+
 namespace multipass::hyperv::hcs
 {
 
@@ -43,6 +45,22 @@ enum class ComputeSystemState : std::uint8_t
     unknown,
 };
 
+namespace detail
+{
+[[nodiscard]] inline auto compute_system_state_map()
+{
+    static const static_bimap<std::string, ComputeSystemState> state_map{
+        {"created", ComputeSystemState::created},
+        {"running", ComputeSystemState::running},
+        {"paused", ComputeSystemState::paused},
+        {"stopped", ComputeSystemState::stopped},
+        {"savedastemplate", ComputeSystemState::saved_as_template},
+        {"unknown", ComputeSystemState::unknown},
+    };
+    return state_map;
+}
+} // namespace detail
+
 /**
  * Translate host compute system state string to enum
  *
@@ -56,16 +74,9 @@ enum class ComputeSystemState : std::uint8_t
         return std::tolower(c);
     });
 
-    static const std::unordered_map<std::string, ComputeSystemState> translation_map{
-        {"created", ComputeSystemState::created},
-        {"running", ComputeSystemState::running},
-        {"paused", ComputeSystemState::paused},
-        {"stopped", ComputeSystemState::stopped},
-        {"savedastemplate", ComputeSystemState::saved_as_template},
-        {"unknown", ComputeSystemState::unknown},
-    };
+    const auto& map = detail::compute_system_state_map().left;
 
-    if (const auto itr = translation_map.find(str); translation_map.end() != itr)
+    if (const auto itr = map.find(str); map.end() != itr)
         return itr->second;
 
     return std::nullopt;
@@ -84,27 +95,10 @@ struct fmt::formatter<multipass::hyperv::hcs::ComputeSystemState, Char>
     auto format(multipass::hyperv::hcs::ComputeSystemState state, FormatContext& ctx) const
     {
         std::string_view v = "(undefined)";
-        switch (state)
-        {
-        case multipass::hyperv::hcs::ComputeSystemState::created:
-            v = "created";
-            break;
-        case multipass::hyperv::hcs::ComputeSystemState::paused:
-            v = "paused";
-            break;
-        case multipass::hyperv::hcs::ComputeSystemState::running:
-            v = "running";
-            break;
-        case multipass::hyperv::hcs::ComputeSystemState::saved_as_template:
-            v = "saved_as_template";
-            break;
-        case multipass::hyperv::hcs::ComputeSystemState::stopped:
-            v = "stopped";
-            break;
-        case multipass::hyperv::hcs::ComputeSystemState::unknown:
-            v = "unknown";
-            break;
-        }
+        const auto& map = multipass::hyperv::hcs::detail::compute_system_state_map().right;
+
+        if (const auto itr = map.find(state); map.end() != itr)
+            v = itr->second;
 
         return fmt::format_to(ctx.out(), "{}", v);
     }
