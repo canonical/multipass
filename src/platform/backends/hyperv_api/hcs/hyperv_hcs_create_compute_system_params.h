@@ -74,5 +74,5 @@ struct fmt::formatter<multipass::hyperv::hcs::CreateComputeSystemParameters, Cha
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcs::CreateComputeSystemParameters& policy,
-                FormatContext& ctx) const -> typename FormatContext::iterator;
+                FormatContext& ctx) const -> FormatContext::iterator;
 };
