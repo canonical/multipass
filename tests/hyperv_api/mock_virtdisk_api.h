@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <hyperv_api/virtdisk/virtdisk_api_table.h>
+#include <hyperv_api/virtdisk/virtdisk_api.h>
 
 #include "../mock_singleton_helpers.h"
 
