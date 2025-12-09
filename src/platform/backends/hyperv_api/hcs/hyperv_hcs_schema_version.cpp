@@ -41,6 +41,21 @@ enum class WindowsBuildNumbers : std::uint32_t
     // Codename "Sun Valley", October 5, 2021
     win11_21H2 = 22000
 };
+
+struct SchemaVersionBuildNumberMapping
+{
+    multipass::hyperv::hcs::HcsSchemaVersion version;
+    WindowsBuildNumbers required_build_number;
+
+    static bool descending(const SchemaVersionBuildNumberMapping& lhs,
+                           const SchemaVersionBuildNumberMapping& rhs)
+    {
+        if (lhs.required_build_number != rhs.required_build_number)
+            return lhs.required_build_number > rhs.required_build_number;
+
+        return lhs.version > rhs.version;
+    }
+};
 } // namespace
 
 namespace multipass::hyperv::hcs
@@ -58,11 +73,6 @@ HcsSchemaVersion SchemaUtils::get_os_supported_schema_version() const
     const static auto cached_schema_version = []() -> std::optional<HcsSchemaVersion> {
         if (const auto winver = platform::get_windows_version())
         {
-            struct SchemaVersionBuildNumberMapping
-            {
-                HcsSchemaVersion version;
-                WindowsBuildNumbers required_build_number;
-            };
 
             std::array schema_version_mappings{
                 SchemaVersionBuildNumberMapping{HcsSchemaVersion::v20,
@@ -83,19 +93,14 @@ HcsSchemaVersion SchemaUtils::get_os_supported_schema_version() const
             // Sort descending, based on build number and version (when build number is equal)
             std::sort(schema_version_mappings.begin(),
                       schema_version_mappings.end(),
-                      [](const auto& lhs, const auto& rhs) {
-                          if (lhs.required_build_number != rhs.required_build_number)
-                          {
-                              return lhs.required_build_number > rhs.required_build_number;
-                          }
-                          return lhs.version > rhs.version;
-                      });
+                      SchemaVersionBuildNumberMapping::descending);
 
-            for (const auto& v : schema_version_mappings)
-            {
-                if (fmt::underlying(v.required_build_number) <= winver->build)
-                    return v.version;
-            }
+            const auto it = std::ranges::find_if(schema_version_mappings, [winver](const auto& m) {
+                return fmt::underlying(m.required_build_number) <= winver->build;
+            });
+
+            if (it != schema_version_mappings.end())
+                return it->version;
         }
         return {};
     }();
