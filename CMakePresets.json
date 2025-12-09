@@ -155,6 +155,7 @@
         {
             "name": "common-feature-flags",
             "description": "Preset with platform agnositic feature flags enabled.",
+            "hidden": true,
             "inherits": "common"
         },
         {
