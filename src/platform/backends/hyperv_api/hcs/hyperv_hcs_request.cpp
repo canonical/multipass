@@ -83,8 +83,8 @@ struct HcsRequestSettingsFormatters
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatContext& ctx) const ->
-    typename FormatContext::iterator
+auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{

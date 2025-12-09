@@ -21,8 +21,8 @@ using multipass::hyperv::hcs::HcsPath;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcsPath, Char>::format(const HcsPath& path, FormatContext& ctx) const ->
-    typename FormatContext::iterator
+auto fmt::formatter<HcsPath, Char>::format(const HcsPath& path, FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     if constexpr (std::is_same_v<char, Char>)
     {
