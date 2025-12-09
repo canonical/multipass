@@ -44,13 +44,13 @@ struct HcsRequestSettingsFormatters
         }
     }
 
-    auto operator()(const std::monostate&)
+    auto operator()(const std::monostate&) const
     {
         constexpr static auto null_str = MULTIPASS_UNIVERSAL_LITERAL("null");
         return std::basic_string<Char>{null_str.as<Char>()};
     }
 
-    auto operator()(const HcsNetworkAdapter& params)
+    auto operator()(const HcsNetworkAdapter& params) const
     {
         constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
             {{
@@ -65,17 +65,17 @@ struct HcsRequestSettingsFormatters
                            maybe_widen{params.mac_address});
     }
 
-    auto operator()(const HcsModifyMemorySettings& params)
+    auto operator()(const HcsModifyMemorySettings& params) const
     {
         return to_string(params.size_in_mb);
     }
 
-    auto operator()(const HcsAddPlan9ShareParameters& params)
+    auto operator()(const HcsAddPlan9ShareParameters& params) const
     {
         return to_string(params);
     }
 
-    auto operator()(const HcsRemovePlan9ShareParameters& params)
+    auto operator()(const HcsRemovePlan9ShareParameters& params) const
     {
         return to_string(params);
     }
