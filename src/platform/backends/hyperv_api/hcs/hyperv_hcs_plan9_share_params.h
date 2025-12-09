@@ -21,7 +21,6 @@
 
 #include <fmt/format.h>
 
-#include <filesystem>
 #include <string>
 
 namespace multipass::hyperv::hcs
@@ -45,14 +44,14 @@ struct HcsPlan9Base
      * It's different from the official default port number
      * since the host might want to run a Plan9 server itself.
      */
-    static inline constexpr std::uint16_t default_port{55035};
+    static constexpr std::uint16_t default_port{55035};
     /**
      * Unique name for the share
      */
     std::string name{};
 
     /**
-     * The name by which the guest operation system can access this share
+     * The name by which the guest operating system can access this share
      * via the aname parameter in the Plan9 protocol.
      */
     std::string access_name{};
@@ -75,11 +74,6 @@ struct HcsAddPlan9ShareParameters : public detail::HcsPlan9Base
      */
     HcsPath host_path{};
 
-    /**
-     * ReadOnly      0x00000001
-     * LinuxMetadata 0x00000004
-     * CaseSensitive 0x00000008
-     */
     Plan9ShareFlags flags{Plan9ShareFlags::none};
 };
 } // namespace multipass::hyperv::hcs
