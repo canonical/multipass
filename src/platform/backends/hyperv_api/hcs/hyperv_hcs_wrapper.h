@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <hyperv_api/hcs/hyperv_hcs_api_table.h>
+#include <hyperv_api/hcs/hyperv_hcs_api.h>
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_request.h>
