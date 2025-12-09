@@ -87,7 +87,7 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsAddPlan9ShareParameters, Char>
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcs::HcsAddPlan9ShareParameters& param,
-                FormatContext& ctx) const -> typename FormatContext::iterator;
+                FormatContext& ctx) const -> FormatContext::iterator;
 };
 
 /**
@@ -99,5 +99,5 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsRemovePlan9ShareParameters, Cha
 {
     template <typename FormatContext>
     auto format(const multipass::hyperv::hcs::HcsRemovePlan9ShareParameters& param,
-                FormatContext& ctx) const -> typename FormatContext::iterator;
+                FormatContext& ctx) const -> FormatContext::iterator;
 };
