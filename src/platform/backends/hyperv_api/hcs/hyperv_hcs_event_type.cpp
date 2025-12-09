@@ -17,10 +17,8 @@
 
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 
-// clang-format off
 #include <windows.h>
 #include <ComputeDefs.h>
-// clang-format on
 
 namespace multipass::hyperv::hcs
 {

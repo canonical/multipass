@@ -19,12 +19,10 @@
 
 #include <hyperv_api/virtdisk/virtdisk_api.h>
 
-// clang-format off
 #include <windows.h>
-#include <initguid.h>
 #include <virtdisk.h>
+#include <initguid.h>
 #include <strsafe.h>
-// clang-format on
 
 #include <fmt/std.h>
 #include <fmt/xchar.h>
