@@ -24,14 +24,12 @@
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
-// clang-format off
 #include <windows.h>
 #include <computecore.h>
 #include <computedefs.h>
-#include <computestorage.h>
 #include <computenetwork.h>
+#include <computestorage.h>
 #include <objbase.h>
-// clang-format on
 
 #include <fmt/xchar.h>
 #include <ztd/out_ptr.hpp>
