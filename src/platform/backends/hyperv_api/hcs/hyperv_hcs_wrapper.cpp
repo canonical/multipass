@@ -81,25 +81,11 @@ using UniqueHlocalString = std::unique_ptr<wchar_t, HlocalStringDeleter>;
 namespace mpl = logging;
 using lvl = mpl::Level;
 
-/**
- * Category for the log messages.
- */
 constexpr static auto log_category = "HyperV-HCS-Wrapper";
-
-/**
- * Default timeout value for HCS API operations
- */
 constexpr static auto default_operation_timeout = std::chrono::seconds{240};
 
 // ---------------------------------------------------------
 
-/**
- * Create a new HCS operation.
- *
- * @param api The HCS API table
- *
- * @return UniqueHcsOperation The new operation
- */
 UniqueHcsOperation create_operation()
 {
     mpl::trace(log_category, "create_operation(...)");
@@ -108,14 +94,6 @@ UniqueHcsOperation create_operation()
 
 // ---------------------------------------------------------
 
-/**
- * Wait until given operation completes, or the timeout has reached.
- *
- * @param api The HCS API table
- * @param op Operation to wait for
- * @param timeout Maximum amount of time to wait
- * @return Operation result
- */
 OperationResult wait_for_operation_result(
     UniqueHcsOperation op,
     std::chrono::milliseconds timeout = default_operation_timeout)
@@ -197,11 +175,11 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
 
     // Windows API uses wide strings.
     const std::wstring name_w = maybe_widen{name};
-    constexpr static auto kRequestedAccessLevel = GENERIC_ALL;
+    constexpr static auto requested_access_level = GENERIC_ALL;
 
     UniqueHcsSystem system{};
     const ResultCode result =
-        API().HcsOpenComputeSystem(name_w.c_str(), kRequestedAccessLevel, out_ptr(system));
+        API().HcsOpenComputeSystem(name_w.c_str(), requested_access_level, out_ptr(system));
     if (!result)
     {
         mpl::debug(log_category,
@@ -278,7 +256,7 @@ OperationResult HCSWrapper::shutdown_compute_system(const HcsSystemHandle& targe
                "shutdown_compute_system(...) > handle: ({})",
                fmt::ptr(target_hcs_system.get()));
 
-    static constexpr wchar_t c_shutdownOption[] = LR"(
+    static constexpr wchar_t shutdown_option[] = LR"(
         {
             "Mechanism": "IntegrationService",
             "Type": "Shutdown"
@@ -288,7 +266,7 @@ OperationResult HCSWrapper::shutdown_compute_system(const HcsSystemHandle& targe
         [&](auto&& op) {
             return API().HcsShutDownComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                   op,
-                                                  c_shutdownOption);
+                                                  shutdown_option);
         },
         target_hcs_system);
 }
@@ -317,7 +295,7 @@ OperationResult HCSWrapper::pause_compute_system(const HcsSystemHandle& target_h
     mpl::debug(log_category,
                "pause_compute_system(...) > handle: ({})",
                fmt::ptr(target_hcs_system.get()));
-    static constexpr wchar_t c_pauseOption[] = LR"(
+    static constexpr wchar_t pause_option[] = LR"(
         {
             "SuspensionLevel": "Suspend",
             "HostedNotification": {
@@ -329,7 +307,7 @@ OperationResult HCSWrapper::pause_compute_system(const HcsSystemHandle& target_h
         [&](auto&& op) {
             return API().HcsPauseComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                                                op,
-                                               c_pauseOption);
+                                               pause_option);
         },
         target_hcs_system);
 }
@@ -361,7 +339,7 @@ OperationResult HCSWrapper::get_compute_system_properties(
                fmt::ptr(target_hcs_system.get()));
 
     // https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference#System_PropertyType
-    static constexpr wchar_t c_VmQuery[] = LR"(
+    static constexpr wchar_t vm_query[] = LR"(
         {
             "PropertyTypes":[]
         })";
@@ -371,7 +349,7 @@ OperationResult HCSWrapper::get_compute_system_properties(
             return API().HcsGetComputeSystemProperties(
                 static_cast<HCS_SYSTEM>(target_hcs_system.get()),
                 op,
-                c_VmQuery);
+                vm_query);
         },
         target_hcs_system);
 }
