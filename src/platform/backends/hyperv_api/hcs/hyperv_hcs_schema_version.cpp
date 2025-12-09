@@ -114,7 +114,7 @@ auto fmt::formatter<HcsSchemaVersion, Char>::format(const HcsSchemaVersion& sche
                                                     FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto fmt_str = MULTIPASS_UNIVERSAL_LITERAL("{}");
+    constexpr auto fmt_str = MULTIPASS_UNIVERSAL_LITERAL("{}");
 
     auto result = MULTIPASS_UNIVERSAL_LITERAL("Unknown");
 

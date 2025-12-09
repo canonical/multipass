@@ -46,13 +46,13 @@ struct HcsRequestSettingsFormatters
 
     auto operator()(const std::monostate&) const
     {
-        constexpr static auto null_str = MULTIPASS_UNIVERSAL_LITERAL("null");
+        constexpr auto null_str = MULTIPASS_UNIVERSAL_LITERAL("null");
         return std::basic_string<Char>{null_str.as<Char>()};
     }
 
     auto operator()(const HcsNetworkAdapter& params) const
     {
-        constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+        constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
             {{
                 "EndpointId": "{0}",
                 "MacAddress": "{1}",
@@ -86,7 +86,7 @@ template <typename FormatContext>
 auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
             "ResourcePath": "{0}",
             "RequestType": "{1}",
