@@ -23,5 +23,6 @@ namespace multipass::test
 {
 struct AppleVirtualMachine_UnitTests : public testing::Test
 {
+    CauseABuildFailure
 };
 }; // namespace multipass::test
