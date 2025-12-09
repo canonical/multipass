@@ -27,7 +27,7 @@ template <typename FormatContext>
 auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto route_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto route_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
             "NextHop": "{}",
             "DestinationPrefix": "{}",
