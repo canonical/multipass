@@ -17,6 +17,8 @@
 
 #pragma once
 
+struct HCS_EVENT;
+
 namespace multipass::hyperv::hcs
 {
 
@@ -26,5 +28,5 @@ enum class HcsEventType
     SystemExited
 };
 
-[[nodiscard]] HcsEventType parse_event(const void* hcs_event);
+[[nodiscard]] HcsEventType parse_event(const HCS_EVENT* hcs_event);
 } // namespace multipass::hyperv::hcs
