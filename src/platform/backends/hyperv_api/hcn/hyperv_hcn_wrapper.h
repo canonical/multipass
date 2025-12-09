@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <hyperv_api/hcn/hyperv_hcn_api_table.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
@@ -30,59 +29,18 @@ namespace multipass::hyperv::hcn
 {
 
 /**
- * A high-level wrapper class that defines
- * the common operations that Host Compute Network
- * API provide.
+ * A high-level wrapper class that defines the common operations that Host Compute Network API
+ * provide.
  */
 struct HCNWrapper : public Singleton<HCNWrapper>
 {
 
-    /**
-     * Construct a new HCNWrapper
-     *
-     */
     HCNWrapper(const Singleton<HCNWrapper>::PrivatePass&) noexcept;
-
-    /**
-     * Create a new Host Compute Network
-     *
-     * @param [in] params Parameters for the new network
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
     [[nodiscard]] virtual OperationResult create_network(
         const CreateNetworkParameters& params) const;
-
-    /**
-     * Delete an existing Host Compute Network
-     *
-     * @param [in] network_guid Target network's GUID
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
     [[nodiscard]] virtual OperationResult delete_network(const std::string& network_guid) const;
-
-    /**
-     * Create a new Host Compute Network Endpoint
-     *
-     * @param [in] params Parameters for the new endpoint
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
     [[nodiscard]] virtual OperationResult create_endpoint(
         const CreateEndpointParameters& params) const;
-
-    /**
-     * Delete an existing Host Compute Network Endpoint
-     *
-     * @param [in] endpoint_guid Target endpoint's GUID
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
-     */
     [[nodiscard]] virtual OperationResult delete_endpoint(const std::string& endpoint_guid) const;
 };
 
