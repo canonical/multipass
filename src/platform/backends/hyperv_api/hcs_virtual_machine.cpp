@@ -206,7 +206,7 @@ void HCSVirtualMachine::compute_system_event_callback(void* event, void* context
                "compute_system_event_callback() >  event: {}, context: {}",
                fmt::ptr(event),
                fmt::ptr(context));
-    const auto type = hcs::parse_event(event);
+    const auto type = hcs::parse_event(static_cast<HCS_EVENT*>(event));
     auto vm = reinterpret_cast<HCSVirtualMachine*>(context);
 
     switch (type)
