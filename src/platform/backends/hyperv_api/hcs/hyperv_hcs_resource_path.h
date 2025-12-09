@@ -58,7 +58,7 @@ struct HcsResourcePath
     }
 
 private:
-    HcsResourcePath(std::string v) : value(v)
+    HcsResourcePath(std::string v) : value(std::move(v))
     {
     }
 
