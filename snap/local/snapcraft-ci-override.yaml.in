@@ -42,6 +42,10 @@ parts:
       - clang-tidy-15
     override-pull: |
       set -e
+      if [ "$CMAKE_PRESET" != "ci-snap-debug" ]; then
+        echo "Skipping clang-tidy (CMAKE_PRESET=$CMAKE_PRESET)"
+        exit 0
+      fi
       cd /root/parts/multipass/src
       cmake --build ../build --target rpc
       git diff -U0 --no-color HEAD^1 | clang-tidy-diff-15.py -p1 -path ../build/ -clang-tidy-binary=clang-tidy-15 -j$(nproc) -quiet | sed '/^$/d' | tee clang-tidy-diff
