@@ -16,7 +16,9 @@
  */
 
 #pragma once
+#include <iostream>
 
+#include <memory>
 #include <multipass/logging/level.h>
 #include <multipass/logging/logger.h>
 #include <rust/cxx.h>
@@ -45,7 +47,29 @@ Logger* get_logger(); // for tests, don't rely on it lasting
 namespace rust
 {
 void log_message(Level level, ::rust::String category, ::rust::String message);
+class Base
+{
+public:
+    virtual ~Base() = default;
+    virtual void virt_func()
+    {
+        std::cout << "\nBase\n";
+    }
+};
+class Derived : public Base
+{
+public:
+    ~Derived() override = default;
+    void virt_func() override
+    {
+        std::cout << "\nDerived\n";
+    }
+};
+inline std::unique_ptr<Base> get_base()
+{
+    return std::make_unique<Derived>();
 }
+} // namespace rust
 /**
  * Log with formatting support
  *
