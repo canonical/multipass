@@ -36,89 +36,89 @@ struct HcnNetworkType
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto Nat()
+    [[nodiscard]] static HcnNetworkType Nat()
     {
-        return HcnNetworkType{"NAT"};
+        return {"NAT"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto Ics()
+    [[nodiscard]] static HcnNetworkType Ics()
     {
-        return HcnNetworkType{"ICS"};
+        return {"ICS"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto Transparent()
+    [[nodiscard]] static HcnNetworkType Transparent()
     {
-        return HcnNetworkType{"Transparent"};
+        return {"Transparent"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto L2Bridge()
+    [[nodiscard]] static HcnNetworkType L2Bridge()
     {
-        return HcnNetworkType{"L2Bridge"};
+        return {"L2Bridge"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto L2Tunnel()
+    [[nodiscard]] static HcnNetworkType L2Tunnel()
     {
-        return HcnNetworkType{"L2Tunnel"};
+        return {"L2Tunnel"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto Overlay()
+    [[nodiscard]] static HcnNetworkType Overlay()
     {
-        return HcnNetworkType{"Overlay"};
+        return {"Overlay"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto Private()
+    [[nodiscard]] static HcnNetworkType Private()
     {
-        return HcnNetworkType{"Private"};
+        return {"Private"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto Internal()
+    [[nodiscard]] static HcnNetworkType Internal()
     {
-        return HcnNetworkType{"Internal"};
+        return {"Internal"};
     }
 
     /**
      * @since Version 2.4
      */
-    [[nodiscard]] constexpr static auto Mirrored()
+    [[nodiscard]] static HcnNetworkType Mirrored()
     {
-        return HcnNetworkType{"Mirrored"};
+        return {"Mirrored"};
     }
 
     /**
      * @since Version 2.4
      */
-    [[nodiscard]] constexpr static auto Infiniband()
+    [[nodiscard]] static HcnNetworkType Infiniband()
     {
-        return HcnNetworkType{"Infiniband"};
+        return {"Infiniband"};
     }
 
     /**
      * @since Version 2.10
      */
-    [[nodiscard]] constexpr static auto ConstrainedICS()
+    [[nodiscard]] static HcnNetworkType ConstrainedICS()
     {
-        return HcnNetworkType{"ConstrainedICS"};
+        return {"ConstrainedICS"};
     }
 
     [[nodiscard]] bool operator==(const HcnNetworkType& rhs) const
