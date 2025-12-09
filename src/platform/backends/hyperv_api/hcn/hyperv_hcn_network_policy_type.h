@@ -45,113 +45,113 @@ struct HcnNetworkPolicyType
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto SourceMacAddress()
+    [[nodiscard]] static HcnNetworkPolicyType SourceMacAddress()
     {
-        return HcnNetworkPolicyType{"SourceMacAddress"};
+        return {"SourceMacAddress"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto NetAdapterName()
+    [[nodiscard]] static HcnNetworkPolicyType NetAdapterName()
     {
-        return HcnNetworkPolicyType{"NetAdapterName"};
+        return {"NetAdapterName"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto VSwitchExtension()
+    [[nodiscard]] static HcnNetworkPolicyType VSwitchExtension()
     {
-        return HcnNetworkPolicyType{"VSwitchExtension"};
+        return {"VSwitchExtension"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto DrMacAddress()
+    [[nodiscard]] static HcnNetworkPolicyType DrMacAddress()
     {
-        return HcnNetworkPolicyType{"DrMacAddress"};
+        return {"DrMacAddress"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto AutomaticDNS()
+    [[nodiscard]] static HcnNetworkPolicyType AutomaticDNS()
     {
-        return HcnNetworkPolicyType{"AutomaticDNS"};
+        return {"AutomaticDNS"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto InterfaceConstraint()
+    [[nodiscard]] static HcnNetworkPolicyType InterfaceConstraint()
     {
-        return HcnNetworkPolicyType{"InterfaceConstraint"};
+        return {"InterfaceConstraint"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto ProviderAddress()
+    [[nodiscard]] static HcnNetworkPolicyType ProviderAddress()
     {
-        return HcnNetworkPolicyType{"ProviderAddress"};
+        return {"ProviderAddress"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto RemoteSubnetRoute()
+    [[nodiscard]] static HcnNetworkPolicyType RemoteSubnetRoute()
     {
-        return HcnNetworkPolicyType{"RemoteSubnetRoute"};
+        return {"RemoteSubnetRoute"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto VxlanPort()
+    [[nodiscard]] static HcnNetworkPolicyType VxlanPort()
     {
-        return HcnNetworkPolicyType{"VxlanPort"};
+        return {"VxlanPort"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto HostRoute()
+    [[nodiscard]] static HcnNetworkPolicyType HostRoute()
     {
-        return HcnNetworkPolicyType{"HostRoute"};
+        return {"HostRoute"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto SetPolicy()
+    [[nodiscard]] static HcnNetworkPolicyType SetPolicy()
     {
-        return HcnNetworkPolicyType{"SetPolicy"};
+        return {"SetPolicy"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto NetworkL4Proxy()
+    [[nodiscard]] static HcnNetworkPolicyType NetworkL4Proxy()
     {
-        return HcnNetworkPolicyType{"NetworkL4Proxy"};
+        return {"NetworkL4Proxy"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto LayerConstraint()
+    [[nodiscard]] static HcnNetworkPolicyType LayerConstraint()
     {
-        return HcnNetworkPolicyType{"LayerConstraint"};
+        return {"LayerConstraint"};
     }
 
     /**
      * @since Version 2.0
      */
-    [[nodiscard]] constexpr static auto NetworkACL()
+    [[nodiscard]] static HcnNetworkPolicyType NetworkACL()
     {
-        return HcnNetworkPolicyType{"NetworkACL"};
+        return {"NetworkACL"};
     }
 
     [[nodiscard]] bool operator==(const HcnNetworkPolicyType& rhs) const
@@ -160,7 +160,7 @@ struct HcnNetworkPolicyType
     }
 
 private:
-    constexpr HcnNetworkPolicyType(std::string_view v) : value(v)
+    HcnNetworkPolicyType(std::string_view v) : value(v)
     {
     }
 
