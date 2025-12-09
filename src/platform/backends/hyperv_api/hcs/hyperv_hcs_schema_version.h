@@ -70,6 +70,6 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsSchemaVersion, Char>
     : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HcsSchemaVersion& param, FormatContext& ctx) const ->
-        typename FormatContext::iterator;
+    auto format(const multipass::hyperv::hcs::HcsSchemaVersion& param, FormatContext& ctx) const
+        -> FormatContext::iterator;
 };

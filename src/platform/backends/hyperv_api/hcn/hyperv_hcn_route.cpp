@@ -24,8 +24,8 @@ using multipass::hyperv::hcn::HcnRoute;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext& ctx) const ->
-    typename FormatContext::iterator
+auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto route_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
