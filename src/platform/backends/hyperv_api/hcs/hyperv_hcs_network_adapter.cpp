@@ -24,8 +24,8 @@ using multipass::hyperv::hcs::HcsNetworkAdapter;
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& network_adapter,
-                                                     FormatContext& ctx) const ->
-    typename FormatContext::iterator
+                                                     FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto network_adapter_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         "{0}": {{
