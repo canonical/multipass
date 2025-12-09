@@ -52,10 +52,10 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
             "ComputeTopology": {{
                 "Memory": {{
                     "Backing": "Virtual",
-                    "SizeInMB": {1}
+                    "SizeInMB": {0}
                 }},
                 "Processor": {{
-                    "Count": {0}
+                    "Count": {1}
                 }}
             }},
             "Devices": {{
@@ -109,8 +109,8 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
 
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),
-                          params.processor_count,
                           params.memory_size_mb,
+                          params.processor_count,
                           maybe_widen{params.name},
                           fmt::join(params.scsi_devices, comma.as<Char>()),
                           fmt::join(params.network_adapters, comma.as<Char>()),
