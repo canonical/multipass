@@ -40,6 +40,7 @@ class AliasDict
 {
 public:
     typedef std::unordered_map<std::string, AliasContext> DictType;
+    typedef typename DictType::value_type value_type;
     typedef typename DictType::key_type key_type;
     typedef typename DictType::mapped_type mapped_type;
     typedef typename DictType::size_type size_type;
@@ -66,6 +67,17 @@ public:
     {
         return aliases.end();
     }
+
+    // TODO: Replace these overloads with "deducing `this`" when we upgrade to C++23?
+    DictType::const_iterator begin() const
+    {
+        return aliases.begin();
+    }
+    DictType::const_iterator end() const
+    {
+        return aliases.end();
+    }
+
     DictType::const_iterator cbegin() const
     {
         return aliases.cbegin();
@@ -74,6 +86,7 @@ public:
     {
         return aliases.cend();
     }
+
     bool empty() const
     {
         return (aliases.empty() || (aliases.size() == 1 && get_active_context().empty()));
