@@ -91,7 +91,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
     std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
     const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
 
-    auto append_version_dependent_section = [&schema_version_dependent_vm_sections,
+    auto append_if_supported = [&schema_version_dependent_vm_sections,
                                              &schema_version](auto section,
                                                               HcsSchemaVersion version) {
         if (schema_version >= version)
@@ -105,7 +105,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
         }
     };
 
-    append_version_dependent_section(requested_services.as<Char>(), HcsSchemaVersion::v25);
+    append_if_supported(requested_services.as<Char>(), HcsSchemaVersion::v25);
 
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),
