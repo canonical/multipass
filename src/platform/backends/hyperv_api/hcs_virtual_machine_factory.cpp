@@ -42,17 +42,14 @@ using hcn::HCN;
 using hcs::HCS;
 using virtdisk::VirtDisk;
 
-/**
- * Category for the log messages.
- */
-constexpr static auto kLogCategory = "HyperV-Virtual-Machine-Factory";
-constexpr static auto kDefaultHyperVSwitchGUID = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
-constexpr static auto kExtraInterfaceVswitchNameFmtStr = "Multipass vSwitch ({})";
+constexpr auto log_category = "HyperV-Virtual-Machine-Factory";
+constexpr auto default_hyperv_switch_guid = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
+constexpr auto extra_interface_vswitch_name_fmtstr = "Multipass vSwitch ({})";
 /**
  * Regex pattern to extract the origin network name and GUID from an extra interface
  * name.
  */
-constexpr static auto kExtraInterfaceVswitchNameRegex = R"(Multipass vSwitch \((.*)\))";
+constexpr auto extra_interface_vswitch_name_regex = R"(Multipass vSwitch \((.*)\))";
 
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
     : BaseVirtualMachineFactory(
@@ -68,13 +65,13 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const auto networks = MP_PLATFORM.get_network_interfaces_info();
     for (const auto& extra : desc.extra_interfaces)
     {
-        std::regex pattern{kExtraInterfaceVswitchNameRegex};
+        std::regex pattern{extra_interface_vswitch_name_regex};
         std::smatch match;
 
         // The origin interface name is encoded into the interface name itself.
         if (!std::regex_match(extra.id, match, pattern) || match.size() != 2)
         {
-            mpl::error(kLogCategory, "Invalid extra interface name `{}`.", extra.id);
+            mpl::error(log_category, "Invalid extra interface name `{}`.", extra.id);
             continue;
         }
 
@@ -88,7 +85,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
 
         if (networks.end() == found)
         {
-            mpl::warn(kLogCategory,
+            mpl::warn(log_category,
                       "Could not find the source interface `{}` for extra `{}`",
                       origin_interface_name,
                       extra.id);
@@ -98,11 +95,11 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
         const auto vswitch_name = create_bridge_with(found->second);
         if (vswitch_name.empty())
         {
-            mpl::warn(kLogCategory, "vSwitch {} could not be created", found->first);
+            mpl::warn(log_category, "vSwitch {} could not be created", found->first);
         }
     }
 
-    return std::make_unique<HCSVirtualMachine>(kDefaultHyperVSwitchGUID,
+    return std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
                                                desc,
                                                monitor,
                                                key_provider,
@@ -111,7 +108,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
-    mpl::debug(kLogCategory, "remove_resources_for_impl() -> VM: {}", name);
+    mpl::debug(log_category, "remove_resources_for_impl() -> VM: {}", name);
     hcs::HcsSystemHandle handle{nullptr};
     if (HCS().open_compute_system(name, handle))
     {
@@ -120,14 +117,14 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
         const auto& [status, status_msg] = HCS().terminate_compute_system(handle);
         if (status)
         {
-            mpl::warn(kLogCategory,
+            mpl::warn(log_category,
                       "remove_resources_for_impl() -> Host compute system {} was still alive.",
                       name);
         }
     }
     else
     {
-        mpl::info(kLogCategory,
+        mpl::info(log_category,
                   "remove_resources_for_impl() -> Host compute system `{}` already terminated.",
                   name);
     }
@@ -201,7 +198,7 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
 
 std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
 {
-    const auto vswitch_name = fmt::format(kExtraInterfaceVswitchNameFmtStr, intf.id);
+    const auto vswitch_name = fmt::format(extra_interface_vswitch_name_fmtstr, intf.id);
     const auto params = [&intf, &vswitch_name] {
         hcn::CreateNetworkParameters network_params{};
         network_params.name = vswitch_name;

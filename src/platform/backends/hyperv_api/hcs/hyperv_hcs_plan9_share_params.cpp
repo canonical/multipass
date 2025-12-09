@@ -30,7 +30,7 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
     const HcsAddPlan9ShareParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
             "Name": "{0}",
             "Path": "{1}",
@@ -54,7 +54,7 @@ auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(
     const HcsRemovePlan9ShareParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         {{
             "Name": "{0}",
             "AccessName": "{1}",

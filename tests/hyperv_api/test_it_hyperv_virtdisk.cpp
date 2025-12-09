@@ -30,13 +30,12 @@ namespace multipass::test
 
 using namespace hyperv::virtdisk;
 
-/**
- * 16 MiB
- */
-constexpr static auto test_vhdx_size = 1024 * 1024 * 16ULL;
-
 struct HyperVVirtDisk_IntegrationTests : public ::testing::Test
 {
+    /**
+     * 16 MiB
+     */
+    constexpr static auto test_vhdx_size = 1024 * 1024 * 16ULL;
 };
 
 TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhdx)

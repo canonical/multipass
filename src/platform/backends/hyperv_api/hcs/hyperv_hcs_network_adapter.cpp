@@ -27,7 +27,7 @@ auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& ne
                                                      FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto network_adapter_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto network_adapter_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
         "{0}": {{
             "EndpointId" : "{0}",
             "MacAddress": "{1}",

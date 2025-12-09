@@ -27,8 +27,8 @@ auto fmt::formatter<CreateNetworkParameters, Char>::format(const CreateNetworkPa
                                                            FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
-    constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
     {{
         "SchemaVersion":
         {{

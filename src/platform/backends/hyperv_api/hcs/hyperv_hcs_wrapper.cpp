@@ -81,8 +81,8 @@ using UniqueHlocalString = std::unique_ptr<wchar_t, HlocalStringDeleter>;
 namespace mpl = logging;
 using lvl = mpl::Level;
 
-constexpr static auto log_category = "HyperV-HCS-Wrapper";
-constexpr static auto default_operation_timeout = std::chrono::seconds{240};
+constexpr auto log_category = "HyperV-HCS-Wrapper";
+constexpr auto default_operation_timeout = std::chrono::seconds{240};
 
 // ---------------------------------------------------------
 
@@ -175,7 +175,7 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
 
     // Windows API uses wide strings.
     const std::wstring name_w = maybe_widen{name};
-    constexpr static auto requested_access_level = GENERIC_ALL;
+    constexpr auto requested_access_level = GENERIC_ALL;
 
     UniqueHcsSystem system{};
     const ResultCode result =

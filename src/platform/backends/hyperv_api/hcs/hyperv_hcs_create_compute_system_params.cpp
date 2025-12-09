@@ -30,7 +30,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
     const CreateComputeSystemParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    constexpr static auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
     {{
         "SchemaVersion": {{
             "Major": 2,
@@ -80,13 +80,13 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
         }}
     }}
     )json");
-    constexpr static auto requested_services = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr auto requested_services = MULTIPASS_UNIVERSAL_LITERAL(R"json(
             "Services": {
                 "Shutdown": {},
                 "Heartbeat": {}
             })json");
 
-    constexpr static auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+    constexpr auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
 
     std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
     const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
