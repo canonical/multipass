@@ -42,7 +42,7 @@ if(WIN32)
 
   add_library(hyperv_api_backend STATIC
     hcn/hyperv_hcn_wrapper.cpp
-    hcn/hyperv_hcn_api_table.cpp
+    hcn/hyperv_hcn_api.cpp
     hcn/hyperv_hcn_route.cpp
     hcn/hyperv_hcn_subnet.cpp
     hcn/hyperv_hcn_ipam.cpp
@@ -58,10 +58,10 @@ if(WIN32)
     hcs/hyperv_hcs_create_compute_system_params.cpp
     hcs/hyperv_hcs_request.cpp
     hcs/hyperv_hcs_path.cpp
-    hcs/hyperv_hcs_api_table.cpp
+    hcs/hyperv_hcs_api.cpp
     virtdisk/virtdisk_wrapper.cpp
     virtdisk/virtdisk_snapshot.cpp
-    virtdisk/virtdisk_api_table.cpp
+    virtdisk/virtdisk_api.cpp
     hcs_plan9_mount_handler.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
