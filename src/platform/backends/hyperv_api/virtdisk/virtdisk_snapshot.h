@@ -35,18 +35,6 @@ namespace multipass::hyperv::virtdisk
 class VirtDiskSnapshot : public BaseSnapshot
 {
 public:
-    /**
-     * Create a new Virtdisk snapshot
-     *
-     * @param [in] name Name for the snapshot
-     * @param [in] comment Comment (optional)
-     * @param [in] cloud_init_instance_id Name of the VM
-     * @param [in] parent Parent, if exists
-     * @param [in] specs VM specs
-     * @param [in] vm Snapshot owner VM
-     * @param [in] desc Owner VM description
-     * @param [in] virtdisk Virtdisk API object
-     */
     VirtDiskSnapshot(const std::string& name,
                      const std::string& comment,
                      const std::string& cloud_init_instance_id,
@@ -54,48 +42,15 @@ public:
                      const VMSpecs& specs,
                      const VirtualMachine& vm,
                      const VirtualMachineDescription& desc);
-
-    /**
-     * Load an existing VirtDiskSnapshot from file
-     *
-     * @param [in] filename JSON file
-     * @param [in] vm Snapshot owner VM
-     * @param [in] desc Owner VM description
-     * @param [in] virtdisk Virtdisk API object
-     */
     VirtDiskSnapshot(const QString& filename,
                      VirtualMachine& vm,
                      const VirtualMachineDescription& desc);
-
-    /**
-     * Create a consistent filename for a snapshot
-     *
-     * @param [in] ss The snapshot
-     * @return std::string Filename for the snapshot
-     */
     [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
-
-    /**
-     * Retrieve the path for a snapshot
-     *
-     * @param [in] ss The snapshot
-     * @return std::filesystem::path The path that the snapshot is at
-     */
     [[nodiscard]] std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
-
-    /**
-     * The name for the head disk
-     *
-     * @return std::string_view Head disk filename
-     */
     [[nodiscard]] static constexpr std::string_view head_disk_name() noexcept
     {
         return "head.avhdx";
     }
-
-    /**
-     * Path for the head disk
-     */
     [[nodiscard]] std::filesystem::path make_head_disk_path() const;
 
 protected:

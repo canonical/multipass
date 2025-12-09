@@ -17,13 +17,13 @@
 
 #pragma once
 
+#include <multipass/singleton.h>
+
 // clang-format off
 #include <windows.h>
 #include <computenetwork.h>
 #include <objbase.h> // for CoTaskMemFree
 // clang-format on
-
-#include <multipass/singleton.h>
 
 namespace multipass::hyperv::hcn
 {
