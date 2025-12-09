@@ -34,7 +34,7 @@ mp::ReturnCode cmd::Help::run(mp::ArgParser* parser)
 
     if (cmd == nullptr)
     {
-        cerr << "Error: Unknown Command: '" << qUtf8Printable(command) << "'\n";
+        cerr << "Error: Unknown Commands: '" << qUtf8Printable(command) << "'\n";
         return ReturnCode::CommandLineError;
     }
 
