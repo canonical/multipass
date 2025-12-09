@@ -20,15 +20,12 @@
 #include <fmt/xchar.h>
 
 #include <filesystem>
-#include <string>
 
 namespace multipass::hyperv::hcs
 {
 /**
- * Host Compute System API expects paths
- * to be formatted in a certain way. HcsPath
- * is a strong type that ensures the correct
- * formatting.
+ * Host Compute System API expects paths to be formatted in a certain way. HcsPath is a strong type
+ * that ensures the correct formatting.
  */
 struct HcsPath
 {
