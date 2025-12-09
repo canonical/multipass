@@ -25,10 +25,9 @@
 namespace multipass::hyperv::hcs
 {
 
-HcsEventType parse_event(const void* hcs_event)
+HcsEventType parse_event(const HCS_EVENT* hcs_event)
 {
-    const HCS_EVENT* evt = reinterpret_cast<const HCS_EVENT*>(hcs_event);
-    switch (evt->Type)
+    switch (hcs_event->Type)
     {
     case HcsEventSystemExited:
         return HcsEventType::SystemExited;
