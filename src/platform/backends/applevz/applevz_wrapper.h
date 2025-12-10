@@ -34,7 +34,7 @@ public:
 
     virtual CFError create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const;
     virtual CFError start_vm(VMHandle& vm_handle) const;
-    virtual CFError stop_vm(bool force, VMHandle& vm_handle) const;
+    virtual CFError stop_vm(VMHandle& vm_handle, bool force = false) const;
     virtual CFError pause_vm(VMHandle& vm_handle) const;
     virtual CFError resume_vm(VMHandle& vm_handle) const;
 
