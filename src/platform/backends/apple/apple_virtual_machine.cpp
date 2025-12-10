@@ -119,6 +119,68 @@ void AppleVirtualMachine::start()
 
 void AppleVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
+    mpl::debug(log_category,
+               "shutdown() -> Shutting down VM `{}`, current state {}",
+               vm_name,
+               state);
+
+    try
+    {
+        check_state_for_shutdown(shutdown_policy);
+    }
+    catch (const VMStateIdempotentException& e)
+    {
+        mpl::log_message(mpl::Level::info, vm_name, e.what());
+        return;
+    }
+
+    CFError error;
+
+    if (shutdown_policy == ShutdownPolicy::Poweroff)
+    {
+        mpl::debug(log_category, "shutdown() -> Forcing shutdown of VM `{}`", vm_name);
+        error = MP_APPLE_VZ.stop_vm(vm_handle, true);
+    }
+    else if (MP_APPLE_VZ.can_stop(vm_handle))
+    {
+        mpl::debug(log_category, "shutdown() -> Requesting shutdown of VM `{}`", vm_name);
+        error = MP_APPLE_VZ.stop_vm(vm_handle);
+    }
+    else
+    {
+        mpl::warn(log_category,
+                  "shutdown() -> VM `{}` cannot be stopped from state `{}`",
+                  vm_name,
+                  state);
+        return;
+    }
+
+    // Reflect vm's state
+    set_state(MP_APPLE_VZ.get_state(vm_handle));
+
+    if (error)
+    {
+        mpl::error(log_category, "shutdown() -> VM '{}' failed to stop: {}", vm_name, error);
+        throw std::runtime_error(
+            fmt::format("VM '{}' failed to stop, check logs for more details", vm_name));
+    }
+
+    // We need to wait here.
+    auto on_timeout = [] { throw std::runtime_error("timed out waiting for shutdown"); };
+
+    multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+        set_state(MP_APPLE_VZ.get_state(vm_handle));
+        handle_state_update();
+
+        switch (current_state())
+        {
+        case VirtualMachine::State::stopped:
+            drop_ssh_session();
+            return multipass::utils::TimeoutAction::done;
+        default:
+            return multipass::utils::TimeoutAction::retry;
+        }
+    });
 }
 
 void AppleVirtualMachine::suspend()
