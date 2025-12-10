@@ -23,6 +23,8 @@
 
 #include <fmt/format.h>
 
+#include <filesystem>
+
 namespace multipass::apple
 {
 using VMHandle = std::shared_ptr<void>;
@@ -50,6 +52,9 @@ CFError stop_with_completion_handler(VMHandle& vm_handle);
 CFError request_stop_with_error(VMHandle& vm_handle);
 CFError pause_with_completion_handler(VMHandle& vm_handle);
 CFError resume_with_completion_handler(VMHandle& vm_handle);
+
+// Saving and restoring VM
+CFError save_machine_state_to_url(const VMHandle& vm_handle, const std::filesystem::path& path);
 
 // Getting VM state
 AppleVMState get_state(VMHandle& vm_handle);
