@@ -35,31 +35,31 @@ public:
                 (const, override));
     MOCK_METHOD(applevz::CFError,
                 start_vm,
-                (multipass::applevz::VMHandle & vm_handle),
+                (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
     MOCK_METHOD(applevz::CFError,
                 stop_vm,
-                (multipass::applevz::VMHandle & vm_handle, bool force),
+                (const multipass::applevz::VMHandle& vm_handle, bool force),
                 (const, override));
     MOCK_METHOD(applevz::CFError,
                 pause_vm,
-                (multipass::applevz::VMHandle & vm_handle),
+                (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
     MOCK_METHOD(applevz::CFError,
                 resume_vm,
-                (multipass::applevz::VMHandle & vm_handle),
+                (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
     MOCK_METHOD(applevz::AppleVMState,
                 get_state,
-                (multipass::applevz::VMHandle & vm_handle),
+                (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
-    MOCK_METHOD(bool, can_start, (multipass::applevz::VMHandle & vm_handle), (const, override));
-    MOCK_METHOD(bool, can_pause, (multipass::applevz::VMHandle & vm_handle), (const, override));
-    MOCK_METHOD(bool, can_resume, (multipass::applevz::VMHandle & vm_handle), (const, override));
-    MOCK_METHOD(bool, can_stop, (multipass::applevz::VMHandle & vm_handle), (const, override));
+    MOCK_METHOD(bool, can_start, (const multipass::applevz::VMHandle& vm_handle), (const, override));
+    MOCK_METHOD(bool, can_pause, (const multipass::applevz::VMHandle& vm_handle), (const, override));
+    MOCK_METHOD(bool, can_resume, (const multipass::applevz::VMHandle& vm_handle), (const, override));
+    MOCK_METHOD(bool, can_stop, (const multipass::applevz::VMHandle& vm_handle), (const, override));
     MOCK_METHOD(bool,
                 can_request_stop,
-                (multipass::applevz::VMHandle & vm_handle),
+                (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZ, AppleVZ);
