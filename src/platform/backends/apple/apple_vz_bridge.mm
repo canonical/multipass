@@ -185,7 +185,12 @@ CFError request_stop_with_error(VMHandle& vm_handle)
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
     NSError* err = nil;
-    [vm requestStopWithError:&err];
+    if (![vm requestStopWithError:&err] && !err)
+    {
+        err = [NSError errorWithDomain:@"multipass.apple.vzbridge"
+                                  code:-1
+                              userInfo:@{NSLocalizedDescriptionKey : @"Unknown error"}];
+    }
 
     return err ? CFError((__bridge_retained CFErrorRef)err) : CFError();
 }
