@@ -295,4 +295,135 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownFromSuspendedStateWithHaltIsIdem
 
     EXPECT_EQ(vm.current_state(), VirtualMachine::State::suspended);
 }
+
+TEST_F(AppleVZVirtualMachine_UnitTests, suspendFromRunningStateCallsPauseVm)
+{
+    EXPECT_CALL(mock_applevz, get_state(_))
+        .WillOnce(Return(applevz::AppleVMState::running))
+        .WillOnce(Return(applevz::AppleVMState::paused));
+
+    mp::applevz::AppleVZVirtualMachine vm{desc,
+                                          mock_monitor,
+                                          stub_key_provider,
+                                          instance_dir.path()};
+    EXPECT_CALL(mock_applevz, can_pause(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_applevz, pause_vm(_)).WillOnce(Invoke([](auto&) {
+        return applevz::CFError{};
+    }));
+    EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, VirtualMachine::State::suspending));
+    EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, VirtualMachine::State::suspended));
+
+    vm.suspend();
+
+    EXPECT_EQ(vm.current_state(), VirtualMachine::State::suspended);
+}
+
+// TEST_F(AppleVZVirtualMachine_UnitTests, suspendFromStoppedStateLogsWarning)
+// {
+//     EXPECT_CALL(mock_applevz, get_state(_)).WillOnce(Return(applevz::AppleVMState::stopped));
+
+//     mp::applevz::AppleVZVirtualMachine vm{desc, mock_monitor, stub_key_provider,
+//     instance_dir.path()};
+
+//     EXPECT_CALL(mock_applevz, can_pause(_)).WillOnce(Return(false));
+//     EXPECT_CALL(mock_applevz, pause_vm(_)).Times(0);
+
+//     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+//     logger_scope.mock_logger->expect_log(mpl::Level::warning,
+//                                          fmt::format("VM `{}` cannot be suspended from state
+//                                          `{}`",
+//                                                      desc.vm_name,
+//                                                      mp::VirtualMachine::State::stopped));
+
+//     vm.suspend();
+
+//     EXPECT_EQ(vm.current_state(), VirtualMachine::State::stopped);
+// }
+
+// TEST_F(AppleVZVirtualMachine_UnitTests, suspendCannotPauseReturnsEarly)
+// {
+//     EXPECT_CALL(mock_applevz, get_state(_)).WillOnce(Return(applevz::AppleVMState::running));
+
+//     mp::applevz::AppleVZVirtualMachine vm{desc, mock_monitor, stub_key_provider,
+//     instance_dir.path()};
+
+//     EXPECT_CALL(mock_applevz, can_pause(_)).WillOnce(Return(false));
+//     EXPECT_CALL(mock_applevz, pause_vm(_)).Times(0);
+
+//     vm.suspend();
+
+//     EXPECT_EQ(vm.current_state(), VirtualMachine::State::running);
+// }
+
+// TEST_F(AppleVZVirtualMachine_UnitTests, suspendErrorThrowsRuntimeError)
+// {
+//     EXPECT_CALL(mock_applevz, get_state(_))
+//         .WillOnce(Return(applevz::AppleVMState::running))
+//         .WillOnce(Return(applevz::AppleVMState::error));
+
+//     mp::applevz::AppleVZVirtualMachine vm{desc, mock_monitor, stub_key_provider,
+//     instance_dir.path()};
+
+//     CFErrorRef error_ref = CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 789, nullptr);
+//     apple::CFError error{error_ref};
+
+//     EXPECT_CALL(mock_applevz, can_pause(_)).WillOnce(Return(true));
+//     EXPECT_CALL(mock_applevz, pause_vm(_)).WillOnce(Return(ByMove(std::move(error))));
+//     EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name,
+//     VirtualMachine::State::suspending));
+
+//     EXPECT_THROW(
+//         {
+//             try
+//             {
+//                 vm.suspend();
+//             }
+//             catch (const std::runtime_error& e)
+//             {
+//                 EXPECT_THAT(e.what(), HasSubstr("failed to suspend"));
+//                 throw;
+//             }
+//         },
+//         std::runtime_error);
+//     EXPECT_EQ(vm.current_state(), VirtualMachine::State::unknown);
+// }
+
+// TEST_F(AppleVZVirtualMachine_UnitTests, suspendTransitionsToSuspendingState)
+// {
+//     EXPECT_CALL(mock_applevz, get_state(_))
+//         .WillOnce(Return(applevz::AppleVMState::running))
+//         .WillOnce(Return(applevz::AppleVMState::paused));
+
+//     mp::applevz::AppleVZVirtualMachine vm{desc, mock_monitor, stub_key_provider,
+//     instance_dir.path()};
+
+//     EXPECT_CALL(mock_applevz, can_pause(_)).WillOnce(Return(true));
+//     EXPECT_CALL(mock_applevz, pause_vm(_)).WillOnce(Invoke([](auto&) {
+//         return apple::CFError{};
+//     }));
+
+//     InSequence seq;
+//     EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name,
+//     VirtualMachine::State::suspending)); EXPECT_CALL(mock_monitor,
+//     persist_state_for(desc.vm_name, VirtualMachine::State::suspended));
+
+//     vm.suspend();
+
+//     EXPECT_EQ(vm.current_state(), VirtualMachine::State::suspended);
+// }
+
+// TEST_F(AppleVZVirtualMachine_UnitTests, suspendFromAlreadySuspendedStateIsIdempotent)
+// {
+//     EXPECT_CALL(mock_applevz, get_state(_)).WillOnce(Return(applevz::AppleVMState::paused));
+
+//     mp::applevz::AppleVZVirtualMachine vm{desc, mock_monitor, stub_key_provider,
+//     instance_dir.path()};
+
+//     EXPECT_CALL(mock_applevz, can_pause(_)).WillOnce(Return(false));
+//     EXPECT_CALL(mock_applevz, pause_vm(_)).Times(0);
+
+//     vm.suspend();
+
+//     EXPECT_EQ(vm.current_state(), VirtualMachine::State::suspended);
+// }
 }; // namespace multipass::test
