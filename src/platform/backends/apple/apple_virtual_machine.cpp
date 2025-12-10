@@ -269,6 +269,7 @@ void AppleVirtualMachine::set_state(apple::AppleVMState vm_state)
         break;
     case apple::AppleVMState::running:
     case apple::AppleVMState::stopping:
+        // No `stopping` state in Multipass yet
         state = State::running;
         break;
     case apple::AppleVMState::paused:
