@@ -53,7 +53,7 @@ CFError AppleVZ::start_vm(VMHandle& vm_handle) const
     return err;
 }
 
-CFError AppleVZ::stop_vm(bool force, VMHandle& vm_handle) const
+CFError AppleVZ::stop_vm(VMHandle& vm_handle, bool force) const
 {
     mpl::debug(kLogCategory, "AppleVZ::start_vm(...)");
 
