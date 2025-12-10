@@ -159,9 +159,10 @@ TEST_F(AppleVirtualMachine_UnitTests, shutdownFromRunningStateWithPowerdownCalls
         .WillOnce(Return(apple::AppleVMState::running))
         .WillOnce(Return(apple::AppleVMState::stopping))
         .WillRepeatedly(Return(apple::AppleVMState::stopped));
+
     mp::apple::AppleVirtualMachine vm{desc, mock_monitor, stub_key_provider, instance_dir.path()};
 
-    EXPECT_CALL(mock_apple_vz, can_stop(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_apple_vz, can_request_stop(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_apple_vz, stop_vm(_, false)).WillOnce(Invoke([](auto&, bool) {
         return apple::CFError{};
     }));
@@ -180,9 +181,11 @@ TEST_F(AppleVirtualMachine_UnitTests, shutdownWithPoweroffCallsStopVmWithForce)
 
     mp::apple::AppleVirtualMachine vm{desc, mock_monitor, stub_key_provider, instance_dir.path()};
 
+    EXPECT_CALL(mock_apple_vz, can_stop(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_apple_vz, stop_vm(_, true)).WillOnce(Invoke([](auto&, bool) {
         return apple::CFError{};
     }));
+
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(vm.current_state(), VirtualMachine::State::stopped);
@@ -213,7 +216,10 @@ TEST_F(AppleVirtualMachine_UnitTests, shutdownGracefulStopErrorThrowsRuntimeErro
     CFErrorRef error_ref = CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 123, nullptr);
     apple::CFError error{error_ref};
 
-    EXPECT_CALL(mock_apple_vz, can_stop(_)).WillOnce(Return(true)).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_apple_vz, can_request_stop(_))
+        .WillOnce(Return(true))
+        .WillRepeatedly(Return(false));
+
     EXPECT_CALL(mock_apple_vz, stop_vm(_, false)).WillOnce(Return(ByMove(std::move(error))));
 
     EXPECT_THROW(vm.shutdown(), std::runtime_error);
@@ -231,6 +237,7 @@ TEST_F(AppleVirtualMachine_UnitTests, shutdownForcedStopErrorThrowsRuntimeError)
     CFErrorRef error_ref = CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 456, nullptr);
     apple::CFError error{error_ref};
 
+    EXPECT_CALL(mock_apple_vz, can_stop(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_apple_vz, stop_vm(_, true)).WillOnce(Return(ByMove(std::move(error))));
 
     EXPECT_THROW(vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff), std::runtime_error);
@@ -243,7 +250,7 @@ TEST_F(AppleVirtualMachine_UnitTests, shutdownCannotStopReturnsEarly)
 
     mp::apple::AppleVirtualMachine vm{desc, mock_monitor, stub_key_provider, instance_dir.path()};
 
-    EXPECT_CALL(mock_apple_vz, can_stop(_)).WillOnce(Return(false));
+    EXPECT_CALL(mock_apple_vz, can_request_stop(_)).WillOnce(Return(false));
     EXPECT_CALL(mock_apple_vz, stop_vm(_, _)).Times(0);
 
     vm.shutdown();

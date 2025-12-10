@@ -136,12 +136,12 @@ void AppleVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
     CFError error;
 
-    if (shutdown_policy == ShutdownPolicy::Poweroff)
+    if (shutdown_policy == ShutdownPolicy::Poweroff && MP_APPLE_VZ.can_stop(vm_handle))
     {
         mpl::debug(log_category, "shutdown() -> Forcing shutdown of VM `{}`", vm_name);
         error = MP_APPLE_VZ.stop_vm(vm_handle, true);
     }
-    else if (MP_APPLE_VZ.can_stop(vm_handle))
+    else if (MP_APPLE_VZ.can_request_stop(vm_handle))
     {
         mpl::debug(log_category, "shutdown() -> Requesting shutdown of VM `{}`", vm_name);
         error = MP_APPLE_VZ.stop_vm(vm_handle);
