@@ -46,21 +46,21 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
                                 VMHandle& out_handle);
 
 // Starting and stopping VM
-CFError start_with_completion_handler(VMHandle& vm_handle);
-CFError stop_with_completion_handler(VMHandle& vm_handle);
-CFError request_stop_with_error(VMHandle& vm_handle);
-CFError pause_with_completion_handler(VMHandle& vm_handle);
-CFError resume_with_completion_handler(VMHandle& vm_handle);
+CFError start_with_completion_handler(const VMHandle& vm_handle);
+CFError stop_with_completion_handler(const VMHandle& vm_handle);
+CFError request_stop_with_error(const VMHandle& vm_handle);
+CFError pause_with_completion_handler(const VMHandle& vm_handle);
+CFError resume_with_completion_handler(const VMHandle& vm_handle);
 
 // Getting VM state
-AppleVMState get_state(VMHandle& vm_handle);
+AppleVMState get_state(const VMHandle& vm_handle);
 
 // Validate the state of VM
-bool can_start(VMHandle& vm_handle);
-bool can_pause(VMHandle& vm_handle);
-bool can_resume(VMHandle& vm_handle);
-bool can_stop(VMHandle& vm_handle);
-bool can_request_stop(VMHandle& vm_handle);
+bool can_start(const VMHandle& vm_handle);
+bool can_pause(const VMHandle& vm_handle);
+bool can_resume(const VMHandle& vm_handle);
+bool can_stop(const VMHandle& vm_handle);
+bool can_request_stop(const VMHandle& vm_handle);
 
 } // namespace multipass::applevz
 
