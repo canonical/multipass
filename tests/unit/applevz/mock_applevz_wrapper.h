@@ -39,7 +39,7 @@ public:
                 (const, override));
     MOCK_METHOD(applevz::CFError,
                 stop_vm,
-                (bool force, multipass::applevz::VMHandle& vm_handle),
+                (multipass::applevz::VMHandle & vm_handle, bool force),
                 (const, override));
     MOCK_METHOD(applevz::CFError,
                 pause_vm,
