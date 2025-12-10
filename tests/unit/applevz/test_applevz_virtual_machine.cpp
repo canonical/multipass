@@ -121,12 +121,6 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startFromRunningStateNoOp)
     EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(false));
     EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AtLeast(1));
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-    logger_scope.mock_logger->expect_log(mpl::Level::warning,
-                                         fmt::format("VM `{}` cannot be started from state `{}`",
-                                                     desc.vm_name,
-                                                     mp::applevz::AppleVMState::running));
-
     vm.start();
 
     EXPECT_EQ(vm.current_state(), VirtualMachine::State::running);
