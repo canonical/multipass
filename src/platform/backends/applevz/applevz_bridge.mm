@@ -31,6 +31,13 @@ NSString* nsstring_from_qstring(const QString& s)
     QByteArray utf8 = s.toUtf8();
     return [NSString stringWithUTF8String:utf8.constData()];
 }
+
+NSURL* nsurl_from_std_filesystem_path(const std::filesystem::path& p)
+{
+    std::string utf8 = p.string();
+    NSString* nsString = [NSString stringWithUTF8String:utf8.c_str()];
+    return [NSURL fileURLWithPath:nsString];
+}
 } // namespace
 
 namespace multipass::applevz
