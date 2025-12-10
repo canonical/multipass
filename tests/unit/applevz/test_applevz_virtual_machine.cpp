@@ -174,12 +174,13 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownFromRunningStateWithPowerdownCal
         .WillOnce(Return(applevz::AppleVMState::running))
         .WillOnce(Return(applevz::AppleVMState::stopping))
         .WillRepeatedly(Return(applevz::AppleVMState::stopped));
+
     mp::applevz::AppleVZVirtualMachine vm{desc,
                                           mock_monitor,
                                           stub_key_provider,
                                           instance_dir.path()};
 
-    EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_applevz, can_request_stop(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_applevz, stop_vm(_, false)).WillOnce(Invoke([](auto&, bool) {
         return applevz::CFError{};
     }));
@@ -200,9 +201,11 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownWithPoweroffCallsStopVmWithForce
                                           mock_monitor,
                                           stub_key_provider,
                                           instance_dir.path()};
+    EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_applevz, stop_vm(_, true)).WillOnce(Invoke([](auto&, bool) {
         return applevz::CFError{};
     }));
+
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(vm.current_state(), VirtualMachine::State::stopped);
@@ -239,7 +242,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownGracefulStopErrorThrowsRuntimeEr
     applevz::CFError error{error_ref};
 
     EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true)).WillRepeatedly(Return(false));
-    EXPECT_CALL(mock_applevz, stop_vm(_, false)).WillOnce(Return(ByMove(std::move(error))));
+    EXPECT_CALL(mock_applevz, can_request_stop(_))
+        .WillOnce(Return(true))
+        .WillRepeatedly(Return(false));
 
     EXPECT_THROW(vm.shutdown(), std::runtime_error);
     EXPECT_EQ(vm.current_state(), VirtualMachine::State::unknown);
@@ -256,6 +261,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownForcedStopErrorThrowsRuntimeErro
     CFErrorRef error_ref = CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 456, nullptr);
     applevz::CFError error{error_ref};
 
+    EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_applevz, stop_vm(_, true)).WillOnce(Return(ByMove(std::move(error))));
 
     EXPECT_THROW(vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff), std::runtime_error);
@@ -268,7 +274,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownCannotStopReturnsEarly)
 
     mp::applevz::AppleVirtualMachine vm{desc, mock_monitor, stub_key_provider, instance_dir.path()};
 
-    EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(false));
+    EXPECT_CALL(mock_applevz, can_request_stop(_)).WillOnce(Return(false));
     EXPECT_CALL(mock_applevz, stop_vm(_, _)).Times(0);
 
     vm.shutdown();
