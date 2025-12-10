@@ -39,7 +39,7 @@ public:
                 (const, override));
     MOCK_METHOD(apple::CFError,
                 stop_vm,
-                (bool force, multipass::apple::VMHandle& vm_handle),
+                (multipass::apple::VMHandle & vm_handle, bool force),
                 (const, override));
     MOCK_METHOD(apple::CFError,
                 pause_vm,
