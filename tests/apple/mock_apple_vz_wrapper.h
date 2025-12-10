@@ -49,6 +49,14 @@ public:
                 resume_vm,
                 (const multipass::apple::VMHandle& vm_handle),
                 (const, override));
+    MOCK_METHOD(apple::CFError,
+                save_vm_to_file,
+                (const multipass::apple::VMHandle& vm_handle, const std::filesystem::path& path),
+                (const, override));
+    MOCK_METHOD(apple::CFError,
+                restore_vm_from_file,
+                (const multipass::apple::VMHandle& vm_handle, const std::filesystem::path& path),
+                (const, override));
     MOCK_METHOD(apple::AppleVMState,
                 get_state,
                 (const multipass::apple::VMHandle& vm_handle),
