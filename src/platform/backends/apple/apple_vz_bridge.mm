@@ -269,6 +269,29 @@ CFError save_machine_state_to_url(const VMHandle& vm_handle, const std::filesyst
     return CFError(err_ref);
 }
 
+CFError restore_machine_state_from_url(const VMHandle& vm_handle, const std::filesystem::path& path)
+{
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+    __block CFErrorRef err_ref = nullptr;
+
+    [vm restoreMachineStateFromURL:nsURLFromStdFilesystemPath(path)
+                 completionHandler:^(NSError* _Nullable error) {
+                   if (error)
+                   {
+                       err_ref = (__bridge_retained CFErrorRef)error;
+                   }
+
+                   dispatch_semaphore_signal(sema);
+                 }];
+
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+
+    return CFError(err_ref);
+}
+
 AppleVMState get_state(const VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
