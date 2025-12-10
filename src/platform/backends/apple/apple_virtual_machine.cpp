@@ -185,7 +185,34 @@ void AppleVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void AppleVirtualMachine::suspend()
 {
-    monitor->on_suspend();
+    mpl::debug(log_category, "suspend() -> Suspending VM `{}`, current state {}", vm_name, state);
+
+    if (MP_APPLE_VZ.can_pause(vm_handle))
+    {
+        state = State::suspending;
+        handle_state_update();
+
+        const auto error = MP_APPLE_VZ.pause_vm(vm_handle);
+        if (error)
+        {
+            mpl::error(log_category, "suspend() -> VM '{}' failed to suspend: {}", vm_name, error);
+            throw std::runtime_error(
+                fmt::format("VM '{}' failed to suspend, check logs for more details", vm_name));
+        }
+
+        drop_ssh_session();
+
+        // Reflect vm's state
+        set_state(MP_APPLE_VZ.get_state(vm_handle));
+        handle_state_update();
+    }
+    else
+    {
+        mpl::warn(log_category,
+                  "suspend() -> VM `{}` cannot be suspended from state `{}`",
+                  vm_name,
+                  state);
+    }
 }
 
 VirtualMachine::State AppleVirtualMachine::current_state()
