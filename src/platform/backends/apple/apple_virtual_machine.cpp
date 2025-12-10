@@ -52,6 +52,24 @@ AppleVirtualMachine::AppleVirtualMachine(const VirtualMachineDescription& desc,
     handle_state_update();
 }
 
+AppleVirtualMachine::~AppleVirtualMachine()
+{
+    mpl::debug(log_category,
+               "AppleVirtualMachine::~AppleVirtualMachine() -> Destructing VM `{}`",
+               vm_name);
+
+    multipass::top_catch_all(vm_name, [this]() {
+        if (state == State::running)
+        {
+            suspend();
+        }
+        else
+        {
+            shutdown();
+        }
+    });
+}
+
 void AppleVirtualMachine::start()
 {
     mpl::debug(log_category, "start() -> Starting VM `{}`, current state {}", vm_name, state);
