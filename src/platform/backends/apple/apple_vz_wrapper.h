@@ -33,17 +33,21 @@ public:
     using Singleton<AppleVZ>::Singleton;
 
     virtual CFError create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const;
-    virtual CFError start_vm(VMHandle& vm_handle) const;
-    virtual CFError stop_vm(VMHandle& vm_handle, bool force = false) const;
-    virtual CFError pause_vm(VMHandle& vm_handle) const;
-    virtual CFError resume_vm(VMHandle& vm_handle) const;
 
-    virtual AppleVMState get_state(VMHandle& vm_handle) const;
+    // Starting and stopping VM
+    virtual CFError start_vm(const VMHandle& vm_handle) const;
+    virtual CFError stop_vm(const VMHandle& vm_handle, bool force = false) const;
+    virtual CFError pause_vm(const VMHandle& vm_handle) const;
+    virtual CFError resume_vm(const VMHandle& vm_handle) const;
 
-    virtual bool can_start(VMHandle& vm_handle) const;
-    virtual bool can_pause(VMHandle& vm_handle) const;
-    virtual bool can_resume(VMHandle& vm_handle) const;
-    virtual bool can_stop(VMHandle& vm_handle) const;
-    virtual bool can_request_stop(VMHandle& vm_handle) const;
+    // Getting VM state
+    virtual AppleVMState get_state(const VMHandle& vm_handle) const;
+
+    // Validate the state of VM
+    virtual bool can_start(const VMHandle& vm_handle) const;
+    virtual bool can_pause(const VMHandle& vm_handle) const;
+    virtual bool can_resume(const VMHandle& vm_handle) const;
+    virtual bool can_stop(const VMHandle& vm_handle) const;
+    virtual bool can_request_stop(const VMHandle& vm_handle) const;
 };
 } // namespace multipass::apple
