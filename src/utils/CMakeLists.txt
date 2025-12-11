@@ -37,6 +37,7 @@ function(add_target TARGET_NAME)
     yaml-cpp::yaml-cpp
     xz_image_decoder
     Qt6::Core
+    Boost::json
     PRIVATE semver::semver
     )
 
