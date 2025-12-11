@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <variant>
+
 namespace multipass
 {
 enum class ParseCode
@@ -34,4 +36,20 @@ enum ReturnCode
     DaemonFail = 3,
     Retry = 4
 };
+
+enum VMReturnCode
+{
+};
+// Only implicitly int-convertible types should be used here. If at least 2 of the same type are
+// used, index-based get<> and holds_alternative<> are needed.
+using ReturnCodeVariant = std::variant<ReturnCode, VMReturnCode>;
+
+inline bool are_return_codes_equal(ReturnCodeVariant rc1, ReturnCode rc2)
+{
+    // The logic is based on the fact that the variant will only hold non-ReturnCode values iff the
+    // logical ReturnCode is Ok
+
+    return (!std::holds_alternative<ReturnCode>(rc1) && rc2 == ReturnCode::Ok) ||
+           (std::holds_alternative<ReturnCode>(rc1) && std::get<ReturnCode>(rc1) == rc2);
+}
 } // namespace multipass
