@@ -1,0 +1,170 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#pragma once
+
+#include <string>
+#include <string_view>
+
+namespace multipass::hyperv::hcn
+{
+
+/**
+ * Strongly-typed string values for
+ * network policy types.
+ *
+ * @ref
+ * https://github.com/MicrosoftDocs/Virtualization-Documentation/blob/51b2c0024ce9fc0c9c240fe8e14b170e05c57099/virtualization/api/hcn/HNS_Schema.md?plain=1#L522
+ */
+struct HcnNetworkPolicyType
+{
+    [[nodiscard]] operator std::string_view() const
+    {
+        return value;
+    }
+
+    [[nodiscard]] operator std::string() const
+    {
+        return std::string{value};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType SourceMacAddress()
+    {
+        return {"SourceMacAddress"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType NetAdapterName()
+    {
+        return {"NetAdapterName"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType VSwitchExtension()
+    {
+        return {"VSwitchExtension"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType DrMacAddress()
+    {
+        return {"DrMacAddress"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType AutomaticDNS()
+    {
+        return {"AutomaticDNS"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType InterfaceConstraint()
+    {
+        return {"InterfaceConstraint"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType ProviderAddress()
+    {
+        return {"ProviderAddress"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType RemoteSubnetRoute()
+    {
+        return {"RemoteSubnetRoute"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType VxlanPort()
+    {
+        return {"VxlanPort"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType HostRoute()
+    {
+        return {"HostRoute"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType SetPolicy()
+    {
+        return {"SetPolicy"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType NetworkL4Proxy()
+    {
+        return {"NetworkL4Proxy"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType LayerConstraint()
+    {
+        return {"LayerConstraint"};
+    }
+
+    /**
+     * @since Version 2.0
+     */
+    [[nodiscard]] static HcnNetworkPolicyType NetworkACL()
+    {
+        return {"NetworkACL"};
+    }
+
+    [[nodiscard]] bool operator==(const HcnNetworkPolicyType& rhs) const
+    {
+        return value == rhs.value;
+    }
+
+private:
+    HcnNetworkPolicyType(std::string_view v) : value(v)
+    {
+    }
+
+    std::string_view value{};
+};
+
+} // namespace multipass::hyperv::hcn

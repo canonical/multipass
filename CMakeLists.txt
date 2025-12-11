@@ -15,7 +15,7 @@
 cmake_minimum_required(VERSION 3.25)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
-include(src/cmake/environment-utils.cmake)
+include(cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
 option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
@@ -25,7 +25,7 @@ option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
-  include(src/cmake/configure-linker.cmake)
+  include(cmake/configure-linker.cmake)
   configure_linker()
 endif()
 
@@ -188,6 +188,8 @@ if(UNIX)
   list(APPEND MULTIPASS_BACKENDS qemu)
 endif()
 
+include(cmake/cmake-deps.cmake)
+
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 
@@ -337,7 +339,8 @@ if(MSVC)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
-  set(MULTIPASS_BACKENDS hyperv virtualbox)
+  add_definitions(-DSECURITY_WIN32)
+  set(MULTIPASS_BACKENDS hyperv hyperv_api virtualbox)
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
