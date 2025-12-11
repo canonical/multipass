@@ -72,5 +72,6 @@ tutorial/index
 how-to-guides/index
 reference/index
 explanation/index
+reference/release-notes/index
 contribute-to-multipass-docs
 ```

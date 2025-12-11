@@ -194,7 +194,7 @@ multipass set local.driver=virtualbox
 ````
 
 `````
-
+(how-to-guides-install-multipass-upgrade)=
 ## Upgrade
 
 `````{tabs}
