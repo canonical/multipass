@@ -151,12 +151,52 @@
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "common-feature-flags",
+            "description": "Preset with platform agnositic feature flags enabled.",
+            "hidden": true,
+            "inherits": "common"
+        },
+        {
+            "name": "macOS-feature-flags",
+            "description": "Preset for macOS specific feature flags",
+            "inherits": "common-feature-flags",
+            "cacheVariables": {
+                "MULTIPASS_BACKENDS": {
+                    "type": "STRING",
+                    "value": "apple"
+                }
+            },
+            "vendor": {
+                "enabled-in-ci": true
+            }
+        },
+        {
+            "name": "linux-feature-flags",
+            "description": "Preset for Linux specific feature flags",
+            "inherits": [
+                "common-feature-flags",
+                "ci-snap-debug"
+            ],
+            "vendor": {
+                "enabled-in-ci": false
+            }
+        },
+        {
+            "name": "windows-feature-flags",
+            "description": "Preset for Windows specific feature flags",
+            "inherits": "common-feature-flags",
+            "vendor": {
+                "enabled-in-ci": false
+            }
         }
     ],
     "buildPresets": [
         {
             "name": "configured-at-present",
-            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "description":
+                "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
             "configurePreset": "common"
         }
     ]

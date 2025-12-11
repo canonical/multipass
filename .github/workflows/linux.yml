@@ -18,20 +18,49 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+      with:
+        sparse-checkout: |
+          CMakePresets.json
+
     - name: Determine job matrix
       id: set-matrix
-      run: |
-        set -euo pipefail
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const matrix = { include: [{
+            "build-type": "Debug",
+            "cmake-preset": "ci-snap-debug"
+          },{
+            "build-type": "Clang",
+            "cmake-preset": "ci-snap-clang-15"
+          },{
+            "build-type": "Release",
+            "cmake-preset": "ci-snap"
+          }] };
 
-        MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
-                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-15"}
-                {"build-type": "Release", "cmake-preset": "ci-snap"}'
+          const fs = require('fs');
+          const presets = JSON.parse(fs.readFileSync('CMakePresets.json', 'utf8'));
 
-        if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
-            MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage" }'
-        fi
+          // Find the feature-flags-enabled preset
+          const featureFlagsPreset = presets.configurePresets.find(p => p.name === 'linux-feature-flags');
 
-        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
+          if (featureFlagsPreset?.vendor?.['enabled-in-ci'] === true) {
+            matrix.include.push({
+              "build-type": "Feature flags",
+              "cmake-preset": "linux-feature-flags"
+            });
+          }
+
+          if (context.eventName !== 'merge_group' && context.repo.owner === 'canonical' && context.repo.repo === 'multipass') {
+            matrix.include.push({
+              "build-type": "Coverage",
+              "cmake-preset": "ci-snap-coverage"
+            });
+          }
+
+          core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
     needs: GetMatrix
@@ -45,11 +74,13 @@ jobs:
     outputs:
       label: ${{ steps.build-params.outputs.label }}
       channel: ${{ steps.build-params.outputs.channel }}
-      snap-file: ${{ steps.build-snap.outputs.snap-file }}
+      snap-file: ${{ matrix.build-type == 'Release' && steps.build-snap.outputs.snap-file || '' }}
 
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
+
+    continue-on-error: ${{ contains(matrix.cmake-preset, 'feature-flags') }}
 
     runs-on: ubuntu-latest
 
@@ -267,7 +298,7 @@ jobs:
 
     - name: Build and verify the snap
       id: build-snap
-      if: ${{ matrix.build-type == 'Release' }}
+      if: ${{ matrix.build-type == 'Release'  || matrix.build-type == 'Feature flags' }}
       env:
         SNAP_ENFORCE_RESQUASHFS: 0
       run: |
@@ -281,12 +312,13 @@ jobs:
 
     - name: Upload the snap
       uses: actions/upload-artifact@v5
-      if: ${{ matrix.build-type == 'Release' }}
+      if: ${{ matrix.build-type == 'Release'  || matrix.build-type == 'Feature flags' }}
       with:
-        name: ${{ steps.build-snap.outputs.snap-file }}
+        name: ${{ matrix.build-type == 'Feature flags' && format('edge-{0}', steps.build-snap.outputs.snap-file) ||
+              steps.build-snap.outputs.snap-file }}
         path: ${{ steps.build-snap.outputs.snap-file }}
         if-no-files-found: error
-        retention-days: 30
+        retention-days: 7
 
   # Publish the snap to the store if all is good, a channel was determined, and we have access to secrets.
   Publish-Snap:
@@ -318,3 +350,9 @@ jobs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
+
+    - name: Delete unused artifacts from github
+      uses: geekyeggo/delete-artifact@v5
+      with:
+        name: ${{ needs.BuildAndTest.outputs.snap-file }}
+        failOnError: false

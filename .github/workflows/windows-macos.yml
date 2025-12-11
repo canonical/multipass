@@ -28,27 +28,56 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+      with:
+        sparse-checkout: |
+          CMakePresets.json
+
     - name: Determine build matrix
       id: set-matrix
       uses: actions/github-script@v8
       with:
         script: |
-          const matrix = { include: [] };
-
-          // Windows targets
-          matrix.include.push({
-              "name": "Windows Server 2025",
-              "runs-on": "windows-2025"
-          });
-
-          // macOS targets
-          matrix.include.push({
+          const matrix = { include: [{
+            "name": "Windows Server 2025",
+            "runs-on": "windows-2025"
+          },{
             "name": "macOS Latest (Apple Silicon)",
             "runs-on": "macos-latest"
           },{
             "name": "macOS 15 Sequoia (Intel Silicon)",
             "runs-on": "macos-15-intel",
-          })
+          }] };
+
+          const fs = require('fs');
+          const presets = JSON.parse(fs.readFileSync('CMakePresets.json', 'utf8'));
+
+          // Find the feature-flags-enabled preset for Windows
+          featureFlagsPreset = presets.configurePresets.find(p => p.name === 'windows-feature-flags');
+
+          if (featureFlagsPreset?.vendor?.['enabled-in-ci'] === true) {
+            matrix.include.push({
+              "name": "Windows Server 2025 Edge",
+              "runs-on": "windows-2025",
+              "cmake-preset": "windows-feature-flags"
+            });
+          }
+
+          // Find the feature-flags-enabled preset for macOS
+          featureFlagsPreset = presets.configurePresets.find(p => p.name === 'macOS-feature-flags');
+
+          if (featureFlagsPreset?.vendor?.['enabled-in-ci'] === true) {
+            matrix.include.push({
+              "name": "macOS Latest (Apple Silicon) Edge",
+              "runs-on": "macos-latest",
+              "cmake-preset": "macOS-feature-flags"
+            },{
+              "name": "macOS 15 Sequoia (Intel Silicon) Edge",
+              "runs-on": "macos-15-intel",
+              "cmake-preset": "macOS-feature-flags"
+            });
+          }
 
           core.setOutput('matrix', JSON.stringify(matrix));
 
@@ -65,6 +94,8 @@ jobs:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
       fail-fast: ${{ github.event_name == 'merge_group' }}
 
+    continue-on-error: ${{ contains(matrix.cmake-preset, 'feature-flags') }}
+
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
       # Use artifacts from macos-15-intel and macos-latest in official package
@@ -72,6 +103,9 @@ jobs:
       mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
+      # Edge packages with feature flags enabled
+      mac-x86-edge-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-edge-package-artifact-name }}
+      mac-arm-edge-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-edge-package-artifact-name }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -261,6 +295,7 @@ jobs:
       run: >
         cmake
         -B${{ env.BUILD_DIR }}
+        ${{ matrix.cmake-preset && format('--preset={0}', matrix.cmake-preset) || '' }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
         -DMULTIPASS_UPSTREAM=origin
@@ -301,9 +336,11 @@ jobs:
         runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
+      id: upload-package
       uses: actions/upload-artifact@v5
       with:
-        name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
+        name: ${{ matrix.cmake-preset && format('{0}-edge-{1}', matrix.runs-on, steps.cmake-package.outputs.name) ||
+                  format('{0}-{1}', matrix.runs-on, steps.cmake-package.outputs.name) }}
         path: ${{ steps.cmake-package.outputs.path }}
         if-no-files-found: error
         retention-days: 7
@@ -316,7 +353,7 @@ jobs:
       with:
         path: ${{ steps.cmake-package.outputs.path }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ steps.build-params.outputs.label }}
+        prefix: ${{ matrix.cmake-preset && format('{0}-edge', steps.build-params.outputs.label) || steps.build-params.outputs.label }}
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
@@ -327,18 +364,20 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
     - name: Store publishing outputs
-      if: always()
+      if: ${{ steps.upload-package.outcome == 'success' }}
       id: publish-data
       shell: bash
       run: |
         NAME="${{ steps.cmake-package.outputs.name }}"
-        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        SUFFIX="${{ matrix.cmake-preset && '-edge' || '' }}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}${SUFFIX}-package-artifact-name=${{ matrix.runs-on }}${SUFFIX}-${NAME}"
         FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
 
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
   CombineAndPublishMacOSPackage:
+    name: Combine and Publish macOS Package (${{ matrix.variant.name }})
     # Want to run even if one of the builds above failed
     if: ${{ !cancelled() && always() }}
 
@@ -346,13 +385,30 @@ jobs:
 
     runs-on: macos-latest
 
+    strategy:
+      matrix:
+        variant:
+          - name: "Release"
+            x86-artifact: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
+            arm-artifact: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+          - name: "Edge"
+            x86-artifact: ${{ needs.BuildAndTest.outputs.mac-x86-edge-package-artifact-name }}
+            arm-artifact: ${{ needs.BuildAndTest.outputs.mac-arm-edge-package-artifact-name }}
+        exclude:
+          - variant:
+              x86-artifact: ""
+          - variant:
+              arm-artifact: ""
+      fail-fast: false
+
+    continue-on-error: ${{ matrix.variant.name == 'Edge' }}
+
     steps:
     - name: Check out code
       uses: actions/checkout@v6
 
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
-      if: ${{ runner.os == 'macOS' }}
       run: |
         mkdir -p ~/.pip
         echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
@@ -361,13 +417,13 @@ jobs:
       id: retrieve-x86
       uses: actions/download-artifact@v6
       with:
-        name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
+        name: ${{ matrix.variant.x86-artifact }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
       uses: actions/download-artifact@v6
       with:
-        name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+        name: ${{ matrix.variant.arm-artifact }}
 
     - name: Combine the macOS package
       id: combine-package
@@ -395,7 +451,7 @@ jobs:
       if: ${{ steps.combine-package.outputs.path }}
       uses: actions/upload-artifact@v5
       with:
-        name: ${{ steps.combine-package.outputs.name }}
+        name: ${{ matrix.variant.name == 'Edge' && format('edge-{0}', steps.combine-package.outputs.name) || steps.combine-package.outputs.name }}
         path: ${{ steps.combine-package.outputs.path }}
         if-no-files-found: error
         retention-days: 7
@@ -407,7 +463,7 @@ jobs:
       with:
         path: ${{ steps.combine-package.outputs.path }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ needs.BuildAndTest.outputs.build-label }}
+        prefix: ${{ matrix.variant.name == 'Edge' && format('{0}-edge', steps.build-params.outputs.label) || steps.build-params.outputs.label }}
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
@@ -416,18 +472,10 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-  DeleteSeparateMacPackages:
-    if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
-
-    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
-
-    runs-on: ubuntu-latest
-
-    steps:
     - name: Delete unused artifacts from github
       uses: geekyeggo/delete-artifact@v5
       with:
         name: |
-          ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
-          ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+          ${{ matrix.variant.x86-artifact }}
+          ${{ matrix.variant.arm-artifact }}
         failOnError: false
