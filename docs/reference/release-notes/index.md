@@ -9,7 +9,7 @@ For detailed release information, see the [Multipass releases page](https://gith
 
 ```{admonition} Support for Multipass releases
 :class: note
-Multipass supports only the most recent release. Users are encouraged to [upgrade](how-to-guides-install-multipass-upgrade) to the latest version to receive new features, security updates and bug fixes.
+Only the most recent release of Multipass is actively supported. Users are encouraged to [upgrade](how-to-guides-install-multipass-upgrade) to the latest version to receive new features, security updates and bug fixes.
 ```
 
 | Release date   |  Release notes  |
