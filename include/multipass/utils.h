@@ -265,6 +265,8 @@ public:
     virtual Path default_mount_target(const Path& source) const;
     virtual Path normalize_mount_target(Path target_mount_path) const;
     virtual bool invalid_target_path(const Path& target_path) const; // needs normalized input path
+
+    [[nodiscard]] virtual long long random_int(long long a, long long b) const;
 };
 } // namespace multipass
 
