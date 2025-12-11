@@ -7,7 +7,8 @@ For detailed release information, see the [Multipass releases page](https://gith
 
 ## Recent releases
 
-```{note}
+```{admonition} Support for Multipass releases
+:class: note
 Multipass supports only the most recent release. Users are encouraged to [upgrade](how-to-guides-install-multipass-upgrade) to the latest version to receive new features, security updates and bug fixes.
 ```
 
@@ -38,10 +39,10 @@ Minor releases
 Patch releases
 : A patch release for Multipass is released as needed and includes critical bug fixes and security updates.
 
-To ensure you receive latest security updates and bug fixes, you should upgrade to a new release of Multipass shortly after it is released.
+To ensure that you receive the latest security updates and bug fixes, you should upgrade to a new release of Multipass shortly after it is released.
 
 
-<details><summary>Click to view earlier releases' notes</summary>
+<details><summary>Click to view earlier release notes</summary>
 
 |  Release date  |  Release notes  |
 |----|----|
