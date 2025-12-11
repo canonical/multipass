@@ -26,20 +26,20 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Restore::run(mp::ArgParser* parser)
 {
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
     AnimatedSpinner spinner{cout};
 
-    auto on_success = [this, &spinner](mp::RestoreReply& reply) {
+    auto on_success = [this, &spinner](mp::RestoreReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         fmt::print(cout, "Snapshot restored: {}.{}\n", request.instance(), request.snapshot());
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };

@@ -31,7 +31,7 @@ constexpr auto snapshot_purge_notice_msg =
     "Snapshots can only be purged (after deletion, they cannot be recovered)";
 }
 
-mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -39,7 +39,7 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::DeleteReply& reply) {
+    auto on_success = [this](mp::DeleteReply& reply) -> ReturnCodeVariant {
         auto size = reply.purged_instances_size();
         for (auto i = 0; i < size; ++i)
         {
@@ -71,7 +71,7 @@ mp::ReturnCode cmd::Delete::run(mp::ArgParser* parser)
         return mp::ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
         return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
                    ? standard_failure_handler_for(name(),

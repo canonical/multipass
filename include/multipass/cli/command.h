@@ -51,7 +51,7 @@ public:
     }
     virtual ~Command() = default;
 
-    virtual ReturnCode run(ArgParser* parser) = 0;
+    virtual ReturnCodeVariant run(ArgParser* parser) = 0;
 
     virtual std::string name() const = 0;
     virtual std::vector<std::string> aliases() const
@@ -67,11 +67,11 @@ protected:
               typename SuccessCallable,
               typename FailureCallable,
               typename StreamingCallback>
-    ReturnCode dispatch(RpcFunc&& rpc_func,
-                        const Request& request,
-                        SuccessCallable&& on_success,
-                        FailureCallable&& on_failure,
-                        StreamingCallback&& streaming_callback)
+    ReturnCodeVariant dispatch(RpcFunc&& rpc_func,
+                               const Request& request,
+                               SuccessCallable&& on_success,
+                               FailureCallable&& on_failure,
+                               StreamingCallback&& streaming_callback)
     {
         check_return_callables(on_success, on_failure);
 
@@ -139,10 +139,10 @@ protected:
               typename Request,
               typename SuccessCallable,
               typename FailureCallable>
-    ReturnCode dispatch(RpcFunc&& rpc_func,
-                        const Request& request,
-                        SuccessCallable&& on_success,
-                        FailureCallable&& on_failure)
+    ReturnCodeVariant dispatch(RpcFunc&& rpc_func,
+                               const Request& request,
+                               SuccessCallable&& on_success,
+                               FailureCallable&& on_failure)
     {
         using Arg0Type =
             typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
@@ -176,8 +176,10 @@ private:
         using FailureCallableArg0Type =
             std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
 
-        static_assert(std::is_same<typename SuccessCallableTraits::return_type, ReturnCode>::value);
-        static_assert(std::is_same<typename FailureCallableTraits::return_type, ReturnCode>::value);
+        static_assert(
+            std::is_same<typename SuccessCallableTraits::return_type, ReturnCodeVariant>::value);
+        static_assert(
+            std::is_same<typename FailureCallableTraits::return_type, ReturnCodeVariant>::value);
 
         static_assert(SuccessCallableTraits::num_args == 1);
         static_assert(std::is_base_of_v<google::protobuf::Message, SuccessCallableArg0Type>,

@@ -27,7 +27,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Unalias::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)

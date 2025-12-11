@@ -30,7 +30,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
     auto ret = parse_args(parser);
@@ -54,7 +54,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     // at a time
     auto instance_name = request.instance_name()[0];
 
-    auto on_success = [this, &timer](mp::SSHInfoReply& reply) {
+    auto on_success = [this, &timer](mp::SSHInfoReply& reply) -> ReturnCodeVariant {
         if (timer)
             timer->stop();
 
@@ -87,7 +87,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
+    auto on_failure = [this, &instance_name, parser](grpc::Status& status) -> ReturnCodeVariant {
         QStringList retry_args{};
 
         if (status.error_code() == grpc::StatusCode::NOT_FOUND &&
@@ -105,9 +105,10 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    ReturnCode return_code;
-    while ((return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)) ==
-           ReturnCode::Retry)
+    ReturnCodeVariant return_code;
+    while (are_return_codes_equal(
+        (return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)),
+        ReturnCode::Retry))
         ;
 
     return return_code;

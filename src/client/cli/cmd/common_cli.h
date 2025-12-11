@@ -50,11 +50,11 @@ ParseCode handle_format_option(const ArgParser* parser,
                                std::ostream& cerr);
 std::string instance_action_message_for(const InstanceNames& instance_names,
                                         const std::string& action_name);
-ReturnCode run_cmd(const QStringList& args,
+ReturnCodeVariant run_cmd(const QStringList& args,
                    const ArgParser* parser,
                    std::ostream& cout,
                    std::ostream& cerr);
-ReturnCode run_cmd_and_retry(const QStringList& args,
+ReturnCodeVariant run_cmd_and_retry(const QStringList& args,
                              const ArgParser* parser,
                              std::ostream& cout,
                              std::ostream& cerr);

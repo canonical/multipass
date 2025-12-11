@@ -29,7 +29,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Stop::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -37,10 +37,10 @@ mp::ReturnCode cmd::Stop::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::StopReply& reply) { return ReturnCode::Ok; };
+    auto on_success = [](mp::StopReply& reply) -> ReturnCodeVariant { return ReturnCode::Ok; };
 
     AnimatedSpinner spinner{cout};
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
 
         // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException

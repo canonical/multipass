@@ -230,7 +230,7 @@ struct Client : public Test
         {
             args << QString::fromStdString(arg);
         }
-        return client.run(args);
+        return std::visit([](auto&& value) { return static_cast<int>(value); }, client.run(args));
     }
 
     int send_command(const std::vector<std::string>& command,

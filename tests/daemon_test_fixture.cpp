@@ -52,12 +52,12 @@ class TestCreate final : public multipass::cmd::Command
 {
 public:
     using Command::Command;
-    multipass::ReturnCode run(multipass::ArgParser* parser) override
+    multipass::ReturnCodeVariant run(multipass::ArgParser* parser) override
     {
-        auto on_success = [](multipass::CreateReply& /*reply*/) {
+        auto on_success = [](multipass::CreateReply& /*reply*/) -> mp::ReturnCodeVariant {
             return multipass::ReturnCode::Ok;
         };
-        auto on_failure = [this](grpc::Status& status) {
+        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCodeVariant {
             multipass::CreateError create_error;
             create_error.ParseFromString(status.error_details());
             const auto errors = create_error.error_codes();
@@ -138,15 +138,15 @@ class TestGet final : public mp::cmd::Command
 {
 public:
     using Command::Command;
-    mp::ReturnCode run(mp::ArgParser* parser) override
+    mp::ReturnCodeVariant run(mp::ArgParser* parser) override
     {
         std::string val;
-        auto on_success = [&val](mp::GetReply& reply) {
+        auto on_success = [&val](mp::GetReply& reply) -> mp::ReturnCodeVariant {
             val = reply.value();
             return mp::ReturnCode::Ok;
         };
 
-        auto on_failure = [this](grpc::Status& status) {
+        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCodeVariant {
             return mp::cmd::standard_failure_handler_for(name(), cerr, status);
         };
 
@@ -201,10 +201,10 @@ class TestSet final : public mp::cmd::Command
 public:
     using Command::Command;
 
-    mp::ReturnCode run(mp::ArgParser* parser) override
+    mp::ReturnCodeVariant run(mp::ArgParser* parser) override
     {
-        auto on_success = [](mp::SetReply&) { return mp::ReturnCode::Ok; };
-        auto on_failure = [this](grpc::Status& status) {
+        auto on_success = [](mp::SetReply&) -> mp::ReturnCodeVariant { return mp::ReturnCode::Ok; };
+        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCodeVariant {
             return mp::cmd::standard_failure_handler_for(name(), cerr, status);
         };
 
@@ -259,10 +259,12 @@ class TestKeys final : public mp::cmd::Command
 public:
     using Command::Command;
 
-    mp::ReturnCode run(mp::ArgParser* parser) override
+    mp::ReturnCodeVariant run(mp::ArgParser* parser) override
     {
-        auto on_success = [](mp::KeysReply&) { return mp::ReturnCode::Ok; };
-        auto on_failure = [this](grpc::Status& status) {
+        auto on_success = [](mp::KeysReply&) -> mp::ReturnCodeVariant {
+            return mp::ReturnCode::Ok;
+        };
+        auto on_failure = [this](grpc::Status& status) -> mp::ReturnCodeVariant {
             return mp::cmd::standard_failure_handler_for(name(), cerr, status);
         };
 

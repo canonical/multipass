@@ -41,7 +41,7 @@ public:
     using mp::cmd::Command::Command;
 
 private: // demote visibility of the following methods
-    [[noreturn]] mp::ReturnCode run(mp::ArgParser*) override
+    [[noreturn]] mp::ReturnCodeVariant run(mp::ArgParser*) override
     {
         fail();
     }
@@ -74,13 +74,13 @@ public:
     using InternalCmd::InternalCmd;
 
 protected:
-    [[noreturn]] static mp::ReturnCode on_failure(grpc::Status& status)
+    [[noreturn]] static mp::ReturnCodeVariant on_failure(grpc::Status& status)
     {
         throw mp::RemoteHandlerException{status};
     }
 
     template <typename ReplyType>
-    static mp::ReturnCode on_success(ReplyType&)
+    static mp::ReturnCodeVariant on_success(ReplyType&)
     {
         return mp::ReturnCode::Ok;
     }
@@ -96,14 +96,14 @@ public:
         get_request.set_verbosity_level(verbosity);
         get_request.set_key(key.toStdString());
 
-        auto custom_on_success = [this](mp::GetReply& reply) {
+        auto custom_on_success = [this](mp::GetReply& reply) -> mp::ReturnCodeVariant {
             got = QString::fromStdString(reply.value());
             return mp::ReturnCode::Ok;
         };
 
         [[maybe_unused]] auto ret =
             dispatch(&RpcMethod::get, get_request, custom_on_success, on_failure);
-        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
+        assert(are_return_codes_equal(ret, mp::ReturnCode::Ok) && "should have thrown otherwise");
     }
 
 public:
@@ -135,7 +135,7 @@ public:
                                              on_success<mp::SetReply>,
                                              on_failure,
                                              streaming_confirmation_callback);
-        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
+        assert(are_return_codes_equal(ret, mp::ReturnCode::Ok) && "should have thrown otherwise");
     }
 };
 
@@ -148,7 +148,7 @@ public:
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
 
-        auto custom_on_success = [this](mp::KeysReply& reply) {
+        auto custom_on_success = [this](mp::KeysReply& reply) -> mp::ReturnCodeVariant {
             for (auto& key : *reply.mutable_settings_keys())
                 keys.insert(QString::fromStdString(
                     std::move(key))); // no actual move until QString supports it
@@ -156,7 +156,7 @@ public:
             return mp::ReturnCode::Ok;
         };
 
-        auto custom_on_failure = [](grpc::Status& status) {
+        auto custom_on_failure = [](grpc::Status& status) -> mp::ReturnCodeVariant {
             if (auto code = status.error_code(); code == grpc::NOT_FOUND)
             {
                 mpl::error(category, "Could not reach daemon.");
@@ -168,7 +168,8 @@ public:
 
         [[maybe_unused]] auto ret =
             dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
-        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
+        assert(mp::are_return_codes_equal(ret, mp::ReturnCode::Ok) &&
+               "should have thrown otherwise");
     }
 
 public:
