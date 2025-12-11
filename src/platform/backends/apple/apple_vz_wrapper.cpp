@@ -93,6 +93,31 @@ CFError AppleVZ::resume_vm(const VMHandle& vm_handle) const
     return err;
 }
 
+CFError AppleVZ::save_vm_to_file(const VMHandle& vm_handle, const std::filesystem::path& path) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::save_vm_to_file(...)");
+
+    auto err = save_machine_state_to_url(vm_handle, path);
+
+    if (!err)
+        mpl::debug(kLogCategory, "AppleVZ::save_vm_to_file(...) succeeded");
+
+    return err;
+}
+
+CFError AppleVZ::restore_vm_from_file(const VMHandle& vm_handle,
+                                      const std::filesystem::path& path) const
+{
+    mpl::debug(kLogCategory, "AppleVZ::restore_vm_from_file(...)");
+
+    auto err = restore_machine_state_from_url(vm_handle, path);
+
+    if (!err)
+        mpl::debug(kLogCategory, "AppleVZ::restore_vm_from_file(...) succeeded");
+
+    return err;
+}
+
 AppleVMState AppleVZ::get_state(const VMHandle& vm_handle) const
 {
     mpl::debug(kLogCategory, "AppleVZ::get_state(...)");

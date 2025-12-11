@@ -40,6 +40,12 @@ public:
     virtual CFError pause_vm(const VMHandle& vm_handle) const;
     virtual CFError resume_vm(const VMHandle& vm_handle) const;
 
+    // Saving and restoring VM
+    virtual CFError save_vm_to_file(const VMHandle& vm_handle,
+                                    const std::filesystem::path& path) const;
+    virtual CFError restore_vm_from_file(const VMHandle& vm_handle,
+                                         const std::filesystem::path& path) const;
+
     // Getting VM state
     virtual AppleVMState get_state(const VMHandle& vm_handle) const;
 
