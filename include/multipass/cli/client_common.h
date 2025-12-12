@@ -46,11 +46,10 @@ enum class Level : int; // Fwd decl
 
 namespace cmd
 {
-multipass::ReturnCode standard_failure_handler_for(
-    const std::string& command,
-    std::ostream& cerr,
-    const grpc::Status& status,
-    const std::string& error_details = std::string());
+ReturnCode standard_failure_handler_for(const std::string& command,
+                                        std::ostream& cerr,
+                                        const grpc::Status& status,
+                                        const std::string& error_details = std::string());
 bool update_available(const UpdateInfo& update_info);
 std::string update_notice(const multipass::UpdateInfo& update_info);
 

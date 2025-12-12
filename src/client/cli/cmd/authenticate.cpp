@@ -26,7 +26,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Authenticate::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Authenticate::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -34,9 +34,11 @@ mp::ReturnCode cmd::Authenticate::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::AuthenticateReply& reply) { return mp::ReturnCode::Ok; };
+    auto on_success = [](mp::AuthenticateReply& reply) -> ReturnCodeVariant {
+        return mp::ReturnCode::Ok;
+    };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         return standard_failure_handler_for(name(), cerr, status);
     };
 

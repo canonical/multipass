@@ -24,7 +24,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Version::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -32,13 +32,13 @@ mp::ReturnCode cmd::Version::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::VersionReply& reply) {
+    auto on_success = [this](mp::VersionReply& reply) -> ReturnCodeVariant {
         cout << chosen_formatter->format(reply, multipass::version_string);
 
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         VersionReply reply;
         cout << chosen_formatter->format(reply, multipass::version_string);
 

@@ -32,21 +32,21 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Restart::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
     AnimatedSpinner spinner{cout};
-    auto on_success = [this, &spinner](mp::RestartReply& reply) {
+    auto on_success = [this, &spinner](mp::RestartReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         if (term->is_live() && update_available(reply.update_info()))
             cout << update_notice(reply.update_info());
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };
@@ -64,16 +64,16 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
         timer->start();
     }
 
-    ReturnCode return_code;
+    ReturnCodeVariant return_code;
     auto streaming_callback =
         make_iterative_spinner_callback<RestartRequest, RestartReply>(spinner, *term);
     do
     {
         spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
-    } while (
+    } while (are_return_codes_equal(
         (return_code =
-             dispatch(&RpcMethod::restart, request, on_success, on_failure, streaming_callback)) ==
-        ReturnCode::Retry);
+             dispatch(&RpcMethod::restart, request, on_success, on_failure, streaming_callback)),
+        ReturnCode::Retry));
 
     return return_code;
 }

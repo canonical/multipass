@@ -29,7 +29,7 @@ class Start final : public Command
 {
 public:
     using Command::Command;
-    ReturnCode run(ArgParser* parser) override;
+    ReturnCodeVariant run(ArgParser* parser) override;
 
     std::string name() const override;
     QString short_help() const override;
