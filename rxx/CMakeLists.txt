@@ -71,3 +71,10 @@ add_custom_command(
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   COMMENT "Building Rust crates and generating C++ glue..."
 )
+add_test(
+    	NAME      rust_cargo_tests
+    	COMMAND   cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml
+--no-fail-fast
+
+)
+
