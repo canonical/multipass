@@ -42,6 +42,12 @@ Standard: c++20
 ---
 Language: ObjC
 ---
+Language: ObjC
+ColumnLimit: 100
+BasedOnStyle: LLVM
+IndentWidth: 4
+PointerAlignment: Left
+---
 Language: Proto
 DisableFormat: true
 ---
