@@ -55,6 +55,10 @@ public:
     {
         std::cout << "\nBase\n";
     }
+    void base_func()
+    {
+        std::cout << "\nBase func\n";
+    }
 };
 class Derived : public Base
 {

@@ -22,6 +22,8 @@ pub mod ffi {
         #[namespace = "multipass::logging::rust"]
         fn virt_func(self: Pin<&mut Base>);
         #[namespace = "multipass::logging::rust"]
+        fn base_func(self: Pin<&mut Base>);
+        #[namespace = "multipass::logging::rust"]
         fn get_base() -> UniquePtr<Base>;
         #[namespace = "multipass::logging::rust"]
         fn log_message(level: Level, category: String, message: String) -> Result<()>;
@@ -46,5 +48,6 @@ pub fn log_error(category: String, message: String) {
     log_message(ffi::Level::error, category, message);
     let mut base = ffi::get_base();
     base.pin_mut().virt_func();
+    base.pin_mut().base_func();
 }
 fn rust_test_bridge() {}

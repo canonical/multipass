@@ -73,8 +73,9 @@ add_custom_command(
 )
 add_test(
     	NAME      rust_cargo_tests
-    	COMMAND   cargo test --manifest-path ${CMAKE_SOURCE_DIR}/Cargo.toml
+    	COMMAND   cargo test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
 --no-fail-fast
 
 )
 
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/target")
