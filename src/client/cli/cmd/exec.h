@@ -42,7 +42,7 @@ public:
     QString description() const override;
 
     static ReturnCodeVariant exec_success(const SSHInfoReply& reply,
-                                            const std::optional<std::string>& dir,
+                                          const std::optional<std::string>& dir,
                                           const std::vector<std::string>& args,
                                           Terminal* term);
 

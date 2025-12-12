@@ -51,13 +51,13 @@ ParseCode handle_format_option(const ArgParser* parser,
 std::string instance_action_message_for(const InstanceNames& instance_names,
                                         const std::string& action_name);
 ReturnCodeVariant run_cmd(const QStringList& args,
-                   const ArgParser* parser,
-                   std::ostream& cout,
-                   std::ostream& cerr);
+                          const ArgParser* parser,
+                          std::ostream& cout,
+                          std::ostream& cerr);
 ReturnCodeVariant run_cmd_and_retry(const QStringList& args,
-                             const ArgParser* parser,
-                             std::ostream& cout,
-                             std::ostream& cerr);
+                                    const ArgParser* parser,
+                                    std::ostream& cout,
+                                    std::ostream& cerr);
 ReturnCode return_code_from(const SettingsException& e);
 QString describe_common_settings_keys();
 
