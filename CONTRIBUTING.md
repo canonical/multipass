@@ -296,6 +296,7 @@ not use platform `#ifdef`s (or other platform-conditional logic) outside of thos
 **CPP15.** Avoid unconstrained `auto` return types in publicly visible methods and functions,
 outside tests, the anonymous namespace, unnamed lambdas, and templates with dependent return
 types.<br>
+**CPP16.** Prefer exceptions for error handling.<br>
 
 ### Text
 
