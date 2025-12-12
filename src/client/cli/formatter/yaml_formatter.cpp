@@ -21,6 +21,7 @@
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/format.h>
 #include <multipass/utils.h>
+#include <multipass/utils/sorted_map.h>
 #include <multipass/yaml_node_utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -327,11 +328,11 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_list, aliases_node;
 
-    for (const auto& [context_name, context_contents] : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sorted_map(aliases))
     {
         YAML::Node context_node;
 
-        for (const auto& [name, def] : sort_dict(context_contents))
+        for (const auto& [name, def] : sorted_map(context_contents))
         {
             YAML::Node alias_node;
             alias_node["alias"] = name;
