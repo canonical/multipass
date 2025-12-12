@@ -34,7 +34,8 @@ enum ReturnCode
     CommandLineError = 1,
     CommandFail = 2,
     DaemonFail = 3,
-    Retry = 4
+    Retry = 4,
+    ShellExecFail = 255,
 };
 
 enum VMReturnCode

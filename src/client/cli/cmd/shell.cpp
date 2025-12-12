@@ -74,17 +74,13 @@ mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
         {
             auto console_creator = [this](auto channel) { return term->make_console(channel); };
             mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
-            const int exit_code = ssh_client.connect();
-
-            if (exit_code != 0)
-                return ReturnCode::CommandFail;
+            return static_cast<mp::VMReturnCode>(ssh_client.connect());
         }
         catch (const std::exception& e)
         {
             cerr << "shell failed: " << e.what() << "\n";
-            return ReturnCode::CommandFail;
+            return ReturnCode::ShellExecFail;
         }
-        return ReturnCode::Ok;
     };
 
     auto on_failure = [this, &instance_name, parser](grpc::Status& status) -> ReturnCodeVariant {

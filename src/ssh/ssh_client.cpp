@@ -142,6 +142,7 @@ void mp::SSHClient::handle_ssh_events()
 
 int mp::SSHClient::exec_string(const std::string& cmd_line)
 {
+    /* All returned ints from this function can be considered to be VMReturnCodes */
     if (cmd_line.empty())
         SSH::throw_on_error(channel,
                             *ssh_session,

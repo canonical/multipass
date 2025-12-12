@@ -194,12 +194,12 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
         else
             all_args = {{args}};
 
-        return static_cast<mp::ReturnCode>(ssh_client.exec(all_args));
+        return static_cast<mp::VMReturnCode>(ssh_client.exec(all_args));
     }
     catch (const std::exception& e)
     {
         term->cerr() << "exec failed: " << e.what() << "\n";
-        return ReturnCode::CommandFail;
+        return ReturnCode::ShellExecFail;
     }
 }
 
