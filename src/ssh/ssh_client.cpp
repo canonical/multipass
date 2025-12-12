@@ -156,22 +156,23 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
                             cmd_line.c_str());
 
     handle_ssh_events();
-    return this->ssh_channel_get_exit_status(channel.get());
+    return this->ssh_channel_get_exit_status();
 }
 
-int mp::SSHClient::ssh_channel_get_exit_status(ssh_channel channel)
+int mp::SSHClient::ssh_channel_get_exit_status()
 {
 
     uint32_t exit_status = static_cast<uint32_t>(-1);
     char* exit_signal_status = nullptr;
     int core_dumped = 0;
 
-    int result{
-        ssh_channel_get_exit_state(channel, &exit_status, &exit_signal_status, &core_dumped)};
-
-    if (result != SSH_OK)
-        // If SSH_ERROR or SSH_AGAIN, the string is never allocated
-        return SSH_ERROR;
+    SSH::throw_on_error(channel,
+                        *ssh_session,
+                        "[ssh client] could not obtain exit state",
+                        ssh_channel_get_exit_state,
+                        &exit_status,
+                        &exit_signal_status,
+                        &core_dumped);
 
     if (exit_signal_status != nullptr)
     {
