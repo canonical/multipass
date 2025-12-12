@@ -61,7 +61,7 @@ TEST_F(SSHClient, execSingleCommandReturnsOKNoFailure)
     });
     auto client = make_ssh_client();
 
-    EXPECT_EQ(client.exec({"foo"}), SSH_OK);
+    EXPECT_EQ(client.exec({{"foo"}}), SSH_OK);
 }
 
 TEST_F(SSHClient, execMultipleCommandsReturnsOKNoFailure)
@@ -85,7 +85,7 @@ TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
         return SSH_OK;
     });
 
-    EXPECT_EQ(client.exec({"foo"}), failure_code);
+    EXPECT_EQ(client.exec({{"foo"}}), failure_code);
 }
 
 TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))
@@ -107,7 +107,7 @@ TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))
     });
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    EXPECT_EQ(client.exec({"foo"}), SSH_OK);
+    EXPECT_EQ(client.exec({{"foo"}}), SSH_OK);
     EXPECT_EQ(poll_count, 1);
 }
 
@@ -135,7 +135,7 @@ TEST_F(SSHClient, throwWhenRequestExecFails)
     REPLACE(ssh_channel_change_pty_size, [](auto...) { return SSH_OK; });
     REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_ERROR; });
 
-    EXPECT_THROW(client.exec({"foo"}), std::runtime_error);
+    EXPECT_THROW(client.exec({{"foo"}}), std::runtime_error);
 }
 
 TEST_F(SSHClient, logSignalTerminationFromExitState)
@@ -152,5 +152,5 @@ TEST_F(SSHClient, logSignalTerminationFromExitState)
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(mpl::Level::error, "Process terminated by signal: INT\n");
-    EXPECT_EQ(client.exec({"foo"}), failure_code);
+    EXPECT_EQ(client.exec({{"foo"}}), failure_code);
 }

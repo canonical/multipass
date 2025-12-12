@@ -67,12 +67,7 @@ mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_crea
 
 int mp::SSHClient::connect()
 {
-    return exec(std::vector<std::string>{});
-}
-
-int mp::SSHClient::exec(const std::vector<std::string>& args)
-{
-    return exec_string(utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg));
+    return exec(std::vector<std::vector<std::string>>{});
 }
 
 int mp::SSHClient::exec(const std::vector<std::vector<std::string>>& args_list)
