@@ -278,14 +278,18 @@ void AppleVirtualMachine::handle_state_update()
 
 void AppleVirtualMachine::update_cpus(int num_cores)
 {
+    assert(num_cores > 0);
+    desc.num_cores = num_cores;
 }
 
 void AppleVirtualMachine::resize_memory(const MemorySize& new_size)
 {
+    desc.mem_size = new_size;
 }
 
 void AppleVirtualMachine::resize_disk(const MemorySize& new_size)
 {
+    // Must be able to handle RAW and ASIF disk images
 }
 
 void AppleVirtualMachine::set_state(apple::AppleVMState vm_state)
