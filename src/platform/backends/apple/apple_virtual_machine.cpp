@@ -26,7 +26,8 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr static auto log_category = "apple vm";
-}
+constexpr static auto suspend_file = "suspend.vm_state";
+} // namespace
 
 namespace multipass::apple
 {
@@ -81,10 +82,27 @@ void AppleVirtualMachine::start()
     auto curr_state = MP_APPLE_VZ.get_state(vm_handle);
 
     mpl::debug(log_category, "start() -> VM `{}` VM state is `{}`", vm_name, curr_state);
-    if (curr_state == apple::AppleVMState::paused && MP_APPLE_VZ.can_resume(vm_handle))
+    if (curr_state == apple::AppleVMState::stopped &&
+        std::filesystem::exists(instance_dir.filesystemAbsolutePath() / suspend_file))
     {
-        mpl::debug(log_category, "start() -> VM `{}` is in paused state, resuming", vm_name);
-        error = MP_APPLE_VZ.resume_vm(vm_handle);
+        mpl::debug(log_category,
+                   "start() -> found suspend file for VM `{}`, restoring state from file",
+                   vm_name);
+
+        error =
+            MP_APPLE_VZ.restore_vm_from_file(vm_handle,
+                                             instance_dir.filesystemAbsolutePath() / suspend_file);
+
+        if (!error && MP_APPLE_VZ.can_resume(vm_handle))
+        {
+            mpl::debug(log_category,
+                       "start() -> VM `{}` successfully restored state from file",
+                       vm_name);
+
+            std::filesystem::remove(instance_dir.filesystemAbsolutePath() / suspend_file);
+
+            error = MP_APPLE_VZ.resume_vm(vm_handle);
+        }
     }
     else if (MP_APPLE_VZ.can_start(vm_handle))
     {
@@ -192,15 +210,28 @@ void AppleVirtualMachine::suspend()
         state = State::suspending;
         handle_state_update();
 
-        const auto error = MP_APPLE_VZ.pause_vm(vm_handle);
+        auto error = MP_APPLE_VZ.pause_vm(vm_handle);
         if (error)
         {
-            mpl::error(log_category, "suspend() -> VM '{}' failed to suspend: {}", vm_name, error);
+            mpl::error(log_category, "suspend() -> VM '{}' failed to pause: {}", vm_name, error);
             throw std::runtime_error(
                 fmt::format("VM '{}' failed to suspend, check logs for more details", vm_name));
         }
 
         drop_ssh_session();
+
+        error = MP_APPLE_VZ.save_vm_to_file(vm_handle,
+                                            instance_dir.filesystemAbsolutePath() / suspend_file);
+        if (error)
+        {
+            mpl::error(log_category,
+                       "suspend() -> VM '{}' failed to save state to file '{}': {}",
+                       vm_name,
+                       instance_dir.filePath(suspend_file).toStdString(),
+                       error);
+            throw std::runtime_error(
+                fmt::format("VM '{}' failed to save state, check logs for more details", vm_name));
+        }
 
         // Reflect vm's state
         set_state(MP_APPLE_VZ.get_state(vm_handle));
