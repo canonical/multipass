@@ -64,7 +64,11 @@ QString get_arp_output()
                                              arp_process->read_all_standard_error()));
     }
 
-    return QString{arp_process->read_all_standard_output()};
+    auto ret = QString{arp_process->read_all_standard_output()};
+    mpl::trace(category, "arp stdout:\n{}", ret);
+    mpl::trace(category, "arp stderr: {}", QString{arp_process->read_all_standard_error()});
+
+    return ret;
 }
 
 bool can_reach_gateway(const std::string& ip)
