@@ -17,26 +17,15 @@
 
 #pragma once
 
-#include <multipass/vm_status_monitor.h>
+#include <stdexcept>
 
 namespace multipass
 {
-namespace test
+class GhostInstanceException : public std::runtime_error
 {
-struct StubVMStatusMonitor : public multipass::VMStatusMonitor
-{
-    void on_resume() override{};
-    ;
-    void on_shutdown() override{};
-    void on_suspend() override{};
-    void on_restart(const std::string& name) override{};
-    void persist_state_for(const std::string& name, const VirtualMachine::State& state) override{};
-    void update_metadata_for(const std::string& name,
-                             const boost::json::object& metadata) override{};
-    boost::json::object retrieve_metadata_for(const std::string& name) override
+public:
+    explicit GhostInstanceException() : runtime_error{"Ghost instance"}
     {
-        return {};
-    };
+    }
 };
-} // namespace test
 } // namespace multipass

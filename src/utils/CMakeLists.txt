@@ -14,6 +14,7 @@
 
 function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
+    alias_definition.cpp
     file_ops.cpp
     memory_size.cpp
     permission_utils.cpp
@@ -24,6 +25,7 @@ function(add_target TARGET_NAME)
     utils.cpp
     vm_image_vault_utils.cpp
     vm_mount.cpp
+    vm_specs.cpp
     yaml_node_utils.cpp
     semver_compare.cpp)
 

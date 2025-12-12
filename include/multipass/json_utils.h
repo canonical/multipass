@@ -18,45 +18,25 @@
 #pragma once
 
 #include "singleton.h"
+#include "utils/sorted_map.h"
 
-#include <multipass/network_interface.h>
-
-#include <QJsonArray>
-#include <QJsonObject>
 #include <QString>
 #include <QStringList>
 
 #include <boost/json.hpp>
 
-#include <optional>
 #include <ostream>
 #include <string>
-#include <vector>
-
-#define MP_JSONUTILS multipass::JsonUtils::instance()
 
 namespace multipass
 {
 struct VMSpecs;
-class JsonUtils : public Singleton<JsonUtils>
-{
-public:
-    explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
 
-    virtual std::string json_to_string(const QJsonObject& root) const;
-    virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
-                                                     const std::string& src_vm_name,
-                                                     const std::string& dest_vm_name) const;
-    virtual QJsonValue update_unique_identifiers_of_metadata(const QJsonValue& metadata,
-                                                             const multipass::VMSpecs& src_specs,
-                                                             const multipass::VMSpecs& dest_specs,
-                                                             const std::string& src_vm_name,
-                                                             const std::string& dest_vm_name) const;
-    virtual QJsonArray extra_interfaces_to_json_array(
-        const std::vector<NetworkInterface>& extra_interfaces) const;
-    virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(
-        const QJsonObject& record) const;
-};
+boost::json::object update_unique_identifiers_of_metadata(const boost::json::object& metadata,
+                                                          const multipass::VMSpecs& src_specs,
+                                                          const multipass::VMSpecs& dest_specs,
+                                                          const std::string& src_vm_name,
+                                                          const std::string& dest_vm_name);
 
 namespace detail
 {
@@ -125,6 +105,20 @@ T tag_invoke(const boost::json::value_to_tag<T>&,
     return result;
 }
 
+struct SortJsonKeys
+{
+};
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const T& mapping,
+                const SortJsonKeys&)
+{
+    json = boost::json::value_from(sorted_map(mapping));
+}
+
 struct PrettyPrintOptions
 {
     int indent = 4;
@@ -135,10 +129,6 @@ void pretty_print(std::ostream& os,
                   const boost::json::value& value,
                   const PrettyPrintOptions& opts = {});
 std::string pretty_print(const boost::json::value& value, const PrettyPrintOptions& opts = {});
-
-// Temporary conversion functions to migrate between Qt and Boost JSON values.
-boost::json::value qjson_to_boost_json(const QJsonValue& value);
-QJsonValue boost_json_to_qjson(const boost::json::value& value);
 } // namespace multipass
 
 // These are in the global namespace so that Boost.JSON can look them up via ADL for `QString` and

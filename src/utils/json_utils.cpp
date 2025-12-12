@@ -22,9 +22,6 @@
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 
-#include <QJsonArray>
-#include <QJsonDocument>
-
 #include <sstream>
 #include <stack>
 #include <stdexcept>
@@ -77,108 +74,49 @@ void pretty_print_scalar(std::ostream& os, const boost::json::value& value)
     else
         os << serialize(value);
 }
+
+std::string& replace_substring(std::string& str, std::string_view from, std::string_view to)
+{
+    std::size_t pos = 0;
+    while ((pos = str.find(from)) != std::string::npos)
+    {
+        str.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+    return str;
+}
 } // namespace
 
-mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
-    : Singleton<JsonUtils>{pass}
-{
-}
-
-std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
-{
-    // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a
-    // QByteArray.
-    return QJsonDocument(root).toJson().toStdString();
-}
-
-QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& id,
-                                                        const std::string& src_vm_name,
-                                                        const std::string& dest_vm_name) const
-{
-    std::string id_str = id.toString().toStdString();
-    assert(id_str.size() >= src_vm_name.size());
-
-    return QJsonValue{QString::fromStdString(id_str.replace(0, src_vm_name.size(), dest_vm_name))};
-}
-
-QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(
-    const QJsonValue& metadata,
-    const multipass::VMSpecs& src_specs,
-    const multipass::VMSpecs& dest_specs,
-    const std::string& src_vm_name,
-    const std::string& dest_vm_name) const
+boost::json::object mp::update_unique_identifiers_of_metadata(const boost::json::object& metadata,
+                                                              const multipass::VMSpecs& src_specs,
+                                                              const multipass::VMSpecs& dest_specs,
+                                                              const std::string& src_vm_name,
+                                                              const std::string& dest_vm_name)
 {
     assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
 
-    QJsonObject result_metadata_object = metadata.toObject();
-    QJsonValueRef arguments = result_metadata_object["arguments"];
-    QJsonArray json_array = arguments.toArray();
-    for (QJsonValueRef item : json_array)
+    boost::json::object result_metadata = metadata;
+    for (auto& item : result_metadata.at("arguments").as_array())
     {
-        QString str = item.toString();
-
-        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
+        auto str = value_to<std::string>(item);
+        replace_substring(str, src_specs.default_mac_address, dest_specs.default_mac_address);
         for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
         {
             const std::string& src_mac = src_specs.extra_interfaces[i].mac_address;
             if (!src_mac.empty())
             {
                 const std::string& dest_mac = dest_specs.extra_interfaces[i].mac_address;
-                str.replace(src_mac.c_str(), dest_mac.c_str());
+                replace_substring(str, src_mac, dest_mac);
             }
         }
         // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
-        // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
-        // metadata.
-        str.replace("instances/" + QString{src_vm_name.c_str()},
-                    "instances/" + QString{dest_vm_name.c_str()});
-        item = str;
-    }
-    arguments = json_array;
-
-    return QJsonValue{result_metadata_object};
-}
-
-QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
-    const std::vector<mp::NetworkInterface>& extra_interfaces) const
-{
-    QJsonArray json;
-
-    for (const auto& interface : extra_interfaces)
-    {
-        QJsonObject entry;
-        entry.insert("id", QString::fromStdString(interface.id));
-        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
-        entry.insert("auto_mode", interface.auto_mode);
-        json.append(entry);
+        // "<src_name>"->"<dest_name>", because the second one might match other substrings of
+        // the metadata.
+        replace_substring(str, "instances/" + src_vm_name, "instances/" + dest_vm_name);
+        item = boost::json::string(str);
     }
 
-    return json;
-}
-
-std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_interfaces(
-    const QJsonObject& record) const
-{
-    if (record.contains("extra_interfaces"))
-    {
-        std::vector<mp::NetworkInterface> extra_interfaces;
-
-        for (QJsonValueRef entry : record["extra_interfaces"].toArray())
-        {
-            auto id = entry.toObject()["id"].toString().toStdString();
-            auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-            if (!mpu::valid_mac_address(mac_address))
-            {
-                throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
-            }
-            auto auto_mode = entry.toObject()["auto_mode"].toBool();
-            extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
-        }
-
-        return extra_interfaces;
-    }
-
-    return std::nullopt;
+    return result_metadata;
 }
 
 // Pretty print a JSON value non-recursively. We need to avoid recursion since we serialize
@@ -303,37 +241,6 @@ std::string mp::pretty_print(const boost::json::value& value, const PrettyPrintO
     std::ostringstream os;
     pretty_print(os, value, opts);
     return os.str();
-}
-
-boost::json::value mp::qjson_to_boost_json(const QJsonValue& value)
-{
-    QJsonDocument doc;
-    switch (value.type())
-    {
-    case QJsonValue::Array:
-        doc = QJsonDocument{value.toArray()};
-        break;
-    case QJsonValue::Object:
-        doc = QJsonDocument{value.toObject()};
-        break;
-    default:
-        assert(false && "unsupported type");
-    }
-    return boost::json::parse(std::string_view(doc.toJson()));
-}
-
-QJsonValue mp::boost_json_to_qjson(const boost::json::value& value)
-{
-    auto json_data = serialize(value);
-    auto doc = QJsonDocument::fromJson(
-        QByteArray{json_data.data(), static_cast<qsizetype>(json_data.size())});
-    if (doc.isArray())
-        return doc.array();
-    else if (doc.isObject())
-        return doc.object();
-
-    assert(false && "unsupported type");
-    std::abort();
 }
 
 void tag_invoke(const boost::json::value_from_tag&,

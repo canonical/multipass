@@ -19,6 +19,7 @@
 #include <multipass/cli/format_utils.h>
 #include <multipass/format.h>
 #include <multipass/utils.h>
+#include <multipass/utils/sorted_map.h>
 
 namespace mp = multipass;
 
@@ -248,12 +249,12 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Working directory,Context\n");
 
-    for (const auto& [context_name, context_contents] : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sorted_map(aliases))
     {
         std::string shown_context =
             context_name == aliases.active_context_name() ? context_name + "*" : context_name;
 
-        for (const auto& [name, def] : sort_dict(context_contents))
+        for (const auto& [name, def] : sorted_map(context_contents))
         {
             fmt::format_to(std::back_inserter(buf),
                            "{},{},{},{},{}\n",

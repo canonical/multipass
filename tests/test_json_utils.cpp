@@ -21,8 +21,6 @@
 #include <multipass/json_utils.h>
 
 #include <QFileDevice>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QString>
 
 #include <cctype>
@@ -47,60 +45,6 @@ std::string tag_invoke(const boost::json::value_to_tag<std::string>&,
     for (auto&& i : s)
         i = std::toupper(i);
     return s;
-}
-
-struct ExtraInterfacesRead : public TestWithParam<std::vector<mp::NetworkInterface>>
-{
-};
-
-TEST_P(ExtraInterfacesRead, writeAndReadExtraInterfaces)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    auto read_ifaces = MP_JSONUTILS.read_extra_interfaces(doc);
-
-    ASSERT_EQ(read_ifaces, extra_ifaces);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    TestJsonUtils,
-    ExtraInterfacesRead,
-    Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
-                                             {"eth2", "52:54:00:00:00:02", false}},
-           std::vector<mp::NetworkInterface>{}));
-
-TEST(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
-{
-    QJsonObject doc;
-    doc.insert("some_data", "nothing to see here");
-
-    ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
-}
-
-TEST(TestJsonUtils, throwsOnWrongMac)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces{
-        mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    MP_ASSERT_THROW_THAT(MP_JSONUTILS.read_extra_interfaces(doc),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
-}
-
-TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
-{
-    EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
-              QJsonValue{"vm2_e_e_e"});
 }
 
 TEST(TestJsonUtils, lookupInArray)
@@ -198,6 +142,37 @@ TEST(TestJsonUtils, mapToJsonArrayDoesntRecurse)
 
     auto map_result = value_to<MapOfMap>(json_array, mp::MapAsJsonArray{"_where"});
     EXPECT_EQ(map_result, map_of_map);
+}
+
+TEST(TestJsonUtils, sortJsonKeys)
+{
+    // Force a different sort order for our map.
+    using Map = std::map<std::string, std::string, std::greater<>>;
+    Map map = {{"4", "four"}, {"3", "three"}, {"2", "two"}, {"1", "one"}};
+    boost::json::object json_object = {{"1", "one"}, {"2", "two"}, {"3", "three"}, {"4", "four"}};
+
+    auto json_result = boost::json::value_from(map, mp::SortJsonKeys{});
+    EXPECT_EQ(json_result, json_object);
+    EXPECT_EQ(serialize(json_result), serialize(json_object));
+}
+
+TEST(TestJsonUtils, sortJsonKeysDoesntRecurse)
+{
+    // Force a different sort order for our maps.
+    using InnerMap = std::map<std::string, std::string, std::greater<>>;
+    using MapOfMap = std::map<std::string, InnerMap, std::greater<>>;
+    InnerMap inner = {{"4", "four"}, {"3", "three"}, {"2", "two"}, {"1", "one"}};
+    MapOfMap map_of_map = {{"4", inner}, {"3", inner}, {"2", inner}, {"1", inner}};
+
+    boost::json::object json_inner = {{"1", "one"}, {"2", "two"}, {"3", "three"}, {"4", "four"}};
+    boost::json::object json_object = {{"1", json_inner},
+                                       {"2", json_inner},
+                                       {"3", json_inner},
+                                       {"4", json_inner}};
+    auto json_result = boost::json::value_from(map_of_map, mp::SortJsonKeys{});
+    EXPECT_EQ(json_result, json_object);
+    // SortJsonKeys should apply only to the top-level map, but not the inner map.
+    EXPECT_NE(serialize(json_result), serialize(json_object));
 }
 
 class JsonPrettyPrintTest : public TestWithParam<std::string>
