@@ -86,11 +86,19 @@ TEST_F(AppleVirtualMachine_UnitTests, startFromStoppedStateCallsStartVm)
 
 TEST_F(AppleVirtualMachine_UnitTests, startFromPausedStateCallsResumeVm)
 {
+    const auto suspend_file =
+        std::filesystem::path(instance_dir.filePath("suspend.vm_state").toStdString());
+    std::ofstream{suspend_file}.close();
+
     mp::apple::AppleVirtualMachine vm{desc, mock_monitor, stub_key_provider, instance_dir.path()};
 
     EXPECT_CALL(mock_apple_vz, get_state(_))
-        .WillOnce(Return(apple::AppleVMState::paused))
+        .WillOnce(Return(apple::AppleVMState::stopped))
         .WillOnce(Return(apple::AppleVMState::running));
+    EXPECT_CALL(mock_apple_vz, restore_vm_from_file(_, _)).WillOnce(Invoke([](auto&, auto&) {
+        return apple::CFError{};
+    }));
+
     EXPECT_CALL(mock_apple_vz, can_resume(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_apple_vz, resume_vm(_)).WillOnce(Invoke([](auto&) {
         return apple::CFError{};
@@ -137,16 +145,51 @@ TEST_F(AppleVirtualMachine_UnitTests, startVmErrorThrowsRuntimeError)
 
 TEST_F(AppleVirtualMachine_UnitTests, startResumeErrorThrowsRuntimeError)
 {
+    const auto suspend_file =
+        std::filesystem::path(instance_dir.filePath("suspend.vm_state").toStdString());
+    std::ofstream{suspend_file}.close();
+
     mp::apple::AppleVirtualMachine vm{desc, mock_monitor, stub_key_provider, instance_dir.path()};
 
     CFErrorRef error_ref = CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 42, nullptr);
     apple::CFError error{error_ref};
 
     EXPECT_CALL(mock_apple_vz, get_state(_))
-        .WillOnce(Return(apple::AppleVMState::paused))
+        .WillOnce(Return(apple::AppleVMState::stopped))
         .WillOnce(Return(apple::AppleVMState::error));
+
+    EXPECT_CALL(mock_apple_vz, restore_vm_from_file(_, _)).WillOnce(Invoke([](auto&, auto&) {
+        return apple::CFError{};
+    }));
+
     EXPECT_CALL(mock_apple_vz, can_resume(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_apple_vz, resume_vm(_)).WillOnce(Return(ByMove(std::move(error))));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AtLeast(1));
+
+    EXPECT_THROW(vm.start(), std::runtime_error);
+    EXPECT_EQ(vm.current_state(), VirtualMachine::State::unknown);
+}
+
+TEST_F(AppleVirtualMachine_UnitTests, startRestoreErrorThrowsRuntimeError)
+{
+    const auto suspend_file =
+        std::filesystem::path(instance_dir.filePath("suspend.vm_state").toStdString());
+    std::ofstream{suspend_file}.close();
+
+    mp::apple::AppleVirtualMachine vm{desc, mock_monitor, stub_key_provider, instance_dir.path()};
+
+    CFErrorRef error_ref = CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 42, nullptr);
+    apple::CFError error{error_ref};
+
+    EXPECT_CALL(mock_apple_vz, get_state(_))
+        .WillOnce(Return(apple::AppleVMState::stopped))
+        .WillOnce(Return(apple::AppleVMState::error));
+
+    EXPECT_CALL(mock_apple_vz, restore_vm_from_file(_, _))
+        .WillOnce(Return(ByMove(std::move(error))));
+
+    EXPECT_CALL(mock_apple_vz, can_resume(_)).Times(0);
+    EXPECT_CALL(mock_apple_vz, resume_vm(_)).Times(0);
     EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AtLeast(1));
 
     EXPECT_THROW(vm.start(), std::runtime_error);
