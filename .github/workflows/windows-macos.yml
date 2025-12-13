@@ -269,6 +269,7 @@ jobs:
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
+        ${{ (github.event_name == 'schedule') && '-DMP_ALLOW_OPTIONAL_FEATURES=OFF' || '' }}
         ${{ github.workspace }}
 
     - name: Build
