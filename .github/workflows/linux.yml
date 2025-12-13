@@ -93,6 +93,7 @@ jobs:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CMAKE_PRESET: ${{ matrix.cmake-preset }}
+        MP_FEATURE_FLAGS: ${{ (github.event_name == 'schedule' || startsWith(github.ref, 'refs/heads/release/')) && 'OFF' || 'ON' }}
 
       run: |
         go install github.com/mikefarah/yq/v4@latest
