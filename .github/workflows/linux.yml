@@ -26,7 +26,7 @@ jobs:
         MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug", "runs-on": "ubuntu-latest"}
                 {"build-type": "Clang", "cmake-preset": "ci-snap-clang-15", "runs-on": "ubuntu-latest"}
                 {"build-type": "Release", "cmake-preset": "ci-snap", "runs-on": "ubuntu-latest"}
-                {"build-type": "GUI-less", "cmake-preset": "ci-snap-gui-less", "runs-on": "self-hosted-linux-s390x-noble-medium"}'
+                {"build-type": "GUI-less", "cmake-preset": "ci-snap-s390x", "runs-on": "self-hosted-linux-s390x-noble-medium"}'
 
         if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
             MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage", "runs-on": "ubuntu-latest" }'

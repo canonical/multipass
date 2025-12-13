@@ -153,9 +153,17 @@
             }
         },
         {
-            "name": "ci-snap-gui-less",
+            "name": "ci-snap-s390x",
+            "description": "Preset for snap builds in CI on s390x architecture.",
+            "inherits": [
+                "ci-snap",
+                "snap-gui-less"
+            ]
+        },
+        {
+            "name": "snap-gui-less",
             "description": "Preset for snap builds without the Flutter GUI.",
-            "inherits": "ci-snap",
+            "inherits": "snap",
             "cacheVariables": {
                 "MULTIPASS_ENABLE_FLUTTER_GUI": {
                     "type": "BOOL",
