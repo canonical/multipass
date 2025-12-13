@@ -2,6 +2,9 @@ name: WindowsMacOS
 
 on:
   workflow_call:
+  schedule:
+  # Daily at 00:34 UTC
+    - cron: 34 0 * * *
 
 permissions:
   contents: read
