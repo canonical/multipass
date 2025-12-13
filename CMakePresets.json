@@ -34,6 +34,17 @@
             }
         },
         {
+            "name": "feature-flags",
+            "description": "Additive preset to manipulate feature flags.",
+            "hidden": true,
+            "cacheVariables": {
+                "MP_ENABLE_ALL_FEATURES": {
+                    "type": "STRING",
+                    "value": "$env{MP_FEATURE_FLAGS}"
+                }
+            }
+        },
+        {
             "name": "snap",
             "description": "Preset for snap builds.",
             "inherits": "common",
@@ -76,7 +87,10 @@
         {
             "name": "ci-snap",
             "description": "Preset for snap builds in CI.",
-            "inherits": "snap",
+            "inherits": [
+                "snap",
+                "feature-flags"
+            ],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": {
                     "type": "STRING",
