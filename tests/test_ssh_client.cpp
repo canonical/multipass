@@ -151,6 +151,6 @@ TEST_F(SSHClient, logSignalTerminationFromExitState)
             });
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    logger_scope.mock_logger->expect_log(mpl::Level::error, "Process terminated by signal: INT\n");
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "Process terminated by signal: INT");
     EXPECT_EQ(client.exec({{"foo"}}), failure_code);
 }
