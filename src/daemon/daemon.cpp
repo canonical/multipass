@@ -2009,10 +2009,13 @@ try
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
         return status_promise->set_value(grpc::Status(
             grpc::StatusCode::FAILED_PRECONDITION,
-            "Mounts are disabled on this installation of Multipass.\n\n"
-            "See https://canonical.com/multipass/docs/set-command#local.privileged-mounts for "
-            "information\n"
-            "on how to enable them."));
+            fmt::format("Mounts are disabled on this installation of Multipass.\n\n"
+                        "See "
+                        "https://documentation.ubuntu.com/multipass/{}/reference/settings/"
+                        "local-privileged-mounts/ for "
+                        "information\n"
+                        "on how to enable them.",
+                        DOCS_VERSION)));
 
     mp::id_mappings uid_mappings, gid_mappings;
     for (const auto& map : request->mount_maps().uid_mappings())
