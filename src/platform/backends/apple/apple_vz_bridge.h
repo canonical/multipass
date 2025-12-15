@@ -68,6 +68,8 @@ bool can_pause(const VMHandle& vm_handle);
 bool can_resume(const VMHandle& vm_handle);
 bool can_stop(const VMHandle& vm_handle);
 bool can_request_stop(const VMHandle& vm_handle);
+
+bool is_supported();
 } // namespace multipass::apple
 
 template <>

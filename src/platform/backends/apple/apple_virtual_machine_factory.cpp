@@ -45,6 +45,10 @@ void AppleVirtualMachineFactory::prepare_instance_image(const VMImage& instance_
 
 void AppleVirtualMachineFactory::hypervisor_health_check()
 {
+    if (!MP_APPLE_VZ.is_supported())
+    {
+        throw std::runtime_error("Virtualization is not supported on this system.");
+    }
 }
 
 void AppleVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
