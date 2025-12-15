@@ -131,6 +131,8 @@ if(APPLE)
   set(MULTIPASSD_PLIST "com.canonical.multipassd.plist")
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSD_PLIST}.in"
                  "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" @ONLY)
+  configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh.in"
+                 "${CMAKE_BINARY_DIR}/preinstall-multipassd.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipassd.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass.sh.in"
@@ -144,7 +146,7 @@ if(APPLE)
 
   set(CPACK_COMPONENT_MULTIPASS_GUI_PLIST "${CMAKE_SOURCE_DIR}/packaging/macos/multipass-gui-component.plist")
 
-  set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
+  set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_BINARY_DIR}/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
