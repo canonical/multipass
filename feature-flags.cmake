@@ -13,3 +13,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 include(src/cmake/feature-flag.cmake)
+
+# A feature flag with a dependency.
+feature_flag(APPLEVZ_ENABLED "AppleVZ backend" APPLE)
+# A feature flag with no dependencies.
+feature_flag(AVAILABILITY_ZONES_ENABLED "Availability zone support")
