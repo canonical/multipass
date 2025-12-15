@@ -134,4 +134,11 @@ bool AppleVZ::can_request_stop(const VMHandle& vm_handle) const
 
     return multipass::applevz::can_request_stop(vm_handle);
 }
+
+bool AppleVZ::is_supported() const
+{
+    mpl::debug(kLogCategory, "AppleVZ::is_supported(...)");
+
+    return multipass::applevz::is_supported();
+}
 } // namespace multipass::applevz
