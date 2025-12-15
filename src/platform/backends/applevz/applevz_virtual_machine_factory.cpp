@@ -15,7 +15,10 @@
  *
  */
 
+#include <applevz/applevz_virtual_machine.h>
 #include <applevz/applevz_virtual_machine_factory.h>
+
+namespace mp = multipass;
 
 namespace multipass::applevz
 {
@@ -30,7 +33,11 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return nullptr;
+    return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        get_instance_directory(desc.vm_name));
 }
 
 VMImage AppleVZVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
