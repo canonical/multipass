@@ -19,6 +19,11 @@ include(feature-flags.cmake)
 include(src/cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
+# Print the features' status to show this off.
+message(STATUS "MP_ALLOW_OPTIONAL_FEATURES = ${MP_ALLOW_OPTIONAL_FEATURES}")
+message(STATUS "APPLEVZ_ENABLED = ${APPLEVZ_ENABLED}")
+message(STATUS "AVAILABILITY_ZONES_ENABLED = ${AVAILABILITY_ZONES_ENABLED}")
+
 option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
 option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
