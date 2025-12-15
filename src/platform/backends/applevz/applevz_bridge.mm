@@ -287,4 +287,9 @@ bool can_request_stop(const VMHandle& vm_handle)
 
     return [vm canRequestStop];
 }
+
+bool is_supported()
+{
+    return [VZVirtualMachine isSupported];
+}
 } // namespace multipass::applevz

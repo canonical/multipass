@@ -61,6 +61,7 @@ public:
                 can_request_stop,
                 (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
+    MOCK_METHOD(bool, is_supported, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZ, AppleVZ);
 };
