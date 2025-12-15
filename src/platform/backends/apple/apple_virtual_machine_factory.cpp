@@ -15,7 +15,10 @@
  *
  */
 
+#include <apple/apple_virtual_machine.h>
 #include <apple/apple_virtual_machine_factory.h>
+
+namespace mp = multipass;
 
 namespace multipass::apple
 {
@@ -30,7 +33,10 @@ VirtualMachine::UPtr AppleVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return nullptr;
+    return std::make_unique<mp::apple::AppleVirtualMachine>(desc,
+                                                            monitor,
+                                                            key_provider,
+                                                            get_instance_directory(desc.vm_name));
 }
 
 VMImage AppleVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
