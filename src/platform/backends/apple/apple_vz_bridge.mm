@@ -250,21 +250,35 @@ CFError save_machine_state_to_url(const VMHandle& vm_handle, const std::filesyst
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-
     __block CFErrorRef err_ref = nullptr;
 
-    [vm saveMachineStateToURL:nsURLFromStdFilesystemPath(path)
-            completionHandler:^(NSError* _Nullable error) {
-              if (error)
-              {
-                  err_ref = (__bridge_retained CFErrorRef)error;
-              }
+    if (@available(macOS 14.0, *))
+    {
+        dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-              dispatch_semaphore_signal(sema);
-            }];
+        [vm saveMachineStateToURL:nsURLFromStdFilesystemPath(path)
+                completionHandler:^(NSError* _Nullable error) {
+                  if (error)
+                  {
+                      err_ref = (__bridge_retained CFErrorRef)error;
+                  }
 
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+                  dispatch_semaphore_signal(sema);
+                }];
+
+        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+    }
+    else
+    {
+        NSError* err = [NSError
+            errorWithDomain:@"multipass.apple.vzbridge"
+                       code:-1
+                   userInfo:@{
+                       NSLocalizedDescriptionKey : @"Saving VM state requires macOS 14.0 or newer"
+                   }];
+
+        err_ref = (__bridge_retained CFErrorRef)err;
+    }
 
     return CFError(err_ref);
 }
@@ -273,21 +287,35 @@ CFError restore_machine_state_from_url(const VMHandle& vm_handle, const std::fil
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
 
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-
     __block CFErrorRef err_ref = nullptr;
 
-    [vm restoreMachineStateFromURL:nsURLFromStdFilesystemPath(path)
-                 completionHandler:^(NSError* _Nullable error) {
-                   if (error)
-                   {
-                       err_ref = (__bridge_retained CFErrorRef)error;
-                   }
+    if (@available(macOS 14.0, *))
+    {
+        dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-                   dispatch_semaphore_signal(sema);
-                 }];
+        [vm restoreMachineStateFromURL:nsURLFromStdFilesystemPath(path)
+                     completionHandler:^(NSError* _Nullable error) {
+                       if (error)
+                       {
+                           err_ref = (__bridge_retained CFErrorRef)error;
+                       }
 
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+                       dispatch_semaphore_signal(sema);
+                     }];
+
+        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+    }
+    else
+    {
+        NSError* err = [NSError errorWithDomain:@"multipass.apple.vzbridge"
+                                           code:-1
+                                       userInfo:@{
+                                           NSLocalizedDescriptionKey :
+                                               @"Restoring VM state requires macOS 14.0 or newer"
+                                       }];
+
+        err_ref = (__bridge_retained CFErrorRef)err;
+    }
 
     return CFError(err_ref);
 }
