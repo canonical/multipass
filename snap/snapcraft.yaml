@@ -322,6 +322,7 @@ parts:
     - qemu/vgabios-*.bin*
     - qemu/slof.bin*
     - qemu/bios-256k.bin*
+    - qemu/s390-ccw.img*
     - -usr/lib/*/pkgconfig
 
   qemu-firmware:
