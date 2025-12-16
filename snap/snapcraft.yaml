@@ -311,6 +311,8 @@ parts:
     - qemu/vgabios-*.bin*
     - qemu/slof.bin*
     - qemu/bios-256k.bin*
+    - qemu/s390-ccw.img*
+    - qemu/s390-netboot.img*
     - -usr/lib/*/pkgconfig
 
   qemu-firmware:
@@ -324,6 +326,7 @@ parts:
       usr/share/ovmf/*: qemu/
       usr/lib/ipxe/qemu/*: qemu/
       usr/share/qemu-efi-aarch64/*: qemu/
+      usr/share/qemu-efi-s390x/*: qemu/
     prime:
     - qemu/*
 

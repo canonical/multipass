@@ -188,6 +188,9 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
              << "QEMU_EFI.fd"
              << "-machine"
              << "virt";
+#elif defined Q_PROCESSOR_S390
+        opts << "-machine"
+             << "s390-ccw-virtio";
 #endif
     }
 
@@ -198,7 +201,11 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
          // Set up the network related args
          << "-nic"
          << QString::fromStdString(
+#if defined Q_PROCESSOR_S390
+                fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-ccw,mac={}",
+#else
                 fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
+#endif
                             tap_device_name,
                             vm_desc.default_mac_address));
 
@@ -209,7 +216,11 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     {
         opts << "-nic"
              << QString::fromStdString(
+#if defined Q_PROCESSOR_S390
+                    fmt::format("bridge,br={},model=virtio-net-ccw,mac={},helper={}",
+#else
                     fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+#endif
                                 extra_interface.id,
                                 extra_interface.mac_address,
                                 bridge_helper_exec_path));
