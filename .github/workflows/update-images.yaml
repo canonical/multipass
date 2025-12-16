@@ -36,7 +36,7 @@ jobs:
         run: distro-scraper ${{ github.workspace }}/data/distributions/distribution-info.json
 
       - name: Create PR
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "[distro] Update Cloud Images info"
           branch: "update-cloud-images"
