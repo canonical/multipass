@@ -16,6 +16,7 @@ base: core22
 architectures:
   - build-on: amd64
   - build-on: arm64
+  - build-on: s390x
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
@@ -118,7 +119,6 @@ parts:
     build-environment:
     - PATH: /snap/bin:$PATH
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
-    - CMAKE_PRESET: snap
     - CXX: clang++-15
     - CC: clang-15
     build-packages:
@@ -203,7 +203,7 @@ parts:
       # Update default clang
       update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
       update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
-      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
+      cmake --preset "${CMAKE_PRESET:-snap}" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
       cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
       DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
 
@@ -284,12 +284,12 @@ parts:
       usr/lib/qemu/*: usr/bin/
       usr/share/qemu/*: qemu/
     override-pull: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
 
 
       craftctl default
     override-build: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
 
       set -ex
       # Mangle the configure a bit
@@ -311,6 +311,8 @@ parts:
     - qemu/vgabios-*.bin*
     - qemu/slof.bin*
     - qemu/bios-256k.bin*
+    - qemu/s390-ccw.img*
+    - qemu/s390-netboot.img*
     - -usr/lib/*/pkgconfig
 
   qemu-firmware:
@@ -324,6 +326,7 @@ parts:
       usr/share/ovmf/*: qemu/
       usr/lib/ipxe/qemu/*: qemu/
       usr/share/qemu-efi-aarch64/*: qemu/
+      usr/share/qemu-efi-s390x/*: qemu/
     prime:
     - qemu/*
 

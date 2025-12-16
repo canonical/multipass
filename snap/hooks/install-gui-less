@@ -1,0 +1,5 @@
+#!/bin/sh
+
+rm -f $SNAP_COMMON/snap_refresh
+
+mkdir -p "$SNAP_COMMON/data"
