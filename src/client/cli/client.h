@@ -39,7 +39,7 @@ class Client
 public:
     explicit Client(ClientConfig& context);
     virtual ~Client() = default;
-    int run(const QStringList& arguments);
+    ReturnCodeVariant run(const QStringList& arguments);
 
 protected:
     template <typename T, typename... Ts>

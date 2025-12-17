@@ -26,11 +26,11 @@ namespace multipass
 {
 namespace cmd
 {
-ReturnCode create_alias(AliasDict& aliases,
-                        const std::string& alias_name,
-                        const AliasDefinition& alias_definition,
-                        std::ostream& cout,
-                        std::ostream& cerr,
-                        const std::optional<std::string>& context = std::nullopt);
+ReturnCodeVariant create_alias(AliasDict& aliases,
+                               const std::string& alias_name,
+                               const AliasDefinition& alias_definition,
+                               std::ostream& cout,
+                               std::ostream& cerr,
+                               const std::optional<std::string>& context = std::nullopt);
 } // namespace cmd
 } // namespace multipass

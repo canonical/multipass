@@ -36,7 +36,7 @@ namespace
 constexpr char streaming_symbol{'-'};
 } // namespace
 
-mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Transfer::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -44,7 +44,7 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::SSHInfoReply& reply) {
+    auto on_success = [this](mp::SSHInfoReply& reply) -> ReturnCodeVariant {
         auto success = true;
         for (const auto& [instance_name, ssh_info] : reply.ssh_info())
         {
@@ -97,7 +97,7 @@ mp::ReturnCode cmd::Transfer::run(mp::ArgParser* parser)
         return success ? ReturnCode::Ok : ReturnCode::CommandFail;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         return standard_failure_handler_for(name(), term->cerr(), status);
     };
 

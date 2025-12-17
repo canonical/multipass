@@ -36,15 +36,15 @@ public:
     {
     }
 
-    ReturnCode run(ArgParser* parser) override;
+    ReturnCodeVariant run(ArgParser* parser) override;
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
 
-    static ReturnCode exec_success(const SSHInfoReply& reply,
-                                   const std::optional<std::string>& dir,
-                                   const std::vector<std::string>& args,
-                                   Terminal* term);
+    static ReturnCodeVariant exec_success(const SSHInfoReply& reply,
+                                          const std::optional<std::string>& dir,
+                                          const std::vector<std::string>& args,
+                                          Terminal* term);
 
 private:
     SSHInfoRequest ssh_info_request;
