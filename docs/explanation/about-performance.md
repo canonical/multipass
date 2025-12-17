@@ -4,7 +4,7 @@
 When considering performance with Multipass, there are two aspects that need to be accounted for:
 
 * the [Multipass instance](/explanation/instance)
-* the [host machine](/explanation/host)
+* the host machine
 
 There are many factors that can affect the performance of the instance and the host. To ensure the best performance of both areas, careful consideration should be given.
 
