@@ -75,7 +75,7 @@ QString ImageVaultUtils::extract_file(const QString& file,
 {
     auto decoder_fn = [&monitor, &decoder](const QString& encoded_file,
                                            const QString& destination) {
-        return decoder.decode_to(encoded_file, destination, monitor);
+        return decoder.decode_to(encoded_file.toStdString(), destination.toStdString(), monitor);
     };
 
     return extract_file(file, decoder_fn, delete_original);
