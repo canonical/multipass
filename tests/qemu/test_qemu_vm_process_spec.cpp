@@ -60,12 +60,18 @@ TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
+#if defined Q_PROCESSOR_S390
+    const auto storage_interface = "virtio-scsi-ccw";
+#else
+    const auto storage_interface = "virtio-scsi-pci";
+#endif
+
     EXPECT_EQ(spec.arguments(),
               QStringList({"--enable-kvm",
                            "-nic",
                            "tap,ifname=tap_device,script=no,downscript=no",
                            "-device",
-                           "virtio-scsi-pci,id=scsi0",
+                           QString::fromStdString(fmt::format("{},id=scsi0", storage_interface)),
                            "-drive",
                            "file=/path/to/image,if=none,format=qcow2,discard=unmap,id=hda",
                            "-device",
