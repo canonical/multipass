@@ -210,6 +210,7 @@ linkcheck_ignore = [
     "http://www.straightrunning.com/XmingNotes/",
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
+    "https://www.freedesktop.org/software/systemd/man/latest/systemd-journald.service.html"
 ]
 
 linkcheck_retries = 3
