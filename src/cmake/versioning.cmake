@@ -12,27 +12,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-function(determine_version OUTPUT_VARIABLE)
+function(is_release_branch OUTPUT_VARIABLE)
   # use upstream repo as the authoritative reference when checking for release status
   # set -DMULTIPASS_UPSTREAM="" to use the local repository
   if(MULTIPASS_UPSTREAM)
-    set(MULTIPASS_UPSTREAM "${MULTIPASS_UPSTREAM}/")
+    set(MULTIPASS_UPSTREAM_PREFIX "${MULTIPASS_UPSTREAM}/")
   endif()
 
-  execute_process(COMMAND git describe --all --exact --match "${MULTIPASS_UPSTREAM}release/*"
+  execute_process(COMMAND git describe --all --exact --match "${MULTIPASS_UPSTREAM_PREFIX}release/*"
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_RELEASE_BRANCH
                   OUTPUT_STRIP_TRAILING_WHITESPACE
                   ERROR_QUIET)
 
+  string(REGEX MATCH "release/[0-9]+.[0-9]+" GIT_RELEASE_MATCH "${GIT_RELEASE_BRANCH}")
+  if(GIT_RELEASE_MATCH)
+    set(${OUTPUT_VARIABLE} ON PARENT_SCOPE)
+  else()
+    set(${OUTPUT_VARIABLE} OFF PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(determine_version OUTPUT_VARIABLE)
   execute_process(COMMAND git describe --long --abbrev=8
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+  is_release_branch(GIT_IS_RELEASE_BRANCH)
   # only use -rc tags on release/* branches
-  string(REGEX MATCH "release/[0-9]+.[0-9]+" GIT_RELEASE_MATCH "${GIT_RELEASE_BRANCH}")
-  if(GIT_RELEASE_MATCH)
+  if(GIT_IS_RELEASE_BRANCH)
       if(NOT DEFINED MULTIPASS_UPSTREAM)
         message(FATAL_ERROR "You need to set MULTIPASS_UPSTREAM for a release build.\
                              \nUse an empty string to make local the authoritative repository.")
