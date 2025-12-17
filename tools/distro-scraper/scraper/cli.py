@@ -100,6 +100,7 @@ async def run_scraper(scraper_instance: BaseScraper) -> tuple[str, dict | None]:
         result = await scraper_instance.fetch()
     except Exception as e:
         logger.exception("Scraper '%s' failed: %s", name, e)
+        return name, None
 
     # Validate JSON structure
     try:
@@ -108,6 +109,8 @@ async def run_scraper(scraper_instance: BaseScraper) -> tuple[str, dict | None]:
         return name, validated.model_dump()
     except ValidationError as e:
         logger.error("Scraper '%s' returned invalid structure:\n%s", name, e)
+    except Exception as e:
+        logger.exception("Unexpected error validating scraper '%s': %s", name, e)
 
     return name, None
 
