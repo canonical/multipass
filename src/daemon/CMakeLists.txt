@@ -64,6 +64,11 @@ else()
   add_executable(multipassd daemon_main.cpp)
 endif()
 
+add_custom_command(TARGET multipassd POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:multipassd>"
+    COMMENT "Stripping symbols from daemon..."
+)
+
 target_link_libraries(multipassd
   fmt::fmt-header-only
   daemon)
