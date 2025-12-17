@@ -12,27 +12,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+include(src/cmake/environment-utils.cmake)
+
 function(determine_version OUTPUT_VARIABLE)
-  # use upstream repo as the authoritative reference when checking for release status
-  # set -DMULTIPASS_UPSTREAM="" to use the local repository
-  if(MULTIPASS_UPSTREAM)
-    set(MULTIPASS_UPSTREAM "${MULTIPASS_UPSTREAM}/")
-  endif()
-
-  execute_process(COMMAND git describe --all --exact --match "${MULTIPASS_UPSTREAM}release/*"
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  OUTPUT_VARIABLE GIT_RELEASE_BRANCH
-                  OUTPUT_STRIP_TRAILING_WHITESPACE
-                  ERROR_QUIET)
-
   execute_process(COMMAND git describe --long --abbrev=8
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                   OUTPUT_VARIABLE GIT_VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+  is_release_branch(GIT_IS_RELEASE_BRANCH)
   # only use -rc tags on release/* branches
-  string(REGEX MATCH "release/[0-9]+.[0-9]+" GIT_RELEASE_MATCH "${GIT_RELEASE_BRANCH}")
-  if(GIT_RELEASE_MATCH)
+  if(GIT_IS_RELEASE_BRANCH)
       if(NOT DEFINED MULTIPASS_UPSTREAM)
         message(FATAL_ERROR "You need to set MULTIPASS_UPSTREAM for a release build.\
                              \nUse an empty string to make local the authoritative repository.")
@@ -56,13 +46,17 @@ function(determine_version OUTPUT_VARIABLE)
   endif()
 
   string(REGEX MATCH "^v.+-([0-9]+)-(g.+)$" GIT_VERSION_MATCH ${GIT_VERSION})
+  if(NOT MP_ALLOW_OPTIONAL_FEATURES)
+    set(MULTIPASS_VERSION_NOFF "-noff")
+  endif()
 
   if(GIT_RELEASE)
+    # Don't indicate presence/absence of optional features for release builds.
     set(NEW_VERSION ${GIT_RELEASE})
   elseif(GIT_VERSION_MATCH AND MULTIPASS_BUILD_LABEL)
-    set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1}.${MULTIPASS_BUILD_LABEL}+${CMAKE_MATCH_2})
+    set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1}.${MULTIPASS_BUILD_LABEL}+${CMAKE_MATCH_2}${MULTIPASS_VERSION_NOFF})
   elseif(GIT_VERSION_MATCH)
-    set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1}+${CMAKE_MATCH_2})
+    set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1}+${CMAKE_MATCH_2}${MULTIPASS_VERSION_NOFF})
   else()
     message(FATAL_ERROR "Failed to parse version number: ${GIT_VERSION}")
   endif()
