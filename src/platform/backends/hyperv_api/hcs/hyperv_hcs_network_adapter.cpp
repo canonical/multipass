@@ -18,8 +18,9 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcs::HcsNetworkAdapter;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcs;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -27,13 +28,13 @@ auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& ne
                                                      FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto network_adapter_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto network_adapter_template = R"json(
         "{0}": {{
             "EndpointId" : "{0}",
             "MacAddress": "{1}",
             "InstanceId": "{0}"
         }}
-    )json");
+    )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           network_adapter_template.as<Char>(),
