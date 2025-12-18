@@ -174,7 +174,7 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
 ```{seealso}
-[How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [How to use a different terminal from the system icon](/how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon)
+[How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualisation-driver), [How to use a different terminal from the system icon](/how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon)
 ```
 
 ````
@@ -189,7 +189,7 @@ Multipass defaults to using Hyper-V as its virtualisation provider. If you'd lik
 multipass set local.driver=virtualbox
 ```
 
-> See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver).
+> See also: [How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualisation-driver).
 
 ````
 
