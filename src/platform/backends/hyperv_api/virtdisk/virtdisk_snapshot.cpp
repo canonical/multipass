@@ -32,9 +32,9 @@ constexpr auto log_category = "virtdisk-snapshot";
 namespace multipass::hyperv::virtdisk
 {
 
-struct CreateVirtdiskSnapshotError : public FormattedExceptionBase<std::system_error>
+struct CreateVirtdiskSnapshotError : FormattedExceptionBase<std::system_error>
 {
-    using FormattedExceptionBase<std::system_error>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
