@@ -25,10 +25,17 @@
 namespace multipass::hyperv::virtdisk
 {
 
+/**
+ * Source disk to copy the data from. This is used for cloning an existing disk into a new disk.
+ */
 struct SourcePathParameters
 {
     std::filesystem::path path;
 };
+
+/**
+ * Parent disk information. This is used for creating a virtual disk chain to layer disks.
+ */
 struct ParentPathParameters
 {
     std::filesystem::path path;
@@ -41,6 +48,15 @@ struct CreateVirtualDiskParameters
 {
     std::uint64_t size_in_bytes{};
     std::filesystem::path path{};
+    /**
+     * Monostate: A new disk.
+     *
+     * SourcePathParameters: A new disk, data and properties cloned from the disk specified by
+     * SourcePathParameters.
+     *
+     * ParentPathParameters: A new disk, layered onto an existing disk. The
+     * existing disk can be a VHDX or AVHDX.
+     */
     std::variant<std::monostate, SourcePathParameters, ParentPathParameters> predecessor{};
 };
 
