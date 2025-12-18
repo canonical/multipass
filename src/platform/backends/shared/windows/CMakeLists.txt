@@ -19,7 +19,8 @@ add_library(shared_win STATIC
   process_factory.cpp
   smb_mount_handler.cpp
   wsa_init_wrapper.cpp
-  windows_version.cpp)
+  windows_version.cpp
+  guid_formatter.cpp)
 
 include_directories(shared_win
   ..)
