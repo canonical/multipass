@@ -605,15 +605,6 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
                get_name(),
                new_size.in_megabytes());
     description.mem_size = new_size;
-
-    // The implementation below allows runtime resize of memory. Multipass currently does
-    // not support runtime resize so commenting it out.
-
-    // hcs::HcsRequest req{
-    //     hcs::HcsResourcePath::Memory(),
-    //     hcs::HcsRequestType::Update(),
-    //     hcs::HcsModifyMemorySettings{static_cast<std::uint32_t>(new_size.in_megabytes())}};
-    // HCS().modify_compute_system(hcs_system, req);
 }
 
 void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
@@ -656,47 +647,6 @@ void HCSVirtualMachine::add_network_interface(int index,
                   "add_network_interface() -> Skipping hot-plug, VM is in a stopped state.");
         return;
     }
-
-    // Hot-plug a network card.
-    const auto endpoint = [&extra_interface]() {
-        hcn::CreateEndpointParameters endpoint{};
-        endpoint.network_guid = multipass::utils::make_uuid(extra_interface.id).toStdString();
-        endpoint.endpoint_guid = mac2uuid(extra_interface.mac_address);
-        endpoint.mac_address = extra_interface.mac_address;
-        replace_colon_with_dash(endpoint.mac_address.value());
-        return endpoint;
-    }();
-
-    if (const auto result = HCN().create_endpoint(endpoint); !result)
-    {
-        mpl::error(log_category,
-                   "add_network_interface() -> failed to create endpoint for `{}`",
-                   extra_interface.id);
-        return;
-    }
-
-    const auto add_network_adapter_req = [&endpoint]() {
-        hyperv::hcs::HcsNetworkAdapter network_adapter{};
-        network_adapter.endpoint_guid = endpoint.endpoint_guid;
-        network_adapter.mac_address = endpoint.mac_address.value();
-
-        hcs::HcsRequest add_network_adapter_req{
-            hcs::HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
-            hcs::HcsRequestType::Add(),
-            network_adapter};
-        return add_network_adapter_req;
-    }();
-
-    if (const auto result = HCS().modify_compute_system(hcs_system, add_network_adapter_req);
-        !result)
-    {
-        mpl::error(log_category,
-                   "add_network_interface() -> failed to add endpoint for network `{}` to compute "
-                   "system `{}`",
-                   extra_interface.id,
-                   get_name());
-        return;
-    }
 }
 std::unique_ptr<MountHandler>
 HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VMMount& mount)
@@ -705,9 +655,6 @@ HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VM
                "make_native_mount_handler() -> called for VM `{}`, target: {}",
                get_name(),
                target);
-    // throw NotImplementedOnThisBackendException{
-    //     "Plan9 mounts require an agent running on guest, which is not implemented yet."};
-    // FIXME: Replace with Plan9 mount handler once the guest agent is available.
 
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
