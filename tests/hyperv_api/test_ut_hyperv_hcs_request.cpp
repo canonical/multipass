@@ -21,7 +21,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_request.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-using multipass::hyperv::universal_string_literal_helper;
+using namespace multipass::hyperv::literals;
 using multipass::hyperv::hcs::HcsNetworkAdapter;
 using multipass::hyperv::hcs::HcsRequest;
 using multipass::hyperv::hcs::HcsRequestType;
@@ -49,10 +49,10 @@ struct HyperVHcsRequest_UnitTests : public ::testing::Test
         }
     }
 
-    void do_test(const uut_t& uut, const universal_string_literal_helper& expected)
+    void do_test(const uut_t& uut, const auto& expected)
     {
         const auto result = to_string(uut);
-        const std::basic_string<CharT> v{expected.as<CharT>()};
+        const std::basic_string<CharT> v{expected.template as<CharT>()};
         const auto result_nws = trim_whitespace(result.c_str());
         const auto expected_nws = trim_whitespace(v.c_str());
         EXPECT_EQ(result_nws, expected_nws);
@@ -68,12 +68,12 @@ TYPED_TEST(HyperVHcsRequest_UnitTests, network_adapter_add_no_settings)
 {
     uut_t uut{HcsResourcePath::NetworkAdapters("1111-2222-3333"), HcsRequestType::Add()};
 
-    constexpr auto expected_result = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto expected_result = R"json(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{1111-2222-3333}",
             "RequestType": "Add",
             "Settings": null
-        })json");
+        })json"_unv;
 
     TestFixture::do_test(uut, expected_result);
 }
@@ -84,12 +84,12 @@ TYPED_TEST(HyperVHcsRequest_UnitTests, network_adapter_remove)
 {
     uut_t uut{HcsResourcePath::NetworkAdapters("1111-2222-3333"), HcsRequestType::Remove()};
 
-    constexpr auto expected_result = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto expected_result = R"json(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{1111-2222-3333}",
             "RequestType": "Remove",
             "Settings": null
-        })json");
+        })json"_unv;
 
     TestFixture::do_test(uut, expected_result);
 }
@@ -104,7 +104,7 @@ TYPED_TEST(HyperVHcsRequest_UnitTests, network_adapter_add_with_settings)
     settings.mac_address = "mac address";
     settings.instance_guid = "instance guid";
     uut.settings = settings;
-    constexpr auto expected_result = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto expected_result = R"json(
         {
             "ResourcePath": "VirtualMachine/Devices/NetworkAdapters/{1111-2222-3333}",
             "RequestType": "Add",
@@ -113,7 +113,7 @@ TYPED_TEST(HyperVHcsRequest_UnitTests, network_adapter_add_with_settings)
                 "MacAddress": "mac address",
                 "InstanceId": "endpoint guid"
             }
-        })json");
+        })json"_unv;
 
     TestFixture::do_test(uut, expected_result);
 }
