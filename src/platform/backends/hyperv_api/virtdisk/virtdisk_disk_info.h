@@ -38,7 +38,6 @@ struct VirtualDiskInfo
     std::optional<size_info> size{};
     std::optional<std::uint64_t> smallest_safe_virtual_size{};
     std::optional<std::string> virtual_storage_type{};
-    std::optional<std::string> provider_subtype{};
 };
 
 } // namespace multipass::hyperv::virtdisk
@@ -76,10 +75,9 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo, Char>
     {
         return fmt::format_to(
             ctx.out(),
-            "Storage type: {} | Size: {} | Smallest safe size: {} | Provider subtype: {}",
+            "Storage type: {} | Size: {} | Smallest safe size: {}",
             params.virtual_storage_type,
             params.size,
-            params.smallest_safe_virtual_size,
-            params.provider_subtype);
+            params.smallest_safe_virtual_size);
     }
 };
