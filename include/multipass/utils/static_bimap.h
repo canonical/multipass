@@ -19,6 +19,8 @@
 
 #include <unordered_map>
 
+#include <multipass/disabled_copy_move.h>
+
 namespace multipass
 {
 
@@ -26,9 +28,9 @@ namespace multipass
  * Inefficient, static bidirectional map using two std::unordered_map's.
  */
 template <typename K, typename V>
-struct static_bimap
+struct static_bi_map : private multipass::DisabledCopyMove
 {
-    static_bimap(std::initializer_list<std::pair<const K, V>> init)
+    static_bi_map(std::initializer_list<std::pair<const K, V>> init)
         : left(init), right([&init]() {
               std::unordered_map<V, K> map;
               for (const auto& [k, v] : init)
