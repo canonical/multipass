@@ -21,7 +21,6 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcs;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -29,7 +28,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
     const CreateComputeSystemParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    static constexpr auto json_template = R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
     {{
         "SchemaVersion": {{
             "Major": 2,
@@ -78,12 +77,12 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
             {6}
         }}
     }}
-    )json"_unv;
-    static constexpr auto requested_services = R"json(
+    )json");
+    static constexpr auto requested_services = string_literal<Char>(R"json(
             "Services": {
                 "Shutdown": {},
                 "Heartbeat": {}
-            })json"_unv;
+            })json");
 
     std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
     const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
@@ -97,21 +96,22 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                 // To emit an initial comma.
                 schema_version_dependent_vm_sections.push_back({});
             }
-            schema_version_dependent_vm_sections.emplace_back(section);
+            schema_version_dependent_vm_sections.emplace_back(
+                static_cast<std::basic_string_view<Char>>(section));
         }
     };
 
-    append_if_supported(requested_services.as<Char>(), HcsSchemaVersion::v25);
+    append_if_supported(requested_services, HcsSchemaVersion::v25);
 
-    return fmt::format_to(ctx.out(),
-                          json_template.as<Char>(),
-                          params.memory_size_mb,
-                          params.processor_count,
-                          maybe_widen{params.name},
-                          fmt::join(params.scsi_devices, ","_unv.as<Char>()),
-                          fmt::join(params.network_adapters, ","_unv.as<Char>()),
-                          fmt::join(params.shares, ","_unv.as<Char>()),
-                          fmt::join(schema_version_dependent_vm_sections, ","_unv.as<Char>()));
+    return json_template.format_to(
+        ctx,
+        params.memory_size_mb,
+        params.processor_count,
+        params.name,
+        fmt::join(params.scsi_devices, string_literal<Char>(",")),
+        fmt::join(params.network_adapters, string_literal<Char>(",")),
+        fmt::join(params.shares, string_literal<Char>(",")),
+        fmt::join(schema_version_dependent_vm_sections, string_literal<Char>(",")));
 }
 
 template auto fmt::formatter<CreateComputeSystemParameters, char>::format<fmt::format_context>(

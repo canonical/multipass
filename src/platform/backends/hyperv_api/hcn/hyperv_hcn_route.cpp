@@ -21,25 +21,20 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcn;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto route_template = R"json(
+    static constexpr auto route_template = string_literal<Char>(R"json(
         {{
             "NextHop": "{}",
             "DestinationPrefix": "{}",
             "Metric": {}
-        }})json"_unv;
+        }})json");
 
-    return fmt::format_to(ctx.out(),
-                          route_template.as<Char>(),
-                          maybe_widen{route.next_hop},
-                          maybe_widen(route.destination_prefix),
-                          route.metric);
+    return route_template.format_to(ctx, route.next_hop, route.destination_prefix, route.metric);
 }
 
 template auto fmt::formatter<HcnRoute, char>::format<fmt::format_context>(

@@ -22,7 +22,6 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcs;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -30,7 +29,7 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
     const HcsAddPlan9ShareParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    static constexpr auto json_template = R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
         {{
             "Name": "{0}",
             "Path": "{1}",
@@ -38,15 +37,14 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
             "AccessName": "{3}",
             "Flags": {4}
         }}
-    )json"_unv;
+    )json");
 
-    return fmt::format_to(ctx.out(),
-                          json_template.as<Char>(),
-                          maybe_widen{params.name},
-                          params.host_path,
-                          params.port,
-                          maybe_widen{params.access_name},
-                          fmt::underlying(params.flags));
+    return json_template.format_to(ctx,
+                                   params.name,
+                                   params.host_path,
+                                   params.port,
+                                   params.access_name,
+                                   fmt::underlying(params.flags));
 }
 
 template <typename Char>
@@ -55,19 +53,15 @@ auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(
     const HcsRemovePlan9ShareParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    static constexpr auto json_template = R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
         {{
             "Name": "{0}",
             "AccessName": "{1}",
             "Port": {2}
         }}
-    )json"_unv;
+    )json");
 
-    return fmt::format_to(ctx.out(),
-                          json_template.as<Char>(),
-                          maybe_widen{params.name},
-                          maybe_widen{params.access_name},
-                          params.port);
+    return json_template.format_to(ctx, params.name, params.access_name, params.port);
 }
 
 template auto fmt::formatter<HcsAddPlan9ShareParameters, char>::format<fmt::format_context>(

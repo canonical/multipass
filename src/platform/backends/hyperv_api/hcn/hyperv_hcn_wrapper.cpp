@@ -146,7 +146,7 @@ auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
  */
 auto guid_from_string(const std::string& guid_str) -> ::GUID
 {
-    const std::wstring v = maybe_widen{guid_str};
+    const std::wstring v = to_wstring(guid_str);
     return guid_from_string(v);
 }
 

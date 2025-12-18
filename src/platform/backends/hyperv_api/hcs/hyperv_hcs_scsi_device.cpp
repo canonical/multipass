@@ -22,7 +22,6 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcs;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -30,7 +29,7 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
                                                  FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto scsi_device_template = R"json(
+    static constexpr auto scsi_device_template = string_literal<Char>(R"json(
         "{0}": {{
             "Attachments": {{
                 "0": {{
@@ -40,14 +39,13 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
                 }}
             }}
         }}
-    )json"_unv;
+    )json");
 
-    return fmt::format_to(ctx.out(),
-                          scsi_device_template.as<Char>(),
-                          maybe_widen{scsi_device.name},
-                          maybe_widen{scsi_device.type},
-                          scsi_device.path,
-                          scsi_device.read_only);
+    return scsi_device_template.format_to(ctx,
+                                          scsi_device.name,
+                                          scsi_device.type,
+                                          scsi_device.path,
+                                          scsi_device.read_only);
 }
 
 template auto fmt::formatter<HcsScsiDevice, char>::format<fmt::format_context>(

@@ -22,7 +22,6 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcs;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 struct HcsRequestSettingsFormatters
@@ -43,22 +42,20 @@ struct HcsRequestSettingsFormatters
 
     auto operator()(const std::monostate&) const
     {
-        return std::basic_string<Char>{"null"_unv.as<Char>()};
+        return std::basic_string<Char>(string_literal<Char>("null"));
     }
 
     auto operator()(const HcsNetworkAdapter& params) const
     {
-        static constexpr auto json_template = R"json(
+        static constexpr auto json_template = string_literal<Char>(R"json(
             {{
                 "EndpointId": "{0}",
                 "MacAddress": "{1}",
                 "InstanceId": "{0}"
             }}
-        )json"_unv;
+        )json");
 
-        return fmt::format(json_template.as<Char>(),
-                           maybe_widen{params.endpoint_guid},
-                           maybe_widen{params.mac_address});
+        return json_template.format(params.endpoint_guid, params.mac_address);
     }
 
     auto operator()(const HcsModifyMemorySettings& params) const
@@ -82,19 +79,19 @@ template <typename FormatContext>
 auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto json_template = R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
         {{
             "ResourcePath": "{0}",
             "RequestType": "{1}",
             "Settings": {2}
         }}
-    )json"_unv;
+    )json");
 
-    return fmt::format_to(ctx.out(),
-                          json_template.as<Char>(),
-                          maybe_widen{param.resource_path},
-                          maybe_widen{param.request_type},
-                          std::visit(HcsRequestSettingsFormatters<Char>{}, param.settings));
+    return json_template.format_to(
+        ctx,
+        param.resource_path,
+        param.request_type,
+        std::visit(HcsRequestSettingsFormatters<Char>{}, param.settings));
 }
 
 template auto fmt::formatter<HcsRequest, char>::format<fmt::format_context>(

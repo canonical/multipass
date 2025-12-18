@@ -17,22 +17,18 @@
 
 #pragma once
 
-#include <fmt/format.h>
+#include <hyperv_api/format_as_mixin.h>
 
-#include <string>
 #include <string_view>
+
+#include <fmt/format.h>
 
 namespace multipass::hyperv::hcs
 {
 
-struct HcsResourcePath
+struct HcsResourcePath : FormatAsMixin<HcsResourcePath>
 {
     [[nodiscard]] operator std::string_view() const
-    {
-        return value;
-    }
-
-    [[nodiscard]] operator const std::string&() const
     {
         return value;
     }
@@ -44,12 +40,12 @@ struct HcsResourcePath
 
     [[nodiscard]] static HcsResourcePath Memory()
     {
-        return std::string{"VirtualMachine/ComputeTopology/Memory/SizeInMB"};
+        return {"VirtualMachine/ComputeTopology/Memory/SizeInMB"};
     }
 
     [[nodiscard]] static HcsResourcePath Plan9Shares()
     {
-        return std::string{"VirtualMachine/Devices/Plan9/Shares"};
+        return {"VirtualMachine/Devices/Plan9/Shares"};
     }
 
     [[nodiscard]] bool operator==(const HcsResourcePath& rhs) const

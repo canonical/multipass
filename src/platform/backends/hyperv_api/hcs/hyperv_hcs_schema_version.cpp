@@ -112,7 +112,6 @@ HcsSchemaVersion SchemaUtils::get_os_supported_schema_version() const
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcs;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -121,34 +120,34 @@ auto fmt::formatter<HcsSchemaVersion, Char>::format(const HcsSchemaVersion& sche
     -> FormatContext::iterator
 {
 
-    auto result = "Unknown"_unv.as<Char>();
+    std::basic_string_view<Char> result = string_literal<Char>("Unknown");
 
     switch (schema_version)
     {
     case HcsSchemaVersion::v20:
-        result = "v2.0"_unv.as<Char>();
+        result = string_literal<Char>("v2.0");
         break;
     case HcsSchemaVersion::v21:
-        result = "v2.1"_unv.as<Char>();
+        result = string_literal<Char>("v2.1");
         break;
     case HcsSchemaVersion::v22:
-        result = "v2.2"_unv.as<Char>();
+        result = string_literal<Char>("v2.2");
         break;
     case HcsSchemaVersion::v23:
-        result = "v2.3"_unv.as<Char>();
+        result = string_literal<Char>("v2.3");
         break;
     case HcsSchemaVersion::v24:
-        result = "v2.4"_unv.as<Char>();
+        result = string_literal<Char>("v2.4");
         break;
     case HcsSchemaVersion::v25:
-        result = "v2.5"_unv.as<Char>();
+        result = string_literal<Char>("v2.5");
         break;
     case HcsSchemaVersion::v26:
-        result = "v2.6"_unv.as<Char>();
+        result = string_literal<Char>("v2.6");
         break;
     }
 
-    return fmt::format_to(ctx.out(), "{}"_unv.as<Char>(), result);
+    return string_literal<Char>(R"json({})json").format_to(ctx, result);
 }
 
 template auto fmt::formatter<HcsSchemaVersion, char>::format<fmt::format_context>(

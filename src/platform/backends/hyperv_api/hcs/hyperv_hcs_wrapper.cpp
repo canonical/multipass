@@ -173,7 +173,7 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
     mpl::debug(log_category, "open_host_compute_system(...) > name: ({})", name);
 
     // Windows API uses wide strings.
-    const std::wstring name_w = maybe_widen{name};
+    const std::wstring name_w = to_wstring(name);
     constexpr auto requested_access_level = GENERIC_ALL;
 
     UniqueHcsSystem system{};
@@ -206,7 +206,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
     }
 
-    const std::wstring name_w = maybe_widen{params.name};
+    const std::wstring name_w = to_wstring(params.name);
     // Render the template
     const auto vm_settings = fmt::to_wstring(params);
 
@@ -364,7 +364,7 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
                file_path.string());
 
     const auto path_as_wstring = file_path.generic_wstring();
-    const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
+    const std::wstring csname_as_wstring = to_wstring(compute_system_name);
     const auto result = API().HcsGrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
 }
@@ -380,7 +380,7 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
                file_path.string());
 
     const auto path_as_wstring = file_path.wstring();
-    const std::wstring csname_as_wstring = maybe_widen{compute_system_name};
+    const std::wstring csname_as_wstring = to_wstring(compute_system_name);
     const auto result = API().HcsRevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"RevokeVmAccess failed!" : L""};
 }

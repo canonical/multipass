@@ -760,8 +760,9 @@ mp::platform::Platform::get_network_interfaces_info() const
         {
             if (netinfo.links.empty())
             {
-                const std::wstring search =
-                    fmt::format(L"vEthernet ({})", hyperv::maybe_widen{netinfo.id});
+                constexpr static auto name_fmtstr =
+                    hyperv::string_literal<wchar_t>("vEthernet ({})");
+                const std::wstring search = name_fmtstr.format(netinfo.id);
                 for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
                 {
                     const auto& adapter = *pitr;
