@@ -54,8 +54,8 @@ using multipass::hyperv::virtdisk::VirtDisk;
 
 inline auto mac2uuid(std::string mac_addr)
 {
-    mac_addr.erase(std::remove(mac_addr.begin(), mac_addr.end(), ':'), mac_addr.end());
-    mac_addr.erase(std::remove(mac_addr.begin(), mac_addr.end(), '-'), mac_addr.end());
+    std::erase(mac_addr, ':');
+    std::erase(mac_addr, '-');
     constexpr auto format_str = "db4bdbf0-dc14-407f-9780-{}";
     return fmt::format(format_str, mac_addr);
 }
@@ -64,7 +64,7 @@ inline auto replace_colon_with_dash(std::string& addr)
 {
     if (addr.empty())
         return;
-    std::replace(addr.begin(), addr.end(), ':', '-');
+    std::ranges::replace(addr, ':', '-');
 }
 
 /**
