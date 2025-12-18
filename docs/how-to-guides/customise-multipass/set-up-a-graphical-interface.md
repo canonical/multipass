@@ -24,7 +24,7 @@ The images used by Multipass do not come with a graphical desktop installed. For
 ```{admonition} Prerequisites for ubuntu-desktop
 :class: important
 
-Installing a desktop environment requires more resources than the default Multipass instance settings. To successfully set up and run a graphical interface, you must have an instance with at least **10GB** of disk space and **2GB** of RAM.
+Installing a desktop environment requires more resources than the default Multipass instance settings. To successfully set up and run a graphical interface under `ubuntu-desktop`, it is recommended to have an instance with at least **10GB** of disk space and **2GB** of RAM.
 
 ```
 
