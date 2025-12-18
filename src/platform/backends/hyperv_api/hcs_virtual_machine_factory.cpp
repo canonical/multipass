@@ -236,26 +236,20 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
         throw std::runtime_error{"Source VM instance directory is missing!"};
     }
 
-    std::optional<fs::path> src_vm_vhdx{std::nullopt};
+    const auto it = std::ranges::find_if(
+        fs::directory_iterator{src_vm_instance_dir},
+        [](const fs::directory_entry& e) { return e.path().extension() == ".vhdx"; });
 
-    for (const auto& entry : fs::directory_iterator(src_vm_instance_dir))
-    {
-        const auto& extension = entry.path().extension();
-        if (extension == ".vhdx")
-        {
-            src_vm_vhdx = entry.path();
-            break;
-        }
-    }
-
-    if (!src_vm_vhdx.has_value())
+    if (it == std::default_sentinel)
     {
         throw std::runtime_error{"Could not locate source VM's vhdx file!"};
     }
 
+    const auto src_vm_vhdx = it->path();
+
     // Copy the VHDX file.
     virtdisk::CreateVirtualDiskParameters clone_vhdx_params{};
-    clone_vhdx_params.predecessor = virtdisk::SourcePathParameters{src_vm_vhdx.value()};
+    clone_vhdx_params.predecessor = virtdisk::SourcePathParameters{src_vm_vhdx};
     clone_vhdx_params.path = desc.image.image_path.toStdString();
     clone_vhdx_params.size_in_bytes = 0; // use source disk size
 
