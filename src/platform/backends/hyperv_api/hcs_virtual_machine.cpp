@@ -28,15 +28,14 @@
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <shared/windows/smb_mount_handler.h>
+#include <shared/windows/wsa_init_wrapper.h>
 
 #include <platform/platform_win.h>
 
+#include <multipass/constants.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
-#include <multipass/constants.h>
-
-
 
 #include <fmt/xchar.h>
 #include <scope_guard.hpp>
@@ -50,11 +49,12 @@ namespace
 
 constexpr auto default_ssh_port = 22;
 
-namespace mpl = multipass::logging;
-namespace mpp = multipass::platform;
-using multipass::hyperv::hcn::HCN;
-using multipass::hyperv::hcs::HCS;
-using multipass::hyperv::virtdisk::VirtDisk;
+namespace mp = multipass;
+namespace mpl = mp::logging;
+namespace mpp = mp::platform;
+using mp::hyperv::hcn::HCN;
+using mp::hyperv::hcs::HCS;
+using mp::hyperv::virtdisk::VirtDisk;
 
 inline auto mac2uuid(std::string mac_addr)
 {
@@ -80,7 +80,7 @@ inline auto replace_colon_with_dash(std::string& addr)
  */
 auto resolve_ip_addresses(const std::string& hostname)
 {
-    const static mpp::wsa_init_wrapper wsa_context{};
+    const static mp::wsa_init_wrapper wsa_context{};
 
     std::vector<std::string> ipv4{}, ipv6{};
     mpl::trace("resolve-ip-addr",

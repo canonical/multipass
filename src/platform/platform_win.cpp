@@ -37,6 +37,7 @@
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
 #include "shared/windows/process_factory.h"
+#include "shared/windows/wsa_init_wrapper.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
 
@@ -574,7 +575,7 @@ static const auto& ip_utils()
 {
     // Winsock initialization has to happen before we can call network
     // related functions, even the conversion ones (e.g. inet_ntop)
-    static multipass::platform::wsa_init_wrapper wrapper;
+    static mp::wsa_init_wrapper wrapper;
 
     /**
      * Helper struct that provides address conversion
@@ -699,37 +700,6 @@ std::vector<std::string> unicast_addrs_to_net_addrs(
     return result;
 }
 } // namespace
-
-mp::platform::wsa_init_wrapper::wsa_init_wrapper()
-    : wsa_data(new ::WSAData()), wsa_init_result(::WSAStartup(MAKEWORD(2, 2), wsa_data))
-{
-    constexpr auto category = "wsa-init-wrapper";
-    mpl::debug(category, " initialized WSA, status `{}`", wsa_init_result);
-
-    if (!operator bool())
-    {
-
-        mpl::error(category,
-                   " WSAStartup failed with `{}`: {}",
-                   wsa_init_result,
-                   std::system_category().message(wsa_init_result));
-    }
-}
-
-mp::platform::wsa_init_wrapper::~wsa_init_wrapper()
-{
-    /**
-     * https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsacleanup
-     * There must be a call to WSACleanup for each successful call to WSAStartup.
-     * Only the final WSACleanup function call performs the actual cleanup.
-     * The preceding calls simply decrement an internal reference count in the WS2_32.DLL.
-     */
-    if (operator bool())
-    {
-        WSACleanup();
-    }
-    delete wsa_data;
-}
 
 auto multipass::platform::get_windows_version() -> std::optional<windows_version>
 {
