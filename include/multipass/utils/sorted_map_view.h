@@ -21,11 +21,16 @@
 
 namespace multipass
 {
-// Given an unsorted map (e.g. a `std::unordered_map`), return a sorted copy.
-// TODO: Remove and replace with `std::ranges:to<std::map>(x)` when we upgrade to C++23.
+// Given an unsorted map (e.g. a `std::unordered_map`), return a sorted view over the elements.
 template <typename T>
-std::map<typename T::key_type, typename T::mapped_type> sorted_map(const T& unsorted_map)
+auto sorted_map_view(const T& unsorted_map)
 {
-    return {unsorted_map.begin(), unsorted_map.end()};
+    std::map<std::reference_wrapper<const typename T::key_type>,
+             std::reference_wrapper<const typename T::mapped_type>,
+             std::less<typename T::key_type>>
+        result;
+    for (auto&& i : unsorted_map)
+        result.emplace(std::cref(i.first), std::cref(i.second));
+    return result;
 }
 } // namespace multipass

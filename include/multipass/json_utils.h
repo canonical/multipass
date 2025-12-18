@@ -18,7 +18,7 @@
 #pragma once
 
 #include "singleton.h"
-#include "utils/sorted_map.h"
+#include "utils/sorted_map_view.h"
 
 #include <multipass/network_interface.h>
 
@@ -137,7 +137,9 @@ void tag_invoke(const boost::json::value_from_tag&,
                 const T& mapping,
                 const SortJsonKeys&)
 {
-    json = boost::json::value_from(sorted_map(mapping));
+    auto& obj = json.emplace_object();
+    for (const auto& [key, value] : sorted_map_view(mapping))
+        obj.emplace(key.get(), boost::json::value_from(value.get()));
 }
 
 struct PrettyPrintOptions
