@@ -17,7 +17,8 @@ add_library(shared_win STATIC
   aes.cpp
   powershell.cpp
   process_factory.cpp
-  smb_mount_handler.cpp)
+  smb_mount_handler.cpp
+  wsa_init_wrapper.cpp)
 
 include_directories(shared_win
   ..)
