@@ -29,7 +29,7 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
                                                  FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto scsi_device_template = string_literal<Char>(R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
         "{0}": {{
             "Attachments": {{
                 "0": {{
@@ -41,11 +41,11 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
         }}
     )json");
 
-    return scsi_device_template.format_to(ctx,
-                                          scsi_device.name,
-                                          scsi_device.type,
-                                          scsi_device.path,
-                                          scsi_device.read_only);
+    return json_template.format_to(ctx,
+                                   scsi_device.name,
+                                   scsi_device.type,
+                                   scsi_device.path,
+                                   scsi_device.read_only);
 }
 
 template auto fmt::formatter<HcsScsiDevice, char>::format<fmt::format_context>(
