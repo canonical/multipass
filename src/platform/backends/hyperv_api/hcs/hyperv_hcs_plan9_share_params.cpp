@@ -20,9 +20,9 @@
 
 #include <fmt/std.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcs::HcsAddPlan9ShareParameters;
-using multipass::hyperv::hcs::HcsRemovePlan9ShareParameters;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcs;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -30,7 +30,7 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
     const HcsAddPlan9ShareParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto json_template = R"json(
         {{
             "Name": "{0}",
             "Path": "{1}",
@@ -38,7 +38,8 @@ auto fmt::formatter<HcsAddPlan9ShareParameters, Char>::format(
             "AccessName": "{3}",
             "Flags": {4}
         }}
-    )json");
+    )json"_unv;
+
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),
                           maybe_widen{params.name},
@@ -54,13 +55,13 @@ auto fmt::formatter<HcsRemovePlan9ShareParameters, Char>::format(
     const HcsRemovePlan9ShareParameters& params,
     FormatContext& ctx) const -> FormatContext::iterator
 {
-    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto json_template = R"json(
         {{
             "Name": "{0}",
             "AccessName": "{1}",
             "Port": {2}
         }}
-    )json");
+    )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),

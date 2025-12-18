@@ -20,12 +20,9 @@
 
 #include <fmt/std.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcs::HcsAddPlan9ShareParameters;
-using multipass::hyperv::hcs::HcsModifyMemorySettings;
-using multipass::hyperv::hcs::HcsNetworkAdapter;
-using multipass::hyperv::hcs::HcsRemovePlan9ShareParameters;
-using multipass::hyperv::hcs::HcsRequest;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcs;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 struct HcsRequestSettingsFormatters
@@ -46,19 +43,18 @@ struct HcsRequestSettingsFormatters
 
     auto operator()(const std::monostate&) const
     {
-        constexpr auto null_str = MULTIPASS_UNIVERSAL_LITERAL("null");
-        return std::basic_string<Char>{null_str.as<Char>()};
+        return std::basic_string<Char>{"null"_unv.as<Char>()};
     }
 
     auto operator()(const HcsNetworkAdapter& params) const
     {
-        constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+        static constexpr auto json_template = R"json(
             {{
                 "EndpointId": "{0}",
                 "MacAddress": "{1}",
                 "InstanceId": "{0}"
             }}
-        )json");
+        )json"_unv;
 
         return fmt::format(json_template.as<Char>(),
                            maybe_widen{params.endpoint_guid},
@@ -86,13 +82,13 @@ template <typename FormatContext>
 auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto json_template = R"json(
         {{
             "ResourcePath": "{0}",
             "RequestType": "{1}",
             "Settings": {2}
         }}
-    )json");
+    )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),

@@ -19,15 +19,16 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcn::HcnSubnet;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcn;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto subnet_template = R"json(
             {{
                 "Policies": [],
                 "Routes" : [
@@ -36,13 +37,11 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
                 "IpAddressPrefix" : "{}",
                 "IpSubnets": null
             }}
-        )json");
-
-    constexpr auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+        )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           subnet_template.as<Char>(),
-                          fmt::join(subnet.routes, comma.as<Char>()),
+                          fmt::join(subnet.routes, ","_unv.as<Char>()),
                           maybe_widen{subnet.ip_address_prefix});
 }
 
