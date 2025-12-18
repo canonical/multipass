@@ -1,7 +1,7 @@
 (reference-settings-local-driver)=
 # local.driver
 
-> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [Driver](/explanation/driver), [How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualisation-driver)
+> See also: [`get`](/reference/command-line-interface/get), [`set`](/reference/command-line-interface/set), [Driver](/explanation/driver), [How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualization-driver)
 
 ## Key
 

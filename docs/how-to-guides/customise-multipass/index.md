@@ -3,7 +3,7 @@
 
 The following guides provide step-by-step instructions on how to customise Multipass to address specific needs, from managing Multipass drivers to configuring a graphical user interface.
 
-- [Set up a virtualisation driver](set-up-a-virtualisation-driver)
+- [Set up a virtualization driver](set-up-a-virtualization-driver)
 - [View Multipass instances using the driver](view-multipass-instances-using-the-driver)
 - [Set up network bridging using VirtualBox on macOS](how-to-guides-customise-multipass-set-up-network-bridging-virtualbox-macos)
 - [Set up port forwarding for a Multipass instance using VirtualBox](how-to-guides-customise-multipass-set-up-port-forwarding-for-a-multipass-instance-virtualbox)
@@ -26,7 +26,7 @@ The following guides provide step-by-step instructions on how to customise Multi
 :maxdepth: 2
 :glob:
 
-set-up-a-virtualisation-driver
+set-up-a-virtualization-driver
 view-multipass-instances-using-the-driver
 set-up-network-bridging-virtualbox-macos
 set-up-port-forwarding-virtualbox

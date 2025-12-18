@@ -1,9 +1,9 @@
-(how-to-guides-customise-multipass-set-up-a-virtualisation-driver)=
-# Set up a virtualisation driver
+(how-to-guides-customise-multipass-set-up-a-virtualization-driver)=
+# Set up a virtualization driver
 
 > See also: {ref}`explanation-driver`, {ref}`reference-settings-local-driver`
 
-This document demonstrates how to change to an alternative virtualisation driver and how to switch back to the default driver.
+This document demonstrates how to change to an alternative virtualization driver and how to switch back to the default driver.
 
 Be aware that Multipass already has sensible defaults, so this is an optional step.
 

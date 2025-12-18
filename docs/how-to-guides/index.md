@@ -30,7 +30,7 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 
 You may also want to customise Multipass to address specific needs, from managing Multipass drivers to configuring a graphical user interface:
 
-- [Set up a virtualisation driver](customise-multipass/set-up-a-virtualisation-driver)
+- [Set up a virtualization driver](customise-multipass/set-up-a-virtualization-driver)
 - [View Multipass instances using the driver](customise-multipass/view-multipass-instances-using-the-driver)
 - [Set up network bridging using VirtualBox on macOS](how-to-guides-customise-multipass-set-up-network-bridging-virtualbox-macos)
 - [Set up port forwarding for a Multipass instance using VirtualBox](how-to-guides-customise-multipass-set-up-port-forwarding-for-a-multipass-instance-virtualbox)

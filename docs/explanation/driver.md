@@ -1,7 +1,7 @@
 (explanation-driver)=
 # Driver
 
-> See also: [How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualisation-driver), [`local.driver`](/reference/settings/local-driver), [Instance](/explanation/instance), [Platform](/explanation/platform)
+> See also: [How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualization-driver), [`local.driver`](/reference/settings/local-driver), [Instance](/explanation/instance), [Platform](/explanation/platform)
 
 A **driver** is the technology through which Multipass emulates a running machine. It corresponds to a hypervisor or intermediary technology to run virtual machines. The driver is sometimes also referred to as "backend".
 
