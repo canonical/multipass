@@ -64,62 +64,6 @@ struct HcnNetworkType
         return {"L2Bridge"};
     }
 
-    /**
-     * @since Version 2.0
-     */
-    [[nodiscard]] static HcnNetworkType L2Tunnel()
-    {
-        return {"L2Tunnel"};
-    }
-
-    /**
-     * @since Version 2.0
-     */
-    [[nodiscard]] static HcnNetworkType Overlay()
-    {
-        return {"Overlay"};
-    }
-
-    /**
-     * @since Version 2.0
-     */
-    [[nodiscard]] static HcnNetworkType Private()
-    {
-        return {"Private"};
-    }
-
-    /**
-     * @since Version 2.0
-     */
-    [[nodiscard]] static HcnNetworkType Internal()
-    {
-        return {"Internal"};
-    }
-
-    /**
-     * @since Version 2.4
-     */
-    [[nodiscard]] static HcnNetworkType Mirrored()
-    {
-        return {"Mirrored"};
-    }
-
-    /**
-     * @since Version 2.4
-     */
-    [[nodiscard]] static HcnNetworkType Infiniband()
-    {
-        return {"Infiniband"};
-    }
-
-    /**
-     * @since Version 2.10
-     */
-    [[nodiscard]] static HcnNetworkType ConstrainedICS()
-    {
-        return {"ConstrainedICS"};
-    }
-
     [[nodiscard]] bool operator==(const HcnNetworkType& rhs) const
     {
         return value == rhs.value;
