@@ -25,8 +25,9 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 
+#include <shared/windows/guid_formatter.h>
+
 #include <multipass/logging/level.h>
-#include <platform/platform_win.h>
 
 #include <combaseapi.h>
 #include <computenetwork.h>
