@@ -26,6 +26,7 @@
 
 #include <fmt/std.h>
 #include <fmt/xchar.h>
+#include <ztd/out_ptr.hpp>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/file_ops.h>
@@ -34,13 +35,23 @@
 namespace multipass::hyperv::virtdisk
 {
 
+using ztd::out_ptr::out_ptr;
+namespace mpl = logging;
+using lvl = mpl::Level;
+
 namespace
 {
+
+constexpr auto log_category = "HyperV-VirtDisk-Wrapper";
+
+// ---------------------------------------------------------
 
 inline const VirtDiskAPI& API()
 {
     return VirtDiskAPI::instance();
 }
+
+// ---------------------------------------------------------
 
 // helper type for the visitor #4
 template <class... Ts>
@@ -49,11 +60,15 @@ struct overloaded : Ts...
     using Ts::operator()...;
 };
 
+// ---------------------------------------------------------
+
 auto normalize_path(std::filesystem::path p)
 {
     p.make_preferred();
     return p;
 }
+
+// ---------------------------------------------------------
 
 struct HandleCloser
 {
@@ -65,8 +80,7 @@ struct HandleCloser
 
 using UniqueHandle = std::unique_ptr<std::remove_pointer_t<HANDLE>, HandleCloser>;
 
-namespace mpl = logging;
-using lvl = mpl::Level;
+// ---------------------------------------------------------
 
 struct VirtDiskCreateError : FormattedExceptionBase<>
 {
@@ -78,7 +92,7 @@ struct VirtDiskPredecessorError : FormattedExceptionBase<>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-constexpr auto log_category = "HyperV-VirtDisk-Wrapper";
+// ---------------------------------------------------------
 
 UniqueHandle open_virtual_disk(
     const std::filesystem::path& vhdx_path,
@@ -95,7 +109,7 @@ UniqueHandle open_virtual_disk(
     type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN;
     type.VendorId = VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
 
-    HANDLE handle{nullptr};
+    UniqueHandle handle{nullptr};
     const auto path_w = vhdx_path.generic_wstring();
 
     const ResultCode result = API().OpenVirtualDisk(
@@ -110,7 +124,7 @@ UniqueHandle open_virtual_disk(
         // [in, optional] POPEN_VIRTUAL_DISK_PARAMETERS Parameters
         params,
         // [out] PHANDLE Handle
-        &handle);
+        out_ptr(handle));
 
     if (!result)
     {
@@ -120,8 +134,10 @@ UniqueHandle open_virtual_disk(
         return UniqueHandle{nullptr};
     }
 
-    return UniqueHandle{handle};
+    return handle;
 }
+
+// ---------------------------------------------------------
 
 void fill_predecessor_info(const VirtDiskWrapper& wrapper,
                            const std::wstring& predecessor_path,
@@ -260,7 +276,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
                },
                params.predecessor);
 
-    HANDLE result_handle{nullptr};
+    UniqueHandle result_handle{nullptr};
 
     const auto result =
         API().CreateVirtualDisk(&type,
@@ -279,11 +295,10 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
                                 // [in, optional] LPOVERLAPPED Overlapped
                                 nullptr,
                                 // [out] PHANDLE Handle
-                                &result_handle);
+                                out_ptr(result_handle));
 
     if (result == ERROR_SUCCESS)
     {
-        [[maybe_unused]] UniqueHandle _{result_handle};
         return OperationResult{NOERROR, L""};
     }
 
@@ -426,6 +441,41 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
 
 // ---------------------------------------------------------
 
+VirtualDiskInfo::size_info read_virtual_disk_info_size_info(const GET_VIRTUAL_DISK_INFO& disk_info)
+{
+    return {
+        .virtual_ = disk_info.Size.VirtualSize,
+        .physical = disk_info.Size.PhysicalSize,
+        .block = disk_info.Size.BlockSize,
+        .sector = disk_info.Size.SectorSize,
+    };
+}
+
+// ---------------------------------------------------------
+
+std::optional<std::string> read_virtual_disk_info_type(const GET_VIRTUAL_DISK_INFO& disk_info)
+{
+    switch (disk_info.VirtualStorageType.DeviceId)
+    {
+    case VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN:
+        return "unknown";
+    case VIRTUAL_STORAGE_TYPE_DEVICE_ISO:
+        return "iso";
+    case VIRTUAL_STORAGE_TYPE_DEVICE_VHD:
+        return "vhd";
+    case VIRTUAL_STORAGE_TYPE_DEVICE_VHDX:
+        return "vhdx";
+        break;
+    case VIRTUAL_STORAGE_TYPE_DEVICE_VHDSET:
+        return "vhdset";
+    default:
+        return "unknown";
+    }
+    return std::nullopt;
+}
+
+// ---------------------------------------------------------
+
 OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::path& vhdx_path,
                                                        VirtualDiskInfo& vdinfo) const
 {
@@ -443,8 +493,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
 
     constexpr GET_VIRTUAL_DISK_INFO_VERSION what_to_get[] = {
         GET_VIRTUAL_DISK_INFO_SIZE,
-        GET_VIRTUAL_DISK_INFO_VIRTUAL_STORAGE_TYPE,
-        GET_VIRTUAL_DISK_INFO_PROVIDER_SUBTYPE};
+        GET_VIRTUAL_DISK_INFO_VIRTUAL_STORAGE_TYPE};
 
     for (const auto version : what_to_get)
     {
@@ -461,65 +510,16 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
             switch (disk_info.Version)
             {
             case GET_VIRTUAL_DISK_INFO_SIZE:
-                vdinfo.size = std::make_optional<VirtualDiskInfo::size_info>();
-                vdinfo.size->virtual_ = disk_info.Size.VirtualSize;
-                vdinfo.size->block = disk_info.Size.BlockSize;
-                vdinfo.size->physical = disk_info.Size.PhysicalSize;
-                vdinfo.size->sector = disk_info.Size.SectorSize;
+                vdinfo.size = read_virtual_disk_info_size_info(disk_info);
                 break;
             case GET_VIRTUAL_DISK_INFO_VIRTUAL_STORAGE_TYPE:
-            {
-                switch (disk_info.VirtualStorageType.DeviceId)
-                {
-                case VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN:
-                    vdinfo.virtual_storage_type = "unknown";
-                    break;
-                case VIRTUAL_STORAGE_TYPE_DEVICE_ISO:
-                    vdinfo.virtual_storage_type = "iso";
-                    break;
-                case VIRTUAL_STORAGE_TYPE_DEVICE_VHD:
-                    vdinfo.virtual_storage_type = "vhd";
-                    break;
-                case VIRTUAL_STORAGE_TYPE_DEVICE_VHDX:
-                    vdinfo.virtual_storage_type = "vhdx";
-                    break;
-                case VIRTUAL_STORAGE_TYPE_DEVICE_VHDSET:
-                    vdinfo.virtual_storage_type = "vhdset";
-                    break;
-                }
-            }
-            break;
+                vdinfo.virtual_storage_type = read_virtual_disk_info_type(disk_info);
+                break;
             case GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE:
                 vdinfo.smallest_safe_virtual_size = disk_info.SmallestSafeVirtualSize;
                 break;
-            case GET_VIRTUAL_DISK_INFO_PROVIDER_SUBTYPE:
-            {
-                enum class ProviderSubtype : std::uint8_t
-                {
-                    fixed = 2,
-                    dynamic = 3,
-                    differencing = 4
-                };
-
-                switch (static_cast<ProviderSubtype>(disk_info.ProviderSubtype))
-                {
-                case ProviderSubtype::fixed:
-                    vdinfo.provider_subtype = "fixed";
-                    break;
-                case ProviderSubtype::dynamic:
-                    vdinfo.provider_subtype = "dynamic";
-                    break;
-                case ProviderSubtype::differencing:
-                    vdinfo.provider_subtype = "differencing";
-                    break;
-                default:
-                    vdinfo.provider_subtype = "unknown";
-                    break;
-                }
-            }
-            break;
             default:
-                assert(0);
+                assert(0 && "unhandled version");
                 break;
             }
         }
@@ -534,6 +534,8 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
     return {NOERROR, L""};
 }
 
+// ---------------------------------------------------------
+
 OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::path& vhdx_path,
                                                          std::vector<std::filesystem::path>& chain,
                                                          std::optional<std::size_t> max_depth) const
@@ -545,7 +547,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
     // Check if given vhdx is a differencing disk.
     std::filesystem::path current = vhdx_path;
 
-    auto alloc = [](const std::size_t sz = sizeof(GET_VIRTUAL_DISK_INFO)) {
+    auto allocate_disk_info = [](const std::size_t sz = sizeof(GET_VIRTUAL_DISK_INFO)) {
         return std::unique_ptr<GET_VIRTUAL_DISK_INFO, decltype(&std::free)>(
             static_cast<GET_VIRTUAL_DISK_INFO*>(std::malloc(sz)),
             std::free);
@@ -555,7 +557,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
     {
         // Heap-alloc since we're going to re-allocate it for the trailing
         // variable length array.
-        auto disk_info = alloc();
+        auto disk_info = allocate_disk_info();
         disk_info->Version = GET_VIRTUAL_DISK_INFO_PARENT_LOCATION;
 
         const auto disk_handle = open_virtual_disk(current);
@@ -578,7 +580,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
         {
             // Reallocate the disk_info struct with the correct size, and also re-set
             // the version field as it's not an in-place re-allocation.
-            disk_info = alloc(sz);
+            disk_info = allocate_disk_info(sz);
             disk_info->Version = GET_VIRTUAL_DISK_INFO_PARENT_LOCATION;
         }
         else if (r == ERROR_VHD_INVALID_TYPE)
