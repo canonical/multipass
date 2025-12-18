@@ -86,7 +86,7 @@ namespace mpu = multipass::utils;
 namespace
 {
 static const auto none = QStringLiteral("none");
-static constexpr auto kLogCategory = "platform-win";
+static constexpr auto log_category = "platform-win";
 
 time_t time_t_from(const FILETIME* ft)
 {
@@ -524,6 +524,180 @@ BOOL signal_handler(DWORD dwCtrlType)
         return FALSE;
     }
 }
+
+std::string_view adapter_type_to_str(int type)
+{
+    switch (type)
+    {
+    // ipifcons.h
+    case IF_TYPE_ETHERNET_CSMACD:
+        return "Ethernet";
+    case IF_TYPE_SOFTWARE_LOOPBACK:
+        return "Loopback";
+    case IF_TYPE_IEEE80211:
+        return "IEEE 802.11";
+    default:
+        return "Unknown";
+    }
+}
+
+std::string wchar_to_utf8(std::wstring_view input)
+{
+    if (input.empty())
+        return {};
+
+    const auto size_needed = WideCharToMultiByte(CP_UTF8,
+                                                 0,
+                                                 input.data(),
+                                                 static_cast<int>(input.size()),
+                                                 nullptr,
+                                                 0,
+                                                 nullptr,
+                                                 nullptr);
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8,
+                        0,
+                        input.data(),
+                        static_cast<int>(input.size()),
+                        result.data(),
+                        size_needed,
+                        nullptr,
+                        nullptr);
+    // FIXME : Check error code and GetLastError here.
+    return result;
+}
+
+/**
+ * IP conversion utilities
+ */
+static const auto& ip_utils()
+{
+    // Winsock initialization has to happen before we can call network
+    // related functions, even the conversion ones (e.g. inet_ntop)
+    static multipass::platform::wsa_init_wrapper wrapper;
+
+    /**
+     * Helper struct that provides address conversion
+     * utilities
+     */
+    struct ip_utils
+    {
+        /**
+         * Convert IPv4 address to string
+         *
+         * @param [in] addr IPv4 address as uint32
+         * @return std::string String representation of @p addr
+         */
+        static std::string to_string(std::uint32_t addr)
+        {
+            char str[INET_ADDRSTRLEN] = {};
+            if (!inet_ntop(AF_INET, &addr, str, sizeof(str)))
+                throw std::runtime_error("inet_ntop failed: errno");
+            return str;
+        }
+
+        /**
+         * Convert IPv6 address to string
+         *
+         * @param [in] addr IPv6 address
+         * @return std::string String representation of @p addr
+         */
+        static std::string to_string(const in6_addr& addr)
+        {
+            char str[INET6_ADDRSTRLEN] = {};
+            if (!inet_ntop(AF_INET6, &addr, str, sizeof(str)))
+                throw std::runtime_error("inet_ntop failed: errno");
+            return str;
+        }
+
+        /**
+         * Convert an IPv4 address to network CIDR
+         *
+         * @param [in] v4 IPv4 address
+         * @param [in] prefix_length Network prefix
+         * @return std::string Network address in CIDR form
+         */
+        static auto to_network(const in_addr& v4, std::uint8_t prefix_length)
+        {
+            // Convert to the host long first so we can apply a mask to it
+            constexpr static auto max_prefix_length = 32;
+            const auto ip_hbo = ntohl(v4.S_un.S_addr);
+            if (prefix_length > max_prefix_length)
+            {
+                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
+            }
+            const auto mask = (prefix_length == 0) ? 0
+                                                   : std::numeric_limits<std::uint32_t>::max()
+                                                         << (32 - prefix_length);
+            const auto network_hbo = htonl(ip_hbo & mask);
+
+            return fmt::format("{}/{}", to_string(network_hbo), prefix_length);
+        }
+
+        /**
+         * Convert an IPv6 address to network CIDR
+         *
+         * @param [in] v6 IPv6 address
+         * @param [in] prefix_length Network prefix
+         * @return std::string Network address in CIDR form
+         */
+        static auto to_network(const in6_addr& v6, std::uint8_t prefix_length)
+        {
+            // Convert to the host long first so we can apply a mask to it
+            constexpr static auto max_prefix_length = 128;
+            if (prefix_length > max_prefix_length)
+            {
+                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
+            }
+            in6_addr masked = v6;
+
+            for (int i = 0; i < 16; ++i)
+            {
+                int bits = i * 8;
+                if (prefix_length < bits)
+                    masked.u.Byte[i] = 0;
+                else if (prefix_length < bits + 8)
+                    masked.u.Byte[i] &= static_cast<uint8_t>(0xFF << (8 - (prefix_length - bits)));
+            }
+            const auto network_addr = to_string(masked);
+            return fmt::format("{}/{}", network_addr, prefix_length);
+        }
+    } static helper;
+
+    // Initialize once and reuse.
+    return helper;
+}
+
+std::vector<std::string> unicast_addrs_to_net_addrs(
+    PIP_ADAPTER_UNICAST_ADDRESS_LH first_unicast_addr)
+{
+    std::vector<std::string> result;
+    for (const auto* unicast_addr = first_unicast_addr; unicast_addr;
+         unicast_addr = unicast_addr->Next)
+    {
+        const auto& sa = *unicast_addr->Address.lpSockaddr;
+        std::optional<std::string> network_addr{};
+        switch (sa.sa_family)
+        {
+        case AF_INET:
+            network_addr =
+                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
+                                      unicast_addr->OnLinkPrefixLength);
+            break;
+        case AF_INET6:
+            network_addr =
+                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
+                                      unicast_addr->OnLinkPrefixLength);
+            break;
+        }
+
+        if (network_addr)
+        {
+            result.emplace_back(std::move(network_addr.value()));
+        }
+    }
+    return result;
+}
 } // namespace
 
 mp::platform::wsa_init_wrapper::wsa_init_wrapper()
@@ -534,6 +708,7 @@ mp::platform::wsa_init_wrapper::wsa_init_wrapper()
 
     if (!operator bool())
     {
+
         mpl::error(category,
                    " WSAStartup failed with `{}`: {}",
                    wsa_init_result,
@@ -609,181 +784,10 @@ struct InvalidNetworkPrefixLengthException : public multipass::FormattedExceptio
     using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
-/**
- * IP conversion utilities
- */
-static const auto& ip_utils()
-{
-    // Winsock initialization has to happen before we can call network
-    // related functions, even the conversion ones (e.g. inet_ntop)
-    static multipass::platform::wsa_init_wrapper wrapper;
-
-    /**
-     * Helper struct that provides address conversion
-     * utilities
-     */
-    struct ip_utils
-    {
-        /**
-         * Convert IPv4 address to string
-         *
-         * @param [in] addr IPv4 address as uint32
-         * @return std::string String representation of @p addr
-         */
-        static std::string to_string(std::uint32_t addr)
-        {
-            char str[INET_ADDRSTRLEN] = {};
-            if (!inet_ntop(AF_INET, &addr, str, sizeof(str)))
-                throw std::runtime_error("inet_ntop failed: errno");
-            return str;
-        }
-
-        /**
-         * Convert IPv6 address to string
-         *
-         * @param [in] addr IPv6 address
-         * @return std::string String representation of @p addr
-         */
-        static std::string to_string(const in6_addr& addr)
-        {
-            char str[INET6_ADDRSTRLEN] = {};
-            if (!inet_ntop(AF_INET6, &addr, str, sizeof(str)))
-                throw std::runtime_error("inet_ntop failed: errno");
-            return str;
-        }
-
-        /**
-         * Convert an IPv4 address to network CIDR
-         *
-         * @param [in] v4 IPv4 address
-         * @param [in] prefix_length Network prefix
-         * @return std::string Network address in CIDR form
-         */
-        static auto to_network(const in_addr& v4, std::uint8_t prefix_length)
-        {
-            // Convert to the host long first so we can apply a mask to it
-            constexpr static auto kMaxPrefixLength = 32;
-            const auto ip_hbo = ntohl(v4.S_un.S_addr);
-            if (prefix_length > kMaxPrefixLength)
-            {
-                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
-            }
-            const auto mask = (prefix_length == 0) ? 0
-                                                   : std::numeric_limits<std::uint32_t>::max()
-                                                         << (32 - prefix_length);
-            const auto network_hbo = htonl(ip_hbo & mask);
-
-            return fmt::format("{}/{}", to_string(network_hbo), prefix_length);
-        }
-
-        /**
-         * Convert an IPv6 address to network CIDR
-         *
-         * @param [in] v6 IPv6 address
-         * @param [in] prefix_length Network prefix
-         * @return std::string Network address in CIDR form
-         */
-        static auto to_network(const in6_addr& v6, std::uint8_t prefix_length)
-        {
-            // Convert to the host long first so we can apply a mask to it
-            constexpr static auto kMaxPrefixLength = 128;
-            if (prefix_length > kMaxPrefixLength)
-            {
-                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
-            }
-            in6_addr masked = v6;
-
-            for (int i = 0; i < 16; ++i)
-            {
-                int bits = i * 8;
-                if (prefix_length < bits)
-                    masked.u.Byte[i] = 0;
-                else if (prefix_length < bits + 8)
-                    masked.u.Byte[i] &= static_cast<uint8_t>(0xFF << (8 - (prefix_length - bits)));
-            }
-            const auto network_addr = to_string(masked);
-            return fmt::format("{}/{}", network_addr, prefix_length);
-        }
-    } static helper;
-
-    // Initialize once and reuse.
-    return helper;
-}
-
 std::map<std::string, mp::NetworkInterfaceInfo>
 mp::platform::Platform::get_network_interfaces_info() const
 {
     std::map<std::string, mp::NetworkInterfaceInfo> ret{};
-
-    auto adapter_type_to_str = [](int type) {
-        switch (type)
-        {
-        // ipifcons.h
-        case IF_TYPE_ETHERNET_CSMACD:
-            return "Ethernet";
-        case IF_TYPE_SOFTWARE_LOOPBACK:
-            return "Loopback";
-        case IF_TYPE_IEEE80211:
-            return "IEEE 802.11";
-        default:
-            return "Unknown";
-        }
-    };
-
-    // TODO: Move to platform?
-    auto wchar_to_utf8 = [](std::wstring_view input) -> std::string {
-        if (input.empty())
-            return {};
-
-        const auto size_needed = WideCharToMultiByte(CP_UTF8,
-                                                     0,
-                                                     input.data(),
-                                                     static_cast<int>(input.size()),
-                                                     nullptr,
-                                                     0,
-                                                     nullptr,
-                                                     nullptr);
-        std::string result(size_needed, 0);
-        WideCharToMultiByte(CP_UTF8,
-                            0,
-                            input.data(),
-                            static_cast<int>(input.size()),
-                            result.data(),
-                            size_needed,
-                            nullptr,
-                            nullptr);
-        // FIXME : Check error code and GetLastError here.
-        return result;
-    };
-
-    auto unicast_addr_to_network = [](PIP_ADAPTER_UNICAST_ADDRESS_LH first_unicast_addr) {
-        std::vector<std::string> result;
-        for (const auto* unicast_addr = first_unicast_addr; unicast_addr;
-             unicast_addr = unicast_addr->Next)
-        {
-            const auto& sa = *unicast_addr->Address.lpSockaddr;
-            std::optional<std::string> network_addr{};
-            switch (sa.sa_family)
-            {
-            case AF_INET:
-                network_addr =
-                    ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
-                                          unicast_addr->OnLinkPrefixLength);
-                break;
-            case AF_INET6:
-                network_addr =
-                    ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
-                                          unicast_addr->OnLinkPrefixLength);
-                break;
-            }
-
-            if (network_addr)
-            {
-                result.emplace_back(std::move(network_addr.value()));
-            }
-        }
-        return result;
-    };
 
     ULONG needed_size{0};
     constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
@@ -822,7 +826,7 @@ mp::platform::Platform::get_network_interfaces_info() const
             net.id = wchar_to_utf8(adapter.FriendlyName);
             net.type = adapter_type_to_str(adapter.IfType);
             net.description = wchar_to_utf8(adapter.Description);
-            net.links = unicast_addr_to_network(adapter.FirstUnicastAddress);
+            net.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
             ret.insert(std::make_pair(net.id, net));
         }
 
@@ -840,7 +844,7 @@ mp::platform::Platform::get_network_interfaces_info() const
 
                     if (name == search)
                     {
-                        netinfo.links = unicast_addr_to_network(adapter.FirstUnicastAddress);
+                        netinfo.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
                         break;
                     }
                 }
@@ -995,7 +999,7 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
-    logging::trace(kLogCategory,
+    logging::trace(log_category,
                    "chown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
                    path,
                    uid,
