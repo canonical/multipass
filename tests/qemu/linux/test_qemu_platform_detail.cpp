@@ -175,6 +175,12 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
 
     const auto platform_args = qemu_platform_detail.vm_platform_args(vm_desc);
 
+#if defined Q_PROCESSOR_S390
+    const auto network_interface = "virtio-net-ccw";
+#else
+    const auto network_interface = "virtio-net-pci";
+#endif
+
     // Tests the order and correctness of the arguments returned
     std::vector<QString> expected_platform_args
     {
@@ -182,16 +188,20 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
         "-bios", "OVMF.fd",
 #elif defined Q_PROCESSOR_ARM
         "-bios", "QEMU_EFI.fd", "-machine", "virt",
+#elif defined Q_PROCESSOR_S390
+        "-machine", "s390-ccw-virtio",
 #endif
             "--enable-kvm", "-cpu", "host", "-nic",
             QString::fromStdString(
-                fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
+                fmt::format("tap,ifname={},script=no,downscript=no,model={},mac={}",
                             tap_name,
+                            network_interface,
                             vm_desc.default_mac_address)),
             "-nic",
             QString::fromStdString(
-                fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                fmt::format("bridge,br={},model={},mac={},helper={}",
                             extra_interface.id,
+                            network_interface,
                             extra_interface.mac_address,
                             QCoreApplication::applicationDirPath() + "/bridge_helper"))
     };

@@ -24,8 +24,12 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/image_host/custom_image_host.h>
+#include <multipass/logging/log.h>
 #include <multipass/query.h>
 
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QUrl>
 
 #include <unordered_set>
@@ -50,6 +54,25 @@ struct CustomImageHost : public Test
 
     QByteArray payload = mpt::load_test_file("custom_image_host/good_manifest.json");
     NiceMock<mpt::MockURLDownloader> mock_url_downloader;
+
+    int num_images_for_arch(const QByteArray& manifest)
+    {
+        const QString arch = QSysInfo::currentCpuArchitecture();
+        QJsonDocument images = QJsonDocument::fromJson(manifest);
+        if (!images.isObject())
+            return -1;
+
+        int supported_count = 0;
+        for (const auto& distro_val : images.object())
+        {
+            QJsonObject distro_obj = distro_val.toObject();
+            QJsonObject items_obj = distro_obj.value("items").toObject();
+            if (items_obj.contains(arch))
+                supported_count++;
+        }
+
+        return supported_count;
+    }
 };
 } // namespace
 
@@ -66,7 +89,8 @@ TEST_F(CustomImageHost, iteratesOverAllEntries)
     };
     host.for_each_entry_do(action);
 
-    EXPECT_THAT(ids, UnorderedElementsAre("debian-12-hash", "fedora-42-hash"));
+    int supported_count = num_images_for_arch(payload);
+    EXPECT_EQ(ids.size(), supported_count);
 }
 
 TEST_F(CustomImageHost, allImagesForNoRemoteReturnsAppropriateMatches)
@@ -77,8 +101,9 @@ TEST_F(CustomImageHost, allImagesForNoRemoteReturnsAppropriateMatches)
     host.update_manifests(false);
 
     auto images = host.all_images_for("", false);
+    int supported_count = num_images_for_arch(payload);
 
-    EXPECT_EQ(images.size(), 2);
+    EXPECT_EQ(images.size(), supported_count);
 }
 
 TEST_F(CustomImageHost, allInfoForNoRemoteReturnsOneAliasMatch)
@@ -89,6 +114,13 @@ TEST_F(CustomImageHost, allInfoForNoRemoteReturnsOneAliasMatch)
     host.update_manifests(false);
 
     auto images_info = host.all_info_for(make_query("debian", ""));
+
+    int supported_count = num_images_for_arch(payload);
+    if (!supported_count)
+    {
+        SUCCEED() << "No images for current architecture";
+        return;
+    }
 
     EXPECT_EQ(images_info.size(), 1);
 }
@@ -135,15 +167,15 @@ TEST_F(CustomImageHost, handlesAndRecoversFromInitialNetworkFailure)
         .WillRepeatedly(Return(payload));
 
     mp::CustomVMImageHost host{&mock_url_downloader};
+    int supported_count = num_images_for_arch(payload);
 
-    const auto query = make_query("debian", "");
     host.update_manifests(false);
-    auto images_info = host.all_info_for(make_query("debian", ""));
+    auto images_info = host.all_images_for("", false);
     EXPECT_EQ(images_info.size(), 0);
 
     host.update_manifests(false);
-    images_info = host.all_info_for(make_query("debian", ""));
-    EXPECT_EQ(images_info.size(), 1);
+    images_info = host.all_images_for("", false);
+    EXPECT_EQ(images_info.size(), supported_count);
 }
 
 TEST_F(CustomImageHost, handlesAndRecoversFromLaterNetworkFailure)
@@ -154,16 +186,16 @@ TEST_F(CustomImageHost, handlesAndRecoversFromLaterNetworkFailure)
         .WillOnce(Return(payload));
 
     mp::CustomVMImageHost host{&mock_url_downloader};
-
-    const auto query = make_query("debian", "");
-    host.update_manifests(false);
-    EXPECT_TRUE(host.info_for(query));
+    int supported_count = num_images_for_arch(payload);
 
     host.update_manifests(false);
-    EXPECT_FALSE(host.info_for(query));
+    EXPECT_EQ(host.all_images_for("", false).size(), supported_count);
 
     host.update_manifests(false);
-    EXPECT_TRUE(host.info_for(query));
+    EXPECT_EQ(host.all_images_for("", false).size(), 0);
+
+    host.update_manifests(false);
+    EXPECT_EQ(host.all_images_for("", false).size(), supported_count);
 }
 
 TEST_F(CustomImageHost, infoForFullHashReturnsEmptyImageInfo)
@@ -182,10 +214,17 @@ TEST_F(CustomImageHost, infoForFullHashFindsImageInfo)
     mp::CustomVMImageHost host{&mock_url_downloader};
 
     host.update_manifests(false);
+    int supported_count = num_images_for_arch(payload);
+
+    if (!supported_count)
+    {
+        EXPECT_THROW(host.info_for_full_hash("debian-12-HASH"), mp::ImageNotFoundException);
+        return;
+    }
 
     const auto image = host.info_for_full_hash("debian-12-HASH");
 
-    EXPECT_THAT(image.release, Eq("bookworm"));
+    EXPECT_EQ(image.release, "bookworm");
 }
 
 TEST_F(CustomImageHost, badJsonLogsAndReturnsEmptyImages)

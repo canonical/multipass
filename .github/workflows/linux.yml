@@ -113,7 +113,7 @@ jobs:
     - name: Set up CCache
       id: setup-ccache
       run: |
-        sudo apt-get install ccache
+        sudo apt-get install -y ccache
         ccache --max-size=2G
         mkdir -p ${HOME}/.ccache
         /snap/bin/lxc profile device add default ccache disk source=${HOME}/.ccache/ path=/root/.ccache
