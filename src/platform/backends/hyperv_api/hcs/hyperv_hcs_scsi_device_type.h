@@ -17,8 +17,10 @@
 
 #pragma once
 
-#include <string>
+#include <fmt/format.h>
 #include <string_view>
+
+#include <hyperv_api/format_as_mixin.h>
 
 namespace multipass::hyperv::hcs
 {
@@ -26,16 +28,11 @@ namespace multipass::hyperv::hcs
 /**
  * Strongly-typed string values for SCSI device type.
  */
-struct HcsScsiDeviceType
+struct HcsScsiDeviceType : FormatAsMixin<HcsScsiDeviceType>
 {
     [[nodiscard]] operator std::string_view() const
     {
         return value;
-    }
-
-    [[nodiscard]] operator std::string() const
-    {
-        return std::string{value};
     }
 
     [[nodiscard]] static HcsScsiDeviceType Iso()
