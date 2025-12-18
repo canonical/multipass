@@ -18,8 +18,9 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcn::CreateNetworkParameters;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcn;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -27,8 +28,7 @@ auto fmt::formatter<CreateNetworkParameters, Char>::format(const CreateNetworkPa
                                                            FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
-    constexpr auto json_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto json_template = R"json(
     {{
         "SchemaVersion":
         {{
@@ -45,15 +45,15 @@ auto fmt::formatter<CreateNetworkParameters, Char>::format(const CreateNetworkPa
             {4}
         ]
     }}
-    )json");
+    )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           json_template.as<Char>(),
                           maybe_widen{params.name},
                           maybe_widen{std::string{params.type}},
-                          fmt::join(params.ipams, comma.as<Char>()),
+                          fmt::join(params.ipams, ","_unv.as<Char>()),
                           fmt::underlying(params.flags),
-                          fmt::join(params.policies, comma.as<Char>()));
+                          fmt::join(params.policies, ","_unv.as<Char>()));
 }
 
 template auto fmt::formatter<CreateNetworkParameters, char>::format<fmt::format_context>(
