@@ -450,7 +450,7 @@ void HCSVirtualMachine::start()
                    "start() -> VM `{}` was not present, created from scratch",
                    get_name());
 
-    const auto prev_state = current_state();
+    const auto prev_state = state;
     state = VirtualMachine::State::starting;
     handle_state_update();
     // Resume and start are the same thing in Multipass terms
@@ -527,7 +527,6 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     };
 
     multipass::utils::try_action_for(on_timeout, vm_shutdown_timeout, [this]() {
-        set_state(fetch_state_from_api());
         switch (current_state())
         {
         case VirtualMachine::State::stopped:
@@ -549,6 +548,7 @@ void HCSVirtualMachine::suspend()
 
 HCSVirtualMachine::State HCSVirtualMachine::current_state()
 {
+    set_state(fetch_state_from_api());
     return state;
 }
 int HCSVirtualMachine::ssh_port()
