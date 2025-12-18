@@ -217,7 +217,7 @@ std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceI
         return params.name;
     }
 
-    return {};
+    throw CreateBridgeException{"Could not create vSwitch `{}`, status: {}", params.name, status};
 }
 
 VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& source_vm_name,

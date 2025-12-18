@@ -24,47 +24,52 @@ namespace multipass::hyperv
 
 struct InvalidAPIPointerException : FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct CreateComputeSystemException : FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct ComputeSystemStateException : FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct CreateEndpointException : FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct GrantVMAccessException : FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct ImageConversionException : public FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct ImageResizeException : public FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct StartComputeSystemException : public FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 struct ResizeDiskWithSnapshotsException : public FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
+};
+
+struct CreateBridgeException : public FormattedExceptionBase<>
+{
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 } // namespace multipass::hyperv
