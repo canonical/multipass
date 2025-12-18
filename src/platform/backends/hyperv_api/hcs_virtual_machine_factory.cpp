@@ -53,7 +53,9 @@ constexpr auto extra_interface_vswitch_name_regex = R"(Multipass vSwitch \((.*)\
 
 HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
     : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+          MP_UTILS.derive_instances_dir(data_dir,
+                                        HCSVirtualMachineFactory::get_backend_directory_name(),
+                                        instances_subdir))
 {
 }
 
