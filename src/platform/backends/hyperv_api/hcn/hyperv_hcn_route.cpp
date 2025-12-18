@@ -19,20 +19,21 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcn::HcnRoute;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcn;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto route_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto route_template = R"json(
         {{
             "NextHop": "{}",
             "DestinationPrefix": "{}",
             "Metric": {}
-        }})json");
+        }})json"_unv;
 
     return fmt::format_to(ctx.out(),
                           route_template.as<Char>(),
