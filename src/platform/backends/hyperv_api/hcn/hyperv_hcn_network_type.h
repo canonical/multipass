@@ -23,8 +23,7 @@ namespace multipass::hyperv::hcn
 {
 
 /**
- * Strongly-typed string values for
- * network type.
+ * Strongly-typed string values for network type.
  */
 struct HcnNetworkType
 {
