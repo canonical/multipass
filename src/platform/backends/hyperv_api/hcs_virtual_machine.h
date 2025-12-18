@@ -88,7 +88,7 @@ private:
 
     hcs::HcsSystemHandle hcs_system{nullptr};
 
-    [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api();
+    [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
     void set_state(hcs::ComputeSystemState state);
 
     /**

@@ -586,7 +586,7 @@ void HCSVirtualMachine::handle_state_update()
     monitor.persist_state_for(get_name(), state);
 }
 
-hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api()
+hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
 {
     hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
     const auto result = HCS().get_compute_system_state(hcs_system, compute_system_state);
