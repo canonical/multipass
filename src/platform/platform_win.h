@@ -21,19 +21,9 @@
 
 #include <fmt/format.h>
 
-#include <optional>
-
 namespace multipass::platform
 {
 
-struct windows_version
-{
-    std::uint32_t major;
-    std::uint32_t minor;
-    std::uint32_t build;
-};
-
-std::optional<windows_version> get_windows_version();
 
 } // namespace multipass::platform
 

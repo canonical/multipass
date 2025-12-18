@@ -18,7 +18,8 @@ add_library(shared_win STATIC
   powershell.cpp
   process_factory.cpp
   smb_mount_handler.cpp
-  wsa_init_wrapper.cpp)
+  wsa_init_wrapper.cpp
+  windows_version.cpp)
 
 include_directories(shared_win
   ..)
