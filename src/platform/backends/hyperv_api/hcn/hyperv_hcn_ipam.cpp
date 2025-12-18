@@ -27,7 +27,7 @@ template <typename FormatContext>
 auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto subnet_template = string_literal<Char>(R"json(
+    constexpr static auto json_template = string_literal<Char>(R"json(
         {{
             "Type": "{}",
             "Subnets": [
@@ -36,9 +36,9 @@ auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& c
         }}
     )json");
 
-    return subnet_template.format_to(ctx,
-                                     ipam.type,
-                                     fmt::join(ipam.subnets, string_literal<Char>(",")));
+    return json_template.format_to(ctx,
+                                   ipam.type,
+                                   fmt::join(ipam.subnets, string_literal<Char>(",")));
 }
 
 template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&,

@@ -27,7 +27,7 @@ template <typename FormatContext>
 auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto subnet_template = string_literal<Char>(R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
             {{
                 "Policies": [],
                 "Routes" : [
@@ -38,9 +38,9 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
             }}
         )json");
 
-    return subnet_template.format_to(ctx,
-                                     fmt::join(subnet.routes, string_literal<Char>(",")),
-                                     subnet.ip_address_prefix);
+    return json_template.format_to(ctx,
+                                   fmt::join(subnet.routes, string_literal<Char>(",")),
+                                   subnet.ip_address_prefix);
 }
 
 template auto fmt::formatter<HcnSubnet, char>::format<fmt::format_context>(
