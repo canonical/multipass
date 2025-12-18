@@ -182,9 +182,10 @@ void VirtDiskSnapshot::erase_impl()
 
     const auto& head_parent = [&]() {
         std::vector<std::filesystem::path> chain{};
-        const auto list_r = VirtDisk().list_virtual_disk_chain(head_path, chain, 2);
+        constexpr auto depth = 2;
+        const auto list_r = VirtDisk().list_virtual_disk_chain(head_path, chain, depth);
 
-        if (chain.size() == 2)
+        if (chain.size() == depth)
             return chain[1];
 
         throw CreateVirtdiskSnapshotError{list_r, "Could not determine head disk's parent"};
@@ -224,13 +225,12 @@ void VirtDiskSnapshot::erase_impl()
                    self_path,
                    parent_path);
 
-        // The actual reparenting of the children needs to happen here.
-        // Reparenting is not a simple "-> now this is your parent" like thing. The children
-        // include parent's metadata calculated based on actual contents, and merging a child disk
-        // to parent updates its parent's metadata, too.
-        // Hence, the reparenting operation not only needs to happen to the orphaned children,
-        // but also to the existing children of the parent as well, so the updated metadata of the
-        // parent could be reflected to the all.
+        // The actual reparenting of the children needs to happen here. Reparenting is not a simple
+        // "-> now this is your parent" like thing. The children include parent's metadata
+        // calculated based on actual contents, and merging a child disk to parent updates its
+        // parent's metadata, too. Hence, the reparenting operation not only needs to happen to the
+        // orphaned children, but also to the existing children of the parent as well, so the
+        // updated metadata of the parent could be reflected to the all.
         const auto children_to_reparent =
             vm.view_snapshots([&parent, this_index = this->get_index()](const Snapshot& ss) {
                 return
@@ -243,17 +243,16 @@ void VirtDiskSnapshot::erase_impl()
             });
         reparent_snapshot_disks(children_to_reparent, parent_path);
 
-        // Determine if head needs reparenting
         if (should_reparent_head)
         {
-            if (const auto hr = VirtDisk().reparent_virtual_disk(head_path, parent_path); hr)
+            if (const auto res = VirtDisk().reparent_virtual_disk(head_path, parent_path); res)
             {
                 mpl::debug(log_category, "Reparented head {} to {}", head_path, parent_path);
             }
             else
             {
                 throw CreateVirtdiskSnapshotError{
-                    hr,
+                    res,
                     "Could not reparent head differencing disk to the parent"};
             }
         }
