@@ -30,7 +30,8 @@ function(add_target TARGET_NAME)
       shared_win
       scope_guard
       wineventlogger
-      OpenSSL::applink)
+      OpenSSL::applink
+      Secur32)
   elseif(APPLE)
     add_library(${TARGET_NAME} STATIC
       platform_osx.cpp
