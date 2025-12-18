@@ -535,7 +535,7 @@ std::string_view adapter_type_to_str(int type)
     case IF_TYPE_SOFTWARE_LOOPBACK:
         return "Loopback";
     case IF_TYPE_IEEE80211:
-        return "IEEE 802.11";
+        return "WiFi";
     default:
         return "Unknown";
     }
