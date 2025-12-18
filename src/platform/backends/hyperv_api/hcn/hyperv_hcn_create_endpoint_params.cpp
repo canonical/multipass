@@ -27,7 +27,7 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
                                                             FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto json = string_literal<Char>(R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
     {{
         "SchemaVersion": {{
             "Major": 2,
@@ -38,9 +38,10 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
         "MacAddress" : {1}
     }})json");
 
-    return json.format_to(ctx,
-                          params.network_guid,
-                          std::string{params.mac_address ? params.mac_address.value() : "null"});
+    return json_template.format_to(
+        ctx,
+        params.network_guid,
+        std::string{params.mac_address ? params.mac_address.value() : "null"});
 }
 
 template auto fmt::formatter<CreateEndpointParameters, char>::format<fmt::format_context>(

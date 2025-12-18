@@ -27,7 +27,7 @@ auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& ne
                                                      FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto network_adapter_template = string_literal<Char>(R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
         "{0}": {{
             "EndpointId" : "{0}",
             "MacAddress": "{1}",
@@ -35,9 +35,7 @@ auto fmt::formatter<HcsNetworkAdapter, Char>::format(const HcsNetworkAdapter& ne
         }}
     )json");
 
-    return network_adapter_template.format_to(ctx,
-                                              network_adapter.endpoint_guid,
-                                              network_adapter.mac_address);
+    return json_template.format_to(ctx, network_adapter.endpoint_guid, network_adapter.mac_address);
 }
 
 template auto fmt::formatter<HcsNetworkAdapter, char>::format<fmt::format_context>(
