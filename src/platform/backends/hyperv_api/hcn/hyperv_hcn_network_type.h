@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <hyperv_api/format_as_mixin.h>
+
 #include <string_view>
 
 namespace multipass::hyperv::hcn
@@ -25,7 +27,7 @@ namespace multipass::hyperv::hcn
 /**
  * Strongly-typed string values for network type.
  */
-struct HcnNetworkType
+struct HcnNetworkType : FormatAsMixin<HcnNetworkType>
 {
     [[nodiscard]] operator std::string_view() const
     {
