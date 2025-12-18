@@ -44,16 +44,10 @@
 namespace
 {
 
-/**
- * Category for the log messages.
- */
-constexpr auto log_category = "HyperV-Virtual-Machine";
-constexpr auto vhdx_filename = "current.vhdx";
 constexpr auto default_ssh_port = 22;
 
 namespace mpl = multipass::logging;
 namespace mpp = multipass::platform;
-using lvl = mpl::Level;
 using multipass::hyperv::hcn::HCN;
 using multipass::hyperv::hcs::HCS;
 using multipass::hyperv::virtdisk::VirtDisk;
