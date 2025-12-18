@@ -18,7 +18,7 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-#include <platform/platform_win.h>
+#include <shared/windows/windows_version.h>
 
 #include <optional>
 
@@ -71,7 +71,7 @@ SchemaUtils::SchemaUtils(const Singleton<SchemaUtils>::PrivatePass& pass) noexce
 HcsSchemaVersion SchemaUtils::get_os_supported_schema_version() const
 {
     const static auto cached_schema_version = []() -> std::optional<HcsSchemaVersion> {
-        if (const auto winver = platform::get_windows_version())
+        if (const auto winver = get_windows_version())
         {
 
             std::array schema_version_mappings{
