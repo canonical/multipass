@@ -24,8 +24,7 @@ namespace multipass::hyperv::hcn
 {
 
 /**
- * Strongly-typed string values for
- * network policy types.
+ * Strongly-typed string values for network policy types.
  *
  * @ref
  * https://github.com/MicrosoftDocs/Virtualization-Documentation/blob/51b2c0024ce9fc0c9c240fe8e14b170e05c57099/virtualization/api/hcn/HNS_Schema.md?plain=1#L522
