@@ -21,14 +21,13 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcn;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto subnet_template = R"json(
+    static constexpr auto subnet_template = string_literal<Char>(R"json(
             {{
                 "Policies": [],
                 "Routes" : [
@@ -37,12 +36,11 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
                 "IpAddressPrefix" : "{}",
                 "IpSubnets": null
             }}
-        )json"_unv;
+        )json");
 
-    return fmt::format_to(ctx.out(),
-                          subnet_template.as<Char>(),
-                          fmt::join(subnet.routes, ","_unv.as<Char>()),
-                          maybe_widen{subnet.ip_address_prefix});
+    return subnet_template.format_to(ctx,
+                                     fmt::join(subnet.routes, string_literal<Char>(",")),
+                                     subnet.ip_address_prefix);
 }
 
 template auto fmt::formatter<HcnSubnet, char>::format<fmt::format_context>(
