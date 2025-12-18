@@ -35,9 +35,8 @@ struct HcnNetworkPolicy
     HcnNetworkPolicyType type;
 
     /**
-     * Right now, there's only one policy type defined but
-     * it might expand in the future, so let's go an extra
-     * mile to future-proof this code.
+     * Right now, there's only one policy type defined but it might expand in the future, so let's
+     * go an extra mile to future-proof this code.
      */
     std::variant<HcnNetworkPolicyNetAdapterName> settings;
 };
