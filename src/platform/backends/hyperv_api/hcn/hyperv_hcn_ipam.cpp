@@ -21,26 +21,24 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcn;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr static auto subnet_template = R"json(
+    constexpr static auto subnet_template = string_literal<Char>(R"json(
         {{
             "Type": "{}",
             "Subnets": [
                 {}
             ]
         }}
-    )json"_unv;
+    )json");
 
-    return fmt::format_to(ctx.out(),
-                          subnet_template.as<Char>(),
-                          maybe_widen{ipam.type},
-                          fmt::join(ipam.subnets, ","_unv.as<Char>()));
+    return subnet_template.format_to(ctx,
+                                     ipam.type,
+                                     fmt::join(ipam.subnets, string_literal<Char>(",")));
 }
 
 template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&,
