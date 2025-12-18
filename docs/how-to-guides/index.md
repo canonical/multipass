@@ -32,8 +32,8 @@ You may also want to customise Multipass to address specific needs, from managin
 
 - [Set up a virtualisation driver](customise-multipass/set-up-a-virtualisation-driver)
 - [View Multipass instances using the driver](customise-multipass/view-multipass-instances-using-the-driver)
-- [Set up network bridging for a Multipass instance](customise-multipass/set-up-network-bridging-for-a-multipass-instance)
-- [Set up port forwarding for a Multipass instance](customise-multipass/set-up-port-forwarding-for-a-multipass-instance)
+- [Set up network bridging using VirtualBox on macOS](how-to-guides-customise-multipass-set-up-network-bridging-virtualbox-macos)
+- [Set up port forwarding for a Multipass instance using VirtualBox](how-to-guides-customise-multipass-set-up-port-forwarding-for-a-multipass-instance-virtualbox)
 - [Migrate from Hyperkit to QEMU on macOS](customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)
 - [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
 - [Build Multipass images with Packer](customise-multipass/build-multipass-images-with-packer)

@@ -1,37 +1,29 @@
-(how-to-guides-customise-multipass-set-up-network-bridging-for-a-multipass-instance)=
-# Set up network bridging for a Multipass instance
+(how-to-guides-customise-multipass-set-up-network-bridging-virtualbox-macos)=
+# Set up network bridging using Virtualbox on macOS
 
-> See also: {ref}`explanation-driver`, {ref}`reference-settings-local-driver`
+```{seealso}
+{ref}`explanation-driver`, {ref}`reference-settings-local-driver`
+```
 
-This document demonstrates how to set up network bridging for a Multipass instance using VirtualBox.
-
-`````{tabs}
-
-````{group-tab} Linux
-
-This option only applies to macOS systems.
-
-````
-
-````{group-tab} macOS
+This document demonstrates how to set up network bridging for a Multipass instance using VirtualBox on macOS.
 
 Network bridging lets you add a second network interface to the instance and expose it on your physical network.
 
 First, stop the instance:
 
-```{code-block} text
+```{code-block} bash
 multipass stop primary
 ```
 
 Now, find the network interface you want to bridge with, running the command:
 
-```{code-block} text
+```{code-block} bash
 VBoxManage list bridgedifs | grep ^Name:
 ```
 
 You want the identifier before the second colon; for example `en0` in the following sample output:
 
-```{code-block} text
+```{code-block} bash
 Name:            en0: Ethernet
 Name:            en1: Wi-Fi (AirPort)
 Name:            en2: Thunderbolt 1
@@ -41,7 +33,7 @@ Name:            en3: Thunderbolt 2
 
 Finally, tell VirtualBox to use it as the "parent" for the second interface (for more information on this topic, see [VirtualBox documentation](https://www.virtualbox.org/manual/ch06.html#network_bridged)):
 
-```{code-block} text
+```{code-block} bash
 sudo VBoxManage modifyvm primary --nic2 bridged --bridgeadapter2 en0
 ```
 
@@ -51,25 +43,25 @@ Do not touch --nic1 as that is used by Multipass.
 
 You can then start the instance again:
 
-```{code-block} text
+```{code-block} bash
 multipass start primary
 ```
 
 To find the name of the new interface, run this command:
 
-```{code-block} text
+```{code-block} bash
 multipass exec primary ip link | grep DOWN
 ```
 
 In the following sample output, the name of the interface that we are looking for is `enp0s8`:
 
-```{code-block} text
+```{code-block} bash
 3: enp0s8: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
 ```
 
 Now, configure that new interface (Ubuntu uses [Netplan](https://netplan.io/) for that):
 
-```{code-block} text
+```{code-block} bash
 multipass exec -- primary sudo bash -c "cat > /etc/netplan/60-bridge.yaml" <<EOF
 network:
   ethernets:
@@ -85,7 +77,7 @@ multipass exec primary sudo Netplan apply
 
 Finally, find the IP of the instance given by your router:
 
-```{code-block} text
+```{code-block} bash
 multipass exec primary ip address show dev enp0s8 up
 ```
 
@@ -101,13 +93,3 @@ For example:
 ```
 
 All the services running inside the instance should now be available on your physical network under https://&lt;instance IP&gt;/.
-
-````
-
-````{group-tab} Windows
-
-This option only applies to macOS systems.
-
-````
-
-`````
