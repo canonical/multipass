@@ -47,9 +47,9 @@ enum class ComputeSystemState : std::uint8_t
 
 namespace detail
 {
-[[nodiscard]] inline auto compute_system_state_map()
+[[nodiscard]] inline const auto& compute_system_state_map()
 {
-    static const static_bimap<std::string, ComputeSystemState> state_map{
+    static const static_bi_map<std::string, ComputeSystemState> state_map{
         {"created", ComputeSystemState::created},
         {"running", ComputeSystemState::running},
         {"paused", ComputeSystemState::paused},
