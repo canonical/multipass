@@ -191,7 +191,7 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
 
     // Reflect compute system's state
     set_state(state);
-    handle_state_update();
+    HCSVirtualMachine::handle_state_update();
 }
 
 void HCSVirtualMachine::compute_system_event_callback(void* event, void* context)
