@@ -67,7 +67,7 @@ universal_literal(const char (&)[N]) -> universal_literal<N>;
 namespace literals
 {
 template <universal_literal Lit>
-constexpr auto operator""_unv()
+constexpr const auto& operator""_unv()
 {
     return Lit;
 }
