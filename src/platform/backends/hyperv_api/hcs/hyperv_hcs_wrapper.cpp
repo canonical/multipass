@@ -22,7 +22,6 @@
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
 #include <multipass/logging/log.h>
-#include <platform/platform_win.h>
 
 #include <ComputeDefs.h>
 
