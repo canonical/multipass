@@ -273,7 +273,7 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_adapters()
     for (auto& item : MP_PLATFORM.get_network_interfaces_info())
     {
         auto& net = item.second;
-        if (const auto& type = net.type; type == "Ethernet" || type == "IEEE 802.11")
+        if (const auto& type = net.type; type == "Ethernet" || type == "WiFi")
         {
             net.needs_authorization = true;
             ret.emplace_back(std::move(net));
