@@ -29,10 +29,14 @@
 
 #include <shared/windows/smb_mount_handler.h>
 
+#include <platform/platform_win.h>
+
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
-#include <platform/platform_win.h>
+#include <multipass/constants.h>
+
+
 
 #include <fmt/xchar.h>
 #include <scope_guard.hpp>
@@ -522,7 +526,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         throw std::runtime_error("timed out waiting for VM shutdown to complete");
     };
 
-    multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+    multipass::utils::try_action_for(on_timeout, vm_shutdown_timeout, [this]() {
         set_state(fetch_state_from_api());
         switch (current_state())
         {
