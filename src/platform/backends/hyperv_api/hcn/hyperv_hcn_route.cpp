@@ -27,14 +27,14 @@ template <typename FormatContext>
 auto fmt::formatter<HcnRoute, Char>::format(const HcnRoute& route, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto route_template = string_literal<Char>(R"json(
+    static constexpr auto json_template = string_literal<Char>(R"json(
         {{
             "NextHop": "{}",
             "DestinationPrefix": "{}",
             "Metric": {}
         }})json");
 
-    return route_template.format_to(ctx, route.next_hop, route.destination_prefix, route.metric);
+    return json_template.format_to(ctx, route.next_hop, route.destination_prefix, route.metric);
 }
 
 template auto fmt::formatter<HcnRoute, char>::format<fmt::format_context>(
