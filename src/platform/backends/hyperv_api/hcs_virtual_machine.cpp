@@ -79,13 +79,15 @@ auto resolve_ip_addresses(const std::string& hostname)
     const static mpp::wsa_init_wrapper wsa_context{};
 
     std::vector<std::string> ipv4{}, ipv6{};
-    mpl::trace(log_category,
+    mpl::trace("resolve-ip-addr",
                "resolve_ip_addresses() -> resolve being called for hostname `{}`",
                hostname);
 
     if (!wsa_context)
     {
-        mpl::error(log_category, "resolve_ip_addresses() -> WSA not initialized! `{}`", hostname);
+        mpl::error("resolve-ip-addr",
+                   "resolve_ip_addresses() -> WSA not initialized! `{}`",
+                   hostname);
         return std::make_pair(ipv4, ipv6);
     }
 
@@ -124,7 +126,7 @@ auto resolve_ip_addresses(const std::string& hostname)
                     break;
                 }
 
-                mpl::error(log_category,
+                mpl::error("resolve-ip-addr",
                            "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address "
                            "data while expecting {}!",
                            ptr->ai_addrlen,
@@ -142,7 +144,7 @@ auto resolve_ip_addresses(const std::string& hostname)
                     ipv6.push_back(addr);
                     break;
                 }
-                mpl::error(log_category,
+                mpl::error("resolve-ip-addr",
                            "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address "
                            "data while expecting {}!",
                            ptr->ai_addrlen,
@@ -155,7 +157,7 @@ auto resolve_ip_addresses(const std::string& hostname)
         }
     }
 
-    mpl::trace(log_category,
+    mpl::trace("resolve-ip-addr",
                "resolve_ip_addresses() -> hostname: {} resolved to : (v4: {}, v6: {})",
                hostname,
                fmt::join(ipv4, ","),
@@ -181,7 +183,7 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
     const auto created_from_scratch = maybe_create_compute_system();
     const auto state = fetch_state_from_api();
 
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "HCSVirtualMachine::HCSVirtualMachine() > `{}`, created_from_scratch: {}, state: {}",
                get_name(),
                created_from_scratch,
@@ -194,18 +196,20 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
 
 void HCSVirtualMachine::compute_system_event_callback(void* event, void* context)
 {
-    mpl::debug(log_category,
+
+    const auto type = hcs::parse_event(static_cast<HCS_EVENT*>(event));
+    auto vm = static_cast<HCSVirtualMachine*>(context);
+
+    mpl::debug(vm->get_name(),
                "compute_system_event_callback() >  event: {}, context: {}",
                fmt::ptr(event),
                fmt::ptr(context));
-    const auto type = hcs::parse_event(static_cast<HCS_EVENT*>(event));
-    auto vm = reinterpret_cast<HCSVirtualMachine*>(context);
 
     switch (type)
     {
     case hcs::HcsEventType::SystemExited:
     {
-        mpl::info(log_category,
+        mpl::info(vm->get_name(),
                   "compute_system_event_callback() > {}:  SystemExited event received",
                   vm->get_name());
         vm->state = State::off;
@@ -213,7 +217,7 @@ void HCSVirtualMachine::compute_system_event_callback(void* event, void* context
     }
     break;
     case hcs::HcsEventType::Unknown:
-        mpl::info(log_category,
+        mpl::info(vm->get_name(),
                   "compute_system_event_callback() > {}:  Unidentified event received",
                   vm->get_name());
         break;
@@ -236,7 +240,7 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
     for (auto itr = paths.begin(); itr != paths.end(); ++itr)
     {
         const auto& path = *itr;
-        mpl::debug(log_category,
+        mpl::debug(get_name(),
                    "Granting access to path `{}`, exists? {}",
                    path,
                    std::filesystem::exists(path));
@@ -247,7 +251,7 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
 
         if (const auto r = HCS().grant_vm_access(get_name(), path); !r)
         {
-            mpl::error(log_category,
+            mpl::error(get_name(),
                        "Could not grant access to VM `{}` for the path `{}`, error code: {}",
                        get_name(),
                        path,
@@ -263,13 +267,13 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     auto attach_callback_handler = sg::make_scope_guard([this]() noexcept {
         if (hcs_system)
         {
-            top_catch_all(log_category, [this] {
+            top_catch_all(get_name(), [this] {
                 if (!HCS().set_compute_system_callback(
                         hcs_system,
                         this,
                         HCSVirtualMachine::compute_system_event_callback))
                 {
-                    mpl::warn(log_category,
+                    mpl::warn(get_name(),
                               "Could not set compute system callback for VM: `{}`!",
                               get_name());
                 }
@@ -316,7 +320,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         // creating it again.
         if (HCN().delete_endpoint(endpoint.endpoint_guid))
         {
-            mpl::debug(log_category,
+            mpl::debug(get_name(),
                        "The endpoint {} was already present for the VM {}, removed it.",
                        endpoint.endpoint_guid,
                        get_name());
@@ -396,7 +400,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
 void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 {
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "set_state() -> VM `{}` HCS state `{}`",
                get_name(),
                compute_system_state);
@@ -425,7 +429,7 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
     if (state == prev_state)
         return;
 
-    mpl::info(log_category,
+    mpl::info(get_name(),
               "set_state() > VM {} state changed from {} to {}",
               get_name(),
               prev_state,
@@ -434,11 +438,11 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 
 void HCSVirtualMachine::start()
 {
-    mpl::debug(log_category, "start() -> Starting VM `{}`, current state {}", get_name(), state);
+    mpl::debug(get_name(), "start() -> Starting VM `{}`, current state {}", get_name(), state);
 
     // Create the compute system, if not created yet.
     if (maybe_create_compute_system())
-        mpl::debug(log_category,
+        mpl::debug(get_name(),
                    "start() -> VM `{}` was not present, created from scratch",
                    get_name());
 
@@ -450,19 +454,18 @@ void HCSVirtualMachine::start()
     const auto& [status, status_msg] = [&] {
         // Fetch the latest state value.
         const auto hcs_state = fetch_state_from_api();
-        mpl::debug(log_category, "start() -> VM `{}` HCS state is `{}`", get_name(), hcs_state);
         switch (hcs_state)
         {
         case hcs::ComputeSystemState::paused:
         {
-            mpl::debug(log_category, "start() -> VM `{}` is in paused state, resuming", get_name());
+            mpl::debug(get_name(), "start() -> VM `{}` is in paused state, resuming", get_name());
             return HCS().resume_compute_system(hcs_system);
         }
         case hcs::ComputeSystemState::created:
             [[fallthrough]];
         default:
         {
-            mpl::debug(log_category,
+            mpl::debug(get_name(),
                        "start() -> VM `{}` is in {} state, starting",
                        get_name(),
                        state);
@@ -478,11 +481,11 @@ void HCSVirtualMachine::start()
         throw StartComputeSystemException{"Could not start the VM: {}", status};
     }
 
-    mpl::debug(log_category, "start() -> Start/resume VM `{}`, result `{}`", get_name(), status);
+    mpl::debug(get_name(), "start() -> Start/resume VM `{}`, result `{}`", get_name(), status);
 }
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "shutdown() -> Shutting down VM `{}`, current state {}",
                get_name(),
                state);
@@ -490,7 +493,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     switch (shutdown_policy)
     {
     case ShutdownPolicy::Powerdown:
-        mpl::debug(log_category,
+        mpl::debug(get_name(),
                    "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`",
                    get_name());
 
@@ -504,12 +507,12 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         break;
     case ShutdownPolicy::Halt:
     case ShutdownPolicy::Poweroff:
-        mpl::debug(log_category,
+        mpl::debug(get_name(),
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown for `{}`",
                    get_name());
         // These are non-graceful variants. Just terminate the system immediately.
         const auto r = HCS().terminate_compute_system(hcs_system);
-        mpl::debug(log_category, "shutdown -> terminate_compute_system result: {}", r.code);
+        mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
         drop_ssh_session();
         break;
     }
@@ -534,10 +537,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void HCSVirtualMachine::suspend()
 {
-    mpl::debug(log_category,
-               "suspend() -> Suspending VM `{}`, current state {}",
-               get_name(),
-               state);
+    mpl::debug(get_name(), "suspend() -> Suspending VM `{}`, current state {}", get_name(), state);
     const auto& [status, status_msg] = HCS().pause_compute_system(hcs_system);
     set_state(fetch_state_from_api());
     handle_state_update();
@@ -565,13 +565,13 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
     const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname({}).c_str());
     if (ipv4.empty())
     {
-        mpl::error(log_category, "management_ipv4() > failed to resolve `{}`", ssh_hostname({}));
+        mpl::error(get_name(), "management_ipv4() > failed to resolve `{}`", ssh_hostname({}));
         return std::nullopt;
     }
 
     const auto result = *ipv4.begin();
 
-    mpl::trace(log_category, "management_ipv4() > IP address is `{}`", result);
+    mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", result);
 
     // Prefer the first one
     return std::make_optional<IPAddress>(result);
@@ -591,7 +591,7 @@ hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api()
 
 void HCSVirtualMachine::update_cpus(int num_cores)
 {
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "update_cpus() -> called for VM `{}`, num_cores `{}`",
                get_name(),
                num_cores);
@@ -600,7 +600,7 @@ void HCSVirtualMachine::update_cpus(int num_cores)
 
 void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
                get_name(),
                new_size.in_megabytes());
@@ -618,7 +618,7 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "resize_disk() -> called for VM `{}`, new_size `{}` MiB",
                get_name(),
                new_size.in_megabytes());
@@ -638,7 +638,7 @@ void HCSVirtualMachine::add_network_interface(int index,
                                               const std::string& default_mac_addr,
                                               const NetworkInterface& extra_interface)
 {
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "add_network_interface() -> called for VM `{}`, index: {}, default_mac: {}, "
                "extra_interface: (mac: {}, "
                "mac_address: {}, id: {})",
@@ -652,7 +652,7 @@ void HCSVirtualMachine::add_network_interface(int index,
     if (!(state == VirtualMachine::State::stopped))
     {
         // No need to do it for stopped machines
-        mpl::info(log_category,
+        mpl::info(get_name(),
                   "add_network_interface() -> Skipping hot-plug, VM is in a stopped state.");
         return;
     }
@@ -701,7 +701,7 @@ void HCSVirtualMachine::add_network_interface(int index,
 std::unique_ptr<MountHandler>
 HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VMMount& mount)
 {
-    mpl::debug(log_category,
+    mpl::debug(get_name(),
                "make_native_mount_handler() -> called for VM `{}`, target: {}",
                get_name(),
                target);
