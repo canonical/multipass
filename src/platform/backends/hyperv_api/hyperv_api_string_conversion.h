@@ -17,8 +17,10 @@
 
 #pragma once
 
+#include <array>
 #include <codecvt>
 #include <locale>
+#include <ranges>
 #include <string>
 #include <string_view>
 
@@ -26,27 +28,50 @@
 
 namespace multipass::hyperv
 {
-
-struct universal_string_literal_helper
+/**
+ * Compile-time narrow-wide conversion helper.
+ *
+ * Only works with ASCII characters.
+ */
+template <std::size_t N>
+struct universal_literal
 {
-    std::string_view narrow;
-    std::wstring_view wide;
+    std::array<char, N> narrow{};
+    std::array<wchar_t, N> wide{};
+
+    consteval universal_literal(const char (&str)[N])
+    {
+        std::ranges::copy(str, narrow.begin());
+        std::ranges::transform(str, wide.begin(), [](char c) {
+            auto uc = static_cast<unsigned char>(c);
+            if (uc > 127)
+                throw "non-ASCII character in universal_literal";
+            return static_cast<wchar_t>(uc);
+        });
+    }
 
     template <typename Char>
-    [[nodiscard]] auto as() const = delete;
-
-    template <>
-    [[nodiscard]] constexpr auto as<std::string_view::value_type>() const
+    [[nodiscard]] constexpr auto as() const noexcept
     {
-        return narrow;
-    }
-
-    template <>
-    [[nodiscard]] constexpr auto as<std::wstring_view::value_type>() const
-    {
-        return wide;
+        if constexpr (std::is_same_v<Char, char>)
+            return std::string_view{narrow.data(), N - 1};
+        else
+            return std::wstring_view{wide.data(), N - 1};
     }
 };
+
+// Deduction guide
+template <std::size_t N>
+universal_literal(const char (&)[N]) -> universal_literal<N>;
+
+namespace literals
+{
+template <universal_literal Lit>
+constexpr auto operator""_unv()
+{
+    return Lit;
+}
+} // namespace literals
 
 struct maybe_widen
 {
@@ -71,7 +96,7 @@ private:
 } // namespace multipass::hyperv
 
 /**
- *  Formatter type specialization for CreateNetworkParameters
+ *  Formatter type specialization for maybe_widen
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::maybe_widen, Char>
@@ -80,14 +105,9 @@ struct fmt::formatter<multipass::hyperv::maybe_widen, Char>
     template <typename FormatContext>
     auto format(const multipass::hyperv::maybe_widen& params, FormatContext& ctx) const
     {
-        constexpr static Char fmt_str[] = {'{', '}', '\0'};
         using const_sref_type = const std::basic_string<typename FormatContext::char_type>&;
-        return fmt::format_to(ctx.out(), fmt_str, static_cast<const_sref_type>(params));
+        return fmt::formatter<basic_string_view<Char>, Char>::format(
+            static_cast<const_sref_type>(params),
+            ctx);
     }
 };
-
-#define MULTIPASS_UNIVERSAL_LITERAL(X)                                                             \
-    multipass::hyperv::universal_string_literal_helper                                             \
-    {                                                                                              \
-        "" X, L"" X                                                                                \
-    }

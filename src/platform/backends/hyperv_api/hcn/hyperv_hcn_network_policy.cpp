@@ -19,18 +19,18 @@
 #include <hyperv_api/hcn/hyperv_hcn_network_policy_netadaptername.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcn::HcnNetworkPolicy;
-using multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcn;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 struct NetworkPolicySettingsFormatters
 {
     auto operator()(const HcnNetworkPolicyNetAdapterName& policy) const
     {
-        constexpr auto netadaptername_settings_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+        static constexpr auto netadaptername_settings_template = R"json(
             "NetworkAdapterName": "{}"
-        )json");
+        )json"_unv;
 
         return fmt::format(netadaptername_settings_template.as<Char>(),
                            maybe_widen{policy.net_adapter_name});
@@ -43,14 +43,14 @@ auto fmt::formatter<HcnNetworkPolicy, Char>::format(const HcnNetworkPolicy& poli
                                                     FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto route_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto route_template = R"json(
         {{
             "Type": "{}",
             "Settings": {{
                 {}
             }}
         }}
-    )json");
+    )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           route_template.as<Char>(),
