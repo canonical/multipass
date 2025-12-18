@@ -21,19 +21,17 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcn;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 struct NetworkPolicySettingsFormatters
 {
     auto operator()(const HcnNetworkPolicyNetAdapterName& policy) const
     {
-        static constexpr auto netadaptername_settings_template = R"json(
+        static constexpr auto netadaptername_settings_template = string_literal<Char>(R"json(
             "NetworkAdapterName": "{}"
-        )json"_unv;
+        )json");
 
-        return fmt::format(netadaptername_settings_template.as<Char>(),
-                           maybe_widen{policy.net_adapter_name});
+        return netadaptername_settings_template.format(policy.net_adapter_name);
     }
 };
 
@@ -43,19 +41,19 @@ auto fmt::formatter<HcnNetworkPolicy, Char>::format(const HcnNetworkPolicy& poli
                                                     FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto route_template = R"json(
+    static constexpr auto route_template = string_literal<Char>(R"json(
         {{
             "Type": "{}",
             "Settings": {{
                 {}
             }}
         }}
-    )json"_unv;
+    )json");
 
-    return fmt::format_to(ctx.out(),
-                          route_template.as<Char>(),
-                          maybe_widen{policy.type},
-                          std::visit(NetworkPolicySettingsFormatters<Char>{}, policy.settings));
+    return route_template.format_to(
+        ctx,
+        policy.type,
+        std::visit(NetworkPolicySettingsFormatters<Char>{}, policy.settings));
 }
 
 template auto fmt::formatter<HcnNetworkPolicy, char>::format<fmt::format_context>(
