@@ -17,7 +17,10 @@
 
 #pragma once
 
-#include <string>
+#include <hyperv_api/format_as_mixin.h>
+
+#include <fmt/format.h>
+
 #include <string_view>
 
 namespace multipass::hyperv::hcn
@@ -29,16 +32,11 @@ namespace multipass::hyperv::hcn
  * @ref
  * https://github.com/MicrosoftDocs/Virtualization-Documentation/blob/51b2c0024ce9fc0c9c240fe8e14b170e05c57099/virtualization/api/hcn/HNS_Schema.md?plain=1#L522
  */
-struct HcnNetworkPolicyType
+struct HcnNetworkPolicyType : FormatAsMixin<HcnNetworkPolicyType>
 {
     [[nodiscard]] operator std::string_view() const
     {
         return value;
-    }
-
-    [[nodiscard]] operator std::string() const
-    {
-        return std::string{value};
     }
 
     /**

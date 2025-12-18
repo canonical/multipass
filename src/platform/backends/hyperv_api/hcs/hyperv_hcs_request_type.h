@@ -17,22 +17,18 @@
 
 #pragma once
 
-#include <string>
 #include <string_view>
+
+#include <hyperv_api/format_as_mixin.h>
 
 namespace multipass::hyperv::hcs
 {
 
-struct HcsRequestType
+struct HcsRequestType : FormatAsMixin<HcsRequestType>
 {
     [[nodiscard]] operator std::string_view() const
     {
         return value;
-    }
-
-    [[nodiscard]] operator std::string() const
-    {
-        return std::string{value};
     }
 
     [[nodiscard]] static HcsRequestType Add()

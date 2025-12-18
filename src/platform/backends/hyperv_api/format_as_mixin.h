@@ -17,38 +17,26 @@
 
 #pragma once
 
-#include <hyperv_api/format_as_mixin.h>
-
-#include <fmt/format.h>
-
 #include <string_view>
+#include <type_traits>
 
-namespace multipass::hyperv::hcn
+namespace multipass::hyperv
 {
-
-struct HcnIpamType : FormatAsMixin<HcnIpamType>
+/**
+ * Adds a free format_as function if the Derived is convertible to
+ * std::string_view.
+ *
+ * @tparam Derived Derived class to extend.
+ */
+template <class Derived>
+struct FormatAsMixin
 {
-    [[nodiscard]] operator std::string_view() const
+    friend constexpr std::string_view format_as(const Derived& v) noexcept
     {
-        return value;
+        static_assert(std::is_convertible_v<const Derived&, std::string_view>,
+                      "Derived must be convertible to std::string_view");
+        return v;
     }
-
-    [[nodiscard]] static HcnIpamType Dhcp()
-    {
-        return {"DHCP"};
-    }
-
-    [[nodiscard]] static HcnIpamType Static()
-    {
-        return {"static"};
-    }
-
-private:
-    HcnIpamType(std::string_view v) : value(v)
-    {
-    }
-
-    std::string_view value{};
 };
 
-} // namespace multipass::hyperv::hcn
+} // namespace multipass

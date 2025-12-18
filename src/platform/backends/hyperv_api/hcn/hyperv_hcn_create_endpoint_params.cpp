@@ -20,7 +20,6 @@
 
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcn;
-using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -28,7 +27,7 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
                                                             FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    static constexpr auto json_template = R"json(
+    static constexpr auto json = string_literal<Char>(R"json(
     {{
         "SchemaVersion": {{
             "Major": 2,
@@ -37,14 +36,11 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
         "HostComputeNetwork": "{0}",
         "Policies": [],
         "MacAddress" : {1}
-    }})json"_unv;
+    }})json");
 
-    return fmt::format_to(ctx.out(),
-                          json_template.as<Char>(),
-                          maybe_widen{params.network_guid},
-                          params.mac_address ? fmt::format(R"("{}")"_unv.as<Char>(),
-                                                           maybe_widen{params.mac_address.value()})
-                                             : "null"_unv.as<Char>());
+    return json.format_to(ctx,
+                          params.network_guid,
+                          std::string{params.mac_address ? params.mac_address.value() : "null"});
 }
 
 template auto fmt::formatter<CreateEndpointParameters, char>::format<fmt::format_context>(
