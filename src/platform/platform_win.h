@@ -23,33 +23,8 @@
 
 #include <optional>
 
-/**
- * fwdecl for the Windows Sockets info struct
- */
-struct WSAData;
-
 namespace multipass::platform
 {
-struct wsa_init_wrapper
-{
-    wsa_init_wrapper();
-    ~wsa_init_wrapper();
-
-    /**
-     * Check whether WSA initialization has succeeded.
-     *
-     * @return true WSA is initialized successfully
-     * @return false WSA initialization failed
-     */
-    operator bool() const noexcept
-    {
-        return wsa_init_result == 0;
-    }
-
-private:
-    WSAData* wsa_data{nullptr};
-    const int wsa_init_result{-1};
-};
 
 struct windows_version
 {
