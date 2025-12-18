@@ -157,10 +157,9 @@ OperationResult perform_hcn_operation(const FnType& fn)
 {
     UniqueCotaskmemString result_msgbuf{};
 
-    // Perform the operation. The last argument of the all HCN operations (except
-    // HcnClose*) is ErrorRecord, which is a JSON-formatted document emitted by
-    // the API describing the error, if it occurred. Therefore, we can streamline all
-    // API calls through perform_hcn_operation.
+    // Perform the operation. The last argument of the all HCN operations (except HcnClose*) is
+    // ErrorRecord, which is a JSON-formatted document emitted by the API describing the error, if
+    // it occurred. Therefore, we can streamline all API calls through perform_hcn_operation.
     const auto result = ResultCode{fn(out_ptr(result_msgbuf))};
 
     mpl::trace(log_category, "perform_hcn_operation(...) > result: {}", static_cast<bool>(result));
