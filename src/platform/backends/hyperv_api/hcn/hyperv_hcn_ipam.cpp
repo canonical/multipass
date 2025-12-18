@@ -19,29 +19,28 @@
 
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcn::HcnIpam;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcn;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto subnet_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    constexpr static auto subnet_template = R"json(
         {{
             "Type": "{}",
             "Subnets": [
                 {}
             ]
         }}
-    )json");
-
-    constexpr auto comma = MULTIPASS_UNIVERSAL_LITERAL(",");
+    )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           subnet_template.as<Char>(),
                           maybe_widen{ipam.type},
-                          fmt::join(ipam.subnets, comma.as<Char>()));
+                          fmt::join(ipam.subnets, ","_unv.as<Char>()));
 }
 
 template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&,

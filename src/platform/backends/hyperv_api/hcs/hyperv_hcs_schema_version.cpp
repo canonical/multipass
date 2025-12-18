@@ -110,8 +110,9 @@ HcsSchemaVersion SchemaUtils::get_os_supported_schema_version() const
 }
 } // namespace multipass::hyperv::hcs
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcs::HcsSchemaVersion;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcs;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -119,36 +120,35 @@ auto fmt::formatter<HcsSchemaVersion, Char>::format(const HcsSchemaVersion& sche
                                                     FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto fmt_str = MULTIPASS_UNIVERSAL_LITERAL("{}");
 
-    auto result = MULTIPASS_UNIVERSAL_LITERAL("Unknown");
+    auto result = "Unknown"_unv.as<Char>();
 
     switch (schema_version)
     {
     case HcsSchemaVersion::v20:
-        result = MULTIPASS_UNIVERSAL_LITERAL("v2.0");
+        result = "v2.0"_unv.as<Char>();
         break;
     case HcsSchemaVersion::v21:
-        result = MULTIPASS_UNIVERSAL_LITERAL("v2.1");
+        result = "v2.1"_unv.as<Char>();
         break;
     case HcsSchemaVersion::v22:
-        result = MULTIPASS_UNIVERSAL_LITERAL("v2.2");
+        result = "v2.2"_unv.as<Char>();
         break;
     case HcsSchemaVersion::v23:
-        result = MULTIPASS_UNIVERSAL_LITERAL("v2.3");
+        result = "v2.3"_unv.as<Char>();
         break;
     case HcsSchemaVersion::v24:
-        result = MULTIPASS_UNIVERSAL_LITERAL("v2.4");
+        result = "v2.4"_unv.as<Char>();
         break;
     case HcsSchemaVersion::v25:
-        result = MULTIPASS_UNIVERSAL_LITERAL("v2.5");
+        result = "v2.5"_unv.as<Char>();
         break;
     case HcsSchemaVersion::v26:
-        result = MULTIPASS_UNIVERSAL_LITERAL("v2.6");
+        result = "v2.6"_unv.as<Char>();
         break;
     }
 
-    return fmt::format_to(ctx.out(), fmt_str.as<Char>(), result.as<Char>());
+    return fmt::format_to(ctx.out(), "{}"_unv.as<Char>(), result);
 }
 
 template auto fmt::formatter<HcsSchemaVersion, char>::format<fmt::format_context>(

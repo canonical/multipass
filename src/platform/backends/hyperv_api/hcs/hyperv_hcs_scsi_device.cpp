@@ -20,9 +20,9 @@
 
 #include <fmt/std.h>
 
-using multipass::hyperv::maybe_widen;
-using multipass::hyperv::hcs::HcsScsiDevice;
-using multipass::hyperv::hcs::HcsScsiDeviceType;
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcs;
+using namespace multipass::hyperv::literals;
 
 template <typename Char>
 template <typename FormatContext>
@@ -30,7 +30,7 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
                                                  FormatContext& ctx) const
     -> FormatContext::iterator
 {
-    constexpr auto scsi_device_template = MULTIPASS_UNIVERSAL_LITERAL(R"json(
+    static constexpr auto scsi_device_template = R"json(
         "{0}": {{
             "Attachments": {{
                 "0": {{
@@ -40,7 +40,7 @@ auto fmt::formatter<HcsScsiDevice, Char>::format(const HcsScsiDevice& scsi_devic
                 }}
             }}
         }}
-    )json");
+    )json"_unv;
 
     return fmt::format_to(ctx.out(),
                           scsi_device_template.as<Char>(),
