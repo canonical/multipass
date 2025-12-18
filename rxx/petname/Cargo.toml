@@ -25,6 +25,7 @@ crate-type = ["staticlib"]
 cxx.workspace = true
 macros.workspace = true
 static_assertions.workspace = true
+rand.workspace = true
 
 [build-dependencies]
 cxx-build.workspace = true

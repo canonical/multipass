@@ -17,13 +17,13 @@
  *
  */
 
-use std::os::raw::c_char;
-
 mod petname_error;
 mod petname_generator;
+use petname_generator::{PetnameGenerator, make_petname_generator};
 
 #[cxx::bridge(namespace = "multipass::petname")]
 pub mod ffi {
+    #[repr(i32)]
     pub enum NumWords {
         One,
         Two,
@@ -31,13 +31,11 @@ pub mod ffi {
     }
 
     extern "Rust" {
-        fn generate_petname(n_w: NumWords, sep: c_char) -> Result<String>;
+        type PetnameGenerator;
+        fn make_petname_generator(
+            num_words: NumWords,
+            separator: c_char,
+        ) -> Result<Box<PetnameGenerator>>;
+        fn make_name(self: &PetnameGenerator) -> Result<String>;
     }
-}
-
-fn generate_petname(
-    n_w: ffi::NumWords,
-    sep: c_char,
-) -> Result<String, petname_error::PetnameError> {
-    Ok(String::from("curious-scoundrel"))
 }
