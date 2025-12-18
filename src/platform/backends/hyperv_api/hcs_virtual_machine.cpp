@@ -30,8 +30,6 @@
 #include <shared/windows/smb_mount_handler.h>
 #include <shared/windows/wsa_init_wrapper.h>
 
-#include <platform/platform_win.h>
-
 #include <multipass/constants.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
@@ -51,7 +49,6 @@ constexpr auto default_ssh_port = 22;
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
-namespace mpp = mp::platform;
 using mp::hyperv::hcn::HCN;
 using mp::hyperv::hcs::HCS;
 using mp::hyperv::virtdisk::VirtDisk;

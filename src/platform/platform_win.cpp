@@ -15,8 +15,6 @@
  *
  */
 
-#include "platform_win.h"
-
 #include <multipass/constants.h>
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
