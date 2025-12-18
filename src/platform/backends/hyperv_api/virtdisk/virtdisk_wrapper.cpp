@@ -70,7 +70,12 @@ using lvl = mpl::Level;
 
 struct VirtDiskCreateError : FormattedExceptionBase<>
 {
-    using FormattedExceptionBase<>::FormattedExceptionBase;
+    using FormattedExceptionBase::FormattedExceptionBase;
+};
+
+struct VirtDiskPredecessorError : FormattedExceptionBase<>
+{
+    using FormattedExceptionBase::FormattedExceptionBase;
 };
 
 constexpr auto log_category = "HyperV-VirtDisk-Wrapper";
@@ -116,6 +121,53 @@ UniqueHandle open_virtual_disk(
     }
 
     return UniqueHandle{handle};
+}
+
+void fill_predecessor_info(const VirtDiskWrapper& wrapper,
+                           const std::wstring& predecessor_path,
+                           PCWSTR& target_path,
+                           VIRTUAL_STORAGE_TYPE& target_type)
+{
+    std::filesystem::path pp{predecessor_path};
+    if (!MP_FILEOPS.exists(pp))
+    {
+        throw VirtDiskPredecessorError{"Predecessor VHDX file `{}` does not exist!", pp};
+    }
+
+    target_path = predecessor_path.c_str();
+    VirtualDiskInfo predecessor_disk_info{};
+    const auto result = wrapper.get_virtual_disk_info(predecessor_path, predecessor_disk_info);
+    mpl::debug(log_category,
+               "create_virtual_disk(...) > source disk info fetch result `{}`",
+               result);
+    target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
+    if (predecessor_disk_info.virtual_storage_type)
+    {
+        if (predecessor_disk_info.virtual_storage_type == "vhd")
+        {
+            target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHD;
+        }
+        else if (predecessor_disk_info.virtual_storage_type == "vhdx")
+        {
+            target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
+        }
+        else if (predecessor_disk_info.virtual_storage_type == "unknown")
+        {
+            throw VirtDiskPredecessorError{"Unable to determine predecessor disk's (`{}`) type!",
+                                           pp};
+        }
+        else
+        {
+            throw VirtDiskPredecessorError{"Unsupported predecessor disk type"};
+        }
+    }
+    else
+    {
+        throw VirtDiskPredecessorError{
+            "Failed to retrieve the predecessor disk type for `{}`, error code: {}",
+            pp,
+            result};
+    }
 }
 
 } // namespace
@@ -164,50 +216,6 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
      */
     std::wstring predecessor_path_normalized{};
 
-    auto fill_target = [this](const std::wstring& predecessor_path,
-                              PCWSTR& target_path,
-                              VIRTUAL_STORAGE_TYPE& target_type) {
-        std::filesystem::path pp{predecessor_path};
-        if (!MP_FILEOPS.exists(pp))
-        {
-            throw VirtDiskCreateError{"Predecessor VHDX file `{}` does not exist!", pp};
-        }
-        target_path = predecessor_path.c_str();
-        VirtualDiskInfo predecessor_disk_info{};
-        const auto result = get_virtual_disk_info(predecessor_path, predecessor_disk_info);
-        mpl::debug(log_category,
-                   "create_virtual_disk(...) > source disk info fetch result `{}`",
-                   result);
-        target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
-        if (predecessor_disk_info.virtual_storage_type)
-        {
-            if (predecessor_disk_info.virtual_storage_type == "vhd")
-            {
-                target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHD;
-            }
-            else if (predecessor_disk_info.virtual_storage_type == "vhdx")
-            {
-                target_type.DeviceId = VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
-            }
-            else if (predecessor_disk_info.virtual_storage_type == "unknown")
-            {
-                throw VirtDiskCreateError{"Unable to determine predecessor disk's (`{}`) type!",
-                                          pp};
-            }
-            else
-            {
-                throw VirtDiskCreateError{"Unsupported predecessor disk type"};
-            }
-        }
-        else
-        {
-            throw VirtDiskCreateError{
-                "Failed to retrieve the predecessor disk type for `{}`, error code: {}",
-                pp,
-                result};
-        }
-    };
-
     std::visit(overloaded{
                    [&](const std::monostate&) {
                        //
@@ -227,9 +235,10 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
                    },
                    [&](const SourcePathParameters& params) {
                        predecessor_path_normalized = normalize_path(params.path).wstring();
-                       fill_target(predecessor_path_normalized,
-                                   parameters.Version2.SourcePath,
-                                   parameters.Version2.SourceVirtualStorageType);
+                       fill_predecessor_info(*this,
+                                             predecessor_path_normalized,
+                                             parameters.Version2.SourcePath,
+                                             parameters.Version2.SourceVirtualStorageType);
                        flags |= CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK;
                        mpl::debug(log_category,
                                   "create_virtual_disk(...) > cloning `{}` to `{}`",
@@ -238,9 +247,10 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
                    },
                    [&](const ParentPathParameters& params) {
                        predecessor_path_normalized = normalize_path(params.path).wstring();
-                       fill_target(predecessor_path_normalized,
-                                   parameters.Version2.ParentPath,
-                                   parameters.Version2.ParentVirtualStorageType);
+                       fill_predecessor_info(*this,
+                                             predecessor_path_normalized,
+                                             parameters.Version2.ParentPath,
+                                             parameters.Version2.ParentVirtualStorageType);
                        flags |= CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK;
                        parameters.Version2.ParentVirtualStorageType.DeviceId =
                            VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
