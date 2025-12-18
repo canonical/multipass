@@ -160,12 +160,12 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
     qemu_img_process.setArguments(qemu_img_args);
     qemu_img_process.start();
 
-    if (!qemu_img_process.waitForFinished(multipass::image_resize_timeout))
+    if (!qemu_img_process.waitForFinished(image_resize_timeout))
     {
         throw ImageConversionException{"Conversion of image {} to VHDX timed out", source_file};
     }
 
-    if (qemu_img_process.exitCode() != 0)
+    if (qemu_img_process.exitStatus() != QProcess::NormalExit || qemu_img_process.exitCode() != 0)
     {
         throw ImageConversionException{
             "Conversion of image {} to VHDX failed with following error: {}",
