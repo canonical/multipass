@@ -1,0 +1,4 @@
+*.csv -text
+*.json -text
+*.txt -text
+*.yaml -text
