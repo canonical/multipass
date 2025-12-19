@@ -139,7 +139,6 @@ private:
 
     bool modified = false;
     std::string aliases_file;
-    std::ostream& cout;
     std::ostream& cerr;
 }; // class AliasDict
 

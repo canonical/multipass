@@ -31,7 +31,7 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mp::AliasDict::AliasDict(mp::Terminal* term) : cout(term->cout()), cerr(term->cerr())
+mp::AliasDict::AliasDict(mp::Terminal* term) : cerr(term->cerr())
 {
 }
 
@@ -41,7 +41,6 @@ mp::AliasDict::AliasDict(mp::Terminal* term,
     : active_context(active_context),
       aliases{{active_context, AliasContext{}}},
       aliases_file(filename),
-      cout(term->cout()),
       cerr(term->cerr())
 {
 }
