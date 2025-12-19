@@ -1,0 +1,19 @@
+{
+    "active-context": "default",
+    "contexts": {
+        "default": {
+            "alias1": {
+                "command": "first_command",
+                "instance": "first_instance",
+                "working-directory": "map"
+            }
+        },
+        "another": {
+            "alias2": {
+                "command": "second_command",
+                "instance": "second_instance",
+                "working-directory": "default"
+            }
+        }
+    }
+}

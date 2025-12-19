@@ -1,0 +1,7 @@
+{
+    "alias5": {
+        "command": "fifth_command",
+        "instance": "fifth_instance",
+        "working-directory": "wrong string"
+    }
+}

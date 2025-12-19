@@ -1,0 +1,17 @@
+{
+    "active-context": "default",
+    "contexts": {
+        "default": {
+            "llp": {
+                "instance": "primary",
+                "command": "ls",
+                "working-directory": "map"
+            },
+            "lsp": {
+                "instance": "primary",
+                "command": "ls",
+                "working-directory": "map"
+            }
+        }
+    }
+}

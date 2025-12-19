@@ -1,0 +1,19 @@
+{
+    "active-context": "default",
+    "contexts": {
+        "default": {
+        },
+        "docker": {
+            "docker": {
+                "instance": "docker",
+                "command": "docker",
+                "working-directory": "map"
+            },
+            "docker-compose": {
+                "instance": "docker",
+                "command": "docker-compose",
+                "working-directory": "map"
+            }
+        }
+    }
+}

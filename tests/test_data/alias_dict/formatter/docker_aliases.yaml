@@ -1,0 +1,12 @@
+active_context: default
+aliases:
+  default: ~
+  docker:
+    - alias: docker
+      command: docker
+      instance: docker
+      working-directory: map
+    - alias: docker-compose
+      command: docker-compose
+      instance: docker
+      working-directory: map
