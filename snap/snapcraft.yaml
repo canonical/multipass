@@ -140,6 +140,7 @@ parts:
     - curl
     - libkeybinder-3.0-dev
     - ninja-build
+    - libgtkmm-3.0-dev
     # https://github.com/microsoft/vcpkg/issues/47920
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     stage-packages:
@@ -152,6 +153,11 @@ parts:
     - libglib2.0-0
     - libgtk-3-0
     - libkeybinder-3.0-dev
+    - libatkmm-1.6-1v5
+    - libcairomm-1.0-1v5
+    - libgtkmm-3.0-1t64
+    - libglibmm-2.4-1t64
+    - libpangomm-1.4-1v5
     stage:
     - -**/glvnd
     - -**/X11
