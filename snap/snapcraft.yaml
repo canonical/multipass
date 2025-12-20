@@ -11,11 +11,11 @@ license: GPL-3.0
 
 adopt-info: multipass
 confinement: strict
-base: core22
+base: core24
 
-architectures:
-  - build-on: amd64
-  - build-on: arm64
+platforms:
+  arm64:
+  amd64:
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
