@@ -204,7 +204,7 @@ parts:
 
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
-      python3 -m pip install jinja2
+      python3 -m pip install --break-system-packages jinja2
 
       # Update default clang
       update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
