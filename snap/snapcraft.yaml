@@ -20,8 +20,6 @@ platforms:
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
     bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu
-  /usr/share/X11:
-    bind: $SNAP/usr/share/X11
   /etc/fonts:
     bind: $SNAP/etc/fonts
   /usr/share/fonts:
