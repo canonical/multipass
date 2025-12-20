@@ -17,12 +17,28 @@
  *
  */
 
-#include "petname.h"
-#include <multipass/name_generator.h>
+#pragma once
 
-namespace mp = multipass;
+#include "disabled_copy_move.h"
 
-mp::NameGenerator::UPtr mp::make_default_name_generator()
+#include <petname/src/lib.rs.h>
+
+#include <memory>
+#include <string>
+
+namespace multipass
 {
-    return std::make_unique<mp::Petname>(mp::Petname::NumWords::TWO, "-");
-}
+class PetnameInterface : private DisabledCopyMove
+{
+public:
+    using UPtr = std::unique_ptr<PetnameInterface>;
+    virtual ~PetnameInterface() = default;
+    virtual std::string make_name() = 0;
+
+protected:
+    PetnameInterface() = default;
+};
+
+PetnameInterface::UPtr make_petname_provider(petname::NumWords words = petname::NumWords::Two,
+                                             char separator = '-');
+} // namespace multipass
