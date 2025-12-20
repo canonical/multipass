@@ -270,6 +270,7 @@ parts:
     - --disable-user
     - --disable-libvduse
     - --disable-vduse-blk-export
+    - --disable-dbus-display
     - --firmwarepath=/snap/multipass/current/qemu/
     - --prefix=/usr
     - --libdir=/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
