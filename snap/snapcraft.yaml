@@ -355,7 +355,7 @@ parts:
   compile-schemas:
     plugin: nil
     stage-packages:
-    - libglib2.0-0
+    - libglib2.0-0t64
     prime:
     - usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/glib-2.0/glib-compile-schemas
 
