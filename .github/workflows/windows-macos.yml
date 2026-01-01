@@ -78,7 +78,7 @@ jobs:
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
-      CCACHE_DIR: ${{ github.workspace }}/build/ccache
+      SCCACHE_GHA_ENABLED: "true"
 
     steps:
     - name: Check out code
@@ -223,25 +223,15 @@ jobs:
         fi
 
     - name: Set up CCache
-      if: ${{ runner.os == 'macOS' }}
       id: setup-ccache
       run: |
-        brew install ccache
-
         # Find common base between main and HEAD to use as cache key.
         # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
-        echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
-    - name: CCache
-      if: ${{ runner.os == 'macOS' }}
-      uses: actions/cache@v5
-      with:
-        key: "ccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
-        restore-keys: |
-          ccache-${{ matrix.runs-on }}
-        path: ${{ env.CCACHE_DIR }}
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.9
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
@@ -270,10 +260,6 @@ jobs:
 
     - name: Build
       run: cmake --build ${{ env.BUILD_DIR }}
-
-    - name: Clear CCache stats
-      if: ${{ runner.os == 'macOS' }}
-      run: ccache --show-stats --zero-stats
 
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
