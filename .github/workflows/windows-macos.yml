@@ -79,6 +79,7 @@ jobs:
     env:
       BUILD_DIR: ${{ github.workspace }}/build
       SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
 
     steps:
     - name: Check out code
