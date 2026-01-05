@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      matrix: ${{ steps.make-matrix.outputs.matrix }}
+      names: ${{ steps.collect.outputs.names }}
 
     steps:
-      - name: Build package-name matrix
-        id: make-matrix
+      - name: Collect package names
+        id: collect
         uses: actions/github-script@v8
         with:
           script: |
@@ -26,22 +26,23 @@ jobs:
             const repo = context.repo.repo;
             core.info(`Listing packages for org: ${owner}`);
 
-            // Fetch all container packages in this org/user
-            const response = await github.paginate(
+            const packages = await github.paginate(
               "GET /orgs/{org}/packages",
-              { org: context.repo.owner, package_type: "nuget", per_page: 100 }
+              {
+                org: owner,
+                package_type: "nuget",
+                per_page: 100,
+              }
             );
-            core.info(`Fetched ${response.length} nuget packages`);
 
-            const repoPackages = response.filter(p =>
+            const repoPackages = packages.filter(p =>
               p.repository && p.repository.full_name === `${owner}/${repo}`
             );
             core.info(`Found ${repoPackages.length} packages associated with ${owner}/${repo}`);
 
             const names = [...new Set(repoPackages.map(p => p.name))];
-            const matrix = { include: names.map(n => ({ "package-name": n })) };
 
-            core.setOutput("matrix", JSON.stringify(matrix));
+            core.setOutput("names", names.join("\n"));
 
   prune:
     needs: list-packages
@@ -50,18 +51,14 @@ jobs:
     permissions:
       packages: write
 
-    strategy:
-      matrix: ${{ fromJSON(needs.list-packages.outputs.matrix) }}
-      fail-fast: false
-      max-parallel: 4
-
     steps:
-      - name: Delete old packages
-        uses: actions/delete-package-versions@v5
+      - name: Delete old package versions
+        uses: smartsquaregmbh/delete-old-packages@v0.8.1
         with:
-          package-name: ${{ matrix.package-name }}
-          package-type: nuget
-          min-versions-to-keep: 1
+          organization: ${{ github.repository_owner }}
+          type: nuget
+          names: ${{ needs.list-packages.outputs.names }}
+          keep: 1
 
   notify:
     runs-on: ubuntu-latest
