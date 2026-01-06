@@ -58,7 +58,7 @@ jobs:
           organization: ${{ github.repository_owner }}
           type: nuget
           names: ${{ needs.list-packages.outputs.names }}
-          keep: 1
+          keep: 2
 
   notify:
     runs-on: ubuntu-latest
