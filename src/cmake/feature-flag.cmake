@@ -15,13 +15,21 @@
 include(CMakeDependentOption)
 include(src/cmake/environment-utils.cmake)
 
-is_release_branch(GIT_IS_RELEASE_BRANCH)
-if(GIT_IS_RELEASE_BRANCH)
-  set(OPTIONAL_FEATURE_DEFAULT OFF)
+if(DEFINED MP_ALLOW_OPTIONAL_FEATURES)
+  # If `MP_ALLOW_OPTIONAL_FEATURES` is already defined, make sure to cache it so we never
+  # automatically change its value on subsequent runs of CMake.
+  set(MP_ALLOW_OPTIONAL_FEATURES "${MP_ALLOW_OPTIONAL_FEATURES}" CACHE INTERNAL
+      "allow optional features")
 else()
-  set(OPTIONAL_FEATURE_DEFAULT ON)
+  # Otherwise, just temporarily set its value based on whether we're on a release branch. This way,
+  # if we change branches, the value will automatically update.
+  is_release_branch(GIT_IS_RELEASE_BRANCH)
+  if(GIT_IS_RELEASE_BRANCH)
+    set(MP_ALLOW_OPTIONAL_FEATURES OFF)
+  else()
+    set(MP_ALLOW_OPTIONAL_FEATURES ON)
+  endif()
 endif()
-option(MP_ALLOW_OPTIONAL_FEATURES "allow enabling optional features" ${OPTIONAL_FEATURE_DEFAULT})
 
 # Define a feature flag named `option`, with optional requirements as the third argument (see
 # `cmake_dependent_option` for details).
