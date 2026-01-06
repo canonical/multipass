@@ -51,7 +51,7 @@ struct FakeAliasConfig
     {
         static std::stringstream trash_stream;
         mpt::StubTerminal term(trash_stream, trash_stream, trash_stream);
-        mp::AliasDict writer(&term);
+        auto writer = mp::AliasDict(&term, mp::default_context_name, db_filename());
 
         for (const auto& alias : aliases)
             writer.add_alias(alias.first, alias.second);

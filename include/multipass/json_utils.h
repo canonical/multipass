@@ -18,6 +18,7 @@
 #pragma once
 
 #include "singleton.h"
+#include "utils/sorted_map_view.h"
 
 #include <multipass/network_interface.h>
 
@@ -123,6 +124,22 @@ T tag_invoke(const boost::json::value_to_tag<T>&,
         result.emplace(key, value_to<typename T::mapped_type>(elem));
     }
     return result;
+}
+
+struct SortJsonKeys
+{
+};
+
+template <typename T>
+    requires boost::json::is_map_like<T>::value
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const T& mapping,
+                const SortJsonKeys&)
+{
+    auto& obj = json.emplace_object();
+    for (const auto& [key, value] : sorted_map_view(mapping))
+        obj.emplace(key.get(), boost::json::value_from(value.get()));
 }
 
 struct PrettyPrintOptions

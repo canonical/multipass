@@ -20,6 +20,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <boost/json.hpp>
+
 namespace multipass
 {
 struct AliasDefinition
@@ -35,5 +37,19 @@ inline bool operator==(const AliasDefinition& a, const AliasDefinition& b)
 }
 
 typedef typename std::unordered_map<std::string, AliasDefinition> AliasContext;
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const AliasDefinition& alias);
+AliasDefinition tag_invoke(const boost::json::value_to_tag<AliasDefinition>&,
+                           const boost::json::value& json);
+
+// Serialize an AliasContext with the keys in alphabetical order.
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const AliasContext& alias);
+// Deserialize an AliasContext, ignoring empty JSON objects for each value.
+AliasContext tag_invoke(const boost::json::value_to_tag<AliasContext>&,
+                        const boost::json::value& json);
 
 } // namespace multipass
