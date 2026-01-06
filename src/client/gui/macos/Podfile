@@ -1,3 +1,4 @@
+deployment_target = nil
 deployment_target_file = File.join(__dir__, 'Runner/Configs/DeploymentTarget.xcconfig')
 if File.exist?(deployment_target_file)
   File.foreach(deployment_target_file) do |line|
