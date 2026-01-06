@@ -228,6 +228,11 @@ approved, be merged into the main branch.
 - [todoroff/terraform-provider-multipass](https://github.com/todoroff/terraform-provider-multipass)
 - [larstobi/terraform-provider-multipass](https://github.com/larstobi/terraform-provider-multipass)
 
+## Visual Studio Code extensions
+
+- [geoffreynyaga/multipass-run](https://github.com/geoffreynyaga/multipass-run)
+- [levalleyjack/multipass-manager-vscode](https://github.com/levalleyjack/multipass-manager-vscode)
+
 # Additional information
 
 [Multipass documentation](https://canonical.com/multipass/docs)
