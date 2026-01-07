@@ -208,7 +208,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
         .WillRepeatedly(DoAll(
             [this](const hcs_handle_t& target_hcs_system,
                    void* context,
-                   void (*callback)(void* hcs_event, void* context)) {
+                   void (*callback)(HCS_EVENT* hcs_event, void* context)) {
 
             },
             Return(hcs_op_result_t{0, L""})));
