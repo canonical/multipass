@@ -846,8 +846,12 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
-        .WillRepeatedly(
-            Return(QJsonObject({{"arguments", QJsonArray{"-hi_there", "-hows_it_going"}}})));
+        .WillRepeatedly(Return(QJsonObject{
+            {"arguments", QJsonArray{"-hi_there", "-hows_it_going"}},
+            {"mount_data",
+             QJsonObject{
+                 {"mytag",
+                  QJsonObject{{"source", "src"}, {"arguments", QJsonArray{"-mount_arg"}}}}}}}));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path()};
 
@@ -865,6 +869,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-hi_there"));
     EXPECT_TRUE(qemu->arguments.contains("-hows_it_going"));
+    EXPECT_TRUE(qemu->arguments.contains("-mount_arg"));
 }
 
 TEST_F(QemuBackend, returnsVersionString)
