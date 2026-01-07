@@ -333,7 +333,6 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         }
     }
 
-    // E_INVALIDARG means there's no such VM.
     // Create the VM from scratch.
     const auto create_compute_system_params = [this, &create_endpoint_params]() {
         hcs::CreateComputeSystemParameters params{};

@@ -20,7 +20,6 @@
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
 
-#include <multipass/signal.h>
 #include <multipass/virtual_machine_description.h>
 #include <shared/base_virtual_machine.h>
 
@@ -55,11 +54,11 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       const Path& dest_instance_dir);
 
     void start() override;
-    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
+    void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
     [[nodiscard]] State current_state() override;
     int ssh_port() override;
-    [[nodiscard]] std::string ssh_hostname(std::chrono::milliseconds timeout = {}) override;
+    [[nodiscard]] std::string ssh_hostname(std::chrono::milliseconds timeout) override;
     [[nodiscard]] std::string ssh_username() override;
     [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
 
