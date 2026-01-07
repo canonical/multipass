@@ -19,6 +19,7 @@
 #include "mock_file_ops.h"
 
 #include <multipass/json_utils.h>
+#include <multipass/vm_specs.h>
 
 #include <QFileDevice>
 #include <QJsonDocument>
@@ -95,6 +96,45 @@ TEST(TestJsonUtils, throwsOnWrongMac)
     MP_ASSERT_THROW_THAT(MP_JSONUTILS.read_extra_interfaces(doc),
                          std::runtime_error,
                          mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
+}
+
+TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
+{
+    mp::VMSpecs src_specs = {1,
+                             mp::MemorySize::from_bytes(0),
+                             mp::MemorySize::from_bytes(0),
+                             "01:ff:00:00:00:01",
+                             {{"id", "01:ff:00:00:00:02", false}},
+                             "username",
+                             mp::VirtualMachine::State::off,
+                             {},
+                             false,
+                             {}};
+    mp::VMSpecs dst_specs = src_specs;
+    dst_specs.default_mac_address = "aa:ff:00:00:00:01";
+    dst_specs.extra_interfaces = {{"id", "aa:ff:00:00:00:02", false}};
+
+    QJsonObject src_metadata = {{"arguments",
+                                 QJsonArray{"instances/src_vm",
+                                            "misc arg",
+                                            "don't change src_vm",
+                                            "--mac=01:ff:00:00:00:01",
+                                            "01:ff:00:00:00:01==01:ff:00:00:00:01",
+                                            "--extra_mac=01:ff:00:00:00:02"}}};
+    QJsonObject dst_metadata = {{"arguments",
+                                 QJsonArray{"instances/dst_vm",
+                                            "misc arg",
+                                            "don't change src_vm",
+                                            "--mac=aa:ff:00:00:00:01",
+                                            "aa:ff:00:00:00:01==aa:ff:00:00:00:01",
+                                            "--extra_mac=aa:ff:00:00:00:02"}}};
+
+    EXPECT_EQ(MP_JSONUTILS.update_unique_identifiers_of_metadata(src_metadata,
+                                                                 src_specs,
+                                                                 dst_specs,
+                                                                 "src_vm",
+                                                                 "dst_vm"),
+              dst_metadata);
 }
 
 TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
