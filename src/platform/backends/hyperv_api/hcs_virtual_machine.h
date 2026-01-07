@@ -26,6 +26,8 @@
 
 #include <memory>
 
+struct HCS_EVENT;
+
 namespace multipass
 {
 class VMStatusMonitor;
@@ -106,6 +108,6 @@ private:
 
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
 
-    static void compute_system_event_callback(void* event, void* context);
+    static void compute_system_event_callback(HCS_EVENT* event, void* context);
 };
 } // namespace multipass::hyperv
