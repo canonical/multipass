@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Antoni Bertolin <antoni.monferrer@canonical.com>
+ * Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
  *
  */
 
@@ -30,6 +30,7 @@ pub mod ffi {
         Three,
     }
 
+    #[namespace = "rxx::petname"]
     extern "Rust" {
         type PetnameGenerator;
         fn make_petname_generator(
@@ -37,5 +38,10 @@ pub mod ffi {
             separator: c_char,
         ) -> Result<Box<PetnameGenerator>>;
         fn make_name(self: &PetnameGenerator) -> Result<String>;
+    }
+    #[namespace = "multipass::petname"]
+    extern "C++" {
+        include!("multipass/petname_interface.h");
+        type NumWords;
     }
 }

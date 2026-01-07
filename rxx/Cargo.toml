@@ -57,4 +57,3 @@ panic = "abort"
 debug-assertions = false
 overflow-checks = false
 incremental = false #Removing incremental compilation allows lower codegen count
-

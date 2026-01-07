@@ -11,6 +11,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
 
 #Find cargo, which will be a hard dependency
 find_program(CARGO_EXECUTABLE cargo)
@@ -36,8 +38,7 @@ set(RUST_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target/${rust_build}")
 #have to be built, since the CXX glue code has to be generated and compiled
 #for said usage
 set(CRATES
-  rust_logger
-  petnamers
+  petname
 )
 
 if(NOT CRATES STREQUAL "")
@@ -83,8 +84,8 @@ foreach(crate_name ${CRATES})
     )
 
     add_test(
-        	NAME      ${crate_name}_tests
-        	COMMAND   cargo test -p ${crate_name} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
+          NAME      ${crate_name}_tests
+          COMMAND   cargo test -p ${crate_name} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
     --no-fail-fast
     )
   endif()
