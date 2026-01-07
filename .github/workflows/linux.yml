@@ -219,7 +219,7 @@ jobs:
         # we need to override it at the runner level.
         sudo bash -c 'echo "/coredump/%e.%p.%t" > /proc/sys/kernel/core_pattern'
 
-    - name: Test
+    - name: Run unit tests
       id: test
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 2
@@ -238,6 +238,26 @@ jobs:
            env CTEST_OUTPUT_ON_FAILURE=1 \
            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
            /root/parts/multipass/build/bin/multipass_tests"
+
+    - name: Run integration tests
+      id: test
+      if: ${{ matrix.build-type == 'Debug' }}
+      timeout-minutes: 2
+      run: |
+
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        /snap/bin/lxc --project snapcraft start $instance_name
+        # Let's print the core pattern so we can check if it's successfully propagated to the container.
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
+        # Create the directory for the coredumps
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+        # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
+        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+           ulimit -c unlimited &&        \
+           env CTEST_OUTPUT_ON_FAILURE=1 \
+           LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+           /root/parts/multipass/build/bin/multipass_integration_tests"
 
     - name: Measure coverage
       id: measure-coverage
