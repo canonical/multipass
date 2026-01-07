@@ -21,6 +21,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_create_compute_system_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_request.h>
+#include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
 
 #include <multipass/singleton.h>
@@ -30,8 +31,6 @@
 
 namespace multipass::hyperv::hcs
 {
-
-using HcsSystemHandle = std::shared_ptr<void>;
 
 /**
  * A high-level wrapper class that defines the common operations that Host Compute System API
