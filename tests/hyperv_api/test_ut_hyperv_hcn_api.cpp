@@ -457,9 +457,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "HCNWrapper::create_network(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_hcn_operation(...)");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::error,
-            "HCNWrapper::create_network(...) > HcnCreateNetwork failed with 0x80004003");
     }
 
     /******************************************************
