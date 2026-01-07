@@ -221,6 +221,18 @@ which gives Canonical permission to use the contributions. Without the CLA, cont
 Changes to this project should be proposed as pull requests. Proposed changes will then go through review and once
 approved, be merged into the main branch.
 
+# Community-led integrations
+
+## Terraform providers
+
+- [todoroff/terraform-provider-multipass](https://github.com/todoroff/terraform-provider-multipass)
+- [larstobi/terraform-provider-multipass](https://github.com/larstobi/terraform-provider-multipass)
+
+## Visual Studio Code extensions
+
+- [geoffreynyaga/multipass-run](https://github.com/geoffreynyaga/multipass-run)
+- [levalleyjack/multipass-manager-vscode](https://github.com/levalleyjack/multipass-manager-vscode)
+
 # Additional information
 
 [Multipass documentation](https://canonical.com/multipass/docs)
