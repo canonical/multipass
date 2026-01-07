@@ -38,7 +38,7 @@ Plan9MountHandler::Plan9MountHandler(VirtualMachine* vm,
                                      const SSHKeyProvider* ssh_key_provider,
                                      VMMount mount_spec,
                                      const std::string& target)
-    : MountHandler(vm, ssh_key_provider, mount_spec, target)
+    : MountHandler(vm, ssh_key_provider, std::move(mount_spec), target)
 {
     // No need to do anything special.
     if (nullptr == vm)
@@ -56,13 +56,11 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
     // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/hcs/schema2/plan9_share.go#L12
     // https://github.com/microsoft/hcsshim/blob/d7e384230944f153215473fa6c715b8723d1ba47/internal/vm/hcs/builder.go#L53
     const auto req = [this] {
-        hcs::HcsAddPlan9ShareParameters params{};
+        HcsAddPlan9ShareParameters params{};
         params.access_name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
         params.name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
         params.host_path = mount_spec.get_source_path();
-        return hcs::HcsRequest{hcs::HcsResourcePath::Plan9Shares(),
-                               hcs::HcsRequestType::Add(),
-                               params};
+        return HcsRequest{HcsResourcePath::Plan9Shares(), HcsRequestType::Add(), params};
     }();
 
     HcsSystemHandle handle{nullptr};
@@ -106,12 +104,10 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
             mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
         }
 
-        // fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912",
-        // tag, target));
         constexpr std::string_view mount_command_fmtstr =
             "sudo mount -t 9p -o trans=virtio,version=9p2000.L,port={} {} {}";
 
-        const auto& add_settings = std::get<hcs::HcsAddPlan9ShareParameters>(req.settings);
+        const auto& add_settings = std::get<HcsAddPlan9ShareParameters>(req.settings);
         const auto mount_command =
             fmt::format(mount_command_fmtstr, add_settings.port, add_settings.access_name, target);
 
@@ -135,18 +131,16 @@ void Plan9MountHandler::activate_impl(ServerVariant server, std::chrono::millise
     }
     catch (...)
     {
-        const auto req = [this] {
-            hcs::HcsRemovePlan9ShareParameters params{};
+        const auto remove_share_request = [this] {
+            HcsRemovePlan9ShareParameters params{};
             params.name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
             params.access_name =
                 mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
-            return hcs::HcsRequest{hcs::HcsResourcePath::Plan9Shares(),
-                                   hcs::HcsRequestType::Remove(),
-                                   params};
+            return HcsRequest{HcsResourcePath::Plan9Shares(), HcsRequestType::Remove(), params};
         }();
-        if (!HCS().modify_compute_system(handle, req))
+        if (!HCS().modify_compute_system(handle, remove_share_request))
         {
-            // TODO: Warn here
+            mpl::warn(log_category, "Could not remove Plan9 share after activation failure.");
         }
     }
 }
@@ -157,10 +151,12 @@ void Plan9MountHandler::deactivate_impl(bool force)
         "mountpoint -q {0}; then sudo umount {0}; else true; fi";
     const auto umount_command = fmt::format(umount_command_fmtstr, target);
 
-    if (!(session.exec(umount_command).exit_code() == 0))
+    if (auto exec_result = session.exec(umount_command); exec_result.exit_code() != 0)
     {
-        // TODO: Include output?
-        mpl::warn(log_category, "Plan9 share unmount failed.");
+        mpl::warn(log_category,
+                  "Plan9 share unmount failed. stdout: {0}, stderr: {1}",
+                  exec_result.read_std_output(),
+                  exec_result.read_std_error());
 
         if (!force)
         {
@@ -169,12 +165,10 @@ void Plan9MountHandler::deactivate_impl(bool force)
     }
 
     const auto req = [this] {
-        hcs::HcsRemovePlan9ShareParameters params{};
+        HcsRemovePlan9ShareParameters params{};
         params.name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
         params.access_name = mpu::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
-        return hcs::HcsRequest{hcs::HcsResourcePath::Plan9Shares(),
-                               hcs::HcsRequestType::Remove(),
-                               params};
+        return HcsRequest{HcsResourcePath::Plan9Shares(), HcsRequestType::Remove(), params};
     }();
 
     HcsSystemHandle handle{nullptr};
