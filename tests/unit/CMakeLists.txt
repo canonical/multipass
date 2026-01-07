@@ -19,6 +19,21 @@ include(c_mock_defines.cmake)
 
 find_package(GTest CONFIG REQUIRED)
 
+##############################################################################
+# FIXME: Move unit and integration tests to their separate sub folders
+add_executable(multipass_integration_tests)
+target_link_libraries(multipass_integration_tests
+  PRIVATE
+  GTest::gmock_main
+  Qt6::Core fmt::fmt-header-only)
+target_include_directories(multipass_integration_tests
+  PRIVATE ${CMAKE_SOURCE_DIR}
+  PRIVATE ${CMAKE_SOURCE_DIR}/src
+  PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
+)
+add_test(NAME multipass_integration_tests COMMAND multipass_integration_tests)
+##############################################################################
+
 add_executable(multipass_tests
   common.cpp
   daemon_test_fixture.cpp
