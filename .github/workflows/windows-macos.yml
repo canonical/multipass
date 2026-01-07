@@ -275,10 +275,15 @@ jobs:
       if: ${{ runner.os == 'macOS' }}
       run: ccache --show-stats --zero-stats
 
-    - name: Test
+    - name: Run unit tests
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         bin/multipass_tests
+
+    - name: Run integration tests
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        bin/multipass_integration_tests
 
     - name: Package
       id: cmake-package
