@@ -453,7 +453,7 @@ OperationResult HCSWrapper::modify_compute_system(const HcsSystemHandle& target_
 
 OperationResult HCSWrapper::set_compute_system_callback(const HcsSystemHandle& target_hcs_system,
                                                         void* context,
-                                                        void (*callback)(void* hcs_event,
+                                                        void (*callback)(HCS_EVENT* hcs_event,
                                                                          void* context)) const
 {
     mpl::debug(log_category,

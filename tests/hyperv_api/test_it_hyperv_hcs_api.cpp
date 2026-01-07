@@ -94,15 +94,15 @@ TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
     ASSERT_EQ(state, decltype(state)::running);
 
     bool called = false;
-    ASSERT_TRUE(HCS().set_compute_system_callback(handle, &called, [](void* event, void* context) {
-        ASSERT_NE(nullptr, event);
-        ASSERT_NE(nullptr, context);
-        if (hyperv::hcs::parse_event(static_cast<HCS_EVENT*>(event)) ==
-            hyperv::hcs::HcsEventType::SystemExited)
-        {
-            *static_cast<bool*>(context) = true;
-        }
-    }));
+    ASSERT_TRUE(
+        HCS().set_compute_system_callback(handle, &called, [](HCS_EVENT* event, void* context) {
+            ASSERT_NE(nullptr, event);
+            ASSERT_NE(nullptr, context);
+            if (hyperv::hcs::parse_event(event) == hyperv::hcs::HcsEventType::SystemExited)
+            {
+                *static_cast<bool*>(context) = true;
+            }
+        }));
 
     const auto d_result = HCS().terminate_compute_system(handle);
     ASSERT_TRUE(d_result);

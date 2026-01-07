@@ -195,10 +195,10 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
     HCSVirtualMachine::handle_state_update();
 }
 
-void HCSVirtualMachine::compute_system_event_callback(void* event, void* context)
+void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* context)
 {
 
-    const auto type = hcs::parse_event(static_cast<HCS_EVENT*>(event));
+    const auto type = hcs::parse_event(event);
     auto vm = static_cast<HCSVirtualMachine*>(context);
 
     mpl::debug(vm->get_name(),

@@ -99,7 +99,7 @@ struct MockHCSWrapper : public hyperv::hcs::HCSWrapper
                 set_compute_system_callback,
                 (const hyperv::hcs::HcsSystemHandle& target_hcs_system,
                  void* context,
-                 void (*callback)(void* hcs_event, void* context)),
+                 void (*callback)(HCS_EVENT* hcs_event, void* context)),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockHCSWrapper, HCSWrapper);
