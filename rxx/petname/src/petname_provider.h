@@ -34,12 +34,6 @@ public:
     /// Constructs an instance that will generate names using
     /// the requested separator and the requested number of words
     PetnameProvider(petname::NumWords num_words, char separator);
-    /// Constructs an instance that will generate names using
-    /// a default separator of "-" and the requested number of words
-    explicit PetnameProvider(petname::NumWords num_words);
-    /// Constructs an instance that will generate names using
-    /// the requested separator and two words
-    explicit PetnameProvider(char separator);
 
     std::string make_name() override;
 
