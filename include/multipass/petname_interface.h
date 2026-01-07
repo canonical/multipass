@@ -46,7 +46,9 @@ public:
 protected:
     PetnameInterface() = default;
 };
-
+// Overloaded functions to avoid exposing the PetnameProvider type in the interface header with the
+// default arguments
 PetnameInterface::UPtr make_petname_provider(petname::NumWords words = petname::NumWords::Two,
                                              char separator = '-');
+PetnameInterface::UPtr make_petname_provider(char separator);
 } // namespace multipass
