@@ -218,6 +218,7 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
     }
     break;
     case hcs::HcsEventType::Unknown:
+    default:
         mpl::info(vm->get_name(),
                   "compute_system_event_callback() > {}:  Unidentified event received",
                   vm->get_name());
