@@ -359,7 +359,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_success)
 
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
 
-    uut->shutdown();
+    uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Powerdown);
 
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
 }
@@ -494,7 +494,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_hostname)
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
-    EXPECT_EQ(uut->ssh_hostname(), uut->get_name() + ".mshome.net");
+    EXPECT_EQ(uut->ssh_hostname({}), uut->get_name() + ".mshome.net");
 }
 
 // ---------------------------------------------------------
