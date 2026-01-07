@@ -52,7 +52,7 @@ public:
                          const Path& dest_instance_dir);
     ~HyperVVirtualMachine();
     void start() override;
-    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
+    void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
