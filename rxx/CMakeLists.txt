@@ -91,3 +91,4 @@ foreach(crate_name ${CRATES})
   endif()
 endforeach()
 
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/target")
