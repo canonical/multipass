@@ -21,16 +21,6 @@
 
 namespace mp = multipass;
 
-mp::PetnameProvider::PetnameProvider(char separator)
-    : PetnameProvider(mp::petname::NumWords::Two, separator)
-{
-}
-
-mp::PetnameProvider::PetnameProvider(mp::petname::NumWords num_words)
-    : PetnameProvider(num_words, '-')
-{
-}
-
 mp::PetnameProvider::PetnameProvider(mp::petname::NumWords num_words, char separator)
     : generator{rxx::petname::make_petname_generator(num_words, separator)}
 {
