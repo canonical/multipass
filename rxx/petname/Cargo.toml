@@ -11,6 +11,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
 
 [package]
 name = "petname"
@@ -29,4 +31,3 @@ rand.workspace = true
 
 [build-dependencies]
 cxx-build.workspace = true
-

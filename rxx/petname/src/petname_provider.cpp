@@ -17,8 +17,26 @@
  *
  */
 
-fn main() {
-    // Generate the .h and .cc files (_do not_ compile them)
-    let _ = cxx_build::bridge("src/lib.rs"); // drops the builder, just codegen
-    println!("cargo:rerun-if-changed=src/lib.rs");
+#include "petname_provider.h"
+
+namespace mp = multipass;
+
+mp::PetnameProvider::PetnameProvider(char separator)
+    : PetnameProvider(mp::petname::NumWords::Two, separator)
+{
+}
+
+mp::PetnameProvider::PetnameProvider(mp::petname::NumWords num_words)
+    : PetnameProvider(num_words, '-')
+{
+}
+
+mp::PetnameProvider::PetnameProvider(mp::petname::NumWords num_words, char separator)
+    : generator{rxx::petname::make_petname_generator(num_words, separator)}
+{
+}
+
+std::string mp::PetnameProvider::make_name()
+{
+    return std::string(generator->make_name());
 }
