@@ -17,8 +17,12 @@
  *
  */
 
-fn main() {
-    // Generate the .h and .cc files (_do not_ compile them)
-    let _ = cxx_build::bridge("src/lib.rs"); // drops the builder, just codegen
-    println!("cargo:rerun-if-changed=src/lib.rs");
+#include "petname_provider.h"
+#include <multipass/petname_interface.h>
+
+namespace mp = multipass;
+
+mp::PetnameInterface::UPtr mp::make_petname_provider(mp::petname::NumWords words, char separator)
+{
+    return std::make_unique<mp::PetnameProvider>(words, separator);
 }
