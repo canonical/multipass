@@ -185,21 +185,6 @@ UniqueHcnNetwork open_network(const std::string& network_guid)
     return network;
 }
 
-auto hcn_errc_to_log_level(const OperationResult& result)
-{
-    /**
-     * Some of the errors are "expected", e.g. a network may be already
-     * exist and that's not necessarily an error.
-     */
-    switch (static_cast<HRESULT>(result.code))
-    {
-    case HCN_E_NETWORK_ALREADY_EXISTS:
-        return mpl::Level::debug;
-    }
-
-    return mpl::Level::error;
-}
-
 } // namespace
 
 // ---------------------------------------------------------
@@ -218,22 +203,12 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
     UniqueHcnNetwork network{};
     const auto network_settings = fmt::to_wstring(params);
 
-    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+    return perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnCreateNetwork(guid_from_string(params.guid),
                                       network_settings.c_str(),
                                       out_ptr(network),
                                       rmsgbuf);
     });
-
-    if (!result)
-    {
-        mpl::log(hcn_errc_to_log_level(result),
-                 log_category,
-                 "HCNWrapper::create_network(...) > HcnCreateNetwork failed with {}",
-                 result.code);
-    }
-
-    return result;
 }
 
 // ---------------------------------------------------------
