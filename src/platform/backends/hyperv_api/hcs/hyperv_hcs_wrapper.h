@@ -29,6 +29,8 @@
 #include <filesystem>
 #include <string>
 
+struct HCS_EVENT;
+
 namespace multipass::hyperv::hcs
 {
 
@@ -72,7 +74,7 @@ struct HCSWrapper : public Singleton<HCSWrapper>
     [[nodiscard]] virtual OperationResult set_compute_system_callback(
         const HcsSystemHandle& target_hcs_system,
         void* context,
-        void (*callback)(void* hcs_event, void* context)) const;
+        void (*callback)(HCS_EVENT* hcs_event, void* context)) const;
 };
 
 inline const HCSWrapper& HCS()

@@ -94,7 +94,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     inline static auto mock_handle_raw = reinterpret_cast<void*>(0xbadf00d);
     hcs_handle_t mock_handle{mock_handle_raw, [](void*) {}};
     void* compute_system_callback_context{nullptr};
-    void (*compute_system_callback)(void* hcs_event, void* context){nullptr};
+    void (*compute_system_callback)(HCS_EVENT* hcs_event, void* context){nullptr};
 
     void default_open_success()
     {
@@ -110,7 +110,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
             .WillRepeatedly(DoAll(
                 [this](const hcs_handle_t& target_hcs_system,
                        void* context,
-                       void (*callback)(void* hcs_event, void* context)) {
+                       void (*callback)(HCS_EVENT* hcs_event, void* context)) {
                     compute_system_callback_context = context;
                     compute_system_callback = callback;
                 },
