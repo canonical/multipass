@@ -26,7 +26,7 @@ class Plan9MountHandler : public MountHandler
 {
 public:
     Plan9MountHandler(VirtualMachine* vm,
-                      const multipass::SSHKeyProvider* ssh_key_provider,
+                      const SSHKeyProvider* ssh_key_provider,
                       VMMount mount_spec,
                       const std::string& target);
 
