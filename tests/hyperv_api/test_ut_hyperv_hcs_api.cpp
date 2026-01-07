@@ -1248,7 +1248,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_happy_path(UutCallableT uut_callb
                                 Return(nullptr)));
         }
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_compute_system(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcs_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
@@ -1298,10 +1298,10 @@ void HyperVHCSAPI_UnitTests::generic_operation_hcs_open_fail(UutCallableT uut_ca
             mpl::Level::error,
             "perform_hcs_operation(...) > Host Compute System handle is null!");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
-                                             "open_host_compute_system(...) > name: (test_vm)");
+                                             "open_compute_system(...) > name: (test_vm)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
-            "open_host_compute_system(...) > failed to open (test_vm), result code: (0x80004003:");
+            "open_compute_system(...) > failed to open (test_vm), result code: (0x80004003:");
     }
 
     /******************************************************
@@ -1356,7 +1356,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_create_operation_fail(UutCallable
             ASSERT_EQ(mock_compute_system_object, computeSystem);
         });
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_compute_system(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(
             mpl::Level::error,
@@ -1419,7 +1419,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_fail(UutCallableT uut_callback,
             ASSERT_EQ(mock_compute_system_object, computeSystem);
         });
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_compute_system(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::error,
                                              "perform_hcs_operation(...) > Operation failed!");
@@ -1503,7 +1503,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_wait_for_operation_fail(
                                 Return(nullptr)));
         }
 
-        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_host_compute_system(...)");
+        logger_scope.mock_logger->expect_log(mpl::Level::debug, "open_compute_system(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug, "perform_hcs_operation(...)");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,

@@ -32,7 +32,7 @@ struct HcsScsiDevice
     HcsScsiDeviceType type;
     std::string name;
     HcsPath path;
-    bool read_only;
+    bool read_only {false};
 };
 
 } // namespace multipass::hyperv::hcs

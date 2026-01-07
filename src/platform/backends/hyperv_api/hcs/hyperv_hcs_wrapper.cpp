@@ -170,7 +170,7 @@ HCSWrapper::HCSWrapper(const Singleton<HCSWrapper>::PrivatePass& pass) noexcept
 OperationResult HCSWrapper::open_compute_system(const std::string& name,
                                                 HcsSystemHandle& out_hcs_system) const
 {
-    mpl::debug(log_category, "open_host_compute_system(...) > name: ({})", name);
+    mpl::debug(log_category, "open_compute_system(...) > name: ({})", name);
 
     // Windows API uses wide strings.
     const std::wstring name_w = to_wstring(name);
@@ -182,7 +182,7 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
     if (!result)
     {
         mpl::debug(log_category,
-                   "open_host_compute_system(...) > failed to open ({}), result code: ({})",
+                   "open_compute_system(...) > failed to open ({}), result code: ({})",
                    name,
                    result);
     }

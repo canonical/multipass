@@ -41,8 +41,8 @@ struct HcsPlan9Base
     /**
      * The default port number for Plan9.
      *
-     * It's different from the official default port number
-     * since the host might want to run a Plan9 server itself.
+     * It's different from the official default port number since the host might want to run a Plan9
+     * server itself.
      */
     static constexpr std::uint16_t default_port{55035};
 
@@ -52,8 +52,8 @@ struct HcsPlan9Base
     std::string name{};
 
     /**
-     * The name by which the guest operating system can access this share
-     * via the aname parameter in the Plan9 protocol.
+     * The name by which the guest operating system can access this share via the `aname` parameter
+     * in the Plan9 protocol.
      */
     std::string access_name{};
 
