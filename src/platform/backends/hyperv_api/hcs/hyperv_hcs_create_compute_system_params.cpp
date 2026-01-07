@@ -22,6 +22,25 @@
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcs;
 
+namespace
+{
+void append_if_supported(auto& schema_version_dependent_vm_sections,
+                         auto section,
+                         HcsSchemaVersion target_schema_version)
+{
+    const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
+    if (schema_version >= target_schema_version)
+    {
+        if (schema_version_dependent_vm_sections.empty())
+        {
+            // To emit an initial comma.
+            schema_version_dependent_vm_sections.push_back({});
+        }
+        schema_version_dependent_vm_sections.emplace_back(section);
+    }
+}
+} // namespace
+
 template <typename Char>
 template <typename FormatContext>
 auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
@@ -85,23 +104,9 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
             })json");
 
     std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
-    const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
-
-    auto append_if_supported = [&schema_version_dependent_vm_sections,
-                                &schema_version](auto section, HcsSchemaVersion version) {
-        if (schema_version >= version)
-        {
-            if (schema_version_dependent_vm_sections.empty())
-            {
-                // To emit an initial comma.
-                schema_version_dependent_vm_sections.push_back({});
-            }
-            schema_version_dependent_vm_sections.emplace_back(
-                static_cast<std::basic_string_view<Char>>(section));
-        }
-    };
-
-    append_if_supported(requested_services, HcsSchemaVersion::v25);
+    append_if_supported(schema_version_dependent_vm_sections,
+                        static_cast<std::basic_string_view<Char>>(requested_services),
+                        HcsSchemaVersion::v25);
 
     return json_template.format_to(
         ctx,
