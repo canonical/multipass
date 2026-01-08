@@ -91,6 +91,7 @@ add_executable(multipass_tests
   test_qemuimg_process_spec.cpp
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
+  test_rust_integration.cpp
   test_setting_specs.cpp
   test_settings.cpp
   test_sftp_client.cpp
