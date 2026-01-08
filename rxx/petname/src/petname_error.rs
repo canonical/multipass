@@ -19,7 +19,7 @@
 
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum PetnameError {
     InvalidWordNumber(i32),
     InvalidSeparator(i8),
