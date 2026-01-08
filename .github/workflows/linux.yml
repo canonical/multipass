@@ -154,16 +154,20 @@ jobs:
         retry_on_exit_code: 42
         command: |
           run_snapcraft() {
-            if output=$("$@" 2>&1); then
-              echo "$output"
+            tmpfile=$(mktemp)
+
+            "$@" 2>&1 | tee "$tmpfile"
+            exit_code=${PIPESTATUS[0]}
+
+            if [ $exit_code -eq 0 ]; then
               return 0
             fi
-            exit_code=$?
-            echo "$output"
-            if echo "$output" | grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes"; then
-              return 42  # Retryable
+
+            if grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes" "$tmpfile"; then
+              return 42
             fi
-            return $exit_code  # Real failure, don't retry
+
+            return $exit_code
           }
           run_snapcraft /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
           run_snapcraft /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
