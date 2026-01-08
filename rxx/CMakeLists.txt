@@ -67,6 +67,7 @@ foreach(crate_name ${CRATES})
     set(bridge_source "${CMAKE_CURRENT_SOURCE_DIR}/target/cxxbridge/${crate_name}/src")
     set(bridge_cc "${bridge_source}/lib.rs.cc")
 
+    set(ACTIVE_FEATURES "default")
     #Library creation to compile the CXX glue source
     add_library(${crate_name} STATIC ${bridge_cc})
     #Here we can place the crate-wise dependencies
@@ -78,17 +79,44 @@ foreach(crate_name ${CRATES})
 
     add_custom_command(
       OUTPUT ${bridge_cc} ${rust_out}
-      COMMAND ${CARGO_EXECUTABLE} build -p ${crate_name} ${rust_build_flag} --lib
+      COMMAND ${CARGO_EXECUTABLE} build -p ${crate_name} ${rust_build_flag} --lib --features "${ACTIVE_FEATURES}"
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
       COMMENT "Building Rust crates and generating C++ glue..."
     )
 
-    add_test(
-          NAME      ${crate_name}_tests
-          COMMAND   cargo test -p ${crate_name} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
-    --no-fail-fast
-    )
   endif()
 endforeach()
 
+add_test(
+      NAME      multipass_rust_tests
+      COMMAND   ${CARGO_EXECUTABLE} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
+--no-fail-fast --workspace --all-features
+)
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/target")
+
+if(cmake_build_type_lower MATCHES "coverage")
+  execute_process(
+    COMMAND ${CARGO_EXECUTABLE} tarpaulin --version
+    RESULT_VARIABLE TARPAULIN_INSTALLED
+    OUTPUT_VARIABLE TARPAULIN_VERSION
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  if (NOT TARPAULIN_INSTALLED EQUAL 0)
+    execute_process(
+      COMMAND ${CARGO_EXECUTABLE} install cargo-tarpaulin
+      COMMENT "Installing cargo-tarpaulin for coverage builds"
+    )
+  endif()
+    #Engine is for non-x86_64 processors. Can only use if return codes from test are always 0 + no fork or similar syscalls
+    add_custom_target(rust_coverage_tarpaulin
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND ${CARGO_EXECUTABLE} tarpaulin
+        --out Lcov
+        --output-dir ${CMAKE_BINARY_DIR}
+        --exclude-files '../*'
+        --engine llvm
+      COMMENT "Running Rust coverage with Tarpaulin"
+    )
+endif()
