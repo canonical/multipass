@@ -163,18 +163,13 @@ jobs:
               return 0
             fi
 
-            echo "=== DEBUG: exit_code=$exit_code ==="
-            echo "=== DEBUG: tmpfile contents ==="
-            cat "$tmpfile"
-            echo "=== DEBUG: end tmpfile ==="
-
             if grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes" "$tmpfile"; then
-              echo "=== DEBUG: grep matched, returning 42 ==="
-              return 42
+              exit 42
             fi
 
-            return $exit_code
+            exit $exit_code
           }
+
           run_snapcraft /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
           run_snapcraft /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
           run_snapcraft /snap/bin/snapcraft pull --use-lxd multipass
