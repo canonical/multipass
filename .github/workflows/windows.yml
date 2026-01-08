@@ -86,6 +86,9 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
     - name: Install specific QEMU from Choco
       uses: crazy-max/ghaction-chocolatey@v4
       with:
@@ -176,7 +179,7 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        bin/multipass_tests
+          ctest
 
     - name: Package
       id: cmake-package
