@@ -26,6 +26,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 
@@ -114,6 +115,10 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
     hcs::HcsSystemHandle handle{nullptr};
     if (HCS().open_compute_system(name, handle))
     {
+        // Grab compute system GUID before terminating it so we can use it later on for endpoint
+        // cleanup.
+        std::string vm_guid{};
+        (void)HCS().get_compute_system_guid(handle, vm_guid);
         // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
         // the VM is stopped. The base class will take care of the nuking the VM folder.
         const auto& [status, status_msg] = HCS().terminate_compute_system(handle);
@@ -122,6 +127,24 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
             mpl::warn(log_category,
                       "remove_resources_for_impl() -> Host compute system {} was still alive.",
                       name);
+        }
+
+        if (!vm_guid.empty())
+        {
+            // Fetch and remove endpoints (best effort)
+            top_catch_all(log_category, [&] {
+                std::vector<std::string> attached_endpoints{};
+                const auto& enumerate_result =
+                    HCN().enumerate_attached_endpoints(vm_guid, attached_endpoints);
+                for (const auto& elem : attached_endpoints)
+                {
+                    const auto remove_result = HCN().delete_endpoint(elem);
+                    mpl::trace(log_category,
+                               "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
+                               elem,
+                               remove_result.code);
+                }
+            });
         }
     }
     else

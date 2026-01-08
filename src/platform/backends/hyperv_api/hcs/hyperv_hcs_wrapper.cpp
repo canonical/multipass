@@ -23,6 +23,8 @@
 
 #include <multipass/logging/log.h>
 
+#include <shared/windows/wchar_conversion.h>
+
 #include <ComputeDefs.h>
 
 #include <QJsonDocument>
@@ -31,6 +33,7 @@
 #include <chrono>
 #include <memory>
 
+#include <boost/json.hpp>
 #include <fmt/xchar.h>
 #include <ztd/out_ptr.hpp>
 
@@ -425,6 +428,45 @@ OperationResult HCSWrapper::get_compute_system_state(const HcsSystemHandle& targ
     }();
 
     return {result.code, L""};
+}
+
+// ---------------------------------------------------------
+OperationResult HCSWrapper::get_compute_system_guid(const HcsSystemHandle& target_hcs_system,
+                                                    std::string& guid_out) const
+{
+    mpl::debug(log_category,
+               "get_compute_system_guid(...) > handle: ({})",
+               fmt::ptr(target_hcs_system.get()));
+
+    const auto result = perform_hcs_operation(
+        [&](auto&& op) {
+            return API().HcsGetComputeSystemProperties(
+                static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+                op,
+                nullptr);
+        },
+        target_hcs_system);
+
+    if (!result)
+        return result;
+
+    const std::string result_msg_str = wchar_to_utf8(result.status_msg);
+
+    std::error_code ec;
+    const auto parsed = boost::json::parse(result_msg_str, ec);
+    if (ec)
+    {
+        return {E_FAIL, L"Json parse error"};
+    }
+
+    const auto json_object = parsed.as_object();
+
+    if (const auto it = json_object.find("RuntimeId"); it != json_object.end())
+    {
+        guid_out = it->value().as_string();
+        return result;
+    }
+    return {E_FAIL, L"GUID not found in compute system properties"};
 }
 
 // ---------------------------------------------------------

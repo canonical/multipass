@@ -90,6 +90,11 @@ struct MockHCSWrapper : public hyperv::hcs::HCSWrapper
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
+                get_compute_system_guid,
+                (const hyperv::hcs::HcsSystemHandle& target_hcs_system, std::string& guid_out),
+                (const, override));
+
+    MOCK_METHOD(hyperv::OperationResult,
                 modify_compute_system,
                 (const hyperv::hcs::HcsSystemHandle& target_hcs_system,
                  const hyperv::hcs::HcsRequest& request),
