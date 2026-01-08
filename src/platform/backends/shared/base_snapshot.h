@@ -112,21 +112,20 @@ private:
     std::shared_ptr<Snapshot> parent;
 
     // This class is non-copyable and having these const simplifies thread safety
-    const std::string
-        cloud_init_instance_id;         // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const int index;                    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QString id;                   // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QDateTime creation_timestamp; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const int num_cores;                // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const MemorySize mem_size;          // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const MemorySize disk_space;        // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const std::vector<NetworkInterface>
-        extra_interfaces;              // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const VirtualMachine::State state; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const std::unordered_map<std::string, VMMount>
-        mounts;                 // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QJsonObject metadata; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QDir storage_dir;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::string cloud_init_instance_id;
+    const int index;
+    const QString id;
+    const QDateTime creation_timestamp;
+    const int num_cores;
+    const MemorySize mem_size;
+    const MemorySize disk_space;
+    const std::vector<NetworkInterface> extra_interfaces;
+    const VirtualMachine::State state;
+    const std::unordered_map<std::string, VMMount> mounts;
+    const QJsonObject metadata;
+    const QDir storage_dir;
+    // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     bool captured;
     mutable std::recursive_mutex mutex;
