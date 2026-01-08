@@ -240,7 +240,7 @@ jobs:
            /root/parts/multipass/build/bin/multipass_tests"
 
     - name: Run integration tests
-      id: test
+      id: integration-tests
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 2
       run: |
