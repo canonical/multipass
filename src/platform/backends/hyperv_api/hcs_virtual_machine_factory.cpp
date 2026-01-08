@@ -29,6 +29,7 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
+#include <shared/windows/windows_feature_status.h>
 
 #include <computenetwork.h>
 
@@ -305,6 +306,20 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_adapters()
 std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
 {
     return get_adapters();
+}
+
+void HCSVirtualMachineFactory::hypervisor_health_check()
+{
+    if (auto state = get_windows_feature_state(L"VirtualMachinePlatform"))
+    {
+        if (state != WindowsFeatureState::Enabled)
+        {
+            throw WindowsFeatureNotEnabledException{
+                "Hyper-V HCS backend requires `Virtual Machine Platform` feature to be enabled. "
+                "Current state is : {0}",
+                state == WindowsFeatureState::Absent ? "Absent" : "Disabled"};
+        }
+    }
 }
 
 } // namespace multipass::hyperv
