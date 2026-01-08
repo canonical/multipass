@@ -31,8 +31,8 @@
 #include <QHostInfo>
 #include <ztd/out_ptr.hpp>
 
-#include <Aclapi.h>
 #include <Windows.h>
+#include <Aclapi.h>
 #include <lm.h>
 #include <sddl.h>
 
