@@ -35,6 +35,7 @@
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
 #include "shared/windows/process_factory.h"
+#include "shared/windows/wchar_conversion.h"
 #include "shared/windows/wsa_init_wrapper.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
@@ -540,32 +541,6 @@ std::string_view adapter_type_to_str(int type)
     }
 }
 
-std::string wchar_to_utf8(std::wstring_view input)
-{
-    if (input.empty())
-        return {};
-
-    const auto size_needed = WideCharToMultiByte(CP_UTF8,
-                                                 0,
-                                                 input.data(),
-                                                 static_cast<int>(input.size()),
-                                                 nullptr,
-                                                 0,
-                                                 nullptr,
-                                                 nullptr);
-    std::string result(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8,
-                        0,
-                        input.data(),
-                        static_cast<int>(input.size()),
-                        result.data(),
-                        size_needed,
-                        nullptr,
-                        nullptr);
-    // FIXME : Check error code and GetLastError here.
-    return result;
-}
-
 /**
  * IP conversion utilities
  */
@@ -698,6 +673,31 @@ std::vector<std::string> unicast_addrs_to_net_addrs(
     return result;
 }
 } // namespace
+
+std::string mp::wchar_to_utf8(std::wstring_view input)
+{
+    if (input.empty())
+        return {};
+
+    const auto size_needed = WideCharToMultiByte(CP_UTF8,
+                                                 0,
+                                                 input.data(),
+                                                 static_cast<int>(input.size()),
+                                                 nullptr,
+                                                 0,
+                                                 nullptr,
+                                                 nullptr);
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8,
+                        0,
+                        input.data(),
+                        static_cast<int>(input.size()),
+                        result.data(),
+                        size_needed,
+                        nullptr,
+                        nullptr);
+    return result;
+}
 
 struct GetNetworkInterfacesInfoException : public multipass::FormattedExceptionBase<>
 {
