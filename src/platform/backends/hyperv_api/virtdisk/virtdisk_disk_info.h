@@ -73,11 +73,10 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo, Char>
     auto format(const multipass::hyperv::virtdisk::VirtualDiskInfo& params,
                 FormatContext& ctx) const
     {
-        return fmt::format_to(
-            ctx.out(),
-            "Storage type: {} | Size: {} | Smallest safe size: {}",
-            params.virtual_storage_type,
-            params.size,
-            params.smallest_safe_virtual_size);
+        return fmt::format_to(ctx.out(),
+                              "Storage type: {} | Size: {} | Smallest safe size: {}",
+                              params.virtual_storage_type,
+                              params.size,
+                              params.smallest_safe_virtual_size);
     }
 };

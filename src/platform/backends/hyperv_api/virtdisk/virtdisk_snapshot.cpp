@@ -263,7 +263,8 @@ void VirtDiskSnapshot::erase_impl()
     }
     // Finally, erase the merged disk.
     mpl::debug(log_category, "Removing snapshot file: `{}`", self_path);
-    if(!MP_FILEOPS.remove(self_path)){
+    if (!MP_FILEOPS.remove(self_path))
+    {
         mpl::error(log_category, "Failed removing snapshot file: `{}`!", self_path);
     }
 }
