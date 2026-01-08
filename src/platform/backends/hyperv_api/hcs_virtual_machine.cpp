@@ -281,11 +281,17 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         }
     });
 
-    const auto result = HCS().open_compute_system(get_name(), hcs_system);
-    if (result)
+    if (const auto result = HCS().open_compute_system(get_name(), hcs_system))
     {
         // Opened existing VM
         return false;
+    }
+    else
+    {
+        if (!(HCS_E_SYSTEM_NOT_FOUND == static_cast<HRESULT>(result.code)))
+        {
+            throw OpenComputeSystemException{"Failed with error code: {}", result.code};
+        }
     }
 
     // FIXME: Handle suspend state?

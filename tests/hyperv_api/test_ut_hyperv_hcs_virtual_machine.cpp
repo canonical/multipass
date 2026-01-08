@@ -131,7 +131,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
             .WillRepeatedly(
                 DoAll([this](const std::string& name,
                              hcs_handle_t& out_handle) { ASSERT_EQ(dummy_vm_name, name); },
-                      Return(hcs_op_result_t{1, L""})));
+                      Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""})));
 
         EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
@@ -222,6 +222,19 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_open)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_open_error)
+{
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
+        .WillOnce(DoAll([this](const std::string& name,
+                               hcs_handle_t& out_handle) { ASSERT_EQ(dummy_vm_name, name); },
+                        Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_CONFIGURED_FOR_OPERATION, L""})));
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_THROW(uut = construct_vm(), multipass::hyperv::OpenComputeSystemException);
+    ASSERT_EQ(uut, nullptr);
 }
 
 // ---------------------------------------------------------

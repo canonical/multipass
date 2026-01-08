@@ -32,6 +32,11 @@ struct CreateComputeSystemException : FormattedExceptionBase<>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
+struct OpenComputeSystemException : FormattedExceptionBase<>
+{
+    using FormattedExceptionBase::FormattedExceptionBase;
+};
+
 struct ComputeSystemStateException : FormattedExceptionBase<>
 {
     using FormattedExceptionBase::FormattedExceptionBase;
