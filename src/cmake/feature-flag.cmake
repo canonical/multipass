@@ -32,9 +32,23 @@ else()
 endif()
 
 macro(feature_flag option doc)
+  list(APPEND MP_ALL_FEATURE_FLAGS ${option})
   if(${ARGC} GREATER 2)
     cmake_dependent_option(${option} "${doc}" ON "MP_ALLOW_OPTIONAL_FEATURES;${ARGV2}" OFF)
   else()
     cmake_dependent_option(${option} "${doc}" ON MP_ALLOW_OPTIONAL_FEATURES OFF)
   endif()
 endmacro()
+
+function(is_custom_feature_set OUT_VAR)
+  set(${OUT_VAR} FALSE PARENT_SCOPE)
+  foreach(feature IN LISTS MP_ALL_FEATURE_FLAGS)
+    # Check if the feature is available but not enabled, in which case we have a custom feature set.
+    # (Note that when disabling `MP_ALLOW_OPTIONAL_FEATURES`, all the feature flags are marked
+    # unavailable, so this condition will always be false then.)
+    if(${${feature}_AVAILABLE} AND NOT ${${feature}})
+      set(${OUT_VAR} TRUE PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+endfunction()
