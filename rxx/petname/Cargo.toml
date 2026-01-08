@@ -23,6 +23,9 @@ rust-version.workspace = true
 [lib]
 crate-type = ["staticlib"]
 
+[features]
+default = []
+
 [dependencies]
 cxx.workspace = true
 macros.workspace = true
