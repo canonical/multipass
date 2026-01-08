@@ -24,6 +24,7 @@
 #include <multipass/singleton.h>
 
 #include <string>
+#include <vector>
 
 namespace multipass::hyperv::hcn
 {
@@ -42,6 +43,9 @@ struct HCNWrapper : public Singleton<HCNWrapper>
     [[nodiscard]] virtual OperationResult create_endpoint(
         const CreateEndpointParameters& params) const;
     [[nodiscard]] virtual OperationResult delete_endpoint(const std::string& endpoint_guid) const;
+    [[nodiscard]] virtual OperationResult enumerate_attached_endpoints(
+        const std::string& vm_guid,
+        std::vector<std::string>& endpoint_guids) const;
 };
 
 inline const HCNWrapper& HCN()

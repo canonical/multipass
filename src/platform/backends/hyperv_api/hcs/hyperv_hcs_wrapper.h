@@ -68,6 +68,8 @@ struct HCSWrapper : public Singleton<HCSWrapper>
     [[nodiscard]] virtual OperationResult get_compute_system_state(
         const HcsSystemHandle& target_hcs_system,
         ComputeSystemState& state_out) const;
+    [[nodiscard]] virtual OperationResult
+    get_compute_system_guid(const HcsSystemHandle& target_hcs_system, std::string& guid_out) const;
     [[nodiscard]] virtual OperationResult modify_compute_system(
         const HcsSystemHandle& target_hcs_system,
         const HcsRequest& request) const;
