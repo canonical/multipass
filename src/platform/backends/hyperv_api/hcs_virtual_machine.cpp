@@ -164,6 +164,28 @@ auto resolve_ip_addresses(const std::string& hostname)
 
     return std::make_pair(ipv4, ipv6);
 }
+
+void try_create_endpoints(
+    const std::string& vm_name,
+    const std::vector<multipass::hyperv::hcn::CreateEndpointParameters>& create_endpoint_params)
+{
+    for (const auto& endpoint : create_endpoint_params)
+    {
+        // There might be remnants from an old VM, remove the endpoint if exist before
+        // creating it again.
+        if (HCN().delete_endpoint(endpoint.endpoint_guid))
+        {
+            mpl::debug(vm_name,
+                       "The endpoint {} was already present, removed it.",
+                       endpoint.endpoint_guid);
+        }
+        if (const auto& [status, msg] = HCN().create_endpoint(endpoint); !status)
+        {
+            throw multipass::hyperv::CreateEndpointException{"create_endpoint failed with {}",
+                                                             status};
+        }
+    }
+}
 } // namespace
 
 namespace multipass::hyperv
@@ -230,6 +252,22 @@ std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
     const std::filesystem::path head_avhdx =
         base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
     return std::filesystem::exists(head_avhdx) ? head_avhdx : base_vhdx;
+}
+
+void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
+{
+    if (device.type == hcs::HcsScsiDeviceType::VirtualDisk())
+    {
+        std::vector<std::filesystem::path> lineage{};
+        if (VirtDisk().list_virtual_disk_chain(device.path.get(), lineage))
+        {
+            grant_access_to_paths({lineage.begin(), lineage.end()});
+        }
+    }
+    else
+    {
+        grant_access_to_paths({device.path.get()});
+    }
 }
 
 void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> paths) const
@@ -320,23 +358,6 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         return params;
     }();
 
-    for (const auto& endpoint : create_endpoint_params)
-    {
-        // There might be remnants from an old VM, remove the endpoint if exist before
-        // creating it again.
-        if (HCN().delete_endpoint(endpoint.endpoint_guid))
-        {
-            mpl::debug(get_name(),
-                       "The endpoint {} was already present for the VM {}, removed it.",
-                       endpoint.endpoint_guid,
-                       get_name());
-        }
-        if (const auto& [status, msg] = HCN().create_endpoint(endpoint); !status)
-        {
-            throw CreateEndpointException{"create_endpoint failed with {}", status};
-        }
-    }
-
     // Create the VM from scratch.
     const auto create_compute_system_params = [this, &create_endpoint_params]() {
         hcs::CreateComputeSystemParameters params{};
@@ -374,11 +395,12 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         return params;
     }();
 
+    try_create_endpoints(get_name(), create_endpoint_params);
+
     if (const auto create_result =
             HCS().create_compute_system(create_compute_system_params, hcs_system);
         !create_result)
     {
-        fmt::print(L"Create compute system failed: {}", create_result.status_msg);
         throw CreateComputeSystemException{"create_compute_system failed with {}",
                                            create_result.code};
     }
@@ -386,18 +408,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     // Grant access to the VHDX and the cloud-init ISO files.
     for (const auto& scsi : create_compute_system_params.scsi_devices)
     {
-        if (scsi.type == hcs::HcsScsiDeviceType::VirtualDisk())
-        {
-            std::vector<std::filesystem::path> lineage{};
-            if (VirtDisk().list_virtual_disk_chain(scsi.path.get(), lineage))
-            {
-                grant_access_to_paths({lineage.begin(), lineage.end()});
-            }
-        }
-        else
-        {
-            grant_access_to_paths({scsi.path.get()});
-        }
+        grant_access_to_scsi_device(scsi);
     }
 
     return true;

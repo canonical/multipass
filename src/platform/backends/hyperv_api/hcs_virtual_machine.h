@@ -35,6 +35,11 @@ class VMStatusMonitor;
 namespace multipass::hyperv
 {
 
+namespace hcs
+{
+struct HcsScsiDevice;
+}
+
 /**
  * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
  */
@@ -105,6 +110,7 @@ private:
      */
     [[nodiscard]] std::filesystem::path get_primary_disk_path() const noexcept(false);
 
+    void grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const;
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
 
     static void compute_system_event_callback(HCS_EVENT* event, void* context);
