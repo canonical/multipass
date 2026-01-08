@@ -426,7 +426,7 @@ mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 
 int mp::HyperVVirtualMachine::ssh_port()
 {
-    return 22;
+    return default_ssh_port;
 }
 
 void mp::HyperVVirtualMachine::handle_state_update()

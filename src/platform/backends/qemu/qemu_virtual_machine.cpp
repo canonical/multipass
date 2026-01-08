@@ -427,7 +427,7 @@ mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
 
 int mp::QemuVirtualMachine::ssh_port()
 {
-    return 22;
+    return default_ssh_port;
 }
 
 void mp::QemuVirtualMachine::handle_state_update()

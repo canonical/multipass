@@ -17,6 +17,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <multipass/constants.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/mount_handler.h>
 #include <multipass/vm_mount.h>
@@ -483,7 +484,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_port)
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
-    EXPECT_EQ(uut->ssh_port(), 22);
+    EXPECT_EQ(uut->ssh_port(), multipass::default_ssh_port);
 }
 
 // ---------------------------------------------------------
