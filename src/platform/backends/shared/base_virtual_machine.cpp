@@ -339,9 +339,9 @@ auto mp::BaseVirtualMachine::view_snapshots(SnapshotPredicate predicate) const -
 {
     const std::unique_lock lock{snapshot_mutex};
 
-    auto filtered = std::views::all(snapshots) | std::views::values |
-                    std::views::filter(
-                        [&](const auto& snapshot) { return !predicate || predicate(*snapshot); });
+    auto filtered = snapshots | std::views::values | std::views::filter([&](const auto& snapshot) {
+                        return !predicate || predicate(*snapshot);
+                    });
 
     return SnapshotVista{filtered.begin(), filtered.end()};
 }
