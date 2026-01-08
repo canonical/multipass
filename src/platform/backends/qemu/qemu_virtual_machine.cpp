@@ -35,7 +35,6 @@
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
 
-
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>

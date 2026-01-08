@@ -49,7 +49,9 @@ struct HCNAPI : public Singleton<HCNAPI>
                                                   PWSTR* ErrorRecord) const;
     [[nodiscard]] virtual HRESULT HcnDeleteEndpoint(REFGUID Id, PWSTR* ErrorRecord) const;
     [[nodiscard]] virtual HRESULT HcnCloseEndpoint(HCN_ENDPOINT Endpoint) const;
-    [[nodiscard]] virtual HRESULT HcnEnumerateEndpoints(PCWSTR Query, PWSTR* Endpoints, PWSTR* ErrorRecord) const;
+    [[nodiscard]] virtual HRESULT HcnEnumerateEndpoints(PCWSTR Query,
+                                                        PWSTR* Endpoints,
+                                                        PWSTR* ErrorRecord) const;
     virtual void CoTaskMemFree(LPVOID pv) const;
 };
 
