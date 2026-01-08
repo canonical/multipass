@@ -202,6 +202,13 @@ parts:
     override-pull: |
       set -e
 
+      if [ ! -d "$HOME/.cargo" ]; then
+        echo "=== Installing Rust ==="
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+      fi
+      # Set PATH variable for cargo executable
+      . "$HOME/.cargo/env"
+
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
       python3 -m pip install jinja2

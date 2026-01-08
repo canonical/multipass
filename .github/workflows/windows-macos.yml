@@ -123,6 +123,16 @@ jobs:
         mkdir -p ~/.pip
         echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
 
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Rust Cache
+      uses: swatinem/rust-cache@v2
+      with:
+        # This ensures that if you have a workspace,
+        # all crates are indexed in the cache.
+        workspaces: "rxx"
+
     - name: Install dependencies from brew
       if: ${{ runner.os == 'macOS' }}
       run: |
@@ -278,7 +288,7 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        bin/multipass_tests
+        ctest
 
     - name: Package
       id: cmake-package
