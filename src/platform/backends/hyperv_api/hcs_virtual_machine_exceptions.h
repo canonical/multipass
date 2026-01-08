@@ -77,4 +77,9 @@ struct CreateBridgeException : public FormattedExceptionBase<>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
+struct WindowsFeatureNotEnabledException : public FormattedExceptionBase<>
+{
+    using FormattedExceptionBase::FormattedExceptionBase;
+};
+
 } // namespace multipass::hyperv
