@@ -39,4 +39,4 @@ struct FormatAsMixin
     }
 };
 
-} // namespace multipass
+} // namespace multipass::hyperv
