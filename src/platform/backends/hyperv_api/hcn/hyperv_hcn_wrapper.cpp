@@ -170,19 +170,16 @@ OperationResult perform_hcn_operation(const FnType& fn)
 
 // ---------------------------------------------------------
 
-UniqueHcnNetwork open_network(const std::string& network_guid)
+std::pair<OperationResult, UniqueHcnNetwork> open_network(const std::string& network_guid)
 {
-    mpl::debug(log_category, "open_network(...) > network_guid: {} ", network_guid);
+    mpl::trace(log_category, "open_network(...) > network_guid: {} ", network_guid);
 
     UniqueHcnNetwork network{};
     const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnOpenNetwork(guid_from_string(network_guid), out_ptr(network), rmsgbuf);
     });
-    if (!result)
-    {
-        mpl::error(log_category, "open_network() > HcnOpenNetwork failed with {}!", result.code);
-    }
-    return network;
+
+    return std::make_pair(result, std::move(network));
 }
 
 } // namespace
@@ -198,7 +195,7 @@ HCNWrapper::HCNWrapper(const Singleton<HCNWrapper>::PrivatePass& pass) noexcept
 
 OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params) const
 {
-    mpl::debug(log_category, "HCNWrapper::create_network(...) > params: {} ", params);
+    mpl::trace(log_category, "HCNWrapper::create_network(...) > params: {} ", params);
 
     UniqueHcnNetwork network{};
     const auto network_settings = fmt::to_wstring(params);
@@ -215,7 +212,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
 
 OperationResult HCNWrapper::delete_network(const std::string& network_guid) const
 {
-    mpl::debug(log_category, "HCNWrapper::delete_network(...) > network_guid: {}", network_guid);
+    mpl::trace(log_category, "HCNWrapper::delete_network(...) > network_guid: {}", network_guid);
 
     return perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnDeleteNetwork(guid_from_string(network_guid), rmsgbuf);
@@ -226,13 +223,13 @@ OperationResult HCNWrapper::delete_network(const std::string& network_guid) cons
 
 OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& params) const
 {
-    mpl::debug(log_category, "HCNWrapper::create_endpoint(...) > params: {} ", params);
+    mpl::trace(log_category, "HCNWrapper::create_endpoint(...) > params: {} ", params);
 
-    const auto network = open_network(params.network_guid);
+    const auto& [open_network_result, network] = open_network(params.network_guid);
 
     if (nullptr == network)
     {
-        return {E_POINTER, L"Could not open the network!"};
+        return open_network_result;
     }
 
     UniqueHcnEndpoint endpoint{};
@@ -251,7 +248,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
 
 OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) const
 {
-    mpl::debug(log_category,
+    mpl::trace(log_category,
                "HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ",
                endpoint_guid);
 
