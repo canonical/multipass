@@ -45,8 +45,6 @@
 namespace
 {
 
-constexpr auto default_ssh_port = 22;
-
 namespace mp = multipass;
 namespace mpl = mp::logging;
 using mp::hyperv::hcn::HCN;
