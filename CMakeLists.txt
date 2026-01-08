@@ -330,7 +330,7 @@ if(cmake_build_type_lower MATCHES "coverage")
     endif()
 
     add_custom_target(covreport
-      DEPENDS multipass_tests
+      DEPENDS multipass_tests rust_coverage_tarpaulin
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
@@ -343,7 +343,9 @@ if(cmake_build_type_lower MATCHES "coverage")
         ${CMAKE_BINARY_DIR}'/*'
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-      COMMAND ${GENHTML} -o coverage coverage.cleaned
+      COMMAND ${CMAKE_COMMAND} -E remove coverage.info
+      COMMAND ${LCOV} -a coverage.cleaned -a lcov.info -o total_coverage.info
+      COMMAND ${GENHTML} -o coverage total_coverage.info
     )
   endif()
 endif()
