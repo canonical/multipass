@@ -37,9 +37,7 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
     [[nodiscard]] VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
                                 const VirtualMachineDescription& desc) override;
-    void hypervisor_health_check() override
-    {
-    }
+    void hypervisor_health_check() override;
 
     [[nodiscard]] QString get_backend_version_string() const override
     {
