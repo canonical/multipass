@@ -151,10 +151,23 @@ jobs:
         timeout_minutes: 720 # 12 hours
         max_attempts: 5
         retry_wait_seconds: 20
+        retry_on_exit_code: 42
         command: |
-          /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
-          /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
-          /snap/bin/snapcraft pull --use-lxd multipass
+          run_snapcraft() {
+            if output=$("$@" 2>&1); then
+              echo "$output"
+              return 0
+            fi
+            exit_code=$?
+            echo "$output"
+            if echo "$output" | grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes"; then
+              return 42  # Retryable
+            fi
+            return $exit_code  # Real failure, don't retry
+          }
+          run_snapcraft /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
+          run_snapcraft /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
+          run_snapcraft /snap/bin/snapcraft pull --use-lxd multipass
 
     - name: Run clang-tidy through the diff
       if: ${{ false && matrix.build-type == 'Debug' }}
