@@ -20,7 +20,8 @@ add_library(shared_win STATIC
   smb_mount_handler.cpp
   wsa_init_wrapper.cpp
   windows_version.cpp
-  guid_formatter.cpp)
+  guid_formatter.cpp
+  windows_feature_status.cpp)
 
 include_directories(shared_win
   ..)
