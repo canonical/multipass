@@ -49,6 +49,7 @@ if(WIN32)
     hcn/hyperv_hcn_network_policy.cpp
     hcn/hyperv_hcn_create_endpoint_params.cpp
     hcn/hyperv_hcn_create_network_params.cpp
+    hcn/hyperv_hcn_endpoint_query.cpp
     hcs/hyperv_hcs_wrapper.cpp
     hcs/hyperv_hcs_event_type.cpp
     hcs/hyperv_hcs_scsi_device.cpp
@@ -70,6 +71,7 @@ if(WIN32)
   target_link_libraries(hyperv_api_backend PRIVATE
     fmt::fmt-header-only
     ztd::out_ptr
+    Boost::json
     platform
     utils
     scope_guard

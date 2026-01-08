@@ -227,11 +227,14 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         ASSERT_TRUE(status_msg.empty());
     }
 
+    std::string vm_guid{};
     // Start test VM
     {
         const auto& [status, status_msg] = HCS().start_compute_system(handle);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
+        ASSERT_TRUE(HCS().get_compute_system_guid(handle, vm_guid));
+        ASSERT_FALSE(vm_guid.empty());
     }
 
     // Add network adapter
@@ -244,6 +247,28 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
             HCS().modify_compute_system(handle, add_network_adapter_req);
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
+    }
+
+    // Verify that endpoint is attached to the VM
+    {
+        // Create another EP so we can ensure that we're only listing the EPs belonging to the VM
+        {
+            const auto& [status, status_msg] =
+                HCN().create_endpoint(hyperv::hcn::CreateEndpointParameters{
+                    .network_guid = network_parameters.guid,
+                    .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b",
+                });
+
+            ASSERT_TRUE(status);
+            ASSERT_TRUE(status_msg.empty());
+        }
+
+        std::vector<std::string> eps{};
+        const auto& [status, status_msg] = HCN().enumerate_attached_endpoints(vm_guid, eps);
+        ASSERT_TRUE(status);
+        ASSERT_TRUE(status_msg.empty());
+        ASSERT_EQ(eps.size(), 1);
+        ASSERT_EQ(eps[0], network_adapter.endpoint_guid);
     }
 
     EXPECT_TRUE(HCS().terminate_compute_system(handle)) << "Terminate system failed!";

@@ -77,6 +77,7 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_exists)
 {
     auto vm_name = "test-vm";
+    auto vm_guid = "this isn't a guid but this isn't a real implementation either";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
         .WillOnce(DoAll(
             [&](const std::string& name, hcs_handle_t& out_handle) {
@@ -85,9 +86,27 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_ex
             },
             Return(hcs_op_result_t{0, L""})));
 
+    EXPECT_CALL(mock_hcs, get_compute_system_guid(Eq(mock_handle), IsEmpty()))
+        .WillOnce(DoAll([&](const hcs_handle_t& target_hcs_system,
+                            std::string& out_guid) { out_guid = vm_guid; },
+                        Return(hcs_op_result_t{0, L""})));
+
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
+    EXPECT_CALL(mock_hcn, enumerate_attached_endpoints(Eq(vm_guid), IsEmpty()))
+        .WillOnce(DoAll(
+            [&](const std::string& vm_guid, std::vector<std::string>& endpoint_guids) {
+                endpoint_guids.emplace_back("this isn't an endpoint guid");
+                endpoint_guids.emplace_back("this isn't either");
+            },
+            Return(hcs_op_result_t{0, L""})));
+
+    EXPECT_CALL(mock_hcn, delete_endpoint(Eq("this isn't an endpoint guid")))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    EXPECT_CALL(mock_hcn, delete_endpoint(Eq("this isn't either")))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_factory());
     uut->remove_resources_for(vm_name);

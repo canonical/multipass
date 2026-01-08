@@ -18,11 +18,14 @@
 #include <hyperv_api/hcn/hyperv_hcn_api.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_endpoint_query.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
+
+#include <shared/windows/wchar_conversion.h>
 
 #include <windows.h>
 #include <computecore.h>
@@ -31,6 +34,7 @@
 #include <computestorage.h>
 #include <objbase.h>
 
+#include <boost/json.hpp>
 #include <fmt/xchar.h>
 #include <ztd/out_ptr.hpp>
 
@@ -255,6 +259,43 @@ OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) co
     return perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnDeleteEndpoint(guid_from_string(endpoint_guid), rmsgbuf);
     });
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::enumerate_attached_endpoints(
+    const std::string& vm_guid,
+    std::vector<std::string>& endpoint_guids) const
+{
+    mpl::trace(log_category,
+               "HCNWrapper::enumerate_attached_endpoints(...) > vm_guid: {} ",
+               vm_guid);
+
+    const auto query = EndpointQuery{.vm_guid = vm_guid};
+    const auto query_wstring = fmt::to_wstring(query);
+
+    UniqueCotaskmemString endpoints_json_output{}, result_msgbuf{};
+
+    const auto result = API().HcnEnumerateEndpoints(query_wstring.c_str(),
+                                                    out_ptr(endpoints_json_output),
+                                                    out_ptr(result_msgbuf));
+
+    if (endpoints_json_output)
+    {
+        const auto endpoints_as_str = wchar_to_utf8(endpoints_json_output.get());
+        std::error_code ec;
+        const auto as_json = boost::json::parse(endpoints_as_str, ec);
+        if (!ec)
+        {
+            const auto& as_array = as_json.as_array();
+            for (const auto& elem : as_array)
+            {
+                endpoint_guids.emplace_back(elem.as_string());
+            }
+        }
+    }
+
+    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
 } // namespace multipass::hyperv::hcn

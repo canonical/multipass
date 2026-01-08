@@ -64,6 +64,10 @@ HRESULT HCNAPI::HcnCloseEndpoint(HCN_ENDPOINT Endpoint) const
 {
     return ::HcnCloseEndpoint(Endpoint);
 }
+HRESULT HCNAPI::HcnEnumerateEndpoints(PCWSTR Query, PWSTR* Endpoints, PWSTR* ErrorRecord) const
+{
+    return ::HcnEnumerateEndpoints(Query, Endpoints, ErrorRecord);
+}
 void HCNAPI::CoTaskMemFree(LPVOID pv) const
 {
     ::CoTaskMemFree(pv);

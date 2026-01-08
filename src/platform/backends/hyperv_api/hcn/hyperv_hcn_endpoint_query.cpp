@@ -15,7 +15,7 @@
  *
  */
 
-#include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_endpoint_query.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
 using namespace multipass::hyperv;
@@ -23,32 +23,31 @@ using namespace multipass::hyperv::hcn;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpointParameters& params,
-                                                            FormatContext& ctx) const
+auto fmt::formatter<EndpointQuery, Char>::format(const EndpointQuery& params,
+                                                 FormatContext& ctx) const
     -> FormatContext::iterator
 {
     static constexpr auto json_template = string_literal<Char>(R"json(
     {{
-        "SchemaVersion": {{
+        "SchemaVersion":
+        {{
             "Major": 2,
-            "Minor": 16
+            "Minor": 2
         }},
-        "HostComputeNetwork": "{0}",
-        "Policies": [],
-        "MacAddress" : {1}
-    }})json");
+        "Filter": "{{\"VirtualMachine\": \"{0}\"}}"
+    }}
+    )json");
 
-    return json_template.format_to(
-        ctx,
-        params.network_guid,
-        std::string{params.mac_address ? fmt::format("\"{0}\"", params.mac_address.value())
-                                       : "null"});
+    auto v = json_template.format(params.vm_guid);
+    std::wprintf(L"%s\n", v.c_str());
+
+    return json_template.format_to(ctx, params.vm_guid);
 }
 
-template auto fmt::formatter<CreateEndpointParameters, char>::format<fmt::format_context>(
-    const CreateEndpointParameters&,
+template auto fmt::formatter<EndpointQuery, char>::format<fmt::format_context>(
+    const EndpointQuery&,
     fmt::format_context&) const -> fmt::format_context::iterator;
 
-template auto fmt::formatter<CreateEndpointParameters, wchar_t>::format<fmt::wformat_context>(
-    const CreateEndpointParameters&,
+template auto fmt::formatter<EndpointQuery, wchar_t>::format<fmt::wformat_context>(
+    const EndpointQuery&,
     fmt::wformat_context&) const -> fmt::wformat_context::iterator;

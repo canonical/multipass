@@ -51,6 +51,11 @@ struct MockHCNWrapper : public hyperv::hcn::HCNWrapper
                 (const std::string& endpoint_guid),
                 (const, override));
 
+    MOCK_METHOD(hyperv::OperationResult,
+                enumerate_attached_endpoints,
+                (const std::string& vm_guid, std::vector<std::string>& endpoint_guids),
+                (const, override));
+
     MP_MOCK_SINGLETON_BOILERPLATE(MockHCNWrapper, HCNWrapper);
 };
 } // namespace multipass::test

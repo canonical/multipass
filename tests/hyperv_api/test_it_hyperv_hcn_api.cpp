@@ -95,4 +95,46 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
     }
 }
 
+TEST_F(HyperVHCNAPI_IntegrationTests, create_endpoint_explicit_mac)
+{
+    hyperv::hcn::CreateNetworkParameters network_params{};
+    network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
+    network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
+    network_params.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+                                                 {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
+
+    hyperv::hcn::CreateEndpointParameters endpoint_params{};
+
+    endpoint_params.network_guid = network_params.guid;
+    endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
+    endpoint_params.mac_address = "00-11-22-33-44-55";
+
+    (void)HCN().delete_network(network_params.guid);
+
+    {
+        const auto& [success, error_msg] = HCN().create_network(network_params);
+        ASSERT_TRUE(success);
+        ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        const auto& [success, error_msg] = HCN().create_endpoint(endpoint_params);
+        std::wprintf(L"%s\n", error_msg.c_str());
+        ASSERT_TRUE(success);
+        ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        const auto& [success, error_msg] = HCN().delete_endpoint(endpoint_params.endpoint_guid);
+        ASSERT_TRUE(success);
+        ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        const auto& [success, error_msg] = HCN().delete_network(network_params.guid);
+        ASSERT_TRUE(success);
+        ASSERT_TRUE(error_msg.empty());
+    }
+}
+
 } // namespace multipass::test
