@@ -327,7 +327,7 @@ Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\h
 
 #### Anti-virus / security software blocking instances
 
-Anti-virus and network security software are not necessarily virtualisation-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
+Anti-virus and network security software are not necessarily virtualization-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
 
 
 #### Wi-Fi upload speed degrading when using external switch with Hyper-V

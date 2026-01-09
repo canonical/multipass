@@ -3,7 +3,10 @@
 
 The following guides provide step-by-step instructions on how to customise Multipass to address specific needs, from managing Multipass drivers to configuring a graphical user interface.
 
-- [Set up the driver](how-to-guides-customise-multipass-set-up-the-driver)
+- [Set up a virtualization driver](set-up-a-virtualization-driver)
+- [View Multipass instances using the driver](view-multipass-instances-using-the-driver)
+- [Set up network bridging using VirtualBox on macOS](how-to-guides-customise-multipass-set-up-network-bridging-virtualbox-macos)
+- [Set up port forwarding for a Multipass instance using VirtualBox](how-to-guides-customise-multipass-set-up-port-forwarding-for-a-multipass-instance-virtualbox)
 - [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
 - [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
 - [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer)
@@ -23,7 +26,10 @@ The following guides provide step-by-step instructions on how to customise Multi
 :maxdepth: 2
 :glob:
 
-set-up-the-driver
+set-up-a-virtualization-driver
+view-multipass-instances-using-the-driver
+set-up-network-bridging-virtualbox-macos
+set-up-port-forwarding-virtualbox
 migrate-from-hyperkit-to-qemu-on-macos
 authenticate-users-with-the-multipass-service
 build-multipass-images-with-packer
