@@ -223,11 +223,11 @@ jobs:
           sudo chmod +x /opt/homebrew/bin/nuget
         fi
 
-    - name: Set up CCache
-      id: setup-ccache
+    - name: Determine cache key
+      id: cache-key
+      shell: bash
       run: |
         # Find common base between main and HEAD to use as cache key.
-        # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
@@ -235,7 +235,7 @@ jobs:
       uses: actions/cache/restore@v5
       with:
         path: ${{ env.SCCACHE_DIR }}
-        key: "sccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
         restore-keys: sccache-${{ matrix.runs-on }}
 
     - name: Run sccache-cache
