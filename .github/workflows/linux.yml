@@ -169,10 +169,11 @@ jobs:
 
             exit $exit_code
           }
-
+          # The auto-refresh race would manifest itself in the first pull attempt.
+          # Hence wrapping only the first call.
           run_snapcraft /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
-          run_snapcraft /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
-          run_snapcraft /snap/bin/snapcraft pull --use-lxd multipass
+          /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
+          /snap/bin/snapcraft pull --use-lxd multipass
 
     - name: Run clang-tidy through the diff
       if: ${{ false && matrix.build-type == 'Debug' }}
