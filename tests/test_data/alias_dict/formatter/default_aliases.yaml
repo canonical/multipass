@@ -1,0 +1,11 @@
+active_context: default
+aliases:
+  default:
+    - alias: llp
+      command: ls
+      instance: primary
+      working-directory: map
+    - alias: lsp
+      command: ls
+      instance: primary
+      working-directory: map

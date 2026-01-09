@@ -1,1 +1,2 @@
 tests/test_data/formatters/** -text
+tests/test_data/alias_dict/formatter/** -text

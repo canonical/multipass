@@ -44,11 +44,7 @@ cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
-  if ("${VCPKG_HOST_ARCH}" STREQUAL "arm64")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "macOS Deployment Target")
-  else()
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
-  endif()
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
 elseif("${HOST_OS_NAME}" STREQUAL "Windows")
   set(VCPKG_HOST_OS "windows-static-md")
 else()
@@ -192,6 +188,9 @@ if(UNIX)
   list(APPEND MULTIPASS_BACKENDS qemu)
 endif()
 
+# Boost config
+find_package(Boost CONFIG REQUIRED COMPONENTS json)
+
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 
@@ -332,6 +331,7 @@ message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(MSVC)
   add_definitions(-DMULTIPASS_COMPILER_MSVC)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
@@ -428,3 +428,10 @@ if(MULTIPASS_ENABLE_TESTS)
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)
+
+# Disable .clang-tidy in build folder
+file(WRITE "${CMAKE_BINARY_DIR}/.clang-tidy"
+"---
+Checks: >
+  -*,
+")

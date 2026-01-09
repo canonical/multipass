@@ -112,14 +112,11 @@ branching for release.<br>
 target the `main` branch, even if it is part of a larger task. This should be the most common
 case.<br>
 **PR8.** If your PR relies on another one, target the other's branch.<br>
-**PR9.** When working on a larger set of changes with cohesive interdependence, consider using a
-feature branch.<br>
-**PR10.** Try to keep the number of concurrent feature branches small.<br>
-**PR11.** When PRs are stacked, prefer to merge them in order. The target branch will update
+**PR9.** When PRs are stacked, prefer to merge them in order. The target branch will update
 automatically upon merging.<br>
-**PR12.** PRs should include descriptions and/or point to appropriate context (within reason).<br>
-**PR13.** When authoring a PR, make sure to test it.<br>
-**PR14.** When authoring a PR, make sure to review its diff.<br>
+**PR10.** PRs should include descriptions and/or point to appropriate context (within reason).<br>
+**PR11.** When authoring a PR, make sure to test it.<br>
+**PR12.** When authoring a PR, make sure to review its diff.<br>
 
 ### Reviews (RVW)
 
@@ -138,6 +135,30 @@ approval (i.e. after multiple approvals are dismissed).<br>
 approval.<br>
 **RVW8.** Renovate PRs may be merged after a single primary approval.<br>
 **RVW9.** Review comments should be acknowledged by the author, but *resolved* by the reviewer.<br>
+
+### Feature flags (FF)
+
+**FF1.** When making an interdependent set of changes too large to review and merge as a single PR,
+consider adding a feature flag for it.<br>
+**FF2.** Feature flags should be used to disable any new code or behavior which is part of the given
+feature; with the feature flag disabled, Multipass should behave identically to before the flag's
+introduction.<br>
+**FF3.** Strive to encapsulate code that is dependent on a feature flag, preferably in its own
+files, so that those files can be entirely included or excluded from builds.<br>
+**FF4.** If necessary, create stub implementations of new feature APIs to allow other Multipass code
+to work with the new interfaces. When possible, put the stub implementations in separate files and
+conditionally compile them or the real implementations based on the state of the feature flag.<br>
+**FF5.** Where separate files are not feasible or justified, use preprocessor directives to
+selectively enable or disable feature code. Keep this approach as the exception rather than the
+norm.<br>
+**FF6.** Minimize unreachable code under a feature flag, i.e., code that can't be reached even
+though the feature is enabled.<br>
+**FF7.** PRs for code behind a feature flag should otherwise be treated as usual, with authors and
+reviewers maintaining the same standards of quality as for other PRs.<br>
+**FF8.** When a feature is fully-complete and suitable for release, the corresponding feature flag
+should be completely removed from Multipass.<br>
+**FF9.** Once a feature flag is removed, all newly-unreachable code should be removed along with
+it.<br>
 
 ### Versioning (GIT)
 

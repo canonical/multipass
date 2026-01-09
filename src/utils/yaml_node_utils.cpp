@@ -26,9 +26,9 @@ namespace mp = multipass;
 namespace
 {
 
-constexpr std::size_t kDefaultInterfaceIndex = 0;
-constexpr std::size_t kExtraInterfaceIndexStart = kDefaultInterfaceIndex + 1;
-constexpr std::string_view kInterfaceNamePattern = "eth{}";
+constexpr std::size_t default_interface_index = 0;
+constexpr std::size_t extra_interface_index_start = default_interface_index + 1;
+constexpr std::string_view interface_name_pattern = "eth{}";
 
 struct interface_details
 {
@@ -38,9 +38,9 @@ struct interface_details
     std::optional<int> route_metric{std::nullopt};
 
     interface_details(const std::string& mac_addr,
-                      std::size_t index = kDefaultInterfaceIndex,
+                      std::size_t index = default_interface_index,
                       bool optional = false)
-        : name(fmt::format(kInterfaceNamePattern, index)),
+        : name(fmt::format(interface_name_pattern, index)),
           mac_addr(mac_addr),
           optional(optional),
           route_metric(optional ? std::make_optional(200) : std::nullopt)
@@ -210,7 +210,7 @@ YAML::Node mp::utils::make_cloud_init_network_config(
     network_data["ethernets"][default_interface.name] = default_interface;
 
     // TODO@C++23: https://en.cppreference.com/w/cpp/ranges/enumerate_view.html
-    for (auto extra_idx = kExtraInterfaceIndexStart; const auto& extra : extra_interfaces)
+    for (auto extra_idx = extra_interface_index_start; const auto& extra : extra_interfaces)
     {
         if (!extra.auto_mode)
             continue;
@@ -245,7 +245,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(
         const interface_details default_interface{default_mac_addr};
         network_data["ethernets"][default_interface.name] = default_interface;
         const interface_details extra{/*mac_addr=*/extra_interface.mac_address,
-                                      /*index=*/kExtraInterfaceIndexStart,
+                                      /*index=*/extra_interface_index_start,
                                       /*optional=*/true};
         network_data["ethernets"][extra.name] = extra;
 
@@ -255,7 +255,7 @@ YAML::Node mp::utils::add_extra_interface_to_network_config(
     YAML::Node network_data = YAML::Load(network_config_file_content);
 
     // Iterate over possible extra interface names and find a vacant one.
-    for (std::size_t current_index = kExtraInterfaceIndexStart;; current_index++)
+    for (std::size_t current_index = extra_interface_index_start;; current_index++)
     {
         const interface_details extra{/*mac_addr=*/extra_interface.mac_address,
                                       /*index=*/current_index,

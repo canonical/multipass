@@ -22,6 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/utils.h>
+#include <multipass/utils/sorted_map_view.h>
 
 #include <regex>
 
@@ -575,25 +576,25 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
                    context_width,
                    dir_col_header);
 
-    for (const auto& [context_name, context_contents] : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
-        std::string shown_context = context_name == aliases.active_context_name()
-                                        ? context_name + active_context
-                                        : context_name;
+        std::string shown_context = context_name.get() == aliases.active_context_name()
+                                        ? context_name.get() + active_context
+                                        : context_name.get();
 
-        for (const auto& [name, def] : sort_dict(context_contents))
+        for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {
             fmt::format_to(std::back_inserter(buf),
                            row_format,
-                           name,
+                           name.get(),
                            alias_width,
-                           def.instance,
+                           def.get().instance,
                            instance_width,
-                           def.command,
+                           def.get().command,
                            command_width,
                            shown_context,
                            context_width,
-                           def.working_directory);
+                           def.get().working_directory);
         }
     }
 

@@ -29,15 +29,15 @@ void JournaldLogger::log(Level level, std::string_view category, std::string_vie
 {
     if (level <= logging_level)
     {
-        constexpr static std::string_view kMessageFmtStr = "MESSAGE=%.*s";
-        constexpr static std::string_view kPriorityFmtStr = "PRIORITY=%i";
-        constexpr static std::string_view kCategoryFmtStr = "CATEGORY=%.*s";
+        constexpr static std::string_view message_fmt_str = "MESSAGE=%.*s";
+        constexpr static std::string_view priority_fmt_str = "PRIORITY=%i";
+        constexpr static std::string_view category_fmt_str = "CATEGORY=%.*s";
 
-        JournaldWrapper::instance().write_journal(kMessageFmtStr,
+        JournaldWrapper::instance().write_journal(message_fmt_str,
                                                   message,
-                                                  kPriorityFmtStr,
+                                                  priority_fmt_str,
                                                   to_syslog_priority(level),
-                                                  kCategoryFmtStr,
+                                                  category_fmt_str,
                                                   category);
     }
 }

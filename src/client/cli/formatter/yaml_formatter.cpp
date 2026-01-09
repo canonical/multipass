@@ -21,6 +21,7 @@
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/format.h>
 #include <multipass/utils.h>
+#include <multipass/utils/sorted_map_view.h>
 #include <multipass/yaml_node_utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -333,22 +334,22 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_list, aliases_node;
 
-    for (const auto& [context_name, context_contents] : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
         YAML::Node context_node;
 
-        for (const auto& [name, def] : sort_dict(context_contents))
+        for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {
             YAML::Node alias_node;
-            alias_node["alias"] = name;
-            alias_node["command"] = def.command;
-            alias_node["instance"] = def.instance;
-            alias_node["working-directory"] = def.working_directory;
+            alias_node["alias"] = name.get();
+            alias_node["command"] = def.get().command;
+            alias_node["instance"] = def.get().instance;
+            alias_node["working-directory"] = def.get().working_directory;
 
             context_node.push_back(alias_node);
         }
 
-        aliases_node[context_name] = context_node;
+        aliases_node[context_name.get()] = context_node;
     }
 
     aliases_list["active_context"] = aliases.active_context_name();

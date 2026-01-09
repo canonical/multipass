@@ -1,0 +1,6 @@
+{
+    "alias3": {
+        "command": "third_command",
+        "instance": "third_instance"
+    }
+}

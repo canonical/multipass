@@ -236,7 +236,7 @@ jobs:
 
     - name: CCache
       if: ${{ runner.os == 'macOS' }}
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         key: "ccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
         restore-keys: |
@@ -251,7 +251,7 @@ jobs:
 
     - name: Install cmake
       if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v4.2.0
+      uses: lukka/get-cmake@v4.2.1
 
     - name: Set up MSVC
       if: ${{ runner.os == 'Windows' }}
@@ -301,7 +301,7 @@ jobs:
         runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
@@ -359,13 +359,13 @@ jobs:
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
 
@@ -393,7 +393,7 @@ jobs:
 
     - name: Upload combined macOS package
       if: ${{ steps.combine-package.outputs.path }}
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ steps.combine-package.outputs.name }}
         path: ${{ steps.combine-package.outputs.path }}
