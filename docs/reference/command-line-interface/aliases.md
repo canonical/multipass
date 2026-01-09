@@ -1,7 +1,7 @@
 (reference-command-line-interface-aliases)=
 # aliases
 
-> See also: [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
+> See also: [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
 
 The `aliases` command shows the aliases defined for all the instances.
 
