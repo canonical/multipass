@@ -33,7 +33,7 @@ function(is_release_branch OUTPUT_VARIABLE)
                   OUTPUT_STRIP_TRAILING_WHITESPACE
                   ERROR_QUIET)
 
-  string(REGEX MATCH "release/[0-9]+.[0-9]+" GIT_RELEASE_MATCH "${GIT_RELEASE_BRANCH}")
+  string(REGEX MATCH "release/[0-9]+\\.[0-9]+" GIT_RELEASE_MATCH "${GIT_RELEASE_BRANCH}")
   if(GIT_RELEASE_MATCH)
     set(${OUTPUT_VARIABLE} TRUE PARENT_SCOPE)
   else()
