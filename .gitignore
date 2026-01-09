@@ -24,8 +24,17 @@ packaging/windows/wix/obj/*
 packaging/windows/custom-actions/packages/*
 packaging/windows/custom-actions/x64/*
 
-# Python artifacts
-*.pyc
-
 # https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
 CMakeUserPresets.json
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# QT network download cache
+network-cache/
+
+# clangd code index cache
+.cache
