@@ -222,9 +222,9 @@ parts:
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
-      VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
-      craftctl set version=${VERSION}
-      craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
+      source data/version-metadata.env
+      craftctl set version=${MULTIPASS_SEMANTIC_VERSION}
+      craftctl set grade=$( echo ${MULTIPASS_SEMANTIC_VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
       sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
 
       cd ${CRAFT_PART_SRC}/3rd-party

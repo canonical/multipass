@@ -12,18 +12,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-configure_file(
-  version-metadata.env.in
-  version-metadata.env
-  @ONLY
-)
-
-install(
-  FILES multipass.gui.desktop
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
-)
-
-install(
-  FILES multipass.gui.svg
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
-)
+include(src/cmake/feature-flag.cmake)
