@@ -22,10 +22,10 @@
 
 #include <qemu_platform.h>
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/path.h>
 
 #include <unordered_map>
-#include <utility>
 
 namespace multipass
 {
@@ -33,7 +33,7 @@ namespace multipass
 class QemuPlatformDetail : public QemuPlatform
 {
 public:
-    explicit QemuPlatformDetail(const Path& data_dir);
+    explicit QemuPlatformDetail(const Path& data_dir, const AvailabilityZoneManager::Zones& zones);
     virtual ~QemuPlatformDetail();
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
@@ -46,11 +46,27 @@ public:
     void set_authorization(std::vector<NetworkInterfaceInfo>& networks) override;
 
 private:
-    const QString bridge_name;
+    // explicitly naming DisabledCopyMove since the private one derived from QemuPlatform takes
+    // precedence in lookup
+    struct Bridge : private multipass::DisabledCopyMove
+    {
+        const QString bridge_name;
+        const Subnet subnet;
+        FirewallConfig::UPtr firewall_config;
+
+        Bridge(const Subnet& subnet, const std::string& name);
+        ~Bridge();
+    };
+    using Bridges = std::unordered_map<std::string, Bridge>;
+
+    [[nodiscard]] static Bridges get_bridges(const AvailabilityZoneManager::Zones& zones);
+
+    [[nodiscard]] static BridgeSubnetList get_bridge_list(const Bridges&);
+
     const Path network_dir;
-    const std::string subnet;
+    const Bridges bridges;
     DNSMasqServer::UPtr dnsmasq_server;
-    FirewallConfig::UPtr firewall_config;
-    std::unordered_map<std::string, std::pair<QString, std::string>> name_to_net_device_map;
+    std::unordered_map<std::string, std::tuple<QString, std::string, QString>>
+        name_to_net_device_map;
 };
 } // namespace multipass

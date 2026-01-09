@@ -7,7 +7,11 @@
             ],
             "name": "foo",
             "release": "Ubuntu 16.04 LTS",
-            "state": "Running"
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
         }
     ]
 }
