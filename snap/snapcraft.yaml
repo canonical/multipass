@@ -16,6 +16,7 @@ base: core22
 architectures:
   - build-on: amd64
   - build-on: arm64
+  - build-on: s390x
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
@@ -295,12 +296,12 @@ parts:
       usr/lib/qemu/*: usr/bin/
       usr/share/qemu/*: qemu/
     override-pull: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
 
 
       craftctl default
     override-build: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
 
       set -ex
       # Mangle the configure a bit
@@ -322,6 +323,7 @@ parts:
     - qemu/vgabios-*.bin*
     - qemu/slof.bin*
     - qemu/bios-256k.bin*
+    - qemu/s390-ccw.img*
     - -usr/lib/*/pkgconfig
 
   qemu-firmware:
