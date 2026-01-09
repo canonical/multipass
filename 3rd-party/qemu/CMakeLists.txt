@@ -68,6 +68,7 @@ ExternalProject_Add(qemu
       --disable-gnutls
       --disable-libvduse
       --disable-vduse-blk-export
+    - --disable-dbus-display
   BUILD_COMMAND
     ${CMAKE_COMMAND} -E env ${MACOS_DEPLOYMENT_TARGET_FLAG} ninja
   TEST_COMMAND ""
