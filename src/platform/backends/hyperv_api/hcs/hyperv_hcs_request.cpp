@@ -1,0 +1,103 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+#include <hyperv_api/hcs/hyperv_hcs_request.h>
+
+#include <hyperv_api/hyperv_api_string_conversion.h>
+
+#include <fmt/std.h>
+
+using namespace multipass::hyperv;
+using namespace multipass::hyperv::hcs;
+
+template <typename Char>
+struct HcsRequestSettingsFormatters
+{
+
+    template <typename T>
+    static auto to_string(const T& v)
+    {
+        if constexpr (std::is_same_v<Char, char>)
+        {
+            return fmt::to_string(v);
+        }
+        else if constexpr (std::is_same_v<Char, wchar_t>)
+        {
+            return fmt::to_wstring(v);
+        }
+    }
+
+    auto operator()(const std::monostate&) const
+    {
+        return std::basic_string<Char>(string_literal<Char>("null"));
+    }
+
+    auto operator()(const HcsNetworkAdapter& params) const
+    {
+        static constexpr auto json_template = string_literal<Char>(R"json(
+            {{
+                "EndpointId": "{0}",
+                "MacAddress": "{1}",
+                "InstanceId": "{0}"
+            }}
+        )json");
+
+        return json_template.format(params.endpoint_guid, params.mac_address);
+    }
+
+    auto operator()(const HcsModifyMemorySettings& params) const
+    {
+        return to_string(params.size_in_mb);
+    }
+
+    auto operator()(const HcsAddPlan9ShareParameters& params) const
+    {
+        return to_string(params);
+    }
+
+    auto operator()(const HcsRemovePlan9ShareParameters& params) const
+    {
+        return to_string(params);
+    }
+};
+
+template <typename Char>
+template <typename FormatContext>
+auto fmt::formatter<HcsRequest, Char>::format(const HcsRequest& param, FormatContext& ctx) const
+    -> FormatContext::iterator
+{
+    static constexpr auto json_template = string_literal<Char>(R"json(
+        {{
+            "ResourcePath": "{0}",
+            "RequestType": "{1}",
+            "Settings": {2}
+        }}
+    )json");
+
+    return json_template.format_to(
+        ctx,
+        param.resource_path,
+        param.request_type,
+        std::visit(HcsRequestSettingsFormatters<Char>{}, param.settings));
+}
+
+template auto fmt::formatter<HcsRequest, char>::format<fmt::format_context>(
+    const HcsRequest&,
+    fmt::format_context&) const -> fmt::format_context::iterator;
+
+template auto fmt::formatter<HcsRequest, wchar_t>::format<fmt::wformat_context>(
+    const HcsRequest&,
+    fmt::wformat_context&) const -> fmt::wformat_context::iterator;

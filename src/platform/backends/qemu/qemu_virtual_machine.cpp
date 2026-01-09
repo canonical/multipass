@@ -22,6 +22,7 @@
 #include "qemu_vm_process_spec.h"
 #include "qemu_vmstate_process_spec.h"
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/format.h>
@@ -59,7 +60,6 @@ constexpr auto mount_data_key = "mount_data";
 constexpr auto mount_source_key = "source";
 constexpr auto mount_arguments_key = "arguments";
 
-constexpr int shutdown_timeout = 300000;   // unit: ms, 5 minute timeout for shutdown/suspend
 constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for killing the process
 
 QString get_vm_machine(const QJsonObject& metadata)
@@ -392,7 +392,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         if (vm_process && vm_process->running())
         {
             vm_process->write(qmp_execute_json("system_powerdown"));
-            if (vm_process->wait_for_finished(shutdown_timeout))
+            if (vm_process->wait_for_finished(vm_shutdown_timeout))
             {
                 lock.lock();
                 state = State::off;
@@ -401,7 +401,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             {
                 throw std::runtime_error{fmt::format(
                     "The QEMU process did not finish within {} milliseconds after being shutdown",
-                    shutdown_timeout)};
+                    vm_shutdown_timeout)};
             }
         }
     }
@@ -420,7 +420,7 @@ void mp::QemuVirtualMachine::suspend()
 
         drop_ssh_session();
         vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
-        vm_process->wait_for_finished(shutdown_timeout);
+        vm_process->wait_for_finished(vm_shutdown_timeout);
 
         vm_process.reset(nullptr);
     }
@@ -438,7 +438,7 @@ mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
 
 int mp::QemuVirtualMachine::ssh_port()
 {
-    return 22;
+    return default_ssh_port;
 }
 
 void mp::QemuVirtualMachine::handle_state_update()
