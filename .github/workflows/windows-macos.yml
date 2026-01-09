@@ -78,7 +78,7 @@ jobs:
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
-      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
       RUSTC_WRAPPER: "sccache"
 
     steps:
@@ -230,6 +230,13 @@ jobs:
         # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+
+    - name: Restore sccache
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
+        restore-keys: sccache-${{ matrix.runs-on }}
 
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
