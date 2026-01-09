@@ -42,8 +42,8 @@ int main_impl(int argc, char* argv[])
                             mp::client::get_cert_provider(),
                             term.get()};
     mp::Client client{config};
-
-    return client.run(QCoreApplication::arguments());
+    return std::visit([](auto&& value) -> int { return static_cast<int>(value); },
+                      client.run(QCoreApplication::arguments()));
 }
 } // namespace
 

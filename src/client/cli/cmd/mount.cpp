@@ -69,7 +69,7 @@ auto checked_mount_type(const QString& type)
 }
 } // namespace
 
-mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Mount::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -79,12 +79,12 @@ mp::ReturnCode cmd::Mount::run(mp::ArgParser* parser)
 
     mp::AnimatedSpinner spinner{cout};
 
-    auto on_success = [&spinner](mp::MountReply& reply) {
+    auto on_success = [&spinner](mp::MountReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };

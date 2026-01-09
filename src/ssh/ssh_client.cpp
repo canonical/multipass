@@ -67,12 +67,7 @@ mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_crea
 
 int mp::SSHClient::connect()
 {
-    return exec(std::vector<std::string>{});
-}
-
-int mp::SSHClient::exec(const std::vector<std::string>& args)
-{
-    return exec_string(utils::to_cmd(args, mp::utils::QuoteType::quote_every_arg));
+    return exec(std::vector<std::vector<std::string>>{});
 }
 
 int mp::SSHClient::exec(const std::vector<std::vector<std::string>>& args_list)
@@ -142,6 +137,7 @@ void mp::SSHClient::handle_ssh_events()
 
 int mp::SSHClient::exec_string(const std::string& cmd_line)
 {
+    // All returned ints from this function can be considered to be VMReturnCodes
     if (cmd_line.empty())
         SSH::throw_on_error(channel,
                             *ssh_session,
@@ -155,27 +151,28 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
                             cmd_line.c_str());
 
     handle_ssh_events();
-    return this->ssh_channel_get_exit_status(channel.get());
+    return this->get_ssh_exit_code();
 }
 
-int mp::SSHClient::ssh_channel_get_exit_status(ssh_channel channel)
+int mp::SSHClient::get_ssh_exit_code()
 {
 
     uint32_t exit_status = static_cast<uint32_t>(-1);
     char* exit_signal_status = nullptr;
     int core_dumped = 0;
 
-    int result{
-        ssh_channel_get_exit_state(channel, &exit_status, &exit_signal_status, &core_dumped)};
-
-    if (result != SSH_OK)
-        // If SSH_ERROR or SSH_AGAIN, the string is never allocated
-        return SSH_ERROR;
+    SSH::throw_on_error(channel,
+                        *ssh_session,
+                        "[ssh client] could not obtain exit state",
+                        ssh_channel_get_exit_state,
+                        &exit_status,
+                        &exit_signal_status,
+                        &core_dumped);
 
     if (exit_signal_status != nullptr)
     {
         mpl::error("ssh client",
-                   "Process terminated by signal: {}{}\n",
+                   "Process terminated by signal: {}{}",
                    exit_signal_status,
                    core_dumped ? " (core dumped)" : "");
 

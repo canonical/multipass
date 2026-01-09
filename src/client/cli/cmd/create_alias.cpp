@@ -20,12 +20,14 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
-multipass::ReturnCode multipass::cmd::create_alias(AliasDict& aliases,
-                                                   const std::string& alias_name,
-                                                   const AliasDefinition& alias_definition,
-                                                   std::ostream& cout,
-                                                   std::ostream& cerr,
-                                                   const std::optional<std::string>& context)
+namespace mp = multipass;
+
+mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
+                                            const std::string& alias_name,
+                                            const AliasDefinition& alias_definition,
+                                            std::ostream& cout,
+                                            std::ostream& cerr,
+                                            const std::optional<std::string>& context)
 {
     bool empty_before_add = aliases.empty();
 
