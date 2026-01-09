@@ -156,7 +156,7 @@ jobs:
           run_snapcraft() {
             tmpfile=$(mktemp)
 
-            "$@" 2>&1 | tee "$tmpfile"
+            "$@" |& tee "$tmpfile"
             exit_code=${PIPESTATUS[0]}
 
             if [ $exit_code -eq 0 ]; then
