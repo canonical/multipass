@@ -35,8 +35,11 @@ struct MockVMStatusMonitor : public VMStatusMonitor
                 persist_state_for,
                 (const std::string&, const VirtualMachine::State&),
                 (override));
-    MOCK_METHOD(void, update_metadata_for, (const std::string&, const QJsonObject&), (override));
-    MOCK_METHOD(QJsonObject, retrieve_metadata_for, (const std::string&), (override));
+    MOCK_METHOD(void,
+                update_metadata_for,
+                (const std::string&, const boost::json::object&),
+                (override));
+    MOCK_METHOD(boost::json::object, retrieve_metadata_for, (const std::string&), (override));
 };
 } // namespace test
 } // namespace multipass
