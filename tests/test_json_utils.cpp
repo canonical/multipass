@@ -19,10 +19,9 @@
 #include "mock_file_ops.h"
 
 #include <multipass/json_utils.h>
+#include <multipass/vm_specs.h>
 
 #include <QFileDevice>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QString>
 
 #include <cctype>
@@ -49,58 +48,43 @@ std::string tag_invoke(const boost::json::value_to_tag<std::string>&,
     return s;
 }
 
-struct ExtraInterfacesRead : public TestWithParam<std::vector<mp::NetworkInterface>>
+TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
 {
-};
+    mp::VMSpecs src_specs = {1,
+                             mp::MemorySize::from_bytes(0),
+                             mp::MemorySize::from_bytes(0),
+                             "01:ff:00:00:00:01",
+                             {{"id", "01:ff:00:00:00:02", false}},
+                             "username",
+                             mp::VirtualMachine::State::off,
+                             {},
+                             false,
+                             {}};
+    mp::VMSpecs dst_specs = src_specs;
+    dst_specs.default_mac_address = "aa:ff:00:00:00:01";
+    dst_specs.extra_interfaces = {{"id", "aa:ff:00:00:00:02", false}};
 
-TEST_P(ExtraInterfacesRead, writeAndReadExtraInterfaces)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces = GetParam();
+    boost::json::object src_metadata = {{"arguments",
+                                         {"instances/src_vm",
+                                          "misc arg",
+                                          "don't change src_vm",
+                                          "--mac=01:ff:00:00:00:01",
+                                          "01:ff:00:00:00:01==01:ff:00:00:00:01",
+                                          "--extra_mac=01:ff:00:00:00:02"}}};
+    boost::json::object dst_metadata = {{"arguments",
+                                         {"instances/dst_vm",
+                                          "misc arg",
+                                          "don't change src_vm",
+                                          "--mac=aa:ff:00:00:00:01",
+                                          "aa:ff:00:00:00:01==aa:ff:00:00:00:01",
+                                          "--extra_mac=aa:ff:00:00:00:02"}}};
 
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    auto read_ifaces = MP_JSONUTILS.read_extra_interfaces(doc);
-
-    ASSERT_EQ(read_ifaces, extra_ifaces);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    TestJsonUtils,
-    ExtraInterfacesRead,
-    Values(std::vector<mp::NetworkInterface>{{"eth1", "52:54:00:00:00:01", true},
-                                             {"eth2", "52:54:00:00:00:02", false}},
-           std::vector<mp::NetworkInterface>{}));
-
-TEST(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
-{
-    QJsonObject doc;
-    doc.insert("some_data", "nothing to see here");
-
-    ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
-}
-
-TEST(TestJsonUtils, throwsOnWrongMac)
-{
-    std::vector<mp::NetworkInterface> extra_ifaces{
-        mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
-
-    auto written_ifaces = MP_JSONUTILS.extra_interfaces_to_json_array(extra_ifaces);
-
-    QJsonObject doc;
-    doc.insert("extra_interfaces", written_ifaces);
-
-    MP_ASSERT_THROW_THAT(MP_JSONUTILS.read_extra_interfaces(doc),
-                         std::runtime_error,
-                         mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
-}
-
-TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
-{
-    EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
-              QJsonValue{"vm2_e_e_e"});
+    EXPECT_EQ(update_unique_identifiers_of_metadata(src_metadata,
+                                                    src_specs,
+                                                    dst_specs,
+                                                    "src_vm",
+                                                    "dst_vm"),
+              dst_metadata);
 }
 
 TEST(TestJsonUtils, lookupInArray)

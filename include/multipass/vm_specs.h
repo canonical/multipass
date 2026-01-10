@@ -22,11 +22,11 @@
 #include "virtual_machine.h"
 #include "vm_mount.h"
 
+#include <boost/json.hpp>
+
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <QJsonObject>
 
 namespace multipass
 {
@@ -41,11 +41,14 @@ struct VMSpecs
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
-    QJsonObject metadata;
+    boost::json::object metadata;
     int clone_count =
         0; // tracks the number of cloned vm from this source vm (regardless of deletes)
 
     friend inline bool operator==(const VMSpecs& a, const VMSpecs& b) = default;
 };
+
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const VMSpecs& mount);
+VMSpecs tag_invoke(const boost::json::value_to_tag<VMSpecs>&, const boost::json::value& json);
 
 } // namespace multipass
