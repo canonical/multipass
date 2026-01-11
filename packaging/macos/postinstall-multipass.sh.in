@@ -15,7 +15,9 @@ mkdir -p ${3}usr/local/bin
 ### Set up symlink to new multipass binary
 ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/bin/multipass" "${3}usr/local/bin/multipass"
 
-### Set up symlink for bash competions
+### Set up symlinks for shell completions
+
+# Bash completions
 # If HomeBrew installed (only looking for default path)
 if [ -d "${3}$(brew --prefix)/etc/bash_completion.d" ]; then
     ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/bash/multipass" \
@@ -33,5 +35,47 @@ if [ -d "${3}opt/local/share/bash-completion/completions/" ]; then
 else
     echo "MacPorts is not installed"
 fi
+
+# Zsh completions
+# HomeBrew zsh completions
+if [ -d "${3}$(brew --prefix)/share/zsh/site-functions" ]; then
+    ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/zsh/_multipass" \
+            "${3}$(brew --prefix)/share/zsh/site-functions/_multipass"
+    echo "Installed Zsh completion file for HomeBrew"
+fi
+
+# MacPorts zsh completions
+if [ -d "${3}opt/local/share/zsh/site-functions" ]; then
+    ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/zsh/_multipass" \
+            "${3}opt/local/share/zsh/site-functions/_multipass"
+    echo "Installed Zsh completion for MacPorts"
+fi
+
+# Fish completions
+# HomeBrew fish completions
+if [ -d "${3}$(brew --prefix)/share/fish/vendor_completions.d" ]; then
+    ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/fish/multipass.fish" \
+            "${3}$(brew --prefix)/share/fish/vendor_completions.d/multipass.fish"
+    echo "Installed Fish completion file for HomeBrew"
+fi
+
+# MacPorts fish completions
+if [ -d "${3}opt/local/share/fish/vendor_completions.d" ]; then
+    ln -fsv "${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/fish/multipass.fish" \
+            "${3}opt/local/share/fish/vendor_completions.d/multipass.fish"
+    echo "Installed Fish completion for MacPorts"
+fi
+
+# User-level completions (fallback if not using package managers)
+# Create user completion directories if they don't exist
+MULTIPASS_COMP_DIR="${3}@CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions"
+
+# Print instructions for manual setup if package managers not found
+echo ""
+echo "Shell completions are installed at: @CPACK_PACKAGING_INSTALL_PREFIX@/Resources/completions/"
+echo "If completions were not automatically configured, you can set them up manually:"
+echo "  Bash: source ${MULTIPASS_COMP_DIR}/bash/multipass"
+echo "  Zsh:  Add ${MULTIPASS_COMP_DIR}/zsh to your fpath"
+echo "  Fish: cp ${MULTIPASS_COMP_DIR}/fish/multipass.fish ~/.config/fish/completions/"
 
 echo 0

@@ -11,6 +11,10 @@
                 <File Source="icon_wt.ico" Name="multipass_wt.ico" />
             </Component>
 
+            <Component Id="MultipassPowerShellCompletion" Subdirectory="completions">
+                <File Source="completions\powershell\multipass.ps1" />
+            </Component>
+
             <Component Id="AddToUserPath" Condition="ENVIRONMENT = &quot;user&quot;"
                 Guid="59df60c1-f2a9-4199-97b5-8b1cf6638df7">
                 <Environment Name="PATH" System="no" Value="[INSTALLFOLDER]bin" Action="set"

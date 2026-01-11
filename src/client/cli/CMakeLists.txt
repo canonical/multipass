@@ -51,6 +51,11 @@ if(MSVC)
     include(BundleUtilities)
     fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/multipass.exe\"  \"\"  \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\")
     " COMPONENT multipass)
+
+  # Install PowerShell completion for Windows
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/completions/powershell"
+    DESTINATION completions
+    COMPONENT multipass)
 endif()
 
 add_subdirectory(cmd)

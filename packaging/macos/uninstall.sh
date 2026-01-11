@@ -64,9 +64,18 @@ rm -rfv "$HOME/Library/Application Support/multipass-client-certificate"
 rm -rfv "$HOME/Library/Application Support/com.canonical.multipassGui"
 rm -rfv "$HOME/Library/Preferences/multipass"
 
+# Shell completions
 # Bash completions
-rm -rfv "/usr/local/etc/bash_completion.d/multipass"
-rm -rf "/opt/local/share/bash-completion/completions/multipass"
+rm -fv "/usr/local/etc/bash_completion.d/multipass"
+rm -fv "/opt/local/share/bash-completion/completions/multipass"
+
+# Zsh completions
+rm -fv "/usr/local/share/zsh/site-functions/_multipass"
+rm -fv "/opt/local/share/zsh/site-functions/_multipass"
+
+# Fish completions
+rm -fv "/usr/local/share/fish/vendor_completions.d/multipass.fish"
+rm -fv "/opt/local/share/fish/vendor_completions.d/multipass.fish"
 
 # Log files
 rm -rfv "/Library/Logs/Multipass"

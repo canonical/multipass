@@ -20,7 +20,7 @@ _multipass_complete()
     {
         local state=$1 instances
 
-        instances=$(multipass list --format=csv --no-ipv4 | \tail -n +2)
+        instances=$(multipass list --format=csv --no-ipv4 2>/dev/null | \tail -n +2)
         [ -n "$state" ] && instances=$(awk -F',' "\$2 == \"$state\"" <<< "$instances")
         instances=$(echo "$instances" | \cut -d',' -f 1  | \tr '\r\n' ' ')
 
@@ -47,7 +47,7 @@ _multipass_complete()
     _multipass_restorable_snapshots()
     {
         local instances
-        instances=$( multipass info --no-runtime-information --format=csv \
+        instances=$( multipass info --no-runtime-information --format=csv 2>/dev/null \
                      | \tail -n +2 \
                      | \awk -F',|\r?\n' '$2 == "Stopped" && $16 > 0' \
                      | \cut -d',' -f 1 \
@@ -82,7 +82,7 @@ _multipass_complete()
     {
         local keys
 
-        keys=$( multipass get --keys | \tr '\r\n' ' ' )
+        keys=$( multipass get --keys 2>/dev/null | \tr '\r\n' ' ' )
 
         for key in ${keys}; do
             if [[ "${COMP_WORDS[*]}" == *"${key}"* ]]; then
@@ -229,7 +229,7 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
-                    purge recover restart restore shell snapshot start stop suspend umount version get set \
+                    prefer purge recover restart restore shell snapshot start stop suspend umount version get set \
                     clone alias aliases unalias"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
@@ -255,24 +255,37 @@ _multipass_complete()
             _add_nonrepeating_args "--all --purge"
         ;;
         "launch")
-            _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount"
+            _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount --timeout"
             opts="${opts} --network --mount"
         ;;
         "mount")
-            opts="${opts} --gid-map --uid-map"
+            opts="${opts} --gid-map --uid-map --type"
         ;;
-        "recover"|"start"|"suspend"|"restart")
+        "recover"|"suspend")
             _add_nonrepeating_args "--all"
         ;;
+        "start"|"restart")
+            _add_nonrepeating_args "--all --timeout"
+        ;;
         "stop")
-            _add_nonrepeating_args "--all --cancel --time"
+            _add_nonrepeating_args "--all --cancel --time --force"
+        ;;
+        "shell"|"sh"|"connect")
+            _add_nonrepeating_args "--timeout"
         ;;
         "find")
             _add_nonrepeating_args "--show-unsupported --force-update --format"
         ;;
         "unalias")
             _multipass_aliases
+            _add_nonrepeating_args "$multipass_aliases --all"
+        ;;
+        "prefer")
+            _multipass_aliases
             _add_nonrepeating_args "$multipass_aliases"
+        ;;
+        "version")
+            _add_nonrepeating_args "--format"
         ;;
         "transfer"|"copy-files")
             _add_nonrepeating_args "--parents --recursive"
