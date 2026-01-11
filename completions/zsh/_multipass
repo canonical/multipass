@@ -1,0 +1,433 @@
+#compdef multipass
+
+# Copyright (C) Canonical, Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Zsh completion script for Multipass
+
+_multipass() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    local -a commands
+    commands=(
+        'alias:Create an alias to run a command in an instance'
+        'aliases:List available aliases'
+        'authenticate:Authenticate client'
+        'clone:Clone an instance'
+        'delete:Delete instances and snapshots'
+        'exec:Run a command in an instance'
+        'find:Search available images'
+        'get:Get a configuration setting'
+        'help:Display help about a command'
+        'info:Display information about instances'
+        'launch:Create and start an Ubuntu instance'
+        'list:List all available instances'
+        'mount:Mount a local directory in the instance'
+        'networks:List available network interfaces'
+        'prefer:Switch the current alias context'
+        'purge:Purge all deleted instances permanently'
+        'recover:Recover deleted instances'
+        'restart:Restart instances'
+        'restore:Restore an instance from a snapshot'
+        'set:Set a configuration setting'
+        'shell:Open a shell in an instance'
+        'snapshot:Take a snapshot of an instance'
+        'start:Start instances'
+        'stop:Stop running instances'
+        'suspend:Suspend running instances'
+        'transfer:Transfer files between host and instance'
+        'umount:Unmount a directory from an instance'
+        'unalias:Remove aliases'
+        'version:Show version details'
+    )
+
+    # Helper functions for dynamic completions
+    _multipass_instances() {
+        local state_filter="$1"
+        local instances
+        instances=(${(f)"$(multipass list --format=csv --no-ipv4 2>/dev/null | tail -n +2 | while IFS=',' read -r name status rest; do
+            if [[ -z "$state_filter" ]] || [[ "$status" == "$state_filter" ]]; then
+                echo "$name"
+            fi
+        done)"})
+        _describe -t instances 'instances' instances
+    }
+
+    _multipass_instances_running() {
+        _multipass_instances "Running"
+    }
+
+    _multipass_instances_stopped() {
+        _multipass_instances "Stopped"
+    }
+
+    _multipass_instances_suspended() {
+        _multipass_instances "Suspended"
+    }
+
+    _multipass_instances_deleted() {
+        _multipass_instances "Deleted"
+    }
+
+    _multipass_instances_startable() {
+        local instances
+        instances=(${(f)"$(multipass list --format=csv --no-ipv4 2>/dev/null | tail -n +2 | while IFS=',' read -r name status rest; do
+            if [[ "$status" == "Stopped" ]] || [[ "$status" == "Suspended" ]]; then
+                echo "$name"
+            fi
+        done)"})
+        _describe -t instances 'instances' instances
+    }
+
+    _multipass_instances_shellable() {
+        local instances
+        instances=(${(f)"$(multipass list --format=csv --no-ipv4 2>/dev/null | tail -n +2 | while IFS=',' read -r name status rest; do
+            if [[ "$status" == "Running" ]] || [[ "$status" == "Stopped" ]] || [[ "$status" == "Suspended" ]]; then
+                echo "$name"
+            fi
+        done)"})
+        _describe -t instances 'instances' instances
+    }
+
+    _multipass_instances_mountable() {
+        _multipass_instances_shellable
+    }
+
+    _multipass_instances_stoppable() {
+        local instances force_mode=0
+        for word in "${words[@]}"; do
+            [[ "$word" == "--force" ]] && force_mode=1 && break
+        done
+
+        instances=(${(f)"$(multipass list --format=csv --no-ipv4 2>/dev/null | tail -n +2 | while IFS=',' read -r name status rest; do
+            if [[ "$status" == "Running" ]]; then
+                echo "$name"
+            elif [[ $force_mode -eq 1 ]]; then
+                if [[ "$status" == "Starting" ]] || [[ "$status" == "Restarting" ]] || \
+                   [[ "$status" == "Suspending" ]] || [[ "$status" == "Suspended" ]]; then
+                    echo "$name"
+                fi
+            fi
+        done)"})
+        _describe -t instances 'instances' instances
+    }
+
+    _multipass_snapshots() {
+        local instance_filter="$1"
+        local snapshots
+        snapshots=(${(f)"$(multipass list --snapshots --format=csv 2>/dev/null | tail -n +2 | while IFS=',' read -r instance snapshot rest; do
+            if [[ -z "$instance_filter" ]] || [[ "$instance" == "$instance_filter" ]]; then
+                echo "${instance}.${snapshot}"
+            fi
+        done)"})
+        _describe -t snapshots 'snapshots' snapshots
+    }
+
+    _multipass_instances_and_snapshots() {
+        _multipass_instances
+        _multipass_snapshots
+    }
+
+    _multipass_restorable_snapshots() {
+        local instances snapshots
+        instances=(${(f)"$(multipass info --no-runtime-information --format=csv 2>/dev/null | tail -n +2 | \
+            awk -F',' '$2 == "Stopped" && $16 > 0 {print $1}')"})
+        for instance in "${instances[@]}"; do
+            _multipass_snapshots "$instance"
+        done
+    }
+
+    _multipass_networks() {
+        local networks
+        networks=(${(f)"$(multipass networks --format=csv 2>/dev/null | tail -n +2 | cut -d',' -f1)"})
+        _describe -t networks 'networks' networks
+    }
+
+    _multipass_settings_keys() {
+        local keys
+        keys=(${(f)"$(multipass get --keys 2>/dev/null)"})
+        _describe -t settings 'settings keys' keys
+    }
+
+    _multipass_aliases_list() {
+        local aliases
+        aliases=(${(f)"$(multipass aliases --format=csv 2>/dev/null | tail -n +2 | cut -d',' -f1)"})
+        _describe -t aliases 'aliases' aliases
+    }
+
+    _multipass_format_options() {
+        local formats=(table json csv yaml)
+        _describe -t formats 'output format' formats
+    }
+
+    _multipass_network_spec() {
+        local -a network_opts
+        network_opts=(
+            'id=:Network interface ID'
+            'mode=:Network mode (auto or manual)'
+            'mac=:MAC address'
+        )
+        _describe -t network-opts 'network options' network_opts
+    }
+
+    # Main argument parsing
+    _arguments -C \
+        '(-h --help)'{-h,--help}'[Display help information]' \
+        '(-v --verbose)'{-v,--verbose}'[Increase logging verbosity]' \
+        '1: :->command' \
+        '*:: :->args'
+
+    case $state in
+        command)
+            # Also include aliases as potential commands
+            local -a all_commands
+            all_commands=("${commands[@]}")
+            local -a user_aliases
+            user_aliases=(${(f)"$(multipass aliases --format=csv 2>/dev/null | tail -n +2 | cut -d',' -f1)"})
+            for alias in "${user_aliases[@]}"; do
+                [[ -n "$alias" ]] && all_commands+=("$alias:User-defined alias")
+            done
+            _describe -t commands 'multipass commands' all_commands
+            ;;
+        args)
+            case $line[1] in
+                alias)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--no-map-working-directory[Do not map working directory]' \
+                        '*:instance\:command:_multipass_instances'
+                    ;;
+                aliases)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-f --format)'{-f,--format}'[Output format]:format:_multipass_format_options'
+                    ;;
+                authenticate)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        ':passphrase:'
+                    ;;
+                clone)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-n --name)'{-n,--name}'[Name for the cloned instance]:name:' \
+                        '*:source instance:_multipass_instances_stopped'
+                    ;;
+                delete)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--all[Delete all instances]' \
+                        '(-p --purge)'{-p,--purge}'[Purge instances immediately]' \
+                        '*:instance or snapshot:_multipass_instances_and_snapshots'
+                    ;;
+                exec)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-d --working-directory)'{-d,--working-directory}'[Working directory]:directory:_files -/' \
+                        '(-n --no-map-working-directory)'{-n,--no-map-working-directory}'[Do not map working directory]' \
+                        '1:instance:_multipass_instances_running' \
+                        '*:command:'
+                    ;;
+                find)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--show-unsupported[Show unsupported images]' \
+                        '--force-update[Force image list update]' \
+                        '(-f --format)'{-f,--format}'[Output format]:format:_multipass_format_options' \
+                        ':search filter:'
+                    ;;
+                get)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--raw[Output raw values]' \
+                        '--keys[List available keys]' \
+                        '*:setting key:_multipass_settings_keys'
+                    ;;
+                help)
+                    _arguments \
+                        '*:command:((${commands[@]%:*}))'
+                    ;;
+                info)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-f --format)'{-f,--format}'[Output format]:format:_multipass_format_options' \
+                        '--snapshots[Show snapshot information]' \
+                        '--no-runtime-information[Skip runtime info]' \
+                        '*:instance or snapshot:_multipass_instances_and_snapshots'
+                    ;;
+                launch)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-c --cpus)'{-c,--cpus}'[Number of CPUs]:cpus:' \
+                        '(-d --disk)'{-d,--disk}'[Disk space (e.g., 10G)]:disk size:' \
+                        '(-m --memory)'{-m,--memory}'[Memory size (e.g., 1G)]:memory size:' \
+                        '(-n --name)'{-n,--name}'[Instance name]:name:' \
+                        '--cloud-init[Cloud-init config file]:config file:_files' \
+                        '*--network[Network specification]:network:_multipass_networks' \
+                        '--bridged[Use bridged network]' \
+                        '*--mount[Mount specification]:mount path:_files -/' \
+                        '(-t --timeout)'{-t,--timeout}'[Timeout in seconds]:timeout:' \
+                        ':image:'
+                    ;;
+                list|ls)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-f --format)'{-f,--format}'[Output format]:format:_multipass_format_options' \
+                        '--snapshots[List snapshots]' \
+                        '--no-ipv4[Omit IPv4 column]'
+                    ;;
+                mount)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '*'{-g,--gid-map}'[GID mapping]:gid map:' \
+                        '*'{-u,--uid-map}'[UID mapping]:uid map:' \
+                        '(-t --type)'{-t,--type}'[Mount type (classic or native)]:type:(classic native)' \
+                        '1:source directory:_files -/' \
+                        '*:target (instance\:path):_multipass_instances_mountable'
+                    ;;
+                networks)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-f --format)'{-f,--format}'[Output format]:format:_multipass_format_options'
+                    ;;
+                purge)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]'
+                    ;;
+                recover)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--all[Recover all deleted instances]' \
+                        '*:instance:_multipass_instances_deleted'
+                    ;;
+                restart)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--all[Restart all instances]' \
+                        '(-t --timeout)'{-t,--timeout}'[Timeout in seconds]:timeout:' \
+                        '*:instance:_multipass_instances_running'
+                    ;;
+                restore)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--destructive[Discard current state]' \
+                        ':snapshot:_multipass_restorable_snapshots'
+                    ;;
+                set)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '*:setting=value:_multipass_settings_keys'
+                    ;;
+                shell|sh|connect)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-t --timeout)'{-t,--timeout}'[Timeout in seconds]:timeout:' \
+                        ':instance:_multipass_instances_shellable'
+                    ;;
+                snapshot)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-n --name)'{-n,--name}'[Snapshot name]:name:' \
+                        '(-c --comment)'{-c,--comment}'[Snapshot comment]:comment:' \
+                        ':instance:_multipass_instances_stopped'
+                    ;;
+                start)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--all[Start all instances]' \
+                        '(-t --timeout)'{-t,--timeout}'[Timeout in seconds]:timeout:' \
+                        '*:instance:_multipass_instances_startable'
+                    ;;
+                stop)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--all[Stop all instances]' \
+                        '(-t --time)'{-t,--time}'[Delay shutdown by time]:time:' \
+                        '(-c --cancel)'{-c,--cancel}'[Cancel scheduled stop]' \
+                        '(-f --force)'{-f,--force}'[Force stop]' \
+                        '*:instance:_multipass_instances_stoppable'
+                    ;;
+                suspend)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--all[Suspend all instances]' \
+                        '*:instance:_multipass_instances_running'
+                    ;;
+                transfer|copy-files)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-r --recursive)'{-r,--recursive}'[Transfer directories recursively]' \
+                        '(-p --parents)'{-p,--parents}'[Make parent directories as needed]' \
+                        '*:source or destination:_files'
+                    ;;
+                umount|unmount)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '*:mount:_multipass_instances'
+                    ;;
+                unalias)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '--all[Remove all aliases]' \
+                        '*:alias:_multipass_aliases_list'
+                    ;;
+                prefer)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        ':context:_multipass_aliases_list'
+                    ;;
+                version)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Display help]' \
+                        '(-v --verbose)'{-v,--verbose}'[Increase verbosity]' \
+                        '(-f --format)'{-f,--format}'[Output format]:format:_multipass_format_options'
+                    ;;
+                *)
+                    # Handle user-defined aliases - run exec on running instances
+                    _multipass_instances_running
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_multipass "$@"

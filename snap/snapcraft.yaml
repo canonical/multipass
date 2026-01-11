@@ -219,9 +219,18 @@ parts:
       cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
       DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
 
+      # Install bash completion
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
+
+      # Install zsh completion
+      mkdir -p ${CRAFT_PART_INSTALL}/share/zsh/vendor-completions/
+      cp ../src/completions/zsh/_multipass ${CRAFT_PART_INSTALL}/share/zsh/vendor-completions/_multipass
+
+      # Install fish completion
+      mkdir -p ${CRAFT_PART_INSTALL}/share/fish/vendor_completions.d/
+      cp ../src/completions/fish/multipass.fish ${CRAFT_PART_INSTALL}/share/fish/vendor_completions.d/multipass.fish
       VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
       craftctl set version=${VERSION}
       craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
