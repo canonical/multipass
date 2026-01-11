@@ -11,26 +11,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
 
-configure_file(
-  version.h.in
-  ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/version.h
-  @ONLY
-)
+[package]
+name = "petname"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
-add_subdirectory(cert)
-add_subdirectory(client)
-add_subdirectory(daemon)
-add_subdirectory(image_host)
-add_subdirectory(iso)
-add_subdirectory(logging)
-add_subdirectory(network)
-add_subdirectory(platform)
-add_subdirectory(process)
-add_subdirectory(rpc)
-add_subdirectory(settings)
-add_subdirectory(simplestreams)
-add_subdirectory(ssh)
-add_subdirectory(sshfs_mount)
-add_subdirectory(utils)
-add_subdirectory(xz_decoder)
+[lib]
+crate-type = ["staticlib"]
+
+[features]
+default = []
+
+[dependencies]
+cxx.workspace = true
+macros.workspace = true
+static_assertions.workspace = true
+rand.workspace = true
+
+[build-dependencies]
+cxx-build.workspace = true
