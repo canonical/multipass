@@ -141,6 +141,13 @@ HRESULT HCSAPI::HcsSetComputeSystemCallback(HCS_SYSTEM computeSystem,
     return ::HcsSetComputeSystemCallback(computeSystem, callbackOptions, context, callback);
 }
 
+HRESULT HCSAPI::HcsSaveComputeSystem(HCS_SYSTEM computeSystem,
+                                     HCS_OPERATION operation,
+                                     PCWSTR options) const
+{
+    return ::HcsSaveComputeSystem(computeSystem, operation, options);
+}
+
 HLOCAL HCSAPI::LocalFree(HLOCAL hMem) const
 {
     return ::LocalFree(hMem);

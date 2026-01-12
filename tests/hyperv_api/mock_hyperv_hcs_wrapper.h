@@ -107,6 +107,12 @@ struct MockHCSWrapper : public hyperv::hcs::HCSWrapper
                  void (*callback)(HCS_EVENT* hcs_event, void* context)),
                 (const, override));
 
+    MOCK_METHOD(hyperv::OperationResult,
+                save_compute_system,
+                (const hyperv::hcs::HcsSystemHandle& target_hcs_system,
+                 const hyperv::hcs::HcsPath& save_path),
+                (const, override));
+
     MP_MOCK_SINGLETON_BOILERPLATE(MockHCSWrapper, HCSWrapper);
 };
 } // namespace multipass::test

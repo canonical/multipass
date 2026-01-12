@@ -57,6 +57,8 @@ struct HCSWrapper : public Singleton<HCSWrapper>
         const HcsSystemHandle& target_hcs_system) const;
     [[nodiscard]] virtual OperationResult resume_compute_system(
         const HcsSystemHandle& target_hcs_system) const;
+    [[nodiscard]] virtual OperationResult
+    save_compute_system(const HcsSystemHandle& target_hcs_system, const HcsPath& save_path) const;
     [[nodiscard]] virtual OperationResult get_compute_system_properties(
         const HcsSystemHandle& target_hcs_system) const;
     [[nodiscard]] virtual OperationResult grant_vm_access(

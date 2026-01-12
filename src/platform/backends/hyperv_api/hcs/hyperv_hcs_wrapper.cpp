@@ -512,4 +512,32 @@ OperationResult HCSWrapper::set_compute_system_callback(const HcsSystemHandle& t
     return {result, L""};
 }
 
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::save_compute_system(const HcsSystemHandle& target_hcs_system,
+                                                const HcsPath& save_path) const
+{
+    mpl::debug(log_category,
+               "save_compute_system(...) > handle: {}, save_path: {}",
+               fmt::ptr(target_hcs_system.get()),
+               save_path);
+
+    static constexpr auto json_template = string_literal<wchar_t>(R"(
+        {
+        "SaveType": "ToFile",
+        "SaveStateFilePath": "{0}"
+    })");
+
+    const auto save_option = json_template.format(save_path);
+
+    return perform_hcs_operation(
+        [&](auto&& op) {
+            return API().HcsModifyComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+                                                op,
+                                                save_option.c_str(),
+                                                nullptr);
+        },
+        target_hcs_system);
+}
+
 } // namespace multipass::hyperv::hcs
