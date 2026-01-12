@@ -80,6 +80,9 @@ struct HCSAPI : public Singleton<HCSAPI>
     [[nodiscard]] virtual HRESULT HcsSaveComputeSystem(HCS_SYSTEM computeSystem,
                                                        HCS_OPERATION operation,
                                                        PCWSTR options) const;
+    [[nodiscard]] virtual HRESULT HcsCreateEmptyGuestStateFile(PCWSTR guestStateFilePath) const;
+    [[nodiscard]] virtual HRESULT HcsCreateEmptyRuntimeStateFile(PCWSTR runtimeStateFilePath) const;
+
     virtual HLOCAL LocalFree(HLOCAL hMem) const;
 };
 

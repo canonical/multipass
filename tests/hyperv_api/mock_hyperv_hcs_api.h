@@ -115,6 +115,16 @@ public:
                 (HCS_SYSTEM computeSystem, HCS_OPERATION operation, PCWSTR options),
                 (const, override));
 
+    MOCK_METHOD(HRESULT,
+                HcsCreateEmptyGuestStateFile,
+                (PCWSTR guestStateFilePath),
+                (const, override));
+
+    MOCK_METHOD(HRESULT,
+                HcsCreateEmptyRuntimeStateFile,
+                (PCWSTR runtimeStateFilePath),
+                (const, override));
+
     MOCK_METHOD(HLOCAL, LocalFree, (HLOCAL hMem), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockHCSAPI, HCSAPI);
