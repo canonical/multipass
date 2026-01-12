@@ -339,13 +339,15 @@ auto mp::BaseVirtualMachine::view_snapshots(SnapshotPredicate predicate) const -
 {
     const std::unique_lock lock{snapshot_mutex};
 
-    auto filtered = std::ranges::subrange(snapshots.begin(), snapshots.end()) | std::views::values |
-                    std::views::filter(
-                        [&](const auto& snapshot) { return !predicate || predicate(*snapshot); });
+    SnapshotVista result{};
+    for (const auto& [_, snapshot] : snapshots)
+    {
+        if (!predicate || predicate(*snapshot))
+            result.push_back(snapshot);
+    }
 
-    return SnapshotVista{filtered.begin(), filtered.end()};
+    return result;
 }
-
 std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::get_snapshot(
     const std::string& name) const
 {
