@@ -106,7 +106,6 @@ if(cmake_build_type_lower MATCHES "coverage")
   if (NOT TARPAULIN_INSTALLED EQUAL 0)
     execute_process(
       COMMAND ${CARGO_EXECUTABLE} install cargo-tarpaulin
-      COMMENT "Installing cargo-tarpaulin for coverage builds"
     )
   endif()
     #Engine is for non-x86_64 processors. Can only use if return codes from test are always 0 + no fork or similar syscalls

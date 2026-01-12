@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_tests");
+    QCoreApplication::setApplicationName("multipass_cpp_tests");
 
     ::testing::InitGoogleTest(&argc, argv);
     mp::test::MockStandardPaths::mockit();

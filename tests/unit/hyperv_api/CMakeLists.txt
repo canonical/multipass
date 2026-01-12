@@ -15,7 +15,7 @@
 
 
 if(WIN32)
-    target_sources(multipass_tests
+    target_sources(multipass_cpp_tests
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_api.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_route.cpp
@@ -37,6 +37,6 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_bb_cit_hyperv.cpp
     )
 
-    target_link_libraries(multipass_tests hyperv_api_backend)
+    target_link_libraries(multipass_cpp_tests hyperv_api_backend)
     target_link_libraries(multipass_integration_tests PRIVATE hyperv_api_backend platform)
 endif()
