@@ -27,7 +27,7 @@ namespace mp = multipass;
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_tests");
+    QCoreApplication::setApplicationName("multipass_cpp_tests");
 
     ::testing::InitGoogleTest(&argc, argv);
     mp::test::MockStandardPaths::mockit();
