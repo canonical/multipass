@@ -148,6 +148,16 @@ HRESULT HCSAPI::HcsSaveComputeSystem(HCS_SYSTEM computeSystem,
     return ::HcsSaveComputeSystem(computeSystem, operation, options);
 }
 
+HRESULT HCSAPI::HcsCreateEmptyGuestStateFile(PCWSTR guestStateFilePath) const
+{
+    return ::HcsCreateEmptyGuestStateFile(guestStateFilePath);
+}
+
+HRESULT HCSAPI::HcsCreateEmptyRuntimeStateFile(PCWSTR runtimeStateFilePath) const
+{
+    return ::HcsCreateEmptyRuntimeStateFile(runtimeStateFilePath);
+}
+
 HLOCAL HCSAPI::LocalFree(HLOCAL hMem) const
 {
     return ::LocalFree(hMem);
