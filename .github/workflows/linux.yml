@@ -304,8 +304,9 @@ jobs:
         /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/coredump" /tmp/coredump
         echo "Pulled the coredumps folder."
         mapfile -t BINS < <(cargo test --workspace --no-run --message-format=json | jq -r 'select(.reason == "compiler-artifact" and .executable != null) | .executable')
-        export TEST_BINARIES="${BINS[*]}"
-        for bin $TEST_BINARIES; do /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/$bin" /tmp/coredump/$bin
+        for bin in "${BINS[@]}"; do
+          /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/$bin" "/tmp/coredump/$bin"
+        done"
         echo "Pulled the rust executables"
         set +o xtrace
 
