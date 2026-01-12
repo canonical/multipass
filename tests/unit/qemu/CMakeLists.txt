@@ -1,4 +1,4 @@
-target_sources(multipass_tests
+target_sources(multipass_cpp_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_backend.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_img_utils.cpp
@@ -17,7 +17,7 @@ set_target_properties(qemu-img
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_dependencies(multipass_tests
+add_dependencies(multipass_cpp_tests
   qemu-img
 )
 

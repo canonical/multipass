@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-target_sources(multipass_tests PRIVATE
+target_sources(multipass_cpp_tests PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/mock_libc_functions.cpp
   ${CMAKE_CURRENT_LIST_DIR}/test_daemon_rpc.cpp
   ${CMAKE_CURRENT_LIST_DIR}/test_platform_unix.cpp
@@ -30,7 +30,7 @@ target_compile_definitions(platform_test PRIVATE
   -Dgetgrnam=ut_getgrnam
 )
 
-target_link_libraries(multipass_tests
+target_link_libraries(multipass_cpp_tests
   console_test
   platform_test
 )

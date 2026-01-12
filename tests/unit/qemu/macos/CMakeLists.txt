@@ -13,9 +13,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-target_sources(multipass_tests
+target_sources(multipass_cpp_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_platform_detail.cpp
 )
 
-target_include_directories(multipass_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu)
+target_include_directories(multipass_cpp_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu)

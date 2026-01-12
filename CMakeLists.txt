@@ -330,7 +330,7 @@ if(cmake_build_type_lower MATCHES "coverage")
     endif()
 
     add_custom_target(covreport
-      DEPENDS multipass_tests rust_coverage_tarpaulin
+      DEPENDS multipass_cpp_tests rust_coverage_tarpaulin
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
