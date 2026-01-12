@@ -140,7 +140,7 @@ Finally, to build the project, run:
 cmake --build . --parallel
 ```
 
-This builds `multipass`, `multipassd`, and `multipass_tests`.
+This builds `multipass`, `multipassd`, and `multipass_cpp_tests`.
 To create an installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
