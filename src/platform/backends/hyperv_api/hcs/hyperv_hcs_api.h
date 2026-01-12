@@ -77,6 +77,9 @@ struct HCSAPI : public Singleton<HCSAPI>
                                                               HCS_EVENT_OPTIONS callbackOptions,
                                                               const void* context,
                                                               HCS_EVENT_CALLBACK callback) const;
+    [[nodiscard]] virtual HRESULT HcsSaveComputeSystem(HCS_SYSTEM computeSystem,
+                                                       HCS_OPERATION operation,
+                                                       PCWSTR options) const;
     virtual HLOCAL LocalFree(HLOCAL hMem) const;
 };
 
