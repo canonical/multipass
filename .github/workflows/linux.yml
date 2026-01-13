@@ -160,9 +160,6 @@ jobs:
         mkdir --parents ${MULTIPASS_PART}
         /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
-        if ! command -v cargo-tarpaulin &> /dev/null; then
-          cargo install cargo-tarpaulin
-        fi
 
     - name: Configure
       # To alleviate the race condition in the Snapcraft's LXD
@@ -228,7 +225,7 @@ jobs:
       timeout-minutes: 2
       run: |
 
-        trap 'echo "MULTIPASS_CPP_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         /snap/bin/lxc --project snapcraft start $instance_name
         # Let's print the core pattern so we can check if it's successfully propagated to the container.
@@ -240,8 +237,8 @@ jobs:
            cd /root/parts/multipass/build && \
            ulimit -c unlimited &&        \
            env CTEST_OUTPUT_ON_FAILURE=1 \
-            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-            ctest"
+           LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+           ctest"
 
     - name: Measure coverage
       id: measure-coverage
@@ -249,7 +246,7 @@ jobs:
       timeout-minutes: 5
       run: |
 
-        trap 'echo "MULTIPASS_CPP_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         /snap/bin/lxc --project snapcraft start $instance_name
 
@@ -285,7 +282,7 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Pull coredump and executable from LXC container
-      if: ${{ failure() && env.MULTIPASS_CPP_TESTS_EXIT_CODE != '0'}}
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0'}}
       # do not cause job to fail if there are no coredumps available.
       continue-on-error: true
       run: |
@@ -313,7 +310,7 @@ jobs:
 
     - name: Upload test coredump
       uses: actions/upload-artifact@v6
-      if: ${{ failure() && env.MULTIPASS_CPP_TESTS_EXIT_CODE != '0' }}
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
       with:
         name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
         path: /tmp/coredump/**

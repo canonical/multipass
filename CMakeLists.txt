@@ -360,12 +360,12 @@ include_directories(
 add_subdirectory(data)
 add_subdirectory(src)
 
-
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
 endif()
 
+#Added later to be compatible with enable_testing() above
 add_subdirectory(rxx)
 
 include(packaging/cpack.cmake OPTIONAL)

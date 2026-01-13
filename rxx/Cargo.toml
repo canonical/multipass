@@ -33,6 +33,7 @@ quote = "^1.0.0"
 proc-macro2 = "^1.0.0"
 rand = "^0.9.0"
 macros = { path = "macros" }
+petname = { path = "petname" }
 
 # This is debug
 [profile.dev]

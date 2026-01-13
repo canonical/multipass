@@ -282,7 +282,7 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        ctest
+        ctest --output-on-failure
 
     - name: Package
       id: cmake-package
