@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ * Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
  *
  */
 

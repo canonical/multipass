@@ -17,8 +17,8 @@
  *
  */
 
-mod petname_error;
-mod petname_generator;
+pub mod petname_error;
+pub mod petname_generator;
 use petname_generator::{PetnameGenerator, make_petname_generator};
 
 #[cxx::bridge(namespace = "multipass::petname")]

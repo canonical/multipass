@@ -92,56 +92,20 @@ fn choose_from_str_array(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::*;
     #[test]
-    fn generates_requested_word_number() {
-        let petname_1 = PetnameGenerator::new(NumWords::One, '-')
-            .make_name()
-            .unwrap();
-        let petname_2 = PetnameGenerator::new(NumWords::Two, '-')
-            .make_name()
-            .unwrap();
-        let petname_3 = PetnameGenerator::new(NumWords::Three, '-')
-            .make_name()
-            .unwrap();
-        assert_eq!(petname_1.split('-').count(), 1);
-        assert_eq!(petname_2.split('-').count(), 2);
-        assert_eq!(petname_3.split('-').count(), 3);
-    }
-    #[test]
-    fn filters_out_bad_input() {
-        //First we test that failure is not due to CXX enum syntax
-        let result = make_petname_generator(NumWords { repr: 0 }, '-' as i8);
-        assert!(result.is_ok());
-        let result = make_petname_generator(NumWords { repr: 4 }, '-' as i8);
-        assert!(matches!(result, Err(PetnameError::InvalidWordNumber(4))));
-
-        let result = make_petname_generator(NumWords::One, '(' as i8);
-        assert!(matches!(result, Err(PetnameError::InvalidSeparator(_))));
-    }
-    #[test]
-    fn can_generate_unique_names() {
-        let mut hashset: HashSet<String> = HashSet::new();
-        let petname_generator = PetnameGenerator::new(NumWords::Three, '-');
-        const TOTAL_NAMES: usize = 1000;
-
-        for i in 0..TOTAL_NAMES {
-            let petname = petname_generator.make_name().unwrap();
-            assert!(
-                hashset.insert(petname),
-                "Generated duplicate petname at iteration {}",
-                i
-            );
-        }
-    }
-    #[test]
     fn choose_fails_on_empty() {
-        assert_eq!(choose_from_str_array(&[]), Err(PetnameError::RNGError));
+        //The intention of this test is that if the function is called on an empty array it must
+        //not panic, but return an error instead.
+        assert_eq!(
+            choose_from_str_array(&[], &mut rand::rng()),
+            Err(PetnameError::EmptyArrayError)
+        );
     }
     #[test]
-    fn error_on_impossible_petname_state() {
+    fn error_on_bad_internal_petname_state() {
+        //The intention of this test is that on a wrong internal state, make_name must not panic,
+        //but return an error instead.
         let mut petname_generator = PetnameGenerator::new(NumWords::Two, '-');
 
         let bad_num_words = 4;
