@@ -24,7 +24,7 @@ pub enum PetnameError {
     InvalidWordNumber(i32),
     InvalidSeparator(i8),
     InternalStateError(i32),
-    RNGError,
+    EmptyArrayError,
 }
 
 impl fmt::Display for PetnameError {
@@ -34,7 +34,9 @@ impl fmt::Display for PetnameError {
             PetnameError::InvalidSeparator(sep) => {
                 write!(f, "Invalid separator, ASCII code: {}", sep)
             }
-            PetnameError::RNGError => write!(f, "RNG crate error"),
+            PetnameError::EmptyArrayError => {
+                write!(f, "Cannot choose an element of an empty array")
+            }
             PetnameError::InternalStateError(num) => {
                 write!(f, "Invalid internal state: numWords = {}", num)
             }
