@@ -25,6 +25,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include <sstream>
 #include <stack>
 #include <stdexcept>
@@ -101,44 +103,6 @@ QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& id,
     return QJsonValue{QString::fromStdString(id_str.replace(0, src_vm_name.size(), dest_vm_name))};
 }
 
-QJsonValue mp::JsonUtils::update_unique_identifiers_of_metadata(
-    const QJsonValue& metadata,
-    const multipass::VMSpecs& src_specs,
-    const multipass::VMSpecs& dest_specs,
-    const std::string& src_vm_name,
-    const std::string& dest_vm_name) const
-{
-    assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
-
-    QJsonObject result_metadata_object = metadata.toObject();
-    QJsonValueRef arguments = result_metadata_object["arguments"];
-    QJsonArray json_array = arguments.toArray();
-    for (QJsonValueRef item : json_array)
-    {
-        QString str = item.toString();
-
-        str.replace(src_specs.default_mac_address.c_str(), dest_specs.default_mac_address.c_str());
-        for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
-        {
-            const std::string& src_mac = src_specs.extra_interfaces[i].mac_address;
-            if (!src_mac.empty())
-            {
-                const std::string& dest_mac = dest_specs.extra_interfaces[i].mac_address;
-                str.replace(src_mac.c_str(), dest_mac.c_str());
-            }
-        }
-        // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
-        // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
-        // metadata.
-        str.replace("instances/" + QString{src_vm_name.c_str()},
-                    "instances/" + QString{dest_vm_name.c_str()});
-        item = str;
-    }
-    arguments = json_array;
-
-    return QJsonValue{result_metadata_object};
-}
-
 QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
     const std::vector<mp::NetworkInterface>& extra_interfaces) const
 {
@@ -179,6 +143,38 @@ std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_inter
     }
 
     return std::nullopt;
+}
+
+boost::json::object mp::update_unique_identifiers_of_metadata(const boost::json::object& metadata,
+                                                              const multipass::VMSpecs& src_specs,
+                                                              const multipass::VMSpecs& dest_specs,
+                                                              const std::string& src_vm_name,
+                                                              const std::string& dest_vm_name)
+{
+    assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
+
+    boost::json::object result_metadata = metadata;
+    for (auto& item : result_metadata.at("arguments").as_array())
+    {
+        auto str = value_to<std::string>(item);
+        boost::replace_all(str, src_specs.default_mac_address, dest_specs.default_mac_address);
+        for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
+        {
+            const std::string& src_mac = src_specs.extra_interfaces[i].mac_address;
+            if (!src_mac.empty())
+            {
+                const std::string& dest_mac = dest_specs.extra_interfaces[i].mac_address;
+                boost::replace_all(str, src_mac, dest_mac);
+            }
+        }
+        // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
+        // "<src_name>"->"<dest_name>", because the second one might match other substrings of
+        // the metadata.
+        boost::replace_all(str, "instances/" + src_vm_name, "instances/" + dest_vm_name);
+        item = boost::json::string(str);
+    }
+
+    return result_metadata;
 }
 
 // Pretty print a JSON value non-recursively. We need to avoid recursion since we serialize
