@@ -90,7 +90,7 @@ endforeach()
 add_test(
       NAME      multipass_rust_tests
       COMMAND   ${CARGO_EXECUTABLE} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
---no-fail-fast --workspace --all-features
+--no-fail-fast --workspace --all-features --lib --tests
 )
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/target")
 
