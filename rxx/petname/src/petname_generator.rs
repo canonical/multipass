@@ -21,7 +21,7 @@ use crate::ffi::NumWords;
 use crate::petname_error::PetnameError;
 
 use macros::make_word_array;
-use rand::prelude::IndexedRandom;
+use rand::{prelude::IndexedRandom, rngs::ThreadRng};
 use static_assertions as sa;
 
 use std::os::raw::c_char;
@@ -47,61 +47,47 @@ impl PetnameGenerator {
         }
     }
     pub fn make_name(&self) -> Result<String, PetnameError> {
-        let petname = match self.num_words {
-            NumWords::One => choose_from_str_array(NOUNS)?.to_string(),
-            NumWords::Two => {
-                format!(
-                    "{}{}{}",
-                    choose_from_str_array(ADJECTIVES)?,
-                    self.separator,
-                    choose_from_str_array(NOUNS)?
-                )
-            }
-            NumWords::Three => {
-                format!(
-                    "{}{}{}{}{}",
-                    choose_from_str_array(ADVERBS)?,
-                    self.separator,
-                    choose_from_str_array(ADJECTIVES)?,
-                    self.separator,
-                    choose_from_str_array(NOUNS)?
-                )
-            }
+        let mut rng_engine = rand::rng();
+
+        let sources: &[&[&str]] = match self.num_words {
+            NumWords::One => &[NOUNS],
+            NumWords::Two => &[ADJECTIVES, NOUNS],
+            NumWords::Three => &[ADVERBS, ADJECTIVES, NOUNS],
             num => return Err(PetnameError::InternalStateError(num.repr)),
         };
-        Ok(petname)
+
+        let words: Result<Vec<_>, _> = sources
+            .iter()
+            .map(|&arr| choose_from_str_array(arr, &mut rng_engine))
+            .collect();
+
+        Ok(words?.join(&self.separator.to_string()))
     }
 }
 pub fn make_petname_generator(
     num_words: NumWords,
-    separator: c_char,
+    separator_i8: c_char,
 ) -> Result<Box<PetnameGenerator>, PetnameError> {
     match num_words {
         NumWords::One | NumWords::Two | NumWords::Three => {}
         _ => return Err(PetnameError::InvalidWordNumber(num_words.repr)),
     };
-    match separator {
-        0.. => {}
-        _ => return Err(PetnameError::InvalidSeparator(separator)),
-    };
-    let separator = match separator as u8 as char {
-        '-' | '_' | '$' => separator,
-        _ => return Err(PetnameError::InvalidSeparator(separator)),
+    let separator_c = separator_i8 as u8 as char;
+    let separator_c: char = match separator_c {
+        '-' | '_' | '$' => separator_c,
+        _ => return Err(PetnameError::InvalidSeparator(separator_i8)),
     };
 
-    Ok(Box::new(PetnameGenerator::new(
-        num_words,
-        separator as u8 as char,
-    )))
+    Ok(Box::new(PetnameGenerator::new(num_words, separator_c)))
 }
-fn choose_from_str_array(word_array: &[&'static str]) -> Result<&'static str, PetnameError> {
-    //What is obtained here is a handle to the thread-local RNG. Only initialized the first
-    //time it is used in a thread. Subsequent uses only obtain the handle.
-    let mut rng = rand::rng();
+fn choose_from_str_array(
+    word_array: &[&'static str],
+    rng: &mut ThreadRng,
+) -> Result<&'static str, PetnameError> {
     word_array
-        .choose(&mut rng)
+        .choose(rng)
         .copied()
-        .ok_or(PetnameError::RNGError)
+        .ok_or(PetnameError::EmptyArrayError)
 }
 
 #[cfg(test)]
