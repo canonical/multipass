@@ -50,6 +50,8 @@ if(NOT CRATES STREQUAL "")
   target_include_directories(cxx INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/target/cxxbridge")
 endif()
 
+set(ACTIVE_FEATURES "default")
+set(RUST_DEPENDENCIES "")
 foreach(crate_name ${CRATES})
   set(crate_path "${CMAKE_CURRENT_SOURCE_DIR}/${crate_name}")
   #Check that it is a crate (since target is not a crate)
@@ -67,7 +69,6 @@ foreach(crate_name ${CRATES})
     set(bridge_source "${CMAKE_CURRENT_SOURCE_DIR}/target/cxxbridge/${crate_name}/src")
     set(bridge_cc "${bridge_source}/lib.rs.cc")
 
-    set(ACTIVE_FEATURES "default")
     #Library creation to compile the CXX glue source
     add_library(${crate_name} STATIC ${bridge_cc})
     #Here we can place the crate-wise dependencies
@@ -77,20 +78,35 @@ foreach(crate_name ${CRATES})
     target_link_libraries(${crate_name}_rs INTERFACE ${${crate_name}_link_libs})
     add_dependencies(${crate_name} ${crate_name}_rs)
 
-    add_custom_command(
-      OUTPUT ${bridge_cc} ${rust_out}
-      COMMAND ${CARGO_EXECUTABLE} build -p ${crate_name} ${rust_build_flag} --lib --features "${ACTIVE_FEATURES}"
-      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-      COMMENT "Building Rust crates and generating C++ glue..."
-    )
-
+    list(APPEND RUST_DEPENDENCIES ${bridge_cc})
+    list(APPEND RUST_DEPENDENCIES ${rust_out})
   endif()
 endforeach()
 
+list(JOIN ACTIVE_FEATURES  "," FEATURES_CSV)
+add_custom_command(
+  OUTPUT ${RUST_DEPENDENCIES}
+  COMMAND ${CARGO_EXECUTABLE} build
+  --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
+  --workspace
+  ${rust_build_flag}
+  --lib
+  --features "${FEATURES_CSV}"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  COMMENT "Building Rust crates and generating C++ glue..."
+)
+#The macros crate cannot contain tests
+set(TESTING_EXCLUDE_CRATES_ARG --exclude macros)
 add_test(
-      NAME      multipass_rust_tests
-      COMMAND   ${CARGO_EXECUTABLE} test --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
---no-fail-fast --workspace --all-features --lib --tests
+  NAME      multipass_rust_tests
+  COMMAND   ${CARGO_EXECUTABLE} test
+  --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
+  --no-fail-fast
+  --workspace
+  --lib
+  --tests
+  --features "${FEATURES_CSV}"
+  ${TESTING_EXCLUDE_CRATES_ARG}
 )
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/target")
 
@@ -116,6 +132,8 @@ if(cmake_build_type_lower MATCHES "coverage")
         --output-dir ${CMAKE_BINARY_DIR}
         --exclude-files '../*'
         --engine llvm
+        --workspace
+        ${TESTING_EXCLUDE_CRATES_ARG}
       COMMENT "Running Rust coverage with Tarpaulin"
     )
 endif()
