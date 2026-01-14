@@ -209,6 +209,22 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
     }
 
+    // Initialize guest state files if they does not exist
+    {
+        auto&& vmgs = params.guest_state.guest_state_file_path;
+        auto&& vmrs = params.guest_state.runtime_state_file_path;
+
+        if (vmgs && !std::filesystem::exists(vmgs->get()))
+        {
+            (void)HCS().create_empty_guest_state_file(params.name, vmgs->get());
+        }
+
+        if (vmrs && !std::filesystem::exists(vmrs->get()))
+        {
+            (void)HCS().create_empty_runtime_state_file(params.name, vmrs->get());
+        }
+    }
+
     const std::wstring name_w = to_wstring(params.name);
     // Render the template
     const auto vm_settings = fmt::to_wstring(params);
@@ -229,7 +245,10 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         wait_for_operation_result(std::move(operation), std::chrono::seconds{240});
 
     if (op_result)
+    {
         out_hcs_system = std::move(system);
+    }
+
     return op_result;
 }
 
@@ -365,6 +384,10 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
                "grant_vm_access(...) > name: ({}), file_path: ({})",
                compute_system_name,
                file_path.string());
+
+    // The file/folder needs to exists because HcsGrantVmAccess will modify the
+    // ACLs of the target file or folder.
+    assert(std::filesystem::exists(file_path));
 
     const auto path_as_wstring = file_path.generic_wstring();
     const std::wstring csname_as_wstring = to_wstring(compute_system_name);
@@ -523,21 +546,50 @@ OperationResult HCSWrapper::save_compute_system(const HcsSystemHandle& target_hc
                save_path);
 
     static constexpr auto json_template = string_literal<wchar_t>(R"(
-        {
+    {{
         "SaveType": "ToFile",
         "SaveStateFilePath": "{0}"
-    })");
+    }})");
 
     const auto save_option = json_template.format(save_path);
 
     return perform_hcs_operation(
         [&](auto&& op) {
-            return API().HcsModifyComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
-                                                op,
-                                                save_option.c_str(),
-                                                nullptr);
+            return API().HcsSaveComputeSystem(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+                                              op,
+                                              save_option.c_str());
         },
         target_hcs_system);
+}
+
+// ---------------------------------------------------------
+OperationResult HCSWrapper::create_empty_guest_state_file(
+    const std::string& compute_system_name,
+    const std::filesystem::path& vmgs_file_path) const
+{
+    const std::wstring path_w = vmgs_file_path.generic_wstring();
+    const auto result = API().HcsCreateEmptyGuestStateFile(path_w.c_str());
+    if (result)
+    {
+        return grant_vm_access(compute_system_name, vmgs_file_path);
+    }
+
+    return {result, L""};
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCSWrapper::create_empty_runtime_state_file(
+    const std::string& compute_system_name,
+    const std::filesystem::path& vmrs_file_path) const
+{
+    const std::wstring path_w = vmrs_file_path.generic_wstring();
+    const auto result = API().HcsCreateEmptyRuntimeStateFile(path_w.c_str());
+    if (result)
+    {
+        return grant_vm_access(compute_system_name, vmrs_file_path);
+    }
+    return {result, L""};
 }
 
 } // namespace multipass::hyperv::hcs
