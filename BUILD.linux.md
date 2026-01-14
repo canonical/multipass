@@ -10,6 +10,13 @@ sudo apt install devscripts equivs
 mk-build-deps -s sudo -i
 ```
 
+### Install the Rust compiler
+
+Go here for the most recent method. The current method is:
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+```
+
 ## Building
 
 First, go into the repository root and get all the submodules:
