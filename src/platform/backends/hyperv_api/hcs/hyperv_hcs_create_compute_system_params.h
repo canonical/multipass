@@ -28,6 +28,13 @@
 namespace multipass::hyperv::hcs
 {
 
+struct GuestState
+{
+    std::optional<HcsPath> guest_state_file_path{};
+    std::optional<HcsPath> runtime_state_file_path{};
+    std::optional<HcsPath> save_state_file_path{};
+};
+
 struct CreateComputeSystemParameters
 {
     /**
@@ -61,6 +68,11 @@ struct CreateComputeSystemParameters
      * by default at creation time.
      */
     std::vector<HcsAddPlan9ShareParameters> shares{};
+
+    /**
+     * Guest & runtime state file paths, if any.
+     */
+    GuestState guest_state{};
 };
 
 } // namespace multipass::hyperv::hcs
