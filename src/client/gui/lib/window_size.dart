@@ -16,6 +16,7 @@ String resolutionString(Size? size) {
 }
 
 final saveWindowSizeTimer = RestartableTimer(1.seconds, () async {
+  if (await windowManager.isMaximized()) return;
   final currentSize = await windowManager.getSize();
   final sharedPreferences = await SharedPreferences.getInstance();
   final screenSize = await getCurrentScreenSize();
