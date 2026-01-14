@@ -110,6 +110,9 @@ private:
      */
     [[nodiscard]] std::filesystem::path get_primary_disk_path() const noexcept(false);
 
+    [[nodiscard]] std::filesystem::path get_guest_state_file_path() const;
+    [[nodiscard]] std::filesystem::path get_runtime_state_file_path() const;
+
     void grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const;
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
 

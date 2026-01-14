@@ -246,6 +246,17 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
     }
 }
 
+std::filesystem::path HCSVirtualMachine::get_guest_state_file_path() const
+{
+    return std::filesystem::path{description.image.image_path.toStdString()}.replace_extension(
+        ".vmgs");
+}
+std::filesystem::path HCSVirtualMachine::get_runtime_state_file_path() const
+{
+    return std::filesystem::path{description.image.image_path.toStdString()}.replace_extension(
+        ".vmrs");
+}
+
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
     const std::filesystem::path base_vhdx = description.image.image_path.toStdString();
@@ -376,6 +387,9 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         cloudinit_iso.path = description.cloud_init_iso.toStdString();
         cloudinit_iso.read_only = true;
         params.scsi_devices.push_back(cloudinit_iso);
+
+        params.guest_state.guest_state_file_path = get_guest_state_file_path();
+        params.guest_state.runtime_state_file_path = get_runtime_state_file_path();
 
         const auto create_endpoint_to_network_adapter = [this](const auto& create_params) {
             hcs::HcsNetworkAdapter network_adapter{};
