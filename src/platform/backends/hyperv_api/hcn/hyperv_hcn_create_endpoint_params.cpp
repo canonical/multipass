@@ -18,6 +18,20 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
 
+namespace
+{
+template <typename T>
+std::string value_or_null(const std::optional<T>& opt)
+{
+    if (opt)
+    {
+        return fmt::format("\"{}\"", *opt);
+    }
+    return "null";
+}
+
+} // namespace
+
 using namespace multipass::hyperv;
 using namespace multipass::hyperv::hcn;
 
@@ -38,11 +52,7 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
         "MacAddress" : {1}
     }})json");
 
-    return json_template.format_to(
-        ctx,
-        params.network_guid,
-        std::string{params.mac_address ? fmt::format("\"{0}\"", params.mac_address.value())
-                                       : "null"});
+    return json_template.format_to(ctx, params.network_guid, value_or_null(params.mac_address));
 }
 
 template auto fmt::formatter<CreateEndpointParameters, char>::format<fmt::format_context>(
