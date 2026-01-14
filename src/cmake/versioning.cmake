@@ -46,22 +46,31 @@ function(determine_version OUTPUT_VARIABLE)
   endif()
 
   string(REGEX MATCH "^v.+-([0-9]+)-(g.+)$" GIT_VERSION_MATCH ${GIT_VERSION})
+
+  # Snapcraft expects versions to be at most 32 characters. Currently, with these feature flag
+  # suffixes, our longest version IDs are exactly at this limit.
   if(NOT MP_ALLOW_OPTIONAL_FEATURES)
     set(MULTIPASS_VERSION_FEATS "-noff")
   else()
     is_custom_feature_set(MULTIPASS_CUSTOM_FEATS)
     if(MULTIPASS_CUSTOM_FEATS)
-      set(MULTIPASS_VERSION_FEATS "-custom")
+      set(MULTIPASS_VERSION_FEATS "-cstm")
     endif()
   endif()
 
   if(GIT_RELEASE)
-    # Don't indicate presence/absence of optional features for release builds.
+    # Only use the exact release tag for release versions. Don't indicate presence/absence of
+    # optional features for release builds.
     set(NEW_VERSION ${GIT_RELEASE})
-  elseif(GIT_VERSION_MATCH AND MULTIPASS_BUILD_LABEL)
-    set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1}.${MULTIPASS_BUILD_LABEL}+${CMAKE_MATCH_2}${MULTIPASS_VERSION_FEATS})
   elseif(GIT_VERSION_MATCH)
-    set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1}+${CMAKE_MATCH_2}${MULTIPASS_VERSION_FEATS})
+    # If MULTIPASS_BUILD_LABEL is set, show add it to the version. Otherwise, use the number of
+    # commits ahead of the tag.
+    if(MULTIPASS_BUILD_LABEL)
+      set(NEW_VERSION ${GIT_TAG}.${MULTIPASS_BUILD_LABEL})
+    else()
+      set(NEW_VERSION ${GIT_TAG}.${CMAKE_MATCH_1})
+    endif()
+    string(APPEND NEW_VERSION "+${CMAKE_MATCH_2}${MULTIPASS_VERSION_FEATS}")
   else()
     message(FATAL_ERROR "Failed to parse version number: ${GIT_VERSION}")
   endif()
