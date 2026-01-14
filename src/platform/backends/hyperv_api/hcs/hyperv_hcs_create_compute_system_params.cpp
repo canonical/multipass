@@ -24,21 +24,29 @@ using namespace multipass::hyperv::hcs;
 
 namespace
 {
-void append_if_supported(auto& schema_version_dependent_vm_sections,
-                         auto section,
-                         HcsSchemaVersion target_schema_version)
+template <typename T>
+std::string value_or_null(const std::optional<T>& opt)
 {
-    const auto schema_version = SchemaUtils::instance().get_os_supported_schema_version();
-    if (schema_version >= target_schema_version)
+    if (opt)
     {
-        if (schema_version_dependent_vm_sections.empty())
+        return fmt::format("\"{}\"", *opt);
+    }
+    return "null";
+}
+
+void append_if(auto& target, bool condition, auto&& callable)
+{
+    if (condition)
+    {
+        if (target.empty())
         {
             // To emit an initial comma.
-            schema_version_dependent_vm_sections.push_back({});
+            target.push_back({});
         }
-        schema_version_dependent_vm_sections.emplace_back(section);
+        target.emplace_back(typename std::decay_t<decltype(target)>::value_type{callable()});
     }
 }
+
 } // namespace
 
 template <typename Char>
@@ -86,37 +94,70 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                 }},
                 "NetworkAdapters": {{
                     {4}
-                }},
-                "Plan9": {{
-                    "Shares": [
-                        {5}
-                    ]
                 }}
+                {5}
             }}
             {6}
         }}
     }}
     )json");
-    static constexpr auto requested_services = string_literal<Char>(R"json(
-            "Services": {
-                "Shutdown": {},
-                "Heartbeat": {}
-            })json");
 
-    std::vector<std::basic_string<Char>> schema_version_dependent_vm_sections{};
-    append_if_supported(schema_version_dependent_vm_sections,
-                        static_cast<std::basic_string_view<Char>>(requested_services),
-                        HcsSchemaVersion::v25);
+    std::vector<std::basic_string<Char>> optional_sections{}, optional_devices{};
 
-    return json_template.format_to(
-        ctx,
-        params.memory_size_mb,
-        params.processor_count,
-        params.name,
-        fmt::join(params.scsi_devices, string_literal<Char>(",")),
-        fmt::join(params.network_adapters, string_literal<Char>(",")),
-        fmt::join(params.shares, string_literal<Char>(",")),
-        fmt::join(schema_version_dependent_vm_sections, string_literal<Char>(",")));
+    append_if(optional_sections,
+              SchemaUtils::instance().get_os_supported_schema_version() == HcsSchemaVersion::v25,
+              [] {
+                  return string_literal<Char>(R"json(
+                    "Services": {
+                        "Shutdown": {},
+                        "Heartbeat": {}
+                    })json");
+              });
+
+    append_if(optional_sections,
+              params.guest_state.guest_state_file_path.has_value() ||
+                  params.guest_state.runtime_state_file_path.has_value(),
+              [&vmgs = params.guest_state.guest_state_file_path,
+               &vmrs = params.guest_state.runtime_state_file_path] {
+                  return string_literal<Char>(R"json(
+                        "GuestState": {{
+                            "GuestStateFilePath": {0},
+                            "RuntimeStateFilePath": {1}
+                        }}
+                    )json")
+                      .format(value_or_null(vmgs), value_or_null(vmrs));
+              });
+
+    append_if(optional_sections,
+              params.guest_state.save_state_file_path.has_value(),
+              [&save_state = params.guest_state.save_state_file_path] {
+                  return string_literal<Char>(R"json(
+                        "RestoreState": {{
+                            "SaveStateFilePath": "{0}"
+                        }}
+                    )json")
+                      .format(*save_state);
+              });
+
+    // append_if(optional_devices, !params.shares.empty(), [&shares = params.shares] {
+    //     // Had to extract it bc an empty shares array causes a vmwp.exe crash while saving the VM
+    //     return string_literal<Char>(R"json(
+    //             "Plan9": {{
+    //                 "Shares": [
+    //                     {0}
+    //                 ]
+    //             }})json")
+    //         .format(fmt::join(shares, string_literal<Char>(",")));
+    // });
+
+    return json_template.format_to(ctx,
+                                   params.memory_size_mb,
+                                   params.processor_count,
+                                   params.name,
+                                   fmt::join(params.scsi_devices, string_literal<Char>(",")),
+                                   fmt::join(params.network_adapters, string_literal<Char>(",")),
+                                   fmt::join(optional_devices, string_literal<Char>(",")),
+                                   fmt::join(optional_sections, string_literal<Char>(",")));
 }
 
 template auto fmt::formatter<CreateComputeSystemParameters, char>::format<fmt::format_context>(
