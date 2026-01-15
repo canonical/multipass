@@ -15,12 +15,12 @@
  *
  */
 
+#include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/xz_image_decoder.h>
 
-#include <multipass/rpc/multipass.grpc.pb.h>
+#include <fmt/format.h>
 
-#include <multipass/format.h>
-
+#include <fstream>
 #include <vector>
 
 namespace mp = multipass;
@@ -60,18 +60,19 @@ mp::XzImageDecoder::XzImageDecoder() : xz_decoder{xz_dec_init(XZ_DYNALLOC, 1u <<
     xz_crc64_init();
 }
 
-void mp::XzImageDecoder::decode_to(const Path& xz_file_path,
-                                   const Path& decoded_image_path,
+void mp::XzImageDecoder::decode_to(const std::filesystem::path& xz_file_path,
+                                   const std::filesystem::path& decoded_image_path,
                                    const ProgressMonitor& monitor) const
 {
-    QFile xz_file{xz_file_path};
-    if (!xz_file.open(QIODevice::ReadOnly))
-        throw std::runtime_error(fmt::format("failed to open {} for reading", xz_file.fileName()));
+    std::ifstream xz_file{xz_file_path, std::ios::binary | std::ios::in};
+    if (!xz_file.is_open())
+        throw std::runtime_error{
+            fmt::format("failed to open {} for reading", xz_file_path.string())};
 
-    QFile decoded_file{decoded_image_path};
-    if (!decoded_file.open(QIODevice::WriteOnly))
-        throw std::runtime_error(
-            fmt::format("failed to open {} for writing", decoded_file.fileName()));
+    std::ofstream decoded_file{decoded_image_path, std::ios::binary | std::ios::out};
+    if (!decoded_file.is_open())
+        throw std::runtime_error{
+            fmt::format("failed to open {} for writing", decoded_image_path.string())};
 
     struct xz_buf decode_buf
     {
@@ -89,15 +90,16 @@ void mp::XzImageDecoder::decode_to(const Path& xz_file_path,
     decode_buf.out_pos = 0;
     decode_buf.out_size = max_size;
 
-    const auto file_size = xz_file.size();
-    qint64 total_bytes_extracted{0};
+    const auto file_size = std::filesystem::file_size(xz_file_path);
+    std::int64_t total_bytes_extracted{0};
 
     auto last_progress = -1;
     while (true)
     {
         if (decode_buf.in_pos == decode_buf.in_size)
         {
-            decode_buf.in_size = xz_file.read(read_data.data(), max_size);
+            xz_file.read(read_data.data(), max_size);
+            decode_buf.in_size = xz_file.gcount();
             decode_buf.in_pos = 0;
             total_bytes_extracted += decode_buf.in_size;
             auto progress = (total_bytes_extracted / (float)file_size) * 100;
