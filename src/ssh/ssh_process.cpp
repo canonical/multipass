@@ -45,13 +45,12 @@ void log_trace(const std::string_view message,
                const std::source_location location = std::source_location::current())
 {
     auto file = extract_filename(location.file_name());
-
-    mpl::log(mpl::Level::trace,
-             category,fmt::format("{}:{} {}(): {}",
-                         file,
-                         location.line(),
-                         location.function_name(),
-                         message));
+    mpl::trace(category,
+               "{}:{} {}(): {}",
+               file,
+               location.line(),
+               location.function_name(),
+               message);
 }
 
 namespace
