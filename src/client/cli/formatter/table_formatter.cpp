@@ -144,11 +144,13 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
+#ifdef AVAILABILITY_ZONES_FEATURE
     fmt::format_to(
         dest,
         "{:<16}{}\n",
         "Zone:",
         fmt::format("{}({})", item.zone().name(), item.zone().available() ? "a" : "u/a"));
+#endif
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -263,9 +265,13 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
         24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
-    const std::string::size_type image_column_width = 20;
+    [[maybe_unused]] const std::string::size_type image_column_width = 20;
 
-    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}"
+#ifdef AVAILABILITY_ZONES_FEATURE
+                                "{:<{}}"
+#endif
+                                "{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -274,9 +280,13 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                    state_column_width,
                    "IPv4",
                    ip_column_width,
-                   "Image",
+                   "Image"
+#ifdef AVAILABILITY_ZONES_FEATURE
+                   ,
                    image_column_width,
-                   "Zone");
+                   "Zone"
+#endif
+    );
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
@@ -293,11 +303,13 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             ip_column_width,
             instance.current_release().empty()
                 ? "Not Available"
-                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
+                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release()))
+#ifdef AVAILABILITY_ZONES_FEATURE
+                ,
             image_column_width,
-            fmt::format("{}({})",
-                        instance.zone().name(),
-                        instance.zone().available() ? "a" : "u/a"));
+            fmt::format("{}({})", instance.zone().name(), instance.zone().available() ? "a" : "u/a")
+#endif
+        );
 
         for (int i = 1; i < ipv4_size; ++i)
         {
@@ -309,9 +321,13 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                            state_column_width,
                            instance.ipv4(i),
                            instance.ipv4(i).size(),
-                           "",
+                           ""
+#ifdef AVAILABILITY_ZONES_FEATURE
+                           ,
                            0,
-                           "");
+                           ""
+#endif
+            );
         }
     }
 

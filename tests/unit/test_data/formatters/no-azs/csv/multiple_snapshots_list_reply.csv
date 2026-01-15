@@ -1,0 +1,8 @@
+Instance,Snapshot,Parent,Comment
+hale-roller,pristine,,"A first snapshot"
+hale-roller,rocking,pristine,"A very long comment that should be truncated by the table formatter"
+hale-roller,rolling,pristine,"Loaded with stuff"
+prosperous-spadefish,snapshot2,,"Before restoring snap1
+Contains a newline that
+should be truncated"
+prosperous-spadefish,snapshot10,snapshot2,""
