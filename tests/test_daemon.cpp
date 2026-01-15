@@ -36,8 +36,6 @@
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
-#include "stub_availability_zone.h"
-#include "stub_availability_zone_manager.h"
 #include "stub_virtual_machine.h"
 
 #include <src/daemon/default_vm_image_vault.h>
@@ -48,6 +46,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/signal.h>
+#include <multipass/stub_availability_zone.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -126,7 +126,7 @@ struct Daemon : public mpt::DaemonTestFixture
             .Times(AnyNumber())
             .WillRepeatedly(Return("notabridge"));
 
-        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
+        config_builder.az_manager = std::make_unique<mp::StubAvailabilityZoneManager>();
     }
 
     void SetUp() override
@@ -155,7 +155,7 @@ a few more tests for `false`, since there are different portions of code dependi
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZone zone{};
 };
 
 TEST_F(Daemon, buildsConfig)

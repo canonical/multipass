@@ -22,8 +22,6 @@
 
 namespace multipass
 {
-namespace test
-{
 struct StubAvailabilityZone final : public AvailabilityZone
 {
     StubAvailabilityZone()
@@ -59,6 +57,5 @@ struct StubAvailabilityZone final : public AvailabilityZone
     {
     }
 };
-} // namespace test
 } // namespace multipass
 #endif // MULTIPASS_STUB_AVAILABILITY_ZONE_H

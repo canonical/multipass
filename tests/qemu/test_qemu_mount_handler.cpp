@@ -22,11 +22,11 @@
 #include "tests/mock_ssh_process_exit_status.h"
 #include "tests/mock_ssh_test_fixture.h"
 #include "tests/mock_virtual_machine.h"
-#include "tests/stub_availability_zone.h"
 #include "tests/stub_ssh_key_provider.h"
 
 #include "qemu_mount_handler.h"
 
+#include <multipass/stub_availability_zone.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 
@@ -156,7 +156,7 @@ struct QemuMountHandlerTest : public ::Test
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZone zone{};
     NiceMock<MockQemuVirtualMachine> vm{"my_instance", zone};
     mp::QemuVirtualMachine::MountArgs mount_args;
     CommandOutputs command_outputs{

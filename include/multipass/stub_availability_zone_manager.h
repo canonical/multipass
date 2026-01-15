@@ -19,11 +19,9 @@
 #define MULTIPASS_STUB_AVAILABILITY_ZONE_MANAGER_H
 
 #include "multipass/availability_zone_manager.h"
-#include "stub_availability_zone.h"
+#include <multipass/stub_availability_zone.h>
 
 namespace multipass
-{
-namespace test
 {
 struct StubAvailabilityZoneManager final : public AvailabilityZoneManager
 {
@@ -52,6 +50,5 @@ struct StubAvailabilityZoneManager final : public AvailabilityZoneManager
 private:
     StubAvailabilityZone zone{};
 };
-} // namespace test
 } // namespace multipass
 #endif // MULTIPASS_STUB_AVAILABILITY_ZONE_MANAGER_H
