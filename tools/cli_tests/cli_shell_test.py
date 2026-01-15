@@ -20,7 +20,7 @@
 
 import pytest
 
-from cli_tests.multipass import shell
+from cli_tests.multipass import shell, requires_multipass
 from pexpect import EOF as pexpect_eof
 
 
@@ -70,3 +70,18 @@ class TestShell:
             vm_shell.wait()
 
             assert vm_shell.exitstatus == 0
+
+    @requires_multipass(">=1.17.0")
+    def test_shell_exit_code_propagation(self, instance):
+        """Launch an Ubuntu VM. Then, try to shell into it and execute some
+        basic commands."""
+
+        with shell(instance) as vm_shell:
+            vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
+
+            # Send a command and expect output
+            vm_shell.sendline('exit 42')
+            vm_shell.expect(pexpect_eof)
+            vm_shell.wait()
+
+            assert vm_shell.exitstatus == 42
