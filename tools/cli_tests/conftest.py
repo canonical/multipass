@@ -227,7 +227,7 @@ def pytest_configure(config):
 
     # If user gave --storage-dir, use it
     if not cfg.storage_dir:
-        if cfg.daemon_controller == "standalone":
+        if cfg.daemon_controller in ["standalone", "none"]:
             cfg.storage_dir = make_temporary_storage_dir()
         else:
             cfg.storage_dir = determine_storage_dir()
@@ -477,6 +477,11 @@ def make_daemon_controller(kind):
 
 @pytest.fixture(scope="session", autouse=True)
 def environment_setup():
+    if cfg.daemon_controller == "none":
+        sys.stdout.write("Skipping environment setup for the daemon.")
+        yield
+        return
+
     cntrl = make_daemon_controller(cfg.daemon_controller)
     controller_class = cntrl.func
 
