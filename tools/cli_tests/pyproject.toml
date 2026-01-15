@@ -42,4 +42,5 @@ markers = [
     "help: Help tests",
     "version: Version tests",
     "find: Find tests",
+    "exec: Exec tests",
 ]
