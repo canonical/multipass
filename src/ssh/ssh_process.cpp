@@ -34,6 +34,8 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+namespace
+{
 constexpr auto category = "ssh process";
 
 constexpr std::string_view extract_filename(std::string_view path)
@@ -62,10 +64,6 @@ struct trace_loc
 
 template <typename... Args>
 trace_loc(fmt::format_string<Args...>, Args&&...) -> trace_loc<Args...>;
-
-namespace
-{
-constexpr auto category = "ssh process";
 
 template <typename T>
 class ExitStatusCallback
