@@ -16,10 +16,11 @@
 #
 #
 
-from packaging import version as ver
-from .helpers import get_multipass_version
-
 import pytest
+
+from packaging import version as ver
+from packaging.specifiers import SpecifierSet
+from .helpers import get_multipass_version
 
 
 def _feature_version(name):
@@ -58,3 +59,23 @@ def skip_if_feature_not_supported(feature_name, version=None):
     if not multipass_version_has_feature(feature_name, version=version):
         pytest.skip(
             f"The version does not support `{feature_name}`, skipping.")
+
+
+def requires_multipass(spec: str):
+    """
+    Decorator to skip tests unless Multipass version matches the specifier.
+
+    Usage:
+        @requires_multipass(">=1.14")
+        def test_snapshot_feature():
+            ...
+
+        @requires_multipass(">=1.12,<1.15")
+        def test_deprecated_feature():
+            ...
+    """
+
+    return pytest.mark.skipif(
+        get_multipass_version() not in SpecifierSet(spec),
+        reason=f"Requires Multipass {spec}"
+    )
