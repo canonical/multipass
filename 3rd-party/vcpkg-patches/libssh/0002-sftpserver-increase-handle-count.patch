@@ -1,0 +1,103 @@
+From ad0eab649b69ae71ccf46e74d78b2340f9bd3401 Mon Sep 17 00:00:00 2001
+From: Gerorge Liao <george.liao@canonical.com>
+Date: Wed, 2 Oct 2024 17:48:05 +0200
+Subject: [PATCH] sftpserver: Increase amount of handles that can be used
+
+Addresses canonical/multipass#1950
+---
+ include/libssh/sftp.h |  1 +
+ src/sftpserver.c      | 43 ++++++++++++++++++++++---------------------
+ 2 files changed, 23 insertions(+), 21 deletions(-)
+
+diff --git a/include/libssh/sftp.h b/include/libssh/sftp.h
+index cf4458c3..a23b454a 100644
+--- a/include/libssh/sftp.h
++++ b/include/libssh/sftp.h
+@@ -93,6 +93,7 @@ struct sftp_session_struct {
+     sftp_ext ext;
+     sftp_packet read_packet;
+     sftp_limits_t limits;
++    uint32_t total_allocated_handles;
+ };
+ 
+ struct sftp_packet_struct {
+diff --git a/src/sftpserver.c b/src/sftpserver.c
+index 1afd8b2f..8523c47a 100644
+--- a/src/sftpserver.c
++++ b/src/sftpserver.c
+@@ -55,7 +55,7 @@
+ #include "libssh/buffer.h"
+ #include "libssh/misc.h"
+ 
+-#define SFTP_HANDLES 256
++#define SFTP_HANDLES_CHUNK_SZ 256
+ 
+ #define MAX_ENTRIES_NUM_IN_PACKET 50
+ #define MAX_LONG_NAME_LEN 350
+@@ -661,22 +661,23 @@ ssh_string sftp_handle_alloc(sftp_session sftp, void *info)
+     uint32_t val;
+     uint32_t i;
+ 
+-    if (sftp->handles == NULL) {
+-        sftp->handles = calloc(SFTP_HANDLES, sizeof(void *));
+-        if (sftp->handles == NULL) {
+-            return NULL;
+-        }
++  for (i = 0; i < sftp->total_allocated_handles; i++) {
++    if (sftp->handles == NULL || sftp->handles[i] == NULL) {
++      break;
+     }
++  }
+ 
+-    for (i = 0; i < SFTP_HANDLES; i++) {
+-        if (sftp->handles[i] == NULL) {
+-            break;
+-        }
+-    }
++  if (i == sftp->total_allocated_handles) {
++    uint32_t old_size = sftp->total_allocated_handles;
++    sftp->total_allocated_handles += SFTP_HANDLES_CHUNK_SZ;
+ 
+-    if (i == SFTP_HANDLES) {
++    void **tmp = realloc(sftp->handles, sftp->total_allocated_handles * sizeof(void *));
++    if (tmp == NULL)
+         return NULL; /* no handle available */
+-    }
++
++    sftp->handles = tmp;
++    memset(sftp->handles + old_size, '\0', SFTP_HANDLES_CHUNK_SZ * sizeof(void *));
++  }
+ 
+     val = i;
+     ret = ssh_string_new(4);
+@@ -704,9 +705,9 @@ void *sftp_handle(sftp_session sftp, ssh_string handle)
+ 
+     memcpy(&val, ssh_string_data(handle), sizeof(uint32_t));
+ 
+-    if (val >= SFTP_HANDLES) {
+-        return NULL;
+-    }
++  if (val > sftp->total_allocated_handles) {
++    return NULL;
++  }
+ 
+     return sftp->handles[val];
+ }
+@@ -715,12 +716,12 @@ void sftp_handle_remove(sftp_session sftp, void *handle)
+ {
+     int i;
+ 
+-    for (i = 0; i < SFTP_HANDLES; i++) {
+-        if (sftp->handles[i] == handle) {
+-            sftp->handles[i] = NULL;
+-            break;
+-        }
++  for (i = 0; i < sftp->total_allocated_handles; i++) {
++    if (sftp->handles[i] == handle) {
++      sftp->handles[i] = NULL;
++      break;
+     }
++  }
+ }
+ 
+ /* Default SFTP handlers */
