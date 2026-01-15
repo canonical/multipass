@@ -20,7 +20,7 @@
 
 import pytest
 
-from cli_tests.multipass import multipass, state, launch, random_vm_name
+from cli_tests.multipass import multipass, state, launch, random_vm_name, get_boot_id
 
 
 @pytest.mark.lifecycle
@@ -51,17 +51,23 @@ class TestVmLifecycle:
 
     def test_stop_start(self, instance):
         assert state(f"{instance}") == "Running"
+        boot_id_before = get_boot_id(instance)
         assert multipass("stop", f"{instance}")
         assert state(f"{instance}") == "Stopped"
         assert multipass("start", f"{instance}")
         assert state(f"{instance}") == "Running"
+        assert boot_id_before != get_boot_id(instance)
 
     def test_suspend_resume(self, instance):
         assert state(f"{instance}") == "Running"
         assert multipass("suspend", f"{instance}")
         assert state(f"{instance}") == "Suspended"
+        boot_id_before = get_boot_id(instance)
         assert multipass("start", f"{instance}")
         assert state(f"{instance}") == "Running"
+        boot_id_after = get_boot_id(instance)
+        # Must have the same boot id as before
+        assert boot_id_before == boot_id_after
 
     @pytest.mark.parametrize(
         "instance",
@@ -127,8 +133,16 @@ class TestVmLifecycle:
             assert multipass("start", name1, name2)
             assert state(name1) == "Running" and state(name2) == "Running"
 
+            vm1_boot_id_before_restart = get_boot_id(name1)
+            vm2_boot_id_before_restart = get_boot_id(name2)
+
             assert multipass("restart", name1, name2)
             assert state(name1) == "Running" and state(name2) == "Running"
+
+            vm1_boot_id_after_restart = get_boot_id(name1)
+            vm2_boot_id_after_restart = get_boot_id(name2)
+            assert vm1_boot_id_before_restart != vm1_boot_id_after_restart
+            assert vm2_boot_id_before_restart != vm2_boot_id_after_restart
 
             assert multipass("delete", name1, name2)
             assert state(name1) == "Deleted" and state(name2) == "Deleted"
