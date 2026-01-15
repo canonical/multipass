@@ -79,9 +79,8 @@ mp::ReturnCodeVariant cmd::WaitReady::run(mp::ArgParser* parser)
 
     ReturnCodeVariant return_code;
 
-    while (are_return_codes_equal(
-        (return_code = dispatch(&RpcMethod::wait_ready, request, on_success, on_failure)),
-        ReturnCode::Retry))
+    while ((return_code = dispatch(&RpcMethod::wait_ready, request, on_success, on_failure)) ==
+           ReturnCode::Retry)
         ;
 
     return return_code;

@@ -119,7 +119,7 @@ mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
 
     auto ret = request_launch(parser);
 
-    if (!are_return_codes_equal(ret, ReturnCode::Ok))
+    if (ret != ReturnCode::Ok)
         return ret;
 
     auto got_petenv = instance_name == petenv_name;
@@ -150,7 +150,7 @@ mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
         for (const auto& [source, target] : mount_routes)
         {
             auto mount_ret = mount(parser, source, target);
-            if (are_return_codes_equal(ret, ReturnCode::Ok))
+            if (ret == ReturnCode::Ok)
             {
                 ret = mount_ret;
             }
@@ -495,13 +495,12 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             AliasDefinition alias_definition{alias_to_be_created.instance(),
                                              alias_to_be_created.command(),
                                              alias_to_be_created.working_directory()};
-            if (!are_return_codes_equal(create_alias(aliases,
-                                                     alias_to_be_created.name(),
-                                                     alias_definition,
-                                                     cout,
-                                                     cerr,
-                                                     instance_name.toStdString()),
-                                        ReturnCode::Ok))
+            if (create_alias(aliases,
+                             alias_to_be_created.name(),
+                             alias_definition,
+                             cout,
+                             cerr,
+                             instance_name.toStdString()) == ReturnCode::Ok)
                 warning_aliases.push_back(alias_to_be_created.name());
         }
 
@@ -532,9 +531,8 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                 }
             }
 
-            if (!are_return_codes_equal(
-                    mount(parser, full_path_str, QString::fromStdString(workspace_to_be_created)),
-                    ReturnCode::Ok))
+            if (mount(parser, full_path_str, QString::fromStdString(workspace_to_be_created)) !=
+                ReturnCode::Ok)
             {
                 cerr << fmt::format("Error mounting folder {}.\n", full_path_str);
             }
@@ -650,7 +648,7 @@ auto cmd::Launch::mount(const mp::ArgParser* parser,
 {
     const auto full_mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
     auto ret = run_cmd({"multipass", "mount", mount_source, full_mount_target}, parser, cout, cerr);
-    if (are_return_codes_equal(ret, ReturnCode::Ok))
+    if (ret == ReturnCode::Ok)
         cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, full_mount_target);
 
     return ret;

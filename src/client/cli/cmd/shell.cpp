@@ -102,9 +102,8 @@ mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
 
     request.set_verbosity_level(parser->verbosityLevel());
     ReturnCodeVariant return_code;
-    while (are_return_codes_equal(
-        (return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)),
-        ReturnCode::Retry))
+    while ((return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)) ==
+           ReturnCode::Retry)
         ;
 
     return return_code;

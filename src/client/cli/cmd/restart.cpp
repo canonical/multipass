@@ -70,10 +70,10 @@ mp::ReturnCodeVariant cmd::Restart::run(mp::ArgParser* parser)
     do
     {
         spinner.start(instance_action_message_for(request.instance_names(), "Restarting "));
-    } while (are_return_codes_equal(
+    } while (
         (return_code =
-             dispatch(&RpcMethod::restart, request, on_success, on_failure, streaming_callback)),
-        ReturnCode::Retry));
+             dispatch(&RpcMethod::restart, request, on_success, on_failure, streaming_callback)) ==
+        ReturnCode::Retry);
 
     return return_code;
 }

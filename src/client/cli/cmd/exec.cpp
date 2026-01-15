@@ -132,10 +132,9 @@ mp::ReturnCodeVariant cmd::Exec::run(mp::ArgParser* parser)
 
     ssh_info_request.set_verbosity_level(parser->verbosityLevel());
     ReturnCodeVariant ssh_return_code;
-    while (are_return_codes_equal(
-        (ssh_return_code =
-             dispatch(&RpcMethod::ssh_info, ssh_info_request, on_success, on_failure)),
-        ReturnCode::Retry))
+    while ((ssh_return_code =
+                dispatch(&RpcMethod::ssh_info, ssh_info_request, on_success, on_failure)) ==
+           ReturnCode::Retry)
         ;
 
     return ssh_return_code;

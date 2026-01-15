@@ -135,13 +135,13 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
 
     auto ret = dispatch(&RpcMethod::info, info_request, on_success, on_failure);
 
-    if (are_return_codes_equal(ret, ReturnCode::DaemonFail))
+    if (ret == ReturnCode::DaemonFail)
     {
         cerr << "Error retrieving list of instances\n";
         return ParseCode::CommandLineError;
     }
 
-    if (are_return_codes_equal(ret, ReturnCode::CommandLineError))
+    if (ret == ReturnCode::CommandLineError)
     {
         cerr << fmt::format("Instance '{}' does not exist\n", instance);
         return ParseCode::CommandLineError;

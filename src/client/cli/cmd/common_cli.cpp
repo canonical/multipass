@@ -145,7 +145,7 @@ namespace
 {
 mp::ReturnCodeVariant ok2retry(mp::ReturnCodeVariant code)
 {
-    return are_return_codes_equal(code, mp::ReturnCode::Ok) ? mp::ReturnCode::Retry : code;
+    return code == mp::ReturnCode::Ok ? mp::ReturnCode::Retry : code;
 }
 } // namespace
 

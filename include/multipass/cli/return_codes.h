@@ -46,12 +46,12 @@ enum VMReturnCode
 // used, index-based get<> and holds_alternative<> are needed.
 using ReturnCodeVariant = std::variant<ReturnCode, VMReturnCode>;
 
-inline bool are_return_codes_equal(ReturnCodeVariant rc1, ReturnCode rc2)
+inline bool operator==(ReturnCodeVariant rc1, ReturnCode rc2)
 {
     // A VMReturnCode can only be obtained if everything in multipass works properly and we manage
     // to obtain that code. In that case, the mp::ReturnCode can only be ReturnCode::Ok.
-
-    return (std::holds_alternative<VMReturnCode>(rc1) && rc2 == ReturnCode::Ok) ||
-           (std::holds_alternative<ReturnCode>(rc1) && std::get<ReturnCode>(rc1) == rc2);
+    if (auto* rc = std::get_if<ReturnCode>(&rc1))
+        return *rc == rc2;
+    return rc2 == ReturnCode::Ok;
 }
 } // namespace multipass

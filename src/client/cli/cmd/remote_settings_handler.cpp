@@ -103,7 +103,7 @@ public:
 
         [[maybe_unused]] auto ret =
             dispatch(&RpcMethod::get, get_request, custom_on_success, on_failure);
-        assert(are_return_codes_equal(ret, mp::ReturnCode::Ok) && "should have thrown otherwise");
+        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
 public:
@@ -135,7 +135,7 @@ public:
                                              on_success<mp::SetReply>,
                                              on_failure,
                                              streaming_confirmation_callback);
-        assert(are_return_codes_equal(ret, mp::ReturnCode::Ok) && "should have thrown otherwise");
+        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
 
@@ -168,8 +168,7 @@ public:
 
         [[maybe_unused]] auto ret =
             dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
-        assert(mp::are_return_codes_equal(ret, mp::ReturnCode::Ok) &&
-               "should have thrown otherwise");
+        assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
 public:
