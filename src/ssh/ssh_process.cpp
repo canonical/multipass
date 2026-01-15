@@ -38,7 +38,7 @@ constexpr auto category = "ssh process";
 constexpr std::string_view extract_filename(std::string_view path)
 {
     auto pos = path.find_last_of("/\\");
-    return (pos == std::string_view::npos) ? path : path.substr(pos + 1);
+    return pos == std::string_view::npos ? path : path.substr(pos + 1);
 }
 
 void log_trace(const std::string_view message,
