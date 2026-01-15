@@ -253,6 +253,9 @@ find_package(yaml-cpp CONFIG REQUIRED)
 # neargye-semver config
 find_package(semver CONFIG REQUIRED)
 
+# libssh config
+find_package(libssh CONFIG REQUIRED)
+
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
 
@@ -273,7 +276,6 @@ if(MSVC)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
   add_definitions(-DNOMINMAX) # otherwise windows defines macros which interfere with std::min, std::max
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
-  add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   set(MULTIPASS_BACKENDS hyperv virtualbox)
