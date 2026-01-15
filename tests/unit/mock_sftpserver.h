@@ -20,8 +20,9 @@
 #include <premock.hpp>
 
 #include <libssh/sftp.h>
-extern "C" {
-    int sftp_reply_version(sftp_client_message msg);
+extern "C"
+{
+int sftp_reply_version(sftp_client_message msg);
 }
 
 DECL_MOCK(sftp_server_new);

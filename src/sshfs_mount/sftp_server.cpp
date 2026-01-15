@@ -27,8 +27,9 @@
 
 #include <multipass/utils.h>
 
-extern "C" {
-    int sftp_reply_version(sftp_client_message msg);
+extern "C"
+{
+int sftp_reply_version(sftp_client_message msg);
 }
 
 #include <QDir>
