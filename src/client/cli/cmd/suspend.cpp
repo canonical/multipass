@@ -28,7 +28,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Suspend::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -36,10 +36,10 @@ mp::ReturnCode cmd::Suspend::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::SuspendReply& reply) { return ReturnCode::Ok; };
+    auto on_success = [](mp::SuspendReply& reply) -> ReturnCodeVariant { return ReturnCode::Ok; };
 
     AnimatedSpinner spinner{cout};
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };

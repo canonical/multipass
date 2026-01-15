@@ -109,7 +109,7 @@ auto net_digest(const QString& options)
 }
 } // namespace
 
-mp::ReturnCode cmd::Launch::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
@@ -464,7 +464,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     return status;
 }
 
-mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
+mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
 {
     if (!spinner)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
@@ -481,7 +481,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         timer->start();
     }
 
-    auto on_success = [this, &parser](mp::LaunchReply& reply) {
+    auto on_success = [this, &parser](mp::LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -500,7 +500,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
                              alias_definition,
                              cout,
                              cerr,
-                             instance_name.toStdString()) != ReturnCode::Ok)
+                             instance_name.toStdString()) == ReturnCode::Ok)
                 warning_aliases.push_back(alias_to_be_created.name());
         }
 
@@ -550,7 +550,8 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &parser](grpc::Status& status, mp::LaunchReply& reply) {
+    auto on_failure = [this, &parser](grpc::Status& status,
+                                      mp::LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -643,11 +644,11 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
 
 auto cmd::Launch::mount(const mp::ArgParser* parser,
                         const QString& mount_source,
-                        const QString& mount_target) -> ReturnCode
+                        const QString& mount_target) -> ReturnCodeVariant
 {
     const auto full_mount_target = QString{"%1:%2"}.arg(instance_name, mount_target);
     auto ret = run_cmd({"multipass", "mount", mount_source, full_mount_target}, parser, cout, cerr);
-    if (ret == Ok)
+    if (ret == ReturnCode::Ok)
         cout << fmt::format("Mounted '{}' into '{}'\n", mount_source, full_mount_target);
 
     return ret;

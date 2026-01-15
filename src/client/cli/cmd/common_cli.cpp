@@ -127,10 +127,10 @@ std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_n
     return message;
 }
 
-mp::ReturnCode cmd::run_cmd(const QStringList& args,
-                            const mp::ArgParser* parser,
-                            std::ostream& cout,
-                            std::ostream& cerr)
+mp::ReturnCodeVariant cmd::run_cmd(const QStringList& args,
+                                   const mp::ArgParser* parser,
+                                   std::ostream& cout,
+                                   std::ostream& cerr)
 {
     ArgParser aux_parser{args, parser->getCommands(), cout, cerr};
     aux_parser.setVerbosityLevel(parser->verbosityLevel());
@@ -143,16 +143,16 @@ mp::ReturnCode cmd::run_cmd(const QStringList& args,
 
 namespace
 {
-mp::ReturnCode ok2retry(mp::ReturnCode code)
+mp::ReturnCodeVariant ok2retry(mp::ReturnCodeVariant code)
 {
     return code == mp::ReturnCode::Ok ? mp::ReturnCode::Retry : code;
 }
 } // namespace
 
-mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args,
-                                      const mp::ArgParser* parser,
-                                      std::ostream& cout,
-                                      std::ostream& cerr)
+mp::ReturnCodeVariant cmd::run_cmd_and_retry(const QStringList& args,
+                                             const mp::ArgParser* parser,
+                                             std::ostream& cout,
+                                             std::ostream& cerr)
 {
     return ok2retry(run_cmd(args, parser, cout, cerr));
 }

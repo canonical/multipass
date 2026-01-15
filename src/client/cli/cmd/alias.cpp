@@ -33,7 +33,7 @@ namespace
 const QString no_alias_dir_mapping_option{"no-map-working-directory"};
 } // namespace
 
-mp::ReturnCode cmd::Alias::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Alias::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -125,9 +125,9 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
     info_request.set_verbosity_level(0);
     info_request.set_no_runtime_information(true);
 
-    auto on_success = [](InfoReply&) { return ReturnCode::Ok; };
+    auto on_success = [](InfoReply&) -> ReturnCodeVariant { return ReturnCode::Ok; };
 
-    auto on_failure = [](grpc::Status& status) {
+    auto on_failure = [](grpc::Status& status) -> ReturnCodeVariant {
         return status.error_code() == grpc::StatusCode::INVALID_ARGUMENT
                    ? ReturnCode::CommandLineError
                    : ReturnCode::DaemonFail;

@@ -25,7 +25,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Clone::run(ArgParser* parser)
+mp::ReturnCodeVariant cmd::Clone::run(ArgParser* parser)
 {
     const auto parscode = parse_args(parser);
     if (parscode != ParseCode::Ok)
@@ -34,7 +34,7 @@ mp::ReturnCode cmd::Clone::run(ArgParser* parser)
     }
 
     AnimatedSpinner spinner{cout};
-    auto action_on_success = [this, &spinner](CloneReply& reply) -> ReturnCode {
+    auto action_on_success = [this, &spinner](CloneReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         cout << reply.reply_message();
 
@@ -42,7 +42,7 @@ mp::ReturnCode cmd::Clone::run(ArgParser* parser)
     };
 
     auto action_on_failure = [this, &spinner](grpc::Status& status,
-                                              CloneReply& reply) -> ReturnCode {
+                                              CloneReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status, reply.reply_message());
     };
