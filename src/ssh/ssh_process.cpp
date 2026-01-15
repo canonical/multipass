@@ -25,10 +25,11 @@
 #include <libssh/callbacks.h>
 
 #include <array>
+#include <cassert>
 #include <cerrno>
 #include <cstring>
-#include <sstream>
 #include <source_location>
+#include <sstream>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -37,6 +38,8 @@ constexpr auto category = "ssh process";
 
 constexpr std::string_view extract_filename(std::string_view path)
 {
+    assert(path.empty() || (*path.rbegin() != '/' && *path.rbegin() != '\\')); // no trailing slash
+
     auto pos = path.find_last_of("/\\");
     return pos == std::string_view::npos ? path : path.substr(pos + 1);
 }
