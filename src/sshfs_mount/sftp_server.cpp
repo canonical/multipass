@@ -27,7 +27,9 @@
 
 #include <multipass/utils.h>
 
-#include <libssh/sftp_priv.h>
+extern "C" {
+    int sftp_reply_version(sftp_client_message msg);
+}
 
 #include <QDir>
 #include <QFile>
