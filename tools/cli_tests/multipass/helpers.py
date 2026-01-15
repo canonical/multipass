@@ -204,6 +204,13 @@ def get_cloudinit_instance_id(name):
     return read_file(name, "/var/lib/cloud/data/instance-id")
 
 
+def get_boot_id(name):
+    """
+    Get boot ID from VM.
+    """
+    assert path_exists(name, "/proc/sys/kernel/random/boot_id")
+    return read_file(name, "/proc/sys/kernel/random/boot_id")
+
 def get_default_interface_name(name):
     """
     Get default network interface of VM.
