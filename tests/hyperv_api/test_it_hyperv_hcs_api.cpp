@@ -203,6 +203,7 @@ TEST_F(HyperVHCSAPI_IntegrationTests, pause_save_and_resume_compute_system)
         ASSERT_EQ(state, decltype(state)::paused);
         // Terminate the compute system.
         ASSERT_TRUE(HCS().terminate_compute_system(handle));
+
         handle.reset();
     }
 

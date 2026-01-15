@@ -385,10 +385,6 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
                compute_system_name,
                file_path.string());
 
-    // The file/folder needs to exists because HcsGrantVmAccess will modify the
-    // ACLs of the target file or folder.
-    assert(std::filesystem::exists(file_path));
-
     const auto path_as_wstring = file_path.generic_wstring();
     const std::wstring csname_as_wstring = to_wstring(compute_system_name);
     const auto result = API().HcsGrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());

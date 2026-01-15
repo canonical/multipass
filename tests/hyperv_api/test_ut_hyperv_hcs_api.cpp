@@ -156,11 +156,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                         }
                     }
                 },
-                "NetworkAdapters": {},
-                "Plan9": {
-                    "Shares": [
-                    ]
-                }
+                "NetworkAdapters": {}
             },
             "Services": {
                 "Shutdown": {},
@@ -308,11 +304,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                         }
                     }
                 },
-                "NetworkAdapters": {},
-                   "Plan9": {
-                    "Shares": [
-                    ]
-                }
+                "NetworkAdapters": {}
             },
             "Services": {
                 "Shutdown": {},
@@ -458,11 +450,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                         }
                     }
                 },
-                "NetworkAdapters": {},
-                "Plan9": {
-                    "Shares": [
-                    ]
-                }
+                "NetworkAdapters": {}
             },
             "Services": {
                 "Shutdown": {},
@@ -598,11 +586,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
                     }
                 },
                 "Scsi": {},
-                "NetworkAdapters": {},
-                "Plan9": {
-                    "Shares": [
-                    ]
-                }
+                "NetworkAdapters": {}
             },
             "Services": {
                 "Shutdown": {},
@@ -802,11 +786,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                          }
                      }
                  },
-                 "NetworkAdapters": {},
-                    "Plan9": {
-                    "Shares": [
-                    ]
-                }
+                 "NetworkAdapters": {}
             },
             "Services": {
                 "Shutdown": {},
@@ -940,11 +920,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                          }
                      }
                  },
-                 "NetworkAdapters": {},
-                "Plan9": {
-                    "Shares": [
-                    ]
-                }
+                 "NetworkAdapters": {}
             },
             "Services": {
                 "Shutdown": {},

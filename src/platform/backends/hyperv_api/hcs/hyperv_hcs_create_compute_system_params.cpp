@@ -105,7 +105,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
     std::vector<std::basic_string<Char>> optional_sections{}, optional_devices{};
 
     append_if(optional_sections,
-              SchemaUtils::instance().get_os_supported_schema_version() == HcsSchemaVersion::v25,
+              SchemaUtils::instance().get_os_supported_schema_version() >= HcsSchemaVersion::v25,
               [] {
                   return string_literal<Char>(R"json(
                     "Services": {
