@@ -38,4 +38,8 @@ endmacro()
 # Per-port customization
 if(PORT STREQUAL "libssh")
     multipass_inject_vcpkg_patches()
+     # Also enable SFTP, which is disabled by default
+    list(APPEND VCPKG_CMAKE_CONFIGURE_OPTIONS
+        "-DWITH_SFTP=ON"
+    )
 endif()
