@@ -564,7 +564,7 @@ OperationResult HCSWrapper::create_empty_guest_state_file(
     const std::filesystem::path& vmgs_file_path) const
 {
     const std::wstring path_w = vmgs_file_path.generic_wstring();
-    const auto result = API().HcsCreateEmptyGuestStateFile(path_w.c_str());
+    const auto result = ResultCode{API().HcsCreateEmptyGuestStateFile(path_w.c_str())};
     if (result)
     {
         return grant_vm_access(compute_system_name, vmgs_file_path);
@@ -580,7 +580,7 @@ OperationResult HCSWrapper::create_empty_runtime_state_file(
     const std::filesystem::path& vmrs_file_path) const
 {
     const std::wstring path_w = vmrs_file_path.generic_wstring();
-    const auto result = API().HcsCreateEmptyRuntimeStateFile(path_w.c_str());
+    const auto result = ResultCode{API().HcsCreateEmptyRuntimeStateFile(path_w.c_str())};
     if (result)
     {
         return grant_vm_access(compute_system_name, vmrs_file_path);
