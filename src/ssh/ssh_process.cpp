@@ -94,21 +94,15 @@ private:
 auto make_channel(ssh_session session, const std::string& cmd)
 {
     if (!ssh_is_connected(session))
-    {
-        trace_loc("unable to create a channel for remote process: '{}', SSH session not connected",
-                  cmd);
-
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
-    }
+
     mp::SSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
-    trace_loc("[ssh proc] opening session channel");
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] failed to open session channel",
                             ssh_channel_open_session);
-    trace_loc("[ssh proc] executing command: '{}'", cmd);
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] exec request failed",
@@ -182,12 +176,8 @@ void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save
 
     if (!std::holds_alternative<int>(exit_result))
     {
-        if (rc == SSH_ERROR) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
-            trace_loc("SSHProcessExitError for cmd '{}': {}", cmd, std::strerror(errno));
-        else
-            trace_loc("SSHProcessTimeoutException for cmd '{}', timeout: {}", cmd, timeout);
         std::exception_ptr eptr;
-         if (rc == SSH_ERROR)
+        if (rc == SSH_ERROR) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
             eptr = std::make_exception_ptr(SSHProcessExitError{cmd, std::strerror(errno)});
         else
             eptr = std::make_exception_ptr(SSHProcessTimeoutException{cmd, timeout});
@@ -243,7 +233,7 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                 trace_loc("channel closed");
                 return output.str();
             }
-            trace_loc("SSH read error for cmd '{}', error: {}", cmd, num_bytes);
+
             throw mp::SSHException(
                 fmt::format("error while reading ssh channel for remote process '{}' - error: {}",
                             cmd,
