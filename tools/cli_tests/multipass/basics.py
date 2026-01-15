@@ -72,7 +72,7 @@ def determine_data_dir():
     """
     Get backend-specific data dir from storage dir.
     """
-    if cfg.daemon_controller == "standalone":
+    if cfg.daemon_controller in ["standalone", "none"]:
         return str(Path(determine_storage_dir()) / "data")
     if cfg.daemon_controller == "snap":
         return determine_storage_dir()
@@ -111,7 +111,7 @@ def get_multipass_env():
     """Return an environment dict for running Multipass with a custom storage root."""
     multipass_env = os.environ.copy()
     if (
-        cfg.daemon_controller == "standalone"
+        cfg.daemon_controller in ["standalone", "none"]
         or cfg.storage_dir
         != default_storage_dir_for_backend(cfg.daemon_controller)
     ):
