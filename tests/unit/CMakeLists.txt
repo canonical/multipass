@@ -42,8 +42,6 @@ add_executable(multipass_tests
   temp_file.cpp
   test_alias_dict.cpp
   test_argparser.cpp
-  test_base_availability_zone.cpp
-  test_base_availability_zone_manager.cpp
   test_base_snapshot.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
@@ -125,6 +123,12 @@ add_executable(multipass_tests
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
+
+if(AVAILABILITY_ZONES_ENABLED)
+  target_sources(multipass_tests PRIVATE
+    test_base_availability_zone.cpp
+    test_base_availability_zone_manager.cpp)
+endif()
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
