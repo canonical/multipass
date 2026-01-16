@@ -80,26 +80,6 @@ apps:
     plugs:
       - all-home
       - network
-  gui:
-    desktop: usr/share/applications/multipass.gui.desktop
-    autostart: multipass.gui.autostart.desktop
-    extensions: [ gnome ]
-    environment: &_client-environment
-      XDG_DATA_HOME: $SNAP_USER_DATA
-      XDG_DATA_DIRS: $SNAP/usr/share
-    command: bin/bundle/multipass_gui
-    command-chain: [bin/set-xdg-vars]
-    plugs:
-      - all-home
-      - desktop
-      - desktop-legacy
-      - gsettings
-      - network
-      - opengl
-      - removable-media
-      - unity7
-      - wayland
-      - x11
 
 parts:
   qt-ssl-plugin:
