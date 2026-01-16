@@ -16,3 +16,8 @@ include(src/cmake/feature-flag.cmake)
 
 # Multipass backend integrating with Apple Virtualization framework
 feature_flag(APPLEVZ_ENABLED "AppleVZ backend" APPLE)
+
+feature_flag(AVAILABILITY_ZONES_ENABLED "Availability zone support")
+if(AVAILABILITY_ZONES_ENABLED)
+  add_compile_definitions(AVAILABILITY_ZONES_FEATURE)
+endif()
