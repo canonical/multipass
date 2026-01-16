@@ -40,7 +40,7 @@
             "cacheVariables": {
                 "MP_ALLOW_OPTIONAL_FEATURES": {
                     "type": "STRING",
-                    "value": "$env{MP_FEATURE_FLAGS}"
+                    "value": "$env{MP_ALLOW_OPTIONAL_FEATURES}"
                 }
             }
         },
