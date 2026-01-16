@@ -39,9 +39,9 @@ jobs:
             "cmake-preset": "ci-snap"
           });
 
-          if (!(context.eventName === 'merge_group' ||
-               context.eventName === 'schedule' ||
-               context.ref.startsWith('refs/heads/release/')) &&
+          if (context.eventName !== 'merge_group' &&
+              context.eventName !== 'schedule' &&
+              !context.ref.startsWith('refs/heads/release/') &&
               context.repo.owner === 'canonical' &&
               context.repo.repo === 'multipass') {
             matrix.include.push({
