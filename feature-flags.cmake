@@ -13,3 +13,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 include(src/cmake/feature-flag.cmake)
+
+feature_flag(AVAILABILITY_ZONES_ENABLED "Availability zone support")
+if(AVAILABILITY_ZONES_ENABLED)
+  add_compile_definitions(AVAILABILITY_ZONES_FEATURE)
+endif()
