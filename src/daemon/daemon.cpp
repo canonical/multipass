@@ -309,7 +309,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
             static_cast<mp::VirtualMachine::State>(state),
             mounts,
             deleted,
-            metadata,
+            mp::qjson_to_boost_json(metadata).as_object(),
             clone_count,
             zone,
         };
@@ -326,7 +326,7 @@ QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
     json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
     json.insert("state", static_cast<int>(specs.state));
     json.insert("deleted", specs.deleted);
-    json.insert("metadata", specs.metadata);
+    json.insert("metadata", mp::boost_json_to_qjson(specs.metadata));
 
     // Write the networking information. Write first a field "mac_addr" containing the MAC address
     // of the default network interface. Then, write all the information about the rest of the
@@ -3208,14 +3208,14 @@ void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine
     persist_instances();
 }
 
-void mp::Daemon::update_metadata_for(const std::string& name, const QJsonObject& metadata)
+void mp::Daemon::update_metadata_for(const std::string& name, const boost::json::object& metadata)
 {
     vm_instance_specs[name].metadata = metadata;
 
     persist_instances();
 }
 
-QJsonObject mp::Daemon::retrieve_metadata_for(const std::string& name)
+boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
 {
     return vm_instance_specs[name].metadata;
 }
@@ -3332,7 +3332,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     VirtualMachine::State::off,
                     {},
                     false,
-                    QJsonObject(),
+                    {},
                     0,
                     vm_desc.zone,
                 };
@@ -4079,16 +4079,13 @@ mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec,
     }
 
     // non qemu snapshot files do not have metadata
-    if (!dest_vm_spec.metadata.isEmpty())
+    if (!dest_vm_spec.metadata.empty())
     {
-        dest_vm_spec.metadata =
-            MP_JSONUTILS
-                .update_unique_identifiers_of_metadata(QJsonValue{dest_vm_spec.metadata},
-                                                       src_vm_spec,
-                                                       dest_vm_spec,
-                                                       src_name,
-                                                       dest_name)
-                .toObject();
+        dest_vm_spec.metadata = update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
+                                                                      src_vm_spec,
+                                                                      dest_vm_spec,
+                                                                      src_name,
+                                                                      dest_name);
     }
     return dest_vm_spec;
 }

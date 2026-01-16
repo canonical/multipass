@@ -27,7 +27,7 @@
 
 namespace multipass::cmd
 {
-ReturnCode EnableZones::run(ArgParser* parser)
+ReturnCodeVariant EnableZones::run(ArgParser* parser)
 {
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
@@ -39,7 +39,7 @@ ReturnCode EnableZones::run(ArgParser* parser)
                              : fmt::format("Enabling {}", fmt::join(request.zones(), ", "));
     spinner.start(message);
 
-    const auto on_success = [&](const ZonesStateReply&) {
+    const auto on_success = [&](const ZonesStateReply&) -> ReturnCodeVariant {
         spinner.stop();
         const auto output_message = use_all_zones
                                         ? "All zones enabled"
@@ -50,7 +50,7 @@ ReturnCode EnableZones::run(ArgParser* parser)
         return Ok;
     };
 
-    const auto on_failure = [this, &spinner](const grpc::Status& status) {
+    const auto on_failure = [this, &spinner](const grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };

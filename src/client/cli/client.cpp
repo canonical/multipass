@@ -133,7 +133,7 @@ void mp::Client::sort_commands()
     std::sort(commands.begin(), commands.end(), name_sort);
 }
 
-int mp::Client::run(const QStringList& arguments)
+mp::ReturnCodeVariant mp::Client::run(const QStringList& arguments)
 {
     QString description("Create, control and connect to cloud instances.\n\n"
                         "This is a command line utility for multipass, a\n"
@@ -142,7 +142,7 @@ int mp::Client::run(const QStringList& arguments)
     ArgParser parser(arguments, commands, term->cout(), term->cerr());
     parser.setApplicationDescription(description);
 
-    mp::ReturnCode ret = mp::ReturnCode::Ok;
+    mp::ReturnCodeVariant ret = mp::ReturnCode::Ok;
     ParseCode parse_status = parser.parse(aliases);
 
     auto verbosity =

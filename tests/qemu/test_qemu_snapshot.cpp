@@ -110,11 +110,7 @@ struct TestQemuSnapshot : public Test
         const auto state = mp::VirtualMachine::State::off;
         const auto mounts = std::unordered_map<std::string, mp::VMMount>{
             {"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
-        const auto metadata = [] {
-            auto metadata = QJsonObject{};
-            metadata["meta"] = "data";
-            return metadata;
-        }();
+        const boost::json::object metadata = {{"meta", "data"}};
         const auto zone = "zone1";
 
         return mp::VMSpecs{
@@ -184,8 +180,9 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
 
     EXPECT_THAT(
         snapshot.get_metadata(),
-        ResultOf([](const QJsonObject& metadata) { return metadata["arguments"].toArray(); },
-                 Contains("-qmp")));
+        ResultOf(
+            [](const boost::json::object& metadata) { return metadata.at("arguments").as_array(); },
+            Contains("-qmp")));
 }
 
 TEST_F(TestQemuSnapshot, capturesSnapshot)

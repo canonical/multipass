@@ -240,7 +240,7 @@ struct Client : public Test
         {
             args << QString::fromStdString(arg);
         }
-        return client.run(args);
+        return std::visit([](auto&& value) { return static_cast<int>(value); }, client.run(args));
     }
 
     int send_command(const std::vector<std::string>& command,
@@ -875,7 +875,7 @@ TEST_F(Client, shellCmdCreatesConsole)
     EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr_stream));
     EXPECT_CALL(term, make_console(_)).WillOnce(Throw(std::runtime_error(error_string)));
 
-    EXPECT_EQ(setup_client_and_run({"shell"}, term), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(setup_client_and_run({"shell"}, term), mp::ReturnCode::ShellExecFail);
     EXPECT_THAT(cerr_stream.str(), HasSubstr(error_string));
 }
 
@@ -1839,7 +1839,7 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
     REPLACE(ssh_channel_get_exit_state,
             [failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
                 *val = failure_code;
-                return failure_code == -1 ? -1 : SSH_OK;
+                return failure_code == -1 ? SSH_ERROR : SSH_OK;
             });
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
@@ -1851,7 +1851,8 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
 
     EXPECT_CALL(mock_daemon, info(_, _)).WillOnce(make_info_function());
 
-    EXPECT_EQ(send_command({"exec", instance_name, "--", "cmd"}), failure_code);
+    EXPECT_EQ(send_command({"exec", instance_name, "--", "cmd"}),
+              (failure_code == -1 ? mp::ReturnCode::ShellExecFail : failure_code));
 }
 
 TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
@@ -1864,7 +1865,7 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
     REPLACE(ssh_channel_get_exit_state,
             [failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
                 *val = failure_code;
-                return failure_code == -1 ? -1 : SSH_OK;
+                return failure_code == -1 ? SSH_ERROR : SSH_OK;
             });
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
@@ -1876,7 +1877,7 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
 
     EXPECT_EQ(
         send_command({"exec", instance_name, "--working-directory", "/home/ubuntu/", "--", "cmd"}),
-        failure_code);
+        (failure_code == -1 ? mp::ReturnCode::ShellExecFail : failure_code));
 }
 
 INSTANTIATE_TEST_SUITE_P(Client, SSHClientReturnTest, Values(0, -1, 1, 127));
@@ -1980,7 +1981,7 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"exec", instance_name, "--", cmd}, trash_stream, cerr_stream),
-              mp::ReturnCode::CommandFail);
+              mp::ReturnCode::ShellExecFail);
     EXPECT_THAT(cerr_stream.str(), HasSubstr("exec failed: some exception\n"));
 }
 

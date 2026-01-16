@@ -19,7 +19,6 @@
 
 #include "common.h"
 
-#include <multipass/path.h>
 #include <multipass/progress_monitor.h>
 
 namespace multipass::test
@@ -28,7 +27,12 @@ namespace multipass::test
 class MockImageDecoder
 {
 public:
-    MOCK_METHOD(void, decode_to, (const Path&, const Path&, const ProgressMonitor&), (const));
+    MOCK_METHOD(void,
+                decode_to,
+                (const std::filesystem::path&,
+                 const std::filesystem::path&,
+                 const ProgressMonitor&),
+                (const));
 };
 
 } // namespace multipass::test

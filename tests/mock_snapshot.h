@@ -46,7 +46,7 @@ struct MockSnapshot : public mp::Snapshot
                 get_mounts,
                 (),
                 (const, noexcept, override));
-    MOCK_METHOD(const QJsonObject&, get_metadata, (), (const, noexcept, override));
+    MOCK_METHOD(const boost::json::object&, get_metadata, (), (const, noexcept, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>, get_parent, (), (const, override));
     MOCK_METHOD(std::shared_ptr<Snapshot>, get_parent, (), (override));
     MOCK_METHOD(std::string, get_parents_name, (), (const, override));

@@ -36,13 +36,9 @@
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
-#include "path.h"
 #include "stub_availability_zone.h"
 #include "stub_availability_zone_manager.h"
 #include "stub_virtual_machine.h"
-#include "stub_virtual_machine_factory.h"
-#include "stub_vm_image_vault.h"
-#include "tracking_url_downloader.h"
 
 #include <src/daemon/default_vm_image_vault.h>
 #include <src/daemon/instance_settings_handler.h>

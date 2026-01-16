@@ -46,7 +46,7 @@ auto is_dir_mounted(const QStringList& split_current_dir, const QStringList& spl
 }
 } // namespace
 
-mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Exec::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -80,7 +80,8 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
             QString clean_exec_dir = mpu::normalize_path(QDir::current().canonicalPath());
             QStringList split_exec_dir = clean_exec_dir.split('/');
 
-            auto on_info_success = [&work_dir, &split_exec_dir](mp::InfoReply& reply) {
+            auto on_info_success = [&work_dir,
+                                    &split_exec_dir](mp::InfoReply& reply) -> ReturnCodeVariant {
                 for (const auto& mount : reply.details(0).mount_info().mount_paths())
                 {
                     auto source_dir = QDir(QString::fromStdString(mount.source_path()));
@@ -101,7 +102,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
                 return ReturnCode::Ok;
             };
 
-            auto on_info_failure = [this](grpc::Status& status) {
+            auto on_info_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
                 return standard_failure_handler_for(name(), cerr, status);
             };
 
@@ -115,11 +116,11 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
         }
     }
 
-    auto on_success = [this, &args, &work_dir](mp::SSHInfoReply& reply) {
+    auto on_success = [this, &args, &work_dir](mp::SSHInfoReply& reply) -> ReturnCodeVariant {
         return exec_success(reply, work_dir, args, term);
     };
 
-    auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
+    auto on_failure = [this, &instance_name, parser](grpc::Status& status) -> ReturnCodeVariant {
         if (status.error_code() == grpc::StatusCode::ABORTED)
             return run_cmd_and_retry({"multipass", "start", QString::fromStdString(instance_name)},
                                      parser,
@@ -130,7 +131,7 @@ mp::ReturnCode cmd::Exec::run(mp::ArgParser* parser)
     };
 
     ssh_info_request.set_verbosity_level(parser->verbosityLevel());
-    ReturnCode ssh_return_code;
+    ReturnCodeVariant ssh_return_code;
     while ((ssh_return_code =
                 dispatch(&RpcMethod::ssh_info, ssh_info_request, on_success, on_failure)) ==
            ReturnCode::Retry)
@@ -154,10 +155,10 @@ QString cmd::Exec::description() const
     return QStringLiteral("Run a command on an instance");
 }
 
-mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
-                                       const std::optional<std::string>& dir,
-                                       const std::vector<std::string>& args,
-                                       mp::Terminal* term)
+mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
+                                              const std::optional<std::string>& dir,
+                                              const std::vector<std::string>& args,
+                                              mp::Terminal* term)
 {
     // TODO: mainly for testing - need a better way to test parsing
     if (reply.ssh_info().empty())
@@ -192,12 +193,12 @@ mp::ReturnCode cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
         else
             all_args = {{args}};
 
-        return static_cast<mp::ReturnCode>(ssh_client.exec(all_args));
+        return static_cast<mp::VMReturnCode>(ssh_client.exec(all_args));
     }
     catch (const std::exception& e)
     {
         term->cerr() << "exec failed: " << e.what() << "\n";
-        return ReturnCode::CommandFail;
+        return ReturnCode::ShellExecFail;
     }
 }
 

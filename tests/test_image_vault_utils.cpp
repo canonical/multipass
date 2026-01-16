@@ -204,7 +204,7 @@ TEST_F(TestImageVaultUtils, extractFileWithDecoderBindsMonitor)
     };
 
     mpt::MockImageDecoder decoder{};
-    EXPECT_CALL(decoder, decode_to(test_path, test_output, Truly([&](const auto& m) {
+    EXPECT_CALL(decoder, decode_to(fs_test_path, fs_test_output, Truly([&](const auto& m) {
                                        return m(type, progress);
                                    })));
 

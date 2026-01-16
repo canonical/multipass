@@ -50,16 +50,17 @@ public:
     virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
                                                      const std::string& src_vm_name,
                                                      const std::string& dest_vm_name) const;
-    virtual QJsonValue update_unique_identifiers_of_metadata(const QJsonValue& metadata,
-                                                             const multipass::VMSpecs& src_specs,
-                                                             const multipass::VMSpecs& dest_specs,
-                                                             const std::string& src_vm_name,
-                                                             const std::string& dest_vm_name) const;
     virtual QJsonArray extra_interfaces_to_json_array(
         const std::vector<NetworkInterface>& extra_interfaces) const;
     virtual std::optional<std::vector<NetworkInterface>> read_extra_interfaces(
         const QJsonObject& record) const;
 };
+
+boost::json::object update_unique_identifiers_of_metadata(const boost::json::object& metadata,
+                                                          const multipass::VMSpecs& src_specs,
+                                                          const multipass::VMSpecs& dest_specs,
+                                                          const std::string& src_vm_name,
+                                                          const std::string& dest_vm_name);
 
 namespace detail
 {

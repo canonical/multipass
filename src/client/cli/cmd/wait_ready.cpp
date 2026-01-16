@@ -28,7 +28,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::WaitReady::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -51,14 +51,14 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
         timer->start();
     }
 
-    auto on_success = [&spinner, &timer](WaitReadyReply& reply) {
+    auto on_success = [&spinner, &timer](WaitReadyReply& reply) -> ReturnCodeVariant {
         if (timer)
             timer->stop();
         spinner.stop();
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner, &timer](grpc::Status& status) {
+    auto on_failure = [this, &spinner, &timer](grpc::Status& status) -> ReturnCodeVariant {
         if (status.error_code() == grpc::StatusCode::NOT_FOUND)
         {
             // This is the expected state for when the daemon is not yet ready
@@ -77,7 +77,7 @@ mp::ReturnCode cmd::WaitReady::run(mp::ArgParser* parser)
 
     request.set_verbosity_level(parser->verbosityLevel());
 
-    ReturnCode return_code;
+    ReturnCodeVariant return_code;
 
     while ((return_code = dispatch(&RpcMethod::wait_ready, request, on_success, on_failure)) ==
            ReturnCode::Retry)

@@ -122,6 +122,7 @@ add_executable(multipass_tests
   test_permission_utils.cpp
   test_client_logger.cpp
   test_standard_logger.cpp
+  test_xz_image_decoder.cpp
 )
 
 target_include_directories(multipass_tests
@@ -161,6 +162,7 @@ target_link_libraries(multipass_tests
   ssh_client_test
   sshfs_mount_test
   utils_test
+  xz_image_decoder
   # 3rd-party
   premock
   scope_guard

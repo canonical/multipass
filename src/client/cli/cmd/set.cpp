@@ -30,7 +30,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Set::run(mp::ArgParser* parser)
 {
     auto parse_code = parse_args(parser);
     auto ret = parser->returnCodeFrom(parse_code);

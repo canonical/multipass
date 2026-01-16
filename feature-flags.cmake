@@ -12,12 +12,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_definitions(-DXZ_USE_CRC64)
-
-add_library(xz_image_decoder STATIC
-  xz_image_decoder.cpp)
-
-target_link_libraries(xz_image_decoder
-  xz-embedded
-  fmt::fmt-header-only
-  rpc)
+include(src/cmake/feature-flag.cmake)

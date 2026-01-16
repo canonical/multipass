@@ -22,17 +22,17 @@
 
 namespace multipass::cmd
 {
-ReturnCode Zones::run(ArgParser* parser)
+ReturnCodeVariant Zones::run(ArgParser* parser)
 {
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
-    auto on_success = [this](const ZonesReply& reply) {
+    auto on_success = [this](const ZonesReply& reply) -> ReturnCodeVariant {
         cout << chosen_formatter->format(reply);
         return Ok;
     };
 
-    auto on_failure = [this](const grpc::Status& status) {
+    auto on_failure = [this](const grpc::Status& status) -> ReturnCodeVariant {
         return standard_failure_handler_for(name(), cerr, status);
     };
 

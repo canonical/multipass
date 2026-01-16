@@ -140,10 +140,40 @@ jobs:
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
 
     - name: Configure
-      run: |
-        /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
-        /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
-        /snap/bin/snapcraft pull --use-lxd multipass
+      # To alleviate the race condition in the Snapcraft's LXD
+      # integration where the snapd is auto-refreshing itself on
+      # container start.
+      #  https://github.com/canonical/craft-providers/issues/391
+      uses: nick-fields/retry@v3
+      with:
+        # We have to set a value for this as it's not optional
+        # https://github.com/nick-fields/retry/issues/51
+        timeout_minutes: 720 # 12 hours
+        max_attempts: 5
+        retry_wait_seconds: 20
+        retry_on_exit_code: 42
+        command: |
+          run_snapcraft() {
+            tmpfile=$(mktemp)
+
+            "$@" |& tee "$tmpfile"
+            exit_code=${PIPESTATUS[0]}
+
+            if [ $exit_code -eq 0 ]; then
+              return 0
+            fi
+
+            if grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes" "$tmpfile"; then
+              exit 42
+            fi
+
+            exit $exit_code
+          }
+          # The auto-refresh race would manifest itself in the first pull attempt.
+          # Hence wrapping only the first call.
+          run_snapcraft /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
+          /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
+          /snap/bin/snapcraft pull --use-lxd multipass
 
     - name: Run clang-tidy through the diff
       if: ${{ false && matrix.build-type == 'Debug' }}

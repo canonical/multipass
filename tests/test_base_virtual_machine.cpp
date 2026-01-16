@@ -759,8 +759,7 @@ TEST_F(BaseVM, restoresSnapshots)
 
     mp::VMMount mount{"src", {}, {}, mp::VMMount::MountType::Classic};
 
-    QJsonObject metadata{};
-    metadata["meta"] = "data";
+    boost::json::object metadata = {{"meta", "data"}};
 
     const mp::VMSpecs original_specs{
         2,
@@ -859,7 +858,7 @@ TEST_F(BaseVM, usesRestoredSnapshotAsParentForNewSnapshots)
     std::unordered_map<std::string, mp::VMMount> mounts;
     EXPECT_CALL(*root_snapshot, get_mounts).WillRepeatedly(ReturnRef(mounts));
 
-    QJsonObject metadata{};
+    boost::json::object metadata;
     EXPECT_CALL(*root_snapshot, get_metadata).WillRepeatedly(ReturnRef(metadata));
 
     vm.restore_snapshot(root_name, specs);
@@ -1216,7 +1215,7 @@ TEST_F(BaseVM, persistsHeadIndexOnRestore)
     std::unordered_map<std::string, mp::VMMount> mounts;
     EXPECT_CALL(*snapshot_album[1], get_mounts).WillRepeatedly(ReturnRef(mounts));
 
-    QJsonObject metadata{};
+    boost::json::object metadata;
     EXPECT_CALL(*snapshot_album[1], get_metadata).WillRepeatedly(ReturnRef(metadata));
 
     vm.restore_snapshot(intended_snapshot, specs);
