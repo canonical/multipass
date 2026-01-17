@@ -36,8 +36,6 @@
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
-#include "stub_availability_zone.h"
-#include "stub_availability_zone_manager.h"
 #include "stub_virtual_machine.h"
 
 #include <src/daemon/default_vm_image_vault.h>
@@ -48,6 +46,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/signal.h>
+#include <multipass/stub_availability_zone.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -126,7 +126,7 @@ struct Daemon : public mpt::DaemonTestFixture
             .Times(AnyNumber())
             .WillRepeatedly(Return("notabridge"));
 
-        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
+        config_builder.az_manager = std::make_unique<mp::StubAvailabilityZoneManager>();
     }
 
     void SetUp() override
@@ -155,7 +155,7 @@ a few more tests for `false`, since there are different portions of code dependi
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZone zone{};
 };
 
 TEST_F(Daemon, buildsConfig)
@@ -259,6 +259,7 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         .WillOnce(
             Invoke(&daemon,
                    &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
+#ifdef AVAILABILITY_ZONES_FEATURE
     EXPECT_CALL(daemon, zones)
         .WillOnce(
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ZonesRequest, mp::ZonesReply>));
@@ -268,34 +269,39 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
             &daemon,
             &mpt::MockDaemon::set_promise_value<mp::ZonesStateRequest, mp::ZonesStateReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
+#endif
 
-    send_commands({{"test_keys"},
-                   {"test_get", "foo"},
-                   {"test_set", "foo", "bar"},
-                   {"test_create", "foo"},
-                   {"launch", "foo"},
-                   {"delete", "foo"},
-                   {"exec", "foo", "--no-map-working-directory", "--", "cmd"},
-                   {"info", "foo"},
-                   {"list"},
-                   {"purge"},
-                   {"recover", "foo"},
-                   {"snapshot", "foo"},
-                   {"start", "foo"},
-                   {"stop", "foo"},
-                   {"suspend", "foo"},
-                   {"restart", "foo"},
-                   {"restore", "foo.bar"},
-                   {"version"},
-                   {"find", "something"},
-                   {"mount", ".", "target"},
-                   {"umount", "instance"},
-                   {"networks"},
-                   {"clone", "foo"},
-                   {"wait-ready"},
-                   {"zones"},
-                   {"enable-zones", "foo"},
-                   {"disable-zones", "foo", "--force"}});
+    send_commands({
+        {"test_keys"},
+        {"test_get", "foo"},
+        {"test_set", "foo", "bar"},
+        {"test_create", "foo"},
+        {"launch", "foo"},
+        {"delete", "foo"},
+        {"exec", "foo", "--no-map-working-directory", "--", "cmd"},
+        {"info", "foo"},
+        {"list"},
+        {"purge"},
+        {"recover", "foo"},
+        {"snapshot", "foo"},
+        {"start", "foo"},
+        {"stop", "foo"},
+        {"suspend", "foo"},
+        {"restart", "foo"},
+        {"restore", "foo.bar"},
+        {"version"},
+        {"find", "something"},
+        {"mount", ".", "target"},
+        {"umount", "instance"},
+        {"networks"},
+        {"clone", "foo"},
+        {"wait-ready"},
+#ifdef AVAILABILITY_ZONES_FEATURE
+        {"zones"},
+        {"enable-zones", "foo"},
+        {"disable-zones", "foo", "--force"},
+#endif
+    });
 }
 
 TEST_F(Daemon, providesVersion)

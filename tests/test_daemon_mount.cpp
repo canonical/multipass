@@ -26,14 +26,14 @@
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
-#include "stub_availability_zone.h"
-#include "stub_availability_zone_manager.h"
 #include "stub_mount_handler.h"
 #include "temp_dir.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/stub_availability_zone.h>
+#include <multipass/stub_availability_zone_manager.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -53,7 +53,7 @@ struct TestDaemonMount : public mpt::DaemonTestFixture
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
         mock_factory = use_a_mock_vm_factory();
-        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
+        config_builder.az_manager = std::make_unique<mp::StubAvailabilityZoneManager>();
     }
 
     std::unique_ptr<mpt::MockMountHandler> mock_mount_handler{
@@ -76,7 +76,7 @@ struct TestDaemonMount : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZone zone{};
 };
 } // namespace
 

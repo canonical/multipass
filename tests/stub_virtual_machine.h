@@ -17,12 +17,12 @@
 
 #pragma once
 
-#include "stub_availability_zone.h"
 #include "stub_mount_handler.h"
 #include "stub_snapshot.h"
 #include "temp_dir.h"
 
 #include <multipass/ip_address.h>
+#include <multipass/stub_availability_zone.h>
 #include <multipass/virtual_machine.h>
 
 namespace multipass

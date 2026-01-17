@@ -24,7 +24,6 @@
 #include "mock_ssh_test_fixture.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
-#include "stub_availability_zone.h"
 #include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
@@ -38,6 +37,7 @@
 #include <multipass/logging/level.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/stub_availability_zone.h>
 #include <multipass/vm_specs.h>
 
 #include <algorithm>
@@ -251,7 +251,7 @@ struct BaseVM : public Test
         return MatchesRegex(fmt::format("{0}*{1}{0}*", space_char_class, idx));
     }
 
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZone zone{};
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm", key_provider, zone};
