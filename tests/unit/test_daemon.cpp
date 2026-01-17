@@ -257,6 +257,7 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         .WillOnce(
             Invoke(&daemon,
                    &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
+#ifdef AVAILABILITY_ZONES_FEATURE
     EXPECT_CALL(daemon, zones)
         .WillOnce(
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ZonesRequest, mp::ZonesReply>));
@@ -266,34 +267,39 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
             &daemon,
             &mpt::MockDaemon::set_promise_value<mp::ZonesStateRequest, mp::ZonesStateReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
+#endif
 
-    send_commands({{"test_keys"},
-                   {"test_get", "foo"},
-                   {"test_set", "foo", "bar"},
-                   {"test_create", "foo"},
-                   {"launch", "foo"},
-                   {"delete", "foo"},
-                   {"exec", "foo", "--no-map-working-directory", "--", "cmd"},
-                   {"info", "foo"},
-                   {"list"},
-                   {"purge"},
-                   {"recover", "foo"},
-                   {"snapshot", "foo"},
-                   {"start", "foo"},
-                   {"stop", "foo"},
-                   {"suspend", "foo"},
-                   {"restart", "foo"},
-                   {"restore", "foo.bar"},
-                   {"version"},
-                   {"find", "something"},
-                   {"mount", ".", "target"},
-                   {"umount", "instance"},
-                   {"networks"},
-                   {"clone", "foo"},
-                   {"wait-ready"},
-                   {"zones"},
-                   {"enable-zones", "foo"},
-                   {"disable-zones", "foo", "--force"}});
+    send_commands({
+        {"test_keys"},
+        {"test_get", "foo"},
+        {"test_set", "foo", "bar"},
+        {"test_create", "foo"},
+        {"launch", "foo"},
+        {"delete", "foo"},
+        {"exec", "foo", "--no-map-working-directory", "--", "cmd"},
+        {"info", "foo"},
+        {"list"},
+        {"purge"},
+        {"recover", "foo"},
+        {"snapshot", "foo"},
+        {"start", "foo"},
+        {"stop", "foo"},
+        {"suspend", "foo"},
+        {"restart", "foo"},
+        {"restore", "foo.bar"},
+        {"version"},
+        {"find", "something"},
+        {"mount", ".", "target"},
+        {"umount", "instance"},
+        {"networks"},
+        {"clone", "foo"},
+        {"wait-ready"},
+#ifdef AVAILABILITY_ZONES_FEATURE
+        {"zones"},
+        {"enable-zones", "foo"},
+        {"disable-zones", "foo", "--force"},
+#endif
+    });
 }
 
 TEST_F(Daemon, providesVersion)
