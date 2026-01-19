@@ -1,4 +1,16 @@
-platform :osx, '10.14'
+deployment_target = nil
+deployment_target_file = File.join(__dir__, 'Runner/Configs/DeploymentTarget.xcconfig')
+if File.exist?(deployment_target_file)
+  File.foreach(deployment_target_file) do |line|
+    matches = line.match(/MACOSX_DEPLOYMENT_TARGET\s*=\s*(.*)/)
+    if matches
+      deployment_target = matches[1].strip
+      break
+    end
+  end
+end
+
+platform :osx, deployment_target
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
