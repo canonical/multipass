@@ -65,6 +65,8 @@ def launch(cfg_override=None):
         vm_cfg["disk"],
         "--name",
         vm_cfg["name"],
+        "--timeout",
+        getattr(cfg.timeouts, "launch", 300),
         vm_cfg["image"],
         retry=vm_cfg["retry"],
     ) as launch_r:
