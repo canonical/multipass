@@ -158,7 +158,6 @@ class AsyncSubprocess:
 
     def __init__(self, *args, **kwargs):
         self.args = args
-        self.kwargs = kwargs
         self.proc = None
         self.kwargs = self._default_kwargs()
         self.kwargs.update(kwargs)
