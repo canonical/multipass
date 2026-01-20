@@ -1,9 +1,11 @@
 (how-to-guides-customise-multipass-configure-where-multipass-stores-external-data)=
+
 # Configure where Multipass stores external data
 
 This document demonstrates how to configure the location where Multipass stores instances, caches images, and other data. Configuring a new storage location can be useful, for example, if you need to free up storage space on your boot partition.
 
 (configuring-a-new-storage-location)=
+
 ## Configuring a new storage location
 
 ```{caution}
@@ -12,9 +14,9 @@ This document demonstrates how to configure the location where Multipass stores 
 - When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to delete it manually.
 ```
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 First, stop the Multipass daemon:
 
@@ -86,7 +88,7 @@ sudo rm -rf /var/snap/multipass/common/cache/multipassd
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 First, become `root`:
 
@@ -124,7 +126,7 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 First, open a PowerShell prompt with administration privileges.
 
@@ -181,9 +183,9 @@ Remove-Item -Path "C:\ProgramData\Multipass\data\vault\*" -Recurse
 
 ## Reverting back to the default location
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 Stop the Multipass daemon:
 
@@ -231,7 +233,7 @@ sudo rm -rf <path>
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 First, become `root`:
 
@@ -265,7 +267,7 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 First, open a PowerShell prompt with administrator privileges.
 
