@@ -27,7 +27,7 @@ import threading
 import re
 import operator
 import atexit
-from contextlib import contextmanager, ExitStack
+from contextlib import contextmanager, ExitStack, suppress
 from functools import partial
 from packaging import version
 
@@ -432,19 +432,18 @@ def ensure_sudo_auth():
         def _keep_sudo_alive():
             """Background thread that periodically refreshes sudo auth"""
             while not stop_keepalive.is_set():
-                try:
+                with suppress(Exception):
                     subprocess.run(
                         [*get_sudo_tool(), "-n", "-v"],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                         check=False,
                     )
-                except Exception:
-                    # Don't crash tests if sudo -v fails, just break
-                    break
+
                 stop_keepalive.wait(60)  # refresh every minute
 
-        sudo_keepalive_thread = threading.Thread(target=_keep_sudo_alive)
+        sudo_keepalive_thread = threading.Thread(
+            target=_keep_sudo_alive, daemon=True)
         sudo_keepalive_thread.start()
         yield
         stop_keepalive.set()
