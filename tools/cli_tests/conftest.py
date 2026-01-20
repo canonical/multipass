@@ -433,13 +433,14 @@ def ensure_sudo_auth():
             """Background thread that periodically refreshes sudo auth"""
             while not stop_keepalive.is_set():
                 with suppress(Exception):
-                    subprocess.run(
+                    result = subprocess.run(
                         [*get_sudo_tool(), "-n", "-v"],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                         check=False,
                     )
-
+                    logging.debug(
+                        f"sudo keepalive tick, exit={result.returncode}")
                 stop_keepalive.wait(60)  # refresh every minute
 
         sudo_keepalive_thread = threading.Thread(
