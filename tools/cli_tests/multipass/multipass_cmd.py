@@ -100,7 +100,6 @@ def restart_epilogue(args, kwargs, result, prologue_result):
 
         assert attempt_ssh(vm_name)
 
-
 @wrap_call_if("restart", restart_prologue, restart_epilogue)
 def multipass(*args, **kwargs):
     """Run a Multipass CLI command with optional retry, timeout, and context
@@ -217,8 +216,8 @@ def multipass(*args, **kwargs):
             env=env,
         )
 
-    class Cmd:
-        """Run a Multipass CLI command and capture its output.
+    class RunToCompletion:
+        """Run the cli command and capture its output.
 
         Spawns a `pexpect` child process to run the given command,
         waits for it to complete, decodes the output, and ensures cleanup.
@@ -280,5 +279,5 @@ def multipass(*args, **kwargs):
         def __exit__(self, *args):
             return False
 
-    cmd = Cmd()
+    cmd = RunToCompletion()
     return cmd()
