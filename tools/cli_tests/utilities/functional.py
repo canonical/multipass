@@ -25,6 +25,7 @@ def retry(retries=3, delay=1.0):
     """Decorator to retry a function call based on return code"""
 
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             for attempt in range(retries + 1):
                 try:
