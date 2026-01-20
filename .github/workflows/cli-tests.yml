@@ -218,34 +218,21 @@ jobs:
         id: run-cli-tests
         shell: bash
         run: |
-          # Start background resource monitor (macOS only)
+          # Memory monitor to stdout (macOS only)
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             (while true; do
-              echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
-              echo "-- Memory --"
-              vm_stat | grep -E "(free|active|inactive|wired|compressed)"
-              echo "-- Disk --"
-              df -h /
-              echo "-- QEMU --"
-              ps aux | grep -i qemu | grep -v grep | awk '{print "PID="$2, "CPU="$3"%", "MEM="$4"%", "RSS="$6"KB"}' || echo "No QEMU"
-              echo "-- Multipass instances --"
-              multipass list 2>/dev/null || true
-              echo "---"
-              sleep 30
-            done) > ${{ runner.temp }}/resource_monitor.log 2>&1 &
-            echo $! > ${{ runner.temp }}/monitor.pid
+              echo "::group::Resources $(date -u +%H:%M:%S)"
+              vm_stat | grep -E "(free|active|wired|compressed)" | head -4
+              df -h / | tail -1
+              ps aux | grep -i qemu | grep -v grep | wc -l | xargs echo "QEMU processes:"
+              multipass list 2>/dev/null | tail -n +2 || true
+              echo "::endgroup::"
+              sleep 15
+            done) &
           fi
 
           ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
 
-          TEST_EXIT=$?
-
-          # Cleanup monitor
-          if [[ -f "${{ runner.temp }}/monitor.pid" ]]; then
-            kill $(cat ${{ runner.temp }}/monitor.pid) 2>/dev/null || true
-          fi
-
-          exit $TEST_EXIT
       - name: Check resources after
         if: always() && runner.os == 'macOS'
         run: |
