@@ -1,4 +1,5 @@
 (explanation-authentication)=
+
 # Authentication
 
 > See also: [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
