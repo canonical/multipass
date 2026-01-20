@@ -104,7 +104,7 @@ class WindowsServiceMultipassdController:
                     await stop_force.communicate()
 
         while await self.is_active():
-            asyncio.sleep(0.5)
+            await asyncio.sleep(0.5)
 
     async def restart(self) -> None:
         await self.stop(graceful=True)
