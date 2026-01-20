@@ -100,6 +100,36 @@ def restart_epilogue(args, kwargs, result, prologue_result):
 
         assert attempt_ssh(vm_name)
 
+
+def spawn_multipass_interactive(
+    args: list,
+    timeout: int | None = None,
+    echo: bool = True,
+    env: dict | None = None,
+    logfile=None,
+):
+    """Spawn a multipass process with platform-appropriate backend."""
+    if sys.platform == "win32":
+        return WinptySpawn(
+            [get_multipass_path(), *map(str, args)],
+            logfile=logfile or (sys.stdout if cfg.print_cli_output else None),
+            timeout=timeout,
+            encoding="utf-8",
+            codec_errors="replace",
+            env=env,
+        )
+
+    return pexpect.spawn(
+        get_multipass_path(),
+        [*map(str, args)],
+        logfile=logfile or (
+            sys.stdout.buffer if cfg.print_cli_output else None),
+        timeout=timeout,
+        echo=echo,
+        env=env,
+    )
+
+
 @wrap_call_if("restart", restart_prologue, restart_epilogue)
 def multipass(*args, **kwargs):
     """Run a Multipass CLI command with optional retry, timeout, and context
@@ -197,24 +227,7 @@ def multipass(*args, **kwargs):
     logging.debug(f"cmd: {cmd_args}")
 
     if kwargs.get("interactive"):
-        if sys.platform == "win32":
-            return WinptySpawn(
-                [get_multipass_path(), *map(str, args)],
-                logfile=(sys.stdout if cfg.print_cli_output else None),
-                timeout=timeout,
-                encoding="utf-8",
-                codec_errors="replace",
-                env=env,
-            )
-
-        return pexpect.spawn(
-            get_multipass_path(),
-            [*map(str, args)],
-            logfile=(sys.stdout.buffer if cfg.print_cli_output else None),
-            timeout=timeout,
-            echo=echo,
-            env=env,
-        )
+        return spawn_multipass_interactive(args, timeout=timeout, echo=echo, env=env)
 
     class RunToCompletion:
         """Run the cli command and capture its output.
