@@ -18,7 +18,6 @@
 
 """Wrapper for running Multipass CLI commands in tests with retry, timeouts, and interactive support."""
 
-import subprocess
 import sys
 import logging
 import uuid
@@ -30,11 +29,7 @@ from cli_tests.config import cfg
 from cli_tests.multipass import get_multipass_env, get_multipass_path
 from cli_tests.multipass.cmd_output import Output
 from cli_tests.utilities import retry, wrap_call_if
-
-if sys.platform == "win32":
-    from pexpect.popen_spawn import PopenSpawn
-
-    from cli_tests.utilities import WinptySpawn
+from .multipass_spawn import spawn_multipass
 
 
 def non_option_args(args):
@@ -59,7 +54,7 @@ def _restart_hook_common(args):
 
 def get_boot_id(name):
     """
-    Get boot ID from VM.
+    Get boot ID from VM. (duplicate for avoiding circular dependency)
     """
     with multipass(
         "exec", name, "--", "cat", "/proc/sys/kernel/random/boot_id"
@@ -99,35 +94,6 @@ def restart_epilogue(args, kwargs, result, prologue_result):
                 return v
 
         assert attempt_ssh(vm_name)
-
-
-def spawn_multipass_interactive(
-    args: list,
-    timeout: int | None = None,
-    echo: bool = True,
-    env: dict | None = None,
-    logfile=None,
-):
-    """Spawn a multipass process with platform-appropriate backend."""
-    if sys.platform == "win32":
-        return WinptySpawn(
-            [get_multipass_path(), *map(str, args)],
-            logfile=logfile or (sys.stdout if cfg.print_cli_output else None),
-            timeout=timeout,
-            encoding="utf-8",
-            codec_errors="replace",
-            env=env,
-        )
-
-    return pexpect.spawn(
-        get_multipass_path(),
-        [*map(str, args)],
-        logfile=logfile or (
-            sys.stdout.buffer if cfg.print_cli_output else None),
-        timeout=timeout,
-        echo=echo,
-        env=env,
-    )
 
 
 @wrap_call_if("restart", restart_prologue, restart_epilogue)
@@ -195,28 +161,6 @@ def multipass(*args, **kwargs):
         # updating progress message
         sys.stderr.write("\n")
 
-    if sys.platform == "win32":
-        # PopenSpawn is just "good enough" for non-interactive stuff.
-        class PopenCompatSpawn(PopenSpawn):
-            def __init__(self, command, args, **kwargs):
-                super().__init__([command, *map(str, args)], **kwargs)
-
-            def isalive(self):
-                return self.proc.poll() is None
-
-            def terminate(self, wait=True, kill_on_timeout=True, timeout=5):
-                if self.isalive():
-                    self.proc.terminate()
-                    if wait:
-                        try:
-                            self.proc.wait(timeout=timeout)
-                        except subprocess.TimeoutExpired:
-                            if kill_on_timeout:
-                                self.proc.kill()
-
-            def close(self):
-                self.terminate()
-
     env = get_multipass_env()
     env_args = kwargs.get("env")
 
@@ -227,7 +171,7 @@ def multipass(*args, **kwargs):
     logging.debug(f"cmd: {cmd_args}")
 
     if kwargs.get("interactive"):
-        return spawn_multipass_interactive(args, timeout=timeout, echo=echo, env=env)
+        return spawn_multipass(args, timeout=timeout, echo=echo, env=env, interactive=True)
 
     class RunToCompletion:
         """Run the cli command and capture its output.
@@ -244,28 +188,8 @@ def multipass(*args, **kwargs):
         def __init__(self):
             self.pexpect_child = None
             try:
-                if sys.platform != "win32":
-                    self.pexpect_child = pexpect.spawn(
-                        get_multipass_path(),
-                        [*map(str, args)],
-                        logfile=(
-                            sys.stdout.buffer if cfg.print_cli_output else None
-                        ),
-                        timeout=timeout,
-                        echo=echo,
-                        env=env,
-                    )
-                else:
-                    self.pexpect_child = PopenCompatSpawn(
-                        get_multipass_path(),
-                        [*map(str, args)],
-                        logfile=(
-                            sys.stdout.buffer if cfg.print_cli_output else None
-                        ),
-                        timeout=timeout,
-                        env=env,
-                    )
-
+                self.pexpect_child = spawn_multipass(
+                    args, timeout=timeout, echo=echo, env=env)
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
                 self.output_text = self.pexpect_child.before.decode("utf-8")
                 self.pexpect_child.wait()
