@@ -18,6 +18,11 @@ message(STATUS "Setting build number to: ${MULTIPASS_BUILD_NUMBER}")
 
 add_library(dart_ffi SHARED ffi/dart_ffi.cpp)
 
+add_custom_command(TARGET dart_ffi POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:dart_ffi>"
+    COMMENT "Stripping symbols from dart_ffi..."
+)
+
 target_link_libraries(dart_ffi
   petname
   client_common
