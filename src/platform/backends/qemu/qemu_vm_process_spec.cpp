@@ -78,7 +78,11 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         // clang-format off
         // The VM image itself
         args << "-device"
+#if defined Q_PROCESSOR_S390
+             << "virtio-scsi-ccw,id=scsi0"
+#else
              << "virtio-scsi-pci,id=scsi0"
+#endif
              << "-drive"
              << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda")
                     .arg(desc.image.image_path)
