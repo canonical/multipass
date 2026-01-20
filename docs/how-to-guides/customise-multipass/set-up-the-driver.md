@@ -7,21 +7,21 @@ This document demonstrates how to choose, set up, and manage the drivers behind 
 
 ## Default driver
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 By default, Multipass on Linux uses the `qemu` driver.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 By default, Multipass on macOS uses the `qemu` driver.
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 By default, Multipass on Windows uses the `hyperv` driver.
 
@@ -31,9 +31,9 @@ By default, Multipass on Windows uses the `hyperv` driver.
 
 ## Install an alternative driver
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 An alternative option is to use VirtualBox.
 
@@ -47,7 +47,7 @@ From now on, all instances started with `multipass launch` will use VirtualBox b
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 If you want to (or have to), you can change the hypervisor that Multipass uses to VirtualBox.
 
@@ -71,9 +71,9 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 ## Use the driver to view Multipass instances
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 You can view instances with libvirt in two ways, using the `virsh` CLI or the [`virt-manager` GUI](https://virt-manager.org/).
 
@@ -103,7 +103,7 @@ Alternatively, to use the `virt-manager` GUI, ...
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 Multipass runs as the `root` user, so to see the instances in  VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
 
@@ -137,7 +137,7 @@ You can still use the `multipass` client and the system menu icon, and any chang
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 Multipass runs as the _System_ account, so to see the instances in VirtualBox, or through the `VBoxManage` command, you have to run those as that user via [`PsExec -s`](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec). Download and unpack [PSTools.zip](https://download.sysinternals.com/files/PSTools.zip) in your *Downloads* folder, and in an administrative PowerShell, run:
 
@@ -177,15 +177,15 @@ You can still use the `multipass` client and the system menu icon, and any chang
 
 ## Use VirtualBox to set up port forwarding for a Multipass instance
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 This option only applies to macOS and Windows systems.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 To expose a service running inside the instance on your host, you can use [VirtualBox's port forwarding feature](https://www.virtualbox.org/manual/ch06.html#natforward), for example:
 
@@ -197,7 +197,7 @@ You can then open, say, https://localhost:8081/, and the service running inside 
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 To expose a service running inside the instance on your host, you can use [VirtualBox's port forwarding feature](https://www.virtualbox.org/manual/ch06.html#natforward), for example:
 
@@ -213,15 +213,15 @@ You can then open, say, https://localhost:8081/, and the service running inside 
 
 ## Use VirtualBox to set up network bridging for a Multipass instance
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 This option only applies to macOS systems.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 An often requested Multipass feature is network bridging. You can add a second network interface to the instance and expose it on your physical network.
 
@@ -312,7 +312,7 @@ All the services running inside the instance should now be available on your phy
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 This option only applies to macOS systems.
 
@@ -324,9 +324,9 @@ This option only applies to macOS systems.
 
 > See also: {ref}`reference-command-line-interface-stop`, {ref}`reference-settings-local-driver`
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 To switch back to the default `qemu` driver, first you need to stop all instances again:
 
@@ -340,7 +340,7 @@ Here, too, existing instances will be migrated.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 If you want to switch back to the default driver, run:
 
@@ -352,7 +352,7 @@ Instances created with VirtualBox don't get transferred, but you can always come
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 If you want to switch back to the default driver:
 
