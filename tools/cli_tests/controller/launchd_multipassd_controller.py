@@ -161,8 +161,6 @@ class LaunchdMultipassdController:
                 return
             raise RuntimeError(f"kickstart failed:\n{stdout}")
 
-        self._daemon_pid = await self._get_pid()
-
     async def stop(self) -> None:
         async with SilentAsyncSubprocess(
             *sudo("launchctl", "stop", f"system/{label}")
