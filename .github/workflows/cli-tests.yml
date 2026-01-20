@@ -206,10 +206,57 @@ jobs:
         id: install-cli-test-deps
         run: ${{ matrix.cmd-prologue }} pip install -e ./tools/cli_tests/
 
+      - name: Check resources before
+        if: runner.os == 'macOS'
+        run: |
+          echo "=== Disk ==="
+          df -h /
+          echo "=== Memory ==="
+          vm_stat | head -10
+          sysctl hw.memsize
       - name: Run cli-tests
         id: run-cli-tests
-        run: ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
+        shell: bash
+        run: |
+          # Start background resource monitor (macOS only)
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            (while true; do
+              echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+              echo "-- Memory --"
+              vm_stat | grep -E "(free|active|inactive|wired|compressed)"
+              echo "-- Disk --"
+              df -h /
+              echo "-- QEMU --"
+              ps aux | grep -i qemu | grep -v grep | awk '{print "PID="$2, "CPU="$3"%", "MEM="$4"%", "RSS="$6"KB"}' || echo "No QEMU"
+              echo "-- Multipass instances --"
+              multipass list 2>/dev/null || true
+              echo "---"
+              sleep 30
+            done) > ${{ runner.temp }}/resource_monitor.log 2>&1 &
+            echo $! > ${{ runner.temp }}/monitor.pid
+          fi
 
+          ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
+
+          TEST_EXIT=$?
+
+          # Cleanup monitor
+          if [[ -f "${{ runner.temp }}/monitor.pid" ]]; then
+            kill $(cat ${{ runner.temp }}/monitor.pid) 2>/dev/null || true
+          fi
+
+          exit $TEST_EXIT
+      - name: Check resources after
+        if: always() && runner.os == 'macOS'
+        run: |
+          echo "=== Disk ==="
+          df -h /
+          echo "=== Remaining QEMU processes ==="
+          ps aux | grep -i qemu | grep -v grep || echo "None"
+          echo "=== Multipass instances ==="
+          multipass list 2>/dev/null || echo "Could not list"
+          echo "=== Multipass data size ==="
+          sudo du -sh /var/root/Library/Application\ Support/multipassd/ 2>/dev/null || true
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
         uses: dorny/test-reporter@v2
