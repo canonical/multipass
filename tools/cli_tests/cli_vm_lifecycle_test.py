@@ -60,9 +60,9 @@ class TestVmLifecycle:
 
     def test_suspend_resume(self, instance):
         assert state(f"{instance}") == "Running"
+        boot_id_before = get_boot_id(instance)
         assert multipass("suspend", f"{instance}")
         assert state(f"{instance}") == "Suspended"
-        boot_id_before = get_boot_id(instance)
         assert multipass("start", f"{instance}")
         assert state(f"{instance}") == "Running"
         boot_id_after = get_boot_id(instance)
