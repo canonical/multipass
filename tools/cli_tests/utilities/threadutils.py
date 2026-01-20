@@ -77,7 +77,7 @@ class BackgroundEventLoop:
     def _run_loop(self) -> None:
         self.loop.run_forever()
 
-    def shutdown(self, cancel_timeout: float = 5.0) -> None:
+    def shutdown(self) -> None:
         if self._stopped:
             return
         self._stopped = True
