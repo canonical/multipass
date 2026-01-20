@@ -33,6 +33,9 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
 #if defined Q_PROCESSOR_ARM
          << "-machine"
          << "virt"
+#elif defined Q_PROCESSOR_S390
+         << "-machine"
+         << "s390-ccw-virtio"
 #endif
          << "-nographic"
          << "-dump-vmstate" << file_name;

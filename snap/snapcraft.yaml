@@ -142,6 +142,7 @@ parts:
     - ninja-build
     # https://github.com/microsoft/vcpkg/issues/47920
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
+    - python3-pip
     stage-packages:
     - apparmor
     - libpng16-16
@@ -225,7 +226,8 @@ parts:
       VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
       craftctl set version=${VERSION}
       craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
-      sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
+      [ -f ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop ] && \
+        sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
 
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -type f \( -name 'LICENSE*' -o -path '*/LICENSE*/*' \) -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
@@ -295,12 +297,12 @@ parts:
       usr/lib/qemu/*: usr/bin/
       usr/share/qemu/*: qemu/
     override-pull: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
 
 
       craftctl default
     override-build: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && exit 0
+      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
 
       set -ex
       # Mangle the configure a bit
@@ -322,6 +324,7 @@ parts:
     - qemu/vgabios-*.bin*
     - qemu/slof.bin*
     - qemu/bios-256k.bin*
+    - qemu/s390-ccw.img*
     - -usr/lib/*/pkgconfig
 
   qemu-firmware:
