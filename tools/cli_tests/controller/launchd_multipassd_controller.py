@@ -136,7 +136,7 @@ class LaunchdMultipassdController:
         ) as proc:
             stdout, _ = await proc.communicate()
             if proc.returncode != 0:
-                return False
+                return None
 
             m = _regex.search(stdout.decode(encoding="utf-8", errors="replace"))
             if m:
