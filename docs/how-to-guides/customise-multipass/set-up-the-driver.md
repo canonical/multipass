@@ -34,7 +34,7 @@ By default, Multipass on Windows uses the `hyperv` driver.
 
 ## Install an alternative driver
 
-`````{tabs}
+`````{tab-set}
 
 ````{tab-item} macOS
 :sync: macOS
