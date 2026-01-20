@@ -59,7 +59,7 @@ class TestClone:
         take_snapshot(instance, "snapshot1")
         with multipass("clone", f"{instance}") as output:
             assert output
-            assert f"Cloned from {instance} to {instance}.clone1" in output
+            assert f"Cloned from {instance} to {instance}-clone1" in output
 
         # Verify that the clone does not have any snapshots
         assert snapshot_count(f"{instance}-clone1") == 0
