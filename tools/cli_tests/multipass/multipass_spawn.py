@@ -70,7 +70,9 @@ def spawn_multipass(
         interactive: If True, use WinptySpawn on Windows for interactive sessions.
                      If False, use PopenCompatSpawn for non-interactive usage.
     """
-    logfile = sys.stdout.buffer if cfg.print_cli_output else None
+    stream = sys.stdout if sys.platform == "win32" else sys.stdout.buffer
+    logfile = stream if cfg.print_cli_output else None
+
     if sys.platform == "win32":
         if interactive:
             return WinptySpawn(
