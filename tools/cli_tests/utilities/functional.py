@@ -61,10 +61,8 @@ def wrap_call_if(value, pre=None, post=None, *, index=0, key=None):
             pre_result = None
             if match and pre:
                 pre_result = pre(args, kwargs)
-            try:
-                result = fn(*args, **kwargs)
-            except Exception:
-                raise
+
+            result = fn(*args, **kwargs)
 
             if match and post:
                 post(args, kwargs, result, pre_result)
