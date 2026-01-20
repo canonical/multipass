@@ -203,7 +203,7 @@ class AsyncSubprocess:
                     p.terminate()
                 try:
                     await asyncio.wait_for(p.communicate(), 5)
-                except TimeoutError:
+                except asyncio.TimeoutError:
                     with suppress(ProcessLookupError):
                         p.kill()
 
