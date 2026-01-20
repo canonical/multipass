@@ -1,11 +1,9 @@
 (how-to-guides-customise-multipass-configure-where-multipass-stores-external-data)=
-
 # Configure where Multipass stores external data
 
 This document demonstrates how to configure the location where Multipass stores instances, caches images, and other data. Configuring a new storage location can be useful, for example, if you need to free up storage space on your boot partition.
 
 (configuring-a-new-storage-location)=
-
 ## Configuring a new storage location
 
 ```{caution}
