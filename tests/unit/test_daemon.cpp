@@ -51,8 +51,6 @@
 
 #include <scope_guard.hpp>
 
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <QNetworkProxyFactory>
 #include <QStorageInfo>
 #include <QString>
@@ -1126,38 +1124,6 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                  Values("1G", mp::default_disk_size, "10G")));
 INSTANTIATE_TEST_SUITE_P(Daemon, LaunchStorageCheckSuite, Values("test_create", "launch"));
 
-void check_maps_in_json(const QJsonObject& doc_object,
-                        const mp::id_mappings& expected_gid_mappings,
-                        const mp::id_mappings& expected_uid_mappings)
-{
-    const auto instance_object = doc_object["real-zebraphant"].toObject();
-
-    const auto mounts = instance_object["mounts"].toArray();
-
-    ASSERT_EQ(mounts.size(), 1);
-
-    auto mount = mounts.first().toObject(); // There is at most one mount in our JSON.
-
-    auto gid_mappings = mount["gid_mappings"].toArray();
-
-    ASSERT_EQ((unsigned)gid_mappings.size(), expected_gid_mappings.size());
-
-    for (unsigned i = 0; i < expected_gid_mappings.size(); ++i)
-    {
-        ASSERT_EQ(gid_mappings[i].toObject()["host_gid"], expected_gid_mappings[i].first);
-        ASSERT_EQ(gid_mappings[i].toObject()["instance_gid"], expected_gid_mappings[i].second);
-    }
-
-    auto uid_mappings = mount["uid_mappings"].toArray();
-    ASSERT_EQ((unsigned)uid_mappings.size(), expected_uid_mappings.size());
-
-    for (unsigned i = 0; i < expected_uid_mappings.size(); ++i)
-    {
-        ASSERT_EQ(uid_mappings[i].toObject()["host_uid"], expected_uid_mappings[i].first);
-        ASSERT_EQ(uid_mappings[i].toObject()["instance_uid"], expected_uid_mappings[i].second);
-    }
-}
-
 TEST_F(Daemon, readsMacAddressesFromJson)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1198,7 +1164,7 @@ TEST_F(Daemon, readsMacAddressesFromJson)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(WithArg<1>([&mac_addr, &extra_interfaces](const QByteArrayView& data) {
-            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
+            auto obj = boost::json::parse({data.begin(), data.end()}).as_object();
             check_interfaces_in_json(obj, mac_addr, extra_interfaces);
         }));
 
@@ -1279,7 +1245,7 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(WithArg<1>([&mounts](const QByteArrayView& data) {
-            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
+            auto obj = boost::json::parse({data.begin(), data.end()});
             check_mounts_in_json(obj, mounts);
         }));
 
@@ -1318,7 +1284,7 @@ TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(WithArg<1>([&uid_mappings, &gid_mappings](const QByteArrayView& data) {
-            auto obj = QJsonDocument::fromJson(data.toByteArray(), nullptr).object();
+            auto obj = boost::json::parse({data.begin(), data.end()});
             check_maps_in_json(obj, uid_mappings, gid_mappings);
         }));
 
