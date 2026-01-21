@@ -223,14 +223,6 @@ class LaunchdMultipassdController:
 
     async def stop(self) -> None:
         if not self._daemon_pid:
-            # We're trying to stop
-            async with SilentAsyncSubprocess(
-                *sudo("launchctl", "stop", f"system/{label}")
-            ) as stop:
-                await stop.communicate()
-            with suppress(asyncio.TimeoutError):
-                if await asyncio.wait_for(self.wait_exit(), 5):
-                    return
             return
 
         logging.debug("Starting daemon shutdown procecure")
