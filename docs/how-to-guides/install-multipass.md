@@ -13,15 +13,15 @@ Select the tab corresponding to your operating system (e.g. Linux) to display th
 (install-multipass-prerequisites)=
 ## Check prerequisites
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/), available on the [Snap Store](https://snapcraft.io/multipass). Before you can use it, you need to [install `snapd`](https://docs.snapcraft.io/core/install). `snapd` is included in Ubuntu by default.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 <!--### Hypervisor.framework / hyperkit-->
 
@@ -29,7 +29,7 @@ The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. Y
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 ### Hyper-V
 
@@ -45,9 +45,9 @@ Multipass also supports using VirtualBox as a virtualisation provider. You can d
 
 ## Install
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 To install Multipass, run the following command:
 
@@ -122,7 +122,7 @@ installed:          1.3.0                            (2205) 228MB -
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 ```{note}
 You will need an account with administrator privileges to complete the installation.
@@ -143,7 +143,7 @@ Run the downloaded installer and follow the guided procedure.
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 ```{note}
 You will need either Hyper-V enabled (only Windows 10 Professional or Enterprise), or VirtualBox installed. See {ref}`install-multipass-prerequisites`.
@@ -161,15 +161,15 @@ Alternatively, you can also check your preferred package manager to see if it pr
 
 ## Run
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
@@ -179,7 +179,7 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 You've installed Multipass. Time to run your first commands! Launch a **Command Prompt** (`cmd.exe`) or **PowerShell** as a regular user. Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
@@ -197,15 +197,15 @@ multipass set local.driver=virtualbox
 (how-to-guides-install-multipass-upgrade)=
 ## Upgrade
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 As the installation happened via snap, you don't need to worry about upgrading---it will be done automatically.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 ```{note}
 You will need an account with administrator privileges to complete the upgrade.
@@ -219,7 +219,7 @@ Any existing instances will be preserved.
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 To upgrade, [download the latest installer](https://canonical.com/multipass/download/windows) and run it. You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.msi` package.
 
@@ -231,9 +231,9 @@ You will be asked to uninstall the old version, and then whether to remove all d
 
 ## Uninstall
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 To uninstall Multipass, run the following command:
 
@@ -243,7 +243,7 @@ snap remove multipass
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 To uninstall Multipass, run the script:
 ```{code-block} text
@@ -252,7 +252,7 @@ sudo sh "/Library/Application Support/com.canonical.multipass/uninstall.sh"
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 Uninstall Multipass as you would any other program, following the usual procedure.
 
