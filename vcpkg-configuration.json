@@ -1,5 +1,5 @@
 {
-  "overlay-triplets": [
-    "3rd-party/vcpkg-triplets"
-  ]
+    "overlay-triplets": [
+        "3rd-party/vcpkg-triplets"
+    ]
 }

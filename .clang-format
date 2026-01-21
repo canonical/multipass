@@ -46,4 +46,5 @@ Language: Proto
 DisableFormat: true
 ---
 Language: Json
+InsertNewlineAtEOF: true
 ...
