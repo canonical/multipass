@@ -12,9 +12,9 @@ This document demonstrates how to configure the location where Multipass stores 
 - When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to delete it manually.
 ```
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 First, stop the Multipass daemon:
 
@@ -86,7 +86,7 @@ sudo rm -rf /var/snap/multipass/common/cache/multipassd
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 First, become `root`:
 
@@ -124,7 +124,7 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 First, open a PowerShell prompt with administration privileges.
 
@@ -181,9 +181,9 @@ Remove-Item -Path "C:\ProgramData\Multipass\data\vault\*" -Recurse
 
 ## Reverting back to the default location
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 Stop the Multipass daemon:
 
@@ -231,7 +231,7 @@ sudo rm -rf <path>
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 First, become `root`:
 
@@ -265,7 +265,7 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 First, open a PowerShell prompt with administrator privileges.
 
