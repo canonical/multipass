@@ -28,6 +28,7 @@
 #include <scope_guard.hpp>
 
 #include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDBusMetaType>
 #include <QString>
 #include <QtDBus/QtDBus>
@@ -191,6 +192,36 @@ auto make_bridge_rollback_guard(std::string_view log_category,
     });
 }
 
+QString generate_bridge_name(const std::string& interface)
+{
+    static constexpr auto base_name = "br-";
+    static constexpr auto base_name_len = 3; // length of "br-"
+
+    auto full_name = QString("%1%2").arg(base_name).arg(QString::fromStdString(interface));
+
+    // If it fits within the limit, use it as-is (most readable)
+    if (full_name.length() <= max_bridge_name_len)
+        return full_name;
+
+    // Otherwise, truncate and add hash suffix for uniqueness
+    // Use 3-character hash suffix: 15 - 3 ("br-") - 1 ("-") - 3 (hash) = 8 chars for interface
+    static constexpr auto hash_suffix_len = 3;
+    static constexpr auto separator_len = 1;
+    constexpr auto max_iface_portion =
+        max_bridge_name_len - base_name_len - separator_len - hash_suffix_len;
+
+    // Generate a short hash of the full interface name to ensure uniqueness
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    hash.addData(interface.c_str(), interface.length());
+    auto hash_result = hash.result().toHex();
+    auto hash_suffix = hash_result.left(hash_suffix_len);
+
+    // Use as much of the interface name as possible for readability
+    auto iface_portion = QString::fromStdString(interface).left(max_iface_portion);
+
+    return QString("%1%2-%3").arg(base_name).arg(iface_portion).arg(hash_suffix);
+}
+
 std::string generate_random_subnet()
 {
     gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
@@ -221,7 +252,6 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     static constexpr auto log_category_create = "create bridge";
     static constexpr auto log_category_rollback = "rollback bridge";
     static const auto root_path = QDBusObjectPath{"/"};
-    static const auto base_name = QStringLiteral("br-");
 
     static std::once_flag once;
     std::call_once(once, [] { qDBusRegisterMetaType<VariantMapMap>(); });
@@ -231,7 +261,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     auto nm_settings =
         get_checked_interface(system_bus, nm_bus_name, nm_settings_obj, nm_settings_ifc);
 
-    auto parent_name = (base_name + interface.c_str()).left(max_bridge_name_len);
+    auto parent_name = generate_bridge_name(interface);
     auto child_name = parent_name + "-child";
     mpl::debug(log_category_create, "Creating bridge: {}", parent_name);
 

@@ -29,6 +29,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 
+#include <QCryptographicHash>
 #include <QMap>
 #include <QVariant>
 
@@ -191,7 +192,33 @@ struct CreateBridgeTest : public Test
 
     static QString get_bridge_name(const char* child)
     {
-        return (QString{"br-"} + child).left(15);
+        // This must match the logic in generate_bridge_name() in backend_utils.cpp
+        static constexpr auto base_name = "br-";
+        static constexpr auto base_name_len = 3;
+        static constexpr auto max_bridge_name_len = 15;
+
+        auto full_name = QString("%1%2").arg(base_name).arg(child);
+
+        // If it fits within the limit, use it as-is (most readable)
+        if (full_name.length() <= max_bridge_name_len)
+            return full_name;
+
+        // Otherwise, truncate and add hash suffix for uniqueness
+        static constexpr auto hash_suffix_len = 3;
+        static constexpr auto separator_len = 1;
+        constexpr auto max_iface_portion =
+            max_bridge_name_len - base_name_len - separator_len - hash_suffix_len;
+
+        // Generate a short hash of the full interface name to ensure uniqueness
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        hash.addData(child, strlen(child));
+        auto hash_result = hash.result().toHex();
+        auto hash_suffix = hash_result.left(hash_suffix_len);
+
+        // Use as much of the interface name as possible for readability
+        auto iface_portion = QString(child).left(max_iface_portion);
+
+        return QString("%1%2-%3").arg(base_name).arg(iface_portion).arg(hash_suffix);
     }
 
     MockDBusProvider::GuardedMock mock_dbus_injection = MockDBusProvider::inject();
