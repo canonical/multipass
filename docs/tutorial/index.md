@@ -20,6 +20,7 @@ Select the tab corresponding to your operating system (e.g. Linux) to display th
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 Start Multipass from the application launcher. In Ubuntu, press the super key and type "Multipass", or find Multipass in the Applications panel on the lower left of the desktop.
 
@@ -128,6 +129,7 @@ This folder could be a great place to keep files that need to be accessed by bot
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 Start Multipass from the application launcher. In macOS, open the application launcher, type "Multipass", and launch the application.
 
@@ -222,6 +224,7 @@ ubuntu@primary:~/Home/Multipass_Files$
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 Start Multipass from the application launcher. Press the Windows key and type "Multipass", then launch the application.
 
@@ -357,6 +360,7 @@ Launch an instance running Ubuntu 22.10 ("Kinetic Kudu") by typing the `multipas
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
 
@@ -391,6 +395,7 @@ You can now launch the type of instance you need by running this command:
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "breezy-liger".
 
@@ -425,6 +430,7 @@ You can now launch the type of instance you need by running this command:
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "decorous-skate".
 
@@ -467,6 +473,7 @@ You can confirm that the new instance has the specs you need by running `multipa
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 ```{code-block} text
 $ multipass info ltsInstance
@@ -504,6 +511,7 @@ ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 ```{code-block} text
 $ multipass info ltsInstance
@@ -541,6 +549,7 @@ ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass info ltsInstance
@@ -608,6 +617,7 @@ Open a browser and type in the IP address of your instance into the address bar.
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 ```{figure} /images/tutorial/mp-linux-4.png
    :width: 720px
@@ -621,6 +631,7 @@ Open a browser and type in the IP address of your instance into the address bar.
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 ```{figure} /images/tutorial/mp-macos-5.png
    :width: 720px
@@ -634,6 +645,7 @@ Open a browser and type in the IP address of your instance into the address bar.
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 ```{figure} /images/tutorial/mp-windows-12.png
    :width: 720px
@@ -666,6 +678,7 @@ Once that's done, run `multipass info docker-dev` to note down the IP of the new
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 ```{code-block} text
 $ multipass launch docker --name docker-dev
@@ -731,6 +744,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 ```{code-block} text
 $ multipass launch docker --name docker-dev
@@ -796,6 +810,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass launch docker --name docker-dev
