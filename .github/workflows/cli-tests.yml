@@ -218,17 +218,25 @@ jobs:
         id: run-cli-tests
         shell: bash
         run: |
-          # Memory monitor to stdout (macOS only)
           if [[ "$RUNNER_OS" == "macOS" ]]; then
-            (while true; do
-              echo "::group::Resources $(date -u +%H:%M:%S)"
-              vm_stat | grep -E "(free|active|wired|compressed)" | head -4
-              df -h / | tail -1
-              ps aux | grep -i qemu | grep -v grep | wc -l | xargs echo "QEMU processes:"
-              multipass list 2>/dev/null | tail -n +2 || true
-              echo "::endgroup::"
-              sleep 15
-            done) &
+            # Resource monitor - streams to stdout
+            {
+              while true; do
+                sleep 15
+                echo "::group::Resources $(date -u +%H:%M:%S)"
+                echo "-- Memory --"
+                vm_stat | grep -E "(free|active|wired|compressed)" | head -4
+                echo "-- Disk --"
+                df -h / | tail -1
+                echo "-- QEMU processes --"
+                ps aux | grep -i qemu | grep -v grep || echo "None"
+                echo "-- Multipass instances --"
+                multipass list 2>/dev/null | tail -n +2 || echo "None"
+                echo "::endgroup::"
+              done
+            } &
+            MONITOR=$!
+            trap "kill $MONITOR 2>/dev/null" EXIT
           fi
 
           ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
