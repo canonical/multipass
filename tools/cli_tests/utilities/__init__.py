@@ -27,7 +27,7 @@ from .threadutils import (
     wait_for_future,
 )
 from .functional import retry, wrap_call_if
-from .privutils import run_in_new_interpreter, get_sudo_tool, sudo
+from .privutils import run_in_new_interpreter, run_in_new_interpreter_async, get_sudo_tool, sudo
 from .procutils import send_ctrl_c
 from .temputils import TempDirectory
 from .textutils import strip_ansi_escape, uuid4_str, is_valid_ipv4_addr
