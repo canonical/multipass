@@ -131,7 +131,7 @@ jobs:
           fetch-depth: 1
           submodules: false
           sparse-checkout: |
-            tools/cli_tests
+            tests/cli
 
       - name: Download package with cURL
         if: ${{ matrix['pkg-url'] != '' }}
@@ -204,7 +204,7 @@ jobs:
 
       - name: Install cli-tests dependencies
         id: install-cli-test-deps
-        run: ${{ matrix.cmd-prologue }} pip install -e ./tools/cli_tests/
+        run: ${{ matrix.cmd-prologue }} pip install -e ./tests/cli/
 
       - name: Check resources before
         if: runner.os == 'macOS'
@@ -246,7 +246,7 @@ jobs:
             trap "kill $MONITOR 2>/dev/null" EXIT
           fi
 
-          ${{ matrix.cmd-prologue }} pytest -s tools/cli_tests --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
+          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
 
       - name: Check resources after
         if: always() && runner.os == 'macOS'
