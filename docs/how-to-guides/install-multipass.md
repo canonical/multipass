@@ -37,7 +37,7 @@ Only **Windows 10 Pro** or **Enterprise** version **1803** ("April 2018 Update")
 
 ### VirtualBox
 
-Multipass also supports using VirtualBox as a virtualisation provider. You can download the latest version from the [VirtualBox download page](https://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html).
+Multipass also supports using VirtualBox as a virtualization provider. You can download the latest version from the [VirtualBox download page](https://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html).
 
 ````
 
@@ -174,7 +174,7 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
 ```{seealso}
-[How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [How to use a different terminal from the system icon](/how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon)
+[How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualization-driver), [How to use a different terminal from the system icon](/how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon)
 ```
 
 ````
@@ -183,13 +183,13 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 
 You've installed Multipass. Time to run your first commands! Launch a **Command Prompt** (`cmd.exe`) or **PowerShell** as a regular user. Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
-Multipass defaults to using Hyper-V as its virtualisation provider. If you'd like to use VirtualBox, you can do so using the following command:
+Multipass defaults to using Hyper-V as its virtualization provider. If you'd like to use VirtualBox, you can do so using the following command:
 
 ```{code-block} text
 multipass set local.driver=virtualbox
 ```
 
-> See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver).
+> See also: [How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualization-driver).
 
 ````
 

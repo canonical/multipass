@@ -1,7 +1,7 @@
 (reference-command-line-interface-networks)=
 # networks
 
-> See also: [Driver (backend)](/explanation/driver), [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver)
+> See also: [Driver (backend)](/explanation/driver), [How to set up the driver](how-to-guides-customise-multipass-set-up-a-virtualization-driver)
 
 The `multipass networks` command lists network interfaces that multipass can connect instances to. The result depends both on the platform and the driver in use.
 
