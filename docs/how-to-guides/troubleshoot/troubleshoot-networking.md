@@ -17,7 +17,7 @@ On macOS, the QEMU driver employs the Hypervisor.framework. This framework manag
 On creation of an instance, the Hypervisor framework on the host uses macOS's **Internet Sharing** mechanism to:
 
 1. Create a virtual switch and connect each instance to it (subnet 192.168.64.*).
-2. Provide DHCP and DNS resolution on this switch at 192.168.64.1 (via bootpd & mDNSResponder services running on the host). This is configured by an auto-generated file (`/etc/bootpd.plist`), but editing this is pointless as macOS regenerates it as it desires.
+2. Provide DHCP and DNS resolution on this switch at 192.168.64.1 (via `bootpd` & `mDNSResponder` services running on the host). This is configured by an auto-generated file (`/etc/bootpd.plist`), but editing this is pointless as macOS regenerates it as it desires.
 
 Note that, according to **System Preferences > Sharing**, the **Internet Sharing** service can appear disabled. This is fine---in the background, it will still be enabled to support instances.
 
@@ -25,14 +25,14 @@ Note that, according to **System Preferences > Sharing**, the **Internet Sharing
 
 * VPN software can be aggressive at managing routes and may route 192.168.64 subnet through the VPN interface, instead of keeping it locally available.
     * Possible culprits: OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, Jupiter Junos Pulse / Pulse Secure.
-    * Tunnelblick doesn’t cause problems.
+    * `Tunnelblick` doesn’t cause problems.
 * Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking the instance’s DNS.
 <!-- THIS LINK IS BROKEN
 (see [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
 * dnscrypt-proxy/dnscrypt-wrapper/cloudflared-proxy \
 The default configuration binds to localhost port 53, clashing with Internet Sharing.
 * Another `dnsmasq` process bound to localhost port 53
-* Custom DHCP server bound to port 67? ("sudo lsof -iUDP:67 -n -P" should show launchd & bootpd only)
+* Custom DHCP server bound to port 67? (`sudo lsof -iUDP:67 -n -P` should show `launchd` & `bootpd` only)
 * macOS updates can make changes to the firewall and leave instances in unknown state; see {ref}`troubleshoot-networking-issues-caused-by-macos-update` below.
 
 ### Problem class
@@ -59,9 +59,9 @@ The default configuration binds to localhost port 53, clashing with Internet Sha
     1. Is Firewall enabled?
     1. If so it must not "Block all incoming connections"
        * Blocking all incoming connections prevents a DHCP server from running locally, to give an IP to the instance.
-       * It’s OK to block incoming connections to "multipassd" however.
+       * It’s OK to block incoming connections to `"multipassd"` however.
 1. VPN
-1. Little Snitch - defaults are good, it should permit mDNSResponder and bootpd access to BPF
+1. Little Snitch - defaults are good, it should permit `mDNSResponder` and `bootpd` access to BPF
 If you're having trouble downloading images and/or see `Unknown error`s when trying to `multipass launch -vvv`, Little Snitch may be interfering with `multipassd`'s network access (ref. [#1169](https://github.com/canonical/multipass/issues/1169))
 1. Internet Sharing - doesn’t usually clash
 
@@ -85,7 +85,7 @@ Maybe `-static` route helps?
 
 If using Cisco AnyConnect, try using OpenConnect (`brew install openconnect`) instead as it messes with routes less (but your company sysadmin/policy may not permit/authorise this).
 
-*   It monitors the routing table so may prevent any customisation. Here is [a very hacky workaround](https://unix.stackexchange.com/questions/106304/route-add-no-longer-works-when-i-connected-to-vpn-via-cisco-anyconnect-client/501094#501094).
+*   It monitors the routing table so may prevent any customisation. Here is [a very handy but non-standard workaround](https://unix.stackexchange.com/questions/106304/route-add-no-longer-works-when-i-connected-to-vpn-via-cisco-anyconnect-client/501094#501094).
 
 Does your VPN software provide a "split connection" option, where VPN sysadmin can designate a range of IP addresses to **not** be routed through the VPN?
 *   Cisco does
@@ -109,11 +109,11 @@ sudo pfctl -f /etc/pf.conf
 
 #### Configure Multipass to use a different subnet
 
-Edit `/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist` to change the "Shared_Net_Address" value to something other than `192.168.64.1  -`.
-*   it works if you edit the plist file and stay inside 192.168 range, as Multipass hardcoded for this
+Edit `/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist` to change the `"Shared_Net_Address"` value to something other than `192.168.64.1  -`.
+*   it works if you edit the `plist` file and stay inside 192.168 range, as Multipass hard-coded for this
 
 ```{note}
-If you change the subnet and launch an instance, it will get an IP from that new subnet. But if you try changing it back, the change is reverted on next instance start. It appears that the DHCP server reads the last IP in `/var/db/dhcpd_leases`, decides the subnet from that, and updates Shared_Net_Address to match. So, the only way to really revert this change is to edit or delete `/var/db/dhcpd_leases`.
+If you change the subnet and launch an instance, it will get an IP from that new subnet. But if you try changing it back, the change is reverted on next instance start. It appears that the DHCP server reads the last IP in `/var/db/dhcpd_leases`, decides the subnet from that, and updates `Shared_Net_Address` to match. So, the only way to really revert this change is to edit or delete `/var/db/dhcpd_leases`.
 ```
 
 (troubleshoot-networking-dns-problems)=
@@ -233,9 +233,9 @@ google.ie.   	 39    IN    A    74.125.193.94
 
 This implies the problem is with the macOS **Internet Sharing** feature---for some reason, its built-in DNS server is broken.
 
-The built-in DNS server should be "mDNSResponder", which binds to localhost on port 53.
+The built-in DNS server should be `"mDNSResponder"`, which binds to localhost on port 53.
 
-If using Little Snitch or another per-process firewall, ensure mDNSResponder can establish outgoing connections. The macOS’s built-in firewall should not interfere with it.
+If using Little Snitch or another per-process firewall, ensure `mDNSResponder` can establish outgoing connections. The macOS’s built-in firewall should not interfere with it.
 
 Check what is bound to that port on the host with:
 
@@ -281,7 +281,7 @@ This means that applications that rely on additional IP addresses, such as [meta
 
 When upgrading macOS to 12.4 (this might happen however also when upgrading to other versions), macOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the macOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests.
 
-There are some procedures that can help to overcome this issue (see [issue #2387](https://github.com/canonical/multipass/issues/2387) on the Multipass GitHub repo for a discussion on this and some alternative solutions). First, you can try to:
+There are some procedures that can help to overcome this issue (see [issue #2387](https://github.com/canonical/multipass/issues/2387) on the Multipass GitHub repository for a discussion on this and some alternative solutions). First, you can try to:
 
 * Reboot the computer.
 * Disable and then re-enable Internet sharing and/or the firewall.
@@ -328,6 +328,26 @@ Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\h
 #### Anti-virus / security software blocking instances
 
 Anti-virus and network security software are not necessarily virtualisation-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
+
+
+#### Wi-Fi upload speed degrading when using external switch with Hyper-V
+
+If you're using Multipass on Windows and have created an External Switch connected to your Wi-Fi adapter in Hyper-V, you may notice your upload speeds degrade severely, often dropping to around 1 Mbit/s. This issue is due to a long-standing limitation in Windows networking, where certain offload features interfere with Hyper-V’s virtual networking performance. Fortunately, there’s a reliable workaround to restore your original speeds.
+
+##### Workaround
+
+The following steps will help you disable the Large Send Offload feature for the Hyper-V virtual ethernet adapter, which should resolve the upload speed issue:
+
+1. Open Device Manager.
+2. Expand Network Adapters.
+3. Find the entry named Hyper-V Virtual Ethernet Adapter #N (Where “N” is the one connected to Wi-Fi).
+4. Right-click > Properties.
+5. Go to the Advanced tab.
+6. Locate and disable both of the following:
+   * Large Send Offload v2 (IPv4)
+   * Large Send Offload v2 (IPv6)
+7. Click OK and restart your networking or your machine if needed
+
 
 <!-- Discourse contributors
 <small>**Contributors:** @saviq , @townsend , @sowasred2012 , @ya-bo-ng , @candlerb , @sergiusens , @nhart , @andreitoterman , @tmihoc , @luisp , @ricab , @gzanchi , @naynayu , @QuantumLibet </small>

@@ -37,7 +37,7 @@ The Multipass GUI produces its own logs, that can be found under `~/Library/Appl
 
 On Windows, the Event system is used and Event Viewer lets you access them. Our logs are currently under "Windows Logs/Application", where you can filter by "Multipass" Event source. You can then export the selected events to a file.
 
-Logs from the installation and uninstall process can be found under `%APPDATA%\Local\Temp`. Sort the contents of the directory by "Date Modified" to bring the newest files to the top. The name of the file containing the logs follows the pattern `MSI[0-9a-z].LOG`.
+Logs from the installation and uninstall process can be found under `%TEMP%`. Sort the contents of the directory by "Date Modified" to bring the newest files to the top. The name of the file containing the logs follows the pattern `MSI[0-9a-z].LOG`.
 
 The Multipass GUI produces its own logs, that can be found under `%APPDATA%\com.canonical\Multipass GUI\multipass_gui.log`
 
