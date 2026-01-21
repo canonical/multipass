@@ -219,27 +219,46 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "macOS" ]]; then
-            # Resource monitor - streams to stdout
             {
               while true; do
                 sleep 15
-                echo "::group::Resources $(date -u +%H:%M:%S)"
-                echo "-- Memory --"
-                vm_stat | grep -E "(free|active|wired|compressed)" | head -4
-                echo "-- Disk --"
-                df -h / | tail -1
-                echo "-- QEMU processes --"
-                ps aux | grep -i qemu | grep -v grep || echo "None"
-                echo "-- Multipass instances --"
-                multipass list 2>/dev/null | tail -n +2 || echo "None"
-                echo "-- Top 15 RSS (MB) --"
-                ps -eo rss,pid,ppid,pgid,%cpu=,comm= | tail -n +2 | sort -rn -k1 | head -15 | \
-                  while read rss pid ppid pgid cpu comm; do
-                    printf "%6d MB  pid=%-6s ppid=%-6s pgid=%-6s cpu=%5s  %s\n" $((rss/1024)) "$pid" "$ppid" "$pgid" "$cpu" "$comm"
-                  done
-                echo "-- Total QEMU memory --"
-                ps -eo rss,comm | grep qemu | awk '{sum+=$1} END {printf "Total: %dMB\n", sum/1024}'
-                echo "::endgroup::"
+                {
+                  echo ""
+                  echo "::group::Resources $(date -u +%H:%M:%S)"
+                  echo "-- Memory --"
+                  vm_stat | grep -E "(free|active|wired|compressed)" | head -4
+                  page_size=$(sysctl -n hw.pagesize)
+                  mem_stats=$(vm_stat | awk -v ps="$page_size" '
+                    /Pages free/       {gsub(/\./,"",$3); free=$3}
+                    /Pages active/     {gsub(/\./,"",$3); active=$3}
+                    /Pages inactive/   {gsub(/\./,"",$3); inactive=$3}
+                    /Pages wired down/ {gsub(/\./,"",$4); wired=$4}
+                    /Pages purgeable/  {gsub(/\./,"",$3); purgeable=$3}
+                    /Pages speculative/{gsub(/\./,"",$3); speculative=$3}
+                    /occupied by compressor/ {gsub(/\./,"",$5); compressed=$5}
+                    END {
+                      used = (active + wired + compressed) * ps / 1024 / 1024
+                      avail = (free + inactive + purgeable + speculative) * ps / 1024 / 1024
+                      printf "%d %d %d %d %d", used, avail, active*ps/1024/1024, wired*ps/1024/1024, compressed*ps/1024/1024
+                    }
+                  ')
+                  read used_mb avail_mb active_mb wired_mb compressed_mb <<< "$mem_stats"
+                  total_mb=$(($(sysctl -n hw.memsize) / 1024 / 1024))
+                  echo "Used: ${used_mb}MB | Available: ${avail_mb}MB / ${total_mb}MB (Active:${active_mb} Wired:${wired_mb} Compressed:${compressed_mb})"
+                  memory_pressure
+                  echo "-- Disk --"
+                  df -h / | tail -1
+                  echo "-- QEMU processes --"
+                  ps aux | grep -i qemu | grep -v grep || echo "None"
+                  echo "-- Multipass instances --"
+                  multipass list 2>/dev/null | tail -n +2 || echo "None"
+                  echo "-- Top 15 RSS (MB) --"
+                  ps -eo rss=,pid=,ppid=,pgid=,comm= 2>/dev/null | sort -rn -k1 | head -15 | \
+                    awk '{printf "%6d MB  pid=%-6s ppid=%-6s pgid=%-6s  ", $1/1024, $2, $3, $4; for(i=5;i<=NF;i++) printf "%s ", $i; printf "\n"}' || true
+                  echo "-- Total QEMU memory --"
+                  ps -eo rss,comm | grep qemu | awk '{sum+=$1} END {printf "Total: %dMB\n", sum/1024}'
+                  echo "::endgroup::"
+                } 2>&1 | cat
               done
             } &
             MONITOR=$!
