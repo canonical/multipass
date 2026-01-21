@@ -442,6 +442,7 @@ def ensure_sudo_auth():
                     last_tick = now
                     result = subprocess.run(
                         [*get_sudo_tool(), "-n", "-v"],
+                        stdin=subprocess.DEVNULL,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                         check=False,
