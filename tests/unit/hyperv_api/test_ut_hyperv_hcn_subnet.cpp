@@ -15,8 +15,8 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/hyperv_api/hyperv_test_utils.h"
+#include "tests/unit/common.h"
+#include "tests/unit/hyperv_api/hyperv_test_utils.h"
 
 #include <hyperv_api/hcn/hyperv_hcn_subnet.h>
 

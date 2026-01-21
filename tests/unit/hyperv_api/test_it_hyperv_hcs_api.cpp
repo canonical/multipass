@@ -17,7 +17,7 @@
 
 #include "hyperv_test_utils.h"
 #include "multipass/test_data_path.h"
-#include "tests/common.h"
+#include "tests/unit/common.h"
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 
