@@ -47,7 +47,7 @@ jobs:
 
       - name: Install clang-format
         shell: bash
-        run: sudo apt-get install --no-install-recommends --yes clang-format-16
+        run: sudo apt-get install --no-install-recommends --yes clang-format-20
 
       - name: Run clang-format through the diff
         shell: bash
