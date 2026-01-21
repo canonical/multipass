@@ -88,39 +88,55 @@ def make_override_plist(source_plist_path: str) -> str:
     return tmp_path
 
 
-def perform_daemon_shutdown_procedure(daemon_pid: int, daemon_pgid: int):
-    import psutil
+def perform_daemon_shutdown_procedure(daemon_pid: int):
     import os
+    import time
+    import subprocess
 
-    def wait_procs_exit(pids: set[int], timeout: float) -> set[int]:
-        """
-        Wait up to timeout seconds for all PIDs to exit.
-        Returns the subset that are still alive after the timeout.
-        """
-        procs = []
-        for pid in pids:
-            try:
-                procs.append(psutil.Process(pid))
-            except psutil.NoSuchProcess:
-                pass
-
-        gone, alive = psutil.wait_procs(procs, timeout=timeout)
-        return {p.pid for p in alive}
-
-    def child_pids():
+    def pid_exists(pid: int) -> bool:
         try:
-            p = psutil.Process(daemon_pid)
-        except psutil.NoSuchProcess:
-            return set()
-        return {c.pid for c in p.children(recursive=False)}
+            os.kill(pid, 0)  # does not send a signal
+        except ProcessLookupError:
+            return False  # ESRCH: no such process
+        except PermissionError:
+            return True   # EPERM: exists but not permitted
+        return True
 
-    pids = [daemon_pid] + child_pids()
+    def wait_pids_exit(pids: set[int], timeout: float, poll: float = 0.1) -> set[int]:
+        deadline = time.monotonic() + timeout
+        alive = set(pids)
+        while alive and time.monotonic() < deadline:
+            for pid in list(alive):
+                if not pid_exists(pid):
+                    alive.discard(pid)
+            if alive:
+                time.sleep(poll)
+        # final sweep
+        return {pid for pid in alive if pid_exists(pid)}
+
+    def child_pids_of(pid: int) -> set[int]:
+        try:
+            out = subprocess.check_output(["pgrep", "-P", str(pid)], text=True)
+        except subprocess.CalledProcessError:
+            return set()
+        return {int(x) for x in out.split()}
+
+    pids = [daemon_pid, *child_pids_of(daemon_pid)]
+    daemon_pgid = os.getpgid(daemon_pid)
+
+    print(f"PIDs to terminate: {pids}")
 
     os.killpg(daemon_pgid, SIGTERM)
-    wait_procs_exit(pids, timeout=15)
+    still_alive_pids = wait_pids_exit(pids, timeout=20)
+    if still_alive_pids:
+        print(f"PIDs alive after SIGTERM: {still_alive_pids}, sending SIGKILL")
+        for pid in still_alive_pids:
+            with suppress(Exception):
+                os.kill(pid, SIGKILL)
 
-    os.killpg(daemon_pgid, SIGKILL)
-    wait_procs_exit(pids, timeout=15)
+        still_alive_pids = wait_pids_exit(pids, timeout=15)
+        print(f"PIDs alive after SIGKILL: {still_alive_pids}")
+
 
 
 class LaunchdMultipassdController:
@@ -218,7 +234,7 @@ class LaunchdMultipassdController:
             return
 
         logging.debug("Starting daemon shutdown procecure")
-        result = await run_in_new_interpreter_async(perform_daemon_shutdown_procedure, self._daemon_pid, self._daemon_pgid, privileged=True)
+        result = await run_in_new_interpreter_async(perform_daemon_shutdown_procedure, self._daemon_pid, privileged=True)
         logging.debug(
             f"Daemon shutdown procedure result: Exit code {result.returncode}, Stdout: {result.stdout}, Stderr: {result.stderr}")
 
