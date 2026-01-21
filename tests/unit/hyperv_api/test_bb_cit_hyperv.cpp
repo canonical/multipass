@@ -16,7 +16,7 @@
  */
 
 #include "hyperv_test_utils.h"
-#include "tests/common.h"
+#include "tests/unit/common.h"
 
 #include <fmt/xchar.h>
 

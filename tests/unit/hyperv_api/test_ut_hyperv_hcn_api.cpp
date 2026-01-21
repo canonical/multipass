@@ -16,9 +16,9 @@
  */
 
 #include "hyperv_test_utils.h"
-#include "tests/common.h"
-#include "tests/hyperv_api/mock_hyperv_hcn_api.h"
-#include "tests/mock_logger.h"
+#include "tests/unit/common.h"
+#include "tests/unit/hyperv_api/mock_hyperv_hcn_api.h"
+#include "tests/unit/mock_logger.h"
 
 #include <hyperv_api/hcn/hyperv_hcn_api.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
