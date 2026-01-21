@@ -78,7 +78,8 @@ jobs:
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
-      CCACHE_DIR: ${{ github.workspace }}/build/ccache
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
+      RUSTC_WRAPPER: "sccache"
 
     steps:
     - name: Check out code
@@ -222,26 +223,24 @@ jobs:
           sudo chmod +x /opt/homebrew/bin/nuget
         fi
 
-    - name: Set up CCache
-      if: ${{ runner.os == 'macOS' }}
-      id: setup-ccache
+    - name: Determine cache key
+      id: cache-key
+      shell: bash
       run: |
-        brew install ccache
-
         # Find common base between main and HEAD to use as cache key.
-        # This avoids PRs from publishing caches.
         git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
-        echo "$( brew --prefix ccache )/libexec" >> ${GITHUB_PATH}
 
-    - name: CCache
-      if: ${{ runner.os == 'macOS' }}
-      uses: actions/cache@v5
+    - name: Restore sccache
+      uses: actions/cache/restore@v5
       with:
-        key: "ccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
-        restore-keys: |
-          ccache-${{ matrix.runs-on }}
-        path: ${{ env.CCACHE_DIR }}
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+        restore-keys: sccache-${{ matrix.runs-on }}
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.9
+      continue-on-error: true
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
@@ -270,10 +269,6 @@ jobs:
 
     - name: Build
       run: cmake --build ${{ env.BUILD_DIR }}
-
-    - name: Clear CCache stats
-      if: ${{ runner.os == 'macOS' }}
-      run: ccache --show-stats --zero-stats
 
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
@@ -337,6 +332,13 @@ jobs:
 
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
+
+    - name: Save sccache
+      uses: actions/cache/save@v4
+      if: ${{ github.ref == 'refs/heads/main' }}
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
