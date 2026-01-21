@@ -335,7 +335,7 @@ add_subdirectory(src)
 
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
-  add_subdirectory(tests)
+  add_subdirectory(tests/unit)
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)
