@@ -15,14 +15,14 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/file_operations.h"
-#include "tests/mock_environment_helpers.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_process_factory.h"
-#include "tests/reset_process_factory.h"
-#include "tests/temp_dir.h"
-#include "tests/test_with_mocked_bin_path.h"
+#include "tests/unit/common.h"
+#include "tests/unit/file_operations.h"
+#include "tests/unit/mock_environment_helpers.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_process_factory.h"
+#include "tests/unit/reset_process_factory.h"
+#include "tests/unit/temp_dir.h"
+#include "tests/unit/test_with_mocked_bin_path.h"
 
 #include <src/platform/backends/qemu/linux/dnsmasq_process_spec.h>
 #include <src/platform/backends/qemu/linux/dnsmasq_server.h>

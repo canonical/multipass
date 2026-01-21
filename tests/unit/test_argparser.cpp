@@ -16,8 +16,8 @@
  */
 
 #include "common.h"
-#include "tests/fake_alias_config.h"
-#include "tests/stub_terminal.h"
+#include "tests/unit/fake_alias_config.h"
+#include "tests/unit/stub_terminal.h"
 
 #include <multipass/alias_definition.h>
 #include <multipass/cli/argparser.h>

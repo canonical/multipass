@@ -15,8 +15,8 @@
  *
  */
 
-#include "tests/mock_process_factory.h"
-#include "tests/mock_utils.h"
+#include "tests/unit/mock_process_factory.h"
+#include "tests/unit/mock_utils.h"
 
 #include <src/platform/backends/shared/macos/backend_utils.h>
 

@@ -15,15 +15,15 @@
  *
  */
 
-#include <tests/common.h>
-#include <tests/daemon_test_fixture.h>
-#include <tests/mock_cert_provider.h>
-#include <tests/mock_cert_store.h>
-#include <tests/mock_daemon.h>
-#include <tests/mock_logger.h>
-#include <tests/mock_permission_utils.h>
-#include <tests/mock_platform.h>
-#include <tests/mock_utils.h>
+#include <tests/unit/common.h>
+#include <tests/unit/daemon_test_fixture.h>
+#include <tests/unit/mock_cert_provider.h>
+#include <tests/unit/mock_cert_store.h>
+#include <tests/unit/mock_daemon.h>
+#include <tests/unit/mock_logger.h>
+#include <tests/unit/mock_permission_utils.h>
+#include <tests/unit/mock_platform.h>
+#include <tests/unit/mock_utils.h>
 
 #include <src/daemon/daemon_rpc.h>
 

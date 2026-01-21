@@ -17,12 +17,12 @@
 
 #include "mock_aa_syscalls.h"
 
-#include "tests/common.h"
-#include "tests/mock_environment_helpers.h"
-#include "tests/mock_logger.h"
-#include "tests/reset_process_factory.h"
-#include "tests/temp_dir.h"
-#include "tests/test_with_mocked_bin_path.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_environment_helpers.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/reset_process_factory.h"
+#include "tests/unit/temp_dir.h"
+#include "tests/unit/test_with_mocked_bin_path.h"
 
 #include <src/platform/backends/shared/linux/process_factory.h>
 

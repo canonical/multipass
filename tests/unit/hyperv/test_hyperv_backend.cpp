@@ -15,15 +15,15 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_platform.h"
-#include "tests/mock_process_factory.h"
-#include "tests/stub_ssh_key_provider.h"
-#include "tests/stub_status_monitor.h"
-#include "tests/temp_dir.h"
-#include "tests/temp_file.h"
-#include "tests/windows/powershell_test_helper.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_platform.h"
+#include "tests/unit/mock_process_factory.h"
+#include "tests/unit/stub_ssh_key_provider.h"
+#include "tests/unit/stub_status_monitor.h"
+#include "tests/unit/temp_dir.h"
+#include "tests/unit/temp_file.h"
+#include "tests/unit/windows/powershell_test_helper.h"
 
 #include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
 

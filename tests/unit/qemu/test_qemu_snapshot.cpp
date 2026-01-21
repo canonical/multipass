@@ -15,14 +15,14 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_cloud_init_file_ops.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_process_factory.h"
-#include "tests/mock_snapshot.h"
-#include "tests/mock_virtual_machine.h"
-#include "tests/path.h"
-#include "tests/stub_ssh_key_provider.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_cloud_init_file_ops.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_process_factory.h"
+#include "tests/unit/mock_snapshot.h"
+#include "tests/unit/mock_virtual_machine.h"
+#include "tests/unit/path.h"
+#include "tests/unit/stub_ssh_key_provider.h"
 
 #include <multipass/process/process.h>
 #include <multipass/virtual_machine_description.h>

@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include "tests/common.h"
-#include "tests/mock_singleton_helpers.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_singleton_helpers.h"
 
 #include <src/platform/backends/qemu/linux/dnsmasq_server.h>
 

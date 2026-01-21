@@ -15,8 +15,8 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_process_factory.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_process_factory.h"
 
 #include <src/platform/backends/qemu/qemu_img_utils.h>
 

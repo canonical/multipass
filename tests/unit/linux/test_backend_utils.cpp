@@ -15,12 +15,12 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_backend_utils.h"
-#include "tests/mock_file_ops.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_singleton_helpers.h"
-#include "tests/mock_utils.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_backend_utils.h"
+#include "tests/unit/mock_file_ops.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_singleton_helpers.h"
+#include "tests/unit/mock_utils.h"
 
 #include <src/platform/backends/shared/linux/backend_utils.h>
 #include <src/platform/backends/shared/linux/dbus_wrappers.h>

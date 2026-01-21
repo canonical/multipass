@@ -15,7 +15,7 @@
  *
  */
 
-#include <tests/common.h>
+#include <tests/unit/common.h>
 
 #include "mock_libc_functions.h"
 

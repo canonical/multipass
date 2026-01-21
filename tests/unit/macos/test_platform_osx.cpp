@@ -16,15 +16,15 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/file_operations.h"
-#include "tests/mock_environment_helpers.h"
-#include "tests/mock_file_ops.h"
-#include "tests/mock_platform.h"
-#include "tests/mock_process_factory.h"
-#include "tests/mock_standard_paths.h"
-#include "tests/mock_utils.h"
-#include "tests/temp_dir.h"
+#include "tests/unit/common.h"
+#include "tests/unit/file_operations.h"
+#include "tests/unit/mock_environment_helpers.h"
+#include "tests/unit/mock_file_ops.h"
+#include "tests/unit/mock_platform.h"
+#include "tests/unit/mock_process_factory.h"
+#include "tests/unit/mock_standard_paths.h"
+#include "tests/unit/mock_utils.h"
+#include "tests/unit/temp_dir.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>

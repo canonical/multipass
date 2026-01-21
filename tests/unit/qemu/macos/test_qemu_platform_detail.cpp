@@ -15,7 +15,7 @@
  *
  */
 
-#include "tests/common.h"
+#include "tests/unit/common.h"
 
 #include <src/platform/backends/qemu/macos/qemu_platform_detail.h>
 

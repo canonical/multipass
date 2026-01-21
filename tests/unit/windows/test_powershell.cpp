@@ -17,9 +17,9 @@
 
 #include "powershell_test_helper.h"
 
-#include "tests/common.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_process_factory.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_process_factory.h"
 
 #include <src/platform/backends/shared/windows/powershell.h>
 

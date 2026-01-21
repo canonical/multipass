@@ -15,8 +15,8 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_environment_helpers.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_environment_helpers.h"
 
 #include <multipass/snap_utils.h>
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>

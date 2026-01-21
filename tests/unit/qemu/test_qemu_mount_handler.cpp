@@ -15,14 +15,14 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_file_ops.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_server_reader_writer.h"
-#include "tests/mock_ssh_process_exit_status.h"
-#include "tests/mock_ssh_test_fixture.h"
-#include "tests/mock_virtual_machine.h"
-#include "tests/stub_ssh_key_provider.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_file_ops.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_server_reader_writer.h"
+#include "tests/unit/mock_ssh_process_exit_status.h"
+#include "tests/unit/mock_ssh_test_fixture.h"
+#include "tests/unit/mock_virtual_machine.h"
+#include "tests/unit/stub_ssh_key_provider.h"
 
 #include "qemu_mount_handler.h"
 

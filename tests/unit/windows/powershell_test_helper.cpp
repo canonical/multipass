@@ -17,7 +17,7 @@
 
 #include "powershell_test_helper.h"
 
-#include "tests/common.h"
+#include "tests/unit/common.h"
 
 namespace mpt = multipass::test;
 

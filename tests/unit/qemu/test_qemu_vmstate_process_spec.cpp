@@ -15,7 +15,7 @@
  *
  */
 
-#include "tests/common.h"
+#include "tests/unit/common.h"
 
 #include <src/platform/backends/qemu/qemu_vmstate_process_spec.h>
 

@@ -15,14 +15,14 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_environment_helpers.h"
-#include "tests/mock_file_ops.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_settings.h"
-#include "tests/mock_standard_paths.h"
-#include "tests/mock_utils.h"
-#include "tests/temp_dir.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_environment_helpers.h"
+#include "tests/unit/mock_file_ops.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_settings.h"
+#include "tests/unit/mock_standard_paths.h"
+#include "tests/unit/mock_utils.h"
+#include "tests/unit/temp_dir.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>

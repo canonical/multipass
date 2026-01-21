@@ -19,7 +19,7 @@
 
 #include <gmock/gmock.h> // for EXPECT_THAT
 #include <gtest/gtest.h>
-#include <tests/common.h>
+#include <tests/unit/common.h>
 
 namespace mpt = multipass::test;
 

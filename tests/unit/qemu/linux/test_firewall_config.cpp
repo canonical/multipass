@@ -15,12 +15,12 @@
  *
  */
 
-#include "tests/common.h"
-#include "tests/mock_environment_helpers.h"
-#include "tests/mock_logger.h"
-#include "tests/mock_process_factory.h"
-#include "tests/mock_utils.h"
-#include "tests/reset_process_factory.h"
+#include "tests/unit/common.h"
+#include "tests/unit/mock_environment_helpers.h"
+#include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_process_factory.h"
+#include "tests/unit/mock_utils.h"
+#include "tests/unit/reset_process_factory.h"
 
 #include <src/platform/backends/qemu/linux/firewall_config.h>
 
