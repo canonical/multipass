@@ -220,6 +220,7 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             {
+              set +o pipefail
               while true; do
                 sleep 15
                 {
@@ -253,8 +254,8 @@ jobs:
                   echo "-- Multipass instances --"
                   multipass list 2>/dev/null | tail -n +2 || echo "None"
                   echo "-- Top 15 RSS (MB) --"
-                  ps -eo rss=,pid=,ppid=,pgid=,comm= 2>/dev/null | sort -rn -k1 | head -15 | \
-                    awk '{printf "%6d MB  pid=%-6s ppid=%-6s pgid=%-6s  ", $1/1024, $2, $3, $4; for(i=5;i<=NF;i++) printf "%s ", $i; printf "\n"}' || true
+                  ps -eo rss=,pid=,ppid=,pgid=,comm= 2>/dev/null | sort -rn -k1 | \
+                    awk 'NR<=15 { printf "%6d MB  pid=%-6s ppid=%-6s pgid=%-6s  ", $1/1024, $2, $3, $4; for(i=5;i<=NF;i++) printf "%s ", $i; printf "\n"}' || true
                   echo "-- Total QEMU memory --"
                   ps -eo rss,comm | grep qemu | awk '{sum+=$1} END {printf "Total: %dMB\n", sum/1024}'
                   echo "::endgroup::"
