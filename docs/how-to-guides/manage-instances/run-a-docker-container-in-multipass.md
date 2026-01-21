@@ -199,4 +199,4 @@ You can now access your Ghost blog by going to the published port indicated in t
 
 There it is, your blog running within a Docker container inside Multipass!
 
-For next steps, try out Portainer’s other App Templates (Step 5), or check out [Docker Hub](https://hub.docker.com/search?type=image) for more containers to try. If you want to try out container orchestration, [Microk8s](https://microk8s.io/) or Multipass’ [Minikube](https://minikube.sigs.k8s.io/docs/) blueprint are great places to start.
+For next steps, try out Portainer’s other App Templates (Step 5), or check out [Docker Hub](https://hub.docker.com/search?type=image) for more containers to try. If you want to try out container orchestration, [Microk8s](https://microk8s.io/) or Multipass’ [`Minikube`](https://minikube.sigs.k8s.io/docs/) blueprint are great places to start.
