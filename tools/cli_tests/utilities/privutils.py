@@ -127,6 +127,7 @@ def run_in_new_interpreter(
         [*cmd_prologue, *cmd], check=check, **kwargs, env=env
     )
 
+
 async def run_in_new_interpreter_async(*a, **kw):
     import asyncio
     return await asyncio.to_thread(run_in_new_interpreter, *a, **kw)
