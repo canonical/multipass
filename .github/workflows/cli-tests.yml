@@ -232,6 +232,13 @@ jobs:
                 ps aux | grep -i qemu | grep -v grep || echo "None"
                 echo "-- Multipass instances --"
                 multipass list 2>/dev/null | tail -n +2 || echo "None"
+                echo "-- Top 15 RSS (MB) --"
+                ps -eo rss,pid,ppid,pgid,%cpu=,comm= | tail -n +2 | sort -rn -k1 | head -15 | \
+                  while read rss pid ppid pgid cpu comm; do
+                    printf "%6d MB  pid=%-6s ppid=%-6s pgid=%-6s cpu=%5s  %s\n" $((rss/1024)) "$pid" "$ppid" "$pgid" "$cpu" "$comm"
+                  done
+                echo "-- Total QEMU memory --"
+                ps -eo rss,comm | grep qemu | awk '{sum+=$1} END {printf "Total: %dMB\n", sum/1024}'
                 echo "::endgroup::"
               done
             } &
