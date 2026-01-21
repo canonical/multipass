@@ -21,12 +21,12 @@
 
 #include <multipass/path.h>
 
-namespace multipass::apple
+namespace multipass::applevz
 {
-class AppleVirtualMachineFactory final : public BaseVirtualMachineFactory
+class AppleVZVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit AppleVirtualMachineFactory(const Path& data_dir);
+    explicit AppleVZVirtualMachineFactory(const Path& data_dir);
 
     [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                               const SSHKeyProvider& key_provider,
@@ -39,12 +39,12 @@ public:
 
     [[nodiscard]] QString get_backend_version_string() const override
     {
-        return "apple";
+        return "applevz";
     };
 
     QString get_backend_directory_name() const override
     {
-        return "apple";
+        return "applevz";
     };
 
 protected:
@@ -57,4 +57,4 @@ private:
                                        VMStatusMonitor& monitor,
                                        const SSHKeyProvider& key_provider) override;
 };
-} // namespace multipass::apple
+} // namespace multipass::applevz

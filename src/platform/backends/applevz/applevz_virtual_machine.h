@@ -26,16 +26,16 @@ namespace multipass
 class VMStatusMonitor;
 }
 
-namespace multipass::apple
+namespace multipass::applevz
 {
-class AppleVirtualMachine : public BaseVirtualMachine
+class AppleVZVirtualMachine : public BaseVirtualMachine
 {
 public:
-    AppleVirtualMachine(const VirtualMachineDescription& desc,
-                        VMStatusMonitor& monitor,
-                        const SSHKeyProvider& key_provider,
-                        const Path& instance_dir);
-    ~AppleVirtualMachine();
+    AppleVZVirtualMachine(const VirtualMachineDescription& desc,
+                          VMStatusMonitor& monitor,
+                          const SSHKeyProvider& key_provider,
+                          const Path& instance_dir);
+    ~AppleVZVirtualMachine();
 
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
@@ -54,4 +54,4 @@ private:
     VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
 };
-} // namespace multipass::apple
+} // namespace multipass::applevz

@@ -15,8 +15,8 @@
  *
  */
 
-#include <apple/apple_vz_bridge.h>
+#pragma once
 
-namespace multipass::apple
+namespace multipass::applevz
 {
-} // namespace multipass::apple
+} // namespace multipass::applevz

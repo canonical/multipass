@@ -15,17 +15,17 @@
  *
  */
 
-#include <apple/apple_virtual_machine_factory.h>
+#include <applevz/applevz_virtual_machine_factory.h>
 
-namespace multipass::apple
+namespace multipass::applevz
 {
-AppleVirtualMachineFactory::AppleVirtualMachineFactory(const Path& data_dir)
+AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
 {
 }
 
-VirtualMachine::UPtr AppleVirtualMachineFactory::create_virtual_machine(
+VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
     const VirtualMachineDescription& desc,
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
@@ -33,25 +33,25 @@ VirtualMachine::UPtr AppleVirtualMachineFactory::create_virtual_machine(
     return nullptr;
 }
 
-VMImage AppleVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
+VMImage AppleVZVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
     return VMImage{};
 }
 
-void AppleVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
-                                                        const VirtualMachineDescription& desc)
+void AppleVZVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
+                                                          const VirtualMachineDescription& desc)
 {
 }
 
-void AppleVirtualMachineFactory::hypervisor_health_check()
+void AppleVZVirtualMachineFactory::hypervisor_health_check()
 {
 }
 
-void AppleVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
+void AppleVZVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
 }
 
-VirtualMachine::UPtr AppleVirtualMachineFactory::clone_vm_impl(
+VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
     const std::string& source_vm_name,
     const multipass::VMSpecs& src_vm_specs,
     const VirtualMachineDescription& desc,
@@ -60,4 +60,4 @@ VirtualMachine::UPtr AppleVirtualMachineFactory::clone_vm_impl(
 {
     return nullptr;
 }
-} // namespace multipass::apple
+} // namespace multipass::applevz

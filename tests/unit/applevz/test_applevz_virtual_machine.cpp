@@ -15,13 +15,13 @@
  *
  */
 
-#include <apple/apple_virtual_machine.h>
+#include <applevz/applevz_virtual_machine.h>
 
 #include "tests/unit/common.h"
 
 namespace multipass::test
 {
-struct AppleVirtualMachine_UnitTests : public testing::Test
+struct AppleVZVirtualMachine_UnitTests : public testing::Test
 {
 };
 } // namespace multipass::test

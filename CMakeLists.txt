@@ -201,7 +201,7 @@ if(UNIX)
   list(APPEND MULTIPASS_BACKENDS qemu)
 
   if(APPLEVZ_ENABLED)
-    list(APPEND MULTIPASS_BACKENDS apple)
+    list(APPEND MULTIPASS_BACKENDS applevz)
   endif()
 endif()
 

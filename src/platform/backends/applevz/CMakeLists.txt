@@ -15,14 +15,14 @@
 
 enable_language(OBJCXX)
 
-add_library(apple_backend STATIC
-  apple_virtual_machine.cpp
-  apple_virtual_machine_factory.cpp
-  apple_vz_bridge.mm
-  apple_vz_wrapper.cpp
+add_library(applevz_backend STATIC
+  applevz_virtual_machine.cpp
+  applevz_virtual_machine_factory.cpp
+  applevz_bridge.mm
+  applevz_wrapper.cpp
 )
 
-set_source_files_properties(apple_vz_bridge.mm PROPERTIES
+set_source_files_properties(applevz_bridge.mm PROPERTIES
   LANGUAGE OBJCXX
   COMPILE_FLAGS "-fobjc-arc"
 )
@@ -30,7 +30,7 @@ set_source_files_properties(apple_vz_bridge.mm PROPERTIES
 find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 find_library(VIRTUALIZATION_FRAMEWORK Virtualization REQUIRED)
 
-target_link_libraries(apple_backend
+target_link_libraries(applevz_backend
   PRIVATE
     daemon
     ${FOUNDATION_FRAMEWORK}

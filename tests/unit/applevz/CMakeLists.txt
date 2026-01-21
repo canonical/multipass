@@ -15,5 +15,5 @@
 
 target_sources(multipass_tests
   PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/test_apple_virtual_machine.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_applevz_virtual_machine.cpp
 )

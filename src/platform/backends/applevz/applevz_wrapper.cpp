@@ -15,8 +15,8 @@
  *
  */
 
-#pragma once
+#include <applevz/applevz_wrapper.h>
 
-namespace multipass::apple
+namespace multipass::applevz
 {
-} // namespace multipass::apple
+} // namespace multipass::applevz

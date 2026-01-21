@@ -15,8 +15,17 @@
  *
  */
 
-#include <apple/apple_vz_wrapper.h>
+#pragma once
 
-namespace multipass::apple
+#include <multipass/singleton.h>
+
+#define MP_APPLEVZ multipass::applevz::AppleVZ::instance()
+
+namespace multipass::applevz
 {
-} // namespace multipass::apple
+class AppleVZ : public Singleton<AppleVZ>
+{
+public:
+    using Singleton<AppleVZ>::Singleton;
+};
+} // namespace multipass::applevz
