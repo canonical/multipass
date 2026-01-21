@@ -140,10 +140,14 @@ jobs:
       ##################################################################
       # Platform-specific
       ##################################################################
-      - name: Disable indexing (macOS)
+      - name: Apply macOS optimizations
         if: runner.os == 'macOS'
-        # Disable spotlight indexing
-        run: sudo mdutil -Eai off
+        run: |
+          # Disable spotlight indexing
+          sudo mdutil -Eai off
+          # See: https://github.com/actions/runner-images/issues/13358
+          sudo defaults -currentHost write /Library/Preferences/com.apple.powerlogd SMCMonitorCadence 0
+          sudo killall PerfPowerServices || true
 
       - name: Install prerequisites (Windows)
         if: runner.os == 'Windows'
