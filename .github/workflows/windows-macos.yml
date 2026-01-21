@@ -241,6 +241,8 @@ jobs:
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
       continue-on-error: true
+      with:
+        version: "v0.12.0"
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
@@ -338,7 +340,7 @@ jobs:
       if: ${{ github.ref == 'refs/heads/main' }}
       with:
         path: ${{ env.SCCACHE_DIR }}
-        key: "sccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
