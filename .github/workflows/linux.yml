@@ -247,7 +247,7 @@ jobs:
 
         trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
-        /snap/bin/lxc --project snapcraft start $instance_name
+        /snap/bin/lxc --project snapcraft start $instance_name | true
         # Let's print the core pattern so we can check if it's successfully propagated to the container.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
         # Create the directory for the coredumps
