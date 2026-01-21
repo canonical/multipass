@@ -26,7 +26,7 @@ from cli_tests.utilities import merge
 from cli_tests.config import cfg
 
 from .nameutils import random_vm_name
-from .helpers import mounts, multipass, state
+from .helpers import mounts, multipass, state, vm_exists
 
 
 @contextmanager
@@ -55,6 +55,8 @@ def launch(cfg_override=None):
 
     logging.debug(f"launch_new_instance: {vm_cfg}")
 
+    assert not vm_exists(vm_cfg["name"])
+
     with multipass(
         "launch",
         "--cpus",
@@ -70,7 +72,11 @@ def launch(cfg_override=None):
         vm_cfg["image"],
         retry=vm_cfg["retry"],
     ) as launch_r:
-        assert launch_r, f"Failed to launch VM `{vm_cfg['name']}`: {str(launch_r)}"
+        # The launch does not have a dedicated exit code for the "already exists".
+        already_exists_str = f"instance \"{vm_cfg['name']}\" already exists"
+        already_exists = already_exists_str in str(launch_r)
+        assert (
+            already_exists or launch_r), f"Failed to launch VM `{vm_cfg['name']}`: {str(launch_r)}"
 
     class VMHandle(str):
         """String-like handle (the instance name) exposing config as attributes."""
