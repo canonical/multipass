@@ -27,6 +27,7 @@ import threading
 import re
 import operator
 import atexit
+import time
 from contextlib import contextmanager, ExitStack, suppress
 from functools import partial
 from packaging import version
@@ -431,8 +432,14 @@ def ensure_sudo_auth():
         # Renew the sudo credentials ticket by issuing sudo periodically.
         def _keep_sudo_alive():
             """Background thread that periodically refreshes sudo auth"""
+            last_tick = time.monotonic()
             while not stop_keepalive.is_set():
                 with suppress(Exception):
+                    now = time.monotonic()
+                    elapsed = now - last_tick
+                    logging.debug(
+                        f"sudo keepalive tick :: {elapsed:.1f}s since last tick")
+                    last_tick = now
                     result = subprocess.run(
                         [*get_sudo_tool(), "-n", "-v"],
                         stdout=subprocess.DEVNULL,
@@ -440,7 +447,7 @@ def ensure_sudo_auth():
                         check=False,
                     )
                     logging.debug(
-                        f"sudo keepalive tick, exit={result.returncode}")
+                        f"sudo keepalive tick :: exit={result.returncode}s")
                 stop_keepalive.wait(60)  # refresh every minute
 
         sudo_keepalive_thread = threading.Thread(
