@@ -13,6 +13,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+message(STATUS "fff: ${CMAKE_CURRENT_SOURCE_DIR}")
+
 set (CMAKE_AUTOMOC ON)
 
 include(c_mock_defines.cmake)
