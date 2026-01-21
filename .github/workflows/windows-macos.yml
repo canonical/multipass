@@ -338,7 +338,7 @@ jobs:
       if: ${{ github.ref == 'refs/heads/main' }}
       with:
         path: ${{ env.SCCACHE_DIR }}
-        key: "sccache-${{ matrix.runs-on }}-${{ steps.setup-ccache.outputs.cache-key }}"
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
 
   CombineAndPublishMacOSPackage:
     # Want to run even if one of the builds above failed
