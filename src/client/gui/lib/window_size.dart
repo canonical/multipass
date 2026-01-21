@@ -16,14 +16,24 @@ String resolutionString(Size? size) {
 }
 
 final saveWindowSizeTimer = RestartableTimer(1.seconds, () async {
-  if (await windowManager.isMaximized()) return;
+  if (await windowManager.isMaximized() || await windowManager.isMinimized()) {
+    return;
+  }
   final currentSize = await windowManager.getSize();
   final sharedPreferences = await SharedPreferences.getInstance();
   final screenSize = await getCurrentScreenSize();
+
+  final prefix = resolutionString(screenSize);
+  final savedWidth = sharedPreferences.getDouble('$prefix$windowWidthKey');
+  final savedHeight = sharedPreferences.getDouble('$prefix$windowHeightKey');
+
+  if (savedWidth == currentSize.width && savedHeight == currentSize.height) {
+    return;
+  }
+
   logger.d(
     'Saving window size ${currentSize.s()} for screen size ${screenSize?.s()}',
   );
-  final prefix = resolutionString(screenSize);
   sharedPreferences.setDouble('$prefix$windowWidthKey', currentSize.width);
   sharedPreferences.setDouble('$prefix$windowHeightKey', currentSize.height);
 });
