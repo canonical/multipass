@@ -237,7 +237,7 @@ add_subdirectory(3rd-party)
 # Qt config
 find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 
-include(src/cmake/versioning.cmake)
+include(cmake/versioning.cmake)
 determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")

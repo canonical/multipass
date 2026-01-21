@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 include(CMakeDependentOption)
-include(src/cmake/environment-utils.cmake)
+include(cmake/environment-utils.cmake)
 
 if(DEFINED MP_ALLOW_OPTIONAL_FEATURES)
   # If `MP_ALLOW_OPTIONAL_FEATURES` is already defined, make sure to cache it so we never

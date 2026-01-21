@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-include(src/cmake/environment-utils.cmake)
+include(cmake/environment-utils.cmake)
 
 function(determine_version OUTPUT_VARIABLE)
   execute_process(COMMAND git describe --long --abbrev=8
