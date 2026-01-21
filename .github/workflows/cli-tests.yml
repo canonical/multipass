@@ -133,6 +133,11 @@ jobs:
           sparse-checkout: |
             tests/cli
 
+      # Install specific python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Download package with cURL
         if: ${{ matrix['pkg-url'] != '' }}
         run: curl -fL "${{ matrix['pkg-url'] }}" -o ${{ matrix['pkg-download-destination'] }}
