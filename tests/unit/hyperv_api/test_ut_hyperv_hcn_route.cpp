@@ -15,7 +15,7 @@
  *
  */
 
-#include "tests/common.h"
+#include "tests/unit/common.h"
 
 #include <hyperv_api/hcn/hyperv_hcn_route.h>
 

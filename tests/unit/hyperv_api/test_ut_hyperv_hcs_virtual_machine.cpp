@@ -22,15 +22,15 @@
 #include <multipass/mount_handler.h>
 #include <multipass/vm_mount.h>
 
-#include "tests/common.h"
-#include "tests/hyperv_api/mock_hyperv_hcn_wrapper.h"
-#include "tests/hyperv_api/mock_hyperv_hcs_wrapper.h"
-#include "tests/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
-#include "tests/mock_status_monitor.h"
-#include "tests/stub_ssh_key_provider.h"
-#include "tests/stub_status_monitor.h"
-#include "tests/temp_dir.h"
-#include "tests/temp_file.h"
+#include "tests/unit/common.h"
+#include "tests/unit/hyperv_api/mock_hyperv_hcn_wrapper.h"
+#include "tests/unit/hyperv_api/mock_hyperv_hcs_wrapper.h"
+#include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
+#include "tests/unit/mock_status_monitor.h"
+#include "tests/unit/stub_ssh_key_provider.h"
+#include "tests/unit/stub_status_monitor.h"
+#include "tests/unit/temp_dir.h"
+#include "tests/unit/temp_file.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;

@@ -15,7 +15,7 @@
  *
  */
 
-#include "tests/common.h"
+#include "tests/unit/common.h"
 
 #include <fmt/xchar.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>

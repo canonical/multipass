@@ -21,7 +21,7 @@
 #include "hyperv_test_utils.h"
 #include "mock_hyperv_hcs_api.h"
 #include "mock_schema_version.h"
-#include "tests/mock_logger.h"
+#include "tests/unit/mock_logger.h"
 
 #include <ComputeDefs.h>
 #include <multipass/logging/level.h>
