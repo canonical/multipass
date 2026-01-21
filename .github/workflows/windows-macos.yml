@@ -241,6 +241,8 @@ jobs:
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.9
       continue-on-error: true
+      with:
+        version: "v0.12.0"
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
