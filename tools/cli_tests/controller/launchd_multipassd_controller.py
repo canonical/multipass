@@ -26,10 +26,12 @@ import subprocess
 import logging
 from typing import AsyncIterator, Optional
 from contextlib import suppress
+from signal import SIGKILL, SIGTERM
 
 from cli_tests.utilities import (
     get_sudo_tool,
     run_in_new_interpreter,
+    run_in_new_interpreter_async,
     StdoutAsyncSubprocess,
     SilentAsyncSubprocess,
     sudo,
@@ -86,12 +88,48 @@ def make_override_plist(source_plist_path: str) -> str:
     return tmp_path
 
 
+def perform_daemon_shutdown_procedure(daemon_pid: int, daemon_pgid: int):
+    import psutil
+    import os
+
+    def wait_procs_exit(pids: set[int], timeout: float) -> set[int]:
+        """
+        Wait up to timeout seconds for all PIDs to exit.
+        Returns the subset that are still alive after the timeout.
+        """
+        procs = []
+        for pid in pids:
+            try:
+                procs.append(psutil.Process(pid))
+            except psutil.NoSuchProcess:
+                pass
+
+        gone, alive = psutil.wait_procs(procs, timeout=timeout)
+        return {p.pid for p in alive}
+
+    def child_pids():
+        try:
+            p = psutil.Process(daemon_pid)
+        except psutil.NoSuchProcess:
+            return set()
+        return {c.pid for c in p.children(recursive=False)}
+
+    pids = [daemon_pid] + child_pids()
+
+    os.killpg(daemon_pgid, SIGTERM)
+    wait_procs_exit(pids, timeout=15)
+
+    os.killpg(daemon_pgid, SIGKILL)
+    wait_procs_exit(pids, timeout=15)
+
+
 class LaunchdMultipassdController:
     """launchd controller for `multipassd` on macOS."""
 
     @staticmethod
     def setup_environment():
-        logging.debug(f"LaunchdMultipassdController :: setup_environment {plist_path}")
+        logging.debug(
+            f"LaunchdMultipassdController :: setup_environment {plist_path}")
 
         # 1) Unload whatever is there (may be inactive; ignore failures)
         run_sync("launchctl", "bootout", f"system/{label}")
@@ -99,7 +137,8 @@ class LaunchdMultipassdController:
         override_plist_path = make_override_plist(plist_path)
 
         # 3) Load the override into system domain
-        rc, out = run_sync("launchctl", "bootstrap", "system", override_plist_path)
+        rc, out = run_sync("launchctl", "bootstrap",
+                           "system", override_plist_path)
         if rc != 0:
             raise RuntimeError(f"bootstrap(override) failed:\n{out}")
 
@@ -138,7 +177,8 @@ class LaunchdMultipassdController:
             if proc.returncode != 0:
                 return None
 
-            m = _regex.search(stdout.decode(encoding="utf-8", errors="replace"))
+            m = _regex.search(stdout.decode(
+                encoding="utf-8", errors="replace"))
             if m:
                 return m.group(1).strip()
 
@@ -150,6 +190,10 @@ class LaunchdMultipassdController:
             return int(prop.strip())
         return None
 
+    async def update_process_ids(self):
+        self._daemon_pid = await self._get_pid()
+        self._daemon_pgid = os.getpgid(self._daemon_pid)
+
     async def start(self) -> None:
         # 4) Start (soft): kickstart (no -k)
         async with StdoutAsyncSubprocess(
@@ -157,26 +201,26 @@ class LaunchdMultipassdController:
         ) as start:
             stdout, _ = await start.communicate()
             if start.returncode == 0:
-                self._daemon_pid = await self._get_pid()
+                await self.update_process_ids()
                 return
             raise RuntimeError(f"kickstart failed:\n{stdout}")
 
     async def stop(self) -> None:
-        async with SilentAsyncSubprocess(
-            *sudo("launchctl", "stop", f"system/{label}")
-        ) as stop:
-            await stop.communicate()
+        if not self._daemon_pid:
+            # We're trying to stop
+            async with SilentAsyncSubprocess(
+                *sudo("launchctl", "stop", f"system/{label}")
+            ) as stop:
+                await stop.communicate()
+            with suppress(asyncio.TimeoutError):
+                if await asyncio.wait_for(self.wait_exit(), 5):
+                    return
+            return
 
-        with suppress(asyncio.TimeoutError):
-            if await asyncio.wait_for(self.wait_exit(), 5):
-                return
-
-        async with SilentAsyncSubprocess(
-            *sudo("launchctl", "kill", "SIGKILL", f"system/{label}")
-        ) as kill:
-            await kill.communicate()
-
-        await asyncio.wait_for(self.wait_exit(), 10)
+        logging.debug("Starting daemon shutdown procecure")
+        result = await run_in_new_interpreter_async(perform_daemon_shutdown_procedure, self._daemon_pid, self._daemon_pgid, privileged=True)
+        logging.debug(
+            f"Daemon shutdown procedure result: Exit code {result.returncode}, Stdout: {result.stdout}, Stderr: {result.stderr}")
 
     async def restart(self) -> None:
         await self.stop()
