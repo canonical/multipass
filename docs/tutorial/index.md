@@ -17,9 +17,9 @@ Select the tab corresponding to your operating system (e.g. Linux) to display th
 
 ## Create and use a basic instance
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 Start Multipass from the application launcher. In Ubuntu, press the super key and type "Multipass", or find Multipass in the Applications panel on the lower left of the desktop.
 
@@ -127,7 +127,7 @@ This folder could be a great place to keep files that need to be accessed by bot
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 Start Multipass from the application launcher. In macOS, open the application launcher, type "Multipass", and launch the application.
 
@@ -221,7 +221,7 @@ ubuntu@primary:~/Home/Multipass_Files$
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 Start Multipass from the application launcher. Press the Windows key and type "Multipass", then launch the application.
 
@@ -359,9 +359,9 @@ minikube                                      latest           minikube is local
 
 Launch an instance running Ubuntu 22.10 ("Kinetic Kudu") by typing the `multipass launch kinetic` command.
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
 
@@ -395,7 +395,7 @@ You can now launch the type of instance you need by running this command:
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "breezy-liger".
 
@@ -429,7 +429,7 @@ You can now launch the type of instance you need by running this command:
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "decorous-skate".
 
@@ -469,9 +469,9 @@ You can now launch the type of instance you need by running this command:
 
 You can confirm that the new instance has the specs you need by running `multipass info ltsInstance`.
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 ```{code-block} text
 $ multipass info ltsInstance
@@ -508,7 +508,7 @@ ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 ```{code-block} text
 $ multipass info ltsInstance
@@ -545,7 +545,7 @@ ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass info ltsInstance
@@ -610,9 +610,9 @@ sudo apt install apache2
 
 Open a browser and type in the IP address of your instance into the address bar. You should now see the default Apache homepage.
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 ```{figure} /images/tutorial/mp-linux-4.png
    :width: 720px
@@ -625,7 +625,7 @@ Open a browser and type in the IP address of your instance into the address bar.
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 ```{figure} /images/tutorial/mp-macos-5.png
    :width: 720px
@@ -638,7 +638,7 @@ Open a browser and type in the IP address of your instance into the address bar.
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 ```{figure} /images/tutorial/mp-windows-12.png
    :width: 720px
@@ -668,9 +668,9 @@ You can launch an instance using the Docker Blueprint by running `multipass laun
 
 Once that's done, run `multipass info docker-dev` to note down the IP of the new instance.
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 ```{code-block} text
 $ multipass launch docker --name docker-dev
@@ -735,7 +735,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 ```{code-block} text
 $ multipass launch docker --name docker-dev
@@ -800,7 +800,7 @@ From the Portainer dashboard, you can see the ports available on nginx. To verif
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass launch docker --name docker-dev
