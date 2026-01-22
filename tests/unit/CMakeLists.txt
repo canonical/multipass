@@ -119,6 +119,7 @@ add_executable(multipass_tests
   test_client_logger.cpp
   test_standard_logger.cpp
   test_xz_image_decoder.cpp
+  test_trace_loc.cpp
 )
 
 target_include_directories(multipass_tests

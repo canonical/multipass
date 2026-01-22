@@ -22,3 +22,43 @@
 
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
+using namespace testing;
+
+namespace
+{
+struct TraceLocTests : Test
+{
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::trace);
+};
+
+TEST_F(TraceLocTests, logsWithSourceLocation)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, "test_trace_loc.cpp");
+    mpl::trace_loc("test_category", "blarg");
+}
+
+TEST_F(TraceLocTests, logsWithFormatArgs)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, "value is 42.");
+    mpl::trace_loc("test_category", "value is {}.", 42);
+}
+
+TEST_F(TraceLocTests, logsWithMultipleFormatArgs)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, "values: 1, hello, 3.14");
+    mpl::trace_loc("test_category", "values: {}, {}, {}", 1, "hello", 3.14);
+}
+
+TEST_F(TraceLocTests, includesFunctionName)
+{
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, "TestBody");
+    mpl::trace_loc("test_category", "checking function name");
+}
+
+TEST_F(TraceLocTests, includesLineNumber)
+{
+    constexpr int expected_line = __LINE__ + 2;
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, std::to_string(expected_line));
+    mpl::trace_loc("test_category", "checking line number");
+}
+} // namespace
