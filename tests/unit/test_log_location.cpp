@@ -18,7 +18,7 @@
 #include "common.h"
 #include "mock_logger.h"
 
-#include <multipass/logging/trace_location.h>
+#include <multipass/logging/log_location.h>
 
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -36,7 +36,7 @@ struct LogLocationTests : Test
 TEST_F(LogLocationTests, logsWithSourceLocation)
 {
     constexpr auto level = mpl::Level::debug;
-    logger_scope.mock_logger->expect_log(level, "test_trace_loc.cpp");
+    logger_scope.mock_logger->expect_log(level, "test_log_location.cpp");
     mpl::log_location(level, test_category, "blarg");
 }
 
