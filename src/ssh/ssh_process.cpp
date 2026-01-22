@@ -46,6 +46,7 @@ constexpr std::string_view extract_filename(std::string_view path)
     return pos == std::string_view::npos ? path : path.substr(pos + 1);
 }
 
+// using a struct and deduction guide to accommodate the default argument after the parameter pack
 template <typename... Args>
 struct trace_loc
 {
