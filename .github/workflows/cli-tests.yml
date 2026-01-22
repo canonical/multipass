@@ -79,9 +79,11 @@ jobs:
               });
             }
 
-            if (MACOS_PKG_URL !== '<undefined>') {
+            # macOS runs are disabled since GH macOS intel runners halt during execution
+            # and ARM ones simply not capable of nested virtualization.
+            if (false && MACOS_PKG_URL !== '<undefined>') {
               matrix.include.push({
-                os: 'macos-13-large',
+                os: 'macos-15-intel',
                 label: 'macOS',
                 'daemon-controller': 'launchd',
                 'backend-driver': BACKEND_DRIVER,
