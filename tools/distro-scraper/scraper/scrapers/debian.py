@@ -139,6 +139,7 @@ class DebianScraper(BaseScraper):
         arch_map = {
             "amd64": "x86_64",
             "arm64": "arm64",
+            "ppc64el": "ppc64le",
         }
 
         # Fetch all manifests concurrently

@@ -30,6 +30,8 @@ class FedoraScraper(BaseScraper):
             return "x86_64"
         if arch == "s390x":
             return "s390x"
+        if arch == "ppc64le":
+            return "ppc64le"
         raise ValueError(f"unsupported arch {arch}")
 
     def _find_latest_version(self, images: list[dict]) -> str:
