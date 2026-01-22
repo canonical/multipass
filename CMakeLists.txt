@@ -121,8 +121,13 @@ set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg
 
 project(Multipass)
 
-cmake_dependent_option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON
-    "NOT CMAKE_SYSTEM_PROCESSOR STREQUAL s390x" OFF)
+cmake_dependent_option(
+    MULTIPASS_ENABLE_FLUTTER_GUI
+    "Build Flutter GUI"
+    ON
+    "NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL s390x OR CMAKE_SYSTEM_PROCESSOR STREQUAL ppc64le)"
+    OFF
+)
 
 include(GNUInstallDirs)
 
