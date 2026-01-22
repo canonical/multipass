@@ -30,7 +30,7 @@ import pexpect
 if sys.platform == "win32":
     from pexpect.popen_spawn import PopenSpawn
 
-    from cli_tests.utilities import WinptySpawn
+    from cli.utilities import WinptySpawn
 
     class PopenCompatSpawn(PopenSpawn):
         def __init__(self, command, args, **kwargs):
