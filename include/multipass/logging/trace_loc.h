@@ -26,7 +26,10 @@ namespace multipass
 {
 namespace logging
 {
+namespace detail
+{
 
+// Carefule with temporaries
 constexpr std::string_view extract_filename(std::string_view path)
 {
     assert(path.empty() || (*path.rbegin() != '/' && *path.rbegin() != '\\')); // no trailing slash
@@ -34,6 +37,8 @@ constexpr std::string_view extract_filename(std::string_view path)
     auto pos = path.find_last_of("/\\");
     return pos == std::string_view::npos ? path : path.substr(pos + 1);
 }
+
+} // namespace detail
 
 // using a struct and deduction guide to accommodate the default argument after the parameter pack
 template <typename... Args>
@@ -46,7 +51,7 @@ struct trace_loc
     {
         trace(category,
               "{}:{} {}(): {}",
-              extract_filename(location.file_name()),
+              detail::extract_filename(location.file_name()),
               location.line(),
               location.function_name(),
               fmt::format(fmt, std::forward<Args>(args)...));
