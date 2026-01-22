@@ -16,7 +16,8 @@
 add_library(logger STATIC
   log.cpp
   multiplexing_logger.cpp
-  standard_logger.cpp)
+  standard_logger.cpp
+  trace_loc.cpp)
 
 target_link_libraries(logger
   fmt::fmt-header-only
