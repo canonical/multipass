@@ -33,12 +33,12 @@ std::string_view extract_filename(std::string_view path);
 
 // using a struct and deduction guide to accommodate the default argument after the parameter pack
 template <typename... Args>
-struct trace_loc
+struct trace_location
 {
-    trace_loc(std::string_view category,
-              fmt::format_string<Args...> fmt,
-              Args&&... args,
-              std::source_location location = std::source_location::current())
+    trace_location(std::string_view category,
+                   fmt::format_string<Args...> fmt,
+                   Args&&... args,
+                   std::source_location location = std::source_location::current())
     {
         trace(category,
               "{}:{} {}(): {}",
@@ -50,7 +50,7 @@ struct trace_loc
 };
 
 template <typename... Args>
-trace_loc(std::string_view, fmt::format_string<Args...>, Args&&...) -> trace_loc<Args...>;
+trace_location(std::string_view, fmt::format_string<Args...>, Args&&...) -> trace_location<Args...>;
 
 } // namespace logging
 } // namespace multipass

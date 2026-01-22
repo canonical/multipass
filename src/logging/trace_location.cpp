@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/logging/trace_loc.h>
+#include <multipass/logging/trace_location.h>
 
 #include <cassert>
 
