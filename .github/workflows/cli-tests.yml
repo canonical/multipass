@@ -81,7 +81,7 @@ jobs:
 
             if (MACOS_PKG_URL !== '<undefined>') {
               matrix.include.push({
-                os: 'macos-15-intel',
+                os: 'macos-14-large',
                 label: 'macOS',
                 'daemon-controller': 'launchd',
                 'backend-driver': BACKEND_DRIVER,
@@ -152,8 +152,10 @@ jobs:
           sudo mdutil -Eai off
           # See: https://github.com/actions/runner-images/issues/13358
           sudo defaults -currentHost write /Library/Preferences/com.apple.powerlogd SMCMonitorCadence 0
-          sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.PerfPowerServices.plist
-          sudo killall PerfPowerServices || true
+          # Disable PerfPowerServices (power management analytics that causes simulator hangs)
+          sudo launchctl bootout system/com.apple.PerfPowerServices 2>/dev/null || true
+          # Disable Spotlight indexing (CPU-intensive during tests)
+          sudo launchctl bootout system/com.apple.metadata.mds 2>/dev/null || true
           wget https://github.com/biscuitehh/yeetd/releases/download/1.0/yeetd-normal.pkg
           sudo installer -pkg yeetd-normal.pkg -target /
           defaults write dev.biscuit.yeetd killapsd true
