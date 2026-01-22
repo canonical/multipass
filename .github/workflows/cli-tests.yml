@@ -152,7 +152,12 @@ jobs:
           sudo mdutil -Eai off
           # See: https://github.com/actions/runner-images/issues/13358
           sudo defaults -currentHost write /Library/Preferences/com.apple.powerlogd SMCMonitorCadence 0
+          sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.PerfPowerServices.plist
           sudo killall PerfPowerServices || true
+          wget https://github.com/biscuitehh/yeetd/releases/download/1.0/yeetd-normal.pkg
+          sudo installer -pkg yeetd-normal.pkg -target /
+          defaults write dev.biscuit.yeetd killapsd true
+          yeetd &
 
       - name: Install prerequisites (Windows)
         if: runner.os == 'Windows'
