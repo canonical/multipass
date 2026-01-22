@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.25)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(feature-flags.cmake)
-include(src/cmake/environment-utils.cmake)
+include(cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
 option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
@@ -25,7 +25,7 @@ option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
-  include(src/cmake/configure-linker.cmake)
+  include(cmake/configure-linker.cmake)
   configure_linker()
 endif()
 
@@ -86,6 +86,8 @@ if(NOT VCPKG_BUILD_DEFAULT)
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
 else()
+  set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+  set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
@@ -204,6 +206,9 @@ endif()
 # Boost config
 find_package(Boost CONFIG REQUIRED COMPONENTS json)
 
+# Dependencies satisfied by CMake
+include(cmake/cmake-deps.cmake)
+
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 
@@ -234,7 +239,7 @@ add_subdirectory(3rd-party)
 # Qt config
 find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 
-include(src/cmake/versioning.cmake)
+include(cmake/versioning.cmake)
 determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
@@ -251,7 +256,8 @@ if(MSVC)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
-  set(MULTIPASS_BACKENDS hyperv virtualbox)
+  add_definitions(-DSECURITY_WIN32)
+  set(MULTIPASS_BACKENDS hyperv hyperv_api virtualbox)
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
