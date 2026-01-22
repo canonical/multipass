@@ -11,8 +11,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-include(src/cmake/feature-flag.cmake)
-
-# Multipass backend integrating with Apple Virtualization framework
-feature_flag(APPLEVZ_ENABLED "AppleVZ backend" APPLE)
+target_sources(multipass_tests
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/test_applevz_virtual_machine.cpp
+)
