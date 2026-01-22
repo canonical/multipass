@@ -31,6 +31,7 @@
 #include <shared/windows/wsa_init_wrapper.h>
 
 #include <multipass/constants.h>
+#include <multipass/file_ops.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -257,12 +258,23 @@ std::filesystem::path HCSVirtualMachine::get_runtime_state_file_path() const
         ".vmrs");
 }
 
+std::filesystem::path HCSVirtualMachine::get_saved_state_file_path() const
+{
+    return std::filesystem::path{description.image.image_path.toStdString()}.replace_extension(
+        ".SavedState.vmrs");
+}
+
+bool HCSVirtualMachine::has_saved_state_file() const
+{
+    return MP_FILEOPS.exists(get_saved_state_file_path());
+}
+
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
     const std::filesystem::path base_vhdx = description.image.image_path.toStdString();
     const std::filesystem::path head_avhdx =
         base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
-    return std::filesystem::exists(head_avhdx) ? head_avhdx : base_vhdx;
+    return MP_FILEOPS.exists(head_avhdx) ? head_avhdx : base_vhdx;
 }
 
 void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
@@ -292,8 +304,8 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
         mpl::debug(get_name(),
                    "Granting access to path `{}`, exists? {}",
                    path,
-                   std::filesystem::exists(path));
-        if (std::filesystem::is_symlink(path))
+                   MP_FILEOPS.exists(path));
+        if (MP_FILEOPS.is_symlink(path))
         {
             paths.push_back(std::filesystem::canonical(path));
         }
@@ -391,6 +403,12 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         params.guest_state.guest_state_file_path = get_guest_state_file_path();
         params.guest_state.runtime_state_file_path = get_runtime_state_file_path();
 
+        // Check if this is a resume from suspend to disk.
+        if (MP_FILEOPS.exists(get_saved_state_file_path()))
+        {
+            params.guest_state.save_state_file_path = get_saved_state_file_path();
+        }
+
         const auto create_endpoint_to_network_adapter = [this](const auto& create_params) {
             hcs::HcsNetworkAdapter network_adapter{};
             network_adapter.endpoint_guid = create_params.endpoint_guid;
@@ -425,6 +443,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         grant_access_to_scsi_device(scsi);
     }
 
+    // Also grant access to the VM folder itself
+    grant_access_to_paths({instance_dir.absolutePath().toStdString()});
     return true;
 }
 
@@ -449,7 +469,7 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
         break;
     case hcs::ComputeSystemState::saved_as_template:
     case hcs::ComputeSystemState::stopped:
-        state = State::stopped;
+        state = has_saved_state_file() ? State::suspended : State::stopped;
         break;
     case hcs::ComputeSystemState::unknown:
         state = State::unknown;
@@ -510,22 +530,32 @@ void HCSVirtualMachine::start()
         handle_state_update();
         throw StartComputeSystemException{"Could not start the VM: {}", status};
     }
+    else
+    {
+        // Remove saved state file after a successful start or resume.
+        if (MP_FILEOPS.exists(get_saved_state_file_path()))
+        {
+            mpl::trace(get_name(), "start() -> Saved state file exits, attempting to remove");
+            std::error_code ec{};
+            if (!MP_FILEOPS.remove(get_saved_state_file_path(), ec))
+            {
+                mpl::warn(get_name(),
+                          "start() -> Could not remove the saved state file, error: {}",
+                          ec);
+            }
+        }
+    }
 
-    mpl::debug(get_name(), "start() -> Start/resume VM `{}`, result `{}`", get_name(), status);
+    mpl::debug(get_name(), "start() -> result `{}`", get_name(), status);
 }
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
-    mpl::debug(get_name(),
-               "shutdown() -> Shutting down VM `{}`, current state {}",
-               get_name(),
-               state);
+    mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", get_name(), state);
 
     switch (shutdown_policy)
     {
     case ShutdownPolicy::Powerdown:
-        mpl::debug(get_name(),
-                   "shutdown() -> Requested powerdown, initiating graceful shutdown for `{}`",
-                   get_name());
+        mpl::debug(get_name(), "shutdown() -> Requested powerdown, initiating graceful shutdown");
 
         // If the guest has integration modules enabled, we can use graceful shutdown.
         if (!HCS().shutdown_compute_system(hcs_system))
@@ -538,8 +568,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     case ShutdownPolicy::Halt:
     case ShutdownPolicy::Poweroff:
         mpl::debug(get_name(),
-                   "shutdown() -> Requested halt/poweroff, initiating forceful shutdown for `{}`",
-                   get_name());
+                   "shutdown() -> Requested halt/poweroff, initiating forceful shutdown");
         // These are non-graceful variants. Just terminate the system immediately.
         const auto r = HCS().terminate_compute_system(hcs_system);
         mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
@@ -568,6 +597,24 @@ void HCSVirtualMachine::suspend()
 {
     mpl::debug(get_name(), "suspend() -> Suspending VM `{}`, current state {}", get_name(), state);
     const auto& [status, status_msg] = HCS().pause_compute_system(hcs_system);
+    if (status)
+    {
+        // Pause succeeded. We can suspend to disk now
+        if (const auto& r = HCS().save_compute_system(hcs_system, get_saved_state_file_path()); r)
+        {
+            // Save succeeded. Now, it's safe to terminate the system.
+            (void)HCS().terminate_compute_system(hcs_system);
+        }
+        else
+            throw SaveComputeSystemException{"Could not save the virtual machine state for VM `{}` "
+                                             "to the disk for suspend. Error details: {}",
+                                             get_name(),
+                                             r};
+    }
+    else
+    {
+        mpl::warn(vm_name, "Could not pause for suspend");
+    }
     set_state(fetch_state_from_api());
     handle_state_update();
 }
