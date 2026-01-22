@@ -18,7 +18,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
-#include <multipass/logging/trace_location.h>
+#include <multipass/logging/log_location.h>
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/throw_on_error.h>
 

@@ -79,6 +79,7 @@ add_executable(multipass_tests
   test_ip_address.cpp
   test_json_utils.cpp
   test_log.cpp
+  test_log_location.cpp
   test_memory_size.cpp
   test_mock_standard_paths.cpp
   test_mount_handler.cpp
@@ -112,7 +113,6 @@ add_executable(multipass_tests
   test_standard_logger.cpp
   test_timer.cpp
   test_top_catch_all.cpp
-  test_trace_loc.cpp
   test_ubuntu_image_host.cpp
   test_url_downloader.cpp
   test_utils.cpp
