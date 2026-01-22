@@ -113,6 +113,7 @@ public:
                 exists,
                 (const fs::path& path, std::error_code& err),
                 (override, const, noexcept));
+    MOCK_METHOD(bool, is_symlink, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 is_directory,
                 (const fs::path& path, std::error_code& err),

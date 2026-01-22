@@ -82,4 +82,9 @@ struct WindowsFeatureNotEnabledException : public FormattedExceptionBase<>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
+struct SaveComputeSystemException : public FormattedExceptionBase<>
+{
+    using FormattedExceptionBase::FormattedExceptionBase;
+};
+
 } // namespace multipass::hyperv
