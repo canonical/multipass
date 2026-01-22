@@ -385,6 +385,11 @@ bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const noexc
     return fs::exists(path, err);
 }
 
+bool mp::FileOps::is_symlink(const fs::path& path) const
+{
+    return fs::is_symlink(path);
+}
+
 bool mp::FileOps::is_directory(const fs::path& path, std::error_code& err) const
 {
     return fs::is_directory(path, err);

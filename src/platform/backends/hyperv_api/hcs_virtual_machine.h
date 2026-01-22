@@ -112,6 +112,8 @@ private:
 
     [[nodiscard]] std::filesystem::path get_guest_state_file_path() const;
     [[nodiscard]] std::filesystem::path get_runtime_state_file_path() const;
+    [[nodiscard]] std::filesystem::path get_saved_state_file_path() const;
+    [[nodiscard]] bool has_saved_state_file() const;
 
     void grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const;
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;

@@ -121,6 +121,7 @@ public:
                       fs::copy_options copy_options) const;
     virtual void rename(const fs::path& old_p, const fs::path& new_p) const;
     virtual bool exists(const fs::path& path) const;
+    virtual bool is_symlink(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool exists(const fs::path& path, std::error_code& err) const noexcept;
     // [[deprecated("Use non-std::error_code overload instead!")]]

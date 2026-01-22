@@ -26,6 +26,7 @@
 #include "tests/unit/hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_hcs_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
+#include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_status_monitor.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
@@ -164,6 +165,11 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
 
         EXPECT_CALL(mock_hcs,
                     grant_vm_access(Eq(dummy_vm_name), Eq(dummy_image.name().toStdString())))
+            .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
+
+        EXPECT_CALL(
+            mock_hcs,
+            grant_vm_access(Eq(dummy_vm_name), Eq(dummy_instances_dir.path().toStdString())))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
         EXPECT_CALL(
@@ -441,6 +447,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_halt)
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_success)
 {
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
@@ -448,11 +455,17 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_success)
                            hcs_system_state_t& state) { state = hcs_system_state_t::running; },
                         Return(hcs_op_result_t{0, L""})))
         .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::paused; },
+                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
                         Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>())).WillOnce(Return(true));
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
