@@ -19,8 +19,8 @@
 
 #include <multipass/logging/log.h>
 
-#include <cassert>
 #include <source_location>
+#include <string_view>
 
 namespace multipass
 {
@@ -28,17 +28,8 @@ namespace logging
 {
 namespace detail
 {
-
-// Carefule with temporaries
-constexpr std::string_view extract_filename(std::string_view path)
-{
-    assert(path.empty() || (*path.rbegin() != '/' && *path.rbegin() != '\\')); // no trailing slash
-
-    auto pos = path.find_last_of("/\\");
-    return pos == std::string_view::npos ? path : path.substr(pos + 1);
+std::string_view extract_filename(std::string_view path);
 }
-
-} // namespace detail
 
 // using a struct and deduction guide to accommodate the default argument after the parameter pack
 template <typename... Args>
