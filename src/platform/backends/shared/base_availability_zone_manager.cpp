@@ -24,8 +24,9 @@
 
 #include <fmt/format.h>
 
-#include <QJsonDocument>
+#include <boost/json.hpp>
 
+namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
@@ -51,22 +52,22 @@ constexpr auto automatic_zone_key = "automatic_zone";
     return zones;
 };
 
-[[nodiscard]] QJsonObject read_json(const std::filesystem::path& file_path)
+[[nodiscard]] boost::json::value read_json(const std::filesystem::path& file_path)
 try
 {
-    return MP_JSONUTILS.read_object_from_file(file_path);
+    return boost::json::parse(MP_FILEOPS.read_all(file_path));
 }
-catch (const std::ios_base::failure& e)
+catch (const std::exception& e)
 {
     mpl::warn(category, "failed to read AZ manager file': {}", e.what());
-    return QJsonObject{};
+    return {};
 }
 
-[[nodiscard]] std::string deserialize_automatic_zone(const QJsonObject& json)
+[[nodiscard]] std::string deserialize_automatic_zone(const boost::json::value& json)
 {
     using namespace multipass;
 
-    auto json_automatic_zone = json[automatic_zone_key].toString().toStdString();
+    auto json_automatic_zone = mp::lookup_or<std::string>(json, automatic_zone_key, "");
     if (std::find(default_zone_names.begin(), default_zone_names.end(), json_automatic_zone) !=
         default_zone_names.end())
         return json_automatic_zone;

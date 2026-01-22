@@ -88,15 +88,6 @@ mp::JsonUtils::JsonUtils(const Singleton<JsonUtils>::PrivatePass& pass) noexcept
 {
 }
 
-QJsonObject mp::JsonUtils::read_object_from_file(const std::filesystem::path& file_path) const
-{
-    const auto file = MP_FILEOPS.open_read(file_path);
-    file->exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    const auto data =
-        QString::fromStdString(std::string{std::istreambuf_iterator{*file}, {}}).toUtf8();
-    return QJsonDocument::fromJson(data).object();
-}
-
 std::string mp::JsonUtils::json_to_string(const QJsonObject& root) const
 {
     // The function name toJson() is shockingly wrong, for it converts an actual JsonDocument to a
