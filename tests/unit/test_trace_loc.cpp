@@ -26,39 +26,62 @@ using namespace testing;
 
 namespace
 {
-struct TraceLocTests : Test
+constexpr auto test_category = "test_category";
+
+struct LogLocationTests : Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::trace);
 };
 
-TEST_F(TraceLocTests, logsWithSourceLocation)
+TEST_F(LogLocationTests, logsWithSourceLocation)
 {
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "test_trace_loc.cpp");
-    mpl::trace_location("test_category", "blarg");
+    constexpr auto level = mpl::Level::debug;
+    logger_scope.mock_logger->expect_log(level, "test_trace_loc.cpp");
+    mpl::log_location(level, test_category, "blarg");
 }
 
-TEST_F(TraceLocTests, logsWithFormatArgs)
+TEST_F(LogLocationTests, logsWithFormatArgs)
 {
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "value is 42.");
-    mpl::trace_location("test_category", "value is {}.", 42);
+    constexpr auto level = mpl::Level::info;
+    logger_scope.mock_logger->expect_log(level, "value is 42.");
+    mpl::log_location(level, test_category, "value is {}.", 42);
 }
 
-TEST_F(TraceLocTests, logsWithMultipleFormatArgs)
+TEST_F(LogLocationTests, logsWithMultipleFormatArgs)
 {
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "values: 1, hello, 3.14");
-    mpl::trace_location("test_category", "values: {}, {}, {}", 1, "hello", 3.14);
+    constexpr auto level = mpl::Level::warning;
+    logger_scope.mock_logger->expect_log(level, "values: 1, hello, 3.14");
+    mpl::log_location(level, test_category, "values: {}, {}, {}", 1, "hello", 3.14);
 }
 
-TEST_F(TraceLocTests, includesFunctionName)
+TEST_F(LogLocationTests, includesFunctionName)
 {
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "TestBody");
-    mpl::trace_location("test_category", "checking function name");
+    constexpr auto level = mpl::Level::error;
+    logger_scope.mock_logger->expect_log(level, "TestBody");
+    mpl::log_location(level, test_category, "msg");
 }
 
-TEST_F(TraceLocTests, includesLineNumber)
+TEST_F(LogLocationTests, includesLineNumber)
 {
+    constexpr auto level = mpl::Level::trace;
     constexpr int expected_line = __LINE__ + 2;
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, std::to_string(expected_line));
-    mpl::trace_location("test_category", "checking line number");
+    logger_scope.mock_logger->expect_log(level, std::to_string(expected_line));
+    mpl::log_location(level, test_category, "msg");
+}
+
+TEST_F(LogLocationTests, traceLocationLogsAtTraceLevel)
+{
+    constexpr auto level = mpl::Level::trace;
+    constexpr auto msg = "trace message";
+    logger_scope.mock_logger->expect_log(level, msg);
+    mpl::trace_location(test_category, msg);
+}
+
+TEST_F(LogLocationTests, debugLocationLogsAtDebugLevel)
+{
+    constexpr auto level = mpl::Level::debug;
+    constexpr auto msg = "debug message";
+    logger_scope.mock_logger->expect_log(level, msg);
+    mpl::debug_location(test_category, msg);
 }
 } // namespace
