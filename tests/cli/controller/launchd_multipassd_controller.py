@@ -26,14 +26,12 @@ import subprocess
 import logging
 from typing import AsyncIterator, Optional
 from contextlib import suppress
-from signal import SIGKILL, SIGTERM
 
 from cli.utilities import (
     get_sudo_tool,
     run_in_new_interpreter,
     run_in_new_interpreter_async,
     StdoutAsyncSubprocess,
-    SilentAsyncSubprocess,
     sudo,
     TempDirectory,
 )
@@ -92,6 +90,7 @@ def perform_daemon_shutdown_procedure(daemon_pid: int):
     import os
     import time
     import subprocess
+    from signal import SIGKILL, SIGTERM
 
     def pid_exists(pid: int) -> bool:
         try:
