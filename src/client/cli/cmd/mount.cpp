@@ -26,6 +26,7 @@
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/logging/log_location.h>
 
 #include <QDir>
 #include <QFileInfo>
@@ -233,11 +234,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     }
     else
     {
-        mpl::debug(category,
-                   "{}:{} {}(): adding default uid mapping",
-                   __FILE__,
-                   __LINE__,
-                   __FUNCTION__);
+        mpl::debug_location(category, "adding default uid mapping");
 
         auto uid_pair = mount_maps->add_uid_mappings();
         uid_pair->set_host_id(mcp::getuid());
@@ -276,11 +273,7 @@ mp::ParseCode cmd::Mount::parse_args(mp::ArgParser* parser)
     }
     else
     {
-        mpl::debug(category,
-                   "{}:{} {}(): adding default gid mapping",
-                   __FILE__,
-                   __LINE__,
-                   __FUNCTION__);
+        mpl::debug_location(category, "adding default gid mapping");
 
         auto gid_pair = mount_maps->add_gid_mappings();
         gid_pair->set_host_id(mcp::getgid());
