@@ -43,7 +43,7 @@ struct log_location
     {
         log(level,
             category,
-            "{}:{} {}(): {}",
+            "{}:{}, `{}`: {}",
             detail::extract_filename(location.file_name()),
             location.line(),
             location.function_name(),
