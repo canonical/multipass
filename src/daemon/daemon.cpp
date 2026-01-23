@@ -27,6 +27,7 @@
 #include <multipass/exceptions/availability_zone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
+#include <multipass/exceptions/ghost_instance_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -64,9 +65,6 @@
 #include <QDir>
 #include <QEventLoop>
 #include <QFutureSynchronizer>
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonParseError>
 #include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
@@ -245,109 +243,33 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
             return {};
     }
 
-    QJsonParseError parse_error;
-    auto doc = QJsonDocument::fromJson(db_file.readAll(), &parse_error);
-    if (doc.isNull())
+    boost::json::value records;
+    try
+    {
+        records = boost::json::parse(std::string_view(db_file.readAll()));
+    }
+    catch (const std::runtime_error& e)
+    {
         return {};
-
-    auto records = doc.object();
-    if (records.isEmpty())
-        return {};
+    }
 
     std::unordered_map<std::string, mp::VMSpecs> reconstructed_records;
-    for (auto it = records.constBegin(); it != records.constEnd(); ++it)
+    for (const auto& [key, record] : records.as_object())
     {
-        auto key = it.key().toStdString();
-        auto record = it.value().toObject();
-        if (record.isEmpty())
+        if (record.as_object().empty())
             return {};
 
-        auto num_cores = record["num_cores"].toInt();
-        auto mem_size = record["mem_size"].toString().toStdString();
-        auto disk_space = record["disk_space"].toString().toStdString();
-        auto ssh_username = record["ssh_username"].toString().toStdString();
-        auto state = record["state"].toInt();
-        auto deleted = record["deleted"].toBool();
-        auto metadata = record["metadata"].toObject();
-        auto clone_count = record["clone_count"].toInt();
-        auto zone = record["zone"].toString().toStdString();
-        zone = zone.empty() ? az_manager.get_default_zone_name() : zone;
-
-        if (!num_cores && !deleted && ssh_username.empty() && metadata.isEmpty() &&
-            !mp::MemorySize{mem_size}.in_bytes() && !mp::MemorySize{disk_space}.in_bytes())
+        try
+        {
+            reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record, az_manager));
+        }
+        catch (mp::GhostInstanceException&)
         {
             mpl::warn(category, "Ignoring ghost instance in database: {}", key);
             continue;
         }
-
-        if (ssh_username.empty())
-            ssh_username = "ubuntu";
-
-        // Read the default network interface, constructed from the "mac_addr" field.
-        auto default_mac_address = record["mac_addr"].toString().toStdString();
-        if (!mpu::valid_mac_address(default_mac_address))
-        {
-            throw std::runtime_error(fmt::format("Invalid MAC address {}", default_mac_address));
-        }
-
-        std::unordered_map<std::string, mp::VMMount> mounts;
-
-        for (QJsonValueRef entry : record["mounts"].toArray())
-        {
-            const auto& json = entry.toObject();
-            mounts[json["target_path"].toString().toStdString()] = mp::VMMount{json};
-        }
-
-        reconstructed_records[key] = {
-            num_cores,
-            mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size},
-            mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space},
-            default_mac_address,
-            MP_JSONUTILS.read_extra_interfaces(record).value_or(
-                std::vector<mp::NetworkInterface>{}),
-            ssh_username,
-            static_cast<mp::VirtualMachine::State>(state),
-            mounts,
-            deleted,
-            mp::qjson_to_boost_json(metadata).as_object(),
-            clone_count,
-            zone,
-        };
     }
     return reconstructed_records;
-}
-
-QJsonObject vm_spec_to_json(const mp::VMSpecs& specs)
-{
-    QJsonObject json;
-    json.insert("num_cores", specs.num_cores);
-    json.insert("mem_size", QString::number(specs.mem_size.in_bytes()));
-    json.insert("disk_space", QString::number(specs.disk_space.in_bytes()));
-    json.insert("ssh_username", QString::fromStdString(specs.ssh_username));
-    json.insert("state", static_cast<int>(specs.state));
-    json.insert("deleted", specs.deleted);
-    json.insert("metadata", mp::boost_json_to_qjson(specs.metadata));
-
-    // Write the networking information. Write first a field "mac_addr" containing the MAC address
-    // of the default network interface. Then, write all the information about the rest of the
-    // interfaces.
-    json.insert("mac_addr", QString::fromStdString(specs.default_mac_address));
-    json.insert("extra_interfaces",
-                MP_JSONUTILS.extra_interfaces_to_json_array(specs.extra_interfaces));
-
-    QJsonArray json_mounts;
-    for (const auto& mount : specs.mounts)
-    {
-        auto entry = mount.second.serialize();
-        entry.insert("target_path", QString::fromStdString(mount.first));
-        json_mounts.append(entry);
-    }
-
-    json.insert("mounts", json_mounts);
-    json.insert("clone_count", specs.clone_count);
-    json.insert("zone", QString::fromStdString(specs.zone));
-
-    return json;
 }
 
 std::string generate_next_clone_name(int clone_count, const std::string& source_name)
@@ -3222,16 +3144,11 @@ boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
 
 void mp::Daemon::persist_instances()
 {
-    QJsonObject instance_records_json;
-    for (const auto& record : vm_instance_specs)
-    {
-        auto key = QString::fromStdString(record.first);
-        instance_records_json.insert(key, vm_spec_to_json(record.second));
-    }
+    auto instance_records_json = boost::json::value_from(vm_instance_specs);
     QDir data_dir{mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name())};
     MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name),
-                                     QJsonDocument{instance_records_json}.toJson());
+                                     pretty_print(instance_records_json));
 }
 
 void mp::Daemon::release_resources(const std::string& instance)

@@ -21,7 +21,6 @@ is_running_in_ci(IS_RUNNING_IN_CI)
 
 option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
-option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON)
 
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
@@ -35,6 +34,8 @@ cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
 
 if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
   set(VCPKG_HOST_ARCH "arm64")
+elseif ("${HOST_ARCH}" STREQUAL "s390x")
+  set(VCPKG_HOST_ARCH "s390x")
 else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
@@ -52,9 +53,17 @@ else()
   set(VCPKG_HOST_OS "linux")
 endif()
 
-# Use ccache if it's installed
+# Use caching option if it's installed
+find_program(SCCACHE_PROGRAM sccache)
 find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
+if(SCCACHE_PROGRAM)
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}")
+  set(CMAKE_C_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}")
+  if("${HOST_OS_NAME}" STREQUAL "Windows")
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+    cmake_policy(SET CMP0141 NEW)
+  endif()
+elseif(CCACHE_PROGRAM)
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
@@ -109,6 +118,9 @@ set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg
   CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
+
+cmake_dependent_option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON
+    "NOT CMAKE_SYSTEM_PROCESSOR STREQUAL s390x" OFF)
 
 include(GNUInstallDirs)
 
@@ -323,7 +335,7 @@ add_subdirectory(src)
 
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
-  add_subdirectory(tests)
+  add_subdirectory(tests/unit)
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)
