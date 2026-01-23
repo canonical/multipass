@@ -2,6 +2,9 @@ name: WindowsMacOS
 
 on:
   workflow_call:
+  schedule:
+  # Daily at 00:34 UTC
+    - cron: 34 0 * * *
 
 permissions:
   contents: read
@@ -267,6 +270,7 @@ jobs:
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
+        ${{ github.event_name == 'schedule' && '-DMP_ALLOW_OPTIONAL_FEATURES=OFF' || '' }}
         ${{ github.workspace }}
 
     - name: Build
@@ -435,3 +439,21 @@ jobs:
           ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
           ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
         failOnError: false
+
+  Report-Workflow-Failure:
+    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
+    if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report workflow failure
+      uses: mattermost/action-mattermost-notify@master
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: multipass
+        TEXT: |
+          :red_circle: @mp
+          Scheduled [WindowsMacOS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

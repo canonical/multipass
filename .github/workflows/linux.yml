@@ -2,6 +2,9 @@ name: Linux
 
 on:
   workflow_call:
+  schedule:
+  # Daily at 00:34 UTC
+    - cron: 34 0 * * *
 
 permissions:
   contents: read
@@ -20,18 +23,34 @@ jobs:
     steps:
     - name: Determine job matrix
       id: set-matrix
-      run: |
-        set -euo pipefail
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const matrix = { include: [] };
 
-        MATRIX='{"build-type": "Debug", "cmake-preset": "ci-snap-debug"}
-                {"build-type": "Clang", "cmake-preset": "ci-snap-clang-15"}
-                {"build-type": "Release", "cmake-preset": "ci-snap"}'
+          matrix.include.push({
+            "build-type": "Debug",
+            "cmake-preset": "ci-snap-debug"
+          }, {
+            "build-type": "Clang",
+            "cmake-preset": "ci-snap-clang-15"
+          }, {
+            "build-type": "Release",
+            "cmake-preset": "ci-snap"
+          });
 
-        if ${{ github.event_name != 'merge_group' && github.repository == 'canonical/multipass'}}; then
-            MATRIX+='{"build-type": "Coverage", "cmake-preset": "ci-snap-coverage" }'
-        fi
+          if (context.eventName !== 'merge_group' &&
+              context.eventName !== 'schedule' &&
+              !context.ref.startsWith('refs/heads/release/') &&
+              context.repo.owner === 'canonical' &&
+              context.repo.repo === 'multipass') {
+            matrix.include.push({
+              "build-type": "Coverage",
+              "cmake-preset": "ci-snap-coverage"
+            });
+          }
 
-        echo "${MATRIX}" | jq -cs '{"include": . }' | awk '{ print "matrix=" $0 }' >> $GITHUB_OUTPUT
+          core.setOutput('matrix', JSON.stringify(matrix));
 
   BuildAndTest:
     needs: GetMatrix
@@ -90,6 +109,7 @@ jobs:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CMAKE_PRESET: ${{ matrix.cmake-preset }}
+        MP_ALLOW_OPTIONAL_FEATURES: ${{ github.event_name == 'schedule' && 'OFF' || 'ON' }}
 
       run: |
         go install github.com/mikefarah/yq/v4@latest
@@ -348,3 +368,27 @@ jobs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
+
+    - name: Delete unused artifacts from github
+      uses: geekyeggo/delete-artifact@v5
+      with:
+        name: ${{ needs.BuildAndTest.outputs.snap-file }}
+        failOnError: false
+
+  Report-Workflow-Failure:
+    needs: BuildAndTest
+    if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report workflow failure
+      uses: mattermost/action-mattermost-notify@master
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: multipass
+        TEXT: |
+          :red_circle: @mp
+          Scheduled [Linux](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
