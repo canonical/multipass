@@ -348,3 +348,15 @@ jobs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
+  Dispatch-CLI-Tests-Workflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}

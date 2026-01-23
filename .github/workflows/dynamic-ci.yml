@@ -12,7 +12,8 @@ on:
 
 permissions:
   contents: read
-  checks: read
+  checks: write
+  actions: read
   packages: write
 
 jobs:

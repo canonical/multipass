@@ -1,0 +1,307 @@
+name: CLI Tests
+
+on:
+  workflow_call:
+    inputs: &inputs
+      snap-channel:
+        type: string
+        description: "Snap channel to install Multipass from"
+        required: false
+        default: "<undefined>"
+      macos-pkg-url:
+        type: string
+        description: "URL to macOS package to install Multipass from"
+        required: false
+        default: "<undefined>"
+      windows-pkg-url:
+        type: string
+        description: "URL to Windows package to install Multipass from"
+        required: false
+        default: "<undefined>"
+      backend-driver:
+        type: string
+        description: "Backend driver to use"
+        required: false
+        default: "auto"
+      pytest-extra-args:
+        type: string
+        description: "Extra arguments to be passed to the pytest invocation"
+        default: ""
+  workflow_dispatch:
+    inputs: *inputs
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+env:
+  SNAP_CHANNEL: ${{ inputs['snap-channel'] }}
+  MACOS_PKG_URL: ${{ inputs['macos-pkg-url'] }}
+  WINDOWS_PKG_URL: ${{ inputs['windows-pkg-url'] }}
+  PYTEST_EXTRA_ARGS: ${{ inputs['pytest-extra-args'] }}
+  BACKEND_DRIVER: ${{ inputs['backend-driver'] }}
+  PYTHONUTF8: "1" # force Python UTF-8 mode (needed for Windows)
+  PYTHONIOENCODING: "utf-8"
+
+jobs:
+  determine-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.neo.outputs.matrix }}
+      has_targets: ${{ steps.neo.outputs.has_targets }}
+    steps:
+      - id: neo
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const crypto = require('crypto');
+            const {SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL, PYTEST_EXTRA_ARGS, BACKEND_DRIVER} = process.env
+            const matrix = { include: [] };
+
+            for (const [name, value] of Object.entries({ SNAP_CHANNEL, MACOS_PKG_URL, WINDOWS_PKG_URL }))
+              if (value === '')
+                throw new Error(`${name.toLowerCase().replaceAll('_', '-')} set but empty!`);
+
+            const shortHash = str => crypto.createHash("sha256").update(str).digest("hex").slice(0, 12);
+
+            if (SNAP_CHANNEL !== '<undefined>') {
+              matrix.include.push({
+                os: 'ubuntu-latest',
+                label: 'Snap',
+                'daemon-controller': 'snap',
+                'backend-driver': BACKEND_DRIVER,
+                'sudo-cmd': 'sudo',
+                'pkg-url': '',
+                'cmd-prologue': '',
+                'snap-channel': SNAP_CHANNEL,
+                'concurrency-key': shortHash(SNAP_CHANNEL)
+              });
+            }
+
+            // macOS runs are disabled since GH macOS intel runners halt during execution
+            // and ARM ones simply not capable of nested virtualization.
+            if (false && MACOS_PKG_URL !== '<undefined>') {
+              matrix.include.push({
+                os: 'macos-15-intel',
+                label: 'macOS',
+                'daemon-controller': 'launchd',
+                'backend-driver': BACKEND_DRIVER,
+                'sudo-cmd': 'sudo',
+                'pkg-url': MACOS_PKG_URL,
+                'pkg-download-destination': '$RUNNER_TEMP/multipass.pkg',
+                'cmd-prologue': 'arch -arch x86_64',
+                'concurrency-key': shortHash(MACOS_PKG_URL)
+              });
+            }
+
+            // Hyper-V is not supported because Windows runners does not have
+            // the full Hyper-V feature enabled.
+            if(!['auto', 'hyperv'].includes(BACKEND_DRIVER)) {
+              if (WINDOWS_PKG_URL !== '<undefined>') {
+                matrix.include.push({
+                  os: 'windows-latest',
+                  label: 'Windows',
+                  'daemon-controller': 'winsvc',
+                  'backend-driver': BACKEND_DRIVER,
+                  'sudo-cmd': 'gsudo',
+                  'pkg-url': WINDOWS_PKG_URL,
+                  'pkg-download-destination': '$env:RUNNER_TEMP\\multipass.msi',
+                  'cmd-prologue': '',
+                  'concurrency-key': shortHash(WINDOWS_PKG_URL)
+                });
+              }
+            }
+
+            core.setOutput('matrix', JSON.stringify(matrix));
+            core.setOutput('has_targets', String(matrix.include.length > 0));
+  run-cli-tests:
+    concurrency:
+      group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
+      cancel-in-progress: true
+    name: CLI Tests (${{ matrix.label }})
+    needs: determine-matrix
+    runs-on: ${{ matrix.os }}
+    if: ${{ needs.determine-matrix.outputs.has_targets == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
+    steps:
+      - name: Check out cli-tests
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          submodules: false
+          sparse-checkout: |
+            tests/cli
+
+      # Install specific python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Download package with cURL
+        if: ${{ matrix['pkg-url'] != '' }}
+        run: curl -fL "${{ matrix['pkg-url'] }}" -o ${{ matrix['pkg-download-destination'] }}
+
+      ##################################################################
+      # Platform-specific
+      ##################################################################
+      - name: Apply macOS optimizations
+        if: runner.os == 'macOS'
+        run: |
+          # Disable spotlight indexing
+          sudo mdutil -Eai off
+          # See: https://github.com/actions/runner-images/issues/13358
+          sudo defaults -currentHost write /Library/Preferences/com.apple.powerlogd SMCMonitorCadence 0
+          # Disable PerfPowerServices (power management analytics that causes simulator hangs)
+          sudo launchctl bootout system/com.apple.PerfPowerServices 2>/dev/null || true
+          # Disable Spotlight indexing (CPU-intensive during tests)
+          sudo launchctl bootout system/com.apple.metadata.mds 2>/dev/null || true
+          wget https://github.com/biscuitehh/yeetd/releases/download/1.0/yeetd-normal.pkg
+          sudo installer -pkg yeetd-normal.pkg -target /
+          defaults write dev.biscuit.yeetd killapsd true
+          yeetd &
+
+      - name: Install prerequisites (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install gsudo -y
+          echo 'C:\ProgramData\chocolatey\bin' >> "$GITHUB_PATH"
+          & "C:\tools\gsudo\Current\gsudo.exe" -v
+          # Update GITHUB_PATH so gsudo can be invoked directly
+          echo "C:\tools\gsudo\Current" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install package (Snap)
+        if: runner.os == 'Linux'
+        run: ${{ matrix.cmd-prologue }}${{ matrix.sudo-cmd }} snap install multipass --channel=${{ matrix['snap-channel'] }}
+
+      - name: Install package (macOS)
+        if: runner.os == 'macOS'
+        run: ${{ matrix.cmd-prologue }} ${{ matrix.sudo-cmd }} installer -verboseR -pkg ${{ matrix['pkg-download-destination'] }} -target /
+
+      - name: Install package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $msi = "${{ matrix['pkg-download-destination'] }}"
+          $log = Join-Path $env:RUNNER_TEMP 'multipass-install.log'
+          Write-Host "Expanded: $msi"
+
+          $args = @(
+            '/i', $msi,
+            '/qn', '/norestart',
+            '/l*vx!', $log,
+            'ADDLOCAL=ALL',
+            'ALLUSERS=1'
+          )
+
+          $proc = Start-Process -FilePath msiexec.exe -ArgumentList $args -Wait -PassThru
+          $code = $proc.ExitCode
+
+          Write-Host "msiexec exit code: $code"
+          if (Test-Path $log) {
+            Get-Content -Path $log
+          } else {
+            Write-Warning "Log not found at: $log"
+          }
+
+          if ($code -ne 0) {
+            throw "MSI install failed with exit code $code"
+          }
+
+          # Add installation path to the GITHUB_PATH so subsequent steps can use the binaries
+          "$env:ProgramFiles\Multipass\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      ##################################################################
+      # Platform-agnostic
+      ##################################################################
+      - name: Create virtual environment
+        run: python3 -m venv .venv
+
+      - name: Activate virtual environment
+        run: echo "PATH=${GITHUB_WORKSPACE}/.venv/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Install cli-tests dependencies
+        id: install-cli-test-deps
+        run: ${{ matrix.cmd-prologue }} pip install -e ./tests/cli/
+
+      - name: Check resources before
+        if: runner.os == 'macOS'
+        run: |
+          echo "=== Disk ==="
+          df -h /
+          echo "=== Memory ==="
+          vm_stat | head -10
+          sysctl hw.memsize
+      - name: Run cli-tests
+        id: run-cli-tests
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            {
+              set +o pipefail
+              while true; do
+                sleep 15
+                {
+                  echo ""
+                  echo "::group::Resources $(date -u +%H:%M:%S)"
+                  echo "-- Memory --"
+                  vm_stat | grep -E "(free|active|wired|compressed)" | head -4
+                  page_size=$(sysctl -n hw.pagesize)
+                  mem_stats=$(vm_stat | awk -v ps="$page_size" '
+                    /Pages free/       {gsub(/\./,"",$3); free=$3}
+                    /Pages active/     {gsub(/\./,"",$3); active=$3}
+                    /Pages inactive/   {gsub(/\./,"",$3); inactive=$3}
+                    /Pages wired down/ {gsub(/\./,"",$4); wired=$4}
+                    /Pages purgeable/  {gsub(/\./,"",$3); purgeable=$3}
+                    /Pages speculative/{gsub(/\./,"",$3); speculative=$3}
+                    /occupied by compressor/ {gsub(/\./,"",$5); compressed=$5}
+                    END {
+                      used = (active + wired + compressed) * ps / 1024 / 1024
+                      avail = (free + inactive + purgeable + speculative) * ps / 1024 / 1024
+                      printf "%d %d %d %d %d", used, avail, active*ps/1024/1024, wired*ps/1024/1024, compressed*ps/1024/1024
+                    }
+                  ')
+                  read used_mb avail_mb active_mb wired_mb compressed_mb <<< "$mem_stats"
+                  total_mb=$(($(sysctl -n hw.memsize) / 1024 / 1024))
+                  echo "Used: ${used_mb}MB | Available: ${avail_mb}MB / ${total_mb}MB (Active:${active_mb} Wired:${wired_mb} Compressed:${compressed_mb})"
+                  memory_pressure
+                  echo "-- Disk --"
+                  df -h / | tail -1
+                  echo "-- QEMU processes --"
+                  ps aux | grep -i qemu | grep -v grep || echo "None"
+                  echo "-- Multipass instances --"
+                  multipass list 2>/dev/null | tail -n +2 || echo "None"
+                  echo "-- Top 15 RSS (MB) --"
+                  ps -eo rss=,pid=,ppid=,pgid=,comm= 2>/dev/null | sort -rn -k1 | \
+                    awk 'NR<=15 { printf "%6d MB  pid=%-6s ppid=%-6s pgid=%-6s  ", $1/1024, $2, $3, $4; for(i=5;i<=NF;i++) printf "%s ", $i; printf "\n"}' || true
+                  echo "-- Total QEMU memory --"
+                  ps -eo rss,comm | grep qemu | awk '{sum+=$1} END {printf "Total: %dMB\n", sum/1024}'
+                  echo "::endgroup::"
+                } 2>&1 | cat
+              done
+            } &
+            MONITOR=$!
+            trap "kill $MONITOR 2>/dev/null" EXIT
+          fi
+
+          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
+
+      - name: Check resources after
+        if: always() && runner.os == 'macOS'
+        run: |
+          echo "=== Disk ==="
+          df -h /
+          echo "=== Remaining QEMU processes ==="
+          ps aux | grep -i qemu | grep -v grep || echo "None"
+          echo "=== Multipass instances ==="
+          multipass list 2>/dev/null || echo "Could not list"
+          echo "=== Multipass data size ==="
+          sudo du -sh /var/root/Library/Application\ Support/multipassd/ 2>/dev/null || true
+      - name: Report cli-tests results to Github Checks
+        if: success() || failure()
+        uses: dorny/test-reporter@v2
+        with:
+          name: CLI Test results (${{ matrix.label }})
+          path: reports/junit.xml
+          reporter: java-junit # understands standard JUnit
+          fail-on-error: true # fail job if there are test failures
