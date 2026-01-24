@@ -104,7 +104,17 @@ else ()
   string(APPEND VCPKG_CMD "sh")
 endif ()
 
-execute_process(COMMAND ${VCPKG_CMD} RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT)
+# GCC is unreliable on ppc64le and can cause internal compiler errors during vcpkg bootstrap
+set(VCPKG_BOOTSTRAP_ENV)
+if(${VCPKG_HOST_ARCH} STREQUAL "ppc64le")
+  set(VCPKG_BOOTSTRAP_ENV
+    "CC=clang"
+    "CXX=clang++"
+    "CMAKE_C_COMPILER=clang"
+    "CMAKE_CXX_COMPILER=clang++")
+endif()
+
+execute_process(COMMAND ${CMAKE_COMMAND} -E env ${VCPKG_BOOTSTRAP_ENV} ${VCPKG_CMD} RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT)
 
 if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
   message(FATAL_ERROR "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
