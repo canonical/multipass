@@ -34,11 +34,9 @@ namespace
 {
 const QHash<QString, QString> arch_to_manifest{{"x86_64", "amd64"},
                                                {"arm", "armhf"},
-                                               {"arm64", "arm64"},
-                                               {"i386", "i386"},
                                                {"power", "powerpc"},
                                                {"power64", "ppc64el"},
-                                               {"s390x", "s390x"}};
+                                               {"power64le", "ppc64el"}};
 
 QJsonObject parse_manifest(const QByteArray& json)
 {
@@ -105,9 +103,10 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
     if (manifest_products_from_official.isEmpty())
         throw mp::GenericManifestException("No products found");
 
-    auto arch = arch_to_manifest.value(QSysInfo::currentCpuArchitecture());
+    auto arch = QSysInfo::currentCpuArchitecture();
+    auto mapped_arch = arch_to_manifest.value(arch, arch);
 
-    if (arch.isEmpty())
+    if (mapped_arch.isEmpty())
         throw mp::GenericManifestException("Unsupported cloud image architecture");
 
     std::optional<QJsonObject> manifest_products_from_mirror = std::nullopt;
@@ -127,7 +126,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
         const auto product_key = it.key();
         const QJsonValue product = it.value();
 
-        if (product["arch"].toString() != arch)
+        if (product["arch"].toString() != mapped_arch)
             continue;
 
         auto product_aliases = product["aliases"].toString().split(",");
