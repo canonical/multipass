@@ -190,8 +190,16 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
         "-bios", "QEMU_EFI.fd", "-machine", "virt",
 #elif defined Q_PROCESSOR_S390
         "-machine", "s390-ccw-virtio",
+#elif defined Q_PROCESSOR_POWER
+        "-machine", "pseries",
 #endif
-            "--enable-kvm", "-cpu", "host", "-nic",
+            "--enable-kvm",
+#if defined Q_PROCESSOR_POWER
+            "-cpu", "POWER9",
+#else
+            "-cpu", "host",
+#endif
+            "-nic",
             QString::fromStdString(
                 fmt::format("tap,ifname={},script=no,downscript=no,model={},mac={}",
                             tap_name,
