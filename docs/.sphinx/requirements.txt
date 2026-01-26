@@ -3,4 +3,4 @@ sphinx-autobuild
 sphinxcontrib-svg2pdfconverter[CairoSVG]
 sphinx-last-updated-by-git
 sphinx-sitemap
-myst-parser~=4.0
+myst-parser~=5.0
