@@ -340,7 +340,7 @@ jobs:
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
     - name: Save sccache
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       if: ${{ github.ref == 'refs/heads/main' }}
       with:
         path: ${{ env.SCCACHE_DIR }}
