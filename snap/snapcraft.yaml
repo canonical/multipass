@@ -119,14 +119,14 @@ parts:
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
     - CMAKE_PRESET: snap
-    - CXX: clang++-15
-    - CC: clang-15
+    - CXX: clang++-18
+    - CC: clang-18
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
     - ccache
     - lcov
-    - clang-15
+    - clang-18
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
@@ -212,8 +212,8 @@ parts:
       python3 -m pip install --break-system-packages jinja2
 
       # Update default clang
-      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
-      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
+      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 180
+      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 180
 
       # Do the CMake configure at the pull step so we can generate the compile_commands.json
       # for the tool consumption.

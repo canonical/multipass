@@ -111,17 +111,17 @@
             }
         },
         {
-            "name": "ci-snap-clang-15",
+            "name": "ci-snap-clang-18",
             "description": "Preset for snap builds in CI (clang-15 build).",
             "inherits": "ci-snap",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": {
                     "type": "STRING",
-                    "value": "clang-15"
+                    "value": "clang-18"
                 },
                 "CMAKE_CXX_COMPILER": {
                     "type": "STRING",
-                    "value": "clang++-15"
+                    "value": "clang++-18"
                 }
             }
         },
