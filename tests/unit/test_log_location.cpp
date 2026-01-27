@@ -40,6 +40,13 @@ TEST_F(LogLocationTests, logsWithSourceLocation)
     mpl::log_location(level, test_category, "blarg");
 }
 
+TEST_F(LogLocationTests, logsWithTemplatedLevel)
+{
+    constexpr auto level = mpl::Level::debug;
+    logger_scope.mock_logger->expect_log(level, "test_log_location.cpp");
+    mpl::log_location<level>(test_category, "blurs");
+}
+
 TEST_F(LogLocationTests, logsWithFormatArgs)
 {
     constexpr auto level = mpl::Level::info;
