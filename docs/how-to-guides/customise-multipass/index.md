@@ -10,6 +10,7 @@ The following guides provide step-by-step instructions on how to customise Multi
 - [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface)
 - [Use a different terminal from the system icon](how-to-guides-customise-multipass-use-a-different-terminal-from-the-system-icon)
 - [Integrate with Windows Terminal](how-to-guides-customise-multipass-integrate-with-windows-terminal)
+- [Use Multipass content interface](how-to-guides-customise-multipass-use-multipass-content-interface)
 - [Configure where Multipass stores external data](how-to-guides-customise-multipass-configure-where-multipass-stores-external-data)
 - [Configure Multipass’s default logging level](how-to-guides-customise-multipass-configure-multipass-default-logging-level)
 
@@ -30,6 +31,7 @@ build-multipass-images-with-packer
 set-up-a-graphical-interface
 use-a-different-terminal-from-the-system-icon
 integrate-with-windows-terminal
+use-multipass-content-interface
 configure-where-multipass-stores-external-data
 configure-multipass-default-logging-level
 ```
