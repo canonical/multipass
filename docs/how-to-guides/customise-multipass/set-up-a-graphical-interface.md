@@ -1,6 +1,11 @@
 (how-to-guides-customise-multipass-set-up-a-graphical-interface)=
 # Set up a graphical interface
 
+```{seealso}
+
+[GUI Client](reference-gui-client),[launch](reference-command-line-interface-launch), [list](reference-command-line-interface-list), [shell](reference-command-line-interface-shell),  [info](reference-command-line-interface-info), [exec](reference-command-line-interface-exec),
+```
+
 <!-- This document combines
 https://discourse.ubuntu.com/t/how-to-use-a-desktop-in-multipass/16229
 https://discourse.ubuntu.com/t/how-to-use-stand-alone-windows-in-multipass/16340
@@ -16,7 +21,21 @@ You can display the graphical desktop in various ways. In this document, we desc
 
 The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment (here we use `ubuntu-desktop` but there are as many other options as flavours of Ubuntu exist) along with the RDP server (we will use `xrdp` but there are also other options such as `freerdp`).
 
-To do this, first you need to log into a running Multipass instance. Start by listing your instances:
+```{admonition} Prerequisites for ubuntu-desktop
+:class: important
+
+Installing a desktop environment requires more resources than the default Multipass instance settings. To successfully set up and run a graphical interface under `ubuntu-desktop`, it is recommended to have an instance with at least **10GB** of disk space and **2GB** of RAM.
+
+```
+
+If you have not yet created a suitable instance, run the following command to launch one with these requirements:
+
+```bash
+multipass launch -d 10G -m 2G
+```
+
+After instance creation, you need to log into the appropriate running instance.
+Start by listing your instances:
 
 ```{code-block} text
 multipass list

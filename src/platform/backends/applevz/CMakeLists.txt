@@ -11,8 +11,28 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-include(src/cmake/feature-flag.cmake)
+enable_language(OBJCXX)
 
-# Multipass backend integrating with Apple Virtualization framework
-feature_flag(APPLEVZ_ENABLED "AppleVZ backend" APPLE)
+add_library(applevz_backend STATIC
+  applevz_virtual_machine.cpp
+  applevz_virtual_machine_factory.cpp
+  applevz_bridge.mm
+  applevz_wrapper.cpp
+)
+
+set_source_files_properties(applevz_bridge.mm PROPERTIES
+  LANGUAGE OBJCXX
+  COMPILE_FLAGS "-fobjc-arc"
+)
+
+find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
+find_library(VIRTUALIZATION_FRAMEWORK Virtualization REQUIRED)
+
+target_link_libraries(applevz_backend
+  PRIVATE
+    daemon
+    ${FOUNDATION_FRAMEWORK}
+    ${VIRTUALIZATION_FRAMEWORK}
+    Qt6::Core)

@@ -35,6 +35,10 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #endif
 
+#ifdef APPLEVZ_ENABLED
+#include "backends/applevz/applevz_virtual_machine_factory.h"
+#endif
+
 #include "shared/macos/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <daemon/default_vm_image_vault.h>
@@ -222,6 +226,9 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 #ifdef VIRTUALBOX_ENABLED
         backend == "virtualbox" ||
 #endif
+#ifdef APPLEVZ_ENABLED
+        backend == "applevz" ||
+#endif
         false;
 }
 
@@ -308,6 +315,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     {
 #if QEMU_ENABLED
         return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
+#endif
+    }
+    else if (driver == QStringLiteral("applevz"))
+    {
+#if APPLEVZ_ENABLED
+        return std::make_unique<applevz::AppleVZVirtualMachineFactory>(data_dir);
 #endif
     }
 
