@@ -2,7 +2,10 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Literal
 
 
-ImageArch = Literal["x86_64", "arm64"]
+# Runtime accessible list of supported architectures
+# These keys are derived from the possible values returned from QSysInfo::currentCpuArchitecture()
+SUPPORTED_ARCHITECTURES = ("x86_64", "arm64", "s390x", "power64le")
+ImageArch = Literal[*SUPPORTED_ARCHITECTURES]
 
 
 class ImageItem(BaseModel, extra="forbid"):

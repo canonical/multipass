@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import datetime
 from dateutil import parser
+from scraper.models import SUPPORTED_ARCHITECTURES
 from ..base import BaseScraper
 
 
@@ -21,17 +22,16 @@ class FedoraScraper(BaseScraper):
     def _map_arch_label(arch: str) -> str:
         """
         Map Fedora architecture names to the labels used in our items output.
-
-        Returns None for unsupported arches.
         """
+        mapped_arch = arch.lower()
         if arch == "aarch64":
-            return "arm64"
-        if arch == "x86_64":
-            return "x86_64"
-        if arch == "s390x":
-            return "s390x"
+            mapped_arch = "arm64"
         if arch == "ppc64le":
-            return "ppc64le"
+            mapped_arch = "power64le"
+
+        if mapped_arch in SUPPORTED_ARCHITECTURES:
+            return mapped_arch
+
         raise ValueError(f"unsupported arch {arch}")
 
     def _find_latest_version(self, images: list[dict]) -> str:
