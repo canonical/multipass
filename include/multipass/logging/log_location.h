@@ -60,6 +60,14 @@ void log_location(Level level,
         fmt::format(fmt, std::forward<Args>(args)...));
 }
 
+template <Level level, typename... Args>
+void log_location(detail::with_source_location<std::string_view> category,
+                  fmt::format_string<Args...> fmt,
+                  Args&&... args)
+{
+    log_location(level, category, fmt, std::forward<Args>(args)...);
+}
+
 template <typename... Args>
 void trace_location(detail::with_source_location<std::string_view> category,
                     fmt::format_string<Args...> fmt,
