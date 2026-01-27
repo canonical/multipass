@@ -32,6 +32,7 @@ namespace mp = multipass;
 
 namespace
 {
+// Map QSysInfo::currentCpuArchitecture() to SimpleStreams manifest architecture names
 const QHash<QString, QString> arch_to_manifest{{"x86_64", "amd64"},
                                                {"arm", "armhf"},
                                                {"power", "powerpc"},
@@ -105,9 +106,6 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
 
     auto arch = QSysInfo::currentCpuArchitecture();
     auto mapped_arch = arch_to_manifest.value(arch, arch);
-
-    if (mapped_arch.isEmpty())
-        throw mp::GenericManifestException("Unsupported cloud image architecture");
 
     std::optional<QJsonObject> manifest_products_from_mirror = std::nullopt;
     if (json_from_mirror)
