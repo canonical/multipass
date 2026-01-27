@@ -55,7 +55,7 @@ if(NOT CRATES STREQUAL "")
 endif()
 
 set(ACTIVE_FEATURES "default")
-set(RUST_DEPENDENCIES "")
+set(CARGO_GENERATED_FILES "")
 foreach(crate_name ${CRATES})
   set(crate_path "${CMAKE_CURRENT_SOURCE_DIR}/${crate_name}")
   #Check that it is a crate (since target is not a crate)
@@ -73,6 +73,10 @@ foreach(crate_name ${CRATES})
     set(bridge_source "${RUST_BUILD_DIR}/cxxbridge/${crate_name}/src")
     set(bridge_cc "${bridge_source}/lib.rs.cc")
 
+    list(APPEND CARGO_GENERATED_FILES "${rust_out}" "${bridge_cc}")
+    set_source_files_properties(${bridge_cc} PROPERTIES GENERATED TRUE)
+    set_source_files_properties(${rust_out} PROPERTIES GENERATED TRUE)
+
     #Library creation to compile the CXX glue source
     add_library(${crate_name} STATIC ${bridge_cc})
     #Here we can place the crate-wise dependencies
@@ -80,16 +84,12 @@ foreach(crate_name ${CRATES})
     #The CXX glue staticlib must link the rust staticlib
     target_link_libraries(${crate_name} PUBLIC ${crate_name}_rs cxx)
     target_link_libraries(${crate_name}_rs INTERFACE ${${crate_name}_link_libs})
-    add_dependencies(${crate_name} ${crate_name}_rs)
-
-    list(APPEND RUST_DEPENDENCIES ${bridge_cc})
-    list(APPEND RUST_DEPENDENCIES ${rust_out})
   endif()
 endforeach()
 
 list(JOIN ACTIVE_FEATURES  "," FEATURES_CSV)
 add_custom_command(
-  OUTPUT ${RUST_DEPENDENCIES}
+  OUTPUT ${CARGO_GENERATED_FILES}
   COMMAND ${CARGO_CMD} build
   --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
   --workspace
@@ -99,6 +99,15 @@ add_custom_command(
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   COMMENT "Building Rust crates and generating C++ glue..."
 )
+
+add_custom_target(cargo_build DEPENDS ${CARGO_GENERATED_FILES})
+
+foreach(crate_name ${CRATES})
+    if(TARGET ${crate_name})
+        add_dependencies(${crate_name} cargo_build)
+        add_dependencies(${crate_name}_rs cargo_build)
+    endif()
+endforeach()
 #The macros crate cannot contain tests
 set(TESTING_EXCLUDE_CRATES_ARG --exclude macros)
 add_test(
