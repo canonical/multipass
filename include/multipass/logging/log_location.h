@@ -22,9 +22,7 @@
 #include <source_location>
 #include <string_view>
 
-namespace multipass
-{
-namespace logging
+namespace multipass::logging
 {
 namespace detail
 {
@@ -84,5 +82,4 @@ void debug_location(detail::with_source_location<std::string_view> category,
     log_location(Level::debug, category, fmt, std::forward<Args>(args)...);
 }
 
-} // namespace logging
-} // namespace multipass
+} // namespace multipass::logging
