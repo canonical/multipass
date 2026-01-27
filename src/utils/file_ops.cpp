@@ -337,6 +337,13 @@ std::ifstream& mp::FileOps::read(std::ifstream& file, char* buffer, std::streams
     return file;
 }
 
+std::string mp::FileOps::read_all(const fs::path& filename) const
+{
+    const auto file = MP_FILEOPS.open_read(filename);
+    file->exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    return {std::istreambuf_iterator{*file}, {}};
+}
+
 std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path,
                                                       std::ios_base::openmode mode) const
 {
