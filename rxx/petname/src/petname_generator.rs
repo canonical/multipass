@@ -66,16 +66,16 @@ impl PetnameGenerator {
 }
 pub fn make_petname_generator(
     num_words: NumWords,
-    separator_i8: c_char,
+    separator_8: c_char,
 ) -> Result<Box<PetnameGenerator>, PetnameError> {
     match num_words {
         NumWords::One | NumWords::Two | NumWords::Three => {}
         _ => return Err(PetnameError::InvalidWordNumber(num_words.repr)),
     };
-    let separator_c = separator_i8 as u8 as char;
+    let separator_c = separator_8 as u8 as char;
     let separator_c: char = match separator_c {
         '-' | '_' | '$' => separator_c,
-        _ => return Err(PetnameError::InvalidSeparator(separator_i8)),
+        _ => return Err(PetnameError::InvalidSeparator(separator_8 as i8)),
     };
 
     Ok(Box::new(PetnameGenerator::new(num_words, separator_c)))
