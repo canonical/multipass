@@ -1,5 +1,6 @@
 import datetime
 import ast
+import os
 
 # Configuration for the Sphinx documentation builder.
 # All configuration specific to your project should be done in this file.
@@ -70,10 +71,10 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = "https://documentation.ubuntu.com/multipass/en/latest/"
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
+ogp_site_url = html_baseurl
 
-html_baseurl = "https://documentation.ubuntu.com/multipass/"  # for sitemap.xml, the trailing slash is important
-sitemap_url_scheme = "latest/{link}"
+sitemap_url_scheme = "{link}"
 
 # Preview name of the documentation website
 #
