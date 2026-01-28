@@ -17,9 +17,13 @@
 
 #include <apple/apple_virtual_machine.h>
 
+#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_status_monitor.h>
+
+#include <qemu/qemu_img_utils.h>
+#include <shared/macos/backend_utils.h>
 
 namespace mpl = multipass::logging;
 
@@ -258,7 +262,10 @@ int AppleVirtualMachine::ssh_port()
 
 std::string AppleVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
 {
-    return "";
+    fetch_ip(timeout);
+
+    assert(management_ip && "Should have thrown otherwise");
+    return management_ip->as_string();
 }
 
 std::string AppleVirtualMachine::ssh_username()
@@ -268,7 +275,10 @@ std::string AppleVirtualMachine::ssh_username()
 
 std::optional<IPAddress> AppleVirtualMachine::management_ipv4()
 {
-    return std::nullopt;
+    if (!management_ip)
+        management_ip = multipass::backend::get_neighbour_ip(desc.default_mac_address);
+
+    return management_ip;
 }
 
 void AppleVirtualMachine::handle_state_update()
@@ -332,5 +342,26 @@ void AppleVirtualMachine::set_state(apple::AppleVMState vm_state)
               vm_name,
               prev_state,
               state);
+}
+
+void AppleVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
+{
+    if (!management_ip)
+    {
+        auto action = [this] {
+            detect_aborted_start();
+            return ((management_ip =
+                         multipass::backend::get_neighbour_ip(desc.default_mac_address)))
+                       ? multipass::utils::TimeoutAction::done
+                       : multipass::utils::TimeoutAction::retry;
+        };
+
+        auto on_timeout = [this, &timeout] {
+            state = State::unknown;
+            throw InternalTimeoutException{"determine IP address", timeout};
+        };
+
+        multipass::utils::try_action_for(on_timeout, timeout, action);
+    }
 }
 } // namespace multipass::apple
