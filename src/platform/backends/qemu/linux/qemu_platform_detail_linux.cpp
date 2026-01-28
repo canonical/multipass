@@ -193,7 +193,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
              << "s390-ccw-virtio";
 #elif defined Q_PROCESSOR_POWER
         opts << "-machine"
-             << "pseries";
+             << "pseries,cap-large-decr=off";
 #endif
     }
 
