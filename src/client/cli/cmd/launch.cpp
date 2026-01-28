@@ -602,7 +602,7 @@ mp::ReturnCode cmd::Launch::request_launch(const ArgParser* parser)
             std::unordered_map<int, std::string> progress_messages{
                 {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
                 {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
-                {LaunchProgress_ProgressTypes_VERIFY, "Verifying image: "},
+                {LaunchProgress_ProgressTypes_VERIFY, "Verifying image"},
                 {LaunchProgress_ProgressTypes_WAITING, "Preparing image: "}};
 
             if (!reply.log_line().empty())
