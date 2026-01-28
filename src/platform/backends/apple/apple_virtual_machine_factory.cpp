@@ -17,6 +17,7 @@
 
 #include <apple/apple_virtual_machine.h>
 #include <apple/apple_virtual_machine_factory.h>
+#include <qemu/qemu_img_utils.h>
 
 namespace mp = multipass;
 
@@ -41,7 +42,9 @@ VirtualMachine::UPtr AppleVirtualMachineFactory::create_virtual_machine(
 
 VMImage AppleVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
-    return VMImage{};
+    VMImage image{source_image};
+    image.image_path = backend::convert_to_raw(source_image.image_path);
+    return image;
 }
 
 void AppleVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
