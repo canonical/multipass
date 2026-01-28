@@ -18,7 +18,6 @@
 #pragma once
 
 #include <apple/cf_error.h>
-
 #include <multipass/virtual_machine_description.h>
 
 #include <fmt/format.h>
@@ -27,7 +26,9 @@
 
 namespace multipass::apple
 {
-using VMHandle = std::shared_ptr<void>;
+// Forward declare to keep Objective-C++ out of the header.
+struct VirtualMachineHandle;
+using VMHandle = std::shared_ptr<VirtualMachineHandle>;
 
 enum class AppleVMState
 {
