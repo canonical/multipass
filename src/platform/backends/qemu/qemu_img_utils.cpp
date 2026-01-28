@@ -33,6 +33,22 @@
 namespace mp = multipass;
 namespace mpp = multipass::platform;
 
+namespace
+{
+QString get_image_format(const mp::Path& image_path)
+{
+    auto qemuimg_info_process = mp::backend::checked_exec_qemu_img(
+        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path},
+                                                 image_path),
+        "Cannot read image format");
+
+    auto image_info = qemuimg_info_process->read_all_standard_output();
+    auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
+
+    return image_record["format"].toString();
+}
+} // namespace
+
 auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,
                                         const std::string& custom_error_prefix,
                                         std::optional<int> timeout) -> Process::UPtr
@@ -53,9 +69,12 @@ auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> 
 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
+    // Detect the image format first to avoid qemu-img warnings and restrictions
+    const auto image_format = get_image_format(image_path);
+
     auto disk_size = QString::number(
         disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
-    QStringList qemuimg_parameters{{"resize", image_path, disk_size}};
+    QStringList qemuimg_parameters{{"-f", image_format, "resize", image_path, disk_size}};
 
     checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path),
@@ -69,15 +88,9 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
     // TODO: we could support converting from other the image formats that qemu-img can deal with
     const auto qcow2_path{image_path + ".qcow2"};
 
-    auto qemuimg_info_process = checked_exec_qemu_img(
-        std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path},
-                                                 image_path),
-        "Cannot read image format");
+    const auto image_format = get_image_format(image_path);
 
-    auto image_info = qemuimg_info_process->read_all_standard_output();
-    auto image_record = boost::json::parse(std::string_view(image_info));
-
-    if (mp::lookup_or<std::string>(image_record, "format", "") == "raw")
+    if (image_format == "raw")
     {
         auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path},
@@ -99,6 +112,23 @@ void mp::backend::amend_to_qcow2_v3(const mp::Path& image_path)
                               QStringList{"amend", "-o", "compat=1.1", image_path},
                               image_path),
                           "Failed to amend image to QCOW2 v3");
+}
+
+mp::Path mp::backend::convert_to_raw(const mp::Path& image_path)
+{
+    const auto raw_img_path{image_path + ".raw"};
+
+    QStringList qemuimg_parameters{{"convert", "-p", "-O", "raw", image_path, raw_img_path}};
+
+    auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
+        QStringList{"convert", "-p", "-O", "raw", image_path, raw_img_path},
+        image_path,
+        raw_img_path);
+
+    auto qemuimg_convert_process = checked_exec_qemu_img(std::move(qemuimg_convert_spec),
+                                                         "Failed to convert image to raw format");
+
+    return raw_img_path;
 }
 
 bool mp::backend::instance_image_has_snapshot(const mp::Path& image_path, QString snapshot_tag)
