@@ -268,7 +268,10 @@ void AppleVZVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    // Must be able to handle RAW and ASIF disk images
+    assert(new_size > desc.disk_space);
+
+    multipass::backend::resize_instance_image(new_size, desc.image.image_path);
+    desc.disk_space = new_size;
 }
 
 void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
