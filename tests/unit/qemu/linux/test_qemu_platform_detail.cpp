@@ -191,7 +191,7 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
 #elif defined Q_PROCESSOR_S390
         "-machine", "s390-ccw-virtio",
 #elif defined Q_PROCESSOR_POWER
-        "-machine", "pseries",
+        "-machine", "pseries,cap-large-decr=off",
 #endif
             "--enable-kvm",
 #if defined Q_PROCESSOR_POWER
