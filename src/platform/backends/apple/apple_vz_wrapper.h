@@ -56,6 +56,6 @@ public:
     virtual bool can_stop(const VMHandle& vm_handle) const;
     virtual bool can_request_stop(const VMHandle& vm_handle) const;
 
-    virtual bool is_supported() const;
+    virtual bool virtualization_is_supported() const;
 };
 } // namespace multipass::apple
