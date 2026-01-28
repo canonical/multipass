@@ -50,6 +50,7 @@ VMImage AppleVirtualMachineFactory::prepare_source_image(const VMImage& source_i
 void AppleVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
                                                         const VirtualMachineDescription& desc)
 {
+    backend::resize_instance_image(desc.disk_space, instance_image.image_path);
 }
 
 void AppleVirtualMachineFactory::hypervisor_health_check()
