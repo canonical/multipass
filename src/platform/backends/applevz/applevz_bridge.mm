@@ -21,15 +21,73 @@
 #include <Foundation/Foundation.h>
 #include <Virtualization/Virtualization.h>
 
+#import <objc/objc.h>
+#import <objc/runtime.h>
+
 #include <QString>
 #include <QUrl>
 
+namespace multipass::applevz
+{
+struct VirtualMachineHandle
+{
+    std::shared_ptr<void> vm; // Ownership transfer of VZVirtualMachine*
+    dispatch_queue_t queue;   // Dispatch queue for VM operations
+    uint64_t id;              // Unique VM ID
+};
+} // namespace multipass::applevz
+
 namespace
 {
+// TODO: Replace with unique VM ID once implemented.
+static std::atomic<uint64_t> vmIDCounter{0};
+
 NSString* nsstring_from_qstring(const QString& s)
 {
     QByteArray utf8 = s.toUtf8();
     return [NSString stringWithUTF8String:utf8.constData()];
+}
+
+template <typename BlockType>
+multipass::applevz::CFError call_on_vm_queue(const multipass::applevz::VMHandle& vm_handle,
+                                             BlockType block,
+                                             uint64_t timeout_secs = 120)
+{
+    __block CFErrorRef err_ref = nullptr;
+
+    // TODO: Remove use of semaphore once Multipass supports async vm operations.
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+    dispatch_async(vm_handle->queue, ^{
+      block(^(NSError* _Nullable error) {
+        if (error)
+            err_ref = (__bridge_retained CFErrorRef)error;
+
+        dispatch_semaphore_signal(sema);
+      });
+    });
+
+    dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, timeout_secs * NSEC_PER_SEC);
+    if (dispatch_semaphore_wait(sema, timeout))
+    {
+        NSError* err =
+            [NSError errorWithDomain:@"multipass.apple.vzbridge"
+                                code:-1
+                            userInfo:@{NSLocalizedDescriptionKey : @"VM operation timed out"}];
+        err_ref = (__bridge_retained CFErrorRef)err;
+    }
+
+    return multipass::applevz::CFError(err_ref);
+}
+
+template <typename ResultType, typename BlockType>
+ResultType query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, BlockType block)
+{
+    __block ResultType result{};
+    dispatch_sync(vm_handle->queue, ^{
+      result = block();
+    });
+    return result;
 }
 } // namespace
 
@@ -126,11 +184,22 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
                 return CFError((__bridge_retained CFErrorRef)err);
         }
 
-        // Create VM handle
-        VZVirtualMachine* virtualMachine = [[VZVirtualMachine alloc] initWithConfiguration:config];
+        out_handle = std::make_shared<VirtualMachineHandle>();
 
-        void* cfRef = (void*)CFBridgingRetain(virtualMachine);
-        out_handle = VMHandle(cfRef, [](void* p) { CFRelease(p); });
+        out_handle->id = vmIDCounter.fetch_add(1, std::memory_order_relaxed);
+
+        // Create dispatch queue
+        dispatch_queue_t queue = dispatch_queue_create(
+            fmt::format("com.canonical.multipass.vm.queue.{}", out_handle->id).c_str(),
+            DISPATCH_QUEUE_SERIAL);
+
+        // Create VM handle
+        VZVirtualMachine* virtualMachine = [[VZVirtualMachine alloc] initWithConfiguration:config
+                                                                                     queue:queue];
+
+        out_handle->queue = queue;
+        out_handle->vm = std::shared_ptr<void>((void*)CFBridgingRetain(virtualMachine),
+                                               [](void* p) { CFRelease(p); });
 
         return CFError();
     }
@@ -138,147 +207,88 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
 
 CFError start_with_completion_handler(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
 
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-
-    __block CFErrorRef err_ref = nullptr;
-
-    [vm startWithCompletionHandler:^(NSError* _Nullable error) {
-      if (error)
-      {
-          err_ref = (__bridge_retained CFErrorRef)error;
-      }
-
-      dispatch_semaphore_signal(sema);
-    }];
-
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-
-    return CFError(err_ref);
+    return call_on_vm_queue(vm_handle,
+                            [&](auto completion) { [vm startWithCompletionHandler:completion]; });
 }
 
 CFError stop_with_completion_handler(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
 
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-
-    __block CFErrorRef err_ref = nullptr;
-
-    [vm stopWithCompletionHandler:^(NSError* _Nullable error) {
-      if (error)
-      {
-          err_ref = (__bridge_retained CFErrorRef)error;
-      }
-
-      dispatch_semaphore_signal(sema);
-    }];
-
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-
-    return CFError(err_ref);
+    return call_on_vm_queue(vm_handle,
+                            [&](auto completion) { [vm stopWithCompletionHandler:completion]; });
 }
 
 CFError request_stop_with_error(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
 
-    NSError* err = nil;
-    if (![vm requestStopWithError:&err] && !err)
-    {
-        err = [NSError errorWithDomain:@"multipass.applevz.bridge"
-                                  code:-1
-                              userInfo:@{NSLocalizedDescriptionKey : @"Unknown error"}];
-    }
-
-    return err ? CFError((__bridge_retained CFErrorRef)err) : CFError();
+    return call_on_vm_queue(vm_handle, [&](auto completion) {
+        NSError* err = nil;
+        BOOL ok = [vm requestStopWithError:&err];
+        if (!ok && !err)
+        {
+            err = [NSError errorWithDomain:@"multipass.applevz.bridge"
+                                      code:-1
+                                  userInfo:@{NSLocalizedDescriptionKey : @"Unknown error"}];
+        }
+        completion(err);
+    });
 }
 
 CFError pause_with_completion_handler(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
 
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-
-    __block CFErrorRef err_ref = nullptr;
-
-    [vm pauseWithCompletionHandler:^(NSError* _Nullable error) {
-      if (error)
-      {
-          err_ref = (__bridge_retained CFErrorRef)error;
-      }
-
-      dispatch_semaphore_signal(sema);
-    }];
-
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-
-    return CFError(err_ref);
+    return call_on_vm_queue(vm_handle,
+                            [&](auto completion) { [vm pauseWithCompletionHandler:completion]; });
 }
 
 CFError resume_with_completion_handler(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
 
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-
-    __block CFErrorRef err_ref = nullptr;
-
-    [vm resumeWithCompletionHandler:^(NSError* _Nullable error) {
-      if (error)
-      {
-          err_ref = (__bridge_retained CFErrorRef)error;
-      }
-
-      dispatch_semaphore_signal(sema);
-    }];
-
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-
-    return CFError(err_ref);
+    return call_on_vm_queue(vm_handle,
+                            [&](auto completion) { [vm resumeWithCompletionHandler:completion]; });
 }
 
 AppleVMState get_state(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
-
-    return AppleVMState([vm state]);
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
+    return AppleVMState(
+        query_on_vm_queue<VZVirtualMachineState>(vm_handle, [&]() { return [vm state]; }));
 }
 
 bool can_start(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
-
-    return [vm canStart];
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
+    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canStart]; });
 }
 
 bool can_pause(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
-
-    return [vm canPause];
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
+    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canPause]; });
 }
 
 bool can_resume(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
-
-    return [vm canResume];
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
+    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canResume]; });
 }
 
 bool can_stop(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
-
-    return [vm canStop];
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
+    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canStop]; });
 }
 
 bool can_request_stop(const VMHandle& vm_handle)
 {
-    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle.get();
-
-    return [vm canRequestStop];
+    VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
+    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canRequestStop]; });
 }
 
 bool is_supported()
