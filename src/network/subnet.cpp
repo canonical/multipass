@@ -68,8 +68,7 @@ catch (const std::out_of_range& e)
 }
 } // namespace
 
-mp::Subnet::Subnet(IPAddress ip, PrefixLength prefix_length)
-    : address(apply_mask(ip, prefix_length)), prefix(prefix_length)
+mp::Subnet::Subnet(IPAddress ip, PrefixLength prefix_length) : ip_address(ip), prefix(prefix_length)
 {
 }
 
@@ -79,7 +78,7 @@ mp::Subnet::Subnet(const std::string& cidr_string) : Subnet(parse(cidr_string))
 
 mp::IPAddress mp::Subnet::min_address() const
 {
-    return address + 1;
+    return network_address() + 1;
 }
 
 mp::IPAddress mp::Subnet::max_address() const
@@ -87,7 +86,7 @@ mp::IPAddress mp::Subnet::max_address() const
     // address + 2^(32 - prefix) - 1 - 1
     // address + 2^(32 - prefix) is the next subnet's network address for this prefix length
     // subtracting 1 to stay in this subnet and another 1 to exclude the broadcast address
-    return address + ((1ull << (32ull - prefix)) - 2ull);
+    return network_address() + ((1ull << (32ull - prefix)) - 2ull);
 }
 
 uint32_t mp::Subnet::usable_address_count() const
@@ -95,15 +94,20 @@ uint32_t mp::Subnet::usable_address_count() const
     return max_address().as_uint32() - min_address().as_uint32() + 1;
 }
 
+mp::IPAddress mp::Subnet::address() const
+{
+    return ip_address;
+}
+
 mp::IPAddress mp::Subnet::network_address() const
 {
-    return address;
+    return apply_mask(ip_address, prefix);
 }
 
 mp::IPAddress mp::Subnet::broadcast_address() const
 {
     const auto mask = get_subnet_mask(prefix);
-    return mp::IPAddress(address.as_uint32() | ~mask.as_uint32());
+    return mp::IPAddress{ip_address.as_uint32() | ~mask.as_uint32()};
 }
 
 mp::Subnet::PrefixLength mp::Subnet::prefix_length() const
@@ -116,10 +120,15 @@ mp::IPAddress mp::Subnet::subnet_mask() const
     return ::get_subnet_mask(prefix);
 }
 
+mp::Subnet mp::Subnet::canonical() const
+{
+    return Subnet{network_address(), prefix};
+}
+
 // uses CIDR notation
 std::string mp::Subnet::to_cidr() const
 {
-    return fmt::format("{}/{}", address.as_string(), prefix);
+    return fmt::format("{}/{}", ip_address.as_string(), prefix);
 }
 
 size_t mp::Subnet::size(mp::Subnet::PrefixLength prefix_length) const
@@ -173,8 +182,8 @@ bool mp::Subnet::contains(IPAddress ip) const
 
 std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 {
-    const auto ip_res = address <=> other.address;
-
+    if (const auto ip_res = ip_address <=> other.ip_address; ip_res != 0)
+        return ip_res;
     // note the prefix_length operands are purposely flipped
-    return (ip_res == 0) ? other.prefix_length() <=> prefix_length() : ip_res;
+    return other.prefix <=> prefix;
 }
