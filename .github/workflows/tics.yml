@@ -78,6 +78,13 @@ jobs:
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
               --gcov-ignore-parse-errors
 
+    - name: Detach TICS QServer to prevent "project already connected" issue
+      env:
+        TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
+      run: |
+        source ~/.profile
+        TICSMaintenance -project multipass -detach
+
     - name: Run TICS Analysis
       uses: tiobe/tics-github-action@v3
       with:
