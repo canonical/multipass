@@ -24,38 +24,38 @@ using namespace testing;
 namespace multipass::test
 {
 constexpr auto root_cert = "-----BEGIN CERTIFICATE-----\n"
-                           "MIIBvjCCAWWgAwIBAgIEUlzMbjAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzES\n"
-                           "MBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAe\n"
-                           "Fw0yNTAxMjkxMzAzNDBaFw0zNTAxMjcxMzAzNDBaMD0xCzAJBgNVBAYTAlVTMRIw\n"
-                           "EAYDVQQKDAlDYW5vbmljYWwxGjAYBgNVBAMMEU11bHRpcGFzcyBSb290IENBMFkw\n"
-                           "EwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExnNTmDW0EMAg/ADMNJIc5V4BP/si6MlA\n"
-                           "+YSHDTy+nbgXJ9q0/ORKZETjydqIkVRLzu1LR5sWpdbSzSPo3ft/9KNTMFEwHQYD\n"
-                           "VR0OBBYEFAYlQy+QMhSOh/gACsgSdWbIH5NoMB8GA1UdIwQYMBaAFAYlQy+QMhSO\n"
-                           "h/gACsgSdWbIH5NoMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDRwAwRAIg\n"
-                           "ErA3KYoWLTkQ9J6cu/bSS539veIBO7p0xvb2x0u2UA0CIEiJ0mMdATr/I8tovsZm\n"
-                           "xgvZMY2ColjLunUiNG8H096n\n"
+                           "MIIB0DCCAXegAwIBAgIUHnKVDJqpyPbwk4n/6S8MrTJqFlUwCgYIKoZIzj0EAwIw\n"
+                           "PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs\n"
+                           "dGlwYXNzIFJvb3QgQ0EwIBcNMjYwMTI5MjEyMzA3WhgPOTE0NDA4MjEyMTIzMDda\n"
+                           "MD0xCzAJBgNVBAYTAlVTMRIwEAYDVQQKDAlDYW5vbmljYWwxGjAYBgNVBAMMEU11\n"
+                           "bHRpcGFzcyBSb290IENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbhgEXIz/\n"
+                           "V0NKrVeXmybqq2mszTI/dz1OTNrn4BxCruefje/T/7xV3gcpUB57wMn3odfSQ882\n"
+                           "1FNuLBNb+QHSY6NTMFEwHQYDVR0OBBYEFNsPrEFncOxkBGClSh+y1/Ml+WF/MB8G\n"
+                           "A1UdIwQYMBaAFNsPrEFncOxkBGClSh+y1/Ml+WF/MA8GA1UdEwEB/wQFMAMBAf8w\n"
+                           "CgYIKoZIzj0EAwIDRwAwRAIgfyC10LX0dMLfHX/VY0WcrFy89LI0Q8yfy+xe6p75\n"
+                           "8jICIEaa50N5pAD19HPjaleD3gsKP2XBKnBCXYqtTxYEyjZE\n"
                            "-----END CERTIFICATE-----\n";
 
 // cert and key are used as both server certificate and client certificate in the unit test
 // environment
 constexpr auto cert = "-----BEGIN CERTIFICATE-----\n"
-                      "MIIByjCCAXCgAwIBAgIENvdePTAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzES\n"
-                      "MBAGA1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAe\n"
-                      "Fw0yNTAxMjkxMzAzNDBaFw0yNjAxMjkxMzAzNDBaMDUxCzAJBgNVBAYTAlVTMRIw\n"
-                      "EAYDVQQKDAlDYW5vbmljYWwxEjAQBgNVBAMMCWxvY2FsaG9zdDBZMBMGByqGSM49\n"
-                      "AgEGCCqGSM49AwEHA0IABGAw4mRhGqCg7uSIsVgBIzMOoGnlEFWga2dxUzA1YwNe\n"
-                      "8SB679smyb7KVsPg4fK/P7XS4ORxSnMVnKWvTAfYKXWjZjBkMBQGA1UdEQQNMAuC\n"
-                      "CWxvY2FsaG9zdDAdBgNVHQ4EFgQU++FdgRpFokGT+7Fdgqe4SxmSD9UwHwYDVR0j\n"
-                      "BBgwFoAUBiVDL5AyFI6H+AAKyBJ1Zsgfk2gwDAYDVR0TAQH/BAIwADAKBggqhkjO\n"
-                      "PQQDAgNIADBFAiAesF7z8ItZVxK6fgUwhWfgN5rUFzCO5tBGJFDHU7eIZgIhALdl\n"
-                      "2mAn2oocQZfHohrbVUIuWDiUr0SxOkdGUISX0ElJ\n"
+                      "MIIBzzCCAXSgAwIBAgIUeYLD6av03lco3NgJsV1UikBL8fYwCgYIKoZIzj0EAwIw\n"
+                      "PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs\n"
+                      "dGlwYXNzIFJvb3QgQ0EwIBcNMjYwMTI5MjEyMzMwWhgPOTE0NDA4MjEyMTIzMzBa\n"
+                      "MDUxCzAJBgNVBAYTAlVTMRIwEAYDVQQKDAlDYW5vbmljYWwxEjAQBgNVBAMMCWxv\n"
+                      "Y2FsaG9zdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABE3A3YcGBN97GoOs0iLm\n"
+                      "lfMZBXa587RediiLDdV0fJ1dXWPlLDGWULX+QpxYJsA4I+axOse2SPDJG9e+RwFw\n"
+                      "3nyjWDBWMBQGA1UdEQQNMAuCCWxvY2FsaG9zdDAdBgNVHQ4EFgQUyyqh82a3wUU5\n"
+                      "z5S6TvhCkwi2BQswHwYDVR0jBBgwFoAU2w+sQWdw7GQEYKVKH7LX8yX5YX8wCgYI\n"
+                      "KoZIzj0EAwIDSQAwRgIhAMzv/88WnDk++0VoBVb9IOmHkLYUaAzN+7zOzsdvCyNe\n"
+                      "AiEA39vFGT9zq2EN04VsIpHWqSNOPnHww0RnYefRoqWsHi0=\n"
                       "-----END CERTIFICATE-----\n";
 
-constexpr auto key = "-----BEGIN PRIVATE KEY-----\n"
-                     "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgwRNA3VMqakM32i0C\n"
-                     "PHE5i4qRNGdvgXtCWwpp0gXv+oGhRANCAARgMOJkYRqgoO7kiLFYASMzDqBp5RBV\n"
-                     "oGtncVMwNWMDXvEgeu/bJsm+ylbD4OHyvz+10uDkcUpzFZylr0wH2Cl1\n"
-                     "-----END PRIVATE KEY-----\n";
+constexpr auto key = "-----BEGIN EC PRIVATE KEY-----\n"
+                     "MHcCAQEEII6dtMwSlwyvXeWlpctH6OjPs+BQXvVdvtnmf/qp0EnhoAoGCCqGSM49\n"
+                     "AwEHoUQDQgAETcDdhwYE33sag6zSIuaV8xkFdrnztF52KIsN1XR8nV1dY+UsMZZQ\n"
+                     "tf5CnFgmwDgj5rE6x7ZI8Mkb175HAXDefA==\n"
+                     "-----END EC PRIVATE KEY-----\n";
 
 struct MockCertProvider : public CertProvider
 {
