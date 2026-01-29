@@ -153,7 +153,7 @@ TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitches)
     for (const auto& vswitch : switches)
     {
         const auto subnet{vswitch.subnet.to_cidr()};
-        const auto broadcast = (vswitch.subnet.max_address() + 1).as_string();
+        const auto broadcast = vswitch.subnet.broadcast_address().as_string();
 
         EXPECT_CALL(*mock_utils,
                     run_cmd_for_status(QString("ip"),

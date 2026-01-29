@@ -66,6 +66,7 @@ public:
     [[nodiscard]] uint32_t usable_address_count() const;
 
     [[nodiscard]] IPAddress network_address() const;
+    [[nodiscard]] IPAddress broadcast_address() const;
     [[nodiscard]] PrefixLength prefix_length() const;
     [[nodiscard]] IPAddress subnet_mask() const;
 

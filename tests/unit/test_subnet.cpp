@@ -129,6 +129,21 @@ TEST(Subnet, convertsToMaskedIP)
     EXPECT_EQ(subnet.network_address(), mp::IPAddress{"255.208.0.0"});
 }
 
+TEST(Subnet, getsBroadcastAddress)
+{
+    mp::Subnet subnet{"192.168.255.52/24"};
+    EXPECT_EQ(subnet.broadcast_address(), mp::IPAddress{"192.168.255.255"});
+
+    subnet = mp::Subnet{"255.168.1.152/8"};
+    EXPECT_EQ(subnet.broadcast_address(), mp::IPAddress{"255.255.255.255"});
+
+    subnet = mp::Subnet{"192.168.1.152/0"};
+    EXPECT_EQ(subnet.broadcast_address(), mp::IPAddress{"255.255.255.255"});
+
+    subnet = mp::Subnet{"255.212.1.152/13"};
+    EXPECT_EQ(subnet.broadcast_address(), mp::IPAddress{"255.215.255.255"});
+}
+
 TEST(Subnet, getSubnetMaskReturnsSubnetMask)
 {
     mp::Subnet subnet{"192.168.0.1/24"};

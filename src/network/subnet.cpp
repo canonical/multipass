@@ -64,11 +64,7 @@ catch (const std::out_of_range& e)
 [[nodiscard]] mp::IPAddress apply_mask(mp::IPAddress ip, mp::Subnet::PrefixLength prefix_length)
 {
     const auto mask = get_subnet_mask(prefix_length);
-    for (size_t i = 0; i < ip.octets.size(); ++i)
-    {
-        ip.octets[i] &= mask.octets[i];
-    }
-    return ip;
+    return mp::IPAddress{ip.as_uint32() & mask.as_uint32()};
 }
 } // namespace
 
@@ -102,6 +98,12 @@ uint32_t mp::Subnet::usable_address_count() const
 mp::IPAddress mp::Subnet::network_address() const
 {
     return address;
+}
+
+mp::IPAddress mp::Subnet::broadcast_address() const
+{
+    const auto mask = get_subnet_mask(prefix);
+    return mp::IPAddress(address.as_uint32() | ~mask.as_uint32());
 }
 
 mp::Subnet::PrefixLength mp::Subnet::prefix_length() const
@@ -166,8 +168,7 @@ bool mp::Subnet::contains(Subnet other) const
 
 bool mp::Subnet::contains(IPAddress ip) const
 {
-    // since get_max_address doesn't include the broadcast address add 1 to it.
-    return address <= ip && (max_address() + 1) >= ip;
+    return network_address() <= ip && broadcast_address() >= ip;
 }
 
 std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
