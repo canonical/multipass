@@ -34,6 +34,7 @@ public:
     AppleVZVirtualMachine(const VirtualMachineDescription& desc,
                           VMStatusMonitor& monitor,
                           const SSHKeyProvider& key_provider,
+                          AvailabilityZone& zone,
                           const Path& instance_dir);
     ~AppleVZVirtualMachine();
 
