@@ -37,23 +37,16 @@ namespace
 constexpr auto immediate_wait = 100; // period to wait for immediate dnsmasq failures, in ms
 
 auto make_dnsmasq_process(const mp::Path& data_dir,
-                          const QString& bridge_name,
-                          const std::string& subnet,
+                          const mp::BridgeSubnetList& subnets,
                           const QString& conf_file_path)
 {
-    auto process_spec =
-        std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, subnet, conf_file_path);
+    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, subnets, conf_file_path);
     return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const Path& data_dir,
-                                 const QString& bridge_name,
-                                 const std::string& subnet)
-    : data_dir{data_dir},
-      bridge_name{bridge_name},
-      subnet{subnet},
-      conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
+mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const BridgeSubnetList& subnets)
+    : data_dir{data_dir}, conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
     if (!conf_file.open())
         throw std::runtime_error("unable to create temporary dnsmasq conf file");
@@ -67,7 +60,7 @@ mp::DNSMasqServer::DNSMasqServer(const Path& data_dir,
                 fmt::format("unable to create file {}", dnsmasq_hosts.filesystemFileName()));
     }
 
-    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
+    dnsmasq_cmd = make_dnsmasq_process(data_dir, subnets, conf_file.fileName());
     start_dnsmasq();
 }
 
@@ -117,7 +110,7 @@ std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw
     return std::nullopt;
 }
 
-void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
+void mp::DNSMasqServer::release_mac(const std::string& hw_addr, const QString& bridge_name)
 {
     auto ip = get_ip_for(hw_addr);
     if (!ip)
@@ -215,8 +208,7 @@ void mp::DNSMasqServer::start_dnsmasq()
 
 mp::DNSMasqServer::UPtr mp::DNSMasqServerFactory::make_dnsmasq_server(
     const mp::Path& network_dir,
-    const QString& bridge_name,
-    const std::string& subnet) const
+    const BridgeSubnetList& subnets) const
 {
-    return std::make_unique<mp::DNSMasqServer>(network_dir, bridge_name, subnet);
+    return std::make_unique<mp::DNSMasqServer>(network_dir, subnets);
 }

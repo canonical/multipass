@@ -73,7 +73,11 @@
                     "size": ""
                 }
             },
-            "state": "Running"
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
         },
         "bombastic": {
             "cpu_count": "",
@@ -93,7 +97,11 @@
             },
             "release": "",
             "snapshot_count": "3",
-            "state": "Stopped"
+            "state": "Stopped",
+            "zone": {
+                "available": false,
+                "name": "zone2"
+            }
         },
         "messier-87": {
             "snapshots": {
