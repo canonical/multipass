@@ -72,7 +72,7 @@ void create_virtual_switch(const mp::Subnet& subnet, const QString& bridge_name)
     {
         const auto mac_address = mp::utils::generate_mac_address();
         const auto cidr = subnet.to_cidr();
-        const auto broadcast = (subnet.max_address() + 1).as_string();
+        const auto broadcast = subnet.broadcast_address().as_string();
 
         MP_UTILS.run_cmd_for_status(
             "ip",
