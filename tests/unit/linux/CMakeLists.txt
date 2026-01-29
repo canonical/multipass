@@ -1,4 +1,4 @@
-target_sources(multipass_tests
+target_sources(multipass_cpp_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/test_apparmored_process.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_backend_utils.cpp
@@ -8,19 +8,19 @@ target_sources(multipass_tests
 )
 
 if(TARGET logger_linux_journald)
-  target_sources(multipass_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/test_journald_logger.cpp)
-  target_link_libraries(multipass_tests logger_linux_journald)
+  target_sources(multipass_cpp_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/test_journald_logger.cpp)
+  target_link_libraries(multipass_cpp_tests logger_linux_journald)
 endif()
 
 if(TARGET logger_linux_syslog)
-  target_sources(multipass_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/test_syslog_logger.cpp)
-  target_link_libraries(multipass_tests logger_linux_syslog)
+  target_sources(multipass_cpp_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/test_syslog_logger.cpp)
+  target_link_libraries(multipass_cpp_tests logger_linux_syslog)
 endif()
 
 target_compile_definitions(shared_linux_test PRIVATE
   -Daa_is_enabled=ut_aa_is_enabled)
 
-target_link_libraries(multipass_tests
+target_link_libraries(multipass_cpp_tests
   shared_linux_test)
 
 add_executable(apparmor_parser
@@ -32,4 +32,4 @@ set_target_properties(apparmor_parser
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_dependencies(multipass_tests apparmor_parser)
+add_dependencies(multipass_cpp_tests apparmor_parser)
