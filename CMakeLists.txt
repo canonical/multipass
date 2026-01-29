@@ -211,6 +211,10 @@ if(UNIX)
     set(HOST_ARCH "aarch64")
   endif ()
 
+  if (${HOST_ARCH} STREQUAL "ppc64le")
+    set(HOST_ARCH "ppc64")
+  endif ()
+
   if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND ${HOST_ARCH} MATCHES "x86_64"))
       list(APPEND MULTIPASS_BACKENDS virtualbox)
   endif()
