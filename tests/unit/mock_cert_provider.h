@@ -23,6 +23,26 @@ using namespace testing;
 
 namespace multipass::test
 {
+// Generated using OpenSSL command:
+// # 1. Generate root CA private key
+// openssl ecparam -name prime256v1 -genkey -noout -out root_key.pem
+// # 2. Generate root CA certificate (self-signed)
+// openssl req -new -x509 -key root_key.pem -out root_cert.pem -days 2600000
+//     -subj "/C=US/O=Canonical/CN=Multipass Root CA"
+//     -addext "basicConstraints=critical,CA:TRUE"
+// # 3. Generate server/client private key
+// openssl ecparam -name prime256v1 -genkey -noout -out cert_key.pem
+// # 4. Generate certificate signing request
+// openssl req -new -key cert_key.pem -out cert.csr
+//     -subj "/C=US/O=Canonical/CN=localhost"
+// # 5. Create extension file for SAN
+// echo "subjectAltName=DNS:localhost" > cert_ext.cnf
+// # 6. Sign certificate with root CA
+// openssl x509 -req -in cert.csr -CA root_cert.pem -CAkey root_key.pem
+//     -CAcreateserial -out cert.pem -days 2600000
+//     -extfile cert_ext.cnf
+// # 7. Verify the certificate chain
+// openssl verify -CAfile root_cert.pem cert.pem
 constexpr auto root_cert = "-----BEGIN CERTIFICATE-----\n"
                            "MIIB0DCCAXegAwIBAgIUHnKVDJqpyPbwk4n/6S8MrTJqFlUwCgYIKoZIzj0EAwIw\n"
                            "PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs\n"
