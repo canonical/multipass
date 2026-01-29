@@ -65,10 +65,13 @@ public:
     [[nodiscard]] IPAddress max_address() const;
     [[nodiscard]] uint32_t usable_address_count() const;
 
+    [[nodiscard]] IPAddress address() const;
     [[nodiscard]] IPAddress network_address() const;
     [[nodiscard]] IPAddress broadcast_address() const;
     [[nodiscard]] PrefixLength prefix_length() const;
     [[nodiscard]] IPAddress subnet_mask() const;
+
+    [[nodiscard]] Subnet canonical() const;
 
     [[nodiscard]] std::string to_cidr() const;
 
@@ -83,8 +86,8 @@ public:
     [[nodiscard]] bool operator==(const Subnet& other) const = default;
 
 private:
-    IPAddress address;
-    PrefixLength prefix;
+    IPAddress address_;
+    PrefixLength prefix_;
 };
 } // namespace multipass
 
