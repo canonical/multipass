@@ -71,7 +71,9 @@ void create_virtual_switch(const mp::Subnet& subnet, const QString& bridge_name)
     if (!MP_UTILS.run_cmd_for_status("ip", {"addr", "show", bridge_name}))
     {
         const auto mac_address = mp::utils::generate_mac_address();
-        const auto cidr = subnet.to_cidr();
+        // "ip address add" expects a proper IP address with a subnet mask, but our Subnet class
+        // applies the mask to the IP address first. Work around this!
+        const auto cidr = fmt::format("{}/{}", subnet.min_address().as_string(), subnet.prefix_length());
         const auto broadcast = (subnet.max_address() + 1).as_string();
 
         MP_UTILS.run_cmd_for_status(
