@@ -89,23 +89,34 @@ struct QemuPlatformDetail : public Test
         QString bridge_name;
         std::string hw_addr;
         mp::Subnet subnet;
+        std::string iface_cidr;
+        std::string broadcast_addr;
         std::string name;
         mutable std::unique_ptr<multipass::test::MockFirewallConfig> mock_firewall_config;
 
         Switch(const QString& bridge_name,
                const std::string& hw_addr,
                const mp::Subnet& subnet,
+               const std::string& iface_cidr,
+               const std::string& broadcast_addr,
                const std::string& name)
             : bridge_name(bridge_name),
               hw_addr(hw_addr),
               subnet(subnet),
+              iface_cidr(iface_cidr),
+              broadcast_addr(broadcast_addr),
               name(name),
               mock_firewall_config(std::make_unique<mpt::MockFirewallConfig>())
         {
         }
 
         Switch(const Switch& other)
-            : Switch(other.bridge_name, other.hw_addr, other.subnet, other.name)
+            : Switch(other.bridge_name,
+                     other.hw_addr,
+                     other.subnet,
+                     other.iface_cidr,
+                     other.broadcast_addr,
+                     other.name)
         {
         }
     };
@@ -113,9 +124,24 @@ struct QemuPlatformDetail : public Test
     static inline const mp::Subnet zone1_subnet{"192.168.64.0/24"};
     static inline const mp::Subnet zone2_subnet{"192.168.96.0/24"};
     static inline const mp::Subnet zone3_subnet{"192.168.128.0/24"};
-    const std::vector<Switch> switches{{"mpqemubrzone1", "52:54:00:6f:29:7e", zone1_subnet, "foo"},
-                                       {"mpqemubrzone2", "52:54:00:6f:29:7f", zone2_subnet, "bar"},
-                                       {"mpqemubrzone3", "52:54:00:6f:29:80", zone3_subnet, "baz"}};
+    const std::vector<Switch> switches{{"mpqemubrzone1",
+                                        "52:54:00:6f:29:7e",
+                                        zone1_subnet,
+                                        "192.168.64.1/24",
+                                        "192.168.64.255",
+                                        "foo"},
+                                       {"mpqemubrzone2",
+                                        "52:54:00:6f:29:7f",
+                                        zone2_subnet,
+                                        "192.168.96.1/24",
+                                        "192.168.96.255",
+                                        "bar"},
+                                       {"mpqemubrzone3",
+                                        "52:54:00:6f:29:80",
+                                        zone3_subnet,
+                                        "192.168.128.1/24",
+                                        "192.168.128.255",
+                                        "baz"}};
 
     mpt::MockAvailabilityZone mock_zone1;
     mpt::MockAvailabilityZone mock_zone2;
@@ -152,9 +178,6 @@ TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitches)
 {
     for (const auto& vswitch : switches)
     {
-        const auto subnet{vswitch.subnet.to_cidr()};
-        const auto broadcast = vswitch.subnet.broadcast_address().as_string();
-
         EXPECT_CALL(*mock_utils,
                     run_cmd_for_status(QString("ip"),
                                        ElementsAre(QString("link"),
@@ -170,11 +193,11 @@ TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitches)
                     run_cmd_for_status(QString("ip"),
                                        ElementsAre(QString("address"),
                                                    QString("add"),
-                                                   QString::fromStdString(subnet),
+                                                   QString::fromStdString(vswitch.iface_cidr),
                                                    QString("dev"),
                                                    vswitch.bridge_name,
                                                    "broadcast",
-                                                   QString::fromStdString(broadcast)),
+                                                   QString::fromStdString(vswitch.broadcast_addr)),
                                        _))
             .WillOnce(Return(true));
 
