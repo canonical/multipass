@@ -17,6 +17,7 @@
 
 #include "daemon_config.h"
 
+#include <multipass/base_availability_zone_manager.h>
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
 #include <multipass/image_host/custom_image_host.h>
@@ -135,8 +136,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
+    if (az_manager == nullptr)
+        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
     if (factory == nullptr)
-        factory = platform::vm_backend(data_directory);
+        factory = platform::vm_backend(data_directory, *az_manager);
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
@@ -230,6 +233,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                                                 std::move(update_prompt),
                                                                 multiplexing_logger,
                                                                 std::move(network_proxy),
+                                                                std::move(az_manager),
                                                                 cache_directory,
                                                                 data_directory,
                                                                 server_address,

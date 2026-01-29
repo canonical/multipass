@@ -20,6 +20,8 @@
 #include "dummy_ssh_key_provider.h"
 #include "fake_alias_config.h"
 #include "json_test_utils.h"
+#include "mock_availability_zone.h"
+#include "mock_availability_zone_manager.h"
 #include "mock_cert_provider.h"
 #include "mock_daemon.h"
 #include "mock_environment_helpers.h"
@@ -34,6 +36,8 @@
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "stub_availability_zone.h"
+#include "stub_availability_zone_manager.h"
 #include "stub_virtual_machine.h"
 
 #include <src/daemon/default_vm_image_vault.h>
@@ -119,6 +123,8 @@ struct Daemon : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_platform, bridge_nomenclature)
             .Times(AnyNumber())
             .WillRepeatedly(Return("notabridge"));
+
+        config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
     }
 
     void SetUp() override
@@ -147,6 +153,7 @@ a few more tests for `false`, since there are different portions of code dependi
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+    mpt::StubAvailabilityZone zone{};
 };
 
 TEST_F(Daemon, buildsConfig)
@@ -250,6 +257,14 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         .WillOnce(
             Invoke(&daemon,
                    &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
+    EXPECT_CALL(daemon, zones)
+        .WillOnce(
+            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ZonesRequest, mp::ZonesReply>));
+    EXPECT_CALL(daemon, zones_state)
+        .Times(2)
+        .WillRepeatedly(Invoke(
+            &daemon,
+            &mpt::MockDaemon::set_promise_value<mp::ZonesStateRequest, mp::ZonesStateReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
 
     send_commands({{"test_keys"},
@@ -275,7 +290,10 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
                    {"umount", "instance"},
                    {"networks"},
                    {"clone", "foo"},
-                   {"wait-ready"}});
+                   {"wait-ready"},
+                   {"zones"},
+                   {"enable-zones", "foo"},
+                   {"disable-zones", "foo", "--force"}});
 }
 
 TEST_F(Daemon, providesVersion)
@@ -408,7 +426,9 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{"yakety-yak"}));
-    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, current_state)
+        .Times(1)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
@@ -442,7 +462,9 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, current_state)
+        .Times(1)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
@@ -464,7 +486,9 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*mock_vm, current_state)
+        .Times(1)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
@@ -486,7 +510,9 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::starting));
+    EXPECT_CALL(*mock_vm, current_state)
+        .Times(1)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
@@ -855,6 +881,9 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
 
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
@@ -898,6 +927,9 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
@@ -1545,6 +1577,8 @@ TEST_P(ListIP, listsWithIp)
     auto [state, cmd, strs] = GetParam();
 
     EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
     MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
 
     send_command({"launch"});
@@ -1611,6 +1645,9 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
 
 TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
@@ -1670,6 +1707,9 @@ TEST_F(Daemon, releasesMacsWhenLaunchFails)
 
 TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
 {
+    // generate_unused_mac_address works by randomly guessing
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
+
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 

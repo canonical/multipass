@@ -22,6 +22,7 @@
 #include "tests/unit/mock_ssh_process_exit_status.h"
 #include "tests/unit/mock_ssh_test_fixture.h"
 #include "tests/unit/mock_virtual_machine.h"
+#include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 
 #include "qemu_mount_handler.h"
@@ -38,8 +39,12 @@ namespace
 {
 struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
-    explicit MockQemuVirtualMachine(const std::string& name)
-        : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{name, mpt::StubSSHKeyProvider{}}
+    explicit MockQemuVirtualMachine(const std::string& name, mp::AvailabilityZone& zone)
+        : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{
+              name,
+              mpt::StubSSHKeyProvider{},
+              zone,
+          }
     {
     }
 
@@ -151,7 +156,8 @@ struct QemuMountHandlerTest : public ::Test
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mpt::ExitStatusMock exit_status_mock;
-    NiceMock<MockQemuVirtualMachine> vm{"my_instance"};
+    mpt::StubAvailabilityZone zone{};
+    NiceMock<MockQemuVirtualMachine> vm{"my_instance", zone};
     mp::QemuVirtualMachine::MountArgs mount_args;
     CommandOutputs command_outputs{
         {"echo $PWD/target", {"/home/ubuntu/target"}},
