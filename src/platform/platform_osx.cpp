@@ -320,7 +320,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     else if (driver == QStringLiteral("applevz"))
     {
 #if APPLEVZ_ENABLED
-        return std::make_unique<applevz::AppleVZVirtualMachineFactory>(data_dir);
+        return std::make_unique<applevz::AppleVZVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
 

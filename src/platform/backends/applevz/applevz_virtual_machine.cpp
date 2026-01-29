@@ -26,8 +26,11 @@ namespace multipass::applevz
 AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& desc,
                                              VMStatusMonitor& monitor,
                                              const SSHKeyProvider& key_provider,
+                                             AvailabilityZone& zone,
                                              const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
+    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
+      desc{desc},
+      monitor{&monitor}
 {
 }
 
