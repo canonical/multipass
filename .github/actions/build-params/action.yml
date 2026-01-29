@@ -42,7 +42,9 @@ runs:
 
       # All other pushes annotate with the CI run number.
       # This includes `main`, as `edge` will get published from automatic builds on snapcraft.io.
-      elif [[ ${{ github.event_name }} == "push" || ${{ github.event_name }} == "workflow_dispatch" ]]; then
+      elif [[ ${{ github.event_name }} == "push" \
+        || ${{ github.event_name }} == "workflow_dispatch" \
+        || ${{ github.event_name }} == "schedule" ]]; then
         echo "label=ci${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       # This shouldn't happen.
