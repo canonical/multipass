@@ -305,6 +305,7 @@ parts:
       set -ex
       # Mangle the configure a bit
       QEMUARCH="$(uname -m)"
+      [ "$QEMUARCH" = "ppc64le" ] && QEMUARCH="ppc64"
       sed -i "s/^unset target_list$/target_list=\"${QEMUARCH}-softmmu\"/" configure
 
       set +ex
