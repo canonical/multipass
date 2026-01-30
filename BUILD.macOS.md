@@ -40,6 +40,13 @@ means to obtain cmake is with Homebrew <https://brew.sh/>.
 
     brew install cmake
 
+### Rust compiler
+
+To build multipass you will need the rust compiler. It can be installed using brew:
+```
+brew install rustup
+```
+
 Building
 ---------------------------------------
 

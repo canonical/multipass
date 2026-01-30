@@ -13,24 +13,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
+ *
  */
 
-#include "common.h"
-#include "mock_standard_paths.h"
-
-#include <QCoreApplication>
+#include "petname_provider.h"
 
 namespace mp = multipass;
 
-// Normally one would just use libgtest_main but our static library dependencies
-// also define main... DAMN THEM!
-int main(int argc, char* argv[])
+mp::PetnameProvider::PetnameProvider(mp::petname::NumWords num_words, char separator)
+    : generator{rxx::petname::make_petname_generator(num_words, separator)}
 {
-    QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_cpp_tests");
+}
 
-    ::testing::InitGoogleTest(&argc, argv);
-    mp::test::MockStandardPaths::mockit();
-
-    return RUN_ALL_TESTS();
+std::string mp::PetnameProvider::make_name()
+{
+    return std::string(generator->make_name());
 }
