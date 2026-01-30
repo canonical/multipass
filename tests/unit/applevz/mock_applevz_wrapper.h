@@ -53,9 +53,18 @@ public:
                 get_state,
                 (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
-    MOCK_METHOD(bool, can_start, (const multipass::applevz::VMHandle& vm_handle), (const, override));
-    MOCK_METHOD(bool, can_pause, (const multipass::applevz::VMHandle& vm_handle), (const, override));
-    MOCK_METHOD(bool, can_resume, (const multipass::applevz::VMHandle& vm_handle), (const, override));
+    MOCK_METHOD(bool,
+                can_start,
+                (const multipass::applevz::VMHandle& vm_handle),
+                (const, override));
+    MOCK_METHOD(bool,
+                can_pause,
+                (const multipass::applevz::VMHandle& vm_handle),
+                (const, override));
+    MOCK_METHOD(bool,
+                can_resume,
+                (const multipass::applevz::VMHandle& vm_handle),
+                (const, override));
     MOCK_METHOD(bool, can_stop, (const multipass::applevz::VMHandle& vm_handle), (const, override));
     MOCK_METHOD(bool,
                 can_request_stop,
