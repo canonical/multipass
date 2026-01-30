@@ -17,6 +17,7 @@ platforms:
   arm64:
   amd64:
   s390x:
+  ppc64el:
 
 layout:
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
