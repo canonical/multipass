@@ -40,20 +40,6 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
-    vm_handle.reset();
-    if (const auto& error = MP_APPLEVZ.create_vm(desc, vm_handle); error)
-    {
-        mpl::error(log_category, "Failed to create handle for VM '{}': ", vm_name, error);
-    }
-
-    mpl::debug(log_category,
-               "AppleVZVirtualMachine::AppleVZVirtualMachine() -> Created handle for VM '{}'",
-               vm_name);
-
-    // Reflect vm's state
-    const auto curr_state = MP_APPLEVZ.get_state(vm_handle);
-    set_state(curr_state);
-    handle_state_update();
 }
 
 AppleVZVirtualMachine::~AppleVZVirtualMachine()
@@ -62,21 +48,27 @@ AppleVZVirtualMachine::~AppleVZVirtualMachine()
                "AppleVZVirtualMachine::~AppleVZVirtualMachine() -> Destructing VM `{}`",
                vm_name);
 
-    multipass::top_catch_all(vm_name, [this]() {
-        if (state == State::running)
-        {
-            suspend();
-        }
-        else
-        {
-            shutdown();
-        }
-    });
+    if (vm_handle)
+    {
+        multipass::top_catch_all(vm_name, [this]() {
+            if (state == State::running)
+            {
+                suspend();
+            }
+            else
+            {
+                // TODO: since suspend to disk is not implemented yet, this will drop the vm state
+                shutdown();
+            }
+        });
+    }
 }
 
 void AppleVZVirtualMachine::start()
 {
     mpl::debug(log_category, "start() -> Starting VM `{}`, current state {}", vm_name, state);
+
+    initialize_vm_handle();
 
     state = State::starting;
     handle_state_update();
@@ -144,6 +136,8 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     {
         mpl::debug(log_category, "shutdown() -> Forcing shutdown of VM `{}`", vm_name);
         error = MP_APPLEVZ.stop_vm(vm_handle, true);
+        // Drop the handle in order to kill the VM process
+        vm_handle.reset();
     }
     else if (MP_APPLEVZ.can_request_stop(vm_handle))
     {
@@ -173,6 +167,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     auto on_timeout = [] { throw std::runtime_error("timed out waiting for shutdown"); };
 
     multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+        mpl::error(log_category, "waiting for timeout");
         set_state(MP_APPLEVZ.get_state(vm_handle));
         handle_state_update();
 
@@ -180,6 +175,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         {
         case VirtualMachine::State::stopped:
             drop_ssh_session();
+            vm_handle.reset();
             return multipass::utils::TimeoutAction::done;
         default:
             return multipass::utils::TimeoutAction::retry;
@@ -204,11 +200,12 @@ void AppleVZVirtualMachine::suspend()
                 fmt::format("VM '{}' failed to suspend, check logs for more details", vm_name));
         }
 
-        drop_ssh_session();
-
         // Reflect vm's state
         set_state(MP_APPLEVZ.get_state(vm_handle));
         handle_state_update();
+
+        // TODO: drop vm_handle after suspend to disk implemented
+        drop_ssh_session();
     }
     else
     {
@@ -335,5 +332,28 @@ void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
 
         multipass::utils::try_action_for(on_timeout, timeout, action);
     }
+}
+
+void AppleVZVirtualMachine::initialize_vm_handle()
+{
+    // TODO: Assert after suspend to disk implemented
+    if (vm_handle)
+    {
+        mpl::debug(log_category,
+                   "initialize_vm_handle() -> VM handle for '{}' already initialized",
+                   vm_name);
+        return;
+    }
+
+    mpl::trace(log_category, "initialize_vm_handle() -> Creating VM handle for '{}'", vm_name);
+
+    vm_handle.reset();
+    if (const auto& error = MP_APPLEVZ.create_vm(desc, vm_handle); error)
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to create VM handle for '{}': {}", vm_name, error));
+    }
+
+    mpl::trace(log_category, "initialize_vm_handle() -> Created handle for VM '{}'", vm_name);
 }
 } // namespace multipass::applevz

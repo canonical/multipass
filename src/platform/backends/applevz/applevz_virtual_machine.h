@@ -56,6 +56,7 @@ public:
     void resize_disk(const MemorySize& new_size) override;
 
 private:
+    void initialize_vm_handle();
     void set_state(applevz::AppleVMState vm_state);
     void fetch_ip(std::chrono::milliseconds timeout);
 
