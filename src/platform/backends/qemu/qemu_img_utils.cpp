@@ -74,7 +74,7 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::
 
     auto disk_size = QString::number(
         disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
-    QStringList qemuimg_parameters{{"-f", image_format, "resize", image_path, disk_size}};
+    QStringList qemuimg_parameters{{"resize", "-f", image_format, image_path, disk_size}};
 
     checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, "", image_path),
