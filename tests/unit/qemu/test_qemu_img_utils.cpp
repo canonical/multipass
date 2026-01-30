@@ -76,11 +76,13 @@ void simulate_qemuimg_resize(mpt::MockProcess* process,
     ASSERT_EQ(process->program().toStdString(), "qemu-img");
 
     const auto args = process->arguments();
-    ASSERT_EQ(args.size(), 3);
+    ASSERT_EQ(args.size(), 5);
 
-    EXPECT_EQ(args.at(0).toStdString(), "resize");
-    EXPECT_EQ(args.at(1), expect_img);
-    EXPECT_THAT(args.at(2),
+    EXPECT_EQ(args.at(0), "-f");
+    EXPECT_EQ(args.at(1), "qcow2"); // default format from info
+    EXPECT_EQ(args.at(2), "resize");
+    EXPECT_EQ(args.at(3), expect_img);
+    EXPECT_THAT(args.at(4),
                 ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; },
                          Eq(expect_size)));
 
@@ -137,8 +139,18 @@ void test_image_resizing(const char* img,
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
 
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, 1);
-        simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
+        ASSERT_LE(++process_count, 2);
+        if (process_count == 1)
+        {
+            // First call is qemu-img info to get image format
+            auto info_output = QByteArray{R"({"format": "qcow2"})"};
+            simulate_qemuimg_info_with_json(process, img, success, info_output);
+        }
+        else
+        {
+            // Second call is the actual resize
+            simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
+        }
     });
 
     if (throw_msg_matcher)
@@ -148,7 +160,7 @@ void test_image_resizing(const char* img,
     else
         mp::backend::resize_instance_image(requested_size, img);
 
-    EXPECT_EQ(process_count, 1);
+    EXPECT_EQ(process_count, 2);
 }
 
 template <class Matcher>
