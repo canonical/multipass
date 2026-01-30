@@ -78,9 +78,9 @@ void simulate_qemuimg_resize(mpt::MockProcess* process,
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 5);
 
-    EXPECT_EQ(args.at(0), "-f");
-    EXPECT_EQ(args.at(1), "qcow2"); // default format from info
-    EXPECT_EQ(args.at(2), "resize");
+    EXPECT_EQ(args.at(0), "resize");
+    EXPECT_EQ(args.at(1), "-f");
+    EXPECT_EQ(args.at(2), "qcow2"); // default format from info
     EXPECT_EQ(args.at(3), expect_img);
     EXPECT_THAT(args.at(4),
                 ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; },
