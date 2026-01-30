@@ -301,17 +301,11 @@ parts:
     organize:
       usr/lib/qemu/*: usr/bin/
       usr/share/qemu/*: qemu/
-    override-pull: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
-
-
-      craftctl default
     override-build: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
-
       set -ex
       # Mangle the configure a bit
       QEMUARCH="$(uname -m)"
+      [ "$QEMUARCH" = "ppc64le" ] && QEMUARCH="ppc64"
       sed -i "s/^unset target_list$/target_list=\"${QEMUARCH}-softmmu\"/" configure
 
       set +ex
