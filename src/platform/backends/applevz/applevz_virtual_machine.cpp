@@ -77,9 +77,12 @@ void AppleVZVirtualMachine::start()
     auto curr_state = MP_APPLEVZ.get_state(vm_handle);
 
     mpl::debug(log_category, "start() -> VM `{}` VM state is `{}`", vm_name, curr_state);
-    if (curr_state == applevz::AppleVMState::paused && MP_APPLEVZ.can_resume(vm_handle))
+    if (MP_APPLEVZ.can_resume(vm_handle))
     {
-        mpl::debug(log_category, "start() -> VM `{}` is in paused state, resuming", vm_name);
+        mpl::debug(log_category,
+                   "start() -> VM `{}` is in {} state, resuming",
+                   vm_name,
+                   curr_state);
         error = MP_APPLEVZ.resume_vm(vm_handle);
     }
     else if (MP_APPLEVZ.can_start(vm_handle))
@@ -98,10 +101,7 @@ void AppleVZVirtualMachine::start()
                   curr_state);
     }
 
-    // Reflect vm's state
-    curr_state = MP_APPLEVZ.get_state(vm_handle);
-    set_state(curr_state);
-    handle_state_update();
+    set_state(MP_APPLEVZ.get_state(vm_handle));
 
     if (error)
     {
@@ -136,7 +136,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     {
         mpl::debug(log_category, "shutdown() -> Forcing shutdown of VM `{}`", vm_name);
         error = MP_APPLEVZ.stop_vm(vm_handle, true);
-        // Drop the handle in order to kill the VM process
+        // Drop the handle to make sure the process is dead
         vm_handle.reset();
     }
     else if (MP_APPLEVZ.can_request_stop(vm_handle))
@@ -153,7 +153,6 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         return;
     }
 
-    // Reflect vm's state
     set_state(MP_APPLEVZ.get_state(vm_handle));
 
     if (error)
@@ -169,7 +168,6 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
         mpl::error(log_category, "waiting for timeout");
         set_state(MP_APPLEVZ.get_state(vm_handle));
-        handle_state_update();
 
         switch (current_state())
         {
@@ -187,25 +185,13 @@ void AppleVZVirtualMachine::suspend()
 {
     mpl::debug(log_category, "suspend() -> Suspending VM `{}`, current state {}", vm_name, state);
 
+    CFError error;
     if (MP_APPLEVZ.can_pause(vm_handle))
     {
         state = State::suspending;
         handle_state_update();
 
-        const auto error = MP_APPLEVZ.pause_vm(vm_handle);
-        if (error)
-        {
-            mpl::error(log_category, "suspend() -> VM '{}' failed to suspend: {}", vm_name, error);
-            throw std::runtime_error(
-                fmt::format("VM '{}' failed to suspend, check logs for more details", vm_name));
-        }
-
-        // Reflect vm's state
-        set_state(MP_APPLEVZ.get_state(vm_handle));
-        handle_state_update();
-
-        // TODO: drop vm_handle after suspend to disk implemented
-        drop_ssh_session();
+        error = MP_APPLEVZ.pause_vm(vm_handle);
     }
     else
     {
@@ -214,6 +200,18 @@ void AppleVZVirtualMachine::suspend()
                   vm_name,
                   state);
     }
+
+    set_state(MP_APPLEVZ.get_state(vm_handle));
+
+    if (error)
+    {
+        mpl::error(log_category, "suspend() -> VM '{}' failed to suspend: {}", vm_name, error);
+        throw std::runtime_error(
+            fmt::format("VM '{}' failed to suspend, check logs for more details", vm_name));
+    }
+
+    // TODO: drop vm_handle after suspend to disk implemented
+    drop_ssh_session();
 }
 
 VirtualMachine::State AppleVZVirtualMachine::current_state()
@@ -311,6 +309,8 @@ void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
               vm_name,
               prev_state,
               state);
+
+    handle_state_update();
 }
 
 void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
