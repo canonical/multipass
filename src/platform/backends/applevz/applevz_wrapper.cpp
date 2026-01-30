@@ -31,31 +31,31 @@ namespace multipass::applevz
 {
 CFError AppleVZ::create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::create_vm(...)");
+    mpl::trace(kLogCategory, "AppleVZ::create_vm(...)");
 
     auto err = init_with_configuration(desc, out_handle);
 
     if (!err)
-        mpl::debug(kLogCategory, "AppleVZ::create_vm(...) succeeded");
+        mpl::trace(kLogCategory, "AppleVZ::create_vm(...) succeeded");
 
     return err;
 }
 
 CFError AppleVZ::start_vm(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::start_vm(...)");
+    mpl::trace(kLogCategory, "AppleVZ::start_vm(...)");
 
     auto err = start_with_completion_handler(vm_handle);
 
     if (!err)
-        mpl::debug(kLogCategory, "AppleVZ::start_vm(...) succeeded");
+        mpl::trace(kLogCategory, "AppleVZ::start_vm(...) succeeded");
 
     return err;
 }
 
 CFError AppleVZ::stop_vm(const VMHandle& vm_handle, bool force) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::stop_vm(...)");
+    mpl::trace(kLogCategory, "AppleVZ::stop_vm(...)");
 
     CFError err;
     if (force)
@@ -64,80 +64,80 @@ CFError AppleVZ::stop_vm(const VMHandle& vm_handle, bool force) const
         err = request_stop_with_error(vm_handle);
 
     if (!err)
-        mpl::debug(kLogCategory, "AppleVZ::stop_vm(...) succeeded");
+        mpl::trace(kLogCategory, "AppleVZ::stop_vm(...) succeeded");
 
     return err;
 }
 
 CFError AppleVZ::pause_vm(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::pause_vm(...)");
+    mpl::trace(kLogCategory, "AppleVZ::pause_vm(...)");
 
     auto err = pause_with_completion_handler(vm_handle);
 
     if (!err)
-        mpl::debug(kLogCategory, "AppleVZ::pause_vm(...) succeeded");
+        mpl::trace(kLogCategory, "AppleVZ::pause_vm(...) succeeded");
 
     return err;
 }
 
 CFError AppleVZ::resume_vm(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::resume_vm(...)");
+    mpl::trace(kLogCategory, "AppleVZ::resume_vm(...)");
 
     auto err = resume_with_completion_handler(vm_handle);
 
     if (!err)
-        mpl::debug(kLogCategory, "AppleVZ::resume_vm(...) succeeded");
+        mpl::trace(kLogCategory, "AppleVZ::resume_vm(...) succeeded");
 
     return err;
 }
 
 AppleVMState AppleVZ::get_state(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::get_state(...)");
+    mpl::trace(kLogCategory, "AppleVZ::get_state(...)");
 
     return multipass::applevz::get_state(vm_handle);
 }
 
 bool AppleVZ::can_start(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::can_start(...)");
+    mpl::trace(kLogCategory, "AppleVZ::can_start(...)");
 
     return multipass::applevz::can_start(vm_handle);
 }
 
 bool AppleVZ::can_pause(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::can_pause(...)");
+    mpl::trace(kLogCategory, "AppleVZ::can_pause(...)");
 
     return multipass::applevz::can_pause(vm_handle);
 }
 
 bool AppleVZ::can_resume(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::can_resume(...)");
+    mpl::trace(kLogCategory, "AppleVZ::can_resume(...)");
 
     return multipass::applevz::can_resume(vm_handle);
 }
 
 bool AppleVZ::can_stop(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::can_stop(...)");
+    mpl::trace(kLogCategory, "AppleVZ::can_stop(...)");
 
     return multipass::applevz::can_stop(vm_handle);
 }
 
 bool AppleVZ::can_request_stop(const VMHandle& vm_handle) const
 {
-    mpl::debug(kLogCategory, "AppleVZ::can_request_stop(...)");
+    mpl::trace(kLogCategory, "AppleVZ::can_request_stop(...)");
 
     return multipass::applevz::can_request_stop(vm_handle);
 }
 
 bool AppleVZ::is_supported() const
 {
-    mpl::debug(kLogCategory, "AppleVZ::is_supported(...)");
+    mpl::trace(kLogCategory, "AppleVZ::is_supported(...)");
 
     return multipass::applevz::is_supported();
 }
