@@ -115,11 +115,12 @@ void AppleVZVirtualMachine::start()
 
 void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
+    set_state(MP_APPLEVZ.get_state(vm_handle));
+
     mpl::debug(log_category,
                "shutdown() -> Shutting down VM `{}`, current state {}",
                vm_name,
                state);
-
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -132,17 +133,26 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
     CFError error;
 
-    if (shutdown_policy == ShutdownPolicy::Poweroff && MP_APPLEVZ.can_stop(vm_handle))
+    if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         mpl::debug(log_category, "shutdown() -> Forcing shutdown of VM `{}`", vm_name);
-        error = MP_APPLEVZ.stop_vm(vm_handle, true);
-        // Drop the handle to make sure the process is dead
-        vm_handle.reset();
+        if (MP_APPLEVZ.can_stop(vm_handle))
+        {
+            error = MP_APPLEVZ.stop_vm(vm_handle, true);
+            set_state(MP_APPLEVZ.get_state(vm_handle));
+        }
+        else
+        {
+            // Go nuclear and just kill the VM process
+            vm_handle.reset();
+            set_state(AppleVMState::stopped);
+        }
     }
     else if (MP_APPLEVZ.can_request_stop(vm_handle))
     {
         mpl::debug(log_category, "shutdown() -> Requesting shutdown of VM `{}`", vm_name);
         error = MP_APPLEVZ.stop_vm(vm_handle);
+        set_state(MP_APPLEVZ.get_state(vm_handle));
     }
     else
     {
@@ -152,8 +162,6 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                   state);
         return;
     }
-
-    set_state(MP_APPLEVZ.get_state(vm_handle));
 
     if (error)
     {
@@ -166,7 +174,6 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     auto on_timeout = [] { throw std::runtime_error("timed out waiting for shutdown"); };
 
     multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
-        mpl::error(log_category, "waiting for timeout");
         set_state(MP_APPLEVZ.get_state(vm_handle));
 
         switch (current_state())
