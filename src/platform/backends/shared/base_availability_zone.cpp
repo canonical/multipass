@@ -25,8 +25,9 @@
 
 #include <scope_guard.hpp>
 
-#include <QJsonDocument>
+#include <boost/json.hpp>
 
+namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
@@ -37,35 +38,38 @@ constexpr auto available_key = "available";
 const multipass::Subnet subnet_range{"10.97.0.0/20"};
 constexpr auto subnet_prefix_length = 24;
 
-[[nodiscard]] QJsonObject read_json(const multipass::fs::path& file_path, const std::string& name)
+[[nodiscard]] boost::json::value read_json(const multipass::fs::path& file_path,
+                                           const std::string& name)
 try
 {
-    return MP_JSONUTILS.read_object_from_file(file_path);
+    return boost::json::parse(MP_FILEOPS.read_all(file_path));
 }
-catch (const std::ios_base::failure& e)
+catch (const std::exception& e)
 {
     mpl::warn(name, "failed to read AZ file: {}", e.what());
-    return QJsonObject{};
+    return {};
 }
 
-[[nodiscard]] multipass::Subnet deserialize_subnet(const QJsonObject& json,
+[[nodiscard]] multipass::Subnet deserialize_subnet(const boost::json::value& json,
                                                    const multipass::fs::path& file_path,
                                                    const std::string& name,
                                                    size_t zone_num)
 {
-    if (const auto json_subnet = json[subnet_key].toString().toStdString(); !json_subnet.empty())
+    if (const auto json_subnet = mp::lookup_or<std::string>(json, subnet_key, "");
+        !json_subnet.empty())
         return json_subnet;
 
     mpl::debug(name, "subnet missing from AZ file '{}', using default", file_path);
     return subnet_range.get_specific_subnet(zone_num, subnet_prefix_length);
 };
 
-[[nodiscard]] bool deserialize_available(const QJsonObject& json,
+[[nodiscard]] bool deserialize_available(const boost::json::value& json,
                                          const multipass::fs::path& file_path,
                                          const std::string& name)
 {
-    if (const auto json_available = json[available_key]; json_available.isBool())
-        return json_available.toBool();
+    if (const auto json_available = json.try_at(available_key);
+        json_available && json_available->if_bool())
+        return json_available->get_bool();
 
     mpl::debug(name, "availability missing from AZ file '{}', using default", file_path);
     return true;
