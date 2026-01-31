@@ -115,6 +115,12 @@ void AppleVZVirtualMachine::start()
 
 void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
+    if (!vm_handle)
+    {
+        assert(state == State::stopped);
+        return;
+    }
+
     set_state(MP_APPLEVZ.get_state(vm_handle));
 
     mpl::debug(log_category,
