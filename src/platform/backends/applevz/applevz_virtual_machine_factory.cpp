@@ -67,12 +67,16 @@ void AppleVZVirtualMachineFactory::remove_resources_for_impl(const std::string& 
 }
 
 VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
-    const std::string& source_vm_name,
-    const multipass::VMSpecs& src_vm_specs,
+    const std::string& /*source_vm_name*/,
+    const multipass::VMSpecs& /*src_vm_specs*/,
     const VirtualMachineDescription& desc,
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return nullptr;
+    return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        get_instance_directory(desc.vm_name));
 }
 } // namespace multipass::applevz
