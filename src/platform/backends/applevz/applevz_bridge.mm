@@ -109,10 +109,18 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         // Storage devices
         NSMutableArray<VZStorageDeviceConfiguration*>* storageDevices = [NSMutableArray array];
 
+        // cachingMode is set to VZDiskImageCachingModeCached so as to avoid disk corruption on ARM:
+        // - https://github.com/utmapp/UTM/issues/4840#issuecomment-1824340975
+        // - https://github.com/utmapp/UTM/issues/4840#issuecomment-1824542732
         NSString* diskPath = nsstring_from_qstring(desc.image.image_path);
         NSURL* diskURL = [NSURL fileURLWithPath:diskPath];
         VZDiskImageStorageDeviceAttachment* diskAttachment =
-            [[VZDiskImageStorageDeviceAttachment alloc] initWithURL:diskURL readOnly:NO error:&err];
+            [[VZDiskImageStorageDeviceAttachment alloc]
+                        initWithURL:diskURL
+                           readOnly:NO
+                        cachingMode:VZDiskImageCachingModeCached
+                synchronizationMode:VZDiskImageSynchronizationModeFsync
+                              error:&err];
         if (err)
             return CFError((__bridge_retained CFErrorRef)err);
 
