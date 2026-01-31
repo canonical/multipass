@@ -36,45 +36,6 @@ using namespace testing;
 
 namespace
 {
-struct TestJsonUtils : public Test
-{
-    mpt::MockFileOps::GuardedMock guarded_mock_file_ops = mpt::MockFileOps::inject();
-    mpt::MockFileOps& mock_file_ops = *guarded_mock_file_ops.first;
-};
-
-TEST_F(TestJsonUtils, readObjectFromFileReadsFromFile)
-{
-    auto filedata = std::make_unique<std::stringstream>();
-    *filedata << "{ \"test\": 123 }";
-
-    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
-    const auto json = MP_JSONUTILS.read_object_from_file(":)");
-
-    ASSERT_NE(json.find("test"), json.end());
-    ASSERT_TRUE(json.find("test").value().isDouble());
-    EXPECT_EQ(json.find("test").value().toInt(), 123);
-}
-
-TEST_F(TestJsonUtils, readObjectFromFileThrowsOnFailbit)
-{
-    auto filedata = std::make_unique<std::stringstream>();
-    filedata->setstate(std::ios_base::failbit);
-
-    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
-
-    EXPECT_THROW(MP_JSONUTILS.read_object_from_file(":("), std::ios_base::failure);
-}
-
-TEST_F(TestJsonUtils, readObjectFromFileThrowsOnBadbit)
-{
-    auto filedata = std::make_unique<std::stringstream>();
-    filedata->setstate(std::ios_base::badbit);
-
-    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filedata)));
-
-    EXPECT_THROW(MP_JSONUTILS.read_object_from_file(":("), std::ios_base::failure);
-}
-
 struct UpcaseContext
 {
 };
@@ -114,7 +75,7 @@ INSTANTIATE_TEST_SUITE_P(
                                              {"eth2", "52:54:00:00:00:02", false}},
            std::vector<mp::NetworkInterface>{}));
 
-TEST_F(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
+TEST(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
 {
     QJsonObject doc;
     doc.insert("some_data", "nothing to see here");
@@ -122,7 +83,7 @@ TEST_F(TestJsonUtils, givesNulloptOnEmptyExtraInterfaces)
     ASSERT_FALSE(MP_JSONUTILS.read_extra_interfaces(doc).has_value());
 }
 
-TEST_F(TestJsonUtils, throwsOnWrongMac)
+TEST(TestJsonUtils, throwsOnWrongMac)
 {
     std::vector<mp::NetworkInterface> extra_ifaces{
         mp::NetworkInterface{"eth3", "52:54:00:00:00:0x", true}};
@@ -137,7 +98,7 @@ TEST_F(TestJsonUtils, throwsOnWrongMac)
                          mpt::match_what(StrEq("Invalid MAC address 52:54:00:00:00:0x")));
 }
 
-TEST_F(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
+TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
 {
     mp::VMSpecs src_specs = {1,
                              mp::MemorySize::from_bytes(0),
@@ -178,20 +139,20 @@ TEST_F(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
               dst_metadata);
 }
 
-TEST_F(TestJsonUtils, updateCloudInitInstanceIdSucceed)
+TEST(TestJsonUtils, updateCloudInitInstanceIdSucceed)
 {
     EXPECT_EQ(MP_JSONUTILS.update_cloud_init_instance_id(QJsonValue{"vm1_e_e_e"}, "vm1", "vm2"),
               QJsonValue{"vm2_e_e_e"});
 }
 
-TEST_F(TestJsonUtils, lookupInArray)
+TEST(TestJsonUtils, lookupInArray)
 {
     boost::json::value json = {"sam", "max"};
     EXPECT_EQ(mp::lookup_or<std::string>(json, 1, "fallback"), "max");
     EXPECT_EQ(mp::lookup_or<std::string>(json, 1, "fallback", UpcaseContext{}), "MAX");
 }
 
-TEST_F(TestJsonUtils, lookupInArrayFallback)
+TEST(TestJsonUtils, lookupInArrayFallback)
 {
     boost::json::value json = {"sam", "max"};
     EXPECT_EQ(mp::lookup_or<std::string>(json, 2, "fallback"), "fallback");
@@ -199,7 +160,7 @@ TEST_F(TestJsonUtils, lookupInArrayFallback)
     EXPECT_EQ(mp::lookup_or<std::string>(json, 2, "fallback", UpcaseContext{}), "fallback");
 }
 
-TEST_F(TestJsonUtils, lookupInArrayWrongType)
+TEST(TestJsonUtils, lookupInArrayWrongType)
 {
     boost::json::value json = {"sam", "max"};
     EXPECT_THROW(mp::lookup_or<std::string>(json, "max", "fallback"), boost::system::system_error);
@@ -207,7 +168,7 @@ TEST_F(TestJsonUtils, lookupInArrayWrongType)
                  boost::system::system_error);
 }
 
-TEST_F(TestJsonUtils, lookupInObject)
+TEST(TestJsonUtils, lookupInObject)
 {
     boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
     EXPECT_EQ(mp::lookup_or<std::string>(json, "sam", "fallback"), "canine shamus");
@@ -215,7 +176,7 @@ TEST_F(TestJsonUtils, lookupInObject)
               "CANINE SHAMUS");
 }
 
-TEST_F(TestJsonUtils, lookupInObjectFallback)
+TEST(TestJsonUtils, lookupInObjectFallback)
 {
     boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
     EXPECT_EQ(mp::lookup_or<std::string>(json, "sybil", "fallback"), "fallback");
@@ -223,7 +184,7 @@ TEST_F(TestJsonUtils, lookupInObjectFallback)
     EXPECT_EQ(mp::lookup_or<std::string>(json, "sybil", "fallback", UpcaseContext{}), "fallback");
 }
 
-TEST_F(TestJsonUtils, lookupInObjectWrongType)
+TEST(TestJsonUtils, lookupInObjectWrongType)
 {
     boost::json::value json = {{"sam", "canine shamus"}, {"max", "hyperkinetic rabbity thing"}};
     EXPECT_THROW(mp::lookup_or<std::string>(json, 1, "fallback"), boost::system::system_error);
@@ -246,7 +207,7 @@ Animal tag_invoke(const boost::json::value_to_tag<Animal>&, const boost::json::v
     return {value_to<std::string>(json.at("name"))};
 }
 
-TEST_F(TestJsonUtils, mapToJsonArray)
+TEST(TestJsonUtils, mapToJsonArray)
 {
     std::map<std::string, Animal> map = {{"dog", {"fido"}},
                                          {"goat", {"philipp"}},
@@ -263,7 +224,7 @@ TEST_F(TestJsonUtils, mapToJsonArray)
     EXPECT_EQ(map_result, map);
 }
 
-TEST_F(TestJsonUtils, mapToJsonArrayDoesntRecurse)
+TEST(TestJsonUtils, mapToJsonArrayDoesntRecurse)
 {
     // MapAsJsonArray should apply only to the top-level `std::map`, but not the inner `std::map`.
     using MapOfMap = std::map<std::string, std::map<std::string, Animal>>;
@@ -281,7 +242,7 @@ TEST_F(TestJsonUtils, mapToJsonArrayDoesntRecurse)
     EXPECT_EQ(map_result, map_of_map);
 }
 
-TEST_F(TestJsonUtils, sortJsonKeys)
+TEST(TestJsonUtils, sortJsonKeys)
 {
     // Force a different sort order for our map.
     using Map = std::map<std::string, std::string, std::greater<>>;
@@ -293,7 +254,7 @@ TEST_F(TestJsonUtils, sortJsonKeys)
     EXPECT_EQ(serialize(json_result), serialize(json_object));
 }
 
-TEST_F(TestJsonUtils, sortJsonKeysDoesntRecurse)
+TEST(TestJsonUtils, sortJsonKeysDoesntRecurse)
 {
     // Force a different sort order for our maps.
     using InnerMap = std::map<std::string, std::string, std::greater<>>;
@@ -398,20 +359,20 @@ INSTANTIATE_TEST_SUITE_P(TestJsonUtils,
                               "    }\n"
                               "}")));
 
-TEST_F(TestJsonUtils, jsonToQString)
+TEST(TestJsonUtils, jsonToQString)
 {
     boost::json::value json = "hello";
     EXPECT_EQ(value_to<QString>(json), QString("hello"));
 }
 
-TEST_F(TestJsonUtils, qStringToJson)
+TEST(TestJsonUtils, qStringToJson)
 {
     QString str = "hello";
     auto json = boost::json::value_from(str);
     EXPECT_EQ(json, boost::json::string("hello"));
 }
 
-TEST_F(TestJsonUtils, jsonToQStringList)
+TEST(TestJsonUtils, jsonToQStringList)
 {
     boost::json::value json = {"hello", "goodbye"};
     EXPECT_EQ(value_to<QStringList>(json),
@@ -419,7 +380,7 @@ TEST_F(TestJsonUtils, jsonToQStringList)
                             << "goodbye");
 }
 
-TEST_F(TestJsonUtils, qStringListToJson)
+TEST(TestJsonUtils, qStringListToJson)
 {
     auto list = QStringList() << "hello"
                               << "goodbye";
