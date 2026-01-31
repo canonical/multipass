@@ -45,7 +45,6 @@ class JsonUtils : public Singleton<JsonUtils>
 public:
     explicit JsonUtils(const Singleton<JsonUtils>::PrivatePass&) noexcept;
 
-    virtual QJsonObject read_object_from_file(const std::filesystem::path& file_path) const;
     virtual std::string json_to_string(const QJsonObject& root) const;
     virtual QJsonValue update_cloud_init_instance_id(const QJsonValue& id,
                                                      const std::string& src_vm_name,
