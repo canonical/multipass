@@ -40,6 +40,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
+    initialize_vm_handle();
 }
 
 AppleVZVirtualMachine::~AppleVZVirtualMachine()
@@ -67,8 +68,6 @@ AppleVZVirtualMachine::~AppleVZVirtualMachine()
 void AppleVZVirtualMachine::start()
 {
     mpl::debug(log_category, "start() -> Starting VM `{}`, current state {}", vm_name, state);
-
-    initialize_vm_handle();
 
     state = State::starting;
     handle_state_update();
