@@ -17,25 +17,18 @@
 
 #pragma once
 
-#include <QMetaType>
-#include <QUrl>
+#include <stdexcept>
 
-#include <boost/json.hpp>
+#include <multipass/format.h>
 
 namespace multipass
 {
-
-struct NewReleaseInfo
+class UnsupportedArchException : public std::runtime_error
 {
-    QString version;
-    QUrl url;
-    QString title;
-    QString description;
+public:
+    UnsupportedArchException(const std::string& arch)
+        : runtime_error(fmt::format("Unsupported arch '{}'", arch))
+    {
+    }
 };
-
-NewReleaseInfo tag_invoke(const boost::json::value_to_tag<NewReleaseInfo>&,
-                          const boost::json::value& json);
-
 } // namespace multipass
-
-Q_DECLARE_METATYPE(multipass::NewReleaseInfo)
