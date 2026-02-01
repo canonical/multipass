@@ -366,7 +366,6 @@ class GuiSettingNotifier extends Notifier<String?> {
     }
     return sharedPreferences.getString(arg);
   }
-  
   void set(String value) {
     final sharedPreferences = ref.read(sharedPreferencesProvider);
     sharedPreferences.setString(arg, value);
