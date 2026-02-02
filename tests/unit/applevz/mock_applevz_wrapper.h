@@ -24,7 +24,7 @@
 
 namespace multipass::test
 {
-class MockAppleVZ : public multipass::applevz::AppleVZ
+class MockAppleVZWrapper : public multipass::applevz::AppleVZ
 {
 public:
     using AppleVZ::AppleVZ;
@@ -72,6 +72,6 @@ public:
                 (const, override));
     MOCK_METHOD(bool, is_supported, (), (const, override));
 
-    MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZ, AppleVZ);
+    MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZWrapper, AppleVZ);
 };
 } // namespace multipass::test
