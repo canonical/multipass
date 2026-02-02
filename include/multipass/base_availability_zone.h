@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/json.hpp>
+
 namespace multipass
 {
 class BaseAvailabilityZone : public AvailabilityZone
@@ -42,8 +44,6 @@ public:
     void remove_vm(VirtualMachine& vm) override;
 
 private:
-    void serialize() const;
-
     mutable std::recursive_mutex mutex;
     const std::filesystem::path file_path;
     const std::string name;
@@ -54,13 +54,26 @@ private:
     struct Data
     {
         const Subnet subnet;
-        bool available{};
+        bool available;
     } m;
 
-    static Data read_from_file(const std::string& name,
-                               size_t zone_num,
-                               const std::filesystem::path& file_path);
+    static Data load_file(const std::string& name,
+                          size_t zone_num,
+                          const std::filesystem::path& file_path);
+    void save_file() const;
+
+    friend void tag_invoke(const boost::json::value_from_tag&,
+                           boost::json::value& json,
+                           const Data& zone);
+    friend Data tag_invoke(const boost::json::value_to_tag<Data>&, const boost::json::value& json);
 };
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const BaseAvailabilityZone::Data& zone);
+BaseAvailabilityZone::Data tag_invoke(const boost::json::value_to_tag<BaseAvailabilityZone::Data>&,
+                                      const boost::json::value& json);
+
 } // namespace multipass
 
 #endif // MULTIPASS_BASE_AVAILABILITY_ZONE_H

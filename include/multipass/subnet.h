@@ -21,6 +21,8 @@
 #include <multipass/path.h>
 #include <multipass/singleton.h>
 
+#include <boost/json.hpp>
+
 #include "ip_address.h"
 
 namespace multipass
@@ -80,6 +82,19 @@ public:
 
     [[nodiscard]] std::strong_ordering operator<=>(const Subnet& other) const;
     [[nodiscard]] bool operator==(const Subnet& other) const = default;
+
+    friend void tag_invoke(const boost::json::value_from_tag&,
+                           boost::json::value& json,
+                           const Subnet& subnet)
+    {
+        json = subnet.to_cidr();
+    }
+
+    friend Subnet tag_invoke(const boost::json::value_to_tag<Subnet>&,
+                             const boost::json::value& json)
+    {
+        return value_to<std::string>(json);
+    }
 
 private:
     IPAddress address;
