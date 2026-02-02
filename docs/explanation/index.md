@@ -5,7 +5,7 @@ The following guides provide conceptual context and clarification on the key top
 
 ## Architecture
 
-These topics cover the foundations of how Multipass operates on your machine.
+These topics cover the foundations of how Multipass operates on your machine, providing a high-level overview of its structure and components.
 
 - [Reference architecture](explanation-reference-architecture): A high-level overview of how Multipass is structured, including its clients, daemon, storage, instances, and networking.
 - [Host](explanation-host)
@@ -24,7 +24,7 @@ These guides explain the lifecycle, identity, and resources of the virtual machi
 
 ## Using Multipass
 
-Concepts related to interacting with, securing, and extending the functionality of your instances.
+Concepts related to interacting and extending the functionality of your instances.
 
 - [Multipass exec and shells](explanation-multipass-exec-and-shells)
 - [Mount](explanation-mount)
