@@ -75,7 +75,7 @@ catch (const std::ios_base::failure& e)
 namespace multipass
 {
 
-BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::string& name,
+BaseAvailabilityZone::Data BaseAvailabilityZone::read_from_file(const std::string& name,
                                                                 size_t zone_num,
                                                                 const fs::path& file_path)
 {
@@ -83,8 +83,6 @@ BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::strin
 
     const auto json = read_json(file_path, name);
     return {
-        .name = name,
-        .file_path = file_path,
         .subnet = deserialize_subnet(json, file_path, name, zone_num),
         .available = deserialize_available(json, file_path, name),
     };
@@ -93,14 +91,16 @@ BaseAvailabilityZone::data BaseAvailabilityZone::read_from_file(const std::strin
 BaseAvailabilityZone::BaseAvailabilityZone(const std::string& name,
                                            size_t num,
                                            const fs::path& az_directory)
-    : m{read_from_file(name, num, az_directory / (name + ".json"))}
+    : file_path{az_directory / (name + ".json")},
+      name{name},
+      m{read_from_file(name, num, file_path)}
 {
     serialize();
 }
 
 const std::string& BaseAvailabilityZone::get_name() const
 {
-    return m.name;
+    return name;
 }
 
 const Subnet& BaseAvailabilityZone::get_subnet() const
@@ -110,15 +110,15 @@ const Subnet& BaseAvailabilityZone::get_subnet() const
 
 bool BaseAvailabilityZone::is_available() const
 {
-    const std::unique_lock lock{m.mutex};
+    const std::unique_lock lock{mutex};
     return m.available;
 }
 
 void BaseAvailabilityZone::set_available(const bool new_available)
 {
 
-    mpl::debug(m.name, "making AZ {}available", new_available ? "" : "un");
-    const std::unique_lock lock{m.mutex};
+    mpl::debug(name, "making AZ {}available", new_available ? "" : "un");
+    const std::unique_lock lock{mutex};
     if (m.available == new_available)
         return;
 
@@ -130,13 +130,13 @@ void BaseAvailabilityZone::set_available(const bool new_available)
         }
         catch (const std::exception& e)
         {
-            mpl::error(m.name, "Failed to serialize availability zone: {}", e.what());
+            mpl::error(name, "Failed to serialize availability zone: {}", e.what());
         }
     });
 
     try
     {
-        for (auto& vm : m.vms)
+        for (auto& vm : vms)
             vm.get().set_available(new_available);
     }
     catch (...)
@@ -145,7 +145,7 @@ void BaseAvailabilityZone::set_available(const bool new_available)
         m.available = true;
 
         // make sure nothing is still unavailable.
-        for (auto& vm : m.vms)
+        for (auto& vm : vms)
         {
             // setting the state here breaks encapsulation, but it's already broken.
             std::unique_lock vm_lock{vm.get().state_mutex};
@@ -163,33 +163,33 @@ void BaseAvailabilityZone::set_available(const bool new_available)
 
 void BaseAvailabilityZone::add_vm(VirtualMachine& vm)
 {
-    mpl::debug(m.name, "adding vm '{}' to AZ", vm.get_name());
-    const std::unique_lock lock{m.mutex};
-    m.vms.emplace_back(vm);
+    mpl::debug(name, "adding vm '{}' to AZ", vm.get_name());
+    const std::unique_lock lock{mutex};
+    vms.emplace_back(vm);
 }
 
 void BaseAvailabilityZone::remove_vm(VirtualMachine& vm)
 {
-    mpl::debug(m.name, "removing vm '{}' from AZ", vm.get_name());
-    const std::unique_lock lock{m.mutex};
+    mpl::debug(name, "removing vm '{}' from AZ", vm.get_name());
+    const std::unique_lock lock{mutex};
     // as of now, we use vm names to uniquely identify vms, so we can do the same here
-    const auto to_remove = std::remove_if(m.vms.begin(), m.vms.end(), [&](const auto& some_vm) {
+    const auto to_remove = std::remove_if(vms.begin(), vms.end(), [&](const auto& some_vm) {
         return some_vm.get().get_name() == vm.get_name();
     });
-    m.vms.erase(to_remove, m.vms.end());
+    vms.erase(to_remove, vms.end());
 }
 
 void BaseAvailabilityZone::serialize() const
 {
-    mpl::trace(m.name, "writing AZ to file '{}'", m.file_path);
-    const std::unique_lock lock{m.mutex};
+    mpl::trace(name, "writing AZ to file '{}'", file_path);
+    const std::unique_lock lock{mutex};
 
     const QJsonObject json{
         {subnet_key, QString::fromStdString(m.subnet.to_cidr())},
         {available_key, m.available},
     };
 
-    MP_FILEOPS.write_transactionally(QString::fromStdU16String(m.file_path.u16string()),
+    MP_FILEOPS.write_transactionally(QString::fromStdU16String(file_path.u16string()),
                                      QJsonDocument{json}.toJson());
 }
 } // namespace multipass

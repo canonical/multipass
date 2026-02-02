@@ -44,21 +44,20 @@ public:
 private:
     void serialize() const;
 
+    mutable std::recursive_mutex mutex;
+    const std::filesystem::path file_path;
+    const std::string name;
+    std::vector<std::reference_wrapper<VirtualMachine>> vms;
+
     // we store all the data in one struct so that it can be created from one function call in the
     // initializer list
-    struct data
+    struct Data
     {
-        const std::string name{};
-        const std::filesystem::path file_path{};
         const Subnet subnet;
         bool available{};
-        std::vector<std::reference_wrapper<VirtualMachine>> vms{};
-        // we don't have designated initializers, so mutex remains last so it doesn't need to be
-        // manually initialized
-        mutable std::recursive_mutex mutex{};
     } m;
 
-    static data read_from_file(const std::string& name,
+    static Data read_from_file(const std::string& name,
                                size_t zone_num,
                                const std::filesystem::path& file_path);
 };
