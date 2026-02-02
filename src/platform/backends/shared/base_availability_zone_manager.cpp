@@ -79,20 +79,18 @@ catch (const std::ios_base::failure& e)
 namespace multipass
 {
 
-BaseAvailabilityZoneManager::data BaseAvailabilityZoneManager::read_from_file(
+BaseAvailabilityZoneManager::ZoneCollection BaseAvailabilityZoneManager::read_from_file(
     const std::filesystem::path& file_path,
     const std::filesystem::path& zones_directory)
 {
     mpl::debug(category, "reading AZ manager from file '{}'", file_path);
-    return {
-        .file_path = file_path,
-        .zone_collection = {create_default_zones(zones_directory),
-                            deserialize_automatic_zone(read_json(file_path))},
-    };
+    return {create_default_zones(zones_directory),
+            deserialize_automatic_zone(read_json(file_path))};
 }
 
 BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_dir)
-    : m{read_from_file(data_dir / az_file, data_dir / zones_directory_name)}
+    : file_path{data_dir / az_file},
+      zone_collection{read_from_file(file_path, data_dir / zones_directory_name)}
 {
     serialize();
 }
@@ -109,7 +107,7 @@ AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string& name)
 
 std::string BaseAvailabilityZoneManager::get_automatic_zone_name()
 {
-    const auto zone_name = m.zone_collection.next_available();
+    const auto zone_name = zone_collection.next_available();
     serialize();
     return zone_name;
 }
@@ -130,21 +128,21 @@ std::string BaseAvailabilityZoneManager::get_default_zone_name() const
 
 void BaseAvailabilityZoneManager::serialize() const
 {
-    mpl::debug(category, "writing AZ manager to file '{}'", m.file_path);
-    const std::unique_lock lock{m.mutex};
+    mpl::debug(category, "writing AZ manager to file '{}'", file_path);
+    const std::unique_lock lock{mutex};
 
     const QJsonObject json{
-        {automatic_zone_key, QString::fromStdString(m.zone_collection.last_used())},
+        {automatic_zone_key, QString::fromStdString(zone_collection.last_used())},
     };
 
-    MP_FILEOPS.write_transactionally(QString::fromStdU16String(m.file_path.u16string()),
+    MP_FILEOPS.write_transactionally(QString::fromStdU16String(file_path.u16string()),
                                      QJsonDocument{json}.toJson());
 }
 
 const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray&
 BaseAvailabilityZoneManager::zones() const
 {
-    return m.zone_collection.zones;
+    return zone_collection.zones;
 }
 
 BaseAvailabilityZoneManager::ZoneCollection::ZoneCollection(
