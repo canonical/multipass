@@ -59,8 +59,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
-            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
+            .WillOnce(Return(std::nullopt));
         EXPECT_CALL(*mock_file_ops_guard.first,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _));
     }
@@ -92,8 +92,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
-            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
+            .WillOnce(Return(std::nullopt));
         EXPECT_CALL(*mock_file_ops_guard.first,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
@@ -139,8 +139,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
-            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
+            .WillOnce(Return(std::nullopt));
         EXPECT_CALL(*mock_file_ops_guard.first,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
@@ -165,8 +165,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, open_read(zone_file, _))
-            .WillOnce(Return(mpt::mock_read_data("{}")));
+        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
+            .WillOnce(Return(std::nullopt));
         EXPECT_CALL(*mock_file_ops_guard.first,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
