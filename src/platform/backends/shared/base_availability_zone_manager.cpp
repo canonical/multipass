@@ -50,49 +50,16 @@ constexpr auto automatic_zone_key = "automatic_zone";
 
     return zones;
 };
-
-[[nodiscard]] QJsonObject read_json(const std::filesystem::path& file_path)
-try
-{
-    return MP_JSONUTILS.read_object_from_file(file_path);
-}
-catch (const std::ios_base::failure& e)
-{
-    mpl::warn(category, "failed to read AZ manager file': {}", e.what());
-    return QJsonObject{};
-}
-
-[[nodiscard]] std::string deserialize_automatic_zone(const QJsonObject& json)
-{
-    using namespace multipass;
-
-    auto json_automatic_zone = json[automatic_zone_key].toString().toStdString();
-    if (std::find(default_zone_names.begin(), default_zone_names.end(), json_automatic_zone) !=
-        default_zone_names.end())
-        return json_automatic_zone;
-
-    mpl::debug(category, "automatic zone '{}' not known, using default", json_automatic_zone);
-    return *default_zone_names.begin();
-}
 } // namespace
 
 namespace multipass
 {
 
-BaseAvailabilityZoneManager::ZoneCollection BaseAvailabilityZoneManager::read_from_file(
-    const std::filesystem::path& file_path,
-    const std::filesystem::path& zones_directory)
-{
-    mpl::debug(category, "reading AZ manager from file '{}'", file_path);
-    return {create_default_zones(zones_directory),
-            deserialize_automatic_zone(read_json(file_path))};
-}
-
 BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_dir)
     : file_path{data_dir / az_file},
-      zone_collection{read_from_file(file_path, data_dir / zones_directory_name)}
+      zone_collection{create_default_zones(data_dir / zones_directory_name), load_file(file_path)}
 {
-    serialize();
+    save_file();
 }
 
 AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string& name)
@@ -108,7 +75,7 @@ AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string& name)
 std::string BaseAvailabilityZoneManager::get_automatic_zone_name()
 {
     const auto zone_name = zone_collection.next_available();
-    serialize();
+    save_file();
     return zone_name;
 }
 
@@ -126,17 +93,33 @@ std::string BaseAvailabilityZoneManager::get_default_zone_name() const
     return (*zones().begin())->get_name();
 }
 
-void BaseAvailabilityZoneManager::serialize() const
+std::string BaseAvailabilityZoneManager::load_file(const std::filesystem::path& file_path)
+{
+    mpl::debug(category, "reading AZ manager from file '{}'", file_path);
+    if (auto filedata = MP_FILEOPS.try_read_file(file_path))
+    {
+        try
+        {
+            auto json = boost::json::parse(*filedata);
+            return value_to<std::string>(json.at(automatic_zone_key));
+        }
+        catch (const boost::system::system_error& e)
+        {
+            mpl::error(category, "Error parsing file '{}': {}", file_path, e.what());
+        }
+    }
+    // Return a default value if we couldn't load from `file_path`.
+    return "";
+}
+
+void BaseAvailabilityZoneManager::save_file() const
 {
     mpl::debug(category, "writing AZ manager to file '{}'", file_path);
     const std::unique_lock lock{mutex};
 
-    const QJsonObject json{
-        {automatic_zone_key, QString::fromStdString(zone_collection.last_used())},
-    };
-
-    MP_FILEOPS.write_transactionally(QString::fromStdU16String(file_path.u16string()),
-                                     QJsonDocument{json}.toJson());
+    boost::json::value json = {{automatic_zone_key, zone_collection.last_used()}};
+    MP_FILEOPS.write_transactionally(QString::fromStdString(file_path.string()),
+                                     pretty_print(json));
 }
 
 const BaseAvailabilityZoneManager::ZoneCollection::ZoneArray&
@@ -153,6 +136,11 @@ BaseAvailabilityZoneManager::ZoneCollection::ZoneCollection(
           return zone->get_name() == last_used;
       })}
 {
+    if (automatic_zone == zones.end())
+    {
+        mpl::debug(category, "automatic zone '{}' not known, using default", last_used);
+        automatic_zone = zones.begin();
+    }
 }
 
 std::string BaseAvailabilityZoneManager::ZoneCollection::next_available()

@@ -48,8 +48,8 @@ struct BaseAvailabilityZoneManagerTest : public Test
 
 TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
+        .WillOnce(Return(std::nullopt));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
@@ -82,8 +82,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 
 TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
+        .WillOnce(Return(std::nullopt));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
@@ -130,8 +130,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 
 TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
+        .WillOnce(Return(std::nullopt));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -156,8 +156,8 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 
 TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(manager_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
+        .WillOnce(Return(std::nullopt));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
