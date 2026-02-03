@@ -40,8 +40,6 @@ public:
     std::string get_default_zone_name() const override;
 
 private:
-    void serialize() const;
-
     class ZoneCollection
     {
     public:
@@ -66,8 +64,8 @@ private:
 
     [[nodiscard]] const ZoneCollection::ZoneArray& zones() const;
 
-    static ZoneCollection read_from_file(const std::filesystem::path& file_path,
-                                         const std::filesystem::path& zones_directory);
+    static std::string load_file(const std::filesystem::path& file_path);
+    void save_file() const;
 };
 } // namespace multipass
 
