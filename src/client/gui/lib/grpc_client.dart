@@ -234,18 +234,6 @@ class GrpcClient {
   Future<DaemonInfoReply> daemonInfo() {
     return doRpc(_client.daemon_info, DaemonInfoRequest()).then((r) => r!);
   }
-
-  Future<ZonesStateReply?> zonesState(List<String> zones, bool available) {
-    return doRpc(
-      _client.zones_state,
-      ZonesStateRequest(zones: zones, available: available),
-    );
-  }
-
-  Future<List<Zone>> zones() {
-    return doRpc(_client.zones, ZonesRequest(), log: false)
-        .then((r) => r!.zones);
-  }
 }
 
 class CustomChannelCredentials extends ChannelCredentials {
