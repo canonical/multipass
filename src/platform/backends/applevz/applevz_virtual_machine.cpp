@@ -157,7 +157,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             if (const auto stop_error = MP_APPLEVZ.stop_vm(vm_handle, true); stop_error)
             {
                 mpl::warn(log_category,
-                          "shutdown() -> VM `{}` envountered an error while quiting, killing "
+                          "shutdown() -> VM `{}` encountered an error while quitting, killing "
                           "process instead: `{}`",
                           vm_name,
                           stop_error);
