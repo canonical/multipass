@@ -118,8 +118,6 @@ mp::Path mp::backend::convert_to_raw(const mp::Path& image_path)
 {
     const auto raw_img_path{image_path + ".raw"};
 
-    QStringList qemuimg_parameters{{"convert", "-p", "-O", "raw", image_path, raw_img_path}};
-
     auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
         QStringList{"convert", "-p", "-O", "raw", image_path, raw_img_path},
         image_path,
