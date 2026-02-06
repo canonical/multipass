@@ -23,7 +23,6 @@
 #include <multipass/base_availability_zone.h>
 #include <multipass/constants.h>
 
-#include <QJsonObject>
 #include <QString>
 
 namespace mp = multipass;
@@ -50,8 +49,7 @@ struct BaseAvailabilityZoneTest : public Test
 
 TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(az_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(az_file)).WillOnce(Return("{}"));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -64,13 +62,12 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
     EXPECT_TRUE(zone.is_available());
 }
 
-TEST_F(BaseAvailabilityZoneTest, loads_existing_zone_file)
+TEST_F(BaseAvailabilityZoneTest, loadsExistingZoneFile)
 {
     const mp::Subnet test_subnet{"10.0.0.0/24"};
 
     const auto json = "{\"subnet\": \"10.0.0.0/24\", \"available\": false}";
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(az_file, _))
-        .WillOnce(Return(mpt::mock_read_data(json)));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(az_file)).WillOnce(Return(json));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -86,11 +83,6 @@ TEST_F(BaseAvailabilityZoneTest, loads_existing_zone_file)
 
 TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
 {
-    QJsonObject json{{"available", true}};
-
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(az_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
-
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(*mock_file_ops_guard.first,
@@ -108,10 +100,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
 
 TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
 {
-    QJsonObject json{{"available", true}};
-
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(az_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(az_file)).WillOnce(Return("{}"));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
@@ -128,10 +117,7 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
 
 TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
 {
-    QJsonObject json{{"available", true}};
-
-    EXPECT_CALL(*mock_file_ops_guard.first, open_read(az_file, _))
-        .WillOnce(Return(mpt::mock_read_data("{}")));
+    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(az_file)).WillOnce(Return("{}"));
 
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
 
