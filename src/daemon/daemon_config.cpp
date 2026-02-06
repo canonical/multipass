@@ -146,7 +146,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
 #else
     if (az_manager == nullptr)
-        az_manager = std::make_unique<SingleAvailabilityZoneManager>();
+        az_manager = std::make_unique<SingleAvailabilityZoneManager>(data_directory);
 #endif
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory, *az_manager);
