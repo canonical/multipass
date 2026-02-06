@@ -20,6 +20,7 @@
 #include <multipass/alias_definition.h>
 #include <multipass/terminal.h>
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -44,7 +45,7 @@ public:
     struct JSONContext
     {
         Terminal* term;
-        std::string filename;
+        std::filesystem::path filename;
     };
 
     typedef std::unordered_map<std::string, AliasContext> DictType;
@@ -57,10 +58,13 @@ private:
     AliasDict(Terminal* term);
 
 public:
-    AliasDict(Terminal* term, const std::string& active_context, const std::string& filename);
+    AliasDict(Terminal* term,
+              const std::string& active_context,
+              const std::filesystem::path& filename);
     ~AliasDict();
-    static std::string default_filename();
-    static AliasDict load_file(Terminal* term, const std::string& filename = default_filename());
+    static std::filesystem::path default_filename();
+    static AliasDict load_file(Terminal* term,
+                               const std::filesystem::path& filename = default_filename());
 
     void set_active_context(const std::string& new_active_context);
     std::string active_context_name() const;
@@ -138,7 +142,7 @@ private:
     DictType aliases;
 
     bool modified = false;
-    std::string aliases_file;
+    std::filesystem::path aliases_file;
     std::ostream& cerr;
 }; // class AliasDict
 
