@@ -4839,7 +4839,7 @@ TEST_F(ClientAlias, failsIfUnableToCreateDirectory)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, write_transactionally, FileOps);
 
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
