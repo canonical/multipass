@@ -64,6 +64,7 @@ TEST_F(LogLocationTests, logsWithMultipleFormatArgs)
 TEST_F(LogLocationTests, includesFunctionName)
 {
     constexpr auto level = mpl::Level::error;
+    // The gtest `TEST_F` macro expands to a function named `TestBody`.
     logger_scope.mock_logger->expect_log(level, "TestBody");
     mpl::log_location(level, test_category, "msg");
 }
