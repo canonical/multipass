@@ -26,9 +26,7 @@ namespace multipass
 class SingleAvailabilityZoneManager final : public AvailabilityZoneManager
 {
 public:
-    SingleAvailabilityZoneManager()
-    {
-    }
+    SingleAvailabilityZoneManager(const multipass::Path& data_dir);
 
     AvailabilityZone& get_zone(const std::string& name) override
     {
@@ -49,6 +47,6 @@ public:
     }
 
 private:
-    SingleAvailabilityZone zone{"zone1", Subnet{"192.168.123.0/24"}};
+    SingleAvailabilityZone zone;
 };
 } // namespace multipass
