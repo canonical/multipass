@@ -33,7 +33,7 @@ jobs:
             "cmake-preset": "ci-snap-debug"
           }, {
             "build-type": "Clang",
-            "cmake-preset": "ci-snap-clang-15"
+            "cmake-preset": "ci-snap-clang-18"
           }, {
             "build-type": "Release",
             "cmake-preset": "ci-snap"
