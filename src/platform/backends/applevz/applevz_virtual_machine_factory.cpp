@@ -15,7 +15,11 @@
  *
  */
 
+#include <applevz/applevz_virtual_machine.h>
 #include <applevz/applevz_virtual_machine_factory.h>
+#include <qemu/qemu_img_utils.h>
+
+namespace mp = multipass;
 
 namespace multipass::applevz
 {
@@ -30,21 +34,32 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return nullptr;
+    return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        get_instance_directory(desc.vm_name));
 }
 
 VMImage AppleVZVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
-    return VMImage{};
+    VMImage image{source_image};
+    image.image_path = backend::convert_to_raw(source_image.image_path);
+    return image;
 }
 
 void AppleVZVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
                                                           const VirtualMachineDescription& desc)
 {
+    backend::resize_instance_image(desc.disk_space, instance_image.image_path);
 }
 
 void AppleVZVirtualMachineFactory::hypervisor_health_check()
 {
+    if (!MP_APPLEVZ.is_supported())
+    {
+        throw std::runtime_error("Virtualization is not supported on this system.");
+    }
 }
 
 void AppleVZVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -52,12 +67,16 @@ void AppleVZVirtualMachineFactory::remove_resources_for_impl(const std::string& 
 }
 
 VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
-    const std::string& source_vm_name,
-    const multipass::VMSpecs& src_vm_specs,
+    const std::string& /*source_vm_name*/,
+    const multipass::VMSpecs& /*src_vm_specs*/,
     const VirtualMachineDescription& desc,
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return nullptr;
+    return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        get_instance_directory(desc.vm_name));
 }
 } // namespace multipass::applevz

@@ -17,7 +17,11 @@
 
 #pragma once
 
+#include <applevz/applevz_bridge.h>
+#include <applevz/cf_error.h>
+
 #include <multipass/singleton.h>
+#include <multipass/virtual_machine_description.h>
 
 #define MP_APPLEVZ multipass::applevz::AppleVZ::instance()
 
@@ -27,5 +31,25 @@ class AppleVZ : public Singleton<AppleVZ>
 {
 public:
     using Singleton<AppleVZ>::Singleton;
+
+    virtual CFError create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const;
+
+    // Starting and stopping VM
+    virtual CFError start_vm(const VMHandle& vm_handle) const;
+    virtual CFError stop_vm(const VMHandle& vm_handle, bool force = false) const;
+    virtual CFError pause_vm(const VMHandle& vm_handle) const;
+    virtual CFError resume_vm(const VMHandle& vm_handle) const;
+
+    // Getting VM state
+    virtual AppleVMState get_state(const VMHandle& vm_handle) const;
+
+    // Validate the state of VM
+    virtual bool can_start(const VMHandle& vm_handle) const;
+    virtual bool can_pause(const VMHandle& vm_handle) const;
+    virtual bool can_resume(const VMHandle& vm_handle) const;
+    virtual bool can_stop(const VMHandle& vm_handle) const;
+    virtual bool can_request_stop(const VMHandle& vm_handle) const;
+
+    virtual bool is_supported() const;
 };
 } // namespace multipass::applevz
