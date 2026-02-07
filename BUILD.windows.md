@@ -15,7 +15,7 @@ After chocolatey is installed you can now install the rest of the dependencies f
 Powershell(Admin). To get the best results, in the following order:
 
 ```[pwsh]
-choco install cmake ninja qemu-img git wget unzip -yfd
+choco install cmake ninja qemu-img git wget unzip rustup.install -yfd
 ```
 
 ```[pwsh]
@@ -140,7 +140,7 @@ Finally, to build the project, run:
 cmake --build . --parallel
 ```
 
-This builds `multipass`, `multipassd`, and `multipass_tests`.
+This builds `multipass`, `multipassd`, and `multipass_cpp_tests`.
 To create an installer, run `cmake --build . --target package`.
 
 ## Running `multipass`

@@ -1,0 +1,60 @@
+# Copyright (C) Canonical, Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+[workspace]
+members = [
+  "macros",
+  "petname",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.91"
+
+[workspace.dependencies]
+cxx = "^1.0.0"
+cxx-build = "^1.0.0"
+static_assertions = "^1.1.0"
+syn = "^2.0.0"
+quote = "^1.0.0"
+proc-macro2 = "^1.0.0"
+rand = "^0.9.0"
+macros = { path = "macros" }
+petname = { path = "petname" }
+
+# This is debug
+[profile.dev]
+opt-level = 0
+debug = true
+strip = "none"
+debug-assertions = true
+overflow-checks = true
+lto = true
+panic = 'unwind'
+incremental = true
+codegen-units = 1 #Lower means slow compilation better optimization
+rpath = false
+
+[profile.release]
+lto = true
+debug = false
+strip = "debuginfo"
+opt-level = "s"
+codegen-units = 1 #Lower codegen count improves compiler optimization
+panic = "abort"
+debug-assertions = false
+overflow-checks = false
+incremental = false #Removing incremental compilation allows lower codegen count
