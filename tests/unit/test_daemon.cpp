@@ -36,6 +36,7 @@
 #include "mock_vm_image_vault.h"
 #include "stub_virtual_machine.h"
 
+#include "gmock/gmock.h"
 #include <src/daemon/default_vm_image_vault.h>
 #include <src/daemon/instance_settings_handler.h>
 
@@ -585,6 +586,12 @@ struct LaunchWithNoExtraNetworkCloudInit : public Daemon,
 {
 };
 
+struct DaemonCreateLaunchCoreImageResizeTestSuite
+    : public Daemon,
+      public WithParamInterface<std::vector<std::string>>
+{
+};
+
 struct RefuseBridging : public Daemon,
                         public WithParamInterface<std::tuple<std::string, std::string>>
 {
@@ -870,6 +877,40 @@ TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
     send_command(launch_args);
 }
 
+TEST_P(DaemonCreateLaunchCoreImageResizeTestSuite, coreCloudInitAddsResizeScript)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
+        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
+            EXPECT_THAT(desc.vendor_data_config, YAMLNodeContainsSequence("write_files"));
+
+            auto const& write_files_list = desc.vendor_data_config["write_files"];
+            bool found_script = false;
+            for (const auto& node : write_files_list)
+            {
+                if (node["path"] && node["path"].as<std::string>() ==
+                                        "/var/lib/cloud/scripts/per-boot/01-resize-data.sh")
+                {
+
+                    found_script = true;
+
+                    EXPECT_EQ(node["permissions"].as<std::string>(), "0755");
+
+                    std::string content = node["content"].as<std::string>();
+                    EXPECT_THAT(content, ::testing::HasSubstr("growpart"));
+                    EXPECT_THAT(content, ::testing::HasSubstr("resize2fs"));
+                    break;
+                }
+
+                EXPECT_TRUE(found_script) << "Resize script was not found in write_files list";
+            }
+        });
+    const auto launch_args = GetParam();
+    send_command(launch_args);
+}
+
 std::vector<std::string> make_args(const std::vector<std::string>& args)
 {
     std::vector<std::string> all_args{"launch"};
@@ -895,6 +936,12 @@ INSTANTIATE_TEST_SUITE_P(
            make_args({"daily:21.04", "--network", "name=eth0,mode=manual"}),
            make_args({"snapcraft:core18", "--network", "name=eth0,mode=manual"}),
            make_args({"snapcraft:core20"})));
+
+INSTANTIATE_TEST_SUITE_P(Daemon,
+                         DaemonCreateLaunchCoreImageResizeTestSuite,
+                         Values(make_args({"core:core20"}),
+                                make_args({"core:core22"}),
+                                make_args({"snapcraft:core20"})));
 
 TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
 {
@@ -1141,8 +1188,8 @@ TEST_F(Daemon, readsMacAddressesFromJson)
             return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
         }));
 
-    // Make the daemon look for the JSON on our temporary directory. It will read the contents of
-    // the file.
+    // Make the daemon look for the JSON on our temporary directory. It will read the contents
+    // of the file.
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
 
@@ -1184,7 +1231,8 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
     std::string mac_addr("52:54:00:23:11:97");
     std::vector<mp::NetworkInterface> extra_interfaces{};
 
-    // Create a temp folder containing three subfolders, and create mount points for all of them.
+    // Create a temp folder containing three subfolders, and create mount points for all of
+    // them.
     auto temp_mount_dir = QDir(mpt::TempDir().path());
     auto temp_mount_1 =
         MP_UTILS.make_dir(temp_mount_dir, QString("a"), std::filesystem::perms::none).toStdString();
@@ -1222,8 +1270,8 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
             return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
         }));
 
-    // Make the daemon look for the JSON on our temporary directory. It will read the contents of
-    // the file.
+    // Make the daemon look for the JSON on our temporary directory. It will read the contents
+    // of the file.
     config_builder.data_directory = temp_dir->path();
     mp::Daemon daemon{config_builder.build()};
 
@@ -1621,9 +1669,9 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image)
         .WillOnce(Return(
-            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})) // cause the Daemon's ctor to
-                                                                      // fail verifying that the img
-                                                                      // exists
+            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})) // cause the Daemon's ctor
+                                                                      // to fail verifying that
+                                                                      // the img exists
         .WillRepeatedly(DoDefault());
     config_builder.vault = std::move(mock_image_vault);
 
@@ -1739,11 +1787,10 @@ TEST_F(Daemon, refusesLaunchWithInvalidBridgedInterface)
 
     std::stringstream err_stream;
     send_command({"launch", "--network", "bridged"}, trash_stream, err_stream);
-    EXPECT_THAT(
-        err_stream.str(),
-        HasSubstr(
-            "Invalid network 'invalid' set as bridged interface, use `multipass set "
-            "local.bridged-network=<name>` to correct. See `multipass networks` for valid names."));
+    EXPECT_THAT(err_stream.str(),
+                HasSubstr("Invalid network 'invalid' set as bridged interface, use `multipass set "
+                          "local.bridged-network=<name>` to correct. See `multipass networks` for "
+                          "valid names."));
 }
 
 TEST_F(Daemon, keysReturnsSettingsKeys)

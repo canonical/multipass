@@ -157,10 +157,37 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
+    bool is_core_image = request->image().find("core") != std::string::npos;
 
     // Pollinate is not available as a RPM package and also dependencies that are inherent to
     // Ubuntu/Debian systems
-    if (request->image() != "fedora")
+    if (is_core_image)
+    {
+        auto resize2fs_script =
+            fmt::format("#!/bin/bash\n#multipass/version/{} # written by Multipass\n",
+                        multipass::version_string);
+        resize2fs_script +=
+            fmt::format("#multipass/driver/{} # written by Multipass\n", backend_version_string);
+        // Get the partition with ubuntu-data label (writable)
+        resize2fs_script += "PART_PATH=$(blkid -L ubuntu-data)\n";
+        // Check that it exists
+        resize2fs_script += "if [ -z \"$PART_PATH\" ]; then\n";
+        resize2fs_script += "    echo \"Resize script: ubuntu-data partition not found.\"\n";
+        resize2fs_script += "    exit 0\n";
+        resize2fs_script += "fi\n";
+        // Get the parent disk (/dev/sda)
+        resize2fs_script += "PARENT_DISK=\"/dev/$(lsblk -no pkname \"$PART_PATH\" | head -n 1)\"\n";
+        // Get the partition number (5)
+        resize2fs_script += "PART_NUM=$(echo $PART_PATH | grep -o \"[0-9]*$\")\n";
+        resize2fs_script += "growpart \"$PARENT_DISK\" \"$PART_NUM\" || true\n";
+        resize2fs_script += "resize2fs \"$PART_PATH\"\n";
+        YAML::Node resize2fs_node;
+        resize2fs_node["path"] = "/var/lib/cloud/scripts/per-boot/01-resize-data.sh";
+        resize2fs_node["permissions"] = "0755";
+        resize2fs_node["content"] = resize2fs_script;
+        config["write_files"].push_back(resize2fs_node);
+    }
+    if (request->image() != "fedora" && !is_core_image)
     {
         config["packages"].push_back("pollinate");
 
