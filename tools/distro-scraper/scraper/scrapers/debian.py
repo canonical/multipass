@@ -3,6 +3,7 @@ import aiohttp
 import asyncio
 from email.parser import Parser
 from ..base import BaseScraper
+from ..models import SUPPORTED_ARCHITECTURES
 
 RELEASE_FILE_URL = "https://deb.debian.org/debian/dists/stable/Release"
 MANIFEST_URL_TEMPLATE = "https://cloud.debian.org/images/cloud/{codename}/latest/debian-{version}-generic-{arch}.json"
@@ -51,14 +52,17 @@ class DebianScraper(BaseScraper):
 
     async def _fetch_json(
         self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
-    ) -> dict:
+    ) -> dict | None:
         """
-        GET a URL and return JSON-decoded content.
+        GET a URL and return JSON-decoded content, or None if not found (404).
         """
         self.logger.info("Fetching Debian manifest from %s", url)
         async with session.get(
             url, timeout=aiohttp.ClientTimeout(total=timeout)
         ) as resp:
+            if resp.status == 404:
+                self.logger.info("Manifest not found (404): %s", url)
+                return None
             resp.raise_for_status()
             return await resp.json()
 
@@ -134,27 +138,39 @@ class DebianScraper(BaseScraper):
         """
         Fetch image manifests for known arches and build the items mapping.
 
-        Preserves original mapping and output structure.
+        Iterates over SUPPORTED_ARCHITECTURES, maps through arch_map for scraping,
+        but returns data under original SUPPORTED_ARCHITECTURES keys.
         """
+        # Map SUPPORTED_ARCHITECTURES to Debian-specific architecture names
         arch_map = {
-            "amd64": "x86_64",
-            "arm64": "arm64",
+            "x86_64": "amd64",
+            "power64le": "ppc64el",
         }
+
+        # Build list of (original_arch, mapped_arch) tuples for SUPPORTED_ARCHITECTURES
+        arch_pairs = [
+            (arch, arch_map.get(arch, arch))
+            for arch in SUPPORTED_ARCHITECTURES
+        ]
 
         # Fetch all manifests concurrently
         manifest_urls = [
-            MANIFEST_URL_TEMPLATE.format(codename=codename, version=version, arch=arch)
-            for arch in arch_map.keys()
+            MANIFEST_URL_TEMPLATE.format(codename=codename, version=version, arch=mapped_arch)
+            for _, mapped_arch in arch_pairs
         ]
         manifests = await asyncio.gather(
             *[self._fetch_json(session, url) for url in manifest_urls]
         )
 
         items: dict[str, dict] = {}
-        for (arch, label), manifest in zip(arch_map.items(), manifests):
+        for (original_arch, mapped_arch), manifest in zip(arch_pairs, manifests):
+            if manifest is None:
+                self.logger.info("Skipping %s: manifest not available", mapped_arch)
+                continue
+
             upload_item = self._find_qcow2_upload(manifest)
             if not upload_item:
-                self.logger.info("No qcow2 upload found for %s %s", codename, arch)
+                self.logger.info("No qcow2 upload found for %s %s", codename, mapped_arch)
                 continue
 
             metadata = upload_item.get("metadata", {})
@@ -165,7 +181,7 @@ class DebianScraper(BaseScraper):
             image_ref = data.get("ref")
             if not image_ref:
                 self.logger.warning(
-                    "Upload item missing data.ref for %s %s", codename, arch
+                    "Upload item missing data.ref for %s %s", codename, mapped_arch
                 )
                 continue
 
@@ -181,7 +197,8 @@ class DebianScraper(BaseScraper):
             if raw_version_label:
                 short_version = raw_version_label.split("-")[0]
 
-            items[label] = {
+            # Store under original SUPPORTED_ARCHITECTURES key
+            items[original_arch] = {
                 "image_location": image_url,
                 "id": sha512_hex,
                 "version": short_version,
