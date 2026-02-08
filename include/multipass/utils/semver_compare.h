@@ -29,7 +29,7 @@ struct opaque_semver
 
 inline namespace literals
 {
-[[nodiscard]] inline opaque_semver operator"" _semver(const char* value, std::size_t len)
+[[nodiscard]] inline opaque_semver operator""_semver(const char* value, std::size_t len)
 {
     const auto sv = std::string_view{value, len};
     return opaque_semver{std::string{sv}};
