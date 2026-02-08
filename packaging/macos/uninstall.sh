@@ -68,6 +68,10 @@ rm -rfv "$HOME/Library/Preferences/multipass"
 rm -rfv "/usr/local/etc/bash_completion.d/multipass"
 rm -rf "/opt/local/share/bash-completion/completions/multipass"
 
+# Zsh completions
+rm -rfv "/usr/local/share/zsh/site-functions/_multipass"
+rm -rf "/opt/local/share/zsh/site-functions/_multipass"
+
 # Log files
 rm -rfv "/Library/Logs/Multipass"
 

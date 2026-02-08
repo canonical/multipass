@@ -1,0 +1,822 @@
+#compdef multipass
+
+function _multipass__resolve_cmd() {
+  local cmd
+  cmd=${commands[multipass]}
+  [[ -n ${cmd} ]] || cmd=$(command -v multipass 2>/dev/null)
+  if [[ -z ${cmd} && -x /usr/local/bin/multipass ]]; then
+    cmd=/usr/local/bin/multipass
+  fi
+  print -r -- ${cmd}
+}
+
+function _multipass__csv_get_field() {
+  local line=${1}
+  local wanted_index=${2}
+  local value=''
+  local ch next_ch
+  integer i field_index=1 in_quotes=0 line_len
+
+  line_len=${#line}
+  for (( i=1; i<=line_len; ++i )); do
+    ch=${line[i]}
+
+    if (( in_quotes )); then
+      if [[ ${ch} == '"' ]]; then
+        if (( i < line_len )); then
+          next_ch=${line[i+1]}
+          if [[ ${next_ch} == '"' ]]; then
+            (( field_index == wanted_index )) && value+='"'
+            (( ++i ))
+            continue
+          fi
+        fi
+        in_quotes=0
+        continue
+      fi
+      (( field_index == wanted_index )) && value+=${ch}
+      continue
+    fi
+
+    case ${ch} in
+      '"')
+        in_quotes=1
+        ;;
+      ',')
+        if (( field_index == wanted_index )); then
+          print -r -- ${value}
+          return 0
+        fi
+        (( ++field_index ))
+        ;;
+      $'\r')
+        ;;
+      *)
+        (( field_index == wanted_index )) && value+=${ch}
+        ;;
+    esac
+  done
+
+  if (( field_index == wanted_index )); then
+    print -r -- ${value}
+  fi
+}
+
+function _multipass__collect_instance_names() {
+  local -a wanted_states wanted_states_lc lines names
+  local line name state rest out multipass_cmd
+
+  wanted_states=(${@})
+  wanted_states_lc=(${(@L)wanted_states})
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  out=$(${multipass_cmd} list --format=csv --no-ipv4 2>/dev/null)
+  [[ -n ${out} ]] || out=$(${multipass_cmd} list --format=csv 2>/dev/null)
+
+  if [[ -n ${out} ]]; then
+    lines=(${(@f)out})
+    for line in ${lines[2,-1]}; do
+      name=$(_multipass__csv_get_field ${line} 1)
+      state=$(_multipass__csv_get_field ${line} 2)
+
+      [[ -n ${name} ]] || continue
+      if (( ${#wanted_states_lc} )) && (( ! ${wanted_states_lc[(Ie)${(L)state}]} )); then
+        continue
+      fi
+      names+=(${name})
+    done
+  fi
+
+  (( ${#names} )) || return 0
+  typeset -U names
+  print -rl -- ${names}
+  return 0
+}
+
+function _multipass__instance_names_for_states() {
+  local -a names filtered_names
+  local name i
+
+  names=(${(@f)$(_multipass__collect_instance_names ${@})})
+  (( ${#names} )) || return 0
+
+  # Keep completions non-repeating (useful for commands expecting a single instance).
+  if (( CURRENT > 3 )); then
+    for name in ${names}; do
+      for (( i=3; i<CURRENT; ++i )); do
+        if [[ ${words[i]} == ${name} ]]; then
+          name=
+          break
+        fi
+      done
+      [[ -n ${name} ]] && filtered_names+=(${name})
+    done
+    names=(${filtered_names})
+  fi
+
+  (( ${#names} )) || return 0
+
+  typeset -U names
+  compadd -Q -U -a names
+  return 0
+}
+
+function _multipass__instance_names() {
+  if ! _multipass__instance_names_for_states; then
+    _message 'instance'
+  fi
+  return 0
+}
+
+function _multipass__instances_with_colon() {
+  _multipass__instances_with_colon_for_states
+}
+
+function _multipass__instances_with_colon_for_states() {
+  local -a names with_colon
+  local name
+
+  names=(${(@f)$(_multipass__collect_instance_names ${@})})
+  (( ${#names} )) || return 0
+
+  for name in ${names}; do
+    with_colon+=(${name}:)
+  done
+
+  typeset -U with_colon
+  compadd -Q -U -a with_colon
+  return 0
+}
+
+function _multipass__contexts() {
+  local multipass_cmd out
+  local -a lines contexts
+  local line
+  local context
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  out=$(${multipass_cmd} aliases --format=csv 2>/dev/null)
+  [[ -n ${out} ]] || return 0
+
+  lines=(${(@f)out})
+  for line in ${lines[2,-1]}; do
+    context=$(_multipass__csv_get_field ${line} 5)
+    [[ -n ${context} ]] && contexts+=(${context})
+  done
+
+  (( ${#contexts} )) || return 0
+  typeset -U contexts
+  compadd -Q -U -a contexts
+  return 0
+}
+
+function _multipass__alias_definition() {
+  local -a instances
+  local cur
+
+  instances=(${(@f)$(_multipass__collect_instance_names)})
+
+  typeset -U instances
+  cur=${words[CURRENT]}
+
+  if [[ ${cur} == *:* ]]; then
+    _message 'command'
+    return 0
+  fi
+
+  if (( ${#instances} )); then
+    compadd -Q -U -S ':' -a instances
+  fi
+  return 0
+}
+
+function _multipass__snapshot_ids() {
+  local -a lines snapshots
+  local line multipass_cmd instance snapshot
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  lines=(${(@f)$(${multipass_cmd} list --snapshots --format=csv 2>/dev/null)})
+  for line in ${lines[2,-1]}; do
+    instance=$(_multipass__csv_get_field ${line} 1)
+    snapshot=$(_multipass__csv_get_field ${line} 2)
+    [[ -n ${instance} && -n ${snapshot} ]] || continue
+    snapshots+=(${instance}.${snapshot})
+  done
+
+  (( ${#snapshots} )) || return 0
+  typeset -U snapshots
+  compadd -Q -a snapshots
+  return 0
+}
+
+function _multipass__instances_and_snapshots() {
+  _multipass__instance_names
+  _multipass__snapshot_ids
+  return 0
+}
+
+function _multipass__restorable_snapshots() {
+  local -a lines instances snapshots
+  local line snap_line instance multipass_cmd
+  local state snapshot_count snapshot_name
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  lines=(${(@f)$(${multipass_cmd} info --no-runtime-information --format=csv 2>/dev/null)})
+  for line in ${lines[2,-1]}; do
+    instance=$(_multipass__csv_get_field ${line} 1)
+    state=$(_multipass__csv_get_field ${line} 2)
+    snapshot_count=$(_multipass__csv_get_field ${line} 16)
+    [[ -n ${instance} ]] || continue
+    [[ ${state} == Stopped ]] || continue
+    (( ${snapshot_count:-0} > 0 )) || continue
+    instances+=(${instance})
+  done
+
+  (( ${#instances} )) || return 0
+  typeset -U instances
+
+  lines=(${(@f)$(${multipass_cmd} list --snapshots --format=csv 2>/dev/null)})
+  for snap_line in ${lines[2,-1]}; do
+    instance=$(_multipass__csv_get_field ${snap_line} 1)
+    snapshot_name=$(_multipass__csv_get_field ${snap_line} 2)
+    [[ -n ${instance} && -n ${snapshot_name} ]] || continue
+    (( ${instances[(Ie)${instance}]} )) || continue
+    snapshots+=(${instance}.${snapshot_name})
+  done
+
+  (( ${#snapshots} )) || return 0
+  typeset -U snapshots
+  compadd -a snapshots
+  return 0
+}
+
+function _multipass__images() {
+  local -a lines images
+  local line multipass_cmd
+  local image
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  lines=(${(@f)$(${multipass_cmd} find --format=csv 2>/dev/null)})
+  for line in ${lines[2,-1]}; do
+    image=$(_multipass__csv_get_field ${line} 1)
+    [[ -n ${image} ]] && images+=(${image})
+  done
+
+  (( ${#images} )) || return 0
+  typeset -U images
+  compadd -a images
+  return 0
+}
+
+function _multipass__networks() {
+  local -a lines networks
+  local line multipass_cmd
+  local network
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  lines=(${(@f)$(${multipass_cmd} networks --format=csv 2>/dev/null)})
+  for line in ${lines[2,-1]}; do
+    network=$(_multipass__csv_get_field ${line} 1)
+    [[ -n ${network} ]] && networks+=(${network})
+  done
+
+  (( ${#networks} )) || return 0
+  typeset -U networks
+  compadd -a networks
+  return 0
+}
+
+function _multipass__aliases() {
+  local -a lines aliases
+  local line multipass_cmd
+  local alias_name
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  lines=(${(@f)$(${multipass_cmd} aliases --format=csv 2>/dev/null)})
+  for line in ${lines[2,-1]}; do
+    alias_name=$(_multipass__csv_get_field ${line} 1)
+    [[ -n ${alias_name} ]] && aliases+=(${alias_name})
+  done
+
+  (( ${#aliases} )) || return 0
+  typeset -U aliases
+  compadd -a aliases
+  return 0
+}
+
+function _multipass__setting_keys() {
+  local -a keys
+  local multipass_cmd
+
+  multipass_cmd=$(_multipass__resolve_cmd)
+  [[ -n ${multipass_cmd} ]] || return 0
+
+  keys=(${(@f)$(${multipass_cmd} get --keys 2>/dev/null)})
+  (( ${#keys} )) || return 0
+  typeset -U keys
+  compadd -Q -a keys
+  return 0
+}
+
+function _multipass__network_values() {
+  local cur segment key prefix
+  local -a candidates
+  local multipass_cmd
+
+  cur=${words[CURRENT]}
+  segment=${cur##*,}
+
+  if [[ ${segment} == id=* ]]; then
+    prefix=${segment%%=*}=
+    local -a lines nets
+    local line
+    local network
+    multipass_cmd=$(_multipass__resolve_cmd)
+    [[ -n ${multipass_cmd} ]] || return 0
+    lines=(${(@f)$(${multipass_cmd} networks --format=csv 2>/dev/null)})
+    for line in ${lines[2,-1]}; do
+      network=$(_multipass__csv_get_field ${line} 1)
+      [[ -n ${network} ]] && nets+=(${prefix}${network})
+    done
+    (( ${#nets} )) && compadd -S '' -a nets
+    return 0
+  fi
+
+  if [[ ${segment} == mode=* ]]; then
+    compadd -S '' -- mode=auto mode=manual
+    return 0
+  fi
+
+  if [[ ${segment} == mac=* ]]; then
+    return 0
+  fi
+
+  candidates=(bridged id= mac= mode=)
+  compadd -S '' -a candidates
+  return 0
+}
+
+function _multipass__help_topics() {
+  local -a topics
+  topics=(
+    alias aliases authenticate clone delete exec find get help info launch list mount networks prefer
+    purge recover restart restore set shell snapshot start stop suspend transfer umount unalias version
+  )
+  compadd -a topics
+}
+
+function _multipass() {
+  local -a commands
+  local cmd prev_word cur_word dashdash_pos
+  prev_word=${words[CURRENT-1]}
+  cur_word=${words[CURRENT]}
+
+  commands=(
+    'alias:Create an alias'
+    'aliases:List available aliases'
+    'authenticate:Authenticate client'
+    'clone:Clone an instance'
+    'delete:Delete instances and snapshots'
+    'exec:Run a command on an instance'
+    'find:Display available images'
+    'get:Get a configuration setting'
+    'help:Display help about a command'
+    'info:Display information about instances or snapshots'
+    'launch:Create and start an Ubuntu instance'
+    'list:List all available instances or snapshots'
+    'mount:Mount a local directory in an instance'
+    'networks:List available network interfaces'
+    'prefer:Switch current alias context'
+    'purge:Purge deleted instances'
+    'recover:Recover deleted instances'
+    'restart:Restart instances'
+    'restore:Restore an instance from a snapshot'
+    'set:Set a configuration setting'
+    'shell:Open a shell on an instance'
+    'snapshot:Take a snapshot of an instance'
+    'start:Start instances'
+    'stop:Stop running instances'
+    'suspend:Suspend running instances'
+    'transfer:Transfer files'
+    'umount:Unmount a directory from an instance'
+    'unalias:Remove aliases'
+    'version:Show version details'
+  )
+
+  if (( CURRENT <= 2 )); then
+    if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+      compadd -Q -- --help --verbose -h -v
+      [[ ${cur_word} == -* ]] && return 0
+    fi
+    _describe -t commands 'multipass command' commands
+    return 0
+  fi
+
+  cmd=${words[2]}
+  case ${cmd} in
+      help)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__help_topics
+        return 0
+        ;;
+      exec)
+        dashdash_pos=${words[(I)--]}
+        if (( dashdash_pos )) && (( CURRENT > dashdash_pos )); then
+          _normal
+          return 0
+        fi
+        if [[ ${prev_word} == --working-directory || ${prev_word} == -d ]]; then
+          _files -/
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --working-directory --no-map-working-directory --help --verbose -d -n -h -v --
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        if (( ! dashdash_pos )); then
+          local -a positionals
+          local i token
+          for (( i=3; i<CURRENT; ++i )); do
+            token=${words[i]}
+            if [[ ${token} == --working-directory || ${token} == -d ]]; then
+              (( ++i ))
+              continue
+            fi
+            [[ ${token} == --no-map-working-directory || ${token} == -n || ${token} == --help || ${token} == --verbose || ${token} == -h || ${token} == -v ]] && continue
+            [[ ${token} == -* ]] && continue
+            positionals+=(${token})
+          done
+          if (( ${#positionals} == 0 )); then
+            _multipass__instance_names_for_states Running
+            compadd -Q -- --
+            return 0
+          fi
+          compadd -Q -- --
+          return 0
+        fi
+        return 0
+        ;;
+      list)
+        if [[ ${prev_word} == --format ]]; then
+          compadd -Q -- table json csv yaml
+          return 0
+        fi
+        compadd -Q -- --format --snapshots --help --verbose -h -v
+        return 0
+        ;;
+      aliases)
+        if [[ ${prev_word} == --format ]]; then
+          compadd -Q -- table json csv yaml
+          return 0
+        fi
+        compadd -Q -- --format --help --verbose -h -v
+        return 0
+        ;;
+      find)
+        if [[ ${prev_word} == --format ]]; then
+          compadd -Q -- table json csv yaml
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --show-unsupported --only-images --only-blueprints --format --force-update --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        compadd -Q -- release: daily:
+        return 0
+        ;;
+      alias)
+        local -a positionals
+        local i token
+        for (( i=3; i<CURRENT; ++i )); do
+          token=${words[i]}
+          [[ ${token} == --no-map-working-directory || ${token} == --help || ${token} == --verbose || ${token} == -h || ${token} == -v || ${token} == -n ]] && continue
+          [[ ${token} == -* ]] && continue
+          positionals+=(${token})
+        done
+        if [[ ${prev_word} == --no-map-working-directory || ${prev_word} == -n ]]; then
+          _multipass__alias_definition
+          return 0
+        fi
+        if (( ${#positionals} == 0 )); then
+          if [[ ${cur_word} == -* ]]; then
+            compadd -Q -- --no-map-working-directory --help --verbose -n -h -v
+          else
+            _multipass__alias_definition
+          fi
+          return 0
+        fi
+        if (( ${#positionals} == 1 )); then
+          _message 'alias name'
+          return 0
+        fi
+        return 0
+        ;;
+      delete)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --all --purge -p --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instances_and_snapshots
+        return 0
+        ;;
+      get)
+        local -a positionals
+        local i token
+        if [[ ${prev_word} == --keys ]]; then
+          _multipass__setting_keys
+          return 0
+        fi
+        for (( i=3; i<CURRENT; ++i )); do
+          token=${words[i]}
+          [[ ${token} == --raw || ${token} == --keys || ${token} == --help || ${token} == --verbose || ${token} == -h || ${token} == -v ]] && continue
+          [[ ${token} == -* ]] && continue
+          positionals+=(${token})
+        done
+        if [[ ${cur_word} == -* ]]; then
+          compadd -Q -- --raw --keys --help --verbose -h -v
+          return 0
+        fi
+        if (( ${#positionals} == 0 )); then
+          compadd -Q -- --raw --keys --help --verbose
+          _multipass__setting_keys
+        fi
+        return 0
+        ;;
+      info)
+        if [[ ${prev_word} == --format ]]; then
+          compadd -Q -- table json csv yaml
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --snapshots --format --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instances_and_snapshots
+        return 0
+        ;;
+      launch)
+        if [[ ${prev_word} == --network ]]; then
+          _multipass__network_values
+          return 0
+        fi
+        if [[ ${prev_word} == --mount ]]; then
+          _files -/
+          return 0
+        fi
+        if [[ ${prev_word} == --cloud-init ]]; then
+          _files
+          return 0
+        fi
+        if [[ ${prev_word} == --timeout || ${prev_word} == -c || ${prev_word} == --cpus || ${prev_word} == -d || ${prev_word} == --disk || ${prev_word} == -m || ${prev_word} == --memory || ${prev_word} == -n || ${prev_word} == --name ]]; then
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --cpus --disk --memory --name --cloud-init --network --bridged --mount --timeout --help --verbose -c -d -m -n -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        compadd -Q -- release: daily:
+        _multipass__images
+        return 0
+        ;;
+      mount)
+        local -a mount_positional mount_opts_with_values
+        local i token
+        mount_opts_with_values=( -g --gid-map -u --uid-map -t --type )
+
+        if [[ ${prev_word} == -t || ${prev_word} == --type ]]; then
+          compadd -Q -- classic native
+          return 0
+        fi
+        if [[ ${prev_word} == -g || ${prev_word} == --gid-map || ${prev_word} == -u || ${prev_word} == --uid-map ]]; then
+          return 0
+        fi
+
+        for (( i=3; i<CURRENT; ++i )); do
+          token=${words[i]}
+          if [[ ${mount_opts_with_values[(Ie)${token}]} -ne 0 ]]; then
+            (( ++i ))
+            continue
+          fi
+          [[ ${token} == --help || ${token} == --verbose || ${token} == -h || ${token} == -v ]] && continue
+          [[ ${token} == -* ]] && continue
+          mount_positional+=(${token})
+        done
+
+        if [[ ${cur_word} == -* ]]; then
+          compadd -Q -- --gid-map --uid-map --type --help --verbose -g -u -t -h -v
+          return 0
+        fi
+        if (( ${#mount_positional} == 0 )); then
+          compadd -Q -- --gid-map --uid-map --type --help --verbose
+          _files -/
+          return 0
+        fi
+        compadd -Q -- --gid-map --uid-map --type --help --verbose
+        _multipass__instances_with_colon_for_states Running Stopped Suspended
+        return 0
+        ;;
+      networks)
+        if [[ ${prev_word} == --format ]]; then
+          compadd -Q -- table json csv yaml
+          return 0
+        fi
+        compadd -Q -- --format --help --verbose -h -v
+        return 0
+        ;;
+      prefer)
+        if [[ ${cur_word} == -* ]]; then
+          compadd -Q -- --help --verbose -h -v
+          return 0
+        fi
+        compadd -Q -- --help --verbose
+        _multipass__contexts
+        return 0
+        ;;
+      purge)
+        compadd -Q -- --help --verbose -h -v
+        return 0
+        ;;
+      recover)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --all --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instance_names_for_states Deleted
+        return 0
+        ;;
+      restart)
+        if [[ ${prev_word} == --timeout ]]; then
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --all --timeout --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instance_names_for_states Running
+        return 0
+        ;;
+      restore)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --destructive -d --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__restorable_snapshots
+        return 0
+        ;;
+      set)
+        local -a keys keyvals
+        local key multipass_cmd
+
+        if [[ ${cur_word} == -* ]]; then
+          compadd -Q -- --help --verbose -h -v
+          return 0
+        fi
+        multipass_cmd=$(_multipass__resolve_cmd)
+        if [[ -n ${multipass_cmd} ]]; then
+          keys=(${(@f)$(${multipass_cmd} get --keys 2>/dev/null)})
+          for key in ${keys}; do
+            keyvals+=(${key} ${key}=)
+          done
+          (( ${#keyvals} )) && compadd -Q -U -a keyvals
+        fi
+        return 0
+        ;;
+      shell)
+        if [[ ${prev_word} == --timeout ]]; then
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --timeout --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instance_names_for_states Running Stopped Suspended
+        return 0
+        ;;
+      snapshot)
+        if [[ ${prev_word} == --name || ${prev_word} == -n || ${prev_word} == --comment || ${prev_word} == -c || ${prev_word} == -m ]]; then
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --name --comment -n -c -m --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instance_names_for_states Stopped
+        return 0
+        ;;
+      start)
+        if [[ ${prev_word} == --timeout ]]; then
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --all --timeout --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instance_names_for_states Stopped Suspended
+        return 0
+        ;;
+      stop)
+        local force_stop=0
+        local i
+        if [[ ${prev_word} == --time || ${prev_word} == -t ]]; then
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --all --time --cancel --force --help --verbose -t -c -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        for (( i=3; i<CURRENT; ++i )); do
+          if [[ ${words[i]} == --force ]]; then
+            force_stop=1
+            break
+          fi
+        done
+
+        if (( force_stop )); then
+          _multipass__instance_names_for_states Starting Restarting Suspending Suspended Running
+        else
+          _multipass__instance_names_for_states Running
+        fi
+        return 0
+        ;;
+      suspend)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --all --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instance_names_for_states Running
+        return 0
+        ;;
+      transfer)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --recursive --parents -r -p --help --verbose -h -v -
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instances_with_colon_for_states Running
+        _files
+        compadd -Q -- -
+        return 0
+        ;;
+      umount)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instances_with_colon
+        _multipass__instance_names
+        return 0
+        ;;
+      unalias)
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --all --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__aliases
+        return 0
+        ;;
+      version)
+        if [[ ${prev_word} == --format ]]; then
+          compadd -Q -- table json csv yaml
+          return 0
+        fi
+        compadd -Q -- --format --help --verbose -h -v
+        return 0
+        ;;
+      clone)
+        if [[ ${prev_word} == --name || ${prev_word} == -n ]]; then
+          return 0
+        fi
+        if [[ ${cur_word} == -* || -z ${cur_word} ]]; then
+          compadd -Q -- --name -n --help --verbose -h -v
+          [[ ${cur_word} == -* ]] && return 0
+        fi
+        _multipass__instance_names_for_states Stopped
+        return 0
+        ;;
+      authenticate)
+        compadd -Q -- --help --verbose -h -v
+        return 0
+        ;;
+      *)
+        return 0
+        ;;
+  esac
+
+  return 0
+}

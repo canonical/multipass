@@ -88,10 +88,14 @@ mkdir -p ~/.local/share/multipass/
 cp <multipass>/src/client/gui/assets/multipass.gui.autostart.desktop ~/.local/share/multipass/
 ```
 
-Optionally, enable auto-complete in Bash:
+Optionally, enable auto-complete in Bash and/or Zsh:
 
 ```
 source <multipass>/completions/bash/multipass
+```
+
+```
+source <multipass>/completions/zsh/multipass
 ```
 
 To be able to use the binaries without specifying their path:
