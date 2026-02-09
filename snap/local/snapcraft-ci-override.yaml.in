@@ -39,7 +39,7 @@ parts:
   run-clang-tidy:
     plugin: nil
     build-packages:
-      - clang-tidy-15
+      - clang-tidy-${CLANG_VERSION}
     override-pull: |
       set -e
       if [ "$CMAKE_PRESET" != "ci-snap-debug" ]; then
@@ -48,7 +48,7 @@ parts:
       fi
       cd /root/parts/multipass/src
       cmake --build ../build --target rpc
-      git diff -U0 --no-color HEAD^1 | clang-tidy-diff-15.py -p1 -path ../build/ -clang-tidy-binary=clang-tidy-15 -j$(nproc) -quiet | sed '/^$/d' | tee clang-tidy-diff
+      git diff -U0 --no-color HEAD^1 | clang-tidy-diff-${CLANG_VERSION}.py -p1 -path ../build/ -clang-tidy-binary=clang-tidy-${CLANG_VERSION} -j$(nproc) -quiet | sed '/^$/d' | tee clang-tidy-diff
 
       # I don't think clang-tidy knows what "quiet" means.
       sed -i '/No relevant changes found\./d' clang-tidy-diff
