@@ -127,7 +127,7 @@ parts:
     - build-essential
     - ccache
     - lcov
-    - clang-${CLANG_VERSION}
+    - clang-15 # have to keep in sync with CLANG_VERSION above :'(
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
@@ -176,7 +176,7 @@ parts:
     - -usr/lib/*/libicui18n.so.*
     - -usr/lib/*/libglibmm_generate_extra_defs-*.so*
     - -usr/lib/libdart_ffi.so
-    - -usr/lib/*/libLLVM-${CLANG_VERSION}.so*
+    - -usr/lib/*/libLLVM-*.so*
     - -usr/lib/*/libdrm*
     - -usr/lib/*/libglapi.so*
     - -usr/lib/*/libpciaccess.so*
