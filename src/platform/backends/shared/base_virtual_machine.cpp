@@ -305,15 +305,18 @@ void mp::BaseVirtualMachine::resize_partitions(std::chrono::milliseconds timeout
 {
     auto action = [this] {
         detect_aborted_start();
+        std::string last_partition{};
         try
         {
-            auto last_partition = ssh_exec("sudo fdisk -l /dev/sda | grep \"^/dev\" | sort -k2 -n "
-                                           "| tail -n1 | awk '{print $1}'");
+            if (last_partition.empty())
+                last_partition = ssh_exec("sudo fdisk -l /dev/sda | grep \"^/dev\" | sort -k2 -n "
+                                          "| tail -n1 | awk '{print $1}'");
             auto split_iterator =
                 last_partition.begin() + last_partition.find_last_not_of("0123456789") + 1;
             std::string disk{last_partition.begin(), split_iterator},
                 partition_number{split_iterator, last_partition.end()};
-            ssh_exec(fmt::format("sudo growpart {} {}", disk, partition_number));
+
+            ssh_exec(fmt::format("sudo growpart {} {} || true", disk, partition_number));
             ssh_exec(fmt::format("sudo resize2fs {}", last_partition));
 
             return mpu::TimeoutAction::done;
