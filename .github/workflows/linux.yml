@@ -198,7 +198,7 @@ jobs:
           /snap/bin/snapcraft pull --use-lxd multipass
 
     - name: Run clang-tidy through the diff
-      if: ${{ false && matrix.build-type == 'Debug' }}
+      if: ${{ matrix.build-type == 'Debug' }}
       run: |
         /snap/bin/snapcraft pull --use-lxd run-clang-tidy
 
