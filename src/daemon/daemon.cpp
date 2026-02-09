@@ -3562,6 +3562,11 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
 
             vm->wait_for_cloud_init(timeout);
         }
+        else
+        {
+            // Non-launch booting
+            vm->resize_partitions(timeout);
+        }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {

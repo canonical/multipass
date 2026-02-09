@@ -301,6 +301,47 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
+void mp::BaseVirtualMachine::resize_partitions(std::chrono::milliseconds timeout)
+{
+    if (!requires_partition_resize)
+        return;
+    auto action = [this] {
+        detect_aborted_start();
+        try
+        {
+            auto last_partition = ssh_exec("sudo fdisk -l /dev/sda | grep \"^/dev\" | sort -k2 -n "
+                                           "| tail -n1 | awk '{print $1}'");
+            auto split_iterator =
+                last_partition.begin() + last_partition.find_last_not_of("0123456789") + 1;
+            std::string disk{last_partition.begin(), split_iterator},
+                partition_number{split_iterator, last_partition.end()};
+            ssh_exec(fmt::format("sudo growpart {} {}", disk, partition_number));
+            ssh_exec(fmt::format("sudo resize2fs {}", last_partition));
+
+            return mpu::TimeoutAction::done;
+        }
+        catch (const SSHVMNotRunning& e)
+        {
+            try_to_ssh();
+            return mpu::TimeoutAction::retry;
+        }
+        catch (const SSHExecFailure& e)
+        {
+            return mpu::TimeoutAction::retry;
+        }
+        catch (const std::exception& e) // transitioning away from catching generic runtime errors
+        {                               // TODO remove once we're confident this is an anomaly
+            mpl::log_message(mpl::Level::warning, vm_name, e.what());
+            return mpu::TimeoutAction::retry;
+        }
+    };
+
+    auto on_timeout = [] {
+        throw std::runtime_error("timed out waiting for disk resizing to complete");
+    };
+    mpu::try_action_for(on_timeout, timeout, action);
+}
+
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
     std::vector<IPAddress> all_ipv4;
