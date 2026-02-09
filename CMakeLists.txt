@@ -35,6 +35,8 @@ if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
   set(VCPKG_HOST_ARCH "arm64")
 elseif ("${HOST_ARCH}" STREQUAL "s390x")
   set(VCPKG_HOST_ARCH "s390x")
+elseif ("${HOST_ARCH}" STREQUAL "ppc64le")
+  set(VCPKG_HOST_ARCH "ppc64le")
 else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
@@ -79,13 +81,53 @@ else()
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+message(STATUS "Bootstrapping vcpkg...")
+
+set(MULTIPASS_VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
+  "Root vcpkg location, where the top bootstrap scripts are located")
+
+set(VCPKG_CMD "${MULTIPASS_VCPKG_LOCATION}/bootstrap-vcpkg.")
+if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+  string(APPEND VCPKG_CMD "bat")
+  list(PREPEND VCPKG_CMD "cmd" "/c") # run in cmd; otherwise, we'd fail when called from PowerShell
+else ()
+  string(APPEND VCPKG_CMD "sh")
+endif ()
+
+# GCC is unreliable on ppc64le and can cause internal compiler errors during vcpkg bootstrap
+set(VCPKG_BOOTSTRAP_ENV)
+if(${VCPKG_HOST_ARCH} STREQUAL "ppc64le")
+  set(VCPKG_BOOTSTRAP_ENV
+    "CC=clang"
+    "CXX=clang++"
+    "CMAKE_C_COMPILER=clang"
+    "CMAKE_CXX_COMPILER=clang++")
+endif()
+
+execute_process(COMMAND ${CMAKE_COMMAND} -E env ${VCPKG_BOOTSTRAP_ENV} ${VCPKG_CMD} RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT)
+
+if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
+  message(FATAL_ERROR "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
+else()
+  message(STATUS "Bootstrapping vcpkg completed successfully.")
+endif()
+
+if(MULTIPASS_ENABLE_TESTS)
+  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
+endif()
+
+set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
 project(Multipass)
 
-cmake_dependent_option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON
-    "NOT CMAKE_SYSTEM_PROCESSOR STREQUAL s390x" OFF)
+cmake_dependent_option(
+    MULTIPASS_ENABLE_FLUTTER_GUI
+    "Build Flutter GUI"
+    ON
+    "NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL s390x OR CMAKE_SYSTEM_PROCESSOR STREQUAL ppc64le)"
+    OFF
+)
 
 include(GNUInstallDirs)
 
@@ -157,6 +199,10 @@ if(UNIX)
 
   if (${HOST_ARCH} STREQUAL "arm64")
     set(HOST_ARCH "aarch64")
+  endif ()
+
+  if (${HOST_ARCH} STREQUAL "ppc64le")
+    set(HOST_ARCH "ppc64")
   endif ()
 
   if (APPLE AND ${HOST_ARCH} MATCHES "x86_64")
