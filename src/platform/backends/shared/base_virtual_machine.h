@@ -179,7 +179,6 @@ protected:
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
-    bool requires_partition_resize{false};
 
 private:
     std::string saved_error_msg = "";

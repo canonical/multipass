@@ -550,7 +550,6 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
         {"modifyhd", desc.image.image_path, "--resizebyte", QString::number(new_size.in_bytes())},
         "Could not resize image: {}",
         name);
-    requires_partition_resize = true;
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,

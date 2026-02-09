@@ -303,8 +303,6 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
 
 void mp::BaseVirtualMachine::resize_partitions(std::chrono::milliseconds timeout)
 {
-    if (!requires_partition_resize)
-        return;
     auto action = [this] {
         detect_aborted_start();
         try
