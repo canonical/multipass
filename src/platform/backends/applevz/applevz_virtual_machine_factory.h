@@ -26,7 +26,8 @@ namespace multipass::applevz
 class AppleVZVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit AppleVZVirtualMachineFactory(const Path& data_dir);
+    explicit AppleVZVirtualMachineFactory(const Path& data_dir,
+                                          AvailabilityZoneManager& az_manager);
 
     [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                               const SSHKeyProvider& key_provider,

@@ -19,6 +19,8 @@
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_platform.h"
 #include "tests/unit/mock_process_factory.h"
+#include "tests/unit/stub_availability_zone.h"
+#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
@@ -127,6 +129,7 @@ struct HyperVBackend : public Test
                                                       mp::MemorySize{"3M"},
                                                       mp::MemorySize{}, // not used,
                                                       "pied-piper-valley",
+                                                      "zone1",
                                                       "ba:ba:ca:ca:ca:ba",
                                                       {},
                                                       "",
@@ -134,7 +137,9 @@ struct HyperVBackend : public Test
                                                       dummy_cloud_init_iso.name()};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;
-    mp::HyperVVirtualMachineFactory backend{data_dir.path()};
+    mpt::StubAvailabilityZone zone{};
+    mpt::StubAvailabilityZoneManager az_manager{};
+    mp::HyperVVirtualMachineFactory backend{data_dir.path(), az_manager};
     mpt::StubVMStatusMonitor stub_monitor;
     mpt::StubSSHKeyProvider stub_key_provider;
 };
@@ -400,7 +405,9 @@ struct HyperVNetworks : public Test
     mpt::MockPlatform::GuardedMock attr = mpt::MockPlatform::inject<NiceMock>();
     mpt::MockPlatform* mock_platform = attr.first;
     mpt::TempDir data_dir;
-    mp::HyperVVirtualMachineFactory backend{data_dir.path()};
+    mpt::StubAvailabilityZone zone{};
+    mpt::StubAvailabilityZoneManager az_manager{};
+    mp::HyperVVirtualMachineFactory backend{data_dir.path(), az_manager};
 };
 
 struct HyperVNetworksPS : public HyperVNetworks

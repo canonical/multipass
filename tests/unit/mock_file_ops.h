@@ -149,6 +149,13 @@ public:
     MP_MOCK_SINGLETON_BOILERPLATE(MockFileOps, FileOps);
 };
 
+inline std::unique_ptr<std::stringstream> mock_read_data(std::string_view data)
+{
+    auto filestream = std::make_unique<std::stringstream>();
+    *filestream << data;
+    return filestream;
+}
+
 // Match a Qt object's file name, mainly for use in EXPECT_CALL matchers. The optional first
 // template type is the expected type of the argument.
 template <typename T = QIODevice&, typename InnerMatcher = void>
