@@ -39,7 +39,7 @@ help:
         "* other possible targets:                    make <TAB twice> \n" \
         "------------------------------------------------------------- \n"
 
-.PHONY: full-help woke-install spellcheck-install pa11y-install install run html \
+.PHONY: full-help woke-install pa11y-install install run html \
         epub serve clean clean-doc spelling spellcheck linkcheck woke \
         allmetrics pa11y pdf-prep-force pdf-prep pdf Makefile.sp vale bash
 
@@ -80,21 +80,6 @@ woke-install:
 		fi; \
 		if [ "$$confirm_sudo" = "y" ] || [ "$$confirm_sudo" = "Y" ]; then \
 			sudo snap install woke; \
-		else \
-			echo "Installation cancelled."; \
-		fi \
-	}
-
-spellcheck-install:
-	@type aspell >/dev/null 2>&1 || \
-	{ \
-		echo "Installing system-wide \"aspell\" packages..."; \
-		confirm_sudo=$(CONFIRM_SUDO); \
-		if [ "$$confirm_sudo" != "y" ] && [ "$$confirm_sudo" != "Y" ]; then \
-			read -p "This requires sudo privileges. Proceed? [y/N]: " confirm_sudo; \
-		fi; \
-		if [ "$$confirm_sudo" = "y" ] || [ "$$confirm_sudo" = "Y" ]; then \
-			sudo apt-get install aspell aspell-en; \
 		else \
 			echo "Installation cancelled."; \
 		fi \
