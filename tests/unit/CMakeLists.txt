@@ -177,6 +177,8 @@ endforeach()
 string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} MANIFEST_ARCH)
 if (${MANIFEST_ARCH} STREQUAL "x86_64")
   string(TOLOWER "amd64" MANIFEST_ARCH)
+elseif (${MANIFEST_ARCH} STREQUAL "ppc64le")
+  string(TOLOWER "ppc64el" MANIFEST_ARCH)
 endif()
 
 target_compile_definitions(multipass_tests PRIVATE -DMANIFEST_ARCH="${MANIFEST_ARCH}")
