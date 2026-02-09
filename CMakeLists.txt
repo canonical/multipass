@@ -35,6 +35,8 @@ if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
   set(VCPKG_HOST_ARCH "arm64")
 elseif ("${HOST_ARCH}" STREQUAL "s390x")
   set(VCPKG_HOST_ARCH "s390x")
+elseif ("${HOST_ARCH}" STREQUAL "ppc64le")
+  set(VCPKG_HOST_ARCH "ppc64le")
 else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
@@ -119,7 +121,6 @@ set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg
 
 project(Multipass)
 
-<<<<<<< HEAD
 cmake_dependent_option(
     MULTIPASS_ENABLE_FLUTTER_GUI
     "Build Flutter GUI"
@@ -127,10 +128,6 @@ cmake_dependent_option(
     "NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL s390x OR CMAKE_SYSTEM_PROCESSOR STREQUAL ppc64le)"
     OFF
 )
-=======
-cmake_dependent_option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON
-    "NOT CMAKE_SYSTEM_PROCESSOR STREQUAL s390x" OFF)
->>>>>>> e6c6e0f50 ([s390x] Compile Multipass on s390x architecture (#4548))
 
 include(GNUInstallDirs)
 

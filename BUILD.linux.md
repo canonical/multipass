@@ -54,6 +54,7 @@ First, install Multipass's runtime dependencies. On AMD64 architecture, you can 
 
 ```
 sudo apt update
+<<<<<<< HEAD
 sudo apt install libgl1 libpng16-16 libqt6core6 libqt6gui6 \
     libqt6network6 libqt6widgets6 libxml2 libvirt0 dnsmasq-base \
     dnsmasq-utils qemu-utils libslang2 iproute2 iptables \
@@ -64,6 +65,7 @@ On ARM64 architecture, you can do this by running:
 
 ```
 sudo apt update
+<<<<<<< HEAD
 sudo apt install libgl1 libpng16-16 libqt6core6 libqt6gui6 \
     libqt6network6 libqt6widgets6 libxml2 libvirt0 dnsmasq-base \
     dnsmasq-utils qemu-efi-aarch64 qemu-utils libslang2 iproute2 \
