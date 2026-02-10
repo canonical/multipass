@@ -144,29 +144,6 @@ size_t mp::Subnet::size(mp::Subnet::PrefixLength prefix_length) const
     return std::size_t{1} << (prefix_length - this->prefix_length());
 }
 
-mp::Subnet mp::Subnet::get_specific_subnet(size_t subnet_block_idx,
-                                           mp::Subnet::PrefixLength prefix_length) const
-{
-    const size_t possible_subnets = size(prefix_length);
-    if (possible_subnets == 0)
-        throw std::logic_error(
-            fmt::format("A subnet with prefix length {} cannot be contained by {}",
-                        prefix_length,
-                        *this));
-
-    if (subnet_block_idx >= possible_subnets)
-        throw std::invalid_argument(
-            fmt::format("{} is greater than the largest subnet block index {}",
-                        subnet_block_idx,
-                        possible_subnets - 1));
-
-    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
-    mp::IPAddress address =
-        masked_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
-
-    return mp::Subnet{address, prefix_length};
-}
-
 bool mp::Subnet::contains(Subnet other) const
 {
     // can't possibly contain a larger subnet
@@ -187,4 +164,32 @@ std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
         return ip_res;
     // note the prefix_length operands are purposely flipped
     return other.prefix <=> prefix;
+}
+
+mp::SubnetAllocator::SubnetAllocator(Subnet base_subnet, Subnet::PrefixLength prefix)
+    : base_subnet(base_subnet), prefix(prefix)
+{
+    if (base_subnet.size(prefix) == 0)
+        throw std::logic_error(
+            fmt::format("A subnet with prefix length {} cannot be contained by {}",
+                        prefix,
+                        base_subnet));
+}
+
+mp::Subnet mp::SubnetAllocator::next_available()
+{
+    const size_t possible_subnets = base_subnet.size(prefix);
+
+    if (block_idx >= possible_subnets)
+        throw std::invalid_argument(
+            fmt::format("{} is greater than the largest subnet block index {}",
+                        block_idx,
+                        possible_subnets - 1));
+
+    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
+    mp::IPAddress address =
+        base_subnet.masked_address() + (block_idx * (std::size_t{1} << (32 - prefix)));
+
+    ++block_idx;
+    return mp::Subnet{address, prefix};
 }

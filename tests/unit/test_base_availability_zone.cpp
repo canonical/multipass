@@ -55,7 +55,7 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
     EXPECT_CALL(mock_file_ops,
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
 
-    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir};
 
     EXPECT_EQ(zone.get_name(), az_name);
     EXPECT_TRUE(zone.is_available());
@@ -70,7 +70,7 @@ TEST_F(BaseAvailabilityZoneTest, loadsExistingZoneFile)
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
 
     const mp::Subnet test_subnet{"10.0.0.0/24"};
-    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir};
 
     EXPECT_EQ(zone.get_name(), az_name);
     EXPECT_EQ(zone.get_subnet(), test_subnet);
@@ -87,7 +87,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
     NiceMock<mpt::MockVirtualMachine> mock_vm;
     EXPECT_CALL(mock_vm, set_available(false));
 
-    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir};
 
     zone.add_vm(mock_vm);
     zone.set_available(false);
@@ -102,7 +102,7 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
 
     NiceMock<mpt::MockVirtualMachine> mock_vm;
 
-    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir};
 
     zone.add_vm(mock_vm);
     zone.remove_vm(mock_vm);
@@ -123,7 +123,7 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     EXPECT_CALL(mock_vm1, set_available(false));
     EXPECT_CALL(mock_vm2, set_available(false));
 
-    mp::BaseAvailabilityZone zone{az_name, 0, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir};
 
     zone.add_vm(mock_vm1);
     zone.add_vm(mock_vm2);

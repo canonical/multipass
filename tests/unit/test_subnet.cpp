@@ -229,39 +229,6 @@ TEST(SubnetTest, sizeHandlesSmallerPrefixLength)
     EXPECT_EQ(subnet.size(7), 0);
 }
 
-TEST(SubnetTest, getSpecificSubnetWorks)
-{
-    mp::Subnet subnet{"192.168.0.1/16"};
-
-    auto res1 = subnet.get_specific_subnet(0, 24);
-    EXPECT_EQ(res1.prefix_length(), 24);
-    EXPECT_EQ(res1.masked_address(), subnet.masked_address());
-
-    auto res2 = subnet.get_specific_subnet(129, 24);
-    EXPECT_EQ(res2.prefix_length(), 24);
-    EXPECT_EQ(res2.masked_address(), mp::IPAddress{"192.168.129.0"});
-
-    auto res3 = subnet.get_specific_subnet(subnet.size(20) - 1, 20);
-    EXPECT_EQ(res3.prefix_length(), 20);
-    EXPECT_EQ(res3.masked_address(), mp::IPAddress{"192.168.240.0"});
-}
-
-TEST(SubnetTest, getSpecificSubnetFailsOnBadIndex)
-{
-    mp::Subnet subnet{"192.168.0.1/16"};
-
-    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(99999999, 24), std::invalid_argument);
-    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(256, 24), std::invalid_argument);
-}
-
-TEST(SubnetTest, getSpecificSubnetFailsOnBadLength)
-{
-    mp::Subnet subnet{"192.168.0.1/16"};
-
-    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(0, 15), std::logic_error);
-    EXPECT_THROW(std::ignore = subnet.get_specific_subnet(0, 0), std::logic_error);
-}
-
 TEST(SubnetTest, containsWorksOnContainedSubnets)
 {
     mp::Subnet container{"192.168.0.0/16"};
@@ -379,4 +346,39 @@ TEST(SubnetTest, relationalComparisonsWorkAsExpected)
     EXPECT_GT(submiddle, low);
     EXPECT_LT(submiddle, middle);
     EXPECT_LT(submiddle, high);
+}
+
+struct SubnetAllocatorTest : public Test
+{
+    const mp::Subnet subnet{"192.168.0.1/16"};
+};
+
+TEST_F(SubnetAllocatorTest, nextAvailableWorks)
+{
+    mp::SubnetAllocator allocator{subnet, 24};
+    auto res1 = allocator.next_available();
+    EXPECT_EQ(res1.prefix_length(), 24);
+    EXPECT_EQ(res1.masked_address(), mp::IPAddress{"192.168.0.0"});
+
+    auto res2 = allocator.next_available();
+    EXPECT_EQ(res2.prefix_length(), 24);
+    EXPECT_EQ(res2.masked_address(), mp::IPAddress{"192.168.1.0"});
+
+    auto res3 = allocator.next_available();
+    EXPECT_EQ(res3.prefix_length(), 24);
+    EXPECT_EQ(res3.masked_address(), mp::IPAddress{"192.168.2.0"});
+}
+
+TEST_F(SubnetAllocatorTest, nextAvailableFailsOnBadIndex)
+{
+    mp::SubnetAllocator allocator{subnet, 17};
+    std::ignore = allocator.next_available();
+    std::ignore = allocator.next_available();
+    EXPECT_THROW(std::ignore = allocator.next_available(), std::invalid_argument);
+}
+
+TEST_F(SubnetAllocatorTest, failsOnBadLength)
+{
+    EXPECT_THROW(std::ignore = mp::SubnetAllocator(subnet, 15), std::logic_error);
+    EXPECT_THROW(std::ignore = mp::SubnetAllocator(subnet, 0), std::logic_error);
 }
