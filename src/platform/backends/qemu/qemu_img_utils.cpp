@@ -127,7 +127,7 @@ void mp::backend::amend_to_qcow2_v3(const std::filesystem::path& image_path)
 std::filesystem::path mp::backend::convert_to_raw(const std::filesystem::path& image_path)
 {
     auto raw_img_path{image_path};
-    raw_img_path += ".raw";
+    raw_img_path.replace_extension("raw");
 
     auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
         QStringList{"convert",
