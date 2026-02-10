@@ -51,5 +51,6 @@ public:
     virtual bool can_request_stop(const VMHandle& vm_handle) const;
 
     virtual bool is_supported() const;
+    virtual bool macos_at_least(int major, int minor, int patch = 0) const;
 };
 } // namespace multipass::applevz
