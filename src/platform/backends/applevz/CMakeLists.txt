@@ -20,6 +20,7 @@ add_library(applevz_backend STATIC
   applevz_virtual_machine_factory.cpp
   applevz_bridge.mm
   applevz_wrapper.cpp
+  applevz_utils.cpp
 )
 
 set_source_files_properties(applevz_bridge.mm PROPERTIES
