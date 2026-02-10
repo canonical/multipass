@@ -24,6 +24,7 @@
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QString>
 #include <QStringList>
@@ -116,7 +117,9 @@ void mp::backend::amend_to_qcow2_v3(const mp::Path& image_path)
 
 mp::Path mp::backend::convert_to_raw(const mp::Path& image_path)
 {
-    const auto raw_img_path{image_path + ".raw"};
+    QFileInfo image_info(image_path);
+    const auto raw_img_path =
+        image_info.absolutePath() + "/" + image_info.completeBaseName() + ".raw";
 
     auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
         QStringList{"convert", "-p", "-O", "raw", image_path, raw_img_path},
