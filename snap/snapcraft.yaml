@@ -119,7 +119,7 @@ parts:
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
     - CMAKE_PRESET: snap
-    - CLANG_VERSION: "15"
+    - CLANG_VERSION: "19"
     - CXX: clang++-${CLANG_VERSION}
     - CC: clang-${CLANG_VERSION}
     build-packages:
@@ -127,7 +127,7 @@ parts:
     - build-essential
     - ccache
     - lcov
-    - clang-15 # have to keep in sync with CLANG_VERSION above :'(
+    - clang-19 # have to keep in sync with CLANG_VERSION above :'(
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
