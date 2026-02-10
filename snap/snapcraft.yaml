@@ -40,6 +40,13 @@ plugs:
     interface: home
     read: all
 
+package-repositories:
+  - type: apt
+    url: http://apt.llvm.org/jammy/
+    suites: [llvm-toolchain-jammy-19]
+    components: [main]
+    key-id: 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421 # Official LLVM GPG K
+
 apps:
   multipassd:
     command: bin/launch-multipassd
@@ -139,14 +146,15 @@ parts:
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
     - CMAKE_PRESET: snap
-    - CXX: clang++-15
-    - CC: clang-15
+    - CLANG_VERSION: "19"
+    - CXX: clang++-${CLANG_VERSION}
+    - CC: clang-${CLANG_VERSION}
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
     - ccache
     - lcov
-    - clang-15
+    - clang-19 # have to keep in sync with CLANG_VERSION above :'(
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
@@ -228,8 +236,8 @@ parts:
       python3 -m pip install jinja2
 
       # Update default clang
-      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
-      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
+      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 190
+      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 190
 
       # Configure-build-install
       cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
