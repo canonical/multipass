@@ -141,4 +141,11 @@ bool AppleVZ::is_supported() const
 
     return multipass::applevz::is_supported();
 }
+
+bool AppleVZ::macos_at_least(int major, int minor, int patch) const
+{
+    mpl::trace(kLogCategory, "AppleVZ::macos_at_least(...)");
+
+    return multipass::applevz::macos_at_least(major, minor, patch);
+}
 } // namespace multipass::applevz
