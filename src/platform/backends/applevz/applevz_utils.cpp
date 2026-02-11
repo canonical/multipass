@@ -58,6 +58,47 @@ void create_asif(const mp::Path& image_path, const mp::MemorySize& disk_space)
     mpl::trace(category, "Successfully created ASIF image: {}", image_path);
 }
 
+mp::Path attach_asif(const mp::Path& image_path)
+{
+    mpl::info(category, "Attaching ASIF image: {}", image_path.toStdString());
+
+    auto process = MP_PROCFACTORY.create_process(QStringLiteral("diskutil"),
+                                                 QStringList() << "image" << "attach" << "--noMount"
+                                                               << image_path);
+
+    auto exit_state = process->execute();
+
+    if (!exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Failed to attach ASIF image: {}; Output: {}",
+                                             exit_state.failure_message(),
+                                             process->read_all_standard_error().toStdString()));
+    }
+
+    mpl::trace(category, "Successfully attached ASIF image: {}", image_path.toStdString());
+
+    return process->read_all_standard_output().trimmed();
+}
+
+void detach_asif(const mp::Path& device_path)
+{
+    mpl::info(category, "Detaching ASIF image: {}", device_path.toStdString());
+
+    auto process = MP_PROCFACTORY.create_process(QStringLiteral("hdiutil"),
+                                                 QStringList() << "detach" << device_path);
+
+    auto exit_state = process->execute();
+
+    if (!exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Failed to detach ASIF image: {}; Output: {}",
+                                             exit_state.failure_message(),
+                                             process->read_all_standard_error().toStdString()));
+    }
+
+    mpl::trace(category, "Successfully detached ASIF image: {}", device_path.toStdString());
+}
+
 bool is_asif_image(const mp::Path& image_path)
 {
     // ASIF format uses "shdw" magic bytes (0x73686477)
