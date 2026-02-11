@@ -121,6 +121,10 @@ mp::Path mp::backend::convert_to_raw(const mp::Path& image_path)
     const auto raw_img_path =
         image_info.absolutePath() + "/" + image_info.completeBaseName() + ".raw";
 
+    const auto image_format = get_image_format(image_path);
+    if (image_format == "raw")
+        return image_path;
+
     auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
         QStringList{"convert", "-p", "-O", "raw", image_path, raw_img_path},
         image_path,
