@@ -33,21 +33,18 @@
 namespace mp = multipass;
 namespace mpp = multipass::platform;
 
-namespace
+QString mp::backend::get_image_info(const std::filesystem::path& image_path, const QString& key)
 {
-QString get_image_format(const std::filesystem::path& image_path)
-{
-    auto qemuimg_info_process = mp::backend::checked_exec_qemu_img(
+    auto qemuimg_info_process = checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"info", "--output=json", MP_PLATFORM.path_to_qstr(image_path)},
             image_path),
-        "Cannot read image format");
+        "Cannot read image info");
 
     auto image_info = qemuimg_info_process->read_all_standard_output();
     auto image_record = boost::json::parse(std::string_view(image_info));
-    return mp::lookup_or<QString>(image_record, "format", "");
+    return mp::lookup_or<QString>(image_record, key.toStdString(), "");
 }
-} // namespace
 
 auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,
                                         const std::string& custom_error_prefix,
@@ -71,7 +68,7 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space,
                                         const std::filesystem::path& image_path)
 {
     // Detect the image format first to avoid qemu-img warnings and restrictions
-    const auto image_format = get_image_format(image_path);
+    const auto image_format = get_image_info(image_path, "format");
 
     auto disk_size = QString::number(
         disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
@@ -93,12 +90,13 @@ void mp::backend::amend_to_qcow2_v3(const std::filesystem::path& image_path)
         "Failed to amend image to QCOW2 v3");
 }
 
-std::filesystem::path mp::backend::convert(const std::filesystem::path& source_path, const std::string& target_format)
+std::filesystem::path mp::backend::convert(const std::filesystem::path& source_path,
+                                           const std::string& target_format)
 {
     auto target_img_path{source_path};
     target_img_path.replace_extension(target_format);
 
-    const auto image_format = get_image_format(source_path);
+    const auto image_format = get_image_info(source_path, "format");
     if (image_format == target_format)
         return source_path; // no-op
 
