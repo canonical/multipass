@@ -149,7 +149,7 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
     mpl::info(category, "Converting {} to ASIF format", source_path);
 
     // NO-OP if already RAW
-    auto raw_path = mp::backend::convert_to_raw(source_path);
+    auto raw_path = mp::backend::convert(source_path, "raw");
 
     struct stat st;
     if (stat(raw_path.c_str(), &st) == -1)
@@ -281,7 +281,7 @@ std::filesystem::path convert_to_supported_format(const std::filesystem::path& i
     }
     else
     {
-        return backend::convert_to_raw(image_path);
+        return backend::convert(image_path, "raw");
     }
 }
 

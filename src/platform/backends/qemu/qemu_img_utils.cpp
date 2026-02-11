@@ -84,37 +84,6 @@ void mp::backend::resize_instance_image(const MemorySize& disk_space,
         mp::image_resize_timeout);
 }
 
-std::filesystem::path mp::backend::convert_to_qcow_if_necessary(
-    const std::filesystem::path& image_path)
-{
-    // Check if raw image file, and if so, convert to qcow2 format.
-    // TODO: we could support converting from other the image formats that qemu-img can deal with
-    auto qcow2_path{image_path};
-    qcow2_path += ".qcow2";
-
-    const auto image_format = get_image_format(image_path);
-
-    if (image_format == "raw")
-    {
-        auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
-            QStringList{"convert",
-                        "-p",
-                        "-O",
-                        "qcow2",
-                        MP_PLATFORM.path_to_qstr(image_path),
-                        MP_PLATFORM.path_to_qstr(qcow2_path)},
-            image_path,
-            qcow2_path);
-        auto qemuimg_convert_process = checked_exec_qemu_img(std::move(qemuimg_convert_spec),
-                                                             "Failed to convert image format");
-        return qcow2_path;
-    }
-    else
-    {
-        return image_path;
-    }
-}
-
 void mp::backend::amend_to_qcow2_v3(const std::filesystem::path& image_path)
 {
     checked_exec_qemu_img(
@@ -124,29 +93,29 @@ void mp::backend::amend_to_qcow2_v3(const std::filesystem::path& image_path)
         "Failed to amend image to QCOW2 v3");
 }
 
-std::filesystem::path mp::backend::convert_to_raw(const std::filesystem::path& image_path)
+std::filesystem::path mp::backend::convert(const std::filesystem::path& source_path, const std::string& target_format)
 {
-    auto raw_img_path{image_path};
-    raw_img_path.replace_extension("raw");
+    auto target_img_path{source_path};
+    target_img_path.replace_extension(target_format);
 
-    const auto image_format = get_image_format(image_path);
-    if (image_format == "raw")
-        return image_path;
+    const auto image_format = get_image_format(source_path);
+    if (image_format == target_format)
+        return source_path; // no-op
 
     auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
         QStringList{"convert",
                     "-p",
                     "-O",
-                    "raw",
-                    MP_PLATFORM.path_to_qstr(image_path),
-                    MP_PLATFORM.path_to_qstr(raw_img_path)},
-        image_path,
-        raw_img_path);
+                    QString::fromStdString(target_format),
+                    MP_PLATFORM.path_to_qstr(source_path),
+                    MP_PLATFORM.path_to_qstr(target_img_path)},
+        source_path,
+        target_img_path);
 
-    auto qemuimg_convert_process = checked_exec_qemu_img(std::move(qemuimg_convert_spec),
-                                                         "Failed to convert image to raw format");
+    auto qemuimg_convert_process =
+        checked_exec_qemu_img(std::move(qemuimg_convert_spec), "Failed to convert image format");
 
-    return raw_img_path;
+    return target_img_path;
 }
 
 bool mp::backend::instance_image_has_snapshot(const std::filesystem::path& image_path,
