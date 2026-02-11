@@ -15,13 +15,12 @@
  *
  */
 
+#include <applevz/applevz_utils.h>
 #include <applevz/applevz_virtual_machine.h>
-
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_status_monitor.h>
-
 #include <qemu/qemu_img_utils.h>
 #include <shared/macos/backend_utils.h>
 
@@ -30,6 +29,11 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr static auto log_category = "applevz-vm";
+
+void amend_disk_image(mp::VirtualMachineDescription& desc)
+{
+    desc.image.image_path = mp::applevz::convert_to_supported_format(desc.image.image_path);
+}
 } // namespace
 
 namespace multipass::applevz
@@ -40,6 +44,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
+    amend_disk_image(this->desc);
     initialize_vm_handle();
 }
 
