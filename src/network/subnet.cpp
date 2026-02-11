@@ -38,6 +38,7 @@ try
         mp::IPAddress addr{cidr_string.substr(0, i)};
 
         const auto prefix_length = std::stoul(cidr_string.substr(i + 1));
+        // Subnet masks of /31 or /32 require some special handling that we don't support.
         if (prefix_length >= 31)
             throw mp::Subnet::PrefixLengthOutOfRange(prefix_length);
 
