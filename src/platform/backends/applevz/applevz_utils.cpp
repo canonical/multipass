@@ -20,11 +20,19 @@
 #include <applevz/applevz_wrapper.h>
 #include <qemu/qemu_img_utils.h>
 
+namespace mpl = multipass::logging;
+
 namespace
 {
+constexpr auto category = "applevz-utils";
+
 bool is_asif_image(const std::filesystem::path& image_path)
 {
     return false;
+}
+
+void make_sparse(const std::filesystem::path& path, const multipass::MemorySize& disk_space)
+{
 }
 
 std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
@@ -49,5 +57,16 @@ std::filesystem::path convert_to_supported_format(const std::filesystem::path& i
 
 void resize_image(const MemorySize& disk_space, const std::filesystem::path& image_path)
 {
+    mpl::trace(category, "Resizing image to: {}", disk_space.human_readable());
+
+    if (is_asif_image(image_path))
+    {
+    }
+    else
+    {
+        make_sparse(image_path, disk_space);
+    }
+
+    mpl::trace(category, "Successfully resized image: {}", image_path);
 }
 } // namespace multipass::applevz
