@@ -50,6 +50,7 @@ add_executable(multipass_tests
   test_cli_prompters.cpp
   test_client_cert_store.cpp
   test_client_common.cpp
+  test_client_logger.cpp
   test_cloud_init_iso.cpp
   test_common_callbacks.cpp
   test_constants.cpp
@@ -67,6 +68,8 @@ add_executable(multipass_tests
   test_daemon_wait_ready.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
+  test_exception.cpp
+  test_file_ops.cpp
   test_format_utils.cpp
   test_global_settings_handlers.cpp
   test_id_mappings.cpp
@@ -75,19 +78,25 @@ add_executable(multipass_tests
   test_instance_settings_handler.cpp
   test_ip_address.cpp
   test_json_utils.cpp
+  test_log.cpp
+  test_log_location.cpp
   test_memory_size.cpp
   test_mock_standard_paths.cpp
   test_mount_handler.cpp
   test_new_release_monitor.cpp
   test_output_formatter.cpp
+  test_permission_utils.cpp
   test_persistent_settings_handler.cpp
   test_petname.cpp
   test_private_pass_provider.cpp
   test_qemuimg_process_spec.cpp
+  test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
   test_setting_specs.cpp
   test_settings.cpp
   test_sftp_client.cpp
+  test_sftp_dir_iterator.cpp
+  test_sftp_utils.cpp
   test_sftpserver.cpp
   test_simple_streams_index.cpp
   test_simple_streams_manifest.cpp
@@ -97,28 +106,20 @@ add_executable(multipass_tests
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
   test_ssh_session.cpp
+  test_sshfs_mount_handler.cpp
   test_sshfs_server_process_spec.cpp
   test_sshfsmount.cpp
-  test_sshfs_mount_handler.cpp
   test_ssl_cert_provider.cpp
+  test_standard_logger.cpp
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
   test_url_downloader.cpp
   test_utils.cpp
-  test_yaml_node_utils.cpp
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
-  test_sftp_dir_iterator.cpp
-  test_sftp_utils.cpp
-  test_file_ops.cpp
-  test_recursive_dir_iter.cpp
-  test_log.cpp
-  test_exception.cpp
-  test_permission_utils.cpp
-  test_client_logger.cpp
-  test_standard_logger.cpp
   test_xz_image_decoder.cpp
+  test_yaml_node_utils.cpp
 )
 
 target_include_directories(multipass_tests

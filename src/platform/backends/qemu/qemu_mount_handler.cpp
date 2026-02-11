@@ -17,6 +17,7 @@
 
 #include "qemu_mount_handler.h"
 
+#include <multipass/logging/log_location.h>
 #include <multipass/utils.h>
 
 #include <QUuid>
@@ -120,19 +121,9 @@ void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
     if (const auto& [leading, missing] = mpu::get_path_split(session, target); missing != ".")
     {
         const auto default_uid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -u"));
-        mpl::debug(category,
-                   "{}:{} {}(): `id -u` = {}",
-                   __FILE__,
-                   __LINE__,
-                   __FUNCTION__,
-                   default_uid);
+        mpl::debug_location(category, "`id -u` = {}", default_uid);
         const auto default_gid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -g"));
-        mpl::debug(category,
-                   "{}:{} {}(): `id -g` = {}",
-                   __FILE__,
-                   __LINE__,
-                   __FUNCTION__,
-                   default_gid);
+        mpl::debug_location(category, "`id -g` = {}", default_gid);
 
         mpu::make_target_dir(session, leading, missing);
         mpu::set_owner_for(session, leading, missing, default_uid, default_gid);

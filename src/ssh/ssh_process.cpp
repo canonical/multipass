@@ -18,7 +18,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
-#include <multipass/logging/log.h>
+#include <multipass/logging/log_location.h>
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/throw_on_error.h>
 
@@ -174,17 +174,12 @@ std::string mp::SSHProcess::read_std_error()
 
 std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
 {
-    mpl::trace(category,
-               "{}:{} {}(type = {}, timeout = {}): ",
-               __FILE__,
-               __LINE__,
-               __FUNCTION__,
-               static_cast<int>(type),
-               timeout);
+    mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
+
     // If the channel is closed there's no output to read
     if (ssh_channel_is_closed(channel.get()))
     {
-        mpl::trace(category, "{}:{} {}(): channel closed", __FILE__, __LINE__, __FUNCTION__);
+        mpl::trace_location(category, "channel closed");
         return std::string();
     }
 
@@ -199,23 +194,14 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
                                              buffer.size(),
                                              is_std_err,
                                              timeout);
-        mpl::trace(category,
-                   "{}:{} {}(): num_bytes = {}",
-                   __FILE__,
-                   __LINE__,
-                   __FUNCTION__,
-                   num_bytes);
+        mpl::trace_location(category, "num_bytes = {}", num_bytes);
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
             // returning 0 bytes
             if (ssh_channel_is_closed(channel.get()))
             {
-                mpl::trace(category,
-                           "{}:{} {}(): channel closed",
-                           __FILE__,
-                           __LINE__,
-                           __FUNCTION__);
+                mpl::trace_location(category, "channel closed");
                 return output.str();
             }
 
