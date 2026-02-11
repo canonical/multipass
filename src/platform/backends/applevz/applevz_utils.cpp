@@ -17,6 +17,28 @@
 
 #include "applevz_utils.h"
 
+#include <applevz/applevz_wrapper.h>
+#include <qemu/qemu_img_utils.h>
+
+namespace
+{
+mp::Path convert_to_asif(const mp::Path& source_path)
+{
+    return source_path + ".asif";
+}
+} // namespace
+
 namespace multipass::applevz
 {
+Path convert_to_supported_format(const Path& image_path)
+{
+    if (MP_APPLEVZ.macos_at_least(26, 0) && !is_asif_image(image_path))
+    {
+        return convert_to_asif(image_path);
+    }
+    else
+    {
+        return backend::convert_to_raw(image_path);
+    }
+}
 } // namespace multipass::applevz

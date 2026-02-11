@@ -17,9 +17,12 @@
 
 #pragma once
 
+#include <multipass/path.h>
+
 namespace multipass
 {
 namespace applevz
 {
+Path convert_to_supported_format(const Path& image_path);
 } // namespace applevz
 } // namespace multipass
