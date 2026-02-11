@@ -18,6 +18,7 @@
 #include "multipass/platform.h"
 
 #include <multipass/file_ops.h>
+#include <multipass/platform.h>
 #include <multipass/subnet.h>
 #include <multipass/utils.h>
 
@@ -180,16 +181,19 @@ mp::Subnet mp::SubnetAllocator::next_available()
 {
     const size_t possible_subnets = base_subnet.size(prefix);
 
-    if (block_idx >= possible_subnets)
-        throw std::invalid_argument(
-            fmt::format("{} is greater than the largest subnet block index {}",
-                        block_idx,
-                        possible_subnets - 1));
+    while (block_idx < possible_subnets)
+    {
+        // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
+        mp::IPAddress address =
+            base_subnet.masked_address() + (block_idx * (std::size_t{1} << (32 - prefix)));
 
-    // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
-    mp::IPAddress address =
-        base_subnet.masked_address() + (block_idx * (std::size_t{1} << (32 - prefix)));
+        ++block_idx;
+        mp::Subnet subnet{address, prefix};
+        if (!MP_PLATFORM.subnet_used_locally(subnet))
+            return subnet;
+    }
 
-    ++block_idx;
-    return mp::Subnet{address, prefix};
+    throw std::invalid_argument(fmt::format("{} is greater than the largest subnet block index {}",
+                                            block_idx,
+                                            possible_subnets - 1));
 }

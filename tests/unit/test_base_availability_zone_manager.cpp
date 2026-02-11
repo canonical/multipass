@@ -18,6 +18,7 @@
 #include "common.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
+#include "mock_platform.h"
 
 #include <multipass/base_availability_zone_manager.h>
 #include <multipass/constants.h>
@@ -45,6 +46,8 @@ struct BaseAvailabilityZoneManagerTest : public Test
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_guard.first;
     mpt::MockLogger::Scope mock_logger{mpt::MockLogger::inject()};
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<StrictMock>()};
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 };
 
 TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
@@ -52,6 +55,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
     // Default zones will be created
     const int expected_zone_count = static_cast<int>(mp::default_zone_names.size());
@@ -83,6 +87,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
     // Set up all zones to be created
     for (const auto& zone_name : mp::default_zone_names)
@@ -126,6 +131,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 {
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
     // Set up default zones to be created
     for (const auto& zone_name : mp::default_zone_names)
@@ -148,6 +154,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
 {
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
     // Set up default zones to be created - all initially available
     for (const auto& zone_name : mp::default_zone_names)

@@ -351,10 +351,15 @@ TEST(SubnetTest, relationalComparisonsWorkAsExpected)
 struct SubnetAllocatorTest : public Test
 {
     const mp::Subnet subnet{"192.168.0.1/16"};
+
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<StrictMock>()};
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 };
 
 TEST_F(SubnetAllocatorTest, nextAvailableWorks)
 {
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
+
     mp::SubnetAllocator allocator{subnet, 24};
     auto res1 = allocator.next_available();
     EXPECT_EQ(res1.prefix_length(), 24);
@@ -369,8 +374,29 @@ TEST_F(SubnetAllocatorTest, nextAvailableWorks)
     EXPECT_EQ(res3.masked_address(), mp::IPAddress{"192.168.2.0"});
 }
 
+TEST_F(SubnetAllocatorTest, nextAvailableSkipsUsedSubnets)
+{
+    EXPECT_CALL(mock_platform, subnet_used_locally)
+        .WillOnce(Return(true))
+        .WillOnce(Return(true))
+        .WillOnce(Return(false))
+        .WillOnce(Return(true))
+        .WillOnce(Return(false));
+
+    mp::SubnetAllocator allocator{subnet, 24};
+    auto res1 = allocator.next_available();
+    EXPECT_EQ(res1.prefix_length(), 24);
+    EXPECT_EQ(res1.masked_address(), mp::IPAddress{"192.168.2.0"});
+
+    auto res2 = allocator.next_available();
+    EXPECT_EQ(res2.prefix_length(), 24);
+    EXPECT_EQ(res2.masked_address(), mp::IPAddress{"192.168.4.0"});
+}
+
 TEST_F(SubnetAllocatorTest, nextAvailableFailsOnBadIndex)
 {
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
+
     mp::SubnetAllocator allocator{subnet, 17};
     std::ignore = allocator.next_available();
     std::ignore = allocator.next_available();

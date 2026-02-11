@@ -18,6 +18,7 @@
 #include "common.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
+#include "mock_platform.h"
 #include "mock_virtual_machine.h"
 
 #include <multipass/base_availability_zone.h>
@@ -46,6 +47,8 @@ struct BaseAvailabilityZoneTest : public Test
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_guard.first;
     mpt::MockLogger::Scope mock_logger{mpt::MockLogger::inject()};
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<StrictMock>()};
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 };
 
 TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
@@ -54,6 +57,7 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
     EXPECT_CALL(mock_file_ops, try_read_file(az_file)).WillOnce(Return("{}"));
     EXPECT_CALL(mock_file_ops,
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir};
 
@@ -83,6 +87,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
     EXPECT_CALL(mock_file_ops,
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _))
         .Times(2); // Once in constructor, once in set_available
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
 
     NiceMock<mpt::MockVirtualMachine> mock_vm;
     EXPECT_CALL(mock_vm, set_available(false));
@@ -99,6 +104,7 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
     EXPECT_CALL(mock_file_ops, try_read_file(az_file)).WillOnce(Return("{}"));
     EXPECT_CALL(mock_file_ops,
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
 
     NiceMock<mpt::MockVirtualMachine> mock_vm;
 
@@ -115,6 +121,7 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     EXPECT_CALL(mock_file_ops,
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _))
         .Times(2); // Once in constructor, once in set_available
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
 
     NiceMock<mpt::MockVirtualMachine> mock_vm1;
     NiceMock<mpt::MockVirtualMachine> mock_vm2;
