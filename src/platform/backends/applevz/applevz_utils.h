@@ -17,9 +17,12 @@
 
 #pragma once
 
+#include <filesystem>
+
 namespace multipass
 {
 namespace applevz
 {
+std::filesystem::path convert_to_supported_format(const std::filesystem::path& image_path);
 } // namespace applevz
 } // namespace multipass
