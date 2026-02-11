@@ -46,4 +46,8 @@ std::filesystem::path convert_to_supported_format(const std::filesystem::path& i
         return backend::convert_to_raw(image_path);
     }
 }
+
+void resize_image(const MemorySize& disk_space, const std::filesystem::path& image_path)
+{
+}
 } // namespace multipass::applevz

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <multipass/memory_size.h>
+
 #include <filesystem>
 
 namespace multipass
@@ -24,5 +26,6 @@ namespace multipass
 namespace applevz
 {
 std::filesystem::path convert_to_supported_format(const std::filesystem::path& image_path);
+void resize_image(const MemorySize& disk_space, const std::filesystem::path& image_path);
 } // namespace applevz
 } // namespace multipass
