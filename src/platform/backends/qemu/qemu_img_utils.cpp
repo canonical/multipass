@@ -129,6 +129,10 @@ std::filesystem::path mp::backend::convert_to_raw(const std::filesystem::path& i
     auto raw_img_path{image_path};
     raw_img_path.replace_extension("raw");
 
+    const auto image_format = get_image_format(image_path);
+    if (image_format == "raw")
+        return image_path;
+
     auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
         QStringList{"convert",
                     "-p",
