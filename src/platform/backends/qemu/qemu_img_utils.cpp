@@ -34,21 +34,18 @@
 namespace mp = multipass;
 namespace mpp = multipass::platform;
 
-namespace
+QString mp::backend::get_image_info(const mp::Path& image_path, const QString& key)
 {
-QString get_image_format(const mp::Path& image_path)
-{
-    auto qemuimg_info_process = mp::backend::checked_exec_qemu_img(
+    auto qemuimg_info_process = checked_exec_qemu_img(
         std::make_unique<mp::QemuImgProcessSpec>(QStringList{"info", "--output=json", image_path},
                                                  image_path),
-        "Cannot read image format");
+        "Cannot read image info");
 
     auto image_info = qemuimg_info_process->read_all_standard_output();
     auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
 
-    return image_record["format"].toString();
+    return image_record[key].toString();
 }
-} // namespace
 
 auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,
                                         const std::string& custom_error_prefix,
@@ -71,7 +68,7 @@ auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> 
 void mp::backend::resize_instance_image(const MemorySize& disk_space, const mp::Path& image_path)
 {
     // Detect the image format first to avoid qemu-img warnings and restrictions
-    const auto image_format = get_image_format(image_path);
+    const auto image_format = get_image_info(image_path, "format");
 
     auto disk_size = QString::number(
         disk_space.in_bytes()); // format documented in `man qemu-img` (look for "size")
@@ -99,7 +96,7 @@ mp::Path mp::backend::convert(const mp::Path& source_path, const QString& target
                                .arg(source_info.completeBaseName())
                                .arg(target_format);
 
-    const auto image_format = get_image_format(source_path);
+    const auto image_format = get_image_info(source_path, "format");
     if (image_format == target_format)
         return source_path; // no-op
 
