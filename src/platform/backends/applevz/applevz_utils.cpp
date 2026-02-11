@@ -23,9 +23,16 @@
 #include <qemu/qemu_img_utils.h>
 #include <shared/macos/process_factory.h>
 
+#include <QFile>
+#include <QFileInfo>
+
+#include <algorithm>
 #include <cstring>
 #include <fcntl.h>
+#include <stdexcept>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -137,7 +144,131 @@ void make_sparse(const mp::Path& path, const mp::MemorySize& disk_space)
 
 mp::Path convert_to_asif(const mp::Path& source_path)
 {
-    return source_path + ".asif";
+    constexpr size_t buffer_size = 1024 * 1024;
+
+    mpl::info(category, "Converting {} to ASIF format", source_path.toStdString());
+
+    mp::Path raw_path = mp::backend::convert_to_raw(source_path);
+
+    struct stat st;
+    if (stat(raw_path.toStdString().c_str(), &st) == -1)
+    {
+        throw std::runtime_error(fmt::format("Failed to stat source image: {}", strerror(errno)));
+    }
+    mp::MemorySize source_size{std::to_string(st.st_size)};
+
+    QFileInfo source_info(source_path);
+    mp::Path asif_path =
+        source_info.absolutePath() + "/" + source_info.completeBaseName() + ".asif";
+    create_asif(asif_path, source_size);
+
+    mp::Path device_path = attach_asif(asif_path);
+    try
+    {
+        int source_fd = open(raw_path.toStdString().c_str(), O_RDONLY);
+        if (source_fd == -1)
+        {
+            throw std::runtime_error(fmt::format("Failed to open source image {}: {}",
+                                                 raw_path.toStdString(),
+                                                 strerror(errno)));
+        }
+
+        int target_fd = open(device_path.toStdString().c_str(), O_WRONLY);
+        if (target_fd == -1)
+        {
+            close(source_fd);
+            throw std::runtime_error(fmt::format("Failed to open target device {}: {}",
+                                                 device_path.toStdString(),
+                                                 strerror(errno)));
+        }
+
+        struct stat st;
+        if (fstat(source_fd, &st) == -1)
+        {
+            close(source_fd);
+            close(target_fd);
+            throw std::runtime_error(
+                fmt::format("Failed to stat source image: {}", strerror(errno)));
+        }
+
+        off_t total_size = st.st_size;
+        off_t bytes_copied = 0;
+
+        std::vector<char> buffer(buffer_size);
+        std::vector<char> zero_buffer(buffer_size, 0);
+
+        while (bytes_copied < total_size)
+        {
+            size_t bytes_to_read =
+                std::min(static_cast<size_t>(total_size - bytes_copied), buffer_size);
+
+            ssize_t bytes_read = read(source_fd, buffer.data(), bytes_to_read);
+            if (bytes_read == -1)
+            {
+                close(source_fd);
+                close(target_fd);
+                throw std::runtime_error(
+                    fmt::format("Failed to read from source: {}", strerror(errno)));
+            }
+
+            if (bytes_read == 0)
+                break;
+
+            // Check if block is all zeros
+            bool is_zero = std::memcmp(buffer.data(), zero_buffer.data(), bytes_read) == 0;
+
+            if (!is_zero)
+            {
+                // Write non-zero data
+                ssize_t bytes_written = write(target_fd, buffer.data(), bytes_read);
+                if (bytes_written == -1)
+                {
+                    close(source_fd);
+                    close(target_fd);
+                    throw std::runtime_error(
+                        fmt::format("Failed to write to target: {}", strerror(errno)));
+                }
+
+                if (bytes_written != bytes_read)
+                {
+                    close(source_fd);
+                    close(target_fd);
+                    throw std::runtime_error(fmt::format("Short write: read {} bytes but wrote {}",
+                                                         bytes_read,
+                                                         bytes_written));
+                }
+            }
+            else
+            {
+                // Skip zero blocks by seeking forward
+                if (lseek(target_fd, bytes_read, SEEK_CUR) == -1)
+                {
+                    close(source_fd);
+                    close(target_fd);
+                    throw std::runtime_error(
+                        fmt::format("Failed to seek in target: {}", strerror(errno)));
+                }
+            }
+
+            bytes_copied += bytes_read;
+        }
+
+        close(source_fd);
+        close(target_fd);
+
+        mpl::info(category, "Successfully converted {} bytes to ASIF format", bytes_copied);
+
+        detach_asif(device_path);
+        QFile::remove(raw_path);
+
+        return asif_path;
+    }
+    catch (...)
+    {
+        detach_asif(device_path);
+        QFile::remove(asif_path);
+        throw;
+    }
 }
 } // namespace
 
