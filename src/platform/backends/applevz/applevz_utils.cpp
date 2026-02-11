@@ -49,6 +49,21 @@ bool is_asif_image(const mp::Path& image_path)
 
 void make_sparse(const mp::Path& path, const mp::MemorySize& disk_space)
 {
+    int fd = open(path.toStdString().c_str(), O_RDWR);
+    if (fd == -1)
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to open file for resizing: {}", strerror(errno)));
+    }
+
+    auto size_bytes = static_cast<off_t>(disk_space.in_bytes());
+    if (ftruncate(fd, size_bytes) == -1)
+    {
+        close(fd);
+        throw std::runtime_error(fmt::format("Failed to resize file: {}", strerror(errno)));
+    }
+
+    close(fd);
 }
 
 mp::Path convert_to_asif(const mp::Path& source_path)
