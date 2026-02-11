@@ -43,31 +43,29 @@ struct BaseAvailabilityZoneManagerTest : public Test
     const QString manager_file_qstr{QString::fromStdU16String(manager_file.u16string())};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
+    mpt::MockFileOps& mock_file_ops = *mock_file_ops_guard.first;
     mpt::MockLogger::Scope mock_logger{mpt::MockLogger::inject()};
 };
 
 TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
-        .WillOnce(Return(std::nullopt));
-
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
 
     // Default zones will be created
     const int expected_zone_count = static_cast<int>(mp::default_zone_names.size());
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
-            .WillOnce(Return(std::nullopt));
-        EXPECT_CALL(*mock_file_ops_guard.first,
+        EXPECT_CALL(mock_file_ops, try_read_file(zone_file)).WillOnce(Return(std::nullopt));
+        EXPECT_CALL(mock_file_ops,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _));
     }
 
     // Manager file gets written with default zone (once in constructor and once in
     // get_automatic_zone_name)
-    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _)).Times(2);
+    EXPECT_CALL(mock_file_ops, write_transactionally(manager_file_qstr, _)).Times(2);
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
@@ -82,26 +80,22 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 
 TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
-        .WillOnce(Return(std::nullopt));
-
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
 
     // Set up all zones to be created
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
-            .WillOnce(Return(std::nullopt));
-        EXPECT_CALL(*mock_file_ops_guard.first,
+        EXPECT_CALL(mock_file_ops, try_read_file(zone_file)).WillOnce(Return(std::nullopt));
+        EXPECT_CALL(mock_file_ops,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
     }
 
     // Manager file will be written multiple times
-    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _))
-        .Times(AnyNumber());
+    EXPECT_CALL(mock_file_ops, write_transactionally(manager_file_qstr, _)).Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
@@ -130,24 +124,20 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 
 TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
-        .WillOnce(Return(std::nullopt));
-
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
 
     // Set up default zones to be created
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
-            .WillOnce(Return(std::nullopt));
-        EXPECT_CALL(*mock_file_ops_guard.first,
+        EXPECT_CALL(mock_file_ops, try_read_file(zone_file)).WillOnce(Return(std::nullopt));
+        EXPECT_CALL(mock_file_ops,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
     }
 
-    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _))
-        .Times(AnyNumber());
+    EXPECT_CALL(mock_file_ops, write_transactionally(manager_file_qstr, _)).Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
@@ -156,24 +146,20 @@ TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 
 TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
 {
-    EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(manager_file))
-        .WillOnce(Return(std::nullopt));
-
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
 
     // Set up default zones to be created - all initially available
     for (const auto& zone_name : mp::default_zone_names)
     {
         const auto zone_file = zones_dir / (std::string{zone_name} + ".json");
-        EXPECT_CALL(*mock_file_ops_guard.first, try_read_file(zone_file))
-            .WillOnce(Return(std::nullopt));
-        EXPECT_CALL(*mock_file_ops_guard.first,
+        EXPECT_CALL(mock_file_ops, try_read_file(zone_file)).WillOnce(Return(std::nullopt));
+        EXPECT_CALL(mock_file_ops,
                     write_transactionally(QString::fromStdU16String(zone_file.u16string()), _))
             .Times(AnyNumber());
     }
 
-    EXPECT_CALL(*mock_file_ops_guard.first, write_transactionally(manager_file_qstr, _))
-        .Times(AnyNumber());
+    EXPECT_CALL(mock_file_ops, write_transactionally(manager_file_qstr, _)).Times(AnyNumber());
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
