@@ -34,6 +34,31 @@ namespace
 {
 constexpr auto category = "applevz-utils";
 
+void create_asif(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
+{
+    mpl::info(category,
+              "Creating ASIF image in directory: {}, with size: {}",
+              image_path,
+              disk_space.human_readable());
+
+    auto process = MP_PROCFACTORY.create_process(
+        QStringLiteral("diskutil"),
+        QStringList() << "image" << "create" << "blank" << "--fs" << "none" << "--format" << "ASIF"
+                      << "--size" << QString::number(disk_space.in_bytes())
+                      << MP_PLATFORM.path_to_qstr(image_path));
+
+    auto exit_state = process->execute();
+
+    if (!exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Failed to create ASIF image: {}; Output: {}",
+                                             exit_state.failure_message(),
+                                             process->read_all_standard_error().toStdString()));
+    }
+
+    mpl::trace(category, "Successfully created ASIF image: {}", image_path);
+}
+
 bool is_asif_image(const std::filesystem::path& image_path)
 {
     // ASIF format uses "shdw" magic bytes (0x73686477)
