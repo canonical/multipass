@@ -34,6 +34,7 @@ public:
     {
         template <class T>
         explicit PrefixLengthOutOfRange(const T& value)
+            // Subnet masks of /31 or /32 require some special handling that we don't support.
             : FormattedExceptionBase{
                   "Subnet prefix length must be non-negative and less than 31: {}",
                   value}
@@ -63,21 +64,33 @@ public:
 
     Subnet(const std::string& cidr_string);
 
+    // Return the smallest IP address available in this subnet
     [[nodiscard]] IPAddress min_address() const;
+    // Return the largest IP address available in this subnet, excluding the broadcast address
     [[nodiscard]] IPAddress max_address() const;
+    // Return the number of usable IP addresses in this subnet
     [[nodiscard]] uint32_t usable_address_count() const;
 
+    // Return the original IP address
     [[nodiscard]] IPAddress address() const;
+    // Return the IP address with the subnet mask applied
     [[nodiscard]] IPAddress masked_address() const;
+    // Return the broadcast address for this subnet
     [[nodiscard]] IPAddress broadcast_address() const;
+    // Return the prefix length, e.g. the 24 in 192.168.1.0/24
     [[nodiscard]] PrefixLength prefix_length() const;
+    // Return the subnet mask as an IP, e.g. 255.255.255.0
     [[nodiscard]] IPAddress subnet_mask() const;
 
+    // Return this subnet with the subnet mask applied to the IP address
     [[nodiscard]] Subnet canonical() const;
 
+    // Return a string representing this subnet in CIDR notation
     [[nodiscard]] std::string to_cidr() const;
 
+    // Return the number of subnets of size `prefix_length` that fit in this subnet
     [[nodiscard]] size_t size(PrefixLength prefix_length) const;
+    // Get a child subnet that fits inside this one
     [[nodiscard]] Subnet get_specific_subnet(size_t block_idx, PrefixLength prefix_length) const;
 
     // Subnets are either disjoint or the smaller is a subset of the larger
