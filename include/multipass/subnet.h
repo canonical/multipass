@@ -32,6 +32,7 @@ public:
     {
         template <class T>
         explicit PrefixLengthOutOfRange(const T& value)
+            // Subnet masks of /31 or /32 require some special handling that we don't support.
             : FormattedExceptionBase{
                   "Subnet prefix length must be non-negative and less than 31: {}",
                   value}
@@ -65,9 +66,13 @@ public:
     [[nodiscard]] IPAddress max_address() const;
     [[nodiscard]] uint32_t usable_address_count() const;
 
+    [[nodiscard]] IPAddress address() const;
     [[nodiscard]] IPAddress network_address() const;
+    [[nodiscard]] IPAddress broadcast_address() const;
     [[nodiscard]] PrefixLength prefix_length() const;
     [[nodiscard]] IPAddress subnet_mask() const;
+
+    [[nodiscard]] Subnet canonical() const;
 
     [[nodiscard]] std::string to_cidr() const;
 
@@ -82,7 +87,7 @@ public:
     [[nodiscard]] bool operator==(const Subnet& other) const = default;
 
 private:
-    IPAddress address;
+    IPAddress ip_address;
     PrefixLength prefix;
 };
 } // namespace multipass

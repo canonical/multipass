@@ -398,7 +398,7 @@ QString detect_firewall()
 mp::BasicFirewallConfig::BasicFirewallConfig(const QString& bridge_name, const mp::Subnet& subnet)
     : firewall{detect_firewall()},
       bridge_name{bridge_name},
-      cidr{subnet},
+      cidr{subnet.canonical()},
       comment{multipass_firewall_comment(bridge_name)}
 {
     try
