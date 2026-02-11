@@ -39,6 +39,7 @@ public:
 Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec,
                                     const std::string& custom_error_prefix = "Internal error",
                                     std::optional<int> timeout = std::nullopt);
+QString get_image_info(const Path& image_path, const QString& key);
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
 Path convert(const Path& image_path, const QString& target_format);
 void amend_to_qcow2_v3(const Path& image_path);

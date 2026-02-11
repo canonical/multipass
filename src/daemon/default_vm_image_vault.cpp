@@ -32,6 +32,7 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image.h>
+#include <qemu/qemu_img_utils.h>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -192,37 +193,7 @@ void delete_image_dir(const mp::Path& image_path)
 
 mp::MemorySize get_image_size(const mp::Path& image_path)
 {
-    QStringList qemuimg_parameters{{"info", image_path}};
-    auto qemuimg_process = mp::platform::make_process(
-        std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image_path));
-    auto process_state = qemuimg_process->execute();
-
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(
-            fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
-                        process_state.failure_message(),
-                        qemuimg_process->read_all_standard_error()));
-    }
-
-    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
-    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)\r?$");
-    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
-
-    mp::MemorySize image_size{};
-
-    const auto match = re.match(img_info);
-
-    if (match.hasMatch())
-    {
-        image_size = mp::MemorySize(match.captured("size").toStdString());
-    }
-    else
-    {
-        throw std::runtime_error{"Could not obtain image's virtual size"};
-    }
-
-    return image_size;
+    return mp::MemorySize(mp::backend::get_image_info(image_path, "virtual-size").toStdString());
 }
 
 template <typename T>
