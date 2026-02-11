@@ -24,7 +24,8 @@
 #include <qemu/qemu_img_utils.h>
 #include <shared/macos/backend_utils.h>
 
-namespace mpl = multipass::logging;
+namespace mp = multipass;
+namespace mpl = mp::logging;
 
 namespace
 {
@@ -193,16 +194,16 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     // We need to wait here.
     auto on_timeout = [] { throw std::runtime_error("timed out waiting for shutdown"); };
 
-    multipass::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
+    mp::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
         switch (current_state())
         {
         case VirtualMachine::State::stopped:
         case VirtualMachine::State::off:
             drop_ssh_session();
             vm_handle.reset();
-            return multipass::utils::TimeoutAction::done;
+            return mp::utils::TimeoutAction::done;
         default:
-            return multipass::utils::TimeoutAction::retry;
+            return mp::utils::TimeoutAction::retry;
         }
     });
 }
@@ -272,7 +273,7 @@ std::string AppleVZVirtualMachine::ssh_username()
 std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 {
     if (!management_ip)
-        management_ip = multipass::backend::get_neighbour_ip(desc.default_mac_address);
+        management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address);
 
     return management_ip;
 }
@@ -297,7 +298,7 @@ void AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
-    multipass::backend::resize_instance_image(new_size, desc.image.image_path);
+    applevz::resize_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
 }
 
@@ -351,10 +352,9 @@ void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     {
         auto action = [this] {
             detect_aborted_start();
-            return ((management_ip =
-                         multipass::backend::get_neighbour_ip(desc.default_mac_address)))
-                       ? multipass::utils::TimeoutAction::done
-                       : multipass::utils::TimeoutAction::retry;
+            return ((management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address)))
+                       ? mp::utils::TimeoutAction::done
+                       : mp::utils::TimeoutAction::retry;
         };
 
         auto on_timeout = [this, &timeout] {
@@ -362,7 +362,7 @@ void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
             throw InternalTimeoutException{"determine IP address", timeout};
         };
 
-        multipass::utils::try_action_for(on_timeout, timeout, action);
+        mp::utils::try_action_for(on_timeout, timeout, action);
     }
 }
 
