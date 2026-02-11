@@ -41,4 +41,8 @@ Path convert_to_supported_format(const Path& image_path)
         return backend::convert_to_raw(image_path);
     }
 }
+
+void resize_image(const MemorySize& disk_space, const Path& image_path)
+{
+}
 } // namespace multipass::applevz
