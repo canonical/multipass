@@ -18,12 +18,16 @@
 #include "applevz_utils.h"
 
 #include <applevz/applevz_wrapper.h>
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
 #include <qemu/qemu_img_utils.h>
+#include <shared/macos/process_factory.h>
 
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
 
+namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
@@ -47,7 +51,7 @@ bool is_asif_image(const std::filesystem::path& image_path)
     return !std::memcmp(magic, "shdw", 4);
 }
 
-void make_sparse(const std::filesystem::path& path, const multipass::MemorySize& disk_space)
+void make_sparse(const std::filesystem::path& path, const mp::MemorySize& disk_space)
 {
     int fd = open(path.c_str(), O_RDWR);
     if (fd == -1)
@@ -92,6 +96,20 @@ void resize_image(const MemorySize& disk_space, const std::filesystem::path& ima
 
     if (is_asif_image(image_path))
     {
+        auto process =
+            MP_PROCFACTORY.create_process(QStringLiteral("diskutil"),
+                                          QStringList() << "image" << "resize" << "--size"
+                                                        << QString::number(disk_space.in_bytes())
+                                                        << MP_PLATFORM.path_to_qstr(image_path));
+
+        auto exit_state = process->execute();
+
+        if (!exit_state.completed_successfully())
+        {
+            throw std::runtime_error(fmt::format("Failed to resize ASIF device: {}; Output: {}",
+                                                 exit_state.failure_message(),
+                                                 process->read_all_standard_error().toStdString()));
+        }
     }
     else
     {
