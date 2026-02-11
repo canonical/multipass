@@ -52,6 +52,9 @@ jobs:
       - name: Run clang-format through the diff
         shell: bash
         run: |
+          # Print out version of clang-format being used
+          clang-format --version
+
           # Ensure that the .clang-format configuration is valid
           clang-format --dump-config > /dev/null
 
