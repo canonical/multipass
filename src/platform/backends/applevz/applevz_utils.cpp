@@ -20,6 +20,10 @@
 #include <applevz/applevz_wrapper.h>
 #include <qemu/qemu_img_utils.h>
 
+#include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
+
 namespace mpl = multipass::logging;
 
 namespace
@@ -28,7 +32,19 @@ constexpr auto category = "applevz-utils";
 
 bool is_asif_image(const mp::Path& image_path)
 {
-    return false;
+    // ASIF format uses "shdw" magic bytes (0x73686477)
+    int fd = open(image_path.toStdString().c_str(), O_RDONLY);
+    if (fd == -1)
+        return false;
+
+    char magic[4];
+    ssize_t bytes_read = read(fd, magic, 4);
+    close(fd);
+
+    if (bytes_read != 4)
+        return false;
+
+    return !std::memcmp(magic, "shdw", 4);
 }
 
 void make_sparse(const mp::Path& path, const mp::MemorySize& disk_space)
