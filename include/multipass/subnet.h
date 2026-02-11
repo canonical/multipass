@@ -34,6 +34,7 @@ public:
     {
         template <class T>
         explicit PrefixLengthOutOfRange(const T& value)
+            // Subnet masks of /31 or /32 require some special handling that we don't support.
             : FormattedExceptionBase{
                   "Subnet prefix length must be non-negative and less than 31: {}",
                   value}
