@@ -214,12 +214,11 @@ void test_image_conversion(const char* img_path,
     });
 
     if (throw_msg_matcher)
-        MP_EXPECT_THROW_THAT(mp::backend::convert_to_qcow_if_necessary(img_path),
+        MP_EXPECT_THROW_THAT(mp::backend::convert(img_path, "qcow2"),
                              std::runtime_error,
                              mpt::match_what(*throw_msg_matcher));
     else
-        EXPECT_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), Eq(expected_img_path));
-
+        EXPECT_THAT(mp::backend::convert(img_path, "qcow2"), Eq(expected_img_path));
     EXPECT_EQ(process_count, expected_final_process_count);
 }
 
@@ -264,12 +263,11 @@ void test_raw_conversion(const char* img_path,
     });
 
     if (throw_msg_matcher)
-        MP_EXPECT_THROW_THAT(mp::backend::convert_to_raw(img_path),
+        MP_EXPECT_THROW_THAT(mp::backend::convert(img_path, "raw"),
                              std::runtime_error,
                              mpt::match_what(*throw_msg_matcher));
     else
-        EXPECT_THAT(mp::backend::convert_to_raw(img_path), Eq(expected_img_path));
-
+        EXPECT_THAT(mp::backend::convert(img_path, "raw"), Eq(expected_img_path));
     EXPECT_EQ(process_count, 1);
 }
 

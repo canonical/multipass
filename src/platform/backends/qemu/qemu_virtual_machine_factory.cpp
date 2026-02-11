@@ -70,7 +70,7 @@ void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string&
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     VMImage image{source_image};
-    image.image_path = mp::backend::convert_to_qcow_if_necessary(source_image.image_path);
+    image.image_path = mp::backend::convert(source_image.image_path, "qcow2");
     mp::backend::amend_to_qcow2_v3(image.image_path);
     return image;
 }

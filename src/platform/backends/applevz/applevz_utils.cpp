@@ -149,7 +149,7 @@ mp::Path convert_to_asif(const mp::Path& source_path)
     mpl::info(category, "Converting {} to ASIF format", source_path.toStdString());
 
     // NO-OP if already RAW
-    mp::Path raw_path = mp::backend::convert_to_raw(source_path);
+    mp::Path raw_path = mp::backend::convert(source_path, "raw");
 
     struct stat st;
     if (stat(raw_path.toStdString().c_str(), &st) == -1)
@@ -159,8 +159,8 @@ mp::Path convert_to_asif(const mp::Path& source_path)
     mp::MemorySize source_size{std::to_string(st.st_size)};
 
     QFileInfo source_info(source_path);
-    mp::Path asif_path =
-        source_info.absolutePath() + "/" + source_info.completeBaseName() + ".asif";
+    auto asif_path =
+        QString("%1/%2.asif").arg(source_info.path()).arg(source_info.completeBaseName());
     create_asif(asif_path, source_size);
 
     mp::Path device_path = attach_asif(asif_path);
@@ -283,7 +283,7 @@ Path convert_to_supported_format(const Path& image_path)
     }
     else
     {
-        return backend::convert_to_raw(image_path);
+        return backend::convert(image_path, "raw");
     }
 }
 
