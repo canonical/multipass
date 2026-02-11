@@ -49,6 +49,7 @@ public:
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
+    void resize_partitions(std::chrono::milliseconds timeout) override;
 
     std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int index,
