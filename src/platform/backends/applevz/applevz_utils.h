@@ -35,5 +35,6 @@ public:
         const std::filesystem::path& image_path) const;
     virtual void resize_image(const MemorySize& disk_space,
                               const std::filesystem::path& image_path) const;
+    virtual bool macos_at_least(int major, int minor, int patch = 0) const;
 };
 } // namespace multipass::applevz

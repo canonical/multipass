@@ -63,7 +63,6 @@ bool can_stop(const VMHandle& vm_handle);
 bool can_request_stop(const VMHandle& vm_handle);
 
 bool is_supported();
-bool macos_at_least(int major, int minor, int patch);
 } // namespace multipass::applevz
 
 template <>
