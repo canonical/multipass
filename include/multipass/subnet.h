@@ -79,7 +79,6 @@ public:
     [[nodiscard]] std::string to_cidr() const;
 
     [[nodiscard]] size_t size(PrefixLength prefix_length) const;
-    [[nodiscard]] Subnet get_specific_subnet(size_t block_idx, PrefixLength prefix_length) const;
 
     // Subnets are either disjoint or the smaller is a subset of the larger
     [[nodiscard]] bool contains(Subnet other) const;
@@ -104,6 +103,19 @@ public:
 private:
     IPAddress ip_address;
     PrefixLength prefix;
+};
+
+class SubnetAllocator
+{
+public:
+    SubnetAllocator(Subnet base_subnet, Subnet::PrefixLength prefix);
+
+    [[nodiscard]] Subnet next_available();
+
+private:
+    Subnet base_subnet;
+    Subnet::PrefixLength prefix;
+    size_t block_idx = 0;
 };
 } // namespace multipass
 
