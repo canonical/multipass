@@ -288,10 +288,18 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
 {
     auto proc = session.exec(cmd, whisper);
 
-    if (auto ec = proc.exit_code() != 0)
+    if (auto ec = proc.exit_code(); ec != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
-        mpl::debug(category, "failed to run '{}', error message: '{}'", cmd, error_msg);
+        if (error_msg.empty())
+        {
+            mpl::debug(category, "failed to run '{}', exit_code {} (no stderr output)", cmd, ec);
+        }
+        else
+        {
+            mpl::debug(category, "failed to run '{}', error message: '{}'", cmd, error_msg);
+        }
+
         throw mp::SSHExecFailure(error_msg, ec);
     }
 
