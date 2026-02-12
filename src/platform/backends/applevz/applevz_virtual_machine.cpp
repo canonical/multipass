@@ -20,8 +20,8 @@
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/vm_status_monitor.h>
-#include <qemu/qemu_img_utils.h>
 #include <shared/macos/backend_utils.h>
 
 namespace mp = multipass;

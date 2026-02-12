@@ -15,14 +15,13 @@
  *
  */
 
-#include "qemu_img_utils.h"
-
 #include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
 #include <QString>
