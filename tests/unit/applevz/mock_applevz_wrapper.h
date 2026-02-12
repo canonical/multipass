@@ -71,6 +71,7 @@ public:
                 (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
     MOCK_METHOD(bool, is_supported, (), (const, override));
+    MOCK_METHOD(bool, macos_at_least, (int major, int minor, int patch), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZWrapper, AppleVZ);
 };

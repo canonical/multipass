@@ -15,13 +15,12 @@
  *
  */
 
-#include "qemu_img_utils.h"
-
 #include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
+#include <multipass/utils/qemu_img_utils.h>
 
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -41,9 +40,9 @@ QString mp::backend::get_image_info(const mp::Path& image_path, const QString& k
         "Cannot read image info");
 
     auto image_info = qemuimg_info_process->read_all_standard_output();
-    auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
+    auto image_record = QJsonDocument::fromJson(image_info, nullptr).object();
 
-    return image_record[key].toString();
+    return image_record[key].toVariant().toString();
 }
 
 auto mp::backend::checked_exec_qemu_img(std::unique_ptr<mp::QemuImgProcessSpec> spec,

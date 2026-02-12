@@ -20,7 +20,7 @@
 #include <applevz/applevz_wrapper.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <qemu/qemu_img_utils.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <shared/macos/process_factory.h>
 
 #include <QFile>

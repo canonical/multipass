@@ -18,7 +18,7 @@
 #include <applevz/applevz_utils.h>
 #include <applevz/applevz_virtual_machine.h>
 #include <applevz/applevz_virtual_machine_factory.h>
-#include <qemu/qemu_img_utils.h>
+#include <multipass/utils/qemu_img_utils.h>
 
 namespace mp = multipass;
 

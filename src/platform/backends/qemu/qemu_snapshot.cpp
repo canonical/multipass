@@ -16,12 +16,12 @@
  */
 
 #include "qemu_snapshot.h"
-#include "qemu_img_utils.h"
 #include "qemu_virtual_machine.h"
 
 #include <multipass/logging/log.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <scope_guard.hpp>
