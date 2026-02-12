@@ -45,14 +45,14 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
 VMImage AppleVZVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
     VMImage image{source_image};
-    image.image_path = convert_to_supported_format(source_image.image_path);
+    image.image_path = MP_APPLEVZ_UTILS.convert_to_supported_format(source_image.image_path);
     return image;
 }
 
 void AppleVZVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
                                                           const VirtualMachineDescription& desc)
 {
-    applevz::resize_image(desc.disk_space, instance_image.image_path);
+    MP_APPLEVZ_UTILS.resize_image(desc.disk_space, instance_image.image_path);
 }
 
 void AppleVZVirtualMachineFactory::hypervisor_health_check()

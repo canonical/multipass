@@ -275,7 +275,7 @@ mp::Path convert_to_asif(const mp::Path& source_path)
 
 namespace multipass::applevz
 {
-Path convert_to_supported_format(const Path& image_path)
+Path AppleVZImageUtils::convert_to_supported_format(const Path& image_path) const
 {
     if (MP_APPLEVZ.macos_at_least(26, 0) && !is_asif_image(image_path))
     {
@@ -287,7 +287,7 @@ Path convert_to_supported_format(const Path& image_path)
     }
 }
 
-void resize_image(const MemorySize& disk_space, const Path& image_path)
+void AppleVZImageUtils::resize_image(const MemorySize& disk_space, const Path& image_path) const
 {
     mpl::trace(category, "Resizing image to: {}", disk_space.human_readable());
 
