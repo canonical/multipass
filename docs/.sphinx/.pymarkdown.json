@@ -39,8 +39,8 @@
         }
     },
     "extensions": {
-        "front-matter" : {
-            "enabled" : true
+        "front-matter": {
+            "enabled": true
         }
     }
 }
