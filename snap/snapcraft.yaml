@@ -208,6 +208,13 @@ parts:
     override-pull: |
       set -e
 
+      if [ ! -d "$HOME/.cargo" ]; then
+        echo "=== Installing Rust ==="
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+      fi
+      # Set PATH variable for cargo executable
+      . "$HOME/.cargo/env"
+
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
       python3 -m pip install --break-system-packages jinja2
@@ -221,6 +228,8 @@ parts:
       craftctl default
       cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
     override-build: |
+      #Re-set the PATH variable for this step for the coverage build
+      . "$HOME/.cargo/env"
       # Build the project.
       cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
       DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install

@@ -234,10 +234,11 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
         # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
+           cd /root/parts/multipass/build && \
            ulimit -c unlimited &&        \
            env CTEST_OUTPUT_ON_FAILURE=1 \
            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-           /root/parts/multipass/build/bin/multipass_tests"
+           ctest"
 
     - name: Measure coverage
       id: measure-coverage
@@ -296,11 +297,15 @@ jobs:
         instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         # Pull the crashed executable from the container
         /snap/bin/lxc --project snapcraft file pull \
-          -p -r "$instance_name/root/parts/multipass/build/bin/multipass_tests" /tmp/coredump/multipass_tests
+          -p -r "$instance_name/root/parts/multipass/build/bin/multipass_cpp_tests" /tmp/coredump/multipass_cpp_tests
         echo "Pulled the executable."
         # Pull the coredump folder
         /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/coredump" /tmp/coredump
         echo "Pulled the coredumps folder."
+        mapfile -t BINS < <(cargo test --workspace --no-run --message-format=json | jq -r 'select(.reason == "compiler-artifact" and .executable != null) | .executable')
+        export TEST_BINARIES="${BINS[*]}"
+        for bin $TEST_BINARIES; do /snap/bin/lxc --project snapcraft file pull -p -r "$instance_name/$bin" /tmp/coredump/$bin
+        echo "Pulled the rust executables"
         set +o xtrace
 
     - name: Upload test coredump
