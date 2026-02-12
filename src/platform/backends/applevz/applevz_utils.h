@@ -19,12 +19,18 @@
 
 #include <multipass/memory_size.h>
 #include <multipass/path.h>
+#include <multipass/singleton.h>
 
-namespace multipass
+#define MP_APPLEVZ_UTILS multipass::applevz::AppleVZImageUtils::instance()
+
+namespace multipass::applevz
 {
-namespace applevz
+class AppleVZImageUtils : public Singleton<AppleVZImageUtils>
 {
-Path convert_to_supported_format(const Path& image_path);
-void resize_image(const MemorySize& disk_space, const Path& image_path);
-} // namespace applevz
-} // namespace multipass
+public:
+    using Singleton<AppleVZImageUtils>::Singleton;
+
+    virtual Path convert_to_supported_format(const Path& image_path) const;
+    virtual void resize_image(const MemorySize& disk_space, const Path& image_path) const;
+};
+} // namespace multipass::applevz
