@@ -144,6 +144,9 @@ void make_sparse(const std::filesystem::path& path, const mp::MemorySize& disk_s
 
 std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
 {
+    if (is_asif_image(source_path))
+        return source_path;
+
     constexpr size_t buffer_size = 1024 * 1024;
 
     mpl::info(category, "Converting {} to ASIF format", source_path);
@@ -274,7 +277,7 @@ namespace multipass::applevz
 std::filesystem::path AppleVZImageUtils::convert_to_supported_format(
     const std::filesystem::path& image_path) const
 {
-    if (MP_APPLEVZ.macos_at_least(26, 0) && !is_asif_image(image_path))
+    if (MP_APPLEVZ.macos_at_least(26, 0))
     {
         return convert_to_asif(image_path);
     }
