@@ -7,39 +7,40 @@
 SPHINXDIR       = .sphinx
 SPHINXOPTS      ?= -c . -d $(SPHINXDIR)/.doctrees -j auto
 SPHINXBUILD     ?= $(VENVDIR)/bin/sphinx-build
-SOURCEDIR       = .
-BUILDDIR        = _build
-VENVDIR         = $(SPHINXDIR)/venv
+SOURCEDIR       ?= .
+BUILDDIR        ?= _build
+VENVDIR         ?= $(SPHINXDIR)/venv
 PA11Y           = $(SPHINXDIR)/node_modules/pa11y/bin/pa11y.js --config $(SPHINXDIR)/pa11y.json
-VENV         	   = $(VENVDIR)/bin/activate
+VENV            = $(VENVDIR)/bin/activate
 TARGET          = *
-ALLFILES        =  *.rst **/*.rst
-METRICSDIR      = $(SOURCEDIR)/.sphinx/metrics
 REQPDFPACKS     = latexmk fonts-freefont-otf texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-font-utils texlive-lang-cjk texlive-xetex plantuml xindy tex-gyre dvipng
 CONFIRM_SUDO    ?= N
 VALE_CONFIG     = $(SPHINXDIR)/vale.ini
 VALEDIR         ?= $(VENVDIR)/lib/python*/site-packages/vale
 VOCAB_CANONICAL = $(SPHINXDIR)/styles/config/vocabularies/Canonical
+SPHINX_HOST     ?= 127.0.0.1
+SPHINX_PORT     ?= 8000
 
 # Put it first so that "make" without argument is like "make help".
 help:
-	@echo "\n" \
-        "------------------------------------------------------------- \n" \
-        "* watch, build and serve the documentation:  make run \n" \
-        "* only build:                                make html \n" \
-        "* only serve:                                make serve \n" \
-        "* clean built doc files:                     make clean-doc \n" \
-        "* clean full environment:                    make clean \n" \
-        "* check links:                               make linkcheck \n" \
-        "* check spelling:                            make spelling \n" \
-        "* check spelling (without building again):   make spellcheck \n" \
-        "* check inclusive language:                  make woke \n" \
-        "* check accessibility:                       make pa11y \n" \
-        "* check style guide compliance:              make vale \n" \
-        "* check style guide compliance on target:    make vale TARGET=* \n" \
-        "* check metrics for documentation:           make allmetrics \n" \
-        "* other possible targets:                    make <TAB twice> \n" \
-        "------------------------------------------------------------- \n"
+	@echo
+	@echo "-------------------------------------------------------------"
+	@echo "* watch, build and serve the documentation:  make run"
+	@echo "* only build:                                make html"
+	@echo "* only serve:                                make serve"
+	@echo "* clean built doc files:                     make clean-doc"
+	@echo "* clean full environment:                    make clean"
+	@echo "* check links:                               make linkcheck"
+	@echo "* check markdown:                            make lint-md"
+	@echo "* check spelling:                            make spelling"
+	@echo "* check spelling (without building again):   make spellcheck"
+	@echo "* check inclusive language:                  make woke"
+	@echo "* check accessibility:                       make pa11y"
+	@echo "* check style guide compliance:              make vale"
+	@echo "* check style guide compliance on target:    make vale TARGET=*"
+	@echo "* other possible targets:                    make <TAB twice>"
+	@echo "-------------------------------------------------------------"
+	@echo
 
 .PHONY: full-help pa11y-install install run html \
         epub serve clean clean-doc spelling spellcheck linkcheck woke \
@@ -52,12 +53,10 @@ full-help: $(VENVDIR)
 
 # If requirements are updated, venv should be rebuilt and timestamped.
 $(VENVDIR):
-	python3 -c "import venv" || \
-        (echo "You must install python3-venv before you can build the documentation."; exit 1)
 	@echo "... setting up virtualenv"
-	python3 -m venv $(VENVDIR)
+	python3 -m venv $(VENVDIR) || { echo "You must install python3-venv before you can build the documentation."; exit 1; }
 	. $(VENV); pip install $(PIPOPTS) --require-virtualenv \
-	    --upgrade -r $(SPHINXDIR)/requirements.txt \
+	    --upgrade -r requirements.txt \
             --log $(VENVDIR)/pip_install.log
 	@test ! -f $(VENVDIR)/pip_list.txt || \
             mv $(VENVDIR)/pip_list.txt $(VENVDIR)/pip_list.txt.bak
@@ -72,8 +71,8 @@ vale-install: install
 	@. $(VENV); find $(VALEDIR)/vale_bin -size 195c -exec vale --version \;
 
 pa11y-install:
-	@type $(PA11Y) >/dev/null 2>&1 || { \
-			echo "Installing \"pa11y\" from npm... \n"; \
+	@command -v $(PA11Y) >/dev/null || { \
+			echo "Installing \"pa11y\" from npm..."; echo; \
 			mkdir -p $(SPHINXDIR)/node_modules/ ; \
 			npm install --prefix $(SPHINXDIR) pa11y; \
 		}
@@ -81,17 +80,16 @@ pa11y-install:
 install: $(VENVDIR)
 
 run: install
-	. $(VENV); $(VENVDIR)/bin/sphinx-autobuild -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
-
+	. $(VENV); $(VENVDIR)/bin/sphinx-autobuild -b dirhtml --host $(SPHINX_HOST) --port $(SPHINX_PORT) "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 # Doesn't depend on $(BUILDDIR) to rebuild properly at every run.
 html: install
-	. $(VENV); $(SPHINXBUILD) -W --keep-going -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" -w $(SPHINXDIR)/warnings.txt $(SPHINXOPTS)
+	. $(VENV); $(SPHINXBUILD) --fail-on-warning --keep-going -b dirhtml "$(SOURCEDIR)" "$(BUILDDIR)" -w $(SPHINXDIR)/warnings.txt $(SPHINXOPTS)
 
 epub: install
 	. $(VENV); $(SPHINXBUILD) -b epub "$(SOURCEDIR)" "$(BUILDDIR)" -w $(SPHINXDIR)/warnings.txt $(SPHINXOPTS)
 
 serve: html
-	cd "$(BUILDDIR)"; python3 -m http.server --bind 127.0.0.1 8000
+	cd "$(BUILDDIR)"; python3 -m http.server --bind $(SPHINX_HOST) $(SPHINX_PORT)
 
 clean: clean-doc
 	@test ! -e "$(VENVDIR)" -o -d "$(VENVDIR)" -a "$(abspath $(VENVDIR))" != "$(VENVDIR)"
@@ -104,17 +102,15 @@ clean-doc:
 	git clean -fx "$(BUILDDIR)"
 	rm -rf $(SPHINXDIR)/.doctrees
 
-vale-spelling: vale-install
-	@cat $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept.txt > $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept_backup.txt
-	@cat $(SPHINXDIR)/.wordlist.txt $(SOURCEDIR)/.custom_wordlist.txt >> $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept.txt
+spelling: vale-install
+	@cat $(VOCAB_CANONICAL)/accept.txt > $(VOCAB_CANONICAL)/accept_backup.txt
+	@cat $(SOURCEDIR)/.custom_wordlist.txt >> $(VOCAB_CANONICAL)/accept.txt
 	@echo "Running Vale against $(TARGET). To change target set TARGET= with make command"
 	@. $(VENV); vale --config="$(VALE_CONFIG)" --filter='$(SPHINXDIR)/styles/spelling.filter' --glob='*.{md,rst}' $(TARGET)
-	@cat $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept_backup.txt > $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept.txt && rm $(SPHINXDIR)/styles/config/vocabularies/Canonical/accept_backup.txt
+	@cat $(VOCAB_CANONICAL)/accept_backup.txt > $(VOCAB_CANONICAL)/accept.txt && rm $(VOCAB_CANONICAL)/accept_backup.txt
 
-
-spellcheck: vale-spelling
-
-spelling: clean-doc vale-spelling # clean built html and Use Vale for spelling check
+spellcheck: spelling
+	@echo "Please note that the \`make spellcheck\` command is being deprecated in favor of \`make spelling\`"
 
 linkcheck: install
 	. $(VENV) ; $(SPHINXBUILD) -b linkcheck "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) || { grep --color -F "[broken]" "$(BUILDDIR)/output.txt"; exit 1; }
@@ -140,7 +136,7 @@ vale: vale-install
 pdf-prep: install
 	@for packageName in $(REQPDFPACKS); do (dpkg-query -W -f='$${Status}' $$packageName 2>/dev/null | \
         grep -c "ok installed" >/dev/null && echo "Package $$packageName is installed") && continue || \
-        (echo "\nPDF generation requires the installation of the following packages: $(REQPDFPACKS)" && \
+        (echo; echo "PDF generation requires the installation of the following packages: $(REQPDFPACKS)" && \
         echo "" && echo "Run 'sudo make pdf-prep-force' to install these packages" && echo "" && echo \
         "Please be aware these packages will be installed to your system") && exit 1 ; done
 
@@ -155,19 +151,12 @@ pdf: pdf-prep
 	@rm ./$(BUILDDIR)/latex/normal-page-footer.pdf || true
 	@find ./$(BUILDDIR)/latex -name "*.pdf" -exec mv -t ./$(BUILDDIR) {} +
 	@rm -r $(BUILDDIR)/latex
-	@echo "\nOutput can be found in ./$(BUILDDIR)\n"
-
-allmetrics: html
-	@echo "Recording documentation metrics..."
-	@echo "Checking for existence of vale..."
-	. $(VENV)
-	@. $(VENV); test -d $(SPHINXDIR)/venv/lib/python*/site-packages/vale || pip install vale
-	@. $(VENV); test -f $(SPHINXDIR)/vale.ini || python3 $(SPHINXDIR)/get_vale_conf.py
-	@. $(VENV); find $(SPHINXDIR)/venv/lib/python*/site-packages/vale/vale_bin -size 195c -exec vale --config "$(SPHINXDIR)/vale.ini" $(TARGET) > /dev/null \;
-	@eval '$(METRICSDIR)/source_metrics.sh $(PWD)'
-	@eval '$(METRICSDIR)/build_metrics.sh $(PWD) $(METRICSDIR)'
+	@echo
+	@echo "Output can be found in ./$(BUILDDIR)"
+	@echo
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %:
+	$(MAKE) --no-print-directory install
 	. $(VENV); $(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
