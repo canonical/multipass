@@ -1,0 +1,46 @@
+{
+    "plugins": {
+        "selectively_enable_rules": true,
+        "heading-style": {
+            "enabled": true,
+            "style": "atx"
+        },
+        "commands-show-output": {
+            "enabled": true
+        },
+        "no-missing-space-atx": {
+            "enabled": true
+        },
+        "blanks-around-headings": {
+            "enabled": true
+        },
+        "heading-start-left": {
+            "enabled": true
+        },
+        "no-trailing-punctuation": {
+            "enabled": true,
+            "punctuation": ".,;。，；"
+        },
+        "blanks-around-fences": {
+            "enabled": true,
+            "list_items": false
+        },
+        "blanks-around-lists": {
+            "enabled": true
+        },
+        "hr-style": {
+            "enabled": true
+        },
+        "no-empty-links": {
+            "enabled": true
+        },
+        "no-alt-text": {
+            "enabled": true
+        }
+    },
+    "extensions": {
+        "front-matter" : {
+            "enabled" : true
+        }
+    }
+}

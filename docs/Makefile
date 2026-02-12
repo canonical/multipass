@@ -42,9 +42,10 @@ help:
 	@echo "-------------------------------------------------------------"
 	@echo
 
-.PHONY: full-help pa11y-install install run html \
-        epub serve clean clean-doc spelling spellcheck linkcheck woke \
-        allmetrics pa11y pdf-prep-force pdf-prep pdf Makefile.sp vale vale-install bash
+.PHONY: help full-help html epub pdf linkcheck spelling spellcheck woke \
+        vale pa11y run serve install pa11y-install   \
+        vale-install pdf-prep pdf-prep-force clean clean-doc \
+        update lint-md
 
 full-help: $(VENVDIR)
 	@. $(VENV); $(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -76,6 +77,9 @@ pa11y-install:
 			mkdir -p $(SPHINXDIR)/node_modules/ ; \
 			npm install --prefix $(SPHINXDIR) pa11y; \
 		}
+
+pymarkdownlnt-install: install
+	@. $(VENV); test -d $(VENVDIR)/lib/python*/site-packages/pymarkdown || pip install pymarkdownlnt==0.9.35
 
 install: $(VENVDIR)
 
@@ -125,6 +129,9 @@ woke: vale-install
 
 pa11y: pa11y-install html
 	find $(BUILDDIR) -name *.html -print0 | xargs -n 1 -0 $(PA11Y)
+
+lint-md: pymarkdownlnt-install
+	@. $(VENV); pymarkdownlnt --config $(SPHINXDIR)/.pymarkdown.json scan --recurse --exclude=$(SPHINXDIR)/** $(SOURCEDIR)
 
 vale: vale-install
 	@cat $(VOCAB_CANONICAL)/accept.txt > $(VOCAB_CANONICAL)/accept_backup.txt
