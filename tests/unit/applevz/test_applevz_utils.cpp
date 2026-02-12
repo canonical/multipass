@@ -15,6 +15,7 @@
  *
  */
 
+#include "mock_applevz_image_utils.h"
 #include "mock_applevz_wrapper.h"
 #include "tests/unit/common.h"
 #include "tests/unit/mock_logger.h"
@@ -34,11 +35,23 @@ namespace
 {
 struct AppleVZUtils_UnitTests : public testing::Test
 {
+    AppleVZUtils_UnitTests()
+    {
+        ON_CALL(mock_applevz_utils, convert_to_supported_format(_))
+            .WillByDefault([this](const mp::Path& path) {
+                return mock_applevz_utils.AppleVZImageUtils::convert_to_supported_format(path);
+            });
+    }
+
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
     mpt::MockAppleVZWrapper::GuardedMock mock_applevz_injection{
         mpt::MockAppleVZWrapper::inject<NiceMock>()};
     mpt::MockAppleVZWrapper& mock_applevz = *mock_applevz_injection.first;
+
+    mpt::MockAppleVZImageUtils::GuardedMock mock_applevz_utils_injection{
+        mpt::MockAppleVZImageUtils::inject<NiceMock>()};
+    mpt::MockAppleVZImageUtils& mock_applevz_utils = *mock_applevz_utils_injection.first;
 
     std::unique_ptr<mpt::MockProcessFactory::Scope> process_factory_scope =
         mpt::MockProcessFactory::Inject();
@@ -48,7 +61,7 @@ struct AppleVZUtils_UnitTests : public testing::Test
 
 TEST_F(AppleVZUtils_UnitTests, convertUsesRawFormatOnPreMacOS26)
 {
-    EXPECT_CALL(mock_applevz, macos_at_least(26, 0, _)).WillOnce(Return(false));
+    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(false));
 
     process_factory_scope->register_callback([](mpt::MockProcess* process) {
         if (process->program() == "qemu-img")
@@ -76,7 +89,7 @@ TEST_F(AppleVZUtils_UnitTests, convertUsesRawFormatOnPreMacOS26)
 
 TEST_F(AppleVZUtils_UnitTests, convertIsNoOpWhenAlreadyRaw)
 {
-    EXPECT_CALL(mock_applevz, macos_at_least(26, 0, _)).WillOnce(Return(false));
+    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(false));
 
     process_factory_scope->register_callback([](mpt::MockProcess* process) {
         if (process->program() == "qemu-img")
@@ -98,12 +111,12 @@ TEST_F(AppleVZUtils_UnitTests, convertIsNoOpWhenAlreadyRaw)
 
 TEST_F(AppleVZUtils_UnitTests, asifImagesNotConvertedOnMacOS26)
 {
+    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
+
     QFile file(test_image.name());
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));
     file.write("shdw", 4);
     file.close();
-
-    EXPECT_CALL(mock_applevz, macos_at_least(26, 0, _)).WillOnce(Return(true));
 
     bool conversion_attempted = false;
     process_factory_scope->register_callback(
@@ -112,6 +125,7 @@ TEST_F(AppleVZUtils_UnitTests, asifImagesNotConvertedOnMacOS26)
     auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.name());
 
     EXPECT_EQ(result, test_image.name());
-    EXPECT_FALSE(conversion_attempted) << "No process should be spawned for converting ASIF to ASIF images";
+    EXPECT_FALSE(conversion_attempted)
+        << "No process should be spawned for converting ASIF to ASIF images";
 }
 } // namespace

@@ -32,5 +32,6 @@ public:
 
     virtual Path convert_to_supported_format(const Path& image_path) const;
     virtual void resize_image(const MemorySize& disk_space, const Path& image_path) const;
+    virtual bool macos_at_least(int major, int minor, int patch = 0) const;
 };
 } // namespace multipass::applevz

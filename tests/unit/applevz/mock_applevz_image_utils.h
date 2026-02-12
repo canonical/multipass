@@ -37,6 +37,7 @@ public:
                 resize_image,
                 (const multipass::MemorySize& disk_space, const multipass::Path& image_path),
                 (const, override));
+    MOCK_METHOD(bool, macos_at_least, (int major, int minor, int patch), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZImageUtils, AppleVZImageUtils);
 };

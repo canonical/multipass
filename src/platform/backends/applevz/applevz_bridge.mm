@@ -303,10 +303,4 @@ bool is_supported()
 {
     return [VZVirtualMachine isSupported];
 }
-
-bool macos_at_least(int major, int minor, int patch)
-{
-    NSOperatingSystemVersion v{major, minor, patch};
-    return [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:v];
-}
 } // namespace multipass::applevz
