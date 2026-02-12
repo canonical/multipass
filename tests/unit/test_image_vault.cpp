@@ -135,10 +135,8 @@ struct ImageVault : public testing::Test
 
     QByteArray fake_img_info(const mp::MemorySize& size)
     {
-        return QByteArray::fromStdString(fmt::format(
-            "some\nother\ninfo\nfirst\nvirtual size: {} ({} bytes)\nmore\ninfo\nafter\n",
-            size.in_gigabytes(),
-            size.in_bytes()));
+        return QByteArray::fromStdString(
+            fmt::format(R"({{"format": "qcow2", "virtual-size": {}}})", size.in_bytes()));
     }
 
     void simulate_qemuimg_info(const mpt::MockProcess* process,
@@ -148,8 +146,9 @@ struct ImageVault : public testing::Test
         ASSERT_EQ(process->program().toStdString(), "qemu-img");
 
         const auto args = process->arguments();
-        ASSERT_EQ(args.size(), 2);
-        EXPECT_EQ(args.constFirst(), "info");
+        ASSERT_EQ(args.size(), 3);
+        EXPECT_EQ(args.at(0), "info");
+        EXPECT_EQ(args.at(1), "--output=json");
 
         EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
         if (produce_result.completed_successfully())
@@ -1003,7 +1002,7 @@ TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoCannotFindTheImage)
 TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoDoesNotUnderstandTheImageSize)
 {
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
-    const QByteArray qemuimg_output("virtual size: an unintelligible string");
+    const QByteArray qemuimg_output(R"({"format": "qcow2"})"); // Missing virtual-size field
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
     mp::DefaultVMImageVault vault{hosts,
@@ -1020,7 +1019,7 @@ TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoDoesNotUnderstandTheImag
 
     MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id),
                          std::runtime_error,
-                         mpt::match_what(HasSubstr("Could not obtain image's virtual size")));
+                         mpt::match_what(HasSubstr("is not a valid memory size")));
 }
 
 TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
