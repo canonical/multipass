@@ -18,14 +18,22 @@
 #pragma once
 
 #include <multipass/memory_size.h>
+#include <multipass/singleton.h>
 
 #include <filesystem>
 
-namespace multipass
+#define MP_APPLEVZ_UTILS multipass::applevz::AppleVZImageUtils::instance()
+
+namespace multipass::applevz
 {
-namespace applevz
+class AppleVZImageUtils : public Singleton<AppleVZImageUtils>
 {
-std::filesystem::path convert_to_supported_format(const std::filesystem::path& image_path);
-void resize_image(const MemorySize& disk_space, const std::filesystem::path& image_path);
-} // namespace applevz
-} // namespace multipass
+public:
+    using Singleton<AppleVZImageUtils>::Singleton;
+
+    virtual std::filesystem::path convert_to_supported_format(
+        const std::filesystem::path& image_path) const;
+    virtual void resize_image(const MemorySize& disk_space,
+                              const std::filesystem::path& image_path) const;
+};
+} // namespace multipass::applevz

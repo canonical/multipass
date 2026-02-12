@@ -167,18 +167,16 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
         int source_fd = open(raw_path.c_str(), O_RDONLY);
         if (source_fd == -1)
         {
-            throw std::runtime_error(fmt::format("Failed to open source image {}: {}",
-                                                 raw_path,
-                                                 strerror(errno)));
+            throw std::runtime_error(
+                fmt::format("Failed to open source image {}: {}", raw_path, strerror(errno)));
         }
 
         int target_fd = open(device_path.c_str(), O_WRONLY);
         if (target_fd == -1)
         {
             close(source_fd);
-            throw std::runtime_error(fmt::format("Failed to open target device {}: {}",
-                                                 device_path,
-                                                 strerror(errno)));
+            throw std::runtime_error(
+                fmt::format("Failed to open target device {}: {}", device_path, strerror(errno)));
         }
 
         struct stat st;
@@ -273,7 +271,8 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
 
 namespace multipass::applevz
 {
-std::filesystem::path convert_to_supported_format(const std::filesystem::path& image_path)
+std::filesystem::path AppleVZImageUtils::convert_to_supported_format(
+    const std::filesystem::path& image_path) const
 {
     if (MP_APPLEVZ.macos_at_least(26, 0) && !is_asif_image(image_path))
     {
@@ -285,7 +284,8 @@ std::filesystem::path convert_to_supported_format(const std::filesystem::path& i
     }
 }
 
-void resize_image(const MemorySize& disk_space, const std::filesystem::path& image_path)
+void AppleVZImageUtils::resize_image(const MemorySize& disk_space,
+                                     const std::filesystem::path& image_path) const
 {
     mpl::trace(category, "Resizing image to: {}", disk_space.human_readable());
 

@@ -33,7 +33,7 @@ constexpr static auto log_category = "applevz-vm";
 
 void amend_disk_image(mp::VirtualMachineDescription& desc)
 {
-    desc.image.image_path = mp::applevz::convert_to_supported_format(desc.image.image_path);
+    desc.image.image_path = MP_APPLEVZ_UTILS.convert_to_supported_format(desc.image.image_path);
 }
 } // namespace
 
@@ -299,7 +299,7 @@ void AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
-    applevz::resize_image(new_size, desc.image.image_path);
+    MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
 }
 
