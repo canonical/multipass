@@ -21,8 +21,6 @@
 #include "cmd/authenticate.h"
 #include "cmd/clone.h"
 #include "cmd/delete.h"
-#include "cmd/disable_zones.h"
-#include "cmd/enable_zones.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
 #include "cmd/get.h"
@@ -49,7 +47,12 @@
 #include "cmd/unalias.h"
 #include "cmd/version.h"
 #include "cmd/wait_ready.h"
+
+#ifdef AVAILABILITY_ZONES_FEATURE
+#include "cmd/disable_zones.h"
+#include "cmd/enable_zones.h"
 #include "cmd/zones.h"
+#endif
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
@@ -91,8 +94,6 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Authenticate>();
     add_command<cmd::Launch>(aliases);
     add_command<cmd::Purge>(aliases);
-    add_command<cmd::DisableZones>();
-    add_command<cmd::EnableZones>();
     add_command<cmd::Exec>(aliases);
     add_command<cmd::Find>();
     add_command<cmd::Get>();
@@ -118,7 +119,12 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
     add_command<cmd::WaitReady>();
+
+#ifdef AVAILABILITY_ZONES_FEATURE
+    add_command<cmd::DisableZones>();
+    add_command<cmd::EnableZones>();
     add_command<cmd::Zones>();
+#endif
 
     sort_commands();
 
