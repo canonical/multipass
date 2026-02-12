@@ -15,5 +15,6 @@
 
 target_sources(multipass_tests
   PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/test_applevz_utils.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_applevz_virtual_machine.cpp
 )
