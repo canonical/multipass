@@ -23,6 +23,8 @@
 #include <multipass/utils/qemu_img_utils.h>
 #include <shared/macos/process_factory.h>
 
+#include <Foundation/Foundation.h>
+
 #include <QFile>
 #include <QFileInfo>
 
@@ -280,7 +282,7 @@ namespace multipass::applevz
 {
 Path AppleVZImageUtils::convert_to_supported_format(const Path& image_path) const
 {
-    if (MP_APPLEVZ.macos_at_least(26, 0))
+    if (macos_at_least(26, 0))
     {
         return convert_to_asif(image_path);
     }
@@ -316,5 +318,11 @@ void AppleVZImageUtils::resize_image(const MemorySize& disk_space, const Path& i
     }
 
     mpl::trace(category, "Successfully resized image: {}", image_path);
+}
+
+bool AppleVZImageUtils::macos_at_least(int major, int minor, int patch) const
+{
+    NSOperatingSystemVersion v{major, minor, patch};
+    return [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:v];
 }
 } // namespace multipass::applevz
