@@ -16,7 +16,6 @@
  */
 
 #include "qemu_virtual_machine.h"
-#include "qemu_img_utils.h"
 #include "qemu_mount_handler.h"
 #include "qemu_snapshot.h"
 #include "qemu_vm_process_spec.h"
@@ -32,6 +31,7 @@
 #include <multipass/platform.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
 

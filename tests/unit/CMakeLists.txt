@@ -89,6 +89,7 @@ add_executable(multipass_tests
   test_persistent_settings_handler.cpp
   test_petname.cpp
   test_private_pass_provider.cpp
+  test_qemu_img_utils.cpp
   test_qemuimg_process_spec.cpp
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
@@ -244,6 +245,17 @@ set_target_properties(mock_process
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
 add_dependencies(multipass_tests mock_process)
+
+add_executable(qemu-img
+  qemu/mock_qemuimg.cpp)
+
+set_target_properties(qemu-img
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+add_dependencies(multipass_tests qemu-img)
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
