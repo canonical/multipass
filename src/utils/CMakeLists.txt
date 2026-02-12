@@ -19,6 +19,7 @@ function(add_target TARGET_NAME)
     memory_size.cpp
     permission_utils.cpp
     json_utils.cpp
+    qemu_img_utils.cpp
     snap_utils.cpp
     standard_paths.cpp
     timer.cpp

@@ -31,9 +31,10 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/vm_image.h>
-#include <qemu/qemu_img_utils.h>
 
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
