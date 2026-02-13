@@ -19,15 +19,16 @@
 
 #include <multipass/constants.h>
 #include <multipass/format.h>
+#include <multipass/json_utils.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QRegularExpression>
 #include <QString>
 #include <QStringList>
+
+#include <boost/json.hpp>
 
 namespace mp = multipass;
 namespace mpp = multipass::platform;
@@ -74,9 +75,9 @@ mp::Path mp::backend::convert_to_qcow_if_necessary(const mp::Path& image_path)
         "Cannot read image format");
 
     auto image_info = qemuimg_info_process->read_all_standard_output();
-    auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
+    auto image_record = boost::json::parse(std::string_view(image_info));
 
-    if (image_record["format"].toString() == "raw")
+    if (mp::lookup_or<std::string>(image_record, "format", "") == "raw")
     {
         auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(
             QStringList{"convert", "-p", "-O", "qcow2", image_path, qcow2_path},
