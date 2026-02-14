@@ -201,14 +201,18 @@ TEST_F(FileOps, removeExtension)
     EXPECT_EQ(MP_FILEOPS.remove_extension("/sets/test.png"), "/sets/test");
 }
 
-struct TestWriteTransactionally : public Test
+struct HighLevelFileOps : public Test
 {
-    TestWriteTransactionally()
+    HighLevelFileOps()
     {
+        // Call the real high-level functions
         EXPECT_CALL(mock_file_ops, write_transactionally)
             .WillRepeatedly([this]<typename... Args>(Args&&... args) {
-                return mock_file_ops.FileOps::write_transactionally(
-                    std::forward<Args>(args)...); // call the real thing
+                return mock_file_ops.FileOps::write_transactionally(std::forward<Args>(args)...);
+            });
+        EXPECT_CALL(mock_file_ops, try_read_file(A<const fs::path&>()))
+            .WillRepeatedly([this]<typename... Args>(Args&&... args) {
+                return mock_file_ops.FileOps::try_read_file(std::forward<Args>(args)...);
             });
     }
 
@@ -224,7 +228,7 @@ struct TestWriteTransactionally : public Test
     inline static const auto expected_retry_attempts = 10;
 };
 
-TEST_F(TestWriteTransactionally, writesTransactionally)
+TEST_F(HighLevelFileOps, writesTransactionally)
 {
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
@@ -244,7 +248,7 @@ TEST_F(TestWriteTransactionally, writesTransactionally)
     EXPECT_NO_THROW(mock_file_ops.write_transactionally(file_path, file_text));
 }
 
-TEST_F(TestWriteTransactionally, writesTransactionallyEventually)
+TEST_F(HighLevelFileOps, writesTransactionallyEventually)
 {
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
@@ -272,7 +276,7 @@ TEST_F(TestWriteTransactionally, writesTransactionallyEventually)
     EXPECT_NO_THROW(mock_file_ops.write_transactionally(file_path, file_text));
 }
 
-TEST_F(TestWriteTransactionally, throwsOnFailureToCreateDirectory)
+TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToCreateDirectory)
 {
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(false));
     MP_EXPECT_THROW_THAT(
@@ -281,7 +285,7 @@ TEST_F(TestWriteTransactionally, throwsOnFailureToCreateDirectory)
         mpt::match_what(AllOf(HasSubstr("Could not create"), HasSubstr(dir.toStdString()))));
 }
 
-TEST_F(TestWriteTransactionally, throwsOnFailureToOpenFile)
+TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToOpenFile)
 {
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
@@ -298,7 +302,7 @@ TEST_F(TestWriteTransactionally, throwsOnFailureToOpenFile)
         mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(file_path.toStdString()))));
 }
 
-TEST_F(TestWriteTransactionally, throwsOnFailureToWriteFile)
+TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToWriteFile)
 {
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
@@ -316,7 +320,7 @@ TEST_F(TestWriteTransactionally, throwsOnFailureToWriteFile)
         mpt::match_what(AllOf(HasSubstr("Could not write"), HasSubstr(file_path.toStdString()))));
 }
 
-TEST_F(TestWriteTransactionally, throwsOnFailureToAcquireLock)
+TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToAcquireLock)
 {
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
@@ -333,7 +337,7 @@ TEST_F(TestWriteTransactionally, throwsOnFailureToAcquireLock)
                                                HasSubstr(file_path.toStdString()))));
 }
 
-TEST_F(TestWriteTransactionally, throwsOnFailureToCommit)
+TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToCommit)
 {
     EXPECT_CALL(mock_file_ops,
                 setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
@@ -354,4 +358,55 @@ TEST_F(TestWriteTransactionally, throwsOnFailureToCommit)
         mock_file_ops.write_transactionally(file_path, file_text),
         std::runtime_error,
         mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
+}
+
+TEST_F(HighLevelFileOps, tryReadFileReadsFromFile)
+{
+    auto filestream = std::make_unique<std::stringstream>();
+    *filestream << "Hello, world!";
+
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filestream)));
+    const auto filedata = mock_file_ops.try_read_file("exists");
+
+    EXPECT_EQ(*filedata, "Hello, world!");
+}
+
+TEST_F(HighLevelFileOps, tryReadFileReturnsNulloptForMissingFile)
+{
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(false));
+    const auto filedata = mock_file_ops.try_read_file("exists");
+
+    EXPECT_EQ(filedata, std::nullopt);
+}
+
+TEST_F(HighLevelFileOps, tryReadFileThrowsOnExistsErr)
+{
+    EXPECT_CALL(mock_file_ops, exists(_, _))
+        .WillOnce(DoAll(SetArgReferee<1>(std::error_code(EACCES, std::system_category())),
+                        Return(false)));
+
+    EXPECT_THROW(mock_file_ops.try_read_file(":("), std::filesystem::filesystem_error);
+}
+
+TEST_F(HighLevelFileOps, tryReadFileThrowsOnFailbit)
+{
+    auto filestream = std::make_unique<std::stringstream>();
+    filestream->setstate(std::ios_base::failbit);
+
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filestream)));
+
+    EXPECT_THROW(mock_file_ops.try_read_file(":("), std::ios_base::failure);
+}
+
+TEST_F(HighLevelFileOps, tryReadFileThrowsOnBadbit)
+{
+    auto filestream = std::make_unique<std::stringstream>();
+    filestream->setstate(std::ios_base::badbit);
+
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filestream)));
+
+    EXPECT_THROW(mock_file_ops.try_read_file(":("), std::ios_base::failure);
 }

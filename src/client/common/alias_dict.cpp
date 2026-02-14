@@ -37,7 +37,7 @@ mp::AliasDict::AliasDict(mp::Terminal* term) : cerr(term->cerr())
 
 mp::AliasDict::AliasDict(mp::Terminal* term,
                          const std::string& active_context,
-                         const std::string& filename)
+                         const std::filesystem::path& filename)
     : active_context(active_context),
       aliases{{active_context, AliasContext{}}},
       aliases_file(filename),
@@ -60,7 +60,7 @@ mp::AliasDict::~AliasDict()
     }
 }
 
-std::string mp::AliasDict::default_filename()
+std::filesystem::path mp::AliasDict::default_filename()
 {
     const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
     const auto user_config_path =
@@ -70,25 +70,21 @@ std::string mp::AliasDict::default_filename()
     return cli_client_dir_path.absoluteFilePath(file_name).toStdString();
 }
 
-mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::string& filename)
+mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem::path& filename)
 {
-    QFile db_file{QString::fromStdString(filename)};
-
-    if (!MP_FILEOPS.exists(db_file))
-        return AliasDict(term, default_context_name, filename);
-    else if (!MP_FILEOPS.open(db_file, QIODevice::ReadOnly))
-        throw std::runtime_error(fmt::format("Error opening file '{}'", db_file.fileName()));
-
-    try
+    if (auto filedata = MP_FILEOPS.try_read_file(filename))
     {
-        auto json = boost::json::parse(std::string_view(db_file.readAll()));
-        return value_to<AliasDict>(json, JSONContext{term, filename});
+        try
+        {
+            auto json = boost::json::parse(*filedata);
+            return value_to<AliasDict>(json, JSONContext{term, filename});
+        }
+        catch (const boost::system::system_error& e)
+        {
+            mpl::error("aliases", "Error parsing file '{}': {}", filename, e.what());
+        }
     }
-    catch (const boost::system::system_error& e)
-    {
-        mpl::error("aliases", "Error parsing file '{}': {}", db_file.fileName(), e.what());
-        return AliasDict(term, default_context_name, filename);
-    }
+    return AliasDict(term, default_context_name, filename);
 }
 
 void mp::AliasDict::set_active_context(const std::string& new_active_context)
@@ -302,7 +298,8 @@ void mp::AliasDict::save_file()
     sanitize_contexts();
 
     auto json = boost::json::value_from(*this);
-    MP_FILEOPS.write_transactionally(QString::fromStdString(aliases_file), pretty_print(json));
+    MP_FILEOPS.write_transactionally(QString::fromStdString(aliases_file.string()),
+                                     pretty_print(json));
 }
 
 // This function removes the contexts which do not contain aliases, except the active context.

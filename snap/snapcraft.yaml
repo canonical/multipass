@@ -119,14 +119,15 @@ parts:
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
     - CMAKE_PRESET: snap
-    - CXX: clang++-15
-    - CC: clang-15
+    - CLANG_VERSION: "19"
+    - CXX: clang++-${CLANG_VERSION}
+    - CC: clang-${CLANG_VERSION}
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
     - ccache
     - lcov
-    - clang-15
+    - clang-19 # have to keep in sync with CLANG_VERSION above :'(
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
@@ -175,7 +176,7 @@ parts:
     - -usr/lib/*/libicui18n.so.*
     - -usr/lib/*/libglibmm_generate_extra_defs-*.so*
     - -usr/lib/libdart_ffi.so
-    - -usr/lib/*/libLLVM-15.so*
+    - -usr/lib/*/libLLVM-*.so*
     - -usr/lib/*/libdrm*
     - -usr/lib/*/libglapi.so*
     - -usr/lib/*/libpciaccess.so*
@@ -212,8 +213,8 @@ parts:
       python3 -m pip install --break-system-packages jinja2
 
       # Update default clang
-      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 150
-      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 150
+      update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 150
+      update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${CLANG_VERSION} 150
 
       # Do the CMake configure at the pull step so we can generate the compile_commands.json
       # for the tool consumption.
@@ -301,17 +302,11 @@ parts:
     organize:
       usr/lib/qemu/*: usr/bin/
       usr/share/qemu/*: qemu/
-    override-pull: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
-
-
-      craftctl default
     override-build: |-
-      [ "$(uname -m)" != "x86_64" ] && [ "$(uname -m)" != "aarch64" ] && [ "$(uname -m)" != "s390x" ] && exit 0
-
       set -ex
       # Mangle the configure a bit
       QEMUARCH="$(uname -m)"
+      [ "$QEMUARCH" = "ppc64le" ] && QEMUARCH="ppc64"
       sed -i "s/^unset target_list$/target_list=\"${QEMUARCH}-softmmu\"/" configure
 
       set +ex

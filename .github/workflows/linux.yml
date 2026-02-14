@@ -32,9 +32,6 @@ jobs:
             "build-type": "Debug",
             "cmake-preset": "ci-snap-debug"
           }, {
-            "build-type": "Clang",
-            "cmake-preset": "ci-snap-clang-15"
-          }, {
             "build-type": "Release",
             "cmake-preset": "ci-snap"
           });
@@ -92,7 +89,7 @@ jobs:
       uses: samuelmeuli/action-snapcraft@v3
 
     - name: Install LXD
-      uses: canonical/setup-lxd@041a8c4150a6271fce99b94bc0232ddfa3c2d8fc
+      uses: canonical/setup-lxd@d492474f6c8ceed1b716bb34c8f575a428871c70
 
     - name: Check out code
       uses: actions/checkout@v6
@@ -113,6 +110,11 @@ jobs:
 
       run: |
         go install github.com/mikefarah/yq/v4@latest
+
+        # Extract CLANG_VERSION from snapcraft.yaml (single source of truth)
+        CLANG_VERSION=$(yq '.parts.multipass.build-environment[] | select(has("CLANG_VERSION")) | .CLANG_VERSION' snap/snapcraft.yaml | tr -d '"')
+        [ -z "$CLANG_VERSION" ] && { echo "::error::CLANG_VERSION not found in snapcraft.yaml"; exit 1; }
+        export CLANG_VERSION
 
         # Substitute the environment variables in the snapcraft-ci-override.yaml
         envsubst < snap/local/snapcraft-ci-override.yaml.in | yq eval 'del(.. | select(. == null or . == "")) | del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))' -P > snap/local/snapcraft-ci-override.yaml

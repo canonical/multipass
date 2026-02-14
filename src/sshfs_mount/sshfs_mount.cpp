@@ -22,6 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
+#include <multipass/logging/log_location.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
@@ -124,13 +125,7 @@ auto make_sftp_server(mp::SSHSession&& session,
                       const mp::id_mappings& gid_mappings,
                       const mp::id_mappings& uid_mappings)
 {
-    mpl::debug(category,
-               "{}:{} {}(source = {}, target = {}, …): ",
-               __FILE__,
-               __LINE__,
-               __FUNCTION__,
-               source,
-               target);
+    mpl::debug_location(category, "source = {}, target = {}, …", source, target);
 
     auto sshfs_exec_line = get_sshfs_exec_and_options(session);
 
@@ -138,11 +133,11 @@ auto make_sftp_server(mp::SSHSession&& session,
     const auto& [leading, missing] = mpu::get_path_split(session, target);
 
     auto output = MP_UTILS.run_in_ssh_session(session, "id -u");
-    mpl::debug(category, "{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output);
+    mpl::debug_location(category, "`id -u` = {}", output);
     auto default_uid = std::stoi(output);
 
     output = MP_UTILS.run_in_ssh_session(session, "id -g");
-    mpl::debug(category, "{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output);
+    mpl::debug_location(category, "`id -g` = {}", output);
     auto default_gid = std::stoi(output);
 
     // We need to create the part of the path which does not still exist,

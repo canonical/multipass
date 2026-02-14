@@ -350,12 +350,9 @@ TEST_F(AliasDictionary, throwsWhenOpenAliasFileFails)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).WillOnce(Throw(std::runtime_error("what")));
 
-    MP_ASSERT_THROW_THAT(mp::AliasDict::load_file(&trash_term),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("Error opening file '")));
+    ASSERT_THROW(mp::AliasDict::load_file(&trash_term), std::runtime_error);
 }
 
 struct FormatterTestsuite
