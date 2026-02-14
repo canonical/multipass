@@ -342,23 +342,22 @@ void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
 
 void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
 {
-    if (!management_ip)
-    {
-        auto action = [this] {
-            detect_aborted_start();
-            return ((management_ip =
-                         multipass::backend::get_neighbour_ip(desc.default_mac_address)))
-                       ? multipass::utils::TimeoutAction::done
-                       : multipass::utils::TimeoutAction::retry;
-        };
+    if (management_ip)
+        return;
 
-        auto on_timeout = [this, &timeout] {
-            state = State::unknown;
-            throw InternalTimeoutException{"determine IP address", timeout};
-        };
+    auto action = [this] {
+        detect_aborted_start();
+        return ((management_ip = multipass::backend::get_neighbour_ip(desc.default_mac_address)))
+                   ? multipass::utils::TimeoutAction::done
+                   : multipass::utils::TimeoutAction::retry;
+    };
 
-        multipass::utils::try_action_for(on_timeout, timeout, action);
-    }
+    auto on_timeout = [this, &timeout] {
+        state = State::unknown;
+        throw InternalTimeoutException{"determine IP address", timeout};
+    };
+
+    multipass::utils::try_action_for(on_timeout, timeout, action);
 }
 
 void AppleVZVirtualMachine::initialize_vm_handle()
