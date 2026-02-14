@@ -20,6 +20,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/intentional_shutdown_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -244,7 +245,9 @@ bool multipass::BaseVirtualMachine::unplugged()
 void mp::BaseVirtualMachine::detect_aborted_start()
 {
     std::lock_guard lock{state_mutex};
-    if (unplugged())
+    auto backend_state = current_state();
+    
+    if (unplugged() || (state == State::starting && backend_state == State::stopped))
     {
         shutdown_while_starting = true;
         state_wait.notify_all();
@@ -263,7 +266,21 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     drop_ssh_session();
     mpl::debug(vm_name, "Waiting for SSH to be up");
 
-    auto action = std::bind_front(&BaseVirtualMachine::try_to_ssh, this);
+    auto action = [this]() -> utils::TimeoutAction {
+        auto vm_state = current_state();
+
+        if (vm_state == State::stopped || vm_state == State::off)
+        {
+            mpl::log(mpl::Level::info,
+                     vm_name,
+                     "VM powered off during startup (likely cloud-init)");
+
+            throw mp::IntentionalShutdownException(vm_name);
+        }
+
+        return try_to_ssh();
+    };
+
     auto timeout_action = std::bind_front(&BaseVirtualMachine::timeout_ssh, this);
     mpu::try_action_for(timeout_action, timeout, action);
 

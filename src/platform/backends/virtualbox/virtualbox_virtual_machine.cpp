@@ -448,8 +448,17 @@ mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(name);
 
-    if ((state == State::delayed_shutdown && present_state == State::running) ||
-        state == State::starting)
+    if (state == State::starting && present_state == State::stopped)
+    {
+        mpl::log(mpl::Level::info,
+                 name.toStdString(),
+                 "VM stopped during startup (cloud-init poweroff)");
+
+        state = present_state;
+        return state;
+    }
+
+    if (state == State::delayed_shutdown && present_state == State::running)
         return state;
 
     state = present_state;

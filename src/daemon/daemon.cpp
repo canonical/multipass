@@ -28,6 +28,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ghost_instance_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
+#include <multipass/exceptions/intentional_shutdown_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -676,8 +677,9 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
-    -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer,
+                fmt::format_string<Ts...> fmt,
+                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
@@ -3549,8 +3551,16 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             return fmt::to_string(errors);
         }
         const auto vm = it->second;
-        vm->wait_until_ssh_up(timeout);
+        try
+        {
+            vm->wait_until_ssh_up(timeout);
+        }
+        catch (const mp::IntentionalShutdownException&)
+        {
+            mpl::log(mpl::Level::info, name, "Instance powered off intentionally during initialization");
 
+            return {};
+        }
         if (std::is_same<Reply, LaunchReply>::value)
         {
             if (server)
