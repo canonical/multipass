@@ -17,9 +17,12 @@
 
 #pragma once
 
+#include <multipass/json_utils.h>
 #include <multipass/path.h>
 
 #include <vector>
+
+#include <boost/json.hpp>
 
 namespace multipass
 {
@@ -34,4 +37,36 @@ public:
     std::string os;
     std::vector<std::string> aliases;
 };
+
+inline void tag_invoke(const boost::json::value_from_tag&,
+                       boost::json::value& json,
+                       const VMImage& image)
+{
+    boost::json::array aliases;
+    for (const auto& alias : image.aliases)
+        aliases.push_back(boost::json::object{{"alias", alias}});
+
+    json = {{"path", image.image_path.toStdString()},
+            {"id", image.id},
+            {"original_release", image.original_release},
+            {"current_release", image.current_release},
+            {"release_date", image.release_date},
+            {"os", image.os},
+            {"aliases", aliases}};
+}
+
+inline VMImage tag_invoke(const boost::json::value_to_tag<VMImage>&, const boost::json::value& json)
+{
+    std::vector<std::string> aliases;
+    for (const auto& entry : json.at("aliases").as_array())
+        aliases.push_back(value_to<std::string>(entry.at("alias")));
+
+    return {value_to<QString>(json.at("path")),
+            value_to<std::string>(json.at("id")),
+            lookup_or<std::string>(json, "original_release", ""),
+            lookup_or<std::string>(json, "current_release", ""),
+            lookup_or<std::string>(json, "release_date", ""),
+            lookup_or<std::string>(json, "os", ""),
+            aliases};
+}
 } // namespace multipass
