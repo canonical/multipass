@@ -225,7 +225,7 @@ void AppleVZVirtualMachine::suspend()
         mpl::warn(log_category,
                   "suspend() -> VM `{}` cannot be suspended from state `{}`",
                   vm_name,
-                  state);
+                  current_state());
     }
 
     if (error)
