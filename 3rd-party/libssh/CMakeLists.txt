@@ -53,6 +53,12 @@ endif()
 set(GLOBAL_CLIENT_CONFIG " ")
 set(GLOBAL_BIND_CONFIG "/etc/ssh/libssh_server_config")
 
+# Ensure OpenSSL is found via CONFIG mode (from vcpkg or system)
+# This MUST be done before ConfigureChecks.cmake tries to check for OpenSSL headers
+if(NOT OpenSSL_FOUND AND NOT OPENSSL_FOUND)
+  find_package(OpenSSL CONFIG REQUIRED)
+endif()
+
 include_directories(${LIBSSH_INCLUDE_DIRS})
 include_directories(${OPENSSL_INCLUDE_DIR})
 

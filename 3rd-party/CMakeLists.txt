@@ -42,7 +42,7 @@ if(MSVC)
   add_subdirectory(jsoncpp SYSTEM)
 endif()
 
-# libssh config
+# libssh config (uses custom build to access private SFTP server APIs)
 add_subdirectory(libssh SYSTEM)
 
 # premock header only library to mock c-functions
