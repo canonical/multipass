@@ -235,15 +235,25 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 #elif defined Q_PROCESSOR_S390
         opts << "-machine"
              << "s390-ccw-virtio";
+#elif defined Q_PROCESSOR_POWER
+        opts << "-machine"
+             << "pseries,cap-large-decr=off";
 #endif
     }
 
-    opts << "--enable-kvm"
-         // Pass host CPU flags to VM
-         << "-cpu"
-         << "host"
-         // Set up the network related args
-         << "-nic"
+    opts << "--enable-kvm";
+
+    // Pass host CPU flags to VM
+#if defined Q_PROCESSOR_POWER
+    opts << "-cpu"
+         << "POWER9";
+#else
+    opts << "-cpu"
+         << "host";
+#endif
+
+    // Set up the network related args
+    opts << "-nic"
          << QString::fromStdString(
 #if defined Q_PROCESSOR_S390
                 fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-ccw,mac={}",

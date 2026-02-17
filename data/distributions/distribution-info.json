@@ -3,16 +3,22 @@
         "aliases": "debian, trixie",
         "items": {
             "arm64": {
-                "id": "sha512:d5ad19bde58d95a140c0da6d3c3ec866a71a296e156a7d741b05ff02f0a0d3dd2b083390f62930dcce65fca38f510e7a100c77c156a87b3093c03680305538a4",
-                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260129-2372/debian-13-generic-arm64-20260129-2372.qcow2",
-                "size": 428146688,
-                "version": "20260129"
+                "id": "sha512:1179b1abb760155d4bf97d27d61965cc3fc2a63f72b933ec87388d049d9c4164d3e00a11e847a9ad19c9bac3702644a952ec6bca936b508a95b8491244352343",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260210-2384/debian-13-generic-arm64-20260210-2384.qcow2",
+                "size": 430160896,
+                "version": "20260210"
+            },
+            "power64le": {
+                "id": "sha512:64659853382b142ebec12436632173f795879b997b305550974e1866dc7a65ffe8b7e4dcb9ba95ab771daba4333fa38e71102a7b375a621835768f61abd99af3",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260210-2384/debian-13-generic-ppc64el-20260210-2384.qcow2",
+                "size": 394919936,
+                "version": "20260210"
             },
             "x86_64": {
-                "id": "sha512:4c85760a0b1e8f0dbdc19d632775d5a6333bda2b79ae1b89cc72d0c4a791f98cbb6413ea1aee2253df18515cba1c94ae60d3794cf02ce33adf5ceddbd05caff8",
-                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260129-2372/debian-13-generic-amd64-20260129-2372.qcow2",
-                "size": 432258560,
-                "version": "20260129"
+                "id": "sha512:6a0dc27df15ec6d4e17d9f26ff0dda5de640e45b4b4d2c9fca624607f55abe86aa996e7afaa38888e12082367ab5db4ac30e6b4151d0907c662885fbade0eeb3",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260210-2384/debian-13-generic-amd64-20260210-2384.qcow2",
+                "size": 431554560,
+                "version": "20260210"
             }
         },
         "os": "Debian",
@@ -27,6 +33,18 @@
                 "id": "66031aea9ec61e6d0d5bba12b9454e80ca94e8a79c913d37ded4c60311705b8b",
                 "image_location": "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-43-1.6.aarch64.qcow2",
                 "size": 544997376,
+                "version": "20251023"
+            },
+            "power64le": {
+                "id": "50c51fb73f01722b737031c333e92c0fe5bd0c3760421fe104bd888941cd41bb",
+                "image_location": "https://download.fedoraproject.org/pub/fedora-secondary/releases/43/Cloud/ppc64le/images/Fedora-Cloud-Base-Generic-43-1.6.ppc64le.qcow2",
+                "size": 555417600,
+                "version": "20251023"
+            },
+            "s390x": {
+                "id": "6aecf1806698a1aa15ba1c1a0fef2db41ae880a2ed9821308a1e2ab7b9165ccb",
+                "image_location": "https://download.fedoraproject.org/pub/fedora-secondary/releases/43/Cloud/s390x/images/Fedora-Cloud-Base-Generic-43-1.6.s390x.qcow2",
+                "size": 539305472,
                 "version": "20251023"
             },
             "x86_64": {

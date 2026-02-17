@@ -36,9 +36,6 @@
 #include <multipass/vm_status_monitor.h>
 
 #include <QFile>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QProcess>
 #include <QString>
 #include <QTemporaryFile>
@@ -127,23 +124,16 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
     return process;
 }
 
-auto qmp_execute_json(const QString& cmd)
+boost::json::object qmp_execute_json(const QString& cmd)
 {
-    QJsonObject qmp;
-    qmp.insert("execute", cmd);
-    return QJsonDocument(qmp).toJson();
+    return {{"execute", cmd.toStdString()}};
 }
 
-auto hmc_to_qmp_json(const QString& command_line)
+boost::json::object hmc_to_qmp_json(const QString& command_line)
 {
-    auto qmp = QJsonDocument::fromJson(qmp_execute_json("human-monitor-command")).object();
-
-    QJsonObject cmd_line;
-    cmd_line.insert("command-line", command_line);
-
-    qmp.insert("arguments", cmd_line);
-
-    return QJsonDocument(qmp).toJson();
+    auto qmp = qmp_execute_json("human-monitor-command");
+    qmp["arguments"] = {{"command-line", command_line.toStdString()}};
+    return qmp;
 }
 
 std::string get_qemu_machine_type(const QStringList& platform_args)
@@ -168,9 +158,15 @@ std::string get_qemu_machine_type(const QStringList& platform_args)
             process->read_all_standard_error()));
     }
 
-    auto vmstate = QJsonDocument::fromJson(dump_file.readAll()).object();
-
-    return vmstate["vmschkmachine"].toObject()["Name"].toString().toStdString();
+    if (auto data = dump_file.readAll(); !data.isEmpty())
+    {
+        auto vmstate = boost::json::parse(std::string_view(data));
+        return mp::lookup_or<std::string>(
+            mp::lookup_or<boost::json::value>(vmstate, "vmschkmachine", {}),
+            "Name",
+            "");
+    }
+    return "";
 }
 
 auto mount_args_to_json(const mp::QemuVirtualMachine::MountArgs& mount_args)
@@ -320,7 +316,7 @@ void mp::QemuVirtualMachine::start()
         }
     }
 
-    vm_process->write(qmp_execute_json("qmp_capabilities"));
+    vm_process->write(QByteArray::fromStdString(serialize(qmp_execute_json("qmp_capabilities"))));
 }
 
 void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -383,7 +379,8 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
         if (vm_process && vm_process->running())
         {
-            vm_process->write(qmp_execute_json("system_powerdown"));
+            vm_process->write(
+                QByteArray::fromStdString(serialize(qmp_execute_json("system_powerdown"))));
             if (vm_process->wait_for_finished(shutdown_timeout))
             {
                 lock.lock();
@@ -411,7 +408,8 @@ void mp::QemuVirtualMachine::suspend()
         }
 
         drop_ssh_session();
-        vm_process->write(hmc_to_qmp_json(QString{"savevm "} + suspend_tag));
+        vm_process->write(QByteArray::fromStdString(
+            serialize(hmc_to_qmp_json(QString{"savevm "} + suspend_tag))));
         vm_process->wait_for_finished(shutdown_timeout);
 
         vm_process.reset(nullptr);
@@ -538,29 +536,30 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
         auto qmp_output = vm_process->read_all_standard_output();
         mpl::debug(vm_name, "QMP: {}", qmp_output);
-        auto qmp_object = QJsonDocument::fromJson(qmp_output.split('\n').first()).object();
-        auto event = qmp_object["event"];
+        auto qmp_object =
+            boost::json::parse(qmp_output.split('\n').first().toStdString()).as_object();
 
-        if (!event.isNull())
+        if (auto event = qmp_object.if_contains("event"))
         {
-            if (event.toString() == "RESET" && state != State::restarting)
+            auto event_str = value_to<std::string>(*event);
+            if (event_str == "RESET" && state != State::restarting)
             {
                 mpl::info(vm_name, "VM restarting");
                 on_restart();
             }
-            else if (event.toString() == "POWERDOWN")
+            else if (event_str == "POWERDOWN")
             {
                 mpl::info(vm_name, "VM powering down");
             }
-            else if (event.toString() == "SHUTDOWN")
+            else if (event_str == "SHUTDOWN")
             {
                 mpl::info(vm_name, "VM shut down");
             }
-            else if (event.toString() == "STOP")
+            else if (event_str == "STOP")
             {
                 mpl::info(vm_name, "VM suspending");
             }
-            else if (event.toString() == "RESUME")
+            else if (event_str == "RESUME")
             {
                 mpl::info(vm_name, "VM suspended");
                 if (state == State::suspending || state == State::running)
@@ -570,10 +569,9 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                 }
             }
         }
-        else if (qmp_object.contains("error"))
+        else if (auto error = qmp_object.if_contains("error"))
         {
-            const auto error = qmp_object["error"].toObject();
-            mpl::error(vm_name, "QMP error: {}", error["desc"].toString());
+            mpl::error(vm_name, "QMP error: {}", value_to<std::string>(error->at("desc")));
         }
     });
 
@@ -655,7 +653,8 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         this,
         [this] {
             mpl::debug(vm_name, "Deleted memory snapshot");
-            vm_process->write(hmc_to_qmp_json(QString("delvm ") + suspend_tag));
+            vm_process->write(QByteArray::fromStdString(
+                serialize(hmc_to_qmp_json(QString("delvm ") + suspend_tag))));
             is_starting_from_suspend = false;
         },
         Qt::QueuedConnection);
@@ -669,18 +668,12 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         [this] {
             mpl::debug(vm_name, "Resetting the network");
 
-            auto qmp = QJsonDocument::fromJson(qmp_execute_json("set_link")).object();
-            QJsonObject args;
-            args.insert("name", "virtio-net-pci.0");
-            args.insert("up", false);
-            qmp.insert("arguments", args);
+            auto qmp = qmp_execute_json("set_link");
+            qmp["arguments"] = {{"name", "virtio-net-pci.0"}, {"up", false}};
+            vm_process->write(QByteArray::fromStdString(serialize(qmp)));
 
-            vm_process->write(QJsonDocument(qmp).toJson());
-
-            args["up"] = true;
-            qmp["arguments"] = args;
-
-            vm_process->write(QJsonDocument(qmp).toJson());
+            qmp.at("arguments").at("up") = true;
+            vm_process->write(QByteArray::fromStdString(serialize(qmp)));
         },
         Qt::QueuedConnection);
 

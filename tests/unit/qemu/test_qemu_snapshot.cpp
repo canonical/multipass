@@ -30,9 +30,6 @@
 #include <multipass/vm_specs.h>
 #include <src/platform/backends/qemu/qemu_snapshot.h>
 
-#include <QJsonArray>
-#include <QJsonObject>
-
 #include <memory>
 #include <unordered_map>
 

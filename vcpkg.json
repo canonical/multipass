@@ -1,5 +1,5 @@
 {
-    "builtin-baseline": "4334d8b4c8916018600212ab4dd4bbdc343065d1",
+    "builtin-baseline": "74e6536215718009aae747d86d84b78376bf9e09",
     "dependencies": [
         "boost-algorithm",
         "boost-json",
@@ -23,7 +23,7 @@
     "overrides": [
         {
             "name": "fmt",
-            "version": "11.0.2"
+            "version": "11.2.0"
         }
     ],
     "features": {

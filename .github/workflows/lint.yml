@@ -47,18 +47,21 @@ jobs:
 
       - name: Install clang-format
         shell: bash
-        run: sudo apt-get install --no-install-recommends --yes clang-format-16
+        run: sudo apt-get install --no-install-recommends --yes clang-format
 
       - name: Run clang-format through the diff
         shell: bash
         run: |
+          # Print out version of clang-format being used
+          clang-format --version
+
           # Ensure that the .clang-format configuration is valid
-          clang-format-16  --dump-config > /dev/null
+          clang-format --dump-config > /dev/null
 
           # On pull requests, HEAD^1 will always be the merge base, so consider that diff for formatting.
           git diff -U0 --no-color HEAD^1 \
             | grep -vE '^\+\+\+ b/tests/unit/test_data/formatters/' \
-            | clang-format-diff-16 -p1 \
+            | clang-format-diff -p1 \
             | tee ${HOME}/clang-diff
 
           if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then

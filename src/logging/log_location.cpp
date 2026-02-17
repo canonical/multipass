@@ -15,26 +15,20 @@
  *
  */
 
-#pragma once
+#include <multipass/logging/log_location.h>
 
-#include <compare>
-#include <string>
+#include <cassert>
 
-namespace multipass
+namespace multipass::logging::detail
 {
-struct opaque_semver
-{
-    std::string value;
-};
 
-inline namespace literals
+// Careful with temporaries
+std::string_view extract_filename(std::string_view path)
 {
-[[nodiscard]] inline opaque_semver operator""_semver(const char* value, std::size_t len)
-{
-    const auto sv = std::string_view{value, len};
-    return opaque_semver{std::string{sv}};
+    assert(path.empty() || (*path.rbegin() != '/' && *path.rbegin() != '\\')); // no trailing slash
+
+    auto pos = path.find_last_of("/\\");
+    return pos == std::string_view::npos ? path : path.substr(pos + 1);
 }
-} // namespace literals
 
-[[nodiscard]] std::strong_ordering operator<=>(const opaque_semver& lhs, const opaque_semver& rhs);
-} // namespace multipass
+} // namespace multipass::logging::detail

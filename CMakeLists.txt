@@ -36,6 +36,8 @@ if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
   set(VCPKG_HOST_ARCH "arm64")
 elseif ("${HOST_ARCH}" STREQUAL "s390x")
   set(VCPKG_HOST_ARCH "s390x")
+elseif ("${HOST_ARCH}" STREQUAL "ppc64le")
+  set(VCPKG_HOST_ARCH "ppc64le")
 else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
@@ -102,7 +104,17 @@ else ()
   string(APPEND VCPKG_CMD "sh")
 endif ()
 
-execute_process(COMMAND ${VCPKG_CMD} RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT)
+# GCC is unreliable on ppc64le and can cause internal compiler errors during vcpkg bootstrap
+set(VCPKG_BOOTSTRAP_ENV)
+if(${VCPKG_HOST_ARCH} STREQUAL "ppc64le")
+  set(VCPKG_BOOTSTRAP_ENV
+    "CC=clang"
+    "CXX=clang++"
+    "CMAKE_C_COMPILER=clang"
+    "CMAKE_CXX_COMPILER=clang++")
+endif()
+
+execute_process(COMMAND ${CMAKE_COMMAND} -E env ${VCPKG_BOOTSTRAP_ENV} ${VCPKG_CMD} RESULT_VARIABLE VCPKG_BOOTSTRAP_RESULT)
 
 if(NOT VCPKG_BOOTSTRAP_RESULT EQUAL 0)
   message(FATAL_ERROR "Bootstrapping vcpkg failed with exit code: ${VCPKG_BOOTSTRAP_RESULT}")
@@ -119,8 +131,13 @@ set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg
 
 project(Multipass)
 
-cmake_dependent_option(MULTIPASS_ENABLE_FLUTTER_GUI "Build Flutter GUI" ON
-    "NOT CMAKE_SYSTEM_PROCESSOR STREQUAL s390x" OFF)
+cmake_dependent_option(
+    MULTIPASS_ENABLE_FLUTTER_GUI
+    "Build Flutter GUI"
+    ON
+    "NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL s390x OR CMAKE_SYSTEM_PROCESSOR STREQUAL ppc64le)"
+    OFF
+)
 
 include(GNUInstallDirs)
 
@@ -192,6 +209,10 @@ if(UNIX)
 
   if (${HOST_ARCH} STREQUAL "arm64")
     set(HOST_ARCH "aarch64")
+  endif ()
+
+  if (${HOST_ARCH} STREQUAL "ppc64le")
+    set(HOST_ARCH "ppc64")
   endif ()
 
   if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND ${HOST_ARCH} MATCHES "x86_64"))
