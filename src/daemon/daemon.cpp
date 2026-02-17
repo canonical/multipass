@@ -1749,10 +1749,14 @@ try
         }
         catch (const NoSuchSnapshotException& e)
         {
-            add_fmt_to(errors, "{}", e.what());
+            mpl::warn(category, "No snapshots found for instance \"{}\": {}", name, e.what());
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "Error gathering information for instance \"{}\": {}", name, e.what());
         }
 
-        return grpc_status_for(errors);
+        return grpc::Status::OK;
     };
 
     auto [instance_selection, status] =
@@ -1774,10 +1778,9 @@ try
 
         if (have_mounts && !MP_SETTINGS.get_as<bool>(mp::mounts_key))
             mpl::error(category, "Mounts have been disabled on this instance of Multipass");
-
-        server->Write(response);
     }
 
+    server->Write(response);
     status_promise->set_value(status);
 }
 catch (const std::exception& e)
