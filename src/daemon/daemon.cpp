@@ -1747,7 +1747,7 @@ try
                                            have_mounts);
             }
         }
-        catch (const NoSuchSnapshotException& e)
+        catch (const std::exception& e)
         {
             add_fmt_to(errors, "{}", e.what());
         }
@@ -3802,18 +3802,11 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
     if (!no_runtime_info && MP_UTILS.is_running(present_state))
     {
-        try
-        {
-            RuntimeInstanceInfoHelper::populate_runtime_info(vm,
-                                                             info,
-                                                             instance_info,
-                                                             original_release,
-                                                             vm_specs.num_cores != 1);
-        }
-        catch (const std::exception& e)
-        {
-            mpl::warn(category, "Cannot gather runtime info for instance \"{}\": {}", name, e.what());
-        }
+        RuntimeInstanceInfoHelper::populate_runtime_info(vm,
+                                                         info,
+                                                         instance_info,
+                                                         original_release,
+                                                         vm_specs.num_cores != 1);
     }
 }
 
