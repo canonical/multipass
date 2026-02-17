@@ -62,7 +62,9 @@ TEST_F(TestQemuPlatformDetail, vmPlatformArgsReturnsExpectedArguments)
     std::vector<QStringList> expected_args{
         {"-accel", "hvf"},
         {"-nic",
-         QString("vmnet-shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
+         QString("vmnet-shared,start-address=192.168.252.1,end-address=192.168.252."
+                 "255,subnet-mask=255.255.255.0,model=virtio-net-pci,mac=%1")
+             .arg(QString::fromStdString(hw_addr))},
         {"-cpu", "host"}};
     mp::VirtualMachineDescription vm_desc;
     vm_desc.vm_name = "foo";
