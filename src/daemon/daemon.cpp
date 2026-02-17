@@ -3801,11 +3801,20 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     timestamp->set_nanos(created_time.time().msec() * 1'000'000);
 
     if (!no_runtime_info && MP_UTILS.is_running(present_state))
-        RuntimeInstanceInfoHelper::populate_runtime_info(vm,
-                                                         info,
-                                                         instance_info,
-                                                         original_release,
-                                                         vm_specs.num_cores != 1);
+    {
+        try
+        {
+            RuntimeInstanceInfoHelper::populate_runtime_info(vm,
+                                                             info,
+                                                             instance_info,
+                                                             original_release,
+                                                             vm_specs.num_cores != 1);
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "Cannot gather runtime info for instance \"{}\": {}", name, e.what());
+        }
+    }
 }
 
 std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
