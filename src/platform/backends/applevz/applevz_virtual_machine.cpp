@@ -89,15 +89,16 @@ void AppleVZVirtualMachine::start()
     }
     else
     {
-        mpl::warn(log_category,
-                  "start() -> VM `{}` cannot be started from state `{}`",
-                  vm_name,
-                  current_state());
+        mpl::error(log_category,
+                   "start() -> VM `{}` cannot be started from state `{}`",
+                   vm_name,
+                   current_state());
         return;
     }
 
     if (error)
     {
+        mpl::error(log_category, "start() -> VM '{}' failed to start: {}", vm_name, error);
         throw std::runtime_error(
             fmt::format("VM '{}' failed to start, check logs for more details", vm_name));
     }
