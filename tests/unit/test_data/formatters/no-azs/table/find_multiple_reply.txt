@@ -1,0 +1,5 @@
+Image                       Aliases           Version          Description
+18.04                       bionic,lts        20180421         Ubuntu 18.04 LTS
+19.04                       disco             20190516         Ubuntu 19.04
+daily:19.10                 eoan,devel        20190516         Ubuntu 19.10
+
