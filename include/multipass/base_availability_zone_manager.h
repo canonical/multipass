@@ -40,8 +40,6 @@ public:
     std::string get_default_zone_name() const override;
 
 private:
-    void serialize() const;
-
     class ZoneCollection
     {
     public:
@@ -60,21 +58,14 @@ private:
         mutable std::shared_mutex mutex{};
     };
 
-    // we store all the data in one struct so that it can be created from one function call in the
-    // initializer list
-    struct data
-    {
-        const std::filesystem::path file_path{};
-        ZoneCollection zone_collection;
-        // we don't have designated initializers, so mutex remains last so it doesn't need to be
-        // manually initialized
-        mutable std::recursive_mutex mutex{};
-    } m;
+    mutable std::recursive_mutex mutex;
+    const std::filesystem::path file_path;
+    ZoneCollection zone_collection;
 
     [[nodiscard]] const ZoneCollection::ZoneArray& zones() const;
 
-    static data read_from_file(const std::filesystem::path& file_path,
-                               const std::filesystem::path& zones_directory);
+    static std::string load_file(const std::filesystem::path& file_path);
+    void save_file() const;
 };
 } // namespace multipass
 
