@@ -24,21 +24,21 @@ namespace multipass
 {
 namespace test
 {
-struct StubAvailabilityZone final : public AvailabilityZone
+class StubAvailabilityZone final : public AvailabilityZone
 {
-    StubAvailabilityZone()
+public:
+    StubAvailabilityZone(std::string name = "zone1", Subnet subnet = {"192.168.123.0/24"})
+        : name{std::move(name)}, subnet{std::move(subnet)}
     {
     }
 
     const std::string& get_name() const override
     {
-        static std::string name{"zone1"};
         return name;
     }
 
     const Subnet& get_subnet() const override
     {
-        static Subnet subnet{"192.168.123.0/24"};
         return subnet;
     }
 
@@ -58,6 +58,10 @@ struct StubAvailabilityZone final : public AvailabilityZone
     void remove_vm(VirtualMachine& vm) override
     {
     }
+
+private:
+    std::string name;
+    Subnet subnet;
 };
 } // namespace test
 } // namespace multipass
