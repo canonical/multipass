@@ -303,6 +303,11 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
 
 void mp::BaseVirtualMachine::resize_partitions(std::chrono::milliseconds timeout)
 {
+    if (!filesystem_requires_resize)
+    {
+        mpl::trace(vm_name, "Image was already resized, skipping partition resize.");
+        return;
+    }
     auto action = [this] {
         detect_aborted_start();
         std::string last_partition{};
@@ -311,14 +316,13 @@ void mp::BaseVirtualMachine::resize_partitions(std::chrono::milliseconds timeout
             if (last_partition.empty())
                 last_partition = ssh_exec("sudo fdisk -l /dev/sda | grep \"^/dev\" | sort -k2 -n "
                                           "| tail -n1 | awk '{print $1}'");
-            auto split_iterator =
-                last_partition.begin() + last_partition.find_last_not_of("0123456789") + 1;
-            std::string disk{last_partition.begin(), split_iterator},
-                partition_number{split_iterator, last_partition.end()};
+            auto split_index = last_partition.find_last_not_of("0123456789") + 1;
+            std::string disk{last_partition.substr(0, split_index)},
+                partition_number{last_partition.substr(split_index)};
 
             ssh_exec(fmt::format("sudo growpart {} {} || true", disk, partition_number));
             ssh_exec(fmt::format("sudo resize2fs {}", last_partition));
-
+            this->filesystem_requires_resize = false;
             return mpu::TimeoutAction::done;
         }
         catch (const SSHVMNotRunning& e)
@@ -341,6 +345,7 @@ void mp::BaseVirtualMachine::resize_partitions(std::chrono::milliseconds timeout
         throw std::runtime_error("timed out waiting for disk resizing to complete");
     };
     mpu::try_action_for(on_timeout, timeout, action);
+    mpl::trace(vm_name, "Image was resized.");
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
