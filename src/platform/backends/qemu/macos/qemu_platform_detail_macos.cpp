@@ -28,6 +28,10 @@ namespace mp = multipass;
 
 namespace
 {
+constexpr auto VMNET_SUBNET_PREFIX = "192.168.252";
+constexpr auto VMNET_SUBNET_MASK = "255.255.255.0";
+constexpr auto VMNET_START_ADDR = "1";
+constexpr auto VMNET_END_ADDR = "254";
 auto get_common_args(const QString& host_arch)
 {
     QStringList qemu_args;
@@ -68,19 +72,25 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 {
     QStringList qemu_args;
 
-    qemu_args << common_args << "-accel" << "hvf" << "-drive"
-              << QString(
-                     "file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
-                     .arg(QCoreApplication::applicationDirPath())
-                     .arg(host_arch)
-              << "-cpu"
-              << "host"
-              // Set up the network related args
-              << "-nic"
-              << QString::fromStdString(
-                     fmt::format("vmnet-shared,start-address=192.168.252.1,end-address=192.168.252."
-                                 "255,subnet-mask=255.255.255.0,model=virtio-net-pci,mac={}",
-                                 vm_desc.default_mac_address));
+    qemu_args
+        << common_args << "-accel" << "hvf" << "-drive"
+        << QString("file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
+               .arg(QCoreApplication::applicationDirPath())
+               .arg(host_arch)
+        << "-cpu"
+        << "host"
+        // Set up the network related args
+        << "-nic"
+        << QString::fromStdString(fmt::format("vmnet-shared,start-address={}.{},end-address={}.{}"
+                                              ",subnet-mask={},model=virtio-net-pci,mac={}",
+                                              VMNET_SUBNET_PREFIX,
+                                              VMNET_START_ADDR,
+                                              VMNET_SUBNET_PREFIX,
+                                              VMNET_END_ADDR,
+                                              VMNET_SUBNET_MASK,
+                                              vm_desc.default_mac_address));
+    // The subnet 192.168.252.0/24 is chosen to tackle an issue with subnet collision in macos-26:
+    // #4383
 
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
