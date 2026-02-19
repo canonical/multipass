@@ -90,7 +90,7 @@ void AppleVZVirtualMachine::start()
     else
     {
         mpl::error(log_category,
-                   "start() -> VM `{}` cannot be started from state `{}`",
+                   "start() -> VM `{}` cannot be started. Current state `{}`",
                    vm_name,
                    current_state());
         return;
@@ -224,7 +224,7 @@ void AppleVZVirtualMachine::suspend()
     else
     {
         mpl::warn(log_category,
-                  "suspend() -> VM `{}` cannot be suspended from state `{}`",
+                  "suspend() -> VM `{}` cannot be suspended. Current state `{}`",
                   vm_name,
                   current_state());
     }
