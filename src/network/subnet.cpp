@@ -78,7 +78,7 @@ mp::Subnet::Subnet(const std::string& cidr_string) : Subnet(parse(cidr_string))
 
 mp::IPAddress mp::Subnet::min_address() const
 {
-    return network_address() + 1;
+    return masked_address() + 1;
 }
 
 mp::IPAddress mp::Subnet::max_address() const
@@ -86,7 +86,7 @@ mp::IPAddress mp::Subnet::max_address() const
     // address + 2^(32 - prefix) - 1 - 1
     // address + 2^(32 - prefix) is the next subnet's network address for this prefix length
     // subtracting 1 to stay in this subnet and another 1 to exclude the broadcast address
-    return network_address() + ((1ull << (32ull - prefix)) - 2ull);
+    return masked_address() + ((1ull << (32ull - prefix)) - 2ull);
 }
 
 uint32_t mp::Subnet::usable_address_count() const
@@ -99,7 +99,7 @@ mp::IPAddress mp::Subnet::address() const
     return ip_address;
 }
 
-mp::IPAddress mp::Subnet::network_address() const
+mp::IPAddress mp::Subnet::masked_address() const
 {
     return apply_mask(ip_address, prefix);
 }
@@ -122,7 +122,7 @@ mp::IPAddress mp::Subnet::subnet_mask() const
 
 mp::Subnet mp::Subnet::canonical() const
 {
-    return Subnet{network_address(), prefix};
+    return Subnet{masked_address(), prefix};
 }
 
 // uses CIDR notation
@@ -161,7 +161,7 @@ mp::Subnet mp::Subnet::get_specific_subnet(size_t subnet_block_idx,
 
     // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
     mp::IPAddress address =
-        network_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
+        masked_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
 
     return mp::Subnet{address, prefix_length};
 }
@@ -172,12 +172,12 @@ bool mp::Subnet::contains(Subnet other) const
     if (other.prefix_length() < prefix)
         return false;
 
-    return contains(other.network_address());
+    return contains(other.masked_address());
 }
 
 bool mp::Subnet::contains(IPAddress ip) const
 {
-    return network_address() <= ip && broadcast_address() >= ip;
+    return masked_address() <= ip && broadcast_address() >= ip;
 }
 
 std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
