@@ -43,6 +43,9 @@ using ImageConversionParamType = std::tuple<const char*,
                                             mp::ProcessState,
                                             std::optional<Matcher<std::string>>>;
 
+using RawConversionParamType =
+    std::tuple<const char*, const char*, mp::ProcessState, std::optional<Matcher<std::string>>>;
+
 void simulate_qemuimg_info_with_json(const mpt::MockProcess* process,
                                      const QString& expect_img,
                                      const mp::ProcessState& produce_result,
@@ -76,11 +79,13 @@ void simulate_qemuimg_resize(mpt::MockProcess* process,
     ASSERT_EQ(process->program().toStdString(), "qemu-img");
 
     const auto args = process->arguments();
-    ASSERT_EQ(args.size(), 3);
+    ASSERT_EQ(args.size(), 5);
 
-    EXPECT_EQ(args.at(0).toStdString(), "resize");
-    EXPECT_EQ(args.at(1), expect_img);
-    EXPECT_THAT(args.at(2),
+    EXPECT_EQ(args.at(0), "resize");
+    EXPECT_EQ(args.at(1), "-f");
+    EXPECT_EQ(args.at(2), "qcow2"); // default format from info
+    EXPECT_EQ(args.at(3), expect_img);
+    EXPECT_THAT(args.at(4),
                 ResultOf([](const auto& val) { return mp::MemorySize{val.toStdString()}; },
                          Eq(expect_size)));
 
@@ -103,6 +108,26 @@ void simulate_qemuimg_convert(const mpt::MockProcess* process,
     EXPECT_EQ(args.at(1), "-p");
     EXPECT_EQ(args.at(2), "-O");
     EXPECT_EQ(args.at(3), "qcow2");
+    EXPECT_EQ(args.at(4), img_path);
+    EXPECT_EQ(args.at(5), expected_img_path);
+
+    EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
+}
+
+void simulate_qemuimg_convert_to_raw(const mpt::MockProcess* process,
+                                     const QString& img_path,
+                                     const QString& expected_img_path,
+                                     const mp::ProcessState& produce_result)
+{
+    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+
+    const auto args = process->arguments();
+    ASSERT_EQ(args.size(), 6);
+
+    EXPECT_EQ(args.at(0), "convert");
+    EXPECT_EQ(args.at(1), "-p");
+    EXPECT_EQ(args.at(2), "-O");
+    EXPECT_EQ(args.at(3), "raw");
     EXPECT_EQ(args.at(4), img_path);
     EXPECT_EQ(args.at(5), expected_img_path);
 
@@ -137,8 +162,18 @@ void test_image_resizing(const char* img,
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
 
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, 1);
-        simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
+        ASSERT_LE(++process_count, 2);
+        if (process_count == 1)
+        {
+            // First call is qemu-img info to get image format
+            auto info_output = QByteArray{R"({"format": "qcow2"})"};
+            simulate_qemuimg_info_with_json(process, img, success, info_output);
+        }
+        else
+        {
+            // Second call is the actual resize
+            simulate_qemuimg_resize(process, img, requested_size, qemuimg_resize_result);
+        }
     });
 
     if (throw_msg_matcher)
@@ -148,7 +183,7 @@ void test_image_resizing(const char* img,
     else
         mp::backend::resize_instance_image(requested_size, img);
 
-    EXPECT_EQ(process_count, 1);
+    EXPECT_EQ(process_count, 2);
 }
 
 template <class Matcher>
@@ -211,7 +246,38 @@ void test_image_amendment(const char* img_path,
     EXPECT_EQ(process_count, 1);
 }
 
+template <class Matcher>
+void test_raw_conversion(const char* img_path,
+                         const char* expected_img_path,
+                         const mp::ProcessState& qemuimg_convert_result,
+                         std::optional<Matcher> throw_msg_matcher)
+{
+    auto process_count = 0;
+    auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+
+    mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
+        ASSERT_LE(++process_count, 1);
+        simulate_qemuimg_convert_to_raw(process,
+                                        img_path,
+                                        expected_img_path,
+                                        qemuimg_convert_result);
+    });
+
+    if (throw_msg_matcher)
+        MP_EXPECT_THROW_THAT(mp::backend::convert_to_raw(img_path),
+                             std::runtime_error,
+                             mpt::match_what(*throw_msg_matcher));
+    else
+        EXPECT_THAT(mp::backend::convert_to_raw(img_path), Eq(expected_img_path));
+
+    EXPECT_EQ(process_count, 1);
+}
+
 struct ImageConversionTestSuite : public TestWithParam<ImageConversionParamType>
+{
+};
+
+struct RawConversionTestSuite : public TestWithParam<RawConversionParamType>
 {
 };
 
@@ -240,6 +306,18 @@ const std::vector<ImageConversionParamType> image_conversion_inputs{
      true,
      failure,
      std::make_optional(HasSubstr("qemu-img failed"))}};
+
+const std::vector<RawConversionParamType> raw_conversion_inputs{
+    {"/fake/img/path.qcow2", "/fake/img/path.qcow2.raw", success, null_string_matcher},
+    {"/fake/img/path",
+     "/fake/img/path.raw",
+     failure,
+     std::make_optional(HasSubstr("Failed to convert image to raw format"))},
+    {"/another/image.qcow2",
+     "/another/image.qcow2.raw",
+     crash,
+     std::make_optional(AllOf(HasSubstr("Failed to convert image to raw format"),
+                              HasSubstr(crash.failure_message().toStdString())))}};
 } // namespace
 
 TEST(QemuImgUtils, imageResizingChecksMinimumSizeAndProceedsWhenLarger)
@@ -326,3 +404,13 @@ TEST_P(ImageConversionTestSuite, properly_handles_image_conversion)
 }
 
 INSTANTIATE_TEST_SUITE_P(QemuImgUtils, ImageConversionTestSuite, ValuesIn(image_conversion_inputs));
+
+TEST_P(RawConversionTestSuite, properly_handles_raw_conversion)
+{
+    const auto& [img_path, expected_img_path, qemuimg_convert_result, throw_msg_matcher] =
+        GetParam();
+
+    test_raw_conversion(img_path, expected_img_path, qemuimg_convert_result, throw_msg_matcher);
+}
+
+INSTANTIATE_TEST_SUITE_P(QemuImgUtils, RawConversionTestSuite, ValuesIn(raw_conversion_inputs));
