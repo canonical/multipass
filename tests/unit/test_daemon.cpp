@@ -853,6 +853,29 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
     send_command({command, alias});
 }
 
+TEST_F(Daemon, addsHypervSchedulerUdevRuleToVendorDataConfig)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, get_backend_directory_name()).WillByDefault(Return("hyperv"));
+
+    std::vector<std::pair<std::string, std::string>> const& expected_rule_map{
+        {"path", "/etc/udev/rules.d/60-scheduler.rules"},
+        {"content",
+         R"(ACTION=="add|change", KERNEL=="sd[a-z]|mmcblk[0-9]*", ATTR{queue/scheduler}="none")"}};
+
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
+        .WillOnce([&expected_rule_map](const multipass::VMImage&,
+                                       const mp::VirtualMachineDescription& desc) {
+            EXPECT_THAT(desc.vendor_data_config, YAMLNodeContainsSequence("write_files"));
+            auto const& write_files = desc.vendor_data_config["write_files"];
+            EXPECT_THAT(write_files, YAMLSequenceContainsStringMap(expected_rule_map));
+        });
+
+    send_command({"launch"});
+}
+
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
