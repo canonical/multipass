@@ -15,6 +15,7 @@
  *
  */
 
+#include "mock_applevz_image_utils.h"
 #include "mock_applevz_wrapper.h"
 #include "tests/unit/common.h"
 #include "tests/unit/mock_logger.h"
@@ -63,6 +64,10 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
         mpt::MockAppleVZWrapper::inject<NiceMock>()};
     mpt::MockAppleVZWrapper& mock_applevz = *mock_applevz_wrapper_injection.first;
 
+    mpt::MockAppleVZImageUtils::GuardedMock mock_image_utils_injection{
+        mpt::MockAppleVZImageUtils::inject<NiceMock>()};
+    mpt::MockAppleVZImageUtils& mock_image_utils = *mock_image_utils_injection.first;
+
     mpt::TempDir instance_dir;
 
     inline static auto mock_handle_raw =
@@ -76,6 +81,10 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
 
         EXPECT_CALL(mock_applevz, get_state(_)).WillOnce(Return(initial_state));
         EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, _)).Times(AnyNumber());
+
+        EXPECT_CALL(mock_image_utils, convert_to_supported_format(_))
+            .WillRepeatedly(ReturnArg<0>());
+        EXPECT_CALL(mock_image_utils, resize_image(_, _)).WillRepeatedly(Return());
 
         return std::make_shared<mp::applevz::AppleVZVirtualMachine>(desc,
                                                                     mock_monitor,

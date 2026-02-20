@@ -16,7 +16,6 @@
  */
 
 #include "qemu_virtual_machine_factory.h"
-#include "qemu_img_utils.h"
 #include "qemu_virtual_machine.h"
 
 #include <multipass/cloud_init_iso.h>
@@ -24,6 +23,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/yaml_node_utils.h>
 
 #include <QRegularExpression>
@@ -70,7 +70,7 @@ void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string&
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     VMImage image{source_image};
-    image.image_path = mp::backend::convert_to_qcow_if_necessary(source_image.image_path);
+    image.image_path = mp::backend::convert(source_image.image_path, "qcow2");
     mp::backend::amend_to_qcow2_v3(image.image_path);
     return image;
 }

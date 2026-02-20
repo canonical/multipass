@@ -18,10 +18,9 @@
 #include "tests/unit/common.h"
 #include "tests/unit/mock_process_factory.h"
 
-#include <src/platform/backends/qemu/qemu_img_utils.h>
-
 #include <multipass/constants.h>
 #include <multipass/memory_size.h>
+#include <multipass/utils/qemu_img_utils.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -214,12 +213,11 @@ void test_image_conversion(const char* img_path,
     });
 
     if (throw_msg_matcher)
-        MP_EXPECT_THROW_THAT(mp::backend::convert_to_qcow_if_necessary(img_path),
+        MP_EXPECT_THROW_THAT(mp::backend::convert(img_path, "qcow2"),
                              std::runtime_error,
                              mpt::match_what(*throw_msg_matcher));
     else
-        EXPECT_THAT(mp::backend::convert_to_qcow_if_necessary(img_path), Eq(expected_img_path));
-
+        EXPECT_THAT(mp::backend::convert(img_path, "qcow2"), Eq(expected_img_path));
     EXPECT_EQ(process_count, expected_final_process_count);
 }
 
@@ -254,23 +252,33 @@ void test_raw_conversion(const char* img_path,
 {
     auto process_count = 0;
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
+    const auto expected_final_process_count = 2; // info + convert
 
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
-        ASSERT_LE(++process_count, 1);
-        simulate_qemuimg_convert_to_raw(process,
-                                        img_path,
-                                        expected_img_path,
-                                        qemuimg_convert_result);
+        ASSERT_LE(++process_count, expected_final_process_count);
+        if (process_count == 1)
+        {
+            // First call is qemu-img info to get image format
+            auto info_output = QByteArray{R"({"format": "qcow2"})"};
+            simulate_qemuimg_info_with_json(process, img_path, success, info_output);
+        }
+        else
+        {
+            // Second call is the actual convert
+            simulate_qemuimg_convert_to_raw(process,
+                                            img_path,
+                                            expected_img_path,
+                                            qemuimg_convert_result);
+        }
     });
 
     if (throw_msg_matcher)
-        MP_EXPECT_THROW_THAT(mp::backend::convert_to_raw(img_path),
+        MP_EXPECT_THROW_THAT(mp::backend::convert(img_path, "raw"),
                              std::runtime_error,
                              mpt::match_what(*throw_msg_matcher));
     else
-        EXPECT_THAT(mp::backend::convert_to_raw(img_path), Eq(expected_img_path));
-
-    EXPECT_EQ(process_count, 1);
+        EXPECT_THAT(mp::backend::convert(img_path, "raw"), Eq(expected_img_path));
+    EXPECT_EQ(process_count, expected_final_process_count);
 }
 
 struct ImageConversionTestSuite : public TestWithParam<ImageConversionParamType>
@@ -308,15 +316,15 @@ const std::vector<ImageConversionParamType> image_conversion_inputs{
      std::make_optional(HasSubstr("qemu-img failed"))}};
 
 const std::vector<RawConversionParamType> raw_conversion_inputs{
-    {"/fake/img/path.qcow2", "/fake/img/path.qcow2.raw", success, null_string_matcher},
+    {"/fake/img/path.qcow2", "/fake/img/path.raw", success, null_string_matcher},
     {"/fake/img/path",
      "/fake/img/path.raw",
      failure,
-     std::make_optional(HasSubstr("Failed to convert image to raw format"))},
+     std::make_optional(HasSubstr("Failed to convert image format"))},
     {"/another/image.qcow2",
-     "/another/image.qcow2.raw",
+     "/another/image.raw",
      crash,
-     std::make_optional(AllOf(HasSubstr("Failed to convert image to raw format"),
+     std::make_optional(AllOf(HasSubstr("Failed to convert image format"),
                               HasSubstr(crash.failure_message().toStdString())))}};
 } // namespace
 

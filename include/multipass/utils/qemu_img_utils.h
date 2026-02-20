@@ -39,10 +39,10 @@ public:
 Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec,
                                     const std::string& custom_error_prefix = "Internal error",
                                     std::optional<int> timeout = std::nullopt);
+QString get_image_info(const Path& image_path, const QString& key);
 void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
-Path convert_to_qcow_if_necessary(const Path& image_path);
+Path convert(const Path& image_path, const QString& target_format);
 void amend_to_qcow2_v3(const Path& image_path);
-Path convert_to_raw(const Path& image_path);
 bool instance_image_has_snapshot(const Path& image_path, QString snapshot_tag);
 QByteArray snapshot_list_output(const Path& image_path);
 void delete_snapshot_from_image(const Path& image_path, const QString& snapshot_tag);
