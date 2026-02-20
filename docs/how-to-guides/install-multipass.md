@@ -17,7 +17,7 @@ Select the tab corresponding to your operating system (e.g. Linux) to display th
 
 ````{tab-item} Linux
 
-Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/), available on the [Snap Store](https://snapcraft.io/multipass). Before you can use it, you need to [install `snapd`](https://docs.snapcraft.io/core/install). `snapd` is included in Ubuntu by default.
+Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/), available on the [Snap Store](https://snapcraft.io/multipass). Before you can use it, you need to [install `snapd`](https://snapcraft.io/docs/tutorials/install-the-daemon/). `snapd` is included in Ubuntu by default.
 
 ````
 

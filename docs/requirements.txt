@@ -1,0 +1,32 @@
+# Canonical theme (still needed for Furo theme and custom templates)
+canonical-sphinx>=0.5.1
+
+# Extensions previously auto-loaded by canonical-sphinx
+myst-parser~=4.0    # v5.0.0 causes version conflicts
+sphinx-autobuild
+sphinx-design
+sphinx-notfound-page
+sphinx-reredirects
+sphinx-tabs
+sphinxcontrib-jquery
+sphinxext-opengraph
+
+# Extra extensions, previously bundled as canonical-sphinx-extensions
+sphinx-config-options>=0.1.0
+sphinx-contributor-listing>=0.1.0
+sphinx-filtered-toctree>=0.1.0
+sphinx-related-links>=0.1.1
+sphinx-roles>=0.1.0
+sphinx-terminal>=1.0.2
+sphinx-ubuntu-images>=0.1.0
+sphinx-youtube-links>=0.1.0
+
+# Other dependencies
+packaging
+sphinxcontrib-svg2pdfconverter[CairoSVG]
+sphinx-last-updated-by-git
+sphinx-sitemap
+
+# Vale dependencies
+rst2html
+vale
