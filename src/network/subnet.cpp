@@ -38,6 +38,7 @@ try
         mp::IPAddress addr{cidr_string.substr(0, i)};
 
         const auto prefix_length = std::stoul(cidr_string.substr(i + 1));
+        // Subnet masks of /31 or /32 require some special handling that we don't support.
         if (prefix_length >= 31)
             throw mp::Subnet::PrefixLengthOutOfRange(prefix_length);
 
@@ -64,16 +65,11 @@ catch (const std::out_of_range& e)
 [[nodiscard]] mp::IPAddress apply_mask(mp::IPAddress ip, mp::Subnet::PrefixLength prefix_length)
 {
     const auto mask = get_subnet_mask(prefix_length);
-    for (size_t i = 0; i < ip.octets.size(); ++i)
-    {
-        ip.octets[i] &= mask.octets[i];
-    }
-    return ip;
+    return mp::IPAddress{ip.as_uint32() & mask.as_uint32()};
 }
 } // namespace
 
-mp::Subnet::Subnet(IPAddress ip, PrefixLength prefix_length)
-    : address(apply_mask(ip, prefix_length)), prefix(prefix_length)
+mp::Subnet::Subnet(IPAddress ip, PrefixLength prefix_length) : ip_address(ip), prefix(prefix_length)
 {
 }
 
@@ -83,7 +79,7 @@ mp::Subnet::Subnet(const std::string& cidr_string) : Subnet(parse(cidr_string))
 
 mp::IPAddress mp::Subnet::min_address() const
 {
-    return address + 1;
+    return masked_address() + 1;
 }
 
 mp::IPAddress mp::Subnet::max_address() const
@@ -91,7 +87,7 @@ mp::IPAddress mp::Subnet::max_address() const
     // address + 2^(32 - prefix) - 1 - 1
     // address + 2^(32 - prefix) is the next subnet's network address for this prefix length
     // subtracting 1 to stay in this subnet and another 1 to exclude the broadcast address
-    return address + ((1ull << (32ull - prefix)) - 2ull);
+    return masked_address() + ((1ull << (32ull - prefix)) - 2ull);
 }
 
 uint32_t mp::Subnet::usable_address_count() const
@@ -99,9 +95,20 @@ uint32_t mp::Subnet::usable_address_count() const
     return max_address().as_uint32() - min_address().as_uint32() + 1;
 }
 
-mp::IPAddress mp::Subnet::network_address() const
+mp::IPAddress mp::Subnet::address() const
 {
-    return address;
+    return ip_address;
+}
+
+mp::IPAddress mp::Subnet::masked_address() const
+{
+    return apply_mask(ip_address, prefix);
+}
+
+mp::IPAddress mp::Subnet::broadcast_address() const
+{
+    const auto mask = get_subnet_mask(prefix);
+    return mp::IPAddress{ip_address.as_uint32() | ~mask.as_uint32()};
 }
 
 mp::Subnet::PrefixLength mp::Subnet::prefix_length() const
@@ -114,10 +121,15 @@ mp::IPAddress mp::Subnet::subnet_mask() const
     return ::get_subnet_mask(prefix);
 }
 
+mp::Subnet mp::Subnet::canonical() const
+{
+    return Subnet{masked_address(), prefix};
+}
+
 // uses CIDR notation
 std::string mp::Subnet::to_cidr() const
 {
-    return fmt::format("{}/{}", address.as_string(), prefix);
+    return fmt::format("{}/{}", ip_address.as_string(), prefix);
 }
 
 size_t mp::Subnet::size(mp::Subnet::PrefixLength prefix_length) const
@@ -150,7 +162,7 @@ mp::Subnet mp::Subnet::get_specific_subnet(size_t subnet_block_idx,
 
     // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
     mp::IPAddress address =
-        network_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
+        masked_address() + (subnet_block_idx * (std::size_t{1} << (32 - prefix_length)));
 
     return mp::Subnet{address, prefix_length};
 }
@@ -161,19 +173,18 @@ bool mp::Subnet::contains(Subnet other) const
     if (other.prefix_length() < prefix)
         return false;
 
-    return contains(other.network_address());
+    return contains(other.masked_address());
 }
 
 bool mp::Subnet::contains(IPAddress ip) const
 {
-    // since get_max_address doesn't include the broadcast address add 1 to it.
-    return address <= ip && (max_address() + 1) >= ip;
+    return masked_address() <= ip && broadcast_address() >= ip;
 }
 
 std::strong_ordering mp::Subnet::operator<=>(const Subnet& other) const
 {
-    const auto ip_res = address <=> other.address;
-
+    if (const auto ip_res = ip_address <=> other.ip_address; ip_res != 0)
+        return ip_res;
     // note the prefix_length operands are purposely flipped
-    return (ip_res == 0) ? other.prefix_length() <=> prefix_length() : ip_res;
+    return other.prefix <=> prefix;
 }
