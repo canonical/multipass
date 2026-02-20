@@ -90,8 +90,6 @@ public:
 
     // Return the number of subnets of size `prefix_length` that fit in this subnet
     [[nodiscard]] size_t size(PrefixLength prefix_length) const;
-    // Get a child subnet that fits inside this one
-    [[nodiscard]] Subnet get_specific_subnet(size_t block_idx, PrefixLength prefix_length) const;
 
     // Subnets are either disjoint or the smaller is a subset of the larger
     [[nodiscard]] bool contains(Subnet other) const;
@@ -116,6 +114,20 @@ public:
 private:
     IPAddress ip_address;
     PrefixLength prefix;
+};
+
+// Allocate child subnets from a base subnet
+class SubnetAllocator
+{
+public:
+    SubnetAllocator(Subnet base_subnet, Subnet::PrefixLength prefix);
+
+    [[nodiscard]] Subnet next_available();
+
+private:
+    Subnet base_subnet;
+    Subnet::PrefixLength prefix;
+    size_t block_idx = 0;
 };
 } // namespace multipass
 
