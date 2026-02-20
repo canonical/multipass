@@ -5,6 +5,7 @@ GPL-3.0
 https://github.com/canonical/multipass/
 
 #### Open source projects used directly:
+- boost: https://www.boost.org/
 - fmt: https://github.com/fmtlib/fmt
 - grpc: https://github.com/grpc/grpc
   - abseil-cpp: https://github.com/abseil/abseil-cpp
@@ -25,6 +26,7 @@ https://github.com/canonical/multipass/
 #### Licensing:
 Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
 
+- boost: Boost Software License 1.0
 - fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich
 - grpc: Apache License 2.0
 - abseil-cpp: Apache License 2.0
@@ -1853,23 +1855,6 @@ whether future versions of the GNU Lesser General Public License shall
 apply, that proxy's public statement of acceptance of any version is
 permanent authorization for you to choose that version for the
 Library.
-```
-
-#### ISC License
-```
-/* Copyright (c) 2015, Google Inc.
- *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
- * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
- * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 ```
 
 #### MIT License
