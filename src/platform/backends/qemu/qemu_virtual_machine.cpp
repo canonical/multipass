@@ -722,6 +722,7 @@ void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
 
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
+    filesystem_requires_resize = true;
 }
 
 void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,

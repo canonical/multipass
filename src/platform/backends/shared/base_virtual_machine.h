@@ -49,6 +49,7 @@ public:
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
+    void resize_partitions(std::chrono::milliseconds timeout) override;
 
     std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int index,
@@ -178,7 +179,9 @@ protected:
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
-
+    bool filesystem_requires_resize{true};
+    // We assume the image requires filesystem resize on creation to ensure the image is resized
+    // properly if there is discontinuity across daemon restarts
 private:
     std::string saved_error_msg = "";
     std::optional<SSHSession> ssh_session = std::nullopt;
