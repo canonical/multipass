@@ -34,15 +34,31 @@ auto get_common_args(const QString& host_arch)
 
     if (host_arch == "aarch64")
     {
-        qemu_args << "-machine"
-                  << "virt,gic-version=3";
+        qemu_args << "-machine" << "virt,gic-version=3";
     }
 
     return qemu_args;
 }
 } // namespace
 
-mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{get_common_args(host_arch)}
+[[nodiscard]] mp::QemuPlatformDetail::Bridges mp::QemuPlatformDetail::get_bridges(
+    const AvailabilityZoneManager::Zones& zones)
+{
+    Bridges bridges{};
+    bridges.reserve(zones.size());
+
+    for (const auto& zone_ref : zones)
+    {
+        const auto& zone = zone_ref.get();
+        bridges.emplace(zone.get_name(), zone.get_subnet());
+    }
+
+    return bridges;
+}
+
+mp::QemuPlatformDetail::QemuPlatformDetail(const AvailabilityZoneManager::Zones& zones)
+    : common_args{get_common_args(host_arch)}, bridges{get_bridges(zones)}
+
 {
 }
 
@@ -68,20 +84,23 @@ QStringList mp::QemuPlatformDetail::vmstate_platform_args()
 QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     QStringList qemu_args;
+    const Subnet& subnet = bridges.at(vm_desc.zone);
 
-    qemu_args << common_args << "-accel"
-              << "hvf"
-              << "-drive"
-              << QString(
-                     "file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
-                     .arg(QCoreApplication::applicationDirPath())
-                     .arg(host_arch)
-              << "-cpu"
-              << "host"
-              // Set up the network related args
-              << "-nic"
-              << QString::fromStdString(fmt::format("vmnet-shared,model=virtio-net-pci,mac={}",
-                                                    vm_desc.default_mac_address));
+    qemu_args
+        << common_args << "-accel" << "hvf" << "-drive"
+        << QString("file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
+               .arg(QCoreApplication::applicationDirPath())
+               .arg(host_arch)
+        << "-cpu"
+        << "host"
+        // Set up the network related args
+        << "-nic"
+        << QString::fromStdString(fmt::format("vmnet-shared,model=virtio-net-pci,mac={},"
+                                              "start-address={},end-address={},subnet-mask={}",
+                                              vm_desc.default_mac_address,
+                                              subnet.min_address().as_string(),
+                                              subnet.max_address().as_string(),
+                                              subnet.subnet_mask().as_string()));
 
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
@@ -119,7 +138,7 @@ mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(
     const Path& data_dir,
     const mp::AvailabilityZoneManager::Zones& zones) const
 {
-    return std::make_unique<mp::QemuPlatformDetail>();
+    return std::make_unique<mp::QemuPlatformDetail>(zones);
 }
 
 std::string mp::QemuPlatformDetail::create_bridge_with(const NetworkInterfaceInfo& interface) const

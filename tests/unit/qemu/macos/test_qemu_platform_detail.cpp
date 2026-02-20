@@ -16,6 +16,7 @@
  */
 
 #include "tests/unit/common.h"
+#include "tests/unit/stub_availability_zone.h"
 
 #include <src/platform/backends/qemu/macos/qemu_platform_detail.h>
 
@@ -23,6 +24,7 @@
 #include <vector>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 
 using namespace testing;
 
@@ -53,7 +55,17 @@ struct TestQemuPlatformDetail : public Test
 
     const std::string hw_addr{"52:54:00:6f:29:7e"};
     const QString host_arch{HOST_ARCH};
-    mp::QemuPlatformDetail qemu_platform_detail;
+
+    static inline const mp::Subnet zone1_subnet{"192.168.64.0/24"};
+    static inline const mp::Subnet zone2_subnet{"192.168.96.0/24"};
+    static inline const mp::Subnet zone3_subnet{"192.168.128.0/24"};
+
+    mpt::StubAvailabilityZone stub_zone1{"zone1", zone1_subnet};
+    mpt::StubAvailabilityZone stub_zone2{"zone2", zone2_subnet};
+    mpt::StubAvailabilityZone stub_zone3{"zone3", zone3_subnet};
+    const multipass::AvailabilityZoneManager::Zones stub_zones{stub_zone1, stub_zone2, stub_zone3};
+
+    mp::QemuPlatformDetail qemu_platform_detail{stub_zones};
 };
 } // namespace
 
@@ -62,10 +74,13 @@ TEST_F(TestQemuPlatformDetail, vmPlatformArgsReturnsExpectedArguments)
     std::vector<QStringList> expected_args{
         {"-accel", "hvf"},
         {"-nic",
-         QString("vmnet-shared,model=virtio-net-pci,mac=%1").arg(QString::fromStdString(hw_addr))},
+         QString("vmnet-shared,model=virtio-net-pci,mac=%1,start-address=192.168.64.1,end-address="
+                 "192.168.64.254,subnet-mask=255.255.255.0")
+             .arg(QString::fromStdString(hw_addr))},
         {"-cpu", "host"}};
     mp::VirtualMachineDescription vm_desc;
     vm_desc.vm_name = "foo";
+    vm_desc.zone = "zone1";
     vm_desc.default_mac_address = hw_addr;
 
     if (host_arch == "aarch64")
