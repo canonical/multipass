@@ -120,20 +120,24 @@ automatically upon merging.<br>
 
 ### Reviews (RVW)
 
-**RVW1.** Reviews can be distinguished as primary and secondary.<br>
-**RVW2.** Primary reviews should approve PRs only after close inspection, impact consideration, and
-appropriate testing.<br>
-**RVW3.** Secondary reviews may approve PRs after a lighter overview of the changes.<br>
-**RVW4.** A review is assumed to be primary, unless otherwise indicated (on GitHub or another
-medium).<br>
-**RVW5.** PRs may normally be merged only after two approvals: one primary and one secondary. This
-is mandatory for external PRs (authored or committed from outside the Multipass team and the
-Renovate bot).<br>
-**RVW6.** After a PR is approved by multiple people, small updates require only a single additional
-approval (i.e. after multiple approvals are dismissed).<br>
-**RVW7.** Notably trivial PRs by the Multipass team may be merged after a single primary
-approval.<br>
-**RVW8.** Renovate PRs may be merged after a single primary approval.<br>
+**RVW1.** The author of a PR should assign at least one person to review the changes. This person is
+the primary reviewer.<br>
+**RVW2.** If the PR author has no strong preference on who reviews the changes, they should request
+review from the "Multipass" team. This will direct the request to a particular team member and
+attempt to balance review load.<br>
+**RVW3.** Anyone involved with the PR (the author, a reviewer, or a team member following along) may
+request secondary reviews as they deem necessary.<br>
+**RVW4.** If the PR author initially assigns multiple reviewers, they should indicate who is the
+primary reviewer and who is the secondary.<br>
+**RVW5.** Reviewers should always request an additional secondary review if they're not fully
+confident in their understanding of all of the changes.<br>
+**RVW6.** The primary reviewer is responsible for closely inspecting the changes, considering the
+impacts, and appropriately testing the changes.<br>
+**RVW7.** Secondary reviewers are responsible for inspecting a particular aspect of the changes
+(e.g. architecture, UI design, domain-specific knowledge), to be defined by the person requesting
+the secondary review.<br>
+**RVW8.** After a PR is approved by multiple reviewers, small updates require only a single
+additional approval (i.e. after multiple approvals are dismissed).<br>
 **RVW9.** Review comments should be acknowledged by the author, but *resolved* by the reviewer.<br>
 
 ### Feature flags (FF)
