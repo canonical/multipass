@@ -56,38 +56,36 @@ final grpcClientProvider = Provider((ref) {
   );
 });
 
-final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
-  (ref) async* {
-    final grpcClient = ref.watch(grpcClientProvider);
-    // this is to de-duplicate errors received from the stream
-    Object? lastError;
-    while (true) {
-      final timer = Future.delayed(1900.milliseconds);
-      try {
-        final [info, zones] = await Future.wait(
-          [grpcClient.info(), grpcClient.zones()],
-          eagerError: true,
-        );
-        yield (info: info as List<VmInfo>, zones: zones as List<Zone>);
-        lastError = null;
-      } catch (error, stackTrace) {
-        if (error != lastError) {
-          logger.e('Error on polling info',
-              error: error, stackTrace: stackTrace);
-          yield* Stream.error(error, stackTrace);
-        }
-        lastError = error;
+final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
+  final grpcClient = ref.watch(grpcClientProvider);
+  // this is to de-duplicate errors received from the stream
+  Object? lastError;
+  while (true) {
+    final timer = Future.delayed(1900.milliseconds);
+    try {
+      yield await grpcClient.info();
+      lastError = null;
+    } catch (error, stackTrace) {
+      if (error != lastError) {
+        logger.e('Error on polling info', error: error, stackTrace: stackTrace);
+        yield* Stream.error(error, stackTrace);
       }
-      // these two timers make it so that requests are sent with at least a 2s pause between them
-      // but if the request takes longer than 1.9s to complete, we still wait 100ms before sending the next one
-      await timer;
-      await Future.delayed(100.milliseconds);
+      lastError = error;
     }
-  },
-);
+    // these two timers make it so that requests are sent with at least a 2s pause between them
+    // but if the request takes longer than 1.9s to complete, we still wait 100ms before sending the next one
+    await timer;
+    await Future.delayed(100.milliseconds);
+  }
+});
 
 final daemonAvailableProvider = Provider((ref) {
-  final error = ref.watch(pollingProvider).error;
+  // Check FFI availability first
+  if (!ref.watch(ffiAvailableProvider)) {
+    return false;
+  }
+
+  final error = ref.watch(vmInfosStreamProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
     final message = grpcError.message ?? '';
@@ -105,8 +103,8 @@ final daemonInfoProvider = FutureProvider((ref) {
 class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
   @override
   List<DetailedInfoItem> build() {
-    return ref.watch(pollingProvider).when(
-          data: (data) => data.info,
+    return ref.watch(vmInfosStreamProvider).when(
+          data: (data) => data,
           loading: () => const [],
           error: (_, __) => const [],
         );
@@ -171,14 +169,6 @@ final deletedVmsProvider = Provider((ref) {
       .toBuiltSet();
 });
 
-final zonesProvider = Provider<BuiltList<Zone>>((ref) {
-  return ref.watch(pollingProvider).when(
-        data: (data) => data.zones.build(),
-        loading: () => BuiltList(),
-        error: (_, __) => BuiltList(),
-      );
-});
-
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   @override
   BuiltList<DetailedInfoItem> build() {
@@ -190,16 +180,15 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   void add(LaunchRequest request) {
     final vms = state;
     state = vms.rebuild((builder) {
-      builder.add(DetailedInfoItem(
-        name: request.instanceName,
-        cpuCount: request.numCores.toString(),
-        diskTotal: request.diskSpace,
-        memoryTotal: request.memSize,
-        zone: Zone(name: request.zone),
-        instanceInfo: InstanceDetails(
-          currentRelease: request.image,
+      builder.add(
+        DetailedInfoItem(
+          name: request.instanceName,
+          cpuCount: request.numCores.toString(),
+          diskTotal: request.diskSpace,
+          memoryTotal: request.memSize,
+          instanceInfo: InstanceDetails(currentRelease: request.image),
         ),
-      ));
+      );
     });
   }
 
