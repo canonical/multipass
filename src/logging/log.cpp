@@ -15,9 +15,8 @@
  *
  */
 
-#include <multipass/logging/log.h>
-
 #include <multipass/format.h>
+#include <multipass/logging/log.h>
 
 #include <QString>
 #include <QtGlobal>
@@ -64,7 +63,10 @@ void mpl::log_message(Level level, std::string_view category, std::string_view m
     else
         fmt::print(stderr, "[{}] [{}] {}\n", as_string(level), category, message);
 }
-
+void mpl::rust::log_message(Level level, ::rust::String category, ::rust::String message)
+{
+    mpl::log_message(level, category.c_str(), message.c_str());
+}
 mpl::Level mpl::get_logging_level()
 {
     if (global_logger)
