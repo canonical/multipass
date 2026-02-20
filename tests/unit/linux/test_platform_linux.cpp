@@ -45,6 +45,7 @@
 
 #include <stdexcept>
 #include <tests/unit/mock_platform.h>
+#include <tests/unit/stub_availability_zone_manager.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -64,9 +65,10 @@ struct PlatformLinux : public mpt::TestWithMockedBinPath
 
         auto factory = mpt::MockProcessFactory::Inject();
         setup_driver_settings(driver);
+        mpt::StubAvailabilityZoneManager az_manager{};
 
-        decltype(mp::platform::vm_backend("")) factory_ptr;
-        EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path););
+        decltype(mp::platform::vm_backend("", az_manager)) factory_ptr;
+        EXPECT_NO_THROW(factory_ptr = mp::platform::vm_backend(backend_path, az_manager));
 
         EXPECT_TRUE(dynamic_cast<VMFactoryType*>(factory_ptr.get()));
     }
@@ -162,7 +164,8 @@ TEST_P(TestUnsupportedDrivers, testUnsupportedDriver)
     ASSERT_FALSE(MP_PLATFORM.is_backend_supported(GetParam()));
 
     setup_driver_settings(GetParam());
-    EXPECT_THROW(mp::platform::vm_backend(backend_path), std::runtime_error);
+    mpt::StubAvailabilityZoneManager az_manager{};
+    EXPECT_THROW(mp::platform::vm_backend(backend_path, az_manager), std::runtime_error);
 }
 
 INSTANTIATE_TEST_SUITE_P(PlatformLinux,
@@ -679,5 +682,81 @@ TEST_F(PlatformLinux, testSnapMultipassCertLocation)
 
     EXPECT_NE(snap_location, unconfined_location);
     EXPECT_EQ(snap_location.filename(), unconfined_location.filename());
+}
+
+TEST_F(PlatformLinux, subnetUsedLocallyDetectsUnused)
+{
+    const mp::Subnet testSubnet{"192.168.1.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
+10.192.168.0/24 dev mpqemubr0 proto kernel scope link src 10.192.168.1 linkdown
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
+192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
+)"));
+
+    EXPECT_FALSE(MP_PLATFORM.subnet_used_locally(testSubnet));
+}
+
+TEST_F(PlatformLinux, subnetUsedLocallyDetectsOverlapping)
+{
+    const mp::Subnet testSubnet{"172.172.1.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
+10.192.168.0/24 dev mpqemubr0 proto kernel scope link src 10.192.168.1 linkdown
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
+192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
+)"));
+
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
+}
+
+TEST_F(PlatformLinux, subnetUsedLocallyDetectsConflicting)
+{
+    const mp::Subnet testSubnet{"10.20.30.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+10.20.30.0/24 dev lxdbr0 proto kernel scope link src 10.20.30.1
+10.192.168.0/24 dev mpqemubr0 proto kernel scope link src 10.192.168.1 linkdown
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+172.172.0.0/16 dev docker0 proto kernel scope link src 172.172.0.1 linkdown
+192.168.0.0/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+192.168.123.0/24 dev virbr0 proto kernel scope link src 192.168.123.1 linkdown
+)"));
+
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
+}
+
+TEST_F(PlatformLinux, subnetUsedLocallyHandlesBadSubnets)
+{
+    const mp::Subnet testSubnet{"10.255.19.0/24"};
+
+    auto [mock_utils, guard] = mpt::MockUtils::inject();
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_output(QString("ip"), _, _)).WillOnce(Return(R"(
+default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
+(incomplete) dev lxdbr0 proto kernel scope link src (unknown)
+10.192.168.0/33 dev mpqemubr0 proto kernel scope link src 10.192.168.1
+172.256.0.0/16 dev docker0 proto kernel scope link src 172.256.0.1
+10.255.19.0/24 dev mpbr0 proto kernel scope link src 10.255.19.1
+192.168.0.256/24 dev wlo1 proto kernel scope link src 192.168.0.1 metric 600
+256.168.123.0/24 dev virbr0 proto kernel scope link src 256.168.123.1 linkdown
+)"));
+
+    EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
 }
 } // namespace

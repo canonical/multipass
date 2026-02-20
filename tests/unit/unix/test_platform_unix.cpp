@@ -18,6 +18,7 @@
 #include <tests/unit/common.h>
 #include <tests/unit/mock_environment_helpers.h>
 #include <tests/unit/mock_platform.h>
+#include <tests/unit/mock_utils.h>
 #include <tests/unit/temp_file.h>
 
 #include "mock_libc_functions.h"
