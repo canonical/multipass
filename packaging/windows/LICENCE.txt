@@ -5,6 +5,7 @@ GPL-3.0
 https://github.com/canonical/multipass/
 
 #### Open source projects used directly:
+- boost: https://www.boost.org/
 - fmt: https://github.com/fmtlib/fmt
 - grpc: https://github.com/grpc/grpc
   - abseil-cpp: https://github.com/abseil/abseil-cpp
@@ -25,6 +26,7 @@ https://github.com/canonical/multipass/
 #### Licensing:
 Below is a summary of the licensing used in the respective projects. See their source repositories, linked above, for details.
 
+- boost: Boost Software License 1.0
 - fmt: BSD 2-Clause "Simplified" License; Copyright (c) 2012 - 2016, Victor Zverovich
 - grpc: Apache License 2.0
 - abseil-cpp: Apache License 2.0
