@@ -108,6 +108,8 @@ bool process_log_on_error(const QString& program,
                           multipass::logging::Level level = multipass::logging::Level::debug,
                           const int timeout = 30000);
 
+bool expects_shutdown_from_cloud_init(const YAML::Node& user_data_config);
+
 // networking helpers
 void validate_server_address(const std::string& value);
 bool valid_hostname(const std::string& name_string);
