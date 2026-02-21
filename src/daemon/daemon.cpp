@@ -39,8 +39,8 @@
 #include <multipass/json_utils.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
+#include <multipass/petname_interface.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/settings/bool_setting_spec.h>
@@ -206,7 +206,7 @@ void prepare_user_data(YAML::Node& user_data_config, YAML::Node& vendor_config)
 
 template <typename T>
 auto name_from(const std::string& requested_name,
-               mp::NameGenerator& name_gen,
+               mp::PetnameInterface& name_gen,
                const T& currently_used_names)
 {
     if (!requested_name.empty())
