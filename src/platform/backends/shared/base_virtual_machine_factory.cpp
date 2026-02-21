@@ -122,7 +122,8 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                {},
                                                {},
                                                {},
-                                               {}};
+                                               {},
+                                               false};
 
     mp::VirtualMachine::UPtr cloned_instance =
         clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
