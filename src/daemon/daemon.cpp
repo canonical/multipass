@@ -29,6 +29,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ghost_instance_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
+#include <multipass/exceptions/intentional_shutdown_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -683,7 +684,7 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
+auto add_fmt_to(fmt::memory_buffer& buffer,fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
     -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
@@ -3400,7 +3401,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
-
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
@@ -3670,18 +3670,35 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             return fmt::to_string(errors);
         }
         const auto vm = it->second;
-        vm->wait_until_ssh_up(timeout);
 
-        if (std::is_same<Reply, LaunchReply>::value)
+        try
         {
-            if (server)
-            {
-                Reply reply;
-                reply.set_reply_message("Waiting for initialization to complete");
-                server->Write(reply);
-            }
+            vm->wait_until_ssh_up(timeout);
 
-            vm->wait_for_cloud_init(timeout);
+            if (std::is_same<Reply, LaunchReply>::value)
+            {
+                if (server)
+                {
+                    Reply reply;
+                    reply.set_reply_message("Waiting for initialization to complete");
+                    server->Write(reply);
+                }
+
+                vm->wait_for_cloud_init(timeout);
+            }
+        }
+        catch (const mp::IntentionalShutdownException& e)
+        {
+            if constexpr (std::is_same_v<Request, LaunchRequest>)
+            {
+                mpl::log(mpl::Level::info, name,
+                        "Instance powered off intentionally during initialization");
+                return {}; // Success - intentional shutdown
+            }
+            else
+            {
+                throw StartException(name, "Unexpected shutdown during start");
+            }
         }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))

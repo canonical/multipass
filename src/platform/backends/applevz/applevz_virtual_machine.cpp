@@ -31,6 +31,7 @@ namespace
 {
 constexpr static auto log_category = "applevz-vm";
 } // namespace
+#include <multipass/utils.h>
 
 namespace multipass::applevz
 {
@@ -43,6 +44,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
       desc{desc},
       monitor{&monitor}
 {
+    expected_shutdown = utils::expects_shutdown_from_cloud_init(desc.user_data_config);
     initialize_vm_handle();
 }
 
