@@ -32,7 +32,7 @@ function(add_target TARGET_NAME)
   target_link_libraries(${TARGET_NAME}
     client_platform
     platform
-    libssh)
+    ssh)
 endfunction()
 
 add_target(console)
