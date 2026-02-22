@@ -246,6 +246,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "  mac: hardware address (default: random).\n"
         "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
         "spec");
+    QCommandLineOption allowUnsupportedOption(
+        "allow-unsupported",
+        "Allow lauching unsupported image (e.g end-of-life Ubuntu releases).");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
     QCommandLineOption mountOption(
         "mount",
@@ -262,7 +265,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
                         cloudInitOption,
                         networkOption,
                         bridgedOption,
-                        mountOption});
+                        mountOption,
+                        allowUnsupportedOption});
 
     mp::cmd::add_instance_timeout(parser);
 
@@ -357,6 +361,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
         request.set_disk_space(arg_disk_size);
     }
+
+    request.set_allow_unsupported(parser->isSet(allowUnsupportedOption));
 
     if (parser->isSet(mountOption))
     {
@@ -591,6 +597,14 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                     "Invalid network options. "
                     "To troubleshoot, see "
                     "https://documentation.ubuntu.com/multipass/stable/how-to-guides/troubleshoot/";
+            }
+            else if (error == LaunchError::UNSUPPORTED_IMAGE)
+            {
+                error_details = fmt::format(
+                    "Image '{}' is no longer supported by Multipass.\n"
+                    "Use --allow-unsupported to launch it anyway, or run "
+                    "'multipass find' to see supported images.",
+                    request.image());
             }
         }
 

@@ -491,7 +491,9 @@ TEST_F(UbuntuImageHost, allInfoForUnsupportedImageThrow)
     MP_EXPECT_THROW_THAT(
         host.all_info_for(make_query(release, release_remote_spec.first)),
         mp::UnsupportedImageException,
-        mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
+        mpt::match_what(StrEq(fmt::format("Image '{}' is no longer supported by Multipass.\n"
+                                        "Use --allow-unsupported to launch it anyway, or run "
+                                        "'multipass find' to see supported images.", release))));
 }
 
 TEST_F(UbuntuImageHost, infoForFullHashFindsImage)
