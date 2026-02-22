@@ -27,7 +27,9 @@ class UnsupportedImageException : public std::runtime_error
 {
 public:
     UnsupportedImageException(const std::string& release)
-        : runtime_error(fmt::format("The {} release is no longer supported.", release))
+        : runtime_error(fmt::format("Image '{}' is no longer supported by Multipass.\n"
+                                    "Use --allow-unsupported to launch it anyway, or run "
+                                    "'multipass find' to see supported images.", release))
     {
     }
 };

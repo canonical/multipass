@@ -34,6 +34,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -127,7 +128,7 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     else if (QString::fromStdString(image).startsWith("http"))
         query_type = mp::Query::Type::HttpDownload;
 
-    return {name, image, false, request->remote_name(), query_type, true};
+    return {name, image, false, request->remote_name(), query_type, request->allow_unsupported()};
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
@@ -3165,6 +3166,23 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {
                     status_promise->set_value(grpc::Status::OK);
                 }
+            }
+            catch (const mp::UnsupportedImageException& e)
+            {
+                mp::top_catch_all(category, [this, &name]()
+                {
+                    preparing_instances.erase(name);
+                    release_resources(name);
+                    operative_instances.erase(name);
+                    persist_instances();
+                });
+
+                LaunchError launch_error;
+                launch_error.add_error_codes(mp::LaunchError::UNSUPPORTED_IMAGE);
+                status_promise->set_value(
+                    grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                e.what(),
+                                launch_error.SerializeAsString()));
             }
             catch (const std::exception& e)
             {

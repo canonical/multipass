@@ -403,6 +403,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
             if (!info)
                 throw mp::ImageNotFoundException(query.release, query.remote_name);
 
+            if(!info->supported && !query.allow_unsupported)
+                throw mp::UnsupportedImageException(query.release);
+
             id = info->id.toStdString();
 
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};

@@ -1121,7 +1121,9 @@ TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(mpl::Level::warning,
                     StrEq("image vault"),
-                    StrEq(fmt::format("Skipping update: The {} release is no longer supported.",
+                    StrEq(fmt::format("Skipping update: Image '{}' is no longer supported by Multipass.\n"
+                                      "Use --allow-unsupported to launch it anyway, or run "
+                                      "'multipass find' to see supported images.",
                                       default_query.release))));
 
     EXPECT_NO_THROW(vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
