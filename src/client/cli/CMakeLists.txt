@@ -29,6 +29,11 @@ target_link_libraries(client
 add_executable(multipass
   main.cpp)
 
+add_custom_command(TARGET multipass POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:multipass>"
+    COMMENT "Stripping symbols from CLI..."
+)
+
 target_link_libraries(multipass
   client)
 

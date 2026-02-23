@@ -32,6 +32,10 @@ target_link_libraries(qemu_platform_detail
 
 add_executable(${BRIDGE_HELPER_EXEC_NAME} bridge_helper.c)
 
+add_custom_command(TARGET ${BRIDGE_HELPER_EXEC_NAME} POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:${BRIDGE_HELPER_EXEC_NAME}>"
+    COMMENT "Stripping symbols from ${BRIDGE_HELPER_EXEC_NAME}..."
+)
 install(TARGETS ${BRIDGE_HELPER_EXEC_NAME}
   DESTINATION bin
   COMPONENT bridge_helper)

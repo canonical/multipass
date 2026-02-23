@@ -41,6 +41,11 @@ endif()
 add_executable(sshfs_server
   sshfs_server.cpp)
 
+add_custom_command(TARGET sshfs_server POST_BUILD
+    COMMAND ${STRIP_COMMAND} "$<TARGET_FILE:sshfs_server>"
+    COMMENT "Stripping symbols from sshfs_server..."
+)
+
 target_link_libraries(sshfs_server
   logger
   sshfs_mount)
