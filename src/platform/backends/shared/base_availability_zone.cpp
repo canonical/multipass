@@ -34,17 +34,14 @@ namespace
 constexpr auto subnet_key = "subnet";
 constexpr auto available_key = "available";
 
-const multipass::Subnet subnet_range{"10.97.0.0/20"};
-constexpr auto subnet_prefix_length = 24;
+multipass::SubnetAllocator subnet_allocator(std::string("10.97.0.0/20"), 24);
 } // namespace
 
 namespace multipass
 {
 
-BaseAvailabilityZone::BaseAvailabilityZone(const std::string& name,
-                                           size_t num,
-                                           const fs::path& az_directory)
-    : file_path{az_directory / (name + ".json")}, name{name}, m{load_file(name, num, file_path)}
+BaseAvailabilityZone::BaseAvailabilityZone(const std::string& name, const fs::path& az_directory)
+    : file_path{az_directory / (name + ".json")}, name{name}, m{load_file(name, file_path)}
 {
     save_file();
 }
@@ -131,7 +128,6 @@ void BaseAvailabilityZone::remove_vm(VirtualMachine& vm)
 }
 
 BaseAvailabilityZone::Data BaseAvailabilityZone::load_file(const std::string& name,
-                                                           size_t zone_num,
                                                            const fs::path& file_path)
 {
     mpl::trace(name, "reading AZ from file '{}'", file_path);
@@ -149,7 +145,7 @@ BaseAvailabilityZone::Data BaseAvailabilityZone::load_file(const std::string& na
     }
     // Return a default value if we couldn't load from `file_path`.
     return {
-        .subnet = subnet_range.get_specific_subnet(zone_num, subnet_prefix_length),
+        .subnet = subnet_allocator.next_available(),
         .available = true,
     };
 }

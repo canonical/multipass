@@ -32,9 +32,7 @@ namespace multipass
 class BaseAvailabilityZone : public AvailabilityZone
 {
 public:
-    BaseAvailabilityZone(const std::string& name,
-                         size_t num,
-                         const std::filesystem::path& az_directory);
+    BaseAvailabilityZone(const std::string& name, const std::filesystem::path& az_directory);
 
     const std::string& get_name() const override;
     const Subnet& get_subnet() const override;
@@ -57,9 +55,7 @@ private:
         bool available;
     } m;
 
-    static Data load_file(const std::string& name,
-                          size_t zone_num,
-                          const std::filesystem::path& file_path);
+    static Data load_file(const std::string& name, const std::filesystem::path& file_path);
     void save_file() const;
 
     friend void tag_invoke(const boost::json::value_from_tag&,
