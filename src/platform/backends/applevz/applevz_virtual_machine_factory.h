@@ -52,6 +52,7 @@ public:
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;
+    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
     VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,

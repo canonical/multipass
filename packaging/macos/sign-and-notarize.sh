@@ -161,7 +161,8 @@ function codesign_binaries {
     # sign multipass with additional entitlements for using the Apple Virtualization framework
     find "${DIR}" -type f -name multipassd -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict \
-            $( entitlements com.apple.security.virtualization ) \
+            $( entitlements com.apple.security.virtualization \
+                            com.apple.vm.networking ) \
             --identifier com.canonical.multipass.multipassd \
             --sign "${SIGN_APP}"
 

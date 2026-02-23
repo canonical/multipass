@@ -29,6 +29,8 @@
 #include <QString>
 #include <QUrl>
 
+#include <cassert>
+
 namespace multipass::applevz
 {
 struct VirtualMachineHandle
@@ -172,18 +174,52 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
             [[VZVirtioEntropyDeviceConfiguration alloc] init];
         config.entropyDevices = @[ entropy ];
 
-        // Network device
+        // Network devices
+        // Primary NAT interface
+        NSMutableArray<VZNetworkDeviceConfiguration*>* networkDevices = [NSMutableArray array];
+
         VZVirtioNetworkDeviceConfiguration* netDevice =
             [[VZVirtioNetworkDeviceConfiguration alloc] init];
-
         VZNATNetworkDeviceAttachment* natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
         netDevice.attachment = natAttachment;
 
         VZMACAddress* mac =
             [[VZMACAddress alloc] initWithString:nsstring_from_stdstring(desc.default_mac_address)];
         [netDevice setMACAddress:mac];
+        [networkDevices addObject:netDevice];
 
-        config.networkDevices = @[ netDevice ];
+        // Extra bridged interfaces
+        NSArray<VZBridgedNetworkInterface*>* hostInterfaces =
+            [VZBridgedNetworkInterface networkInterfaces];
+        for (const auto& extra : desc.extra_interfaces)
+        {
+            NSString* targetId = [NSString stringWithCString:extra.id.c_str()
+                                                    encoding:NSUTF8StringEncoding];
+
+            VZBridgedNetworkInterface* found = nil;
+            for (VZBridgedNetworkInterface* hostIface in hostInterfaces)
+            {
+                if ([hostIface.identifier isEqualToString:targetId])
+                {
+                    found = hostIface;
+                    break;
+                }
+            }
+
+            assert(found && "Bridged interface not found - extra_interfaces must be validated "
+                            "before VM creation");
+
+            VZBridgedNetworkDeviceAttachment* bridgedAttachment =
+                [[VZBridgedNetworkDeviceAttachment alloc] initWithInterface:found];
+
+            VZVirtioNetworkDeviceConfiguration* bridgedDevice =
+                [[VZVirtioNetworkDeviceConfiguration alloc] init];
+            bridgedDevice.attachment = bridgedAttachment;
+
+            [networkDevices addObject:bridgedDevice];
+        }
+
+        config.networkDevices = networkDevices;
 
         // Memory balloon device
         VZVirtioTraditionalMemoryBalloonDeviceConfiguration* balloon =
