@@ -163,13 +163,13 @@ jobs:
 
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
+      uses: crazy-max/ghaction-chocolatey@v4
       with:
         args: install --yes qemu --version=2023.4.24
 
     - name: Install other packages from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
+      uses: crazy-max/ghaction-chocolatey@v4
       with:
         args: install --yes wget unzip
 
@@ -249,7 +249,7 @@ jobs:
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
+      uses: crazy-max/ghaction-chocolatey@v4
       with:
         args: install --yes windows-adk-deploy
 
