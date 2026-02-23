@@ -35,17 +35,17 @@ with governance goals.
 
 **META1.** Everyone in the team can propose additional guidelines.<br>
 **META2.** Everyone in the team can question and propose changes to guidelines.<br>
-**META3.** Before the first set of guidelines is established, everyone in the team is invited to
+**META3.** Before the *first* set of guidelines is established, everyone in the team is invited to
 participate in live discussions about them.<br>
 **META4.** Before a new version of these guidelines is established, everyone in the team reviews it
 independently, except if away on prolonged absence.<br>
-**META5.** Ideally, all team members come to agree on any given version of these guidelines before
+**META5.** Ideally, all team members come to *agree* on any given version of these guidelines before
 it is established.<br>
-**META6.** Where that is not possible, preferably a majority of the team agrees with any given
+**META6.** Where that is not possible, preferably a majority of the team *agrees* with any given
 version of these guidelines before it is established.<br>
-**META7.** Preferably, all team members accept the latest established version of these guidelines,
+**META7.** Preferably, all team members *accept* the latest established version of these guidelines,
 until the team agrees to modify it.<br>
-**META8.** In any case, all team members abide by the latest established version of these
+**META8.** In any case, all team members *abide* by the latest established version of these
 guidelines, until the team agrees to modify it.<br>
 **META9.** Established guidelines are taken seriously, but with a grain of salt. They are guidelines
 after all, not absolute rules.<br>
@@ -57,11 +57,14 @@ pull requests.<br>
 
 ### Core principles (MU)
 
-Principles for the members of the Multipass team. Many of these are inspired by Canonical's values,
+Principles for the members of the Multipass team. Many of these are inspired
+by [Canonical's values](https://discourse.canonical.com/t/reaffirming-our-company-values/4525),
 which we should keep in mind.
 
 **MU1.** Aim at excellence.<br>
-**MU2.** Follow best practices (refer to other pertinent documents, e.g.CppCoreGuidelines).<br>
+**MU2.**
+Follow best practices (refer to other pertinent documents,
+e.g. [CppCoreGuidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)).<br>
 **MU3.** Think critically (even about best practices).<br>
 **MU4.** Favor collaboration.<br>
 **MU5.** Be open to feedback.<br>
@@ -80,40 +83,40 @@ which we should keep in mind.
 
 Descriptive rules of how releases are obtained from Git.
 
-**REL1.** The trunk of Multipass development happens in the main branch, which releases branch out
+**REL1.** The trunk of Multipass development happens in the `main` branch, which releases branch out
 of.<br>
-**REL2.** Preferably, release branches contain only commits that are directly reachable from main or
-cherry-picked from it.<br>
+**REL2.** Preferably, release branches contain only commits that are directly reachable from `main`
+or cherry-picked from it.<br>
 **REL3.** Cherry-picked commits in release branches may differ from the original ones only where
 necessary to avoid or fix conflicts.<br>
 **REL4.** In exceptional cases, release branches may contain dedicated commits for bug, build, or
 conflict fixes.<br>
-**REL5.** After a release is published, the corresponding release branch is merged back into main.<br>
+**REL5.** After a release is published, the corresponding release branch is merged back into
+`main`.<br>
 
 ### Pull Requests (PR)
 
 Guidelines for how we use and handle pull requests.
 
-**PR1.** Concrete modifications of Multipass can be proposed via Pull Requests (AKA PRs) targeting
-the main branch.<br>
-**PR2.** Prefer small, single issue PRs.<br>
+**PR1.** Concrete modifications of Multipass can be proposed
+via [Pull Requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests)
+(AKA PRs) targeting the `main` branch.<br>
+**PR2.** Prefer small, single-issue PRs.<br>
 **PR3.** A PR should introduce a coherent change that appears as a unit in a medium or high level of
 abstraction.<br>
-**PR4.** The main branch is modified exclusively via PRs, except for an empty commit after branching
-for release.<br>
-**PR5.** PRs accepted into main are merged with merge commits.<br>
-**PR6.** PRs to main should typically be covered by automated tests.<br>
+**PR4.** The `main` branch is modified exclusively via PRs, except for an empty commit after
+branching for release.<br>
+**PR5.** PRs accepted into `main` are merged with merge commits.<br>
+**PR6.** PRs to `main` should typically be covered by automated tests.<br>
 **PR7.** If a PR is valuable on its own, does not depend on others, and does not involve dead code,
-target the main branch, even if it is part of a larger task. This should be the most common case.<br>
+target the `main` branch, even if it is part of a larger task. This should be the most common
+case.<br>
 **PR8.** If your PR relies on another one, target the other's branch.<br>
-**PR9.** When working on a larger set of changes with cohesive interdependence, consider using a
-feature branch.<br>
-**PR10.** Try to keep the number of concurrent feature branches small.<br>
-**PR11.** When PRs are stacked, prefer to merge them in order. The target branch will update
+**PR9.** When PRs are stacked, prefer to merge them in order. The target branch will update
 automatically upon merging.<br>
-**PR12.** PRs should include descriptions and/or point to appropriate context (within reason).<br>
-**PR13.** When authoring a PR, make sure to test it.<br>
-**PR14.** When authoring a PR, make sure to review its diff.<br>
+**PR10.** PRs should include descriptions and/or point to appropriate context (within reason).<br>
+**PR11.** When authoring a PR, make sure to test it.<br>
+**PR12.** When authoring a PR, make sure to review its diff.<br>
 
 ### Reviews (RVW)
 
@@ -128,9 +131,34 @@ is mandatory for external PRs (authored or committed from outside the Multipass 
 Renovate bot).<br>
 **RVW6.** After a PR is approved by multiple people, small updates require only a single additional
 approval (i.e. after multiple approvals are dismissed).<br>
-**RVW7.** Notably trivial PRs by the Multipass team may be merged after a single primary approval.<br>
+**RVW7.** Notably trivial PRs by the Multipass team may be merged after a single primary
+approval.<br>
 **RVW8.** Renovate PRs may be merged after a single primary approval.<br>
-**RVW9.** Review comments should be acknowledged by the author, but resolved by the reviewer.<br>
+**RVW9.** Review comments should be acknowledged by the author, but *resolved* by the reviewer.<br>
+
+### Feature flags (FF)
+
+**FF1.** When making an interdependent set of changes too large to review and merge as a single PR,
+consider adding a feature flag for it.<br>
+**FF2.** Feature flags should be used to disable any new code or behavior which is part of the given
+feature; with the feature flag disabled, Multipass should behave identically to before the flag's
+introduction.<br>
+**FF3.** Strive to encapsulate code that is dependent on a feature flag, preferably in its own
+files, so that those files can be entirely included or excluded from builds.<br>
+**FF4.** If necessary, create stub implementations of new feature APIs to allow other Multipass code
+to work with the new interfaces. When possible, put the stub implementations in separate files and
+conditionally compile them or the real implementations based on the state of the feature flag.<br>
+**FF5.** Where separate files are not feasible or justified, use preprocessor directives to
+selectively enable or disable feature code. Keep this approach as the exception rather than the
+norm.<br>
+**FF6.** Minimize unreachable code under a feature flag, i.e., code that can't be reached even
+though the feature is enabled.<br>
+**FF7.** PRs for code behind a feature flag should otherwise be treated as usual, with authors and
+reviewers maintaining the same standards of quality as for other PRs.<br>
+**FF8.** When a feature is fully-complete and suitable for release, the corresponding feature flag
+should be completely removed from Multipass.<br>
+**FF9.** Once a feature flag is removed, all newly-unreachable code should be removed along with
+it.<br>
 
 ### Versioning (GIT)
 
@@ -141,16 +169,21 @@ there should be two commits instead.<br>
 **GIT3.** Strive to preserve a clean but detailed git history.<br>
 **GIT4.** Avoid squashing.<br>
 **GIT5.** Prefer additional commits during review (easier for reviewers to see the diff).<br>
-**GIT6.** Avoid merging the target branch back into topic. Rebase instead.<br>
-**GIT7.** External contributors are encouraged to sign their commits, while Multipass team members
-are required to do so.<br>
+**GIT6.** Avoid merging the target branch back into the topic branch. Rebase instead.<br>
+**GIT7.** External contributors are encouraged to
+[sign their commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits),
+while Multipass team members are required to do so.<br>
 **GIT8.** Use kebab-case branch names (i.e. lower-case-words-separated-with-hyphens).<br>
 **GIT9.** Do not introduce whitespace errors.<br>
 
 ### Commit messages (MSG)
 
-Guidelines for writing commit messages for non-merge commits. They are inspired by this and other
-posts. The category prefix is the main originality.
+Guidelines for writing commit messages for non-merge commits. They are inspired by
+[this](https://cbea.ms/git-commit/)
+[and](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
+[other](https://preslav.me/2015/02/21/what-s-with-the-50-72-rule/)
+[posts](https://stackoverflow.com/questions/2290016/git-commit-messages-50-72-formatting).
+The category prefix is the main originality.
 
 **MSG1.** Begin with a subject line.<br>
 **MSG2.** Start the subject line with a lower-case, single-word category, within square brackets
@@ -167,10 +200,10 @@ try to find a generic unifying category, or choose the most relevant.<br>
 **MSG10.** Do not include more than 1 consecutive blank line.<br>
 **MSG11.** Use punctuation normally in the body.<br>
 **MSG12.** Wrap the body at 72 characters.<br>
-**MSG13.** Use the body to explain what and why, rather than how.<br>
+**MSG13.** Use the body to explain *what* and *why*, rather than *how*.<br>
 **MSG14.** Be descriptive but succinct and avoid filler text.<br>
 **MSG15.** Omit the body if the subject is self-explanatory.<br>
-**MSG16.** Common abbreviations are fine (e.g. "msg" or "var")<br>
+**MSG16.** Common abbreviations are fine (e.g. "msg" or "var").<br>
 
 #### Examples
 
@@ -188,13 +221,15 @@ code injection (now or in the future).
 
 #### Helper tools
 
-- Consider setting your commit template to the .gitmessage file in the repository root.
-- Consider adding the commit-msg file in the repository root as a git hook (in .git/hooks)
+- Consider setting your commit template to the `.gitmessage` file in the repository root:
+    * `git config --local commit.template .gitmessage`
+- Consider adding the `commit-msg` file in the repository root as a git hook (in `.git/hooks`)
+    * `ln -s ../../git-hooks/commit-msg.py .git/hooks/commit-msg`
 
 ### Dependencies (DEP)
 
 **DEP1.** Acceptable mechanisms to adopt source-code dependencies are, in decreasing order of
-preference: vcpkg (for C++) > FetchContent > submodule.<br>
+preference: Vcpkg (for C++) > FetchContent > submodule.<br>
 **DEP2.** Avoid vendoring (copied source code).<br>
 
 ### Code
@@ -206,12 +241,14 @@ tension and have to be balanced.
 
 **COD1.** Avoid duplicate sources of truth.<br>
 **COD2.** Prefer small units, be they functions, classes, files, etc.<br>
-**COD3.** Follow SOLID principles.<br>
-**COD4.** Pay special attention to the principles of single responsibility and separation of
-concerns.<br>
-**COD5.** Don't repeat yourself (DRY).<br>
+**COD3.** Follow [SOLID principles](https://en.wikipedia.org/wiki/SOLID).<br>
+**COD4.** Pay special attention to the principles of
+[single responsibility](https://en.wikipedia.org/wiki/Single-responsibility_principle) and
+[separation of concerns](https://en.wikipedia.org/wiki/Separation_of_concerns).<br>
+**COD5.** Don't repeat yourself ([DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)).<br>
 **COD6.** Don't reinvent the wheel.<br>
-**COD7.** Don't over-engineer (YAGNI).<br>
+**COD7.** Don't
+overengineer ([YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)).<br>
 **COD8.** Avoid coupling functionality that isn't logically coupled.<br>
 **COD9.** Encapsulate, within each unit, all information that other units don't need.<br>
 **COD10.** Encapsulate data with dependent behavior.<br>
@@ -221,7 +258,8 @@ concerns.<br>
 **COD14.** All else being equal, less code is better code.<br>
 **COD15.** Don't try to maximize LoC metrics.<br>
 **COD16.** Aim for consistency.<br>
-**COD17.** If it is all the same otherwise, follow a single approach (see how it is done elsewhere).<br>
+**COD17.** If it is all the same otherwise, follow a single approach (see how it is done
+elsewhere).<br>
 **COD18.** Be creative. If you have a better approach, propose it and discuss it openly.<br>
 **COD19.** Prioritize. Balance idealism with pragmatism.<br>
 **COD20.** Document public, user-facing interfaces.<br>
@@ -229,23 +267,59 @@ concerns.<br>
 
 #### C++ (CPP)
 
-**CPP1.** Stick to standard C++17, with the exception of #pragma once.<br>
-**CPP2.** Prefer "#pragma once" to header guards<br>
+**CPP1.** Stick to standard C++17, with the exception of `#pragma once`.<br>
+**CPP2.** Prefer `#pragma once` to header guards<br>
 **CPP3.** Prefer enforcing correct usage (prevent misuse) at compilation time.<br>
-**CPP4.** If a type isn't meant to be copied or moved, inherit from DisabledCopyMove (either
+**CPP4.** If a type isn't meant to be copied or moved, inherit from `DisabledCopyMove` (either
 directly or indirectly).<br>
 **CPP5.** For such types, define only constructors that fully initialize objects. Avoid a default
 constructor unless the object needs no parameterization.<br>
-**CPP6.** Make copyable types semi-regular.<br>
+**CPP6.** Make copyable
+types [semiregular](https://en.cppreference.com/w/cpp/concepts/semiregular).<br>
 **CPP7.** Avoid two-stage initialization. Initialize objects fully in the constructor.<br>
-**CPP8.** Avoid const by-value params (e.g. no void foo(const bool flag);)<br>
+**CPP8.** Avoid const by-value params (e.g. no `void foo(const bool flag);`)<br>
 **CPP9.** Encapsulate platform-dependent functionality in dedicated units (types, functions) and do
-not use platform #ifdefs (or other platform-conditional logic) outside of those units.<br>
-**CPP10.** Use CamelCase for types, but snake_case for variables and functions.<br>
+not use platform `#ifdef`s (or other platform-conditional logic) outside of those units.<br>
+**CPP10.** Use `CamelCase` for types, but `snake_case` for variables and functions.<br>
 **CPP11.** Avoid magic numbers.<br>
 **CPP12.** Declare generic constants in a dedicated header.<br>
 **CPP13.** Avoid compilation warnings.<br>
-**CPP14.** To mock free functions and external APIs, wrap them with MockableSingleton<br>
+**CPP14.** To mock free functions and external APIs, wrap them with `MockableSingleton`.<br>
+
+### Text
+
+Prescriptive guidelines concerning text and written communication, including but not limited to:
+PR descriptions, commit messages, comments, and documentation.
+
+**TXT1.** Be clear, precise, informative, and organized.<br>
+**TXT2.** Avoid filler text or fluff.<br>
+**TXT3.** Avoid repetition.<br>
+**TXT4.** Use references, quotes, citations, or links to provide context, substantiate claims,
+and increase reliability.<br>
+**TXT5.** Express the same idea more than once only to add relevant information, improve precision,
+provide a different perspective, or help clarify complexity.<br>
+
+### AI
+
+Prescriptive guidelines concerning the use of Artificial Intelligence (AI) when contributing to
+Multipass, in particular generative AI and LLMs.
+
+**AI1.** Every contribution must be authored by human beings (one or more),
+possibly with the help of AI tools. In addition to code contributions, this applies to issues, pull
+requests, discussions, and any other comments or communications, regardless of the platform.<br>
+**AI2.** Contributors are free to use any tools they see fit, including AI tools, provided they do
+so lawfully and ethically.<br>
+**AI3.** Git commits must have a human author, with a valid human-managed email address.<br>
+**AI4.** The author(s) of a contribution must be able to explain the contribution in detail,
+including any code or textual changes.<br>
+**AI5.** Contributors must refrain from submitting code, text, or any other content that they don't
+fully understand.<br>
+**AI6.** Contributors must submit only modifications that they have reviewed thoroughly,
+especially if it includes AI-generated content.<br>
+**AI7.** When using AI, contributors should make an extra effort to ensure good information density
+(i.e. high signal-to-noise ratio). This includes code and text.<br>
+**AI8.** Authors are ultimately responsible for their entire contributions,
+including all components, contents, format, presentation, and communication.<br>
 
 # Further Information
 

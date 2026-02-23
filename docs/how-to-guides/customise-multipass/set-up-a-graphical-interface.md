@@ -1,6 +1,11 @@
 (how-to-guides-customise-multipass-set-up-a-graphical-interface)=
 # Set up a graphical interface
 
+```{seealso}
+
+[GUI Client](reference-gui-client),[launch](reference-command-line-interface-launch), [list](reference-command-line-interface-list), [shell](reference-command-line-interface-shell),  [info](reference-command-line-interface-info), [exec](reference-command-line-interface-exec),
+```
+
 <!-- This document combines
 https://discourse.ubuntu.com/t/how-to-use-a-desktop-in-multipass/16229
 https://discourse.ubuntu.com/t/how-to-use-stand-alone-windows-in-multipass/16340
@@ -16,7 +21,21 @@ You can display the graphical desktop in various ways. In this document, we desc
 
 The images used by Multipass do not come with a graphical desktop installed. For this reason, you will have to install a desktop environment (here we use `ubuntu-desktop` but there are as many other options as flavours of Ubuntu exist) along with the RDP server (we will use `xrdp` but there are also other options such as `freerdp`).
 
-To do this, first you need to log into a running Multipass instance. Start by listing your instances:
+```{admonition} Prerequisites for ubuntu-desktop
+:class: important
+
+Installing a desktop environment requires more resources than the default Multipass instance settings. To successfully set up and run a graphical interface under `ubuntu-desktop`, it is recommended to have an instance with at least **10GB** of disk space and **2GB** of RAM.
+
+```
+
+If you have not yet created a suitable instance, run the following command to launch one with these requirements:
+
+```bash
+multipass launch -d 10G -m 2G
+```
+
+After instance creation, you need to log into the appropriate running instance.
+Start by listing your instances:
 
 ```{code-block} text
 multipass list
@@ -80,9 +99,9 @@ In this example, we will use the IP address `10.49.93.209` to connect to the RDP
 If the IP address of the instance is not displayed in the output of `multipass list`, you can obtain it directly from the instance, with the command `ip addr`.
 ```
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 On Linux, there are applications such as Remmina to visualise the desktop (make sure the package `remmina-plugin-rdp` is installed in your host along with `remmina`).
 
@@ -105,13 +124,13 @@ The system will ask for a username (`ubuntu`) and the password set above, and th
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 To connect on macOS, we can use the “Microsoft Remote Desktop” application, from the Mac App Store.
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 On Windows, we can connect to the RDP server with the “Remote Desktop Connection” application. There, we enter the virtual machine’s IP address, set the session to XOrg and enter the username and password we created on the previous step.
 
@@ -125,9 +144,9 @@ And we are done... a graphical desktop!
 
 It might be the case that we only want Multipass to launch one application and to see only that window, without having the need for a complete desktop. It turns out that this setup is simpler than the RDP approach, because we do not need the Multipass instance to deploy a full desktop. Instead, we can use X11 to connect the applications in the instance with the graphical capabilities of the host.
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
 
 Linux runs X by default, so no extra software in the host is needed.
 
@@ -169,7 +188,7 @@ A small window containing the X logo will show up. Done!
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
 
 The first step in Mac is to make sure a X server is running. The easiest way is to install [XQuartz](https://www.xquartz.org).
 
@@ -181,7 +200,7 @@ Note to Apple Silicon users: some applications requiring OpenGL will not work th
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
 
 Windows knows nothing about X, therefore we need to install an X server. Here we will use [VcXsrv](https://sourceforge.net/projects/vcxsrv/). Other options would be [Xming](http://www.straightrunning.com/XmingNotes/) (the newest versions are paid, but older versions can still be downloaded for free from their [SourceForge site](https://sourceforge.net/projects/xming/)) or installing an X server in [Cygwin](https://cygwin.com/).
 
