@@ -48,6 +48,8 @@ public:
         return "applevz";
     };
 
+    std::vector<NetworkInterfaceInfo> networks() const override;
+
 protected:
     void remove_resources_for_impl(const std::string& name) override;
 

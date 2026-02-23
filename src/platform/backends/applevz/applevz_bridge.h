@@ -18,6 +18,7 @@
 #pragma once
 
 #include <applevz/cf_error.h>
+#include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <fmt/format.h>
@@ -63,6 +64,9 @@ bool can_stop(const VMHandle& vm_handle);
 bool can_request_stop(const VMHandle& vm_handle);
 
 bool is_supported();
+
+// Networking
+std::vector<NetworkInterfaceInfo> bridged_network_interfaces();
 } // namespace multipass::applevz
 
 template <>

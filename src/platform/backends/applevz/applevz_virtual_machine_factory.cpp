@@ -70,6 +70,11 @@ void AppleVZVirtualMachineFactory::remove_resources_for_impl(const std::string& 
 {
 }
 
+std::vector<NetworkInterfaceInfo> AppleVZVirtualMachineFactory::networks() const
+{
+    return MP_APPLEVZ.bridged_network_interfaces();
+}
+
 VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
     const std::string& /*source_vm_name*/,
     const multipass::VMSpecs& /*src_vm_specs*/,

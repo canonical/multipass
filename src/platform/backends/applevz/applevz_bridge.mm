@@ -306,4 +306,23 @@ bool is_supported()
 {
     return [VZVirtualMachine isSupported];
 }
+
+std::vector<NetworkInterfaceInfo> bridged_network_interfaces()
+{
+    std::vector<NetworkInterfaceInfo> result;
+
+    for (VZBridgedNetworkInterface* iface in [VZBridgedNetworkInterface networkInterfaces])
+    {
+        NetworkInterfaceInfo info;
+        info.id = iface.identifier.UTF8String;
+        info.type = "N/A";
+        info.description = iface.localizedDisplayName
+                               ? std::string(iface.localizedDisplayName.UTF8String)
+                               : info.id;
+
+        result.push_back(std::move(info));
+    }
+
+    return result;
+}
 } // namespace multipass::applevz
