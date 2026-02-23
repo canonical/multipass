@@ -34,15 +34,13 @@ class TableHeader<T> {
 class Table<T> extends StatefulWidget {
   final List<TableHeader<T>> headers;
   final List<T> data;
-  final List<Widget>? finalRow;
-  final Widget? emptyContent;
+  final List<Widget> finalRow;
 
   const Table({
     super.key,
     required this.headers,
     required this.data,
-    this.finalRow,
-    this.emptyContent,
+    required this.finalRow,
   });
 
   @override
@@ -159,59 +157,7 @@ class _TableState<T> extends State<Table<T>> {
     final headerCells = [
       for (final (i, header) in widget.headers.indexed) buildHeader(i, header),
     ];
-    final cells = [
-      headerCells,
-      ...data.map(buildRow),
-      if (widget.finalRow != null) widget.finalRow,
-    ];
-
-    if (data.isEmpty && widget.emptyContent != null) {
-      return MouseRegion(
-        cursor: isResizingColumn == 0
-            ? MouseCursor.defer
-            : SystemMouseCursors.resizeColumn,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border.fromBorderSide(borderSide),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Properly styled header row that matches the regular table
-              SizedBox(
-                height: 50, // Match table row height
-                child: Row(
-                  children: [
-                    for (int i = 0; i < widget.headers.length; i++)
-                      Container(
-                        width: widget.headers[i].width,
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: borderSide,
-                          ),
-                        ),
-                        child: headerCells[i],
-                      ),
-                    // Add empty space for the remaining column
-                    Expanded(
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: borderSide,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Actual NoVms widget
-              Expanded(child: widget.emptyContent!),
-            ],
-          ),
-        ),
-      );
-    }
+    final cells = [headerCells, ...data.map(buildRow), widget.finalRow];
 
     final table = TableView.builder(
       horizontalDetails: ScrollableDetails.horizontal(controller: horizontal),
