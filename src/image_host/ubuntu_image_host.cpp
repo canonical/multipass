@@ -19,7 +19,6 @@
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/image_not_found_exception.h>
 #include <multipass/exceptions/manifest_exceptions.h>
-#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -110,9 +109,6 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
         if (const auto* info = match_alias(key, *manifest); info)
         {
-            if (!info->supported && !query.allow_unsupported)
-                throw mp::UnsupportedImageException(query.release);
-
             images.emplace_back(remote_name, *info);
         }
         else
@@ -121,7 +117,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
             for (const auto& entry : manifest->products)
             {
-                if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
+                if (entry.id.startsWith(key) &&
                     found_hashes.find(entry.id.toStdString()) == found_hashes.end())
                 {
                     images.emplace_back(remote_name, entry);
@@ -150,18 +146,14 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     throw mp::ImageNotFoundException(full_hash);
 }
 
-std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name,
-                                                                   const bool allow_unsupported)
+std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name)                                                                  
 {
     std::vector<mp::VMImageInfo> images;
     auto manifest = manifest_from(remote_name);
 
     for (const auto& entry : manifest->products)
     {
-        if (entry.supported || allow_unsupported)
-        {
-            images.push_back(entry);
-        }
+        images.push_back(entry);       
     }
 
     if (images.empty())

@@ -36,6 +36,5 @@ public:
     bool persistent;
     std::string remote_name;
     Type query_type;
-    bool allow_unsupported{false};
 };
 } // namespace multipass

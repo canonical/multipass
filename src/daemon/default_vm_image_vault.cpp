@@ -20,7 +20,6 @@
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
-#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
@@ -563,10 +562,6 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
                 {
                     keys_to_update.push_back(record.first);
                 }
-            }
-            catch (const mp::UnsupportedImageException& e)
-            {
-                mpl::warn(category, "Skipping update: {}", e.what());
             }
             catch (const mp::ImageNotFoundException& e)
             {
