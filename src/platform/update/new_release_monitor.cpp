@@ -18,12 +18,11 @@
 #include "new_release_monitor.h"
 
 #include <multipass/exceptions/download_exception.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils/semver_compare.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QThread>
 
 namespace mp = multipass;
@@ -36,20 +35,16 @@ constexpr auto json_tag_name = "version";
 constexpr auto json_html_url = "release_url";
 constexpr auto json_title = "title";
 constexpr auto json_description = "description";
-
-QJsonObject parse_manifest(const QByteArray& json)
-{
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    if (doc.isNull())
-        throw std::runtime_error(parse_error.errorString().toStdString());
-
-    if (!doc.isObject())
-        throw std::runtime_error("invalid JSON object");
-
-    return doc.object();
-}
 } // namespace
+
+mp::NewReleaseInfo mp::tag_invoke(const boost::json::value_to_tag<mp::NewReleaseInfo>&,
+                                  const boost::json::value& json)
+{
+    return {value_to<QString>(json.at(::json_tag_name)),
+            value_to<QString>(json.at(::json_html_url)),
+            mp::lookup_or<QString>(json, ::json_title, ""),
+            mp::lookup_or<QString>(json, ::json_description, "")};
+}
 
 class mp::LatestReleaseChecker : public QThread
 {
@@ -66,15 +61,8 @@ public:
         {
             mp::URLDownloader downloader(::timeout);
             QByteArray json = downloader.download(url);
-            const auto manifest = ::parse_manifest(json);
-            if (!manifest.contains(::json_tag_name) || !manifest.contains(::json_html_url))
-                throw std::runtime_error("Update JSON missing required fields");
-
-            mp::NewReleaseInfo release;
-            release.version = manifest[::json_tag_name].toString();
-            release.url = manifest[::json_html_url].toString();
-            release.title = manifest[::json_title].toString();
-            release.description = manifest[::json_description].toString();
+            const auto manifest = boost::json::parse(std::string_view(json));
+            auto release = value_to<mp::NewReleaseInfo>(manifest);
 
             mpl::debug("update",
                        "Latest Multipass release available is version {}",
