@@ -71,7 +71,7 @@ class WindowsPlatform extends MpPlatform {
 
 class WindowsAutostartNotifier extends AutostartNotifier {
   WindowsAutostartNotifier() {
-    CoInitializeEx(nullptr, 2);
+    CoInitializeEx(COINIT_APARTMENTTHREADED);
   }
 
   final link = File(
@@ -91,16 +91,16 @@ class WindowsAutostartNotifier extends AutostartNotifier {
   }
 
   void _createShortcut(String path, String linkPath) {
-    final shellLink = ShellLink.createInstance();
-    final pathUtf16 = path.toNativeUtf16();
-    final linkPathUtf16 = linkPath.toNativeUtf16();
+    final shellLink = createInstance<IShellLink>(ShellLink);
+    final pathPcwstr = path.toPcwstr();
+    final linkPathPcwstr = linkPath.toPcwstr();
 
     try {
-      shellLink.setPath(pathUtf16);
-      IPersistFile.from(shellLink).save(linkPathUtf16, TRUE);
+      shellLink.setPath(pathPcwstr);
+      IPersistFile.from(shellLink).save(linkPathPcwstr, true);
     } finally {
-      free(pathUtf16);
-      free(linkPathUtf16);
+      free(pathPcwstr);
+      free(linkPathPcwstr);
     }
   }
 }
