@@ -149,13 +149,14 @@ parts:
     - CLANG_VERSION: "19"
     - CXX: clang++-${CLANG_VERSION}
     - CC: clang-${CLANG_VERSION}
-    - CXXFLAGS: "-std=c++20"
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
     - ccache
     - lcov
     - clang-19 # have to keep in sync with CLANG_VERSION above :'(
+    - lld-19
+    - llvm-19
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
