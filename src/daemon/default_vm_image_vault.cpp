@@ -816,3 +816,15 @@ void mp::DefaultVMImageVault::amend_db()
         }
     }
 }
+
+std::vector<std::pair<std::string, mp::VMImage>> mp::DefaultVMImageVault::cached_images() const
+{
+    std::vector<std::pair<std::string, VMImage>> images;
+
+    for (const auto& record : prepared_image_records)
+    {
+        images.emplace_back(record.first, record.second.image);
+    }
+
+    return images;
+}

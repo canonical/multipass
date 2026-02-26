@@ -66,6 +66,7 @@ public:
     MemorySize minimum_image_size_for(const std::string& id) override;
     void clone(const std::string& source_instance_name,
                const std::string& destination_instance_name) override;
+    std::vector<std::pair<std::string, VMImage>> cached_images() const override;
 
 private:
     VMImage image_instance_from(const VMImage& prepared_image, const Path& dest_dir);

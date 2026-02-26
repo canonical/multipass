@@ -1598,6 +1598,32 @@ try
                                                      server};
     FindReply response;
 
+    if (request->only_cached())
+    {
+        auto cached = config->vault->cached_images();
+        for (const auto& [id, image] : cached)
+        {
+            auto entry = response.add_images_info();
+            entry->set_os(image.os);
+            entry->set_release(image.original_release);
+            entry->set_version(image.release_date);
+
+            if (!image.aliases.empty())
+            {
+                for (const auto& alias : image.aliases)
+                    entry->add_aliases(alias);
+            }
+            else
+            {
+                entry->add_aliases(id.substr(0, 12));
+            }
+        }
+
+        server->Write(response);
+        status_promise->set_value(grpc::Status::OK);
+        return;
+    }
+
     if (!request->search_string().empty())
     {
         if (!request->remote_name().empty())

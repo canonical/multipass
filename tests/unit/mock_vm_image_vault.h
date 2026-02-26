@@ -81,6 +81,10 @@ public:
                 all_info_for,
                 (const Query&),
                 (const, override));
+    MOCK_METHOD((std::vector<std::pair<std::string, VMImage>>),
+                cached_images,
+                (),
+                (const, override));
 
 private:
     TempFile dummy_image;
