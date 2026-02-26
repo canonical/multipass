@@ -33,7 +33,7 @@ mp::ReturnCodeVariant cmd::Clone::run(ArgParser* parser)
         return parser->returnCodeFrom(parscode);
     }
 
-    AnimatedSpinner spinner{cout};
+    AnimatedSpinner spinner{cout, term->cout_is_live()};
     auto action_on_success = [this, &spinner](CloneReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         cout << reply.reply_message();
