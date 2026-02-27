@@ -221,21 +221,17 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
                             tap_device_name,
                             vm_desc.default_mac_address));
 
-    const auto bridge_helper_exec_path =
-        QDir(QCoreApplication::applicationDirPath()).filePath(BRIDGE_HELPER_EXEC_NAME_CPP);
-
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
         opts << "-nic"
              << QString::fromStdString(
 #if defined Q_PROCESSOR_S390
-                    fmt::format("bridge,br={},model=virtio-net-ccw,mac={},helper={}",
+                    fmt::format("bridge,br={},model=virtio-net-ccw,mac={},helper=./bridge_helper",
 #else
-                    fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                    fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper=./bridge_helper",
 #endif
                                 extra_interface.id,
-                                extra_interface.mac_address,
-                                bridge_helper_exec_path));
+                                extra_interface.mac_address));
     }
 
     return opts;
