@@ -17,6 +17,8 @@
 
 #include "qemu_vm_process_spec.h"
 
+#include <QCoreApplication>
+#include <QRegularExpression>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -68,6 +70,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
 
         args << platform_args;
+        // clang-format off
         // The VM image itself
         args << "-device"
 #if defined Q_PROCESSOR_S390
@@ -98,6 +101,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         // Cloud-init disk
         args << "-cdrom" << desc.cloud_init_iso;
     }
+    // clang-format on
 
     for (const auto& [_, mount_data] : mount_args)
     {
@@ -234,4 +238,8 @@ profile %1 flags=(attach_disconnected) {
 QString mp::QemuVMProcessSpec::identifier() const
 {
     return QString::fromStdString(desc.vm_name);
+}
+QString mp::QemuVMProcessSpec::working_directory() const
+{
+    return QDir(QCoreApplication::applicationDirPath()).absolutePath();
 }

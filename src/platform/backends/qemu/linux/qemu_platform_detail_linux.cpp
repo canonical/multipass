@@ -180,6 +180,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     if (!(vm_desc.image.original_release == "16.04 LTS" &&
           vm_desc.image.image_path.contains("disk1.img")))
     {
+        // clang-format off
 #if defined Q_PROCESSOR_X86
         opts << "-bios"
              << "OVMF.fd";
@@ -207,6 +208,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     opts << "-cpu"
          << "host";
 #endif
+    // clang-format on
 
     // Set up the network related args
     opts << "-nic"
