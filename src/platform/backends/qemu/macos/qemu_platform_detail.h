@@ -19,7 +19,10 @@
 
 #include <qemu_platform.h>
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/path.h>
+
+#include <unordered_map>
 
 namespace multipass
 {
@@ -27,7 +30,7 @@ namespace multipass
 class QemuPlatformDetail : public QemuPlatform
 {
 public:
-    explicit QemuPlatformDetail();
+    explicit QemuPlatformDetail(const AvailabilityZoneManager::Zones& zones);
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
@@ -41,7 +44,12 @@ public:
     void set_authorization(std::vector<NetworkInterfaceInfo>& networks) override;
 
 private:
+    using Bridges = std::unordered_map<std::string, Subnet>;
+
+    [[nodiscard]] static Bridges get_bridges(const AvailabilityZoneManager::Zones& zones);
+
     const QString host_arch{HOST_ARCH};
     const QStringList common_args;
+    const Bridges bridges;
 };
 } // namespace multipass

@@ -19,11 +19,11 @@
 #include "mock_firewall_config.h"
 
 #include "tests/unit/common.h"
-#include "tests/unit/mock_availability_zone.h"
 #include "tests/unit/mock_backend_utils.h"
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_utils.h"
+#include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/temp_dir.h"
 
 #include <multipass/process/process.h>
@@ -64,18 +64,6 @@ struct QemuPlatformDetail : public Test
                 .WillOnce(Return(false))
                 .WillOnce(Return(true));
         }
-
-        static std::string zone1_name = "zone1";
-        EXPECT_CALL(mock_zone1, get_name).WillRepeatedly(ReturnRef(zone1_name));
-        EXPECT_CALL(mock_zone1, get_subnet).WillRepeatedly(ReturnRef(zone1_subnet));
-
-        static std::string zone2_name = "zone2";
-        EXPECT_CALL(mock_zone2, get_name).WillRepeatedly(ReturnRef(zone2_name));
-        EXPECT_CALL(mock_zone2, get_subnet).WillRepeatedly(ReturnRef(zone2_subnet));
-
-        static std::string zone3_name = "zone3";
-        EXPECT_CALL(mock_zone3, get_name).WillRepeatedly(ReturnRef(zone3_name));
-        EXPECT_CALL(mock_zone3, get_subnet).WillRepeatedly(ReturnRef(zone3_subnet));
 
         EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _))
             .WillOnce([this](auto...) { return std::move(mock_dnsmasq_server); });
@@ -143,10 +131,10 @@ struct QemuPlatformDetail : public Test
                                         "192.168.128.255",
                                         "baz"}};
 
-    mpt::MockAvailabilityZone mock_zone1;
-    mpt::MockAvailabilityZone mock_zone2;
-    mpt::MockAvailabilityZone mock_zone3;
-    const multipass::AvailabilityZoneManager::Zones mock_zones{mock_zone1, mock_zone2, mock_zone3};
+    mpt::StubAvailabilityZone stub_zone1{"zone1", zone1_subnet};
+    mpt::StubAvailabilityZone stub_zone2{"zone2", zone2_subnet};
+    mpt::StubAvailabilityZone stub_zone3{"zone3", zone3_subnet};
+    const multipass::AvailabilityZoneManager::Zones stub_zones{stub_zone1, stub_zone2, stub_zone3};
 
     mpt::TempDir data_dir;
 
@@ -210,7 +198,7 @@ TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitches)
             .WillOnce(Return(true));
     }
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 }
 
 TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
@@ -222,7 +210,7 @@ TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
             .WillOnce([ip = ip_address](auto...) { return ip; });
     }
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 
     for (const auto& vswitch : switches)
     {
@@ -261,7 +249,7 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
             return false;
         });
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 
     const auto platform_args = qemu_platform_detail.vm_platform_args(vm_desc);
 
@@ -344,7 +332,7 @@ TEST_F(QemuPlatformDetail, tapDevicesAreRemovedOnDestruction)
             return false;
         });
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 
     const auto platform_args = qemu_platform_detail.vm_platform_args(vm_desc);
 
@@ -371,7 +359,7 @@ TEST_F(QemuPlatformDetail, platformHealthCheckCallsExpectedMethods)
         EXPECT_CALL(*vswitch.mock_firewall_config, verify_firewall_rules()).WillOnce(Return());
     }
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 
     qemu_platform_detail.platform_health_check();
 }
@@ -385,7 +373,7 @@ TEST_F(QemuPlatformDetail, openingIpforwardFileFailureLogsExpectedMessage)
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 }
 
 TEST_F(QemuPlatformDetail, writingIpforwardFileFailureLogsExpectedMessage)
@@ -397,12 +385,12 @@ TEST_F(QemuPlatformDetail, writingIpforwardFileFailureLogsExpectedMessage)
 
     EXPECT_CALL(*mock_file_ops, write(_, QByteArray("1"))).WillOnce(Return(-1));
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 }
 
 TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
 {
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 
     std::vector<mp::NetworkInterfaceInfo> networks{
         mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
@@ -422,7 +410,7 @@ TEST_F(QemuPlatformDetail, createBridgeWithCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, create_bridge_with("en0")).WillOnce(Return("br-en0"));
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), mock_zones};
+    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path(), stub_zones};
 
     EXPECT_EQ(qemu_platform_detail.create_bridge_with(
                   mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),
