@@ -1,2 +1,2 @@
-Name,State,IPv4,Release,AllIPv4
-foo,Running,10.168.32.2,Ubuntu 16.04 LTS,"10.168.32.2,200.3.123.30"
+Name,State,IPv4,Release,AllIPv4,Zone,Zone available
+foo,Running,10.168.32.2,Ubuntu 16.04 LTS,"10.168.32.2,200.3.123.30",zone1,true

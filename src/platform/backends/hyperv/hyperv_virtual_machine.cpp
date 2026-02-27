@@ -147,8 +147,9 @@ fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
+                                               AvailabilityZone& zone,
                                                const mp::Path& instance_dir)
-    : HyperVVirtualMachine{desc, monitor, key_provider, instance_dir, true}
+    : HyperVVirtualMachine{desc, monitor, key_provider, zone, instance_dir, true}
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
@@ -201,8 +202,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                                                const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
+                                               AvailabilityZone& zone,
                                                const Path& dest_instance_dir)
-    : HyperVVirtualMachine{desc, monitor, key_provider, dest_instance_dir, true}
+    : HyperVVirtualMachine{desc, monitor, key_provider, zone, dest_instance_dir, true}
 {
     // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
     power_shell->easy_run({"Export-VM",
@@ -265,9 +267,10 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
+                                               AvailabilityZone& zone,
                                                const Path& instance_dir,
                                                bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
       desc{desc},
       name{QString::fromStdString(desc.vm_name)},
       power_shell{std::make_unique<PowerShell>(vm_name)},
@@ -404,9 +407,12 @@ void mp::HyperVVirtualMachine::suspend()
             handle_state_update();
         }
     }
-    else if (present_state == State::stopped)
+    else if (present_state == State::stopped || present_state == State::unavailable)
     {
-        mpl::info(vm_name, "Ignoring suspend issued while stopped");
+        // TODO: format state directly
+        mpl::info(vm_name,
+                  "Ignoring suspend since instance is {}",
+                  (present_state == State::unavailable) ? "unavailable" : "stopped");
     }
 
     monitor->on_suspend();

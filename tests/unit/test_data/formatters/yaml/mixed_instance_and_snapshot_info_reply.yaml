@@ -2,6 +2,9 @@ errors:
   - ~
 bombastic:
   - state: Stopped
+    zone:
+      name: zone2
+      available: false
     snapshot_count: 3
     image_hash: ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509
     image_release: 18.04 LTS

@@ -119,9 +119,12 @@ mp::NetworkInterfaceInfo list_vbox_network(
 }
 } // namespace
 
-mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(const mp::Path& data_dir)
+mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(
+    const mp::Path& data_dir,
+    AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager)
 {
 }
 
@@ -133,6 +136,7 @@ auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(
     return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
                                                           monitor,
                                                           key_provider,
+                                                          az_manager.get_zone(desc.zone),
                                                           get_instance_directory(desc.vm_name));
 }
 
@@ -280,5 +284,6 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
         dest_vm_desc,
         monitor,
         key_provider,
+        az_manager.get_zone(dest_vm_desc.zone),
         get_instance_directory(dest_vm_desc.vm_name));
 }

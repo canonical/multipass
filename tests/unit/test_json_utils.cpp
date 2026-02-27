@@ -109,7 +109,9 @@ TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
                              mp::VirtualMachine::State::off,
                              {},
                              false,
-                             {}};
+                             {},
+                             0,
+                             "zone"};
     mp::VMSpecs dst_specs = src_specs;
     dst_specs.default_mac_address = "aa:ff:00:00:00:01";
     dst_specs.extra_interfaces = {{"id", "aa:ff:00:00:00:02", false}};

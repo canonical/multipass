@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/availability_zone.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
@@ -40,12 +41,17 @@ public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
                        const Path& instance_dir);
+    ~BaseVirtualMachine();
 
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+
+    void set_available(bool available) override;
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
@@ -85,6 +91,7 @@ public:
 
     QDir instance_directory() const override;
     const std::string& get_name() const override;
+    const AvailabilityZone& get_zone() const override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
@@ -175,6 +182,7 @@ private:
 protected:
     const std::string vm_name;
     const SSHKeyProvider& key_provider;
+    AvailabilityZone& zone;
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
@@ -186,6 +194,7 @@ private:
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)
     mutable std::recursive_mutex snapshot_mutex;
+    bool was_running{false};
 };
 
 } // namespace multipass
@@ -209,6 +218,11 @@ inline QDir multipass::BaseVirtualMachine::instance_directory() const
 inline const std::string& multipass::BaseVirtualMachine::get_name() const
 {
     return vm_name;
+}
+
+inline const multipass::AvailabilityZone& multipass::BaseVirtualMachine::get_zone() const
+{
+    return zone;
 }
 
 inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noexcept

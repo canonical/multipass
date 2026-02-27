@@ -21,6 +21,8 @@ add_library(commands STATIC
   common_cli.cpp
   create_alias.cpp
   delete.cpp
+  disable_zones.cpp
+  enable_zones.cpp
   exec.cpp
   find.cpp
   get.cpp
@@ -47,6 +49,7 @@ add_library(commands STATIC
   unalias.cpp
   version.cpp
   wait_ready.cpp
+  zones.cpp
 )
 
 target_link_libraries(commands

@@ -42,11 +42,13 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
             {"mac_addr", specs.default_mac_address},
             {"extra_interfaces", boost::json::value_from(specs.extra_interfaces)},
             {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
-            {"clone_count", specs.clone_count}};
+            {"clone_count", specs.clone_count},
+            {"zone", specs.zone}};
 }
 
 mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
-                           const boost::json::value& json)
+                           const boost::json::value& json,
+                           const AvailabilityZoneManager& az_manager)
 {
     auto num_cores = value_to<int>(json.at("num_cores"));
     auto mem_size = value_to<std::string>(json.at("mem_size"));
@@ -76,5 +78,7 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
             value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
             deleted,
             metadata,
-            lookup_or<int>(json, "clone_count", 0)};
+            lookup_or<int>(json, "clone_count", 0),
+            lookup_or<std::string>(json, "zone", az_manager.get_default_zone_name())
+            };
 }

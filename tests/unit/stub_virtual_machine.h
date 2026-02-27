@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "stub_availability_zone.h"
 #include "stub_mount_handler.h"
 #include "stub_snapshot.h"
 #include "temp_dir.h"
@@ -53,6 +54,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     }
 
     void suspend() override
+    {
+    }
+
+    void set_available(bool) override
     {
     }
 
@@ -198,8 +203,14 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return name;
     }
 
+    const AvailabilityZone& get_zone() const override
+    {
+        return zone;
+    }
+
     StubSnapshot snapshot;
     std::string name;
+    StubAvailabilityZone zone{};
     std::unique_ptr<TempDir> tmp_dir;
 };
 } // namespace test

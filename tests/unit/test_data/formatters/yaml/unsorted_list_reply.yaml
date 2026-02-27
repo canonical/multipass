@@ -1,20 +1,32 @@
 trusty-190611-1529:
   - state: Deleted
+    zone:
+      name: zone2
+      available: false
     ipv4:
       []
     release: Not Available
 trusty-190611-1535:
   - state: Stopped
+    zone:
+      name: zone2
+      available: false
     ipv4:
       []
     release: Fedora 42
 trusty-190611-1539:
   - state: Suspended
+    zone:
+      name: zone1
+      available: true
     ipv4:
       []
     release: Not Available
 trusty-190611-1542:
   - state: Running
+    zone:
+      name: zone1
+      available: true
     ipv4:
       []
     release: Debian 12

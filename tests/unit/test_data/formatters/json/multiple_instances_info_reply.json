@@ -37,7 +37,11 @@
             },
             "release": "Ubuntu 16.04.3 LTS",
             "snapshot_count": "1",
-            "state": "Running"
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
         },
         "bombastic": {
             "cpu_count": "",
@@ -57,7 +61,11 @@
             },
             "release": "",
             "snapshot_count": "3",
-            "state": "Stopped"
+            "state": "Stopped",
+            "zone": {
+                "available": false,
+                "name": "zone2"
+            }
         }
     }
 }

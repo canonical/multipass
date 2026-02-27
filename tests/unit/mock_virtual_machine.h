@@ -74,6 +74,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, start, (), (override));
     MOCK_METHOD(void, shutdown, (VirtualMachine::ShutdownPolicy), (override));
     MOCK_METHOD(void, suspend, (), (override));
+    MOCK_METHOD(void, set_available, (bool), (override));
     MOCK_METHOD(VirtualMachine::State, current_state, (), (override));
     MOCK_METHOD(int, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
@@ -128,6 +129,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
     MOCK_METHOD(QDir, instance_directory, (), (const, override));
     MOCK_METHOD(const std::string&, get_name, (), (const, override));
+    MOCK_METHOD(AvailabilityZone&, get_zone, (), (const, override));
 
     std::unique_ptr<TempDir> tmp_dir;
 };

@@ -36,16 +36,22 @@ namespace
 constexpr auto category = "qemu factory";
 } // namespace
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir), data_dir}
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
+    : QemuVirtualMachineFactory{
+          MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir, az_manager.get_zones()),
+          data_dir,
+          az_manager}
 {
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
-                                                         const mp::Path& data_dir)
+                                                         const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir,
                                                               qemu_platform->get_directory_name(),
-                                                              instances_subdir)),
+                                                              instances_subdir),
+                                az_manager),
       qemu_platform{std::move(qemu_platform)}
 {
 }
@@ -59,6 +65,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name));
 }
 
@@ -174,6 +181,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name),
                                                     true);
 }

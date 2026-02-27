@@ -45,7 +45,11 @@
             },
             "release": "",
             "snapshot_count": "3",
-            "state": "Stopped"
+            "state": "Stopped",
+            "zone": {
+                "available": false,
+                "name": "zone2"
+            }
         }
     }
 }

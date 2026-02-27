@@ -67,6 +67,9 @@ auto construct_single_instance_list_reply()
     list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
+    const auto zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     return list_reply;
 }
@@ -81,12 +84,18 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_current_release("16.04 LTS");
     list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.21.124.56");
+    auto zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("18.04 LTS");
     list_entry->set_os("Ubuntu");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     return list_reply;
 }
@@ -100,22 +109,34 @@ auto construct_unsorted_list_reply()
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("12");
     list_entry->set_os("Debian");
+    auto zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("42");
     list_entry->set_os("Fedora");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
     list_entry->set_current_release("");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1529");
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
     list_entry->set_current_release("");
+    zone = list_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     return list_reply;
 }
@@ -200,6 +221,9 @@ auto add_petenv_to_reply(mp::ListReply& reply)
         instance->set_name(petenv_name());
         instance->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         instance->set_current_release("Not Available");
+        const auto zone = instance->mutable_zone();
+        zone->set_name("zone1");
+        zone->set_available(true);
     }
     else
     {
@@ -267,6 +291,9 @@ auto construct_single_instance_info_reply()
     info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    const auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(19);
@@ -320,6 +347,9 @@ auto construct_multiple_instances_info_reply()
     info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -354,6 +384,9 @@ auto construct_multiple_instances_info_reply()
     info_entry->mutable_instance_info()->set_id(
         "ab5191cc172564e7cc0eafd397312a32598823e645279c820f0935393aead509");
     info_entry->mutable_instance_info()->set_num_snapshots(3);
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
 
     return info_reply;
 }
@@ -375,6 +408,9 @@ auto construct_single_snapshot_info_reply()
     info_entry->mutable_snapshot_info()->set_size("128MiB");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
     info_entry->mutable_snapshot_info()->add_children("snapshot4");
+    const auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
     mount_entry->set_source_path("/home/user/source");
@@ -402,6 +438,9 @@ auto construct_multiple_snapshots_info_reply()
     info_entry->set_cpu_count("1");
     info_entry->set_disk_total("1024GiB");
     info_entry->set_memory_total("128GiB");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("black-hole");
     fundamentals->set_comment("Captured by EHT");
 
@@ -416,6 +455,9 @@ auto construct_multiple_snapshots_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -446,6 +488,9 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -465,6 +510,9 @@ auto construct_mixed_instance_and_snapshot_info_reply()
 
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_os("Ubuntu");
@@ -486,6 +534,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->mutable_instance_info()->set_os("Ubuntu");
     info_entry->mutable_instance_info()->set_id(
         "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac");
+    auto zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -520,6 +571,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -544,6 +598,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_cpu_count("2");
     info_entry->set_disk_total("4.9GiB");
     info_entry->set_memory_total("0.9GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("snapshot1");
 
     timestamp.set_seconds(63107999);
@@ -552,6 +609,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
 
     info_entry = info_reply.add_details();
     info_entry->set_name("bombastic");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone2");
+    zone->set_available(false);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_os("Ubuntu");
@@ -566,6 +626,9 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     info_entry->set_cpu_count("1");
     info_entry->set_disk_total("1024GiB");
     info_entry->set_memory_total("128GiB");
+    zone = info_entry->mutable_zone();
+    zone->set_name("zone1");
+    zone->set_available(true);
     fundamentals->set_snapshot_name("black-hole");
     fundamentals->set_comment("Captured by EHT");
 
@@ -582,6 +645,9 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
     {
         auto entry = reply.add_details();
         entry->set_name(petenv_name());
+        const auto zone = entry->mutable_zone();
+        zone->set_name("zone1");
+        zone->set_available(true);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
         entry->mutable_instance_info()->set_image_release("18.10");
         entry->mutable_instance_info()->set_os("Ubuntu");
@@ -593,6 +659,9 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
     {
         auto entry = reply.add_details();
         entry->set_name(petenv_name());
+        const auto zone = entry->mutable_zone();
+        zone->set_name("zone1");
+        zone->set_available(true);
         entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
     }
 }
@@ -1357,3 +1426,58 @@ INSTANTIATE_TEST_SUITE_P(PetenvOutputFormatter,
                                  ValuesIn(orderable_list_info_formatter_outputs)),
                          print_petenv_param_name);
 #endif
+
+// Helper function to create a ZonesReply with test data
+auto construct_zones_reply()
+{
+    mp::ZonesReply zones_reply;
+
+    auto zone_entry = zones_reply.add_zones();
+    zone_entry->set_name("zone1");
+    zone_entry->set_available(true);
+
+    zone_entry = zones_reply.add_zones();
+    zone_entry->set_name("zone2");
+    zone_entry->set_available(false);
+
+    return zones_reply;
+}
+
+// Tests for the table formatter's handling of zones
+TEST_F(BaseFormatterSuite, table_formatter_formats_zones_correctly)
+{
+    const auto zones_reply = construct_zones_reply();
+    const std::string expected_output = "Name    State\n"
+                                        "zone1   Available\n"
+                                        "zone2   Unavailable\n";
+
+    EXPECT_EQ(table_formatter.format(zones_reply), expected_output);
+}
+
+// Tests for the json formatter's handling of zones
+TEST_F(BaseFormatterSuite, json_formatter_formats_zones_correctly)
+{
+    const auto zones_reply = construct_zones_reply();
+    const std::string expected_output = "{\n"
+                                        "    \"zone1\": {\n"
+                                        "        \"available\": true\n"
+                                        "    },\n"
+                                        "    \"zone2\": {\n"
+                                        "        \"available\": false\n"
+                                        "    }\n"
+                                        "}\n";
+
+    EXPECT_EQ(json_formatter.format(zones_reply), expected_output);
+}
+
+// Tests for the yaml formatter's handling of zones
+TEST_F(BaseFormatterSuite, yaml_formatter_formats_zones_correctly)
+{
+    const auto zones_reply = construct_zones_reply();
+    const std::string expected_output = "zone1:\n"
+                                        "  available: true\n"
+                                        "zone2:\n"
+                                        "  available: false\n";
+
+    EXPECT_EQ(yaml_formatter.format(zones_reply), expected_output);
+}

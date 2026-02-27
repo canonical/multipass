@@ -274,6 +274,18 @@ std::string mp::platform::Platform::bridge_nomenclature() const
     return br_nomenclature;
 }
 
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    // ip routes?
+    auto can_reach_gateway = [](mp::IPAddress ip) {
+        const auto ipstr = ip.as_string();
+        return MP_UTILS.run_cmd_for_status("ping",
+                                           {"-n", "-q", ipstr.c_str(), "-c", "1", "-t", "1"});
+    };
+
+    return can_reach_gateway(subnet.min_address()) || can_reach_gateway(subnet.max_address());
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = QStringLiteral("/var/root/Library/Preferences/");
@@ -282,7 +294,8 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     return ret;
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
@@ -295,19 +308,19 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
           there.
         */
 
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
     else if (driver == QStringLiteral("qemu"))
     {
 #if QEMU_ENABLED
-        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+        return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
     else if (driver == QStringLiteral("applevz"))
     {
 #if APPLEVZ_ENABLED
-        return std::make_unique<applevz::AppleVZVirtualMachineFactory>(data_dir);
+        return std::make_unique<applevz::AppleVZVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
 

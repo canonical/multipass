@@ -29,12 +29,14 @@ namespace test
 {
 struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 {
-    StubVirtualMachineFactory() : StubVirtualMachineFactory{std::make_unique<TempDir>()}
+    StubVirtualMachineFactory(AvailabilityZoneManager& az_manager)
+        : StubVirtualMachineFactory{std::make_unique<TempDir>(), az_manager}
     {
     }
 
-    StubVirtualMachineFactory(std::unique_ptr<TempDir> tmp_dir)
-        : multipass::BaseVirtualMachineFactory{tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+    StubVirtualMachineFactory(std::unique_ptr<TempDir> tmp_dir, AvailabilityZoneManager& az_manager)
+        : multipass::BaseVirtualMachineFactory{tmp_dir->path(), az_manager},
+          tmp_dir{std::move(tmp_dir)}
     {
     }
 

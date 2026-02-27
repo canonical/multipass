@@ -51,7 +51,10 @@ struct MockQemuPlatformFactory : public QemuPlatformFactory
 {
     using QemuPlatformFactory::QemuPlatformFactory;
 
-    MOCK_METHOD(QemuPlatform::UPtr, make_qemu_platform, (const Path&), (const, override));
+    MOCK_METHOD(QemuPlatform::UPtr,
+                make_qemu_platform,
+                (const Path&, const AvailabilityZoneManager::Zones&),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockQemuPlatformFactory, QemuPlatformFactory);
 };

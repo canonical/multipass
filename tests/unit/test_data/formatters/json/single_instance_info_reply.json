@@ -47,7 +47,11 @@
             },
             "release": "Ubuntu 16.04.3 LTS",
             "snapshot_count": "0",
-            "state": "Running"
+            "state": "Running",
+            "zone": {
+                "available": true,
+                "name": "zone1"
+            }
         }
     }
 }

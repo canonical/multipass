@@ -262,11 +262,8 @@ std::vector<std::string> mp::utils::split(const std::string& string, const std::
 
 std::string mp::utils::generate_mac_address()
 {
-    std::default_random_engine gen;
-    std::uniform_int_distribution<int> dist{0, 255};
-
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
-    std::array<int, 3> octets{{dist(gen), dist(gen), dist(gen)}};
+    std::array<intmax_t, 3> octets{
+        {MP_UTILS.random_int(0, 255), MP_UTILS.random_int(0, 255), MP_UTILS.random_int(0, 255)}};
     return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
 }
 
@@ -665,6 +662,22 @@ bool mp::Utils::invalid_target_path(const QString& target_path) const
         QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
 
     return matcher.match(target_path).hasMatch();
+}
+
+long long mp::Utils::random_int(long long a, long long b) const
+{
+    static std::default_random_engine gen = [] {
+        // seed the rng with the time at first call
+        auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+        return std::default_random_engine(seed);
+    }();
+
+    if (a > b) // avoid undefined behavior, this can only happen by programmer error
+        throw std::logic_error(fmt::format("random range [{}, {}] is invalid", a, b));
+
+    std::uniform_int_distribution<long long> dist{a, b};
+
+    return dist(gen);
 }
 
 auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,

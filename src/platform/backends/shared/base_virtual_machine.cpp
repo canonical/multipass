@@ -17,6 +17,7 @@
 
 #include "base_virtual_machine.h"
 
+#include <multipass/availability_zone.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
@@ -94,20 +95,30 @@ mpu::TimeoutAction log_and_retry(const ExceptionT& e,
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
+                                           AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : vm_name{vm_name}, key_provider{key_provider}, instance_dir{instance_dir}
+    : vm_name{vm_name}, key_provider{key_provider}, zone{zone}, instance_dir{instance_dir}
 {
+    zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
+                                           AvailabilityZone& zone,
                                            const Path& instance_dir)
     : VirtualMachine{state},
       vm_name{vm_name},
       key_provider{key_provider},
+      zone{zone},
       instance_dir{instance_dir}
 {
+    zone.add_vm(*this);
+}
+
+mp::BaseVirtualMachine::~BaseVirtualMachine()
+{
+    mp::top_catch_all(vm_name, [this] { zone.remove_vm(*this); });
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
@@ -147,9 +158,12 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
 {
     // A mutex should already be locked by the caller here
-    if (state == State::off || state == State::stopped)
+    if (state == State::off || state == State::stopped || state == State::unavailable)
     {
-        throw VMStateIdempotentException{"Ignoring shutdown since instance is already stopped."};
+        // TODO: format state directly
+        throw VMStateIdempotentException{
+            fmt::format("Ignoring shutdown since instance is {}.",
+                        (state == State::unavailable) ? "unavailable" : "already stopped")};
     }
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
@@ -183,6 +197,33 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
         throw VMStateInvalidException{
             fmt::format("Cannot shut down instance {} while starting.", vm_name)};
     }
+}
+
+void mp::BaseVirtualMachine::set_available(bool available)
+{
+    // Ignore idempotent calls
+    if (available == (state != State::unavailable))
+        return;
+
+    if (available)
+    {
+        state = State::off;
+        handle_state_update();
+        if (was_running)
+        {
+            start();
+
+            // normally the daemon sets the state to running...
+            state = State::running;
+            handle_state_update();
+        }
+        return;
+    }
+
+    was_running = state == State::running || state == State::starting || state == State::restarting;
+    shutdown(ShutdownPolicy::Poweroff);
+    state = State::unavailable;
+    handle_state_update();
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)

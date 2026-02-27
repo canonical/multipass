@@ -40,6 +40,7 @@ public:
     virtual std::string format(const VersionReply& reply,
                                const std::string& client_version) const = 0;
     virtual std::string format(const AliasDict& aliases) const = 0;
+    virtual std::string format(const ZonesReply& reply) const = 0;
 
 protected:
     Formatter() = default;

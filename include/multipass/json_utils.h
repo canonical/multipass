@@ -29,6 +29,7 @@
 
 #include <boost/json.hpp>
 
+#include <filesystem>
 #include <optional>
 #include <ostream>
 #include <string>

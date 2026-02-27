@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include <multipass/ip_address.h>
+#include "dnsmasq_server.h"
+
 #include <multipass/path.h>
 #include <multipass/process/process_spec.h>
 
@@ -30,8 +31,7 @@ class DNSMasqProcessSpec : public ProcessSpec
 {
 public:
     explicit DNSMasqProcessSpec(const Path& data_dir,
-                                const QString& bridge_name,
-                                const std::string& subnet,
+                                const BridgeSubnetList& subnets,
                                 const QString& conf_file_path);
 
     QString program() const override;
@@ -42,8 +42,7 @@ public:
 
 private:
     const Path data_dir;
-    const QString bridge_name;
-    const std::string subnet;
+    const BridgeSubnetList subnets;
     const QString conf_file_path;
 };
 
