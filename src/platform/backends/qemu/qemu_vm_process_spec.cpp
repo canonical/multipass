@@ -59,6 +59,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
                       "Cannot determine QEMU machine type. Falling back to system default.");
         }
 
+        args.replaceInStrings(QRegularExpression("helper=.*bridge_helper"),
+                              "helper=./bridge_helper");
         // need to fix old-style vmnet arguments
         // TODO: remove in due time
         args.replaceInStrings("vmnet-macos,mode=shared,", "vmnet-shared,");

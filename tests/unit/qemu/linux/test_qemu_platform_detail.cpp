@@ -214,12 +214,11 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
                                            network_interface,
                                            vm_desc.default_mac_address)),
         "-nic",
-        QString::fromStdString(
-            fmt::format("bridge,br={},model={},mac={},helper={}",
-                        extra_interface.id,
-                        network_interface,
-                        extra_interface.mac_address,
-                        QCoreApplication::applicationDirPath() + "/bridge_helper"))};
+        QString::fromStdString(fmt::format("bridge,br={},model={},mac={},helper={}",
+                                           extra_interface.id,
+                                           network_interface,
+                                           extra_interface.mac_address,
+                                           "./bridge_helper"))};
 
     EXPECT_THAT(platform_args, ElementsAreArray(expected_platform_args));
 
