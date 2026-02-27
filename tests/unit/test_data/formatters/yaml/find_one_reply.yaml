@@ -8,3 +8,4 @@ images:
     release: 18.04 LTS
     version: 20190516
     remote: ""
+    image_hash: ""
