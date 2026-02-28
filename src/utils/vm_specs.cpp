@@ -28,22 +28,26 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
                     boost::json::value& json,
                     const mp::VMSpecs& specs)
 {
-    json = {{"num_cores", specs.num_cores},
-            {"mem_size", std::to_string(specs.mem_size.in_bytes())},
-            {"disk_space", std::to_string(specs.disk_space.in_bytes())},
-            {"ssh_username", specs.ssh_username},
-            {"state", static_cast<int>(specs.state)},
-            {"deleted", specs.deleted},
-            {"metadata", specs.metadata},
+    json = {
+        {"num_cores", specs.num_cores},
+        {"mem_size", std::to_string(specs.mem_size.in_bytes())},
+        {"disk_space", std::to_string(specs.disk_space.in_bytes())},
+        {"ssh_username", specs.ssh_username},
+        {"state", static_cast<int>(specs.state)},
+        {"deleted", specs.deleted},
+        {"metadata", specs.metadata},
 
-            // Write the networking information. Write first a field "mac_addr" containing the MAC
-            // address of the default network interface. Then, write all the information about the
-            // rest of the interfaces.
-            {"mac_addr", specs.default_mac_address},
-            {"extra_interfaces", boost::json::value_from(specs.extra_interfaces)},
-            {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
-            {"clone_count", specs.clone_count},
-            {"zone", specs.zone}};
+        // Write the networking information. Write first a field "mac_addr" containing the MAC
+        // address of the default network interface. Then, write all the information about the
+        // rest of the interfaces.
+        {"mac_addr", specs.default_mac_address},
+        {"extra_interfaces", boost::json::value_from(specs.extra_interfaces)},
+        {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
+        {"clone_count", specs.clone_count},
+#ifdef AVAILABILITY_ZONES_FEATURE
+        {"zone", specs.zone},
+#endif
+    };
 }
 
 mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
@@ -68,17 +72,22 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
         ssh_username = "ubuntu";
 
     using mounts_t = std::unordered_map<std::string, VMMount>;
-    return {num_cores,
-            MemorySize{mem_size.empty() ? default_memory_size : mem_size},
-            MemorySize{disk_space.empty() ? default_disk_size : disk_space},
-            mac_addr,
-            lookup_or<std::vector<NetworkInterface>>(json, "extra_interfaces", {}),
-            ssh_username,
-            static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
-            value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
-            deleted,
-            metadata,
-            lookup_or<int>(json, "clone_count", 0),
-            lookup_or<std::string>(json, "zone", az_manager.get_default_zone_name())
-            };
+    return {
+        num_cores,
+        MemorySize{mem_size.empty() ? default_memory_size : mem_size},
+        MemorySize{disk_space.empty() ? default_disk_size : disk_space},
+        mac_addr,
+        lookup_or<std::vector<NetworkInterface>>(json, "extra_interfaces", {}),
+        ssh_username,
+        static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
+        value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
+        deleted,
+        metadata,
+        lookup_or<int>(json, "clone_count", 0),
+#ifdef AVAILABILITY_ZONES_FEATURE
+        lookup_or<std::string>(json, "zone", az_manager.get_default_zone_name()),
+#else
+        az_manager.get_default_zone_name(),
+#endif
+    };
 }

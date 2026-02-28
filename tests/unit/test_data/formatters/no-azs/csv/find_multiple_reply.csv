@@ -1,0 +1,4 @@
+Image,Remote,Aliases,OS,Release,Version,Type
+19.04,release,disco,Ubuntu,19.04,20190516,Cloud Image
+18.04,release,bionic;lts,Ubuntu,18.04 LTS,20180421,Cloud Image
+daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,Cloud Image

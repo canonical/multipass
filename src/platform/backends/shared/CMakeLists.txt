@@ -13,14 +13,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(shared STATIC
-  base_availability_zone.cpp
-  base_availability_zone_manager.cpp
   base_snapshot.cpp
   base_virtual_machine.cpp
   base_virtual_machine_factory.cpp
   sshfs_server_process_spec.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
+
+if(AVAILABILITY_ZONES_ENABLED)
+  target_sources(shared PRIVATE
+    base_availability_zone.cpp
+    base_availability_zone_manager.cpp)
+else()
+  target_sources(shared PRIVATE
+    single_availability_zone_manager.cpp)
+endif()
 
 target_link_libraries(shared
   iso

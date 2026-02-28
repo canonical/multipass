@@ -104,10 +104,12 @@ QJsonObject generate_instance_details(const mp::DetailedInfoItem& item)
     instance_info.insert(
         "state",
         QString::fromStdString(mp::format::status_string_for(item.instance_status())));
+#ifdef AVAILABILITY_ZONES_FEATURE
     QJsonObject zone_info;
     zone_info.insert("name", QString::fromStdString(item.zone().name()));
     zone_info.insert("available", item.zone().available());
     instance_info.insert("zone", zone_info);
+#endif
     instance_info.insert("image_hash", QString::fromStdString(instance_details.id()));
     instance_info.insert("image_release", QString::fromStdString(instance_details.image_release()));
     instance_info.insert("release", QString::fromStdString(instance_details.current_release()));
@@ -217,10 +219,12 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                     ? "Not Available"
                     : mp::utils::trim(
                           fmt::format("{} {}", instance.os(), instance.current_release()))));
+#ifdef AVAILABILITY_ZONES_FEATURE
         QJsonObject zone_info;
         zone_info.insert("name", QString::fromStdString(instance.zone().name()));
         zone_info.insert("available", instance.zone().available());
         instance_obj.insert("zone", zone_info);
+#endif
 
         instances.append(instance_obj);
     }

@@ -1,0 +1,19 @@
+{
+    "list": [
+        {
+            "ipv4": [
+                "10.21.124.56"
+            ],
+            "name": "bogus-instance",
+            "release": "Ubuntu 16.04 LTS",
+            "state": "Running"
+        },
+        {
+            "ipv4": [
+            ],
+            "name": "bombastic",
+            "release": "Ubuntu 18.04 LTS",
+            "state": "Stopped"
+        }
+    ]
+}

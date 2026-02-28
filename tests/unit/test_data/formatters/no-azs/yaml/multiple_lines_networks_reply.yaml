@@ -1,0 +1,6 @@
+en0:
+  - type: eth
+    description: Ether
+wlx0123456789ab:
+  - type: wifi
+    description: Wireless
