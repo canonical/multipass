@@ -30,50 +30,32 @@
 namespace fmt
 {
 template <>
-struct formatter<QByteArray>
+struct formatter<QByteArray> : formatter<string_view>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const QByteArray& a, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
+        return formatter<string_view>::format(a.toStdString(), ctx); // TODO: remove the copy?
     }
 };
 
 template <>
-struct formatter<QString>
+struct formatter<QString> : formatter<string_view>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const QString& a, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
+        return formatter<string_view>::format(a.toStdString(), ctx); // TODO: remove the copy?
     }
 };
 
 template <>
-struct formatter<QProcess::ExitStatus>
+struct formatter<QProcess::ExitStatus> : formatter<int>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const QProcess::ExitStatus& exit_status, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", static_cast<int>(exit_status));
+        return formatter<int>::format(static_cast<int>(exit_status), ctx);
     }
 };
 

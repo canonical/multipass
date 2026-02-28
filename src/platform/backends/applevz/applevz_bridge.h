@@ -66,13 +66,8 @@ bool is_supported();
 } // namespace multipass::applevz
 
 template <>
-struct fmt::formatter<multipass::applevz::AppleVMState>
+struct fmt::formatter<multipass::applevz::AppleVMState> : fmt::formatter<string_view>
 {
-    constexpr auto parse(format_parse_context& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::applevz::AppleVMState& state, FormatContext& ctx) const
     {
@@ -113,6 +108,6 @@ struct fmt::formatter<multipass::applevz::AppleVMState>
             v = "unknown";
             break;
         }
-        return format_to(ctx.out(), "{}", v);
+        return fmt::formatter<string_view>::format(v, ctx);
     }
 };

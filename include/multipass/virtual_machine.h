@@ -133,17 +133,9 @@ protected:
 };
 } // namespace multipass
 
-/**
- * Formatter type specialization for CreateComputeSystemParameters
- */
-template <typename Char>
-struct fmt::formatter<multipass::VirtualMachine::State, Char>
+template <>
+struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<string_view>
 {
-    constexpr auto parse(basic_format_parse_context<Char>& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(multipass::VirtualMachine::State state, FormatContext& ctx) const
     {
@@ -179,6 +171,6 @@ struct fmt::formatter<multipass::VirtualMachine::State, Char>
             break;
         }
 
-        return format_to(ctx.out(), "{}", v);
+        return fmt::formatter<string_view>::format(v, ctx);
     }
 };
