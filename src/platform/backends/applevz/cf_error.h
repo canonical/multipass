@@ -23,10 +23,8 @@
 
 namespace multipass::applevz
 {
-
-namespace
+namespace detail
 {
-
 inline std::string cfstring_to_std_string(CFStringRef s)
 {
     if (!s)
@@ -36,21 +34,13 @@ inline std::string cfstring_to_std_string(CFStringRef s)
     CFIndex maxSize = CFStringGetMaximumSizeForEncoding(len, kCFStringEncodingUTF8) + 1;
 
     auto buffer = std::make_unique<char[]>(maxSize);
-    if (!buffer)
-    {
-        return std::string();
-    }
 
     if (CFStringGetCString(s, buffer.get(), maxSize, kCFStringEncodingUTF8))
-    {
-        std::string result(buffer.get());
-        return result;
-    }
+        return {buffer.get()};
 
-    return std::string();
+    return {};
 }
-
-} // namespace
+} // namespace detail
 
 struct CFError
 {
@@ -73,11 +63,7 @@ struct CFError
     {
         if (this != &other)
         {
-            if (ref)
-                CFRelease(ref);
-
-            ref = other.ref;
-            other.ref = nullptr;
+            std::swap(ref, other.ref);
         }
         return *this;
     }
@@ -94,7 +80,6 @@ struct CFError
         return ref != nullptr;
     }
 };
-
 } // namespace multipass::applevz
 
 namespace fmt
@@ -118,8 +103,8 @@ struct formatter<multipass::applevz::CFError>
         CFStringRef domain = CFErrorGetDomain(e.ref);
         CFStringRef desc = CFErrorCopyDescription(e.ref);
 
-        std::string domain_str = multipass::applevz::cfstring_to_std_string(domain);
-        std::string desc_str = multipass::applevz::cfstring_to_std_string(desc);
+        std::string domain_str = multipass::applevz::detail::cfstring_to_std_string(domain);
+        std::string desc_str = multipass::applevz::detail::cfstring_to_std_string(desc);
 
         auto result = format_to(ctx.out(),
                                 "{} ({}): {}",
@@ -133,5 +118,4 @@ struct formatter<multipass::applevz::CFError>
         return result;
     }
 };
-
 } // namespace fmt
