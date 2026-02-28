@@ -20,6 +20,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/intentional_shutdown_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -263,33 +264,64 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     drop_ssh_session();
     mpl::debug(vm_name, "Waiting for SSH to be up");
 
-    auto action = std::bind_front(&BaseVirtualMachine::try_to_ssh, this);
+    auto action = [this]() -> utils::TimeoutAction {
+        auto vm_state = current_state();
+
+        if (vm_state == State::stopped || vm_state == State::off)
+        {
+            if (expected_shutdown) {
+                mpl::log(mpl::Level::info, vm_name,
+                         "VM powered off as configured in cloud-init");
+                return utils::TimeoutAction::done;
+            } else {
+                mpl::log(mpl::Level::error, vm_name,
+                         "VM stopped unexpectedly (no power_state in cloud-init)");
+                return utils::TimeoutAction::done;
+            }
+        }
+
+        return try_to_ssh();
+    };
+
     auto timeout_action = std::bind_front(&BaseVirtualMachine::timeout_ssh, this);
     mpu::try_action_for(timeout_action, timeout, action);
+
+    auto final_state = current_state();
+    if (final_state == State::stopped || final_state == State::off)
+    {
+        if (expected_shutdown) {
+            throw mp::IntentionalShutdownException(vm_name);
+        }
+        else
+        {
+            throw StartException(vm_name, "VM stopped unexpectdely");
+        }
+    }
 
     mpl::debug(vm_name, "Caching initial SSH session");
 }
 
 void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
-        detect_aborted_start();
+    auto action = [this]() -> mpu::TimeoutAction {
+        detect_aborted_start(); 
+
         try
         {
             ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
             return mpu::TimeoutAction::done;
         }
-        catch (const SSHVMNotRunning& e)
+        catch (const SSHVMNotRunning&)
         {
             try_to_ssh();
             return mpu::TimeoutAction::retry;
         }
-        catch (const SSHExecFailure& e)
+        catch (const SSHExecFailure&)
         {
             return mpu::TimeoutAction::retry;
         }
-        catch (const std::exception& e) // transitioning away from catching generic runtime errors
-        {                               // TODO remove once we're confident this is an anomaly
+        catch (const std::exception& e)
+        {
             mpl::log_message(mpl::Level::warning, vm_name, e.what());
             return mpu::TimeoutAction::retry;
         }
@@ -298,6 +330,7 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     auto on_timeout = [] {
         throw std::runtime_error("timed out waiting for initialization to complete");
     };
+
     mpu::try_action_for(on_timeout, timeout, action);
 }
 

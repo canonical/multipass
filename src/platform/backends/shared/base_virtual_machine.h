@@ -178,6 +178,7 @@ protected:
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
+    bool expected_shutdown = false;
 
 private:
     std::string saved_error_msg = "";
