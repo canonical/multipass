@@ -80,10 +80,10 @@ multipass::applevz::CFError call_on_vm_queue(const multipass::applevz::VMHandle&
     return multipass::applevz::CFError(err_ref);
 }
 
-template <typename ResultType, typename BlockType>
-ResultType query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, BlockType block)
+template <typename BlockType>
+auto query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, BlockType block)
 {
-    __block ResultType result{};
+    __block std::decay_t<decltype(block())> result{};
     dispatch_sync(vm_handle->queue, ^{
       result = block();
     });
@@ -265,38 +265,37 @@ CFError resume_with_completion_handler(const VMHandle& vm_handle)
 AppleVMState get_state(const VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
-    return AppleVMState(
-        query_on_vm_queue<VZVirtualMachineState>(vm_handle, [&]() { return [vm state]; }));
+    return AppleVMState(query_on_vm_queue(vm_handle, [&]() { return [vm state]; }));
 }
 
 bool can_start(const VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
-    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canStart]; });
+    return query_on_vm_queue(vm_handle, [&]() { return [vm canStart]; });
 }
 
 bool can_pause(const VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
-    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canPause]; });
+    return query_on_vm_queue(vm_handle, [&]() { return [vm canPause]; });
 }
 
 bool can_resume(const VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
-    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canResume]; });
+    return query_on_vm_queue(vm_handle, [&]() { return [vm canResume]; });
 }
 
 bool can_stop(const VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
-    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canStop]; });
+    return query_on_vm_queue(vm_handle, [&]() { return [vm canStop]; });
 }
 
 bool can_request_stop(const VMHandle& vm_handle)
 {
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
-    return query_on_vm_queue<bool>(vm_handle, [&]() { return [vm canRequestStop]; });
+    return query_on_vm_queue(vm_handle, [&]() { return [vm canRequestStop]; });
 }
 
 bool is_supported()
