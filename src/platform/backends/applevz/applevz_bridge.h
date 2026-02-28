@@ -17,6 +17,97 @@
 
 #pragma once
 
+#include <applevz/cf_error.h>
+#include <multipass/virtual_machine_description.h>
+
+#include <fmt/format.h>
+
 namespace multipass::applevz
 {
+// Forward declare to keep Objective-C++ out of the header.
+struct VirtualMachineHandle;
+using VMHandle = std::shared_ptr<VirtualMachineHandle>;
+
+enum class AppleVMState
+{
+    stopped,
+    running,
+    paused,
+    error,
+    starting,
+    pausing,
+    resuming,
+    stopping,
+    saving,
+    restoring
+};
+
+CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
+                                VMHandle& out_handle);
+
+// Starting and stopping VM
+CFError start_with_completion_handler(const VMHandle& vm_handle);
+CFError stop_with_completion_handler(const VMHandle& vm_handle);
+CFError request_stop_with_error(const VMHandle& vm_handle);
+CFError pause_with_completion_handler(const VMHandle& vm_handle);
+CFError resume_with_completion_handler(const VMHandle& vm_handle);
+
+// Getting VM state
+AppleVMState get_state(const VMHandle& vm_handle);
+
+// Validate the state of VM
+bool can_start(const VMHandle& vm_handle);
+bool can_pause(const VMHandle& vm_handle);
+bool can_resume(const VMHandle& vm_handle);
+bool can_stop(const VMHandle& vm_handle);
+bool can_request_stop(const VMHandle& vm_handle);
+
+bool is_supported();
 } // namespace multipass::applevz
+
+template <>
+struct fmt::formatter<multipass::applevz::AppleVMState> : fmt::formatter<string_view>
+{
+    template <typename FormatContext>
+    auto format(const multipass::applevz::AppleVMState& state, FormatContext& ctx) const
+    {
+        std::string_view v = "(undefined)";
+        switch (state)
+        {
+        case multipass::applevz::AppleVMState::stopped:
+            v = "stopped";
+            break;
+        case multipass::applevz::AppleVMState::running:
+            v = "running";
+            break;
+        case multipass::applevz::AppleVMState::paused:
+            v = "paused";
+            break;
+        case multipass::applevz::AppleVMState::error:
+            v = "error";
+            break;
+        case multipass::applevz::AppleVMState::starting:
+            v = "starting";
+            break;
+        case multipass::applevz::AppleVMState::pausing:
+            v = "pausing";
+            break;
+        case multipass::applevz::AppleVMState::resuming:
+            v = "resuming";
+            break;
+        case multipass::applevz::AppleVMState::stopping:
+            v = "stopping";
+            break;
+        case multipass::applevz::AppleVMState::saving:
+            v = "saving";
+            break;
+        case multipass::applevz::AppleVMState::restoring:
+            v = "restoring";
+            break;
+        default:
+            v = "unknown";
+            break;
+        }
+        return fmt::formatter<string_view>::format(v, ctx);
+    }
+};

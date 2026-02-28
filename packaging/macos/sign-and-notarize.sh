@@ -158,6 +158,13 @@ function codesign_binaries {
             --identifier com.canonical.multipass.qemu \
             --sign "${SIGN_APP}"
 
+    # sign multipass with additional entitlements for using the Apple Virtualization framework
+    find "${DIR}" -type f -name multipassd -print0 | xargs -0L1 \
+        codesign -v --timestamp --options runtime --force --strict \
+            $( entitlements com.apple.security.virtualization ) \
+            --identifier com.canonical.multipass.multipassd \
+            --sign "${SIGN_APP}"
+
     # sign every bundle in the directory
     find "${DIR}" -type d -name '*.app' -print0 | xargs -0L1 \
         codesign -v --timestamp --options runtime --force --strict --deep \
