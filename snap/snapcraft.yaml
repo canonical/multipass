@@ -128,6 +128,8 @@ parts:
     - ccache
     - lcov
     - clang-19 # have to keep in sync with CLANG_VERSION above :'(
+    - lld-19
+    - llvm-19
     - git
     - libapparmor-dev
     - libgl1-mesa-dev
