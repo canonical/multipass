@@ -48,9 +48,9 @@ NSString* nsstring_from_qstring(const QString& s)
     return [NSString stringWithUTF8String:utf8.constData()];
 }
 
-template <typename BlockType>
+template <typename Callable>
 multipass::applevz::CFError call_on_vm_queue(const multipass::applevz::VMHandle& vm_handle,
-                                             BlockType block,
+                                             Callable callable,
                                              uint64_t timeout_secs = 120)
 {
     __block CFErrorRef err_ref = nullptr;
@@ -59,7 +59,7 @@ multipass::applevz::CFError call_on_vm_queue(const multipass::applevz::VMHandle&
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
     dispatch_async(vm_handle->queue, ^{
-      block(^(NSError* _Nullable error) {
+      callable(^(NSError* _Nullable error) {
         if (error)
             err_ref = (__bridge_retained CFErrorRef)error;
 
@@ -80,12 +80,12 @@ multipass::applevz::CFError call_on_vm_queue(const multipass::applevz::VMHandle&
     return multipass::applevz::CFError(err_ref);
 }
 
-template <typename BlockType>
-auto query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, BlockType block)
+template <typename Callable>
+auto query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, Callable callable)
 {
-    __block std::decay_t<decltype(block())> result{};
+    __block std::decay_t<decltype(callable())> result{};
     dispatch_sync(vm_handle->queue, ^{
-      result = block();
+      result = callable();
     });
     return result;
 }
@@ -186,10 +186,9 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         config.memoryBalloonDevices = @[ balloon ];
 
         // Validate configuration
-        if (![config validateWithError:&err])
+        if (![config validateWithError:&err] && err)
         {
-            if (err)
-                return CFError((__bridge_retained CFErrorRef)err);
+            return CFError((__bridge_retained CFErrorRef)err);
         }
 
         out_handle = std::make_shared<VirtualMachineHandle>();
