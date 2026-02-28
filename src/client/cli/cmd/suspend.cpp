@@ -38,7 +38,7 @@ mp::ReturnCodeVariant cmd::Suspend::run(mp::ArgParser* parser)
 
     auto on_success = [](mp::SuspendReply& reply) -> ReturnCodeVariant { return ReturnCode::Ok; };
 
-    AnimatedSpinner spinner{cout};
+    AnimatedSpinner spinner{cout, term->cout_is_live()};
     auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);

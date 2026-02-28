@@ -31,7 +31,7 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
-    AnimatedSpinner spinner{cout};
+    AnimatedSpinner spinner{cout, term->cout_is_live()};
 
     auto on_success = [this, &spinner](mp::SnapshotReply& reply) -> ReturnCodeVariant {
         spinner.stop();

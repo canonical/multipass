@@ -36,7 +36,7 @@ mp::ReturnCodeVariant cmd::WaitReady::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    mp::AnimatedSpinner spinner{cout};
+    mp::AnimatedSpinner spinner{cout, term->cout_is_live()};
     spinner.start("Waiting for the Multipass daemon to be ready");
 
     std::unique_ptr<mp::utils::Timer> timer;
