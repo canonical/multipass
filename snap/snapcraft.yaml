@@ -63,6 +63,7 @@ apps:
       - network-manager # for bridge creation
       - network-observe # for network listing (to read `/sys/devices/**/net/*`)
       - removable-media
+      - mount-observe
       - system-observe  # to read the host's os-release
   multipass:
     environment:
