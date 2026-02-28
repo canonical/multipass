@@ -3280,6 +3280,20 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
 
+            if (config->factory->get_backend_directory_name() == "hyperv")
+            {
+                auto write_files = vm_desc.vendor_data_config["write_files"];
+                if (!write_files.IsSequence())
+                    write_files = YAML::Node(YAML::NodeType::Sequence);
+
+                YAML::Node scheduler_rule_node;
+                scheduler_rule_node["path"] = "/etc/udev/rules.d/60-scheduler.rules";
+                scheduler_rule_node["content"] =
+                    R"(ACTION=="add|change", KERNEL=="sd[a-z]|mmcblk[0-9]*", ATTR{queue/scheduler}="none")";
+                write_files.push_back(scheduler_rule_node);
+                vm_desc.vendor_data_config["write_files"] = write_files;
+            }
+
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
