@@ -18,12 +18,23 @@
                 "openssl",
                 "dbus"
             ]
+        },
+        {
+            "name": "libssh",
+            "default-features": false,
+            "features": [
+                "server"
+            ]
         }
     ],
     "overrides": [
         {
             "name": "fmt",
             "version": "11.2.0"
+        },
+        {
+            "name": "libssh",
+            "version": "0.11.3"
         }
     ],
     "features": {

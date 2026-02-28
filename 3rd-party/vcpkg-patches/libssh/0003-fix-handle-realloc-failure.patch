@@ -1,0 +1,31 @@
+From f23d1454e50d0dbb314edd9bf4227ab72303484b Mon Sep 17 00:00:00 2001
+From: Trevor Shoe <trevor.schupbach@canonical.com>
+Date: Wed, 2 Oct 2024 12:35:55 -0400
+Subject: [PATCH] sftpserver: Fix handling realloc failure
+
+---
+ src/sftpserver.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/sftpserver.c b/src/sftpserver.c
+index 8523c47a..9ad9feea 100644
+--- a/src/sftpserver.c
++++ b/src/sftpserver.c
+@@ -668,14 +668,15 @@ ssh_string sftp_handle_alloc(sftp_session sftp, void *info)
+   }
+ 
+   if (i == sftp->total_allocated_handles) {
++    void **tmp;
+     uint32_t old_size = sftp->total_allocated_handles;
+-    sftp->total_allocated_handles += SFTP_HANDLES_CHUNK_SZ;
+ 
+-    void **tmp = realloc(sftp->handles, sftp->total_allocated_handles * sizeof(void *));
++    tmp = realloc(sftp->handles, (old_size + SFTP_HANDLES_CHUNK_SZ) * sizeof(void *));
+     if (tmp == NULL)
+         return NULL; /* no handle available */
+ 
+     sftp->handles = tmp;
++    sftp->total_allocated_handles += SFTP_HANDLES_CHUNK_SZ;
+     memset(sftp->handles + old_size, '\0', SFTP_HANDLES_CHUNK_SZ * sizeof(void *));
+   }
+ 

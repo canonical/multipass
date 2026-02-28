@@ -42,9 +42,6 @@ if(MSVC)
   add_subdirectory(jsoncpp SYSTEM)
 endif()
 
-# libssh config
-add_subdirectory(libssh SYSTEM)
-
 # premock header only library to mock c-functions
 add_library(premock INTERFACE)
 target_include_directories(premock INTERFACE

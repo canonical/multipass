@@ -1,6 +1,3 @@
-[submodule "3rd-party/libssh/libssh"]
-	path = 3rd-party/libssh/libssh
-	url = https://github.com/CanonicalLtd/libssh.git
 [submodule "3rd-party/xz-decoder/xz-embedded"]
 	path = 3rd-party/xz-decoder/xz-embedded
 	url = https://github.com/tukaani-project/xz-embedded.git
