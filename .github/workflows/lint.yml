@@ -61,6 +61,7 @@ jobs:
           # On pull requests, HEAD^1 will always be the merge base, so consider that diff for formatting.
           git diff -U0 --no-color HEAD^1 \
             | grep -vE '^\+\+\+ b/tests/unit/test_data/formatters/' \
+            | grep -vE '^\+\+\+ b/docs/\.sphinx/' \
             | clang-format-diff -p1 \
             | tee ${HOME}/clang-diff
 
