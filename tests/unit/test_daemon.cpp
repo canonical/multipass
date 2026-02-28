@@ -42,7 +42,7 @@
 #include <multipass/constants.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
-#include <multipass/name_generator.h>
+#include <multipass/petname_interface.h>
 #include <multipass/signal.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
@@ -85,7 +85,7 @@ const qint64 default_total_bytes{16'106'127'360}; // 15G
 
 const std::string csv_header{"Alias,Instance,Command,Working directory,Context\n"};
 
-struct StubNameGenerator : public mp::NameGenerator
+struct StubNameGenerator : public mp::PetnameInterface
 {
     explicit StubNameGenerator(std::string name) : name{std::move(name)}
     {

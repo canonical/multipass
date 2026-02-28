@@ -224,7 +224,7 @@ struct Client : public Test
     {
         mp::ClientConfig client_config{server_address, get_client_cert_provider(), &term};
         mp::Client client{client_config};
-        QStringList args = QStringList() << "multipass_test";
+        QStringList args = QStringList() << "multipass_cpp_test";
 
         for (const auto& arg : command)
         {

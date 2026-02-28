@@ -24,7 +24,7 @@
 #include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
-#include <multipass/name_generator.h>
+#include <multipass/petname_interface.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>
@@ -181,7 +181,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             days_to_expire);
     }
     if (name_generator == nullptr)
-        name_generator = mp::make_default_name_generator();
+        name_generator = mp::make_petname_provider();
     if (server_address.empty())
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)

@@ -13,16 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ * Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
  *
  */
 
-#include "petname.h"
-#include <multipass/name_generator.h>
-
-namespace mp = multipass;
-
-mp::NameGenerator::UPtr mp::make_default_name_generator()
-{
-    return std::make_unique<mp::Petname>(mp::Petname::NumWords::TWO, "-");
+fn main() {
+    // Generate the .h and .cc files (_do not_ compile them)
+    let _ = cxx_build::bridge("src/lib.rs"); // drops the builder, just codegen
+    println!("cargo:rerun-if-changed=src/lib.rs");
 }

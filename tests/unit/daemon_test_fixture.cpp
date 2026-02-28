@@ -393,7 +393,7 @@ void mpt::DaemonTestFixture::send_commands(std::vector<std::vector<std::string>>
         TestClient client{client_config};
         for (const auto& command : commands)
         {
-            QStringList args = QStringList() << "multipass_test";
+            QStringList args = QStringList() << "multipass_cpp_test";
 
             for (const auto& arg : command)
             {

@@ -11,11 +11,17 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-target_sources(multipass_cpp_tests
-  PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/test_qemu_platform_detail.cpp
-)
+[package]
+name = "macros"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
-target_include_directories(multipass_cpp_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/qemu)
+[lib]
+proc-macro = true
+
+[dependencies]
+quote.workspace = true
+syn.workspace = true
+proc-macro2.workspace = true

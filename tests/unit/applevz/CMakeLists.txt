@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-target_sources(multipass_tests
+target_sources(multipass_cpp_tests
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/test_applevz_virtual_machine.cpp
 )

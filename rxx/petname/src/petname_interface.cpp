@@ -13,29 +13,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ * Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
  *
  */
 
-#pragma once
-
-#include "disabled_copy_move.h"
-
+#include "petname_provider.h"
 #include <memory>
-#include <string>
+#include <multipass/petname_interface.h>
 
-namespace multipass
+namespace mp = multipass;
+
+mp::PetnameInterface::UPtr mp::make_petname_provider(mp::petname::NumWords words, char separator)
 {
-class NameGenerator : private DisabledCopyMove
+    return std::make_unique<mp::PetnameProvider>(words, separator);
+}
+
+mp::PetnameInterface::UPtr mp::make_petname_provider(char separator)
 {
-public:
-    using UPtr = std::unique_ptr<NameGenerator>;
-    virtual ~NameGenerator() = default;
-    virtual std::string make_name() = 0;
-
-protected:
-    NameGenerator() = default;
-};
-
-NameGenerator::UPtr make_default_name_generator();
-} // namespace multipass
+    return std::make_unique<mp::PetnameProvider>(mp::petname::NumWords::Two, separator);
+}

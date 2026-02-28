@@ -2,7 +2,7 @@
 #include "multipass/cli/client_common.h"
 #include "multipass/logging/log.h"
 #include "multipass/memory_size.h"
-#include "multipass/name_generator.h"
+#include "multipass/petname_interface.h"
 #include "multipass/platform.h"
 #include "multipass/settings/settings.h"
 #include "multipass/standard_paths.h"
@@ -32,7 +32,7 @@ char* generate_petname()
     static constexpr auto error = "failed generating petname";
     try
     {
-        static mp::NameGenerator::UPtr generator = mp::make_default_name_generator();
+        static mp::PetnameInterface::UPtr generator = mp::make_petname_provider();
         const auto name = generator->make_name();
         return strdup(name.c_str());
     }
