@@ -72,8 +72,6 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
         "then search ‘daily‘. <string> can be a partial image hash or a "
         "release version, codename or alias.",
         "[<remote:>][<string>]");
-    QCommandLineOption unsupportedOption("show-unsupported",
-                                         "Show unsupported cloud images as well");
     QCommandLineOption formatOption("format",
                                     "Output list in the requested format.\nValid formats are: "
                                     "table (default), json, csv and yaml",
@@ -82,7 +80,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     const QCommandLineOption force_manifest_network_download(
         "force-update",
         "Force the image information to update from the network");
-    parser->addOptions({unsupportedOption, formatOption, force_manifest_network_download});
+    parser->addOptions({formatOption, force_manifest_network_download});
 
     auto status = parser->commandParse(this);
 
@@ -116,8 +114,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
             request.set_search_string(search_string.toStdString());
         }
     }
-
-    request.set_allow_unsupported(parser->isSet(unsupportedOption));
+    
     request.set_force_manifest_network_download(parser->isSet(force_manifest_network_download));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);

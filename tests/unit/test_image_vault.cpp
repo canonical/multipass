@@ -1099,34 +1099,6 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
     EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}).empty());
 }
 
-TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)
-{
-    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
-    vault.fetch_image(mp::FetchType::ImageOnly,
-                      default_query,
-                      stub_prepare,
-                      stub_monitor,
-                      std::nullopt,
-                      instance_dir);
-
-    EXPECT_CALL(host, info_for(_))
-        .WillOnce(Throw(mp::UnsupportedImageException(default_query.release)));
-
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::warning,
-                    StrEq("image vault"),
-                    StrEq(fmt::format("Skipping update: The {} release is no longer supported.",
-                                      default_query.release))));
-
-    EXPECT_NO_THROW(vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
-}
-
 TEST_F(ImageVault, updateImagesLogsWarningOnEmptyVault)
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::warning);

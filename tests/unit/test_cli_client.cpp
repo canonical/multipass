@@ -3247,13 +3247,6 @@ TEST_F(Client, deleteCmdWrongVmState)
     EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
-// find cli tests
-TEST_F(Client, findCmdUnsupportedOptionOk)
-{
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
-}
-
 TEST_F(Client, findCmdForceUpdateOk)
 {
     EXPECT_CALL(mock_daemon, find(_, _));

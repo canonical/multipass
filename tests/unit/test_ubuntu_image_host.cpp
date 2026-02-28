@@ -410,15 +410,6 @@ TEST_F(UbuntuImageHost, handlesAndRecoversFromIndependentServerFailures)
     }
 }
 
-TEST_F(UbuntuImageHost, throwsUnsupportedImageWhenImageNotSupported)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    EXPECT_THROW(host.info_for(make_query("artful", release_remote_spec.first)),
-                 mp::UnsupportedImageException);
-}
-
 TEST_F(UbuntuImageHost, develRequestWithNoRemoteReturnsExpectedInfo)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
@@ -479,19 +470,6 @@ TEST_F(UbuntuImageHost, allInfoForNoRemoteQueryDefaultsToRelease)
 
     const size_t expected_matches{2};
     EXPECT_EQ(images_info.size(), expected_matches);
-}
-
-TEST_F(UbuntuImageHost, allInfoForUnsupportedImageThrow)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    const std::string release{"artful"};
-
-    MP_EXPECT_THROW_THAT(
-        host.all_info_for(make_query(release, release_remote_spec.first)),
-        mp::UnsupportedImageException,
-        mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
 }
 
 TEST_F(UbuntuImageHost, infoForFullHashFindsImage)
