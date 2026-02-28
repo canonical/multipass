@@ -298,3 +298,44 @@ TEST_F(DaemonFind, findForceUpdateRemoteSearchNameCheckUpdateManifestsCalls)
 
     send_command({"find", "release:22.04", "--force-update"});
 }
+
+TEST_F(DaemonFind, onlyCachedReturnsCachedImages)
+{
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::VMImage cached_image;
+    cached_image.id = "abc123def456";
+    cached_image.original_release = "22.04 LTS";
+    cached_image.release_date = "20240101";
+    cached_image.os = "Ubuntu";
+    cached_image.aliases = {"jammy"};
+
+    EXPECT_CALL(*mock_image_vault, cached_images())
+        .WillOnce(Return(
+            std::vector<std::pair<std::string, mp::VMImage>>{{"abc123def456full", cached_image}}));
+
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"find", "--only-cached"}, stream);
+
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr("jammy"), HasSubstr("22.04 LTS"), HasSubstr("Ubuntu")));
+}
+
+TEST_F(DaemonFind, onlyCachedEmptyReturnsNoImages)
+{
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    EXPECT_CALL(*mock_image_vault, cached_images())
+        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImage>>{}));
+
+    config_builder.vault = std::move(mock_image_vault);
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"find", "--only-cached"}, stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr("No images found."));
+}

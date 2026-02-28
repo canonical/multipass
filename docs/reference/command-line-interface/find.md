@@ -33,6 +33,8 @@ The list of available images is updated periodically. The option `--force-update
 
 The option `--show-unsupported` includes old Ubuntu images, which were available at some point but are not supported anymore. This means that some features of Multipass might now work on these images and no user support is given. However, they are still available for testing.
 
+The option `--only-cached` limits output to images that have already been downloaded and are stored locally. This is useful when you want to launch an instance without any network access, or when you want to know which images are ready for immediate use.
+
 The command also supports searching through available images. For example, `multipass find mantic`  returns:
 
 ```{code-block} text
@@ -59,6 +61,7 @@ Options:
   --format <format>   Output list in the requested format.
                       Valid formats are: table (default), json, csv and yaml
   --force-update      Force the image information to update from the network
+  --only-cached       Show only locally cached images
 
 Arguments:
   string              An optional value to search for in [<remote:>]<string>
