@@ -48,6 +48,7 @@ public:
 
     QString apparmor_profile() const override;
     QString identifier() const override;
+    QString working_directory() const override;
 
 private:
     const VirtualMachineDescription desc;
