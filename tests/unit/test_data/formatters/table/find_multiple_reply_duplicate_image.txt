@@ -1,4 +1,4 @@
-Image                       Aliases           Version          Description
-snapcraft:core18                              20190520         Snapcraft builder for core18
-core:core18                                   20190520         Ubuntu Core 18
+Image                       Aliases           Version          Hash           Description
+snapcraft:core18                              20190520                        Snapcraft builder for core18
+core:core18                                   20190520                        Ubuntu Core 18
 

@@ -8,6 +8,7 @@ images:
     release: Core 18
     version: 20190520
     remote: core
+    image_hash: ""
   "snapcraft:core18":
     aliases:
       []
@@ -15,3 +16,4 @@ images:
     release: Snapcraft builder for core18
     version: 20190520
     remote: snapcraft
+    image_hash: ""

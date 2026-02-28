@@ -5,6 +5,7 @@
         "ubuntu": {
             "aliases": [
             ],
+            "image_hash": "",
             "os": "Ubuntu",
             "release": "18.04 LTS",
             "remote": "",

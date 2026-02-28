@@ -5,6 +5,7 @@
         "core:core18": {
             "aliases": [
             ],
+            "image_hash": "",
             "os": "Ubuntu",
             "release": "Core 18",
             "remote": "core",
@@ -13,6 +14,7 @@
         "snapcraft:core18": {
             "aliases": [
             ],
+            "image_hash": "",
             "os": "",
             "release": "Snapcraft builder for core18",
             "remote": "snapcraft",

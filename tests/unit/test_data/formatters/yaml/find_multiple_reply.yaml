@@ -9,6 +9,7 @@ images:
     release: 18.04 LTS
     version: 20180421
     remote: release
+    image_hash: ""
   19.04:
     aliases:
       - disco
@@ -16,6 +17,7 @@ images:
     release: 19.04
     version: 20190516
     remote: release
+    image_hash: ""
   "daily:19.10":
     aliases:
       - eoan
@@ -24,3 +26,4 @@ images:
     release: 19.10
     version: 20190516
     remote: daily
+    image_hash: ""
