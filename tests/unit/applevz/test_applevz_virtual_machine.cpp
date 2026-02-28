@@ -141,10 +141,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedThrowsError)
         .WillOnce(Return(applevz::AppleVMState{}));
 
     EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(true));
-    EXPECT_CALL(mock_applevz, start_vm(_)).WillOnce(Invoke([](auto&) {
-        return applevz::CFError{
-            CFErrorCreate(kCFAllocatorDefault, CFSTR("UnitTestDomain"), 42, nullptr)};
-    }));
+    EXPECT_CALL(mock_applevz, start_vm(_))
+        .WillOnce(Return(applevz::CFError{
+            CFErrorCreate(kCFAllocatorDefault, CFSTR("UnitTestDomain"), 42, nullptr)}));
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AtLeast(1));
 
@@ -163,10 +162,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedThrowsError)
         .WillOnce(Return(applevz::AppleVMState{}));
 
     EXPECT_CALL(mock_applevz, can_resume(_)).WillOnce(Return(true));
-    EXPECT_CALL(mock_applevz, resume_vm(_)).WillOnce(Invoke([](auto&) {
-        return applevz::CFError{
-            CFErrorCreate(kCFAllocatorDefault, CFSTR("UnitTestDomain"), 42, nullptr)};
-    }));
+    EXPECT_CALL(mock_applevz, resume_vm(_))
+        .WillOnce(Return(applevz::CFError{
+            CFErrorCreate(kCFAllocatorDefault, CFSTR("UnitTestDomain"), 42, nullptr)}));
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AtLeast(1));
 
@@ -186,9 +184,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownVMFromRunningWithPowerdownSucces
         .WillRepeatedly(Return(applevz::AppleVMState::stopped));
 
     EXPECT_CALL(mock_applevz, can_request_stop(_)).WillOnce(Return(true));
-    EXPECT_CALL(mock_applevz, stop_vm(_, false)).WillOnce(Invoke([](auto&, bool) {
-        return applevz::CFError{};
-    }));
+    EXPECT_CALL(mock_applevz, stop_vm(_, false)).WillOnce(Return(applevz::CFError{}));
 
     uut->shutdown(VirtualMachine::ShutdownPolicy::Powerdown);
 
@@ -204,9 +200,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownVMFromRunningWithPoweroffSuccess
         .WillRepeatedly(Return(applevz::AppleVMState::stopped));
 
     EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true));
-    EXPECT_CALL(mock_applevz, stop_vm(_, true)).WillOnce(Invoke([](auto&, bool) {
-        return applevz::CFError{};
-    }));
+    EXPECT_CALL(mock_applevz, stop_vm(_, true)).WillOnce(Return(applevz::CFError{}));
 
     uut->shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -252,10 +246,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownForcedStopError)
     EXPECT_CALL(mock_applevz, get_state(_)).WillOnce(Return(applevz::AppleVMState::running));
 
     EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true));
-    EXPECT_CALL(mock_applevz, stop_vm(_, true)).WillOnce(Invoke([](auto&, bool) {
-        return applevz::CFError{
-            CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 456, nullptr)};
-    }));
+    EXPECT_CALL(mock_applevz, stop_vm(_, true))
+        .WillOnce(Return(applevz::CFError{
+            CFErrorCreate(kCFAllocatorDefault, CFSTR("UnitTestDomain"), 42, nullptr)}));
 
     EXPECT_NO_THROW(uut->shutdown(VirtualMachine::ShutdownPolicy::Poweroff));
     EXPECT_EQ(uut->current_state(), VirtualMachine::State::stopped);
