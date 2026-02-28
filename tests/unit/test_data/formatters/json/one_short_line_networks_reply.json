@@ -1,9 +1,9 @@
 {
     "list": [
         {
-            "description": "Ether",
             "name": "en0",
-            "type": "eth"
+            "type": "eth",
+            "description": "Ether"
         }
     ]
 }

@@ -3,20 +3,20 @@
     ],
     "images": {
         "core:core18": {
-            "aliases": [
-            ],
             "os": "Ubuntu",
             "release": "Core 18",
-            "remote": "core",
-            "version": "20190520"
-        },
-        "snapcraft:core18": {
+            "version": "20190520",
             "aliases": [
             ],
+            "remote": "core"
+        },
+        "snapcraft:core18": {
             "os": "",
             "release": "Snapcraft builder for core18",
-            "remote": "snapcraft",
-            "version": "20190520"
+            "version": "20190520",
+            "aliases": [
+            ],
+            "remote": "snapcraft"
         }
     }
 }

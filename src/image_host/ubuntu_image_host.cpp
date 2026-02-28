@@ -28,8 +28,6 @@
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QUrl>
 
 #include <algorithm>
