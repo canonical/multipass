@@ -43,9 +43,8 @@ QString get_image_format(const mp::Path& image_path)
         "Cannot read image format");
 
     auto image_info = qemuimg_info_process->read_all_standard_output();
-    auto image_record = QJsonDocument::fromJson(QString(image_info).toUtf8(), nullptr).object();
-
-    return image_record["format"].toString();
+    auto image_record = boost::json::parse(std::string_view(image_info));
+    return mp::lookup_or<QString>(image_record, "format", "");
 }
 } // namespace
 
