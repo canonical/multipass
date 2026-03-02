@@ -119,7 +119,11 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
         // Grab compute system GUID before terminating it so we can use it later on for endpoint
         // cleanup.
         std::string vm_guid{};
-        (void)HCS().get_compute_system_guid(handle, vm_guid);
+        if (!HCS().get_compute_system_guid(handle, vm_guid) || vm_guid.empty())
+        {
+            mpl::warn(log_category, "Could not retrieve VM guid for `{}`, skipping endpoint cleanup.", name);
+            return;
+        }
         // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
         // the VM is stopped. The base class will take care of the nuking the VM folder.
         const auto& [status, status_msg] = HCS().terminate_compute_system(handle);
@@ -130,22 +134,16 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
                       name);
         }
 
-        if (!vm_guid.empty())
+        std::vector<std::string> attached_endpoints{};
+        const auto& enumerate_result =
+            HCN().enumerate_attached_endpoints(vm_guid, attached_endpoints);
+        for (const auto& elem : attached_endpoints)
         {
-            // Fetch and remove endpoints (best effort)
-            top_catch_all(log_category, [&] {
-                std::vector<std::string> attached_endpoints{};
-                const auto& enumerate_result =
-                    HCN().enumerate_attached_endpoints(vm_guid, attached_endpoints);
-                for (const auto& elem : attached_endpoints)
-                {
-                    const auto remove_result = HCN().delete_endpoint(elem);
-                    mpl::trace(log_category,
-                               "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
-                               elem,
-                               remove_result.code);
-                }
-            });
+            const auto remove_result = HCN().delete_endpoint(elem);
+            mpl::trace(log_category,
+                       "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
+                       elem,
+                       remove_result.code);
         }
     }
     else
