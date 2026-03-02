@@ -803,13 +803,13 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
         EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
-            "merge_virtual_disk_to_parent(...) > child: child.avhdx");
+            "merge_virtual_disk_into_parent(...) > child: child.avhdx");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "open_virtual_disk(...) > vhdx_path: child.avhdx");
     }
 
     {
-        const auto& [status, status_msg] = VirtDisk().merge_virtual_disk_to_parent("child.avhdx");
+        const auto& [status, status_msg] = VirtDisk().merge_virtual_disk_into_parent("child.avhdx");
         EXPECT_TRUE(status);
         EXPECT_TRUE(status_msg.empty());
     }
@@ -828,11 +828,11 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_open_disk_failure)
         open_vhd_expect_failure();
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
-            "merge_virtual_disk_to_parent(...) > child: child.avhdx");
+            "merge_virtual_disk_into_parent(...) > child: child.avhdx");
     }
 
     {
-        const auto& [status, status_msg] = VirtDisk().merge_virtual_disk_to_parent("child.avhdx");
+        const auto& [status, status_msg] = VirtDisk().merge_virtual_disk_into_parent("child.avhdx");
         EXPECT_FALSE(status);
         EXPECT_FALSE(status_msg.empty());
     }
