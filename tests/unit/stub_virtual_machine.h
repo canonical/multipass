@@ -99,6 +99,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
+    void resize_partitions(std::chrono::milliseconds) override
+    {
+    }
+
     void handle_state_update() override
     {
     }

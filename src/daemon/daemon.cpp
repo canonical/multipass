@@ -676,8 +676,9 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
-    -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer,
+                fmt::format_string<Ts...> fmt,
+                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');

@@ -550,6 +550,8 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
         {"modifyhd", desc.image.image_path, "--resizebyte", QString::number(new_size.in_bytes())},
         "Could not resize image: {}",
         name);
+    if (desc.image.original_release.find("Core") != std::string::npos)
+        core_image_warning();
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,

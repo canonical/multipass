@@ -863,3 +863,9 @@ void mp::BaseVirtualMachine::timeout_ssh()
     handle_state_update();
     throw std::runtime_error(fmt::format("{}: timed out waiting for response", vm_name));
 }
+
+void mp::BaseVirtualMachine::core_image_warning()
+{
+    std::cout << "Resizing an Ubuntu Core image may require additional steps. See `man growpart` "
+                 "and `man resize2fs`.\n";
+}

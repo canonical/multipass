@@ -120,6 +120,10 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     {
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, wait_for_cloud_init, mp::BaseVirtualMachine);
     }
+    void simulate_resize_partitions()
+    {
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, resize_partitions, mp::BaseVirtualMachine);
+    }
 };
 
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
@@ -1268,6 +1272,48 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
 
     EXPECT_EQ(vm.take_snapshot(current_specs, "", "")->get_parent().get(), &last_snapshot);
+}
+
+TEST_F(BaseVM, resizePartitionsNoErrorsDoesNotThrow)
+{
+    vm.simulate_resize_partitions();
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(vm, ssh_exec).WillRepeatedly(DoDefault());
+
+    std::chrono::milliseconds timeout(1);
+    EXPECT_NO_THROW(vm.resize_partitions(timeout));
+}
+
+TEST_F(BaseVM, resizePartitionsTimesOutIfSshThrows)
+{
+    vm.simulate_resize_partitions();
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"not working", 1}));
+
+    std::chrono::milliseconds timeout(1);
+    MP_EXPECT_THROW_THAT(vm.resize_partitions(timeout),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("timed out waiting for disk resizing to complete")));
+}
+
+TEST_F(BaseVM, resizePartitionsVMDownReconnects)
+{
+    vm.simulate_resize_partitions();
+    EXPECT_CALL(vm, current_state)
+        .WillOnce(Return(mp::VirtualMachine::State::running))    // when 1st waiting for cloud-init
+        .WillOnce(Return(mp::VirtualMachine::State::restarting)) // when retrying to ssh
+        .WillOnce(Return(mp::VirtualMachine::State::running));   // back waiting for cloud-init
+    EXPECT_CALL(vm, ssh_hostname(_));
+    EXPECT_CALL(vm, ssh_port());
+    EXPECT_CALL(vm, ssh_username());
+    EXPECT_CALL(vm, ssh_exec)
+        .WillOnce(Throw(mp::SSHVMNotRunning{"VM is touching grass"}))
+        .WillOnce(Return(""))
+        .WillOnce(Return(""))
+        .WillOnce(Return(""));
+
+    std::chrono::milliseconds timeout(2000);
+    EXPECT_NO_THROW(vm.resize_partitions(timeout));
 }
 
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
