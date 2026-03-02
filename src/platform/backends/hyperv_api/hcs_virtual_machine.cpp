@@ -525,19 +525,15 @@ void HCSVirtualMachine::start()
         handle_state_update();
         throw StartComputeSystemException{"Could not start the VM: {}", status};
     }
-    else
+    else if (MP_FILEOPS.exists(get_saved_state_file_path()))
     {
-        // Remove saved state file after a successful start or resume.
-        if (MP_FILEOPS.exists(get_saved_state_file_path()))
+        mpl::trace(get_name(), "start() -> Saved state file exits, attempting to remove");
+        std::error_code ec{};
+        if (!MP_FILEOPS.remove(get_saved_state_file_path(), ec))
         {
-            mpl::trace(get_name(), "start() -> Saved state file exits, attempting to remove");
-            std::error_code ec{};
-            if (!MP_FILEOPS.remove(get_saved_state_file_path(), ec))
-            {
-                mpl::warn(get_name(),
-                          "start() -> Could not remove the saved state file, error: {}",
-                          ec);
-            }
+            mpl::warn(get_name(),
+                      "start() -> Could not remove the saved state file, error: {}",
+                      ec);
         }
     }
 
