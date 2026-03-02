@@ -24,6 +24,8 @@
 #import <objc/objc.h>
 #import <objc/runtime.h>
 
+#include <QDir>
+#include <QFileInfo>
 #include <QString>
 #include <QUrl>
 
@@ -145,12 +147,11 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         config.storageDevices = storageDevices;
 
         // EFI Variable store
-        NSString* efivarsFilename = [NSString stringWithFormat:@"vm-efivars"];
-        NSString* efivarsPath =
-            [NSTemporaryDirectory() stringByAppendingPathComponent:efivarsFilename];
+        QFileInfo diskInfo(desc.image.image_path);
+        QString efivarsPath = diskInfo.dir().filePath("efivars");
 
         // EFI bootloader
-        NSURL* efivarsURL = [NSURL fileURLWithPath:efivarsPath];
+        NSURL* efivarsURL = [NSURL fileURLWithPath:nsstring_from_qstring(efivarsPath)];
         VZEFIBootLoader* efi = [[VZEFIBootLoader alloc] init];
         efi.variableStore = [[VZEFIVariableStore alloc]
             initCreatingVariableStoreAtURL:efivarsURL
