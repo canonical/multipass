@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/utils/static_bimap.h>
+#include <multipass/utils/static_bi_map.h>
 
 #include <algorithm>
 #include <cstdint>
