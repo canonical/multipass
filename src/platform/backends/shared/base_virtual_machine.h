@@ -63,7 +63,7 @@ public:
         throw NotImplementedOnThisBackendException("native mounts");
     }
 
-    SnapshotVista view_snapshots() const override;
+    SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const override;
     int get_num_snapshots() const override;
 
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;

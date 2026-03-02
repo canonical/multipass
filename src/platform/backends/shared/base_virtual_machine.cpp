@@ -42,6 +42,7 @@
 #include <chrono>
 #include <functional>
 #include <mutex>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 
@@ -334,20 +335,19 @@ auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
     return all_ipv4;
 }
 
-auto mp::BaseVirtualMachine::view_snapshots() const -> SnapshotVista
+auto mp::BaseVirtualMachine::view_snapshots(SnapshotPredicate predicate) const -> SnapshotVista
 {
-    SnapshotVista ret;
-
     const std::unique_lock lock{snapshot_mutex};
-    ret.reserve(snapshots.size());
-    std::transform(std::cbegin(snapshots),
-                   std::cend(snapshots),
-                   std::back_inserter(ret),
-                   [](const auto& pair) { return pair.second; });
 
-    return ret;
+    SnapshotVista result{};
+    for (const auto& [_, snapshot] : snapshots)
+    {
+        if (!predicate || predicate(*snapshot))
+            result.push_back(snapshot);
+    }
+
+    return result;
 }
-
 std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::get_snapshot(
     const std::string& name) const
 {

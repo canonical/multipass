@@ -151,7 +151,7 @@ TEST_F(TestImageVaultUtils, extractFileWillDeleteFile)
 {
     auto decoder = [](const QString&, const QString&) {};
 
-    EXPECT_CALL(mock_file_ops, remove(Property(&QFile::fileName, test_path)));
+    EXPECT_CALL(mock_file_ops, remove(MatcherCast<QFile&>(Property(&QFile::fileName, test_path))));
 
     MP_IMAGE_VAULT_UTILS.extract_file(test_path, decoder, true);
 }
@@ -167,7 +167,7 @@ TEST_F(TestImageVaultUtils, extractFileWontDeleteFile)
         ++calls;
     };
 
-    EXPECT_CALL(mock_file_ops, remove(_)).Times(0);
+    EXPECT_CALL(mock_file_ops, remove(An<QFile&>())).Times(0);
 
     MP_IMAGE_VAULT_UTILS.extract_file(test_path, decoder, false);
     EXPECT_EQ(calls, 1);

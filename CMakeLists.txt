@@ -88,6 +88,8 @@ if(NOT VCPKG_BUILD_DEFAULT)
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
 else()
+  set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+  set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
@@ -229,6 +231,9 @@ endif()
 # Boost config
 find_package(Boost CONFIG REQUIRED COMPONENTS json)
 
+# Dependencies satisfied by CMake
+include(src/cmake/cmake-deps.cmake)
+
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 
@@ -276,7 +281,8 @@ if(MSVC)
   add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
-  set(MULTIPASS_BACKENDS hyperv virtualbox)
+  add_definitions(-DSECURITY_WIN32)
+  set(MULTIPASS_BACKENDS hyperv hyperv_api virtualbox)
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
