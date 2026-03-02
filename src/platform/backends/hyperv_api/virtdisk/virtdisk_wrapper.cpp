@@ -357,7 +357,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 OperationResult VirtDiskWrapper::merge_virtual_disk_into_parent(
     const std::filesystem::path& child) const
 {
-    // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/master/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI().cpp
+    // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/21cb9b6bc0da3b234c5854ecac449cb3bd261f29/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI.cpp#L4
     mpl::debug(log_category, "merge_virtual_disk_into_parent(...) > child: {}", child);
 
     OPEN_VIRTUAL_DISK_PARAMETERS open_params{};
