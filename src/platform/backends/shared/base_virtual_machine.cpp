@@ -22,6 +22,7 @@
 #include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
@@ -862,4 +863,11 @@ void mp::BaseVirtualMachine::timeout_ssh()
     state = State::unknown;
     handle_state_update();
     throw std::runtime_error(fmt::format("{}: timed out waiting for response", vm_name));
+}
+
+void mp::BaseVirtualMachine::core_image_error()
+{
+    throw ResizingUbuntuCoreInstance("Resizing an Ubuntu Core image requires additional steps be "
+                                     "performed within the instance.\nSee `man growpart` "
+                                     "and `man resize2fs`.");
 }

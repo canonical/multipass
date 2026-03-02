@@ -676,8 +676,9 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
-    -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer,
+                fmt::format_string<Ts...> fmt,
+                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
@@ -2552,6 +2553,10 @@ try
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
     status_promise->set_value(grpc::Status::OK);
+}
+catch (const mp::ResizingUbuntuCoreInstance& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 catch (const mp::NonAuthorizedBridgeSettingsException& e)
 {
