@@ -202,32 +202,34 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 {
     mpl::debug(log_category, "HCSWrapper::create_compute_system(...) > params: {} ", params);
 
-    auto operation = create_operation();
-
-    if (nullptr == operation)
-    {
-        return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
-    }
-
-    // Initialize guest state files if they does not exist
+    // Initialize guest state files if they're absent
     {
         auto&& vmgs = params.guest_state.guest_state_file_path;
         auto&& vmrs = params.guest_state.runtime_state_file_path;
 
         if (vmgs && !std::filesystem::exists(vmgs->get()))
         {
-            (void)HCS().create_empty_guest_state_file(params.name, vmgs->get());
+            if (const auto r = HCS().create_empty_guest_state_file(params.name, vmgs->get()); !r)
+                return r;
         }
 
         if (vmrs && !std::filesystem::exists(vmrs->get()))
         {
-            (void)HCS().create_empty_runtime_state_file(params.name, vmrs->get());
+            if (const auto r = HCS().create_empty_runtime_state_file(params.name, vmrs->get()); !r)
+                return r;
         }
     }
 
     const std::wstring name_w = to_wstring(params.name);
     // Render the template
     const auto vm_settings = fmt::to_wstring(params);
+
+    auto operation = create_operation();
+
+    if (nullptr == operation)
+    {
+        return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
+    }
 
     UniqueHcsSystem system{};
     const auto result = ResultCode{API().HcsCreateComputeSystem(name_w.c_str(),
