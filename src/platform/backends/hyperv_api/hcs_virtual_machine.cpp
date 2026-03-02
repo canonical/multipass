@@ -31,6 +31,7 @@
 #include <shared/windows/wsa_init_wrapper.h>
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine_description.h>
@@ -542,6 +543,16 @@ void HCSVirtualMachine::start()
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", get_name(), state);
+
+    try
+    {
+        check_state_for_shutdown(shutdown_policy);
+    }
+    catch (const VMStateIdempotentException& e)
+    {
+        mpl::info(vm_name, "{}", e.what());
+        return;
+    }
 
     switch (shutdown_policy)
     {
