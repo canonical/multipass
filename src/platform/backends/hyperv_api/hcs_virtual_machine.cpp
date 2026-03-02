@@ -347,15 +347,10 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         // Opened existing VM
         return false;
     }
-    else
+    else if (HCS_E_SYSTEM_NOT_FOUND != static_cast<HRESULT>(result.code))
     {
-        if (!(HCS_E_SYSTEM_NOT_FOUND == static_cast<HRESULT>(result.code)))
-        {
-            throw OpenComputeSystemException{"Failed with error code: {}", result.code};
-        }
+        throw OpenComputeSystemException{"Failed with error code: {}", result.code};
     }
-
-    // FIXME: Handle suspend state?
 
     const auto create_endpoint_params = [this]() {
         std::vector<hcn::CreateEndpointParameters> params{};
