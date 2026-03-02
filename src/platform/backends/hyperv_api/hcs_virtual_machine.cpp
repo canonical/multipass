@@ -598,14 +598,17 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 void HCSVirtualMachine::suspend()
 {
     mpl::debug(get_name(), "suspend() -> Suspending VM `{}`, current state {}", get_name(), state);
-    const auto& [status, status_msg] = HCS().pause_compute_system(hcs_system);
-    if (status)
+    if (const auto& [status, status_msg] = HCS().pause_compute_system(hcs_system); status)
     {
         // Pause succeeded. We can suspend to disk now
         if (const auto& r = HCS().save_compute_system(hcs_system, get_saved_state_file_path()); r)
         {
             // Save succeeded. Now, it's safe to terminate the system.
-            (void)HCS().terminate_compute_system(hcs_system);
+            if (const auto& terminate_result = HCS().terminate_compute_system(hcs_system);
+                !terminate_result)
+                mpl::warn(get_name(),
+                          "VM suspended successfully but terminate failed, reason: {}",
+                          terminate_result);
         }
         else
             throw SaveComputeSystemException{"Could not save the virtual machine state for VM `{}` "
@@ -615,7 +618,7 @@ void HCSVirtualMachine::suspend()
     }
     else
     {
-        mpl::warn(vm_name, "Could not pause for suspend");
+        throw SaveComputeSystemException{"Could not pause VM for suspend: {}", status};
     }
     set_state(fetch_state_from_api());
     handle_state_update();
