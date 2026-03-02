@@ -44,9 +44,6 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      * Create a new Virtual Disk
      *
      * @param [in] params Parameters for the new virtual disk
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
      */
     [[nodiscard]] virtual OperationResult create_virtual_disk(
         const CreateVirtualDiskParameters& params) const;
@@ -58,9 +55,6 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      *
      * @param [in] vhdx_path Path to the virtual disk
      * @param [in] new_size New disk size, in bytes
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
      */
     [[nodiscard]] virtual OperationResult
     resize_virtual_disk(const std::filesystem::path& vhdx_path, std::uint64_t new_size_bytes) const;
@@ -68,14 +62,11 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
     // ---------------------------------------------------------
 
     /**
-     * Merge a child differencing disk to its parent
+     * Merge a child differencing disk into its parent
      *
      * @param [in] child Path to the differencing disk
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
      */
-    [[nodiscard]] virtual OperationResult merge_virtual_disk_to_parent(
+    [[nodiscard]] virtual OperationResult merge_virtual_disk_into_parent(
         const std::filesystem::path& child) const;
 
     // ---------------------------------------------------------
@@ -85,9 +76,6 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      *
      * @param [in] child Path to the virtual disk to reparent
      * @param [in] parent Path to the new parent
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
      */
     [[nodiscard]] virtual OperationResult reparent_virtual_disk(
         const std::filesystem::path& child,
@@ -100,9 +88,6 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      *
      * @param [in] vhdx_path Path to the virtual disk
      * @param [out] vdinfo Virtual disk info output object
-     *
-     * @return An object that evaluates to true on success, false otherwise.
-     * message() may contain details of failure when result is false.
      */
     [[nodiscard]] virtual OperationResult
     get_virtual_disk_info(const std::filesystem::path& vhdx_path, VirtualDiskInfo& vdinfo) const;
@@ -113,7 +98,6 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      * @param [in] vhdx_path The chain link to start from
      * @param [out] chain The result
      * @param [in] max_depth Maximum depth to list (optional)
-     * @return OperationResult
      */
     [[nodiscard]] virtual OperationResult list_virtual_disk_chain(
         const std::filesystem::path& vhdx_path,

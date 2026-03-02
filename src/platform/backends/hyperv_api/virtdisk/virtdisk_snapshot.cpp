@@ -199,7 +199,7 @@ void VirtDiskSnapshot::erase_impl()
     if (should_merge_head)
     {
         // Head is attached to the snapshot that's going to be deleted.
-        if (const auto merge_r = VirtDisk().merge_virtual_disk_to_parent(head_path); merge_r)
+        if (const auto merge_r = VirtDisk().merge_virtual_disk_into_parent(head_path); merge_r)
         {
             mpl::debug(log_category,
                        "Successfully merged head differencing disk `{}` to parent disk `{}`",
@@ -217,7 +217,7 @@ void VirtDiskSnapshot::erase_impl()
     }
 
     //  1: Merge this to its parent
-    if (const auto merge_r = VirtDisk().merge_virtual_disk_to_parent(self_path); merge_r)
+    if (const auto merge_r = VirtDisk().merge_virtual_disk_into_parent(self_path); merge_r)
     {
         const auto& parent_path = parent ? make_snapshot_path(*parent) : base_vhdx_path;
         mpl::debug(log_category,

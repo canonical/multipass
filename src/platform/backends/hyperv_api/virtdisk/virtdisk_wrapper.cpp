@@ -354,11 +354,11 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 
 // ---------------------------------------------------------
 
-OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
+OperationResult VirtDiskWrapper::merge_virtual_disk_into_parent(
     const std::filesystem::path& child) const
 {
     // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/master/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI().cpp
-    mpl::debug(log_category, "merge_virtual_disk_to_parent(...) > child: {}", child);
+    mpl::debug(log_category, "merge_virtual_disk_into_parent(...) > child: {}", child);
 
     OPEN_VIRTUAL_DISK_PARAMETERS open_params{};
     open_params.Version = OPEN_VIRTUAL_DISK_VERSION_1;
@@ -388,7 +388,7 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_to_parent(
     {
         std::error_code ec{static_cast<int>(r), std::system_category()};
         mpl::error(log_category,
-                   "merge_virtual_disk_to_parent(...) > MergeVirtualDisk failed with {}!",
+                   "merge_virtual_disk_into_parent(...) > MergeVirtualDisk failed with {}!",
                    ec.message());
         return OperationResult{E_FAIL, fmt::format(L"MergeVirtualDisk failed with {}!", r)};
     }

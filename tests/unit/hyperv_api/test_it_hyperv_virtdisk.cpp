@@ -197,7 +197,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_virtual_disk)
     }
 
     // Merge child to parent
-    const auto result = VirtDisk().merge_virtual_disk_to_parent(child_temp_path);
+    const auto result = VirtDisk().merge_virtual_disk_into_parent(child_temp_path);
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.status_msg.empty());
 }
@@ -246,7 +246,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
 
     // Merge child to parent
     {
-        const auto result = VirtDisk().merge_virtual_disk_to_parent(child_temp_path);
+        const auto result = VirtDisk().merge_virtual_disk_into_parent(child_temp_path);
         ASSERT_TRUE(result);
         ASSERT_TRUE(result.status_msg.empty());
     }
