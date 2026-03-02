@@ -67,7 +67,7 @@ struct StartComputeSystemException : public FormattedExceptionBase<>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-struct ResizeDiskWithSnapshotsException : public FormattedExceptionBase<>
+struct ResizeDiskException : public FormattedExceptionBase<>
 {
     using FormattedExceptionBase::FormattedExceptionBase;
 };
