@@ -698,11 +698,17 @@ void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
 
     if (get_num_snapshots() > 0)
     {
-        throw ResizeDiskWithSnapshotsException{"Cannot resize the primary disk while there are "
-                                               "snapshots. To resize, delete the snapshots first."};
+        throw ResizeDiskException{"Cannot resize the primary disk while there are "
+                                  "snapshots. To resize, delete the snapshots first."};
     }
 
-    VirtDisk().resize_virtual_disk(description.image.image_path.toStdString(), new_size.in_bytes());
+    if (const auto result =
+            VirtDisk().resize_virtual_disk(description.image.image_path.toStdString(),
+                                           new_size.in_bytes());
+        !result)
+    {
+        throw ResizeDiskException{"Disk resize failed, details: {}", result};
+    }
     // TODO: Check if succeeded.
     description.disk_space = new_size;
 }
