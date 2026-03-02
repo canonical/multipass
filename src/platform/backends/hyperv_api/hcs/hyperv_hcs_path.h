@@ -24,7 +24,7 @@
 namespace multipass::hyperv::hcs
 {
 /**
- * Host Compute System API expects paths to be formatted in a certain way. HcsPath is a strong type
+ * The Host Compute System API expects paths with a single forward slash. HcsPath is a strong type
  * that ensures the correct formatting.
  */
 struct HcsPath
