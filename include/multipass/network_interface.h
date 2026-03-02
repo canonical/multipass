@@ -42,11 +42,11 @@ struct NetworkInterface
 
 inline void tag_invoke(const boost::json::value_from_tag&,
                        boost::json::value& json,
-                       const NetworkInterface& interface)
+                       const NetworkInterface& iface)
 {
-    json = {{"id", interface.id},
-            {"mac_address", interface.mac_address},
-            {"auto_mode", interface.auto_mode}};
+    json = {{"id", iface.id},
+            {"mac_address", iface.mac_address},
+            {"auto_mode", iface.auto_mode}};
 }
 
 inline NetworkInterface tag_invoke(const boost::json::value_to_tag<NetworkInterface>&,
