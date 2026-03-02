@@ -72,4 +72,10 @@ public:
     }
 };
 
+class ResizingUbuntuCoreInstance : public SettingsException
+{
+public:
+    using SettingsException::SettingsException;
+};
+
 } // namespace multipass

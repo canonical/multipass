@@ -108,6 +108,7 @@ protected:
     void renew_ssh_session();
     void detect_aborted_start();
     void save_error_msg(std::string error) noexcept;
+    void core_image_error();
 
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,
@@ -178,7 +179,9 @@ protected:
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
-
+    bool filesystem_requires_resize{true};
+    // We assume the image requires filesystem resize on creation to ensure the image is resized
+    // properly if there is discontinuity across daemon restarts
 private:
     std::string saved_error_msg = "";
     std::optional<SSHSession> ssh_session = std::nullopt;
