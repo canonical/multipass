@@ -114,9 +114,8 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
             "create_virtual_disk(...) > params: Size (in bytes): (2097152) | Path: (test.vhdx)");
     }
 
-    hyperv::virtdisk::CreateVirtualDiskParameters params{};
-    params.path = "test.vhdx";
-    params.size_in_bytes = 2097152;
+    const hyperv::virtdisk::CreateVirtualDiskParameters params{.size_in_bytes = 2097152,
+                                                               .path = "test.vhdx"};
 
     {
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
@@ -175,9 +174,8 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
             "create_virtual_disk(...) > params: Size (in bytes): (2097152) | Path: (test.vhd)");
     }
 
-    hyperv::virtdisk::CreateVirtualDiskParameters params{};
-    params.path = "test.vhd";
-    params.size_in_bytes = 2097152;
+    const hyperv::virtdisk::CreateVirtualDiskParameters params{.size_in_bytes = 2097152,
+                                                               .path = "test.vhd"};
 
     {
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
@@ -304,10 +302,10 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
                                              "create_virtual_disk(...) > cloning");
     }
 
-    hyperv::virtdisk::CreateVirtualDiskParameters params{};
-    params.predecessor = hyperv::virtdisk::SourcePathParameters{"source.vhdx"};
-    params.path = "test.vhdx";
-    params.size_in_bytes = 0;
+    const hyperv::virtdisk::CreateVirtualDiskParameters params{
+        .size_in_bytes = 0,
+        .path = "test.vhdx",
+        .predecessor = hyperv::virtdisk::SourcePathParameters{"source.vhdx"}};
 
     {
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
@@ -347,9 +345,8 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
             "create_virtual_disk(...) > CreateVirtualDisk failed with 3!");
     }
 
-    hyperv::virtdisk::CreateVirtualDiskParameters params{};
-    params.path = "test.vhd";
-    params.size_in_bytes = 2097152;
+    const hyperv::virtdisk::CreateVirtualDiskParameters params{.size_in_bytes = 2097152,
+                                                               .path = "test.vhd"};
 
     {
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);

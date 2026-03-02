@@ -274,7 +274,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
                        parameters.Version2.MaximumSize = 0;
                    },
                },
-               params.predecessor);
+               params.predecessor.get());
 
     UniqueHandle result_handle{nullptr};
 

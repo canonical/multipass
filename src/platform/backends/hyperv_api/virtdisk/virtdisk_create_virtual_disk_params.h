@@ -41,6 +41,36 @@ struct ParentPathParameters
     std::filesystem::path path;
 };
 
+struct VirtualDiskPredecessorInfo
+{
+    VirtualDiskPredecessorInfo() = default;
+
+    VirtualDiskPredecessorInfo(const SourcePathParameters& param) : predecessor{param}
+    {
+        if (param.path.empty())
+        {
+            throw std::invalid_argument{"Source disk path cannot be empty."};
+        }
+    }
+
+    VirtualDiskPredecessorInfo(const ParentPathParameters& param) : predecessor{param}
+    {
+        if (param.path.empty())
+        {
+            throw std::invalid_argument{"Parent disk path cannot be empty."};
+        }
+    }
+
+    const auto& get() const
+    {
+        return predecessor;
+    }
+
+private:
+    std::variant<std::monostate, SourcePathParameters, ParentPathParameters> predecessor{
+        std::monostate{}};
+};
+
 /**
  * Parameters for creating a new virtual disk drive.
  */
@@ -57,7 +87,7 @@ struct CreateVirtualDiskParameters
      * ParentPathParameters: A new disk, layered onto an existing disk. The
      * existing disk can be a VHDX or AVHDX.
      */
-    std::variant<std::monostate, SourcePathParameters, ParentPathParameters> predecessor{};
+    VirtualDiskPredecessorInfo predecessor{};
 };
 
 } // namespace multipass::hyperv::virtdisk

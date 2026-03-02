@@ -121,7 +121,9 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
         std::string vm_guid{};
         if (!HCS().get_compute_system_guid(handle, vm_guid) || vm_guid.empty())
         {
-            mpl::warn(log_category, "Could not retrieve VM guid for `{}`, skipping endpoint cleanup.", name);
+            mpl::warn(log_category,
+                      "Could not retrieve VM guid for `{}`, skipping endpoint cleanup.",
+                      name);
             return;
         }
         // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
@@ -270,10 +272,10 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     const auto src_vm_vhdx = it->path();
 
     // Copy the VHDX file.
-    virtdisk::CreateVirtualDiskParameters clone_vhdx_params{};
-    clone_vhdx_params.predecessor = virtdisk::SourcePathParameters{src_vm_vhdx};
-    clone_vhdx_params.path = desc.image.image_path.toStdString();
-    clone_vhdx_params.size_in_bytes = 0; // use source disk size
+    const hyperv::virtdisk::CreateVirtualDiskParameters clone_vhdx_params{
+        .size_in_bytes = 0, // 512 MiB
+        .path = desc.image.image_path.toStdString(),
+        .predecessor = virtdisk::SourcePathParameters{src_vm_vhdx}};
 
     const auto& [status, msg] = VirtDisk().create_virtual_disk(clone_vhdx_params);
 

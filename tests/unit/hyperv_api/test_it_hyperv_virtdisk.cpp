@@ -43,9 +43,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhdx)
     auto temp_path = make_tempfile_path(".vhdx");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
 
-    CreateVirtualDiskParameters params{};
-    params.path = temp_path;
-    params.size_in_bytes = test_vhdx_size;
+    const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                             .path = temp_path,
+                                             .predecessor = {}};
 
     const auto result = VirtDisk().create_virtual_disk(params);
     ASSERT_TRUE(result);
@@ -57,9 +57,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_virtual_disk_vhd)
     auto temp_path = make_tempfile_path(".vhd");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
 
-    CreateVirtualDiskParameters params{};
-    params.path = temp_path;
-    params.size_in_bytes = test_vhdx_size;
+    const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                             .path = temp_path,
+                                             .predecessor = {}};
 
     const auto result = VirtDisk().create_virtual_disk(params);
     ASSERT_TRUE(result);
@@ -71,9 +71,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, get_virtual_disk_properties)
     auto temp_path = make_tempfile_path(".vhdx");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
 
-    CreateVirtualDiskParameters params{};
-    params.path = temp_path;
-    params.size_in_bytes = test_vhdx_size;
+    const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                             .path = temp_path,
+                                             .predecessor = {}};
 
     const auto c_result = VirtDisk().create_virtual_disk(params);
     ASSERT_TRUE(c_result);
@@ -98,9 +98,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, resize_grow)
     auto temp_path = make_tempfile_path(".vhdx");
     std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
 
-    CreateVirtualDiskParameters params{};
-    params.path = temp_path;
-    params.size_in_bytes = test_vhdx_size;
+    const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                             .path = temp_path,
+                                             .predecessor = {}};
 
     const auto c_result = VirtDisk().create_virtual_disk(params);
     ASSERT_TRUE(c_result);
@@ -146,9 +146,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_child_disk)
     std::wprintf(L"Parent Path: %s\n",
                  static_cast<std::filesystem::path>(parent_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.path = parent_temp_path;
-        params.size_in_bytes = test_vhdx_size;
+        const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                                 .path = parent_temp_path,
+                                                 .predecessor = {}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -158,9 +158,11 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_child_disk)
     auto child_temp_path = make_tempfile_path(".avhdx");
     std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.predecessor = ParentPathParameters{parent_temp_path};
-        params.path = child_temp_path;
+
+        const CreateVirtualDiskParameters params{.size_in_bytes = 0,
+                                                 .path = child_temp_path,
+                                                 .predecessor =
+                                                     ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -175,9 +177,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_virtual_disk)
     std::wprintf(L"Parent Path: %s\n",
                  static_cast<std::filesystem::path>(parent_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.path = parent_temp_path;
-        params.size_in_bytes = test_vhdx_size;
+        const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                                 .path = parent_temp_path,
+                                                 .predecessor = {}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -187,9 +189,10 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_virtual_disk)
     auto child_temp_path = make_tempfile_path(".avhdx");
     std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.predecessor = ParentPathParameters{parent_temp_path};
-        params.path = child_temp_path;
+        const CreateVirtualDiskParameters params{.size_in_bytes = 0,
+                                                 .path = child_temp_path,
+                                                 .predecessor =
+                                                     ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -209,9 +212,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
     std::wprintf(L"Parent Path: %s\n",
                  static_cast<std::filesystem::path>(parent_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.path = parent_temp_path;
-        params.size_in_bytes = test_vhdx_size;
+        const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                                 .path = parent_temp_path,
+                                                 .predecessor = {}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -221,9 +224,10 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
     auto child_temp_path = make_tempfile_path(".avhdx");
     std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.predecessor = ParentPathParameters{parent_temp_path};
-        params.path = child_temp_path;
+        const CreateVirtualDiskParameters params{.size_in_bytes = 0,
+                                                 .path = child_temp_path,
+                                                 .predecessor =
+                                                     ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -235,9 +239,10 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
     std::wprintf(L"Grandchild Path: %s\n",
                  static_cast<std::filesystem::path>(grandchild_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.predecessor = ParentPathParameters{child_temp_path};
-        params.path = grandchild_temp_path;
+        const CreateVirtualDiskParameters params{.size_in_bytes = 0,
+                                                 .path = grandchild_temp_path,
+                                                 .predecessor =
+                                                     ParentPathParameters{child_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -267,9 +272,9 @@ TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
     std::wprintf(L"Parent Path: %s\n",
                  static_cast<std::filesystem::path>(parent_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.path = parent_temp_path;
-        params.size_in_bytes = test_vhdx_size;
+        const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                                 .path = parent_temp_path,
+                                                 .predecessor = {}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -280,9 +285,10 @@ TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
 
     std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child1_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.predecessor = ParentPathParameters{parent_temp_path};
-        params.path = child1_temp_path;
+        const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                                 .path = child1_temp_path,
+                                                 .predecessor =
+                                                     ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -293,9 +299,10 @@ TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
     auto child2_temp_path = make_tempfile_path(".avhdx");
     std::wprintf(L"Child Path: %s\n", static_cast<std::filesystem::path>(child2_temp_path).c_str());
     {
-        CreateVirtualDiskParameters params{};
-        params.predecessor = ParentPathParameters{child1_temp_path};
-        params.path = child2_temp_path;
+        const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                                 .path = child2_temp_path,
+                                                 .predecessor =
+                                                     ParentPathParameters{child1_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
