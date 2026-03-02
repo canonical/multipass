@@ -62,12 +62,10 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     const auto temp_path = make_tempfile_path(".vhdx");
 
-    const auto create_disk_parameters = [&temp_path]() {
-        hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{};
-        create_disk_parameters.path = temp_path;
-        create_disk_parameters.size_in_bytes = (1024 * 1024) * 512; // 512 MiB
-        return create_disk_parameters;
-    }();
+    const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
+        .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
+        .path = temp_path,
+        .predecessor = {}};
 
     const auto network_adapter = [&endpoint_parameters]() {
         hyperv::hcs::HcsNetworkAdapter network_adapter{};
@@ -155,12 +153,10 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     const auto temp_path = make_tempfile_path(".vhdx");
 
-    const auto create_disk_parameters = [&temp_path]() {
-        hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{};
-        create_disk_parameters.path = temp_path;
-        create_disk_parameters.size_in_bytes = (1024 * 1024) * 512; // 512 MiB
-        return create_disk_parameters;
-    }();
+    const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
+        .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
+        .path = temp_path,
+        .predecessor = {}};
 
     const auto create_vm_parameters = []() {
         hyperv::hcs::CreateComputeSystemParameters vm_parameters{};
