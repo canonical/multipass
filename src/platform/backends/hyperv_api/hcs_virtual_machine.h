@@ -20,8 +20,9 @@
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
 
-#include <multipass/virtual_machine_description.h>
 #include <shared/base_virtual_machine.h>
+
+#include <multipass/virtual_machine_description.h>
 
 #include <memory>
 
