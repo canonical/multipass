@@ -33,8 +33,10 @@ namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
 
 using testing::DoAll;
+using testing::Eq;
 using testing::NiceMock;
 using testing::Return;
+using testing::StrEq;
 using testing::StrictMock;
 
 namespace multipass::test
@@ -161,6 +163,13 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             "Services": {
                 "Shutdown": {},
                 "Heartbeat": {}
+            },
+            "GuestState": {
+                "GuestStateFilePath": "non-empty.vmgs",
+                "RuntimeStateFilePath": "non-empty.vmrs"
+            },
+            "RestoreState": {
+                "SaveStateFilePath": "non-empty.savedstate.vmrs"
             }
         }
     })";
@@ -218,8 +227,19 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             ASSERT_EQ(mock_compute_system_object, computeSystem);
         });
 
-        EXPECT_CALL(mock_hcs_api, LocalFree)
-            .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
+        EXPECT_CALL(mock_hcs_api, HcsCreateEmptyGuestStateFile(StrEq(L"non-empty.vmgs")))
+            .WillOnce(Return(NOERROR));
+
+        EXPECT_CALL(mock_hcs_api, HcsCreateEmptyRuntimeStateFile(StrEq(L"non-empty.vmrs")))
+            .WillOnce(Return(NOERROR));
+
+        EXPECT_CALL(mock_hcs_api, HcsGrantVmAccess(StrEq(L"test_vm"), StrEq(L"non-empty.vmrs")))
+            .WillOnce(Return(NOERROR));
+
+        EXPECT_CALL(mock_hcs_api, HcsGrantVmAccess(StrEq(L"test_vm"), StrEq(L"non-empty.vmgs")))
+            .WillOnce(Return(NOERROR));
+
+        EXPECT_CALL(mock_hcs_api, LocalFree(Eq(mock_success_msg))).WillOnce(Return(nullptr));
 
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "HCSWrapper::create_compute_system(...) > params:");
@@ -228,6 +248,12 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                                              "wait_for_operation_result(...) > (");
         logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                              "wait_for_operation_result(...) > finished");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::debug,
+            "grant_vm_access(...) > name: (test_vm), file_path: (non-empty.vmgs)");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::debug,
+            "grant_vm_access(...) > name: (test_vm), file_path: (non-empty.vmrs)");
     }
 
     /******************************************************
@@ -243,12 +269,91 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             HcsScsiDevice{HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
         params.memory_size_mb = 16384;
         params.processor_count = 8;
+        params.guest_state.guest_state_file_path = "non-empty.vmgs";
+        params.guest_state.runtime_state_file_path = "non-empty.vmrs";
+        params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_TRUE(status);
         ASSERT_NE(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), mock_success_msg);
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmgs_create_fail)
+{
+    /******************************************************
+     * Verify that the dependencies are called with right
+     * data.
+     ******************************************************/
+    {
+        EXPECT_CALL(mock_hcs_api, HcsCreateEmptyGuestStateFile(StrEq(L"non-empty.vmgs")))
+            .WillOnce(Return(E_POINTER));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "HCSWrapper::create_compute_system(...) > params:");
+    }
+
+    /******************************************************
+     * Verify the expected outcome.
+     ******************************************************/
+    {
+        HcsSystemHandle handle{nullptr};
+        CreateComputeSystemParameters params{};
+        params.name = "test_vm";
+        params.guest_state.guest_state_file_path = "non-empty.vmgs";
+        params.guest_state.runtime_state_file_path = "non-empty.vmrs";
+        params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
+
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
+        ASSERT_FALSE(status);
+        ASSERT_EQ(nullptr, handle);
+        ASSERT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmrs_create_fail)
+{
+    /******************************************************
+     * Verify that the dependencies are called with right
+     * data.
+     ******************************************************/
+    {
+        EXPECT_CALL(mock_hcs_api, HcsCreateEmptyGuestStateFile(StrEq(L"non-empty.vmgs")))
+            .WillOnce(Return(NOERROR));
+
+        EXPECT_CALL(mock_hcs_api, HcsGrantVmAccess).WillOnce(Return(NOERROR));
+
+        EXPECT_CALL(mock_hcs_api, HcsCreateEmptyRuntimeStateFile(StrEq(L"non-empty.vmrs")))
+            .WillOnce(Return(E_POINTER));
+
+        logger_scope.mock_logger->expect_log(mpl::Level::debug,
+                                             "HCSWrapper::create_compute_system(...) > params:");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::debug,
+            "grant_vm_access(...) > name: (test_vm), file_path: (non-empty.vmgs)");
+    }
+
+    /******************************************************
+     * Verify the expected outcome.
+     ******************************************************/
+    {
+        HcsSystemHandle handle{nullptr};
+        CreateComputeSystemParameters params{};
+        params.name = "test_vm";
+        params.guest_state.guest_state_file_path = "non-empty.vmgs";
+        params.guest_state.runtime_state_file_path = "non-empty.vmrs";
+        params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
+
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
+        ASSERT_FALSE(status);
+        ASSERT_EQ(nullptr, handle);
+        ASSERT_TRUE(status_msg.empty());
     }
 }
 
