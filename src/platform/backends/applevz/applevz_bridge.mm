@@ -16,6 +16,7 @@
  */
 
 #include <applevz/applevz_bridge.h>
+#include <applevz/applevz_vmnet.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <Foundation/Foundation.h>
