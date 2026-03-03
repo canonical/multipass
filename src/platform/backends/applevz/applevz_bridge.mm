@@ -36,9 +36,10 @@ namespace multipass::applevz
 {
 struct VirtualMachineHandle
 {
-    std::shared_ptr<void> vm; // Ownership transfer of VZVirtualMachine*
-    dispatch_queue_t queue;   // Dispatch queue for VM operations
-    uint64_t id;              // Unique VM ID
+    std::shared_ptr<void> vm;                        // Ownership transfer of VZVirtualMachine*
+    dispatch_queue_t queue;                          // Dispatch queue for VM operations
+    uint64_t id;                                     // Unique VM ID
+    std::vector<std::unique_ptr<VmnetRelay>> relays; // Vmnet relays
 };
 } // namespace multipass::applevz
 

@@ -16,3 +16,22 @@
  */
 
 #pragma once
+
+#include <vmnet/vmnet.h>
+
+namespace multipass::applevz
+{
+struct VmnetRelay
+{
+    interface_ref iface;
+    int fd;
+    dispatch_source_t source;
+    dispatch_queue_t queue;
+
+    ~VmnetRelay();
+
+    VmnetRelay() = default;
+    VmnetRelay(const VmnetRelay&) = delete;
+    VmnetRelay& operator=(const VmnetRelay&) = delete;
+};
+} // namespace multipass::applevz

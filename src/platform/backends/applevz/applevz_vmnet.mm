@@ -14,3 +14,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#include <applevz/applevz_vmnet.h>
+
+namespace multipass::applevz
+{
+VmnetRelay::~VmnetRelay()
+{
+    if (source)
+        dispatch_source_cancel(source);
+
+    if (iface)
+    {
+        dispatch_semaphore_t s = dispatch_semaphore_create(0);
+        vmnet_stop_interface(iface, queue, ^(vmnet_return_t) {
+          dispatch_semaphore_signal(s);
+        });
+        dispatch_semaphore_wait(s, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC));
+    }
+
+    if (fd >= 0)
+        close(fd);
+}
+} // namespace multipass::applevz
