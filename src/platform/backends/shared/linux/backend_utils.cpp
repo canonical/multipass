@@ -220,6 +220,8 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
 {
     static constexpr auto log_category_create = "create bridge";
     static constexpr auto log_category_rollback = "rollback bridge";
+    static constexpr auto success_msg = "Created bridge: {}. "
+                                        "To revert, run: `nmcli connection delete {} {}`";
     static const auto root_path = QDBusObjectPath{"/"};
     static const auto base_name = QStringLiteral("br-");
 
@@ -265,7 +267,7 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     rollback_guard.dismiss(); // we succeeded!
 
     auto ret = parent_name.toStdString();
-    mpl::info(log_category_create, "Created bridge: {}", ret);
+    mpl::info(log_category_create, success_msg, ret, ret, child_name);
 
     return ret;
 }
