@@ -303,9 +303,45 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_adapters()
     return ret;
 }
 
+std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_hyperv_vswitches()
+{
+    std::vector<NetworkInterfaceInfo> result;
+
+    std::vector<std::string> hyperv_network_guids;
+    std::vector<hyperv::hcn::HcnNetworkInfo> hyperv_network_infos;
+    const auto& [status, status_msg] = HCN().enumerate_networks(hyperv_network_guids);
+
+    for (const auto& network_guid : hyperv_network_guids)
+    {
+        if (const auto result =
+                HCN().query_network(network_guid, hyperv_network_infos.emplace_back());
+            !result)
+        {
+            hyperv_network_infos.pop_back();
+        }
+    }
+
+    for (const auto& network_info : hyperv_network_infos)
+    {
+        result.emplace_back(NetworkInterfaceInfo{
+            .id = network_info.name,
+            .type = "switch",
+            .description = fmt::format("Hyper-V vSwitch({})", network_info.type),
+            .links = network_info.network_adapter_name.has_value()
+                         ? std::vector<std::string>{network_info.network_adapter_name.value()}
+                         : std::vector<std::string>{},
+            .needs_authorization = false});
+    }
+
+    return result;
+}
+
 std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
 {
-    return get_adapters();
+    auto result = get_adapters();
+    auto switches = get_hyperv_vswitches();
+    std::move(switches.begin(), switches.end(), std::back_inserter(result));
+    return result;
 }
 
 void HCSVirtualMachineFactory::hypervisor_health_check()
