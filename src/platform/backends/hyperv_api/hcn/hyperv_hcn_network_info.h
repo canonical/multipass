@@ -28,6 +28,7 @@ struct HcnNetworkInfo
     std::string guid;
     std::string name;
     std::string type;
+    std::optional<std::string> network_adapter_name;
 };
 
 }; // namespace multipass::hyperv::hcn

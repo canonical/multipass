@@ -25,6 +25,7 @@
 namespace multipass::test
 {
 
+using namespace hyperv::hcn;
 using hyperv::hcn::HCN;
 
 struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
@@ -33,11 +34,10 @@ struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
 {
-    hyperv::hcn::CreateNetworkParameters params{};
+    CreateNetworkParameters params{};
     params.name = "multipass-hyperv-api-hcn-create-delete-test";
     params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
-    params.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
-                                         {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
+    params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
 
     (void)HCN().delete_network(params.guid);
 
@@ -54,15 +54,86 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
     }
 }
 
+TEST_F(HyperVHCNAPI_IntegrationTests, enumerate_networks)
+{
+    CreateNetworkParameters params{};
+    params.name = "multipass-hyperv-api-hcn-enumerate-test";
+    params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+    params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
+
+    (void)HCN().delete_network(params.guid);
+
+    {
+        const auto& [result, error_msg] = HCN().create_network(params);
+        ASSERT_TRUE(result);
+    }
+
+    {
+        std::vector<std::string> guids;
+        const auto result = HCN().enumerate_networks(guids);
+        ASSERT_TRUE(result);
+        EXPECT_NE(std::find(guids.cbegin(), guids.cend(), "b70c479d-f808-4053-aafa-705bc15b6d68"),
+                  guids.cend());
+    }
+
+    {
+        const auto& [result, error_msg] = HCN().delete_network(params.guid);
+        ASSERT_TRUE(result);
+    }
+
+    {
+        std::vector<std::string> guids;
+        const auto result = HCN().enumerate_networks(guids);
+        ASSERT_TRUE(result);
+        EXPECT_EQ(std::find(guids.cbegin(), guids.cend(), "b70c479d-f808-4053-aafa-705bc15b6d68"),
+                  guids.cend());
+    }
+}
+
+TEST_F(HyperVHCNAPI_IntegrationTests, query_network)
+{
+    CreateNetworkParameters params{};
+    params.name = "multipass-hyperv-api-hcn-query-test";
+    params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+    params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
+
+    (void)HCN().delete_network(params.guid);
+
+    {
+        const auto& [result, error_msg] = HCN().create_network(params);
+        ASSERT_TRUE(result);
+    }
+
+    {
+        HcnNetworkInfo info{};
+        const auto result = HCN().query_network("b70c479d-f808-4053-aafa-705bc15b6d68", info);
+        ASSERT_TRUE(result);
+        EXPECT_EQ(info.name, params.name);
+        EXPECT_EQ(info.type, "ICS");
+        EXPECT_EQ(info.guid, "b70c479d-f808-4053-aafa-705bc15b6d68");
+    }
+
+    {
+        const auto& [result, error_msg] = HCN().delete_network(params.guid);
+        ASSERT_TRUE(result);
+    }
+}
+
+TEST_F(HyperVHCNAPI_IntegrationTests, query_nonexistent_network)
+{
+    HcnNetworkInfo info{};
+    const auto result = HCN().query_network("00000000-0000-0000-0000-000000000000", info);
+    EXPECT_FALSE(result);
+}
+
 TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 {
-    hyperv::hcn::CreateNetworkParameters network_params{};
+    CreateNetworkParameters network_params{};
     network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
     network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-    network_params.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
-                                                 {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
+    network_params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
 
-    hyperv::hcn::CreateEndpointParameters endpoint_params{};
+    CreateEndpointParameters endpoint_params{};
 
     endpoint_params.network_guid = network_params.guid;
     endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
@@ -97,13 +168,12 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_endpoint_explicit_mac)
 {
-    hyperv::hcn::CreateNetworkParameters network_params{};
+    CreateNetworkParameters network_params{};
     network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
     network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-    network_params.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
-                                                 {hyperv::hcn::HcnSubnet{"172.50.224.0/20"}}}};
+    network_params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
 
-    hyperv::hcn::CreateEndpointParameters endpoint_params{};
+    CreateEndpointParameters endpoint_params{};
 
     endpoint_params.network_guid = network_params.guid;
     endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
