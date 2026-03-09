@@ -176,14 +176,6 @@ void try_create_endpoints(
     std::vector<multipass::hyperv::hcn::CreateEndpointParameters> created_endpoints;
     for (const auto& endpoint : create_endpoint_params)
     {
-        // There might be remnants from an old VM, remove the endpoint if exist before
-        // creating it again.
-        if (HCN().delete_endpoint(endpoint.endpoint_guid))
-        {
-            mpl::debug(vm_name,
-                       "The endpoint {} was already present, removed it.",
-                       endpoint.endpoint_guid);
-        }
         if (const auto result = HCN().create_endpoint(endpoint))
             created_endpoints.push_back(endpoint);
         else
