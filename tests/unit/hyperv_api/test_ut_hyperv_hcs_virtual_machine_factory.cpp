@@ -168,43 +168,43 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
 {
     std::shared_ptr<uut_t> uut{nullptr};
     multipass::VirtualMachineDescription desc;
-    multipass::NetworkInterfaceInfo interface1, interface2;
-    interface1.id = "aabb";
-    interface2.id = "bbaa";
-    multipass::NetworkInterface if1, if2;
-    if1.id = "Multipass vSwitch (aabb)";
-    if2.id = "Multipass vSwitch (bbaa)";
-    desc.extra_interfaces.push_back(if1);
-    desc.extra_interfaces.push_back(if2);
+    multipass::NetworkInterfaceInfo interface1{.id = "aabb", .type = "Ethernet"},
+        interface2{.id = "bbaa", .type = "Ethernet"};
+
+    desc.extra_interfaces = {{.id = interface1.id}, {.id = interface2.id}};
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info())
-        .WillRepeatedly(
-            Return(std::map<std::string, multipass::NetworkInterfaceInfo>{{"aabb", interface1},
-                                                                          {"bbaa", interface2}}));
+        .WillRepeatedly(Return(
+            std::map<std::string, multipass::NetworkInterfaceInfo>{{interface1.id, interface1},
+                                                                   {interface2.id, interface2}}));
+
+    EXPECT_CALL(mock_hcn, enumerate_networks)
+        .WillOnce(DoAll(
+            [&](std::vector<std::string>& network_guids) {
+                // vSwitch for one already exists, one will be created from scratch
+                network_guids.emplace_back("this isn't a network guid");
+                // network_guids.emplace_back("this isn't either");
+            },
+            Return(hcs_op_result_t{0, L""})));
+
+    EXPECT_CALL(mock_hcn, query_network(Eq("this isn't a network guid"), _))
+        .WillOnce(DoAll(
+            [&](const std::string&, mhv::hcn::HcnNetworkInfo& out) {
+                out.guid = "this isn't a network guid";
+                out.name = fmt::format("Multipass vSwitch ({})", interface1.id);
+                out.type = "ICS";
+                out.network_adapter_name = interface1.id;
+            },
+            Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcn, create_network(_))
+        // only expect call for bbaa. aabb's vSwitch already exists.
         .WillOnce(DoAll(
             [&](const multipass::hyperv::hcn::CreateNetworkParameters& params) {
-                EXPECT_EQ(params.name, if1.id);
+                constexpr auto expected_name = "Multipass vSwitch (bbaa)";
+                EXPECT_EQ(params.name, expected_name);
                 EXPECT_EQ(params.type, mhv::hcn::HcnNetworkType::Transparent());
-                EXPECT_EQ(params.guid, multipass::utils::make_uuid(if1.id).toStdString());
-                ASSERT_EQ(params.policies.size(), 1);
-                EXPECT_EQ(params.policies[0].type,
-                          mhv::hcn::HcnNetworkPolicyType::NetAdapterName());
-                ASSERT_TRUE(
-                    std::holds_alternative<multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName>(
-                        params.policies[0].settings));
-                const auto& net_adapter_name =
-                    std::get<multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName>(
-                        params.policies[0].settings);
-                EXPECT_EQ(net_adapter_name.net_adapter_name, interface1.id);
-            },
-            Return(hcs_op_result_t{0, L""})))
-        .WillOnce(DoAll(
-            [&](const multipass::hyperv::hcn::CreateNetworkParameters& params) {
-                EXPECT_EQ(params.name, if2.id);
-                EXPECT_EQ(params.type, mhv::hcn::HcnNetworkType::Transparent());
-                EXPECT_EQ(params.guid, multipass::utils::make_uuid(if2.id).toStdString());
+                EXPECT_EQ(params.guid, multipass::utils::make_uuid(expected_name).toStdString());
                 ASSERT_EQ(params.policies.size(), 1);
                 EXPECT_EQ(params.policies[0].type,
                           mhv::hcn::HcnNetworkPolicyType::NetAdapterName());
@@ -241,5 +241,6 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
 
     ASSERT_NO_THROW(uut = construct_factory());
 
+    uut->prepare_networking(desc.extra_interfaces);
     auto ptr = uut->create_virtual_machine(desc, stub_key_provider, stub_monitor);
 }
