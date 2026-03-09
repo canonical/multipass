@@ -17,9 +17,9 @@
 
 #pragma once
 
+#include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
-#include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 
 #include <shared/base_virtual_machine.h>
 

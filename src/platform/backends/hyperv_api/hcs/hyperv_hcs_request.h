@@ -36,10 +36,8 @@ struct HcsRequest
 {
     HcsResourcePath resource_path;
     HcsRequestType request_type;
-    std::variant<std::monostate,
-                 HcsNetworkAdapter,
-                 HcsModifyMemorySettings>
-        settings{std::monostate{}};
+    std::variant<std::monostate, HcsNetworkAdapter, HcsModifyMemorySettings> settings{
+        std::monostate{}};
 };
 
 } // namespace multipass::hyperv::hcs
@@ -52,6 +50,6 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsRequest, Char>
     : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HcsRequest& param, FormatContext& ctx) const
-        -> FormatContext::iterator;
+    auto format(const multipass::hyperv::hcs::HcsRequest& param,
+                FormatContext& ctx) const -> FormatContext::iterator;
 };
