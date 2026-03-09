@@ -66,43 +66,6 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    const auto networks = MP_PLATFORM.get_network_interfaces_info();
-    for (const auto& extra : desc.extra_interfaces)
-    {
-        std::regex pattern{extra_interface_vswitch_name_regex};
-        std::smatch match;
-
-        // The origin interface name is encoded into the interface name itself.
-        if (!std::regex_match(extra.id, match, pattern) || match.size() != 2)
-        {
-            mpl::error(log_category, "Invalid extra interface name `{}`.", extra.id);
-            continue;
-        }
-
-        const auto origin_interface_name = match[1].str();
-        const auto origin_network_guid = match[2].str();
-
-        const auto found = std::find_if(networks.begin(), networks.end(), [&](const auto& kvp) {
-            const auto& [k, v] = kvp;
-            return v.id == origin_interface_name;
-        });
-
-        if (networks.end() == found)
-        {
-            mpl::warn(log_category,
-                      "Could not find the source interface `{}` for extra `{}`",
-                      origin_interface_name,
-                      extra.id);
-            continue;
-        }
-
-        const auto vswitch_name = create_bridge_with(found->second);
-        if (vswitch_name.empty())
-        {
-            mpl::warn(log_category, "vSwitch {} could not be created", found->first);
-        }
-    }
-
     return std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
                                                desc,
                                                monitor,
@@ -325,7 +288,7 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_hyperv_vswitches
     {
         result.emplace_back(NetworkInterfaceInfo{
             .id = network_info.name,
-            .type = "switch",
+            .type = MP_PLATFORM.bridge_nomenclature(),
             .description = fmt::format("Hyper-V vSwitch({})", network_info.type),
             .links = network_info.network_adapter_name.has_value()
                          ? std::vector<std::string>{network_info.network_adapter_name.value()}
