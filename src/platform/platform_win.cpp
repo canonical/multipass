@@ -28,7 +28,9 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
+#if defined(HYPERV_HCS_ENABLED)
 #include "backends/hyperv_api/hcs_virtual_machine_factory.h"
+#endif
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "hyperv_api/hyperv_api_string_conversion.h"
 #include "logger/win_event_logger.h"
@@ -788,7 +790,15 @@ mp::platform::Platform::get_network_interfaces_info() const
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return backend == "hyperv" || backend == "virtualbox" || backend == "hyperv_api";
+    constexpr std::string_view supported_backends[] = {
+        "hyperv",
+        "virtualbox",
+#if defined(HYPERV_HCS_ENABLED)
+        "hyperv_api",
+#endif
+    };
+    return std::ranges::any_of(supported_backends,
+                               [&](std::string_view b) { return backend == b; });
 }
 
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& /* server_address */,
@@ -893,10 +903,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
         return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
     }
+#if defined(HYPERV_HCS_ENABLED)
     else if (driver == "hyperv_api")
     {
         return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir);
     }
+#endif
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
