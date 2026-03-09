@@ -48,7 +48,7 @@ struct HCNWrapper : public Singleton<HCNWrapper>
         const std::string& vm_guid,
         std::vector<std::string>& endpoint_guids) const;
     [[nodiscard]] virtual OperationResult enumerate_networks(
-        std::vector<HcnNetworkInfo>& endpoint_guids) const;
+        std::vector<std::string>& network_guids) const;
     [[nodiscard]] virtual OperationResult query_network(const std::string& network_guid,
                                                         HcnNetworkInfo& out_info) const;
 };
