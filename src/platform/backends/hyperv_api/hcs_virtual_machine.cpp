@@ -22,7 +22,6 @@
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
-#include <hyperv_api/hcs_plan9_mount_handler.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
@@ -409,7 +408,6 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                     });
                 return std::vector(std::ranges::begin(view), std::ranges::end(view));
             }(),
-        .shares = {},
         .guest_state = {.guest_state_file_path = get_guest_state_file_path(),
                         .runtime_state_file_path = get_runtime_state_file_path(),
                         .save_state_file_path = has_saved_state_file()

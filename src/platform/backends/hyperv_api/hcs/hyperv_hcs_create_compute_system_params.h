@@ -18,7 +18,6 @@
 #pragma once
 
 #include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
-#include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_scsi_device.h>
 
 #include <fmt/format.h>
@@ -62,12 +61,6 @@ struct CreateComputeSystemParameters
      * by default at creation time.
      */
     std::vector<HcsNetworkAdapter> network_adapters{};
-
-    /**
-     * List of Plan9 shares that'll be added to the compute system
-     * by default at creation time.
-     */
-    std::vector<HcsAddPlan9ShareParameters> shares{};
 
     /**
      * Guest & runtime state file paths, if any.

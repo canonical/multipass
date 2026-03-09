@@ -55,7 +55,6 @@ if(WIN32)
     hcs/hyperv_hcs_scsi_device.cpp
     hcs/hyperv_hcs_schema_version.cpp
     hcs/hyperv_hcs_network_adapter.cpp
-    hcs/hyperv_hcs_plan9_share_params.cpp
     hcs/hyperv_hcs_create_compute_system_params.cpp
     hcs/hyperv_hcs_request.cpp
     hcs/hyperv_hcs_path.cpp
@@ -63,7 +62,6 @@ if(WIN32)
     virtdisk/virtdisk_wrapper.cpp
     virtdisk/virtdisk_snapshot.cpp
     virtdisk/virtdisk_api.cpp
-    hcs_plan9_mount_handler.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
   )
