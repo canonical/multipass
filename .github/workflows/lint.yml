@@ -52,6 +52,14 @@ jobs:
       - name: Run clang-format through the diff
         shell: bash
         run: |
+          # WORKAROUND: clang-format-diff script in LLVM 18 is buggy -- it bails out on the first file
+          # when there are multiple files with format diffs.
+          # Pull and use LLVM 19's clang-format-diff for now.
+          # Remove after upgrading the LLVM.
+          curl -sL https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-19.1.0/clang/tools/clang-format/clang-format-diff.py \
+            -o /tmp/clang-format-diff
+          chmod +x /tmp/clang-format-diff
+
           # Print out version of clang-format being used
           clang-format --version
 
@@ -61,7 +69,7 @@ jobs:
           # On pull requests, HEAD^1 will always be the merge base, so consider that diff for formatting.
           git diff -U0 --no-color HEAD^1 \
             | grep -vE '^\+\+\+ b/tests/unit/test_data/formatters/' \
-            | clang-format-diff -p1 \
+            | /tmp/clang-format-diff -p1 \
             | tee ${HOME}/clang-diff
 
           if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
