@@ -344,6 +344,27 @@ void HCSVirtualMachine::set_compute_system_callback_handler()
     }
 }
 
+std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_parameters() const
+{
+    std::vector<hcn::CreateEndpointParameters> params{
+        // The primary endpoint (management)
+        {.network_guid = primary_network_guid,
+         .endpoint_guid = mac2uuid(description.default_mac_address),
+         .mac_address = replace_colon_with_dash(description.default_mac_address)}};
+
+    // Additional endpoints, a.k.a. extra interfaces.
+    std::ranges::transform(description.extra_interfaces,
+                           std::back_inserter(params),
+                           [](const auto& v) -> hcn::CreateEndpointParameters {
+                               return {.network_guid =
+                                           multipass::utils::make_uuid(v.id).toStdString(),
+                                       .endpoint_guid = mac2uuid(v.mac_address),
+                                       .mac_address = replace_colon_with_dash(v.mac_address)};
+                           });
+
+    return params;
+};
+
 bool HCSVirtualMachine::maybe_create_compute_system()
 {
     // Always reset the handle and create a new one.
@@ -362,25 +383,9 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     }
 
     // Create the VM from scratch.
-    const auto endpoints = [this]() {
-        std::vector<hcn::CreateEndpointParameters> params{
-            // The primary endpoint (management)
-            {.network_guid = primary_network_guid,
-             .endpoint_guid = mac2uuid(description.default_mac_address),
-             .mac_address = replace_colon_with_dash(description.default_mac_address)}};
+    const auto endpoints = make_endpoint_parameters();
 
-        // Additional endpoints, a.k.a. extra interfaces.
-        std::ranges::transform(description.extra_interfaces,
-                               std::back_inserter(params),
-                               [](const auto& v) -> hcn::CreateEndpointParameters {
-                                   return {.network_guid =
-                                               multipass::utils::make_uuid(v.id).toStdString(),
-                                           .endpoint_guid = mac2uuid(v.mac_address),
-                                           .mac_address = replace_colon_with_dash(v.mac_address)};
-                               });
-
-        return params;
-    }();
+    try_create_endpoints(get_name(), endpoints);
 
     const hcs::CreateComputeSystemParameters create_compute_system_params{
         .name = description.vm_name,
@@ -410,8 +415,6 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                         .save_state_file_path = has_saved_state_file()
                                                     ? std::optional(get_saved_state_file_path())
                                                     : std::nullopt}};
-
-    try_create_endpoints(get_name(), endpoints);
 
     if (const auto create_result =
             HCS().create_compute_system(create_compute_system_params, hcs_system);
