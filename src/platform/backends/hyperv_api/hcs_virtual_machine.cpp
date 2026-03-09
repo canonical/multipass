@@ -173,6 +173,7 @@ void try_create_endpoints(
     const std::string& vm_name,
     const std::vector<multipass::hyperv::hcn::CreateEndpointParameters>& create_endpoint_params)
 {
+    std::vector<multipass::hyperv::hcn::CreateEndpointParameters> created_endpoints;
     for (const auto& endpoint : create_endpoint_params)
     {
         // There might be remnants from an old VM, remove the endpoint if exist before
@@ -183,10 +184,21 @@ void try_create_endpoints(
                        "The endpoint {} was already present, removed it.",
                        endpoint.endpoint_guid);
         }
-        if (const auto& [status, msg] = HCN().create_endpoint(endpoint); !status)
+        if (const auto result = HCN().create_endpoint(endpoint))
+            created_endpoints.push_back(endpoint);
+        else
         {
-            throw multipass::hyperv::CreateEndpointException{"create_endpoint failed with {}",
-                                                             status};
+            for (const auto& created_ep : created_endpoints)
+            {
+                mpl::warn(vm_name,
+                          "Removing endpoint {} due to failed operation, result {}",
+                          created_ep.endpoint_guid,
+                          HCN().delete_endpoint(created_ep.endpoint_guid));
+            }
+            throw multipass::hyperv::CreateEndpointException{
+                "create_endpoint failed with {}, endpoint details: {}",
+                result.code,
+                endpoint};
         }
     }
 }
