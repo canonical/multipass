@@ -68,6 +68,17 @@ HRESULT HCNAPI::HcnEnumerateEndpoints(PCWSTR Query, PWSTR* Endpoints, PWSTR* Err
 {
     return ::HcnEnumerateEndpoints(Query, Endpoints, ErrorRecord);
 }
+HRESULT HCNAPI::HcnEnumerateNetworks(PCWSTR Query, PWSTR* Networks, PWSTR* ErrorRecord) const
+{
+    return ::HcnEnumerateNetworks(Query, Networks, ErrorRecord);
+}
+HRESULT HCNAPI::HcnQueryNetworkProperties(HCN_NETWORK Network,
+                                          PCWSTR Query,
+                                          PWSTR* Properties,
+                                          PWSTR* ErrorRecord) const
+{
+    return ::HcnQueryNetworkProperties(Network, Query, Properties, ErrorRecord);
+}
 void HCNAPI::CoTaskMemFree(LPVOID pv) const
 {
     ::CoTaskMemFree(pv);

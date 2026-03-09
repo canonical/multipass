@@ -53,6 +53,14 @@ public:
                 (const override));
     MOCK_METHOD(HRESULT, HcnDeleteEndpoint, (REFGUID Id, PWSTR* ErrorRecord), (const override));
     MOCK_METHOD(HRESULT, HcnCloseEndpoint, (HCN_ENDPOINT Endpoint), (const override));
+    MOCK_METHOD(HRESULT,
+                HcnEnumerateNetworks,
+                (PCWSTR Query, PWSTR* Networks, PWSTR* ErrorRecord),
+                (const override));
+    MOCK_METHOD(HRESULT,
+                HcnQueryNetworkProperties,
+                (HCN_NETWORK Network, PCWSTR Query, PWSTR* Properties, PWSTR* ErrorRecord),
+                (const override));
     MOCK_METHOD(void, CoTaskMemFree, (LPVOID pv), (const override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockHCNAPI, HCNAPI);
