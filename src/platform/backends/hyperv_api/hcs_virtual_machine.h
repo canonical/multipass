@@ -120,5 +120,8 @@ private:
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
 
     static void compute_system_event_callback(HCS_EVENT* event, void* context);
+
+    void set_compute_system_callback_handler();
+
 };
 } // namespace multipass::hyperv
