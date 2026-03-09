@@ -254,60 +254,6 @@ TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
     std::wprintf(L"%s\n", p_result.status_msg.c_str());
 }
 
-// Later.
-// TEST_F(HyperVHCSAPI_IntegrationTests, add_remove_plan9_share)
-// {
-//     hyperv::hcs::CreateComputeSystemParameters params{};
-//     params.name = test_vm_name;
-//     params.memory_size_mb = 1024;
-//     params.processor_count = 1;
-//     params.scsi_devices = {
-//         hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"},
-//         hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"}
-
-//     };
-
-//     const auto c_result = HCS().create_compute_system(params, handle);
-
-//     ASSERT_TRUE(c_result);
-//     ASSERT_TRUE(c_result.status_msg.empty());
-
-//     const auto s_result = HCS().start_compute_system(handle);
-//     ASSERT_TRUE(s_result);
-//     ASSERT_TRUE(s_result.status_msg.empty());
-
-//     const auto p_result = HCS().get_compute_system_properties(handle);
-//     EXPECT_TRUE(p_result);
-//     std::wprintf(L"%s\n", p_result.status_msg.c_str());
-
-//     const auto add_9p_req = []() {
-//         hyperv::hcs::HcsAddPlan9ShareParameters share{};
-//         share.access_name = test_vm_name;
-//         share.name = test_vm_name;
-//         share.host_path = "C://";
-//         return hyperv::hcs::HcsRequest{hyperv::hcs::HcsResourcePath::Plan9Shares(),
-//                                        hyperv::hcs::HcsRequestType::Add(),
-//                                        share};
-//     }();
-
-//     const auto sh_a_result = HCS().modify_compute_system(handle, add_9p_req);
-//     EXPECT_TRUE(sh_a_result);
-//     std::wprintf(L"%s\n", sh_a_result.status_msg.c_str());
-
-//     const auto remove_9p_req = []() {
-//         hyperv::hcs::HcsRemovePlan9ShareParameters share{};
-//         share.access_name = test_vm_name;
-//         share.name = test_vm_name;
-//         return hyperv::hcs::HcsRequest{hyperv::hcs::HcsResourcePath::Plan9Shares(),
-//                                        hyperv::hcs::HcsRequestType::Remove(),
-//                                        share};
-//     }();
-
-//     const auto sh_r_result = HCS().modify_compute_system(handle, remove_9p_req);
-//     EXPECT_TRUE(sh_r_result);
-//     std::wprintf(L"%s\n", sh_r_result.status_msg.c_str());
-// }
-
 TEST_F(HyperVHCSAPI_IntegrationTests, instance_with_snapshots)
 {
     hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
