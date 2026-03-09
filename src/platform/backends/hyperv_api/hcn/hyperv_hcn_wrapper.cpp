@@ -274,15 +274,15 @@ OperationResult HCNWrapper::enumerate_attached_endpoints(
     const auto query = EndpointQuery{.vm_guid = vm_guid};
     const auto query_wstring = fmt::to_wstring(query);
 
-    UniqueCotaskmemString endpoints_json_output{}, result_msgbuf{};
+    UniqueCotaskmemString json_output{}, result_msgbuf{};
 
     const auto result = API().HcnEnumerateEndpoints(query_wstring.c_str(),
-                                                    out_ptr(endpoints_json_output),
+                                                    out_ptr(json_output),
                                                     out_ptr(result_msgbuf));
 
-    if (endpoints_json_output)
+    if (json_output)
     {
-        const auto endpoints_as_str = wchar_to_utf8(endpoints_json_output.get());
+        const auto endpoints_as_str = wchar_to_utf8(json_output.get());
         std::error_code ec;
         const auto as_json = boost::json::parse(endpoints_as_str, ec);
         if (!ec)
@@ -298,4 +298,82 @@ OperationResult HCNWrapper::enumerate_attached_endpoints(
     return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
+OperationResult HCNWrapper::query_network(const std::string& network_guid,
+                                          HcnNetworkInfo& out_info) const
+{
+    mpl::trace(log_category, "HCNWrapper::query_network(...) > network_guid: {}", network_guid);
+
+    if (const auto& [open_network_result, network] = open_network(network_guid);
+        open_network_result)
+    {
+        UniqueCotaskmemString query_result{}, result_msgbuf{};
+        const auto result = API().HcnQueryNetworkProperties(network.get(),
+                                                            L"{}",
+                                                            out_ptr(query_result),
+                                                            out_ptr(result_msgbuf));
+        if (query_result)
+        {
+            const auto json_as_str = wchar_to_utf8(query_result.get());
+            std::error_code ec;
+            const auto as_json = boost::json::parse(json_as_str, ec);
+            if (!ec)
+            {
+                const auto& obj = as_json.as_object();
+                out_info.guid = network_guid;
+                if (const auto* name = obj.if_contains("Name"))
+                    out_info.name = name->as_string();
+
+                if (const auto* type = obj.if_contains("Type"))
+                    out_info.type = type->as_string();
+                else
+                {
+                    // Quoting hcsshim:
+                    // "If HNS sets the network type to NAT (i.e. '0' in
+                    // HNS.Schema.Network.NetworkMode),the value will be omitted from the JSON blob.
+                    // We therefore need to initializeNAT here before unmarshaling the JSON blob."
+                    out_info.type = "NAT";
+                }
+            }
+        }
+        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    }
+    else
+        return open_network_result;
+}
+
+OperationResult HCNWrapper::enumerate_networks(std::vector<HcnNetworkInfo>& out_networks) const
+{
+    mpl::trace(log_category, "HCNWrapper::enumerate_networks(...)");
+
+    UniqueCotaskmemString enumerate_result{}, result_msgbuf{};
+
+    // List all HCN network GUIDs
+    const auto result =
+        API().HcnEnumerateNetworks(L"{}", out_ptr(enumerate_result), out_ptr(result_msgbuf));
+    if (enumerate_result)
+    {
+        // json_output would contain the network GUIDs.
+        const auto json_as_str = wchar_to_utf8(enumerate_result.get());
+        std::error_code ec;
+        const auto as_json = boost::json::parse(json_as_str, ec);
+        if (!ec)
+        {
+            for (const auto& network_guid : as_json.as_array())
+            {
+                const auto network_guid_str = std::string{network_guid.as_string()};
+                if (const auto result =
+                        query_network(network_guid_str, out_networks.emplace_back());
+                    !result)
+                {
+                    out_networks.pop_back();
+                    mpl::warn(log_category,
+                              "HCNWrapper::query_network(...) > query_network failed for GUID `{}`",
+                              network_guid_str);
+                }
+            }
+        }
+
+        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    }
+}
 } // namespace multipass::hyperv::hcn
