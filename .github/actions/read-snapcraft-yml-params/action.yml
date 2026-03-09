@@ -1,0 +1,24 @@
+name: Read snapcraft.yml parameters
+description: Extracts parameters from snap/snapcraft.yaml for CI comsumption
+
+outputs:
+  clang-version:
+    description: The CLANG_VERSION value
+    value: ${{ steps.extract.outputs.clang_version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install yq
+      shell: bash
+      run: go install github.com/mikefarah/yq/v4@latest
+
+    - name: Extract CLANG_VERSION
+      id: extract
+      shell: bash
+      run: |
+        # Extract CLANG_VERSION from snapcraft.yaml (single source of truth)
+        CLANG_VERSION=$(yq '.parts.multipass.build-environment[] | select(has("CLANG_VERSION")) | .CLANG_VERSION' snap/snapcraft.yaml | tr -d '"')
+        [ -z "$CLANG_VERSION" ] && { echo "::error::CLANG_VERSION not found in snapcraft.yaml"; exit 1; }
+        echo "clang_version=$CLANG_VERSION" >> "$GITHUB_OUTPUT"
+        echo "SNAP_CLANG_VERSION=$CLANG_VERSION" >> "$GITHUB_ENV"

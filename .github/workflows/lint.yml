@@ -45,31 +45,25 @@ jobs:
         shell: bash
         run: curl --fail-with-body -X POST --data-binary @.github/.codecov.yml https://codecov.io/validate
 
+      - uses: ./.github/actions/read-snapcraft-yml-params
+
       - name: Install clang-format
         shell: bash
-        run: sudo apt-get install --no-install-recommends --yes clang-format
+        run: sudo apt-get install --no-install-recommends --yes clang-format-$SNAP_CLANG_VERSION
 
       - name: Run clang-format through the diff
         shell: bash
         run: |
-          # WORKAROUND: clang-format-diff script in LLVM 18 is buggy -- it bails out on the first file
-          # when there are multiple files with format diffs.
-          # Pull and use LLVM 19's clang-format-diff for now.
-          # Remove after upgrading the LLVM.
-          curl -sL https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-19.1.0/clang/tools/clang-format/clang-format-diff.py \
-            -o /tmp/clang-format-diff
-          chmod +x /tmp/clang-format-diff
-
           # Print out version of clang-format being used
-          clang-format --version
+          clang-format-$SNAP_CLANG_VERSION --version
 
           # Ensure that the .clang-format configuration is valid
-          clang-format --dump-config > /dev/null
+          clang-format-$SNAP_CLANG_VERSION --dump-config > /dev/null
 
           # On pull requests, HEAD^1 will always be the merge base, so consider that diff for formatting.
           git diff -U0 --no-color HEAD^1 \
             | grep -vE '^\+\+\+ b/tests/unit/test_data/formatters/' \
-            | /tmp/clang-format-diff -p1 \
+            | clang-format-diff-$SNAP_CLANG_VERSION -p1 \
             | tee ${HOME}/clang-diff
 
           if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
