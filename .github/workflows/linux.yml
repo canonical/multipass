@@ -101,7 +101,8 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
-    - uses: ./.github/actions/read-snapcraft-yml-params
+    - name: Read snapcraft.yml parameters
+      uses: ./.github/actions/read-snapcraft-yml-params
 
     - name: Apply snapcraft-ci-override.yaml
       env:

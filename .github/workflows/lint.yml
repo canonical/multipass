@@ -45,7 +45,8 @@ jobs:
         shell: bash
         run: curl --fail-with-body -X POST --data-binary @.github/.codecov.yml https://codecov.io/validate
 
-      - uses: ./.github/actions/read-snapcraft-yml-params
+      - name: Read snapcraft.yml parameters
+        uses: ./.github/actions/read-snapcraft-yml-params
 
       - name: Install clang-format
         shell: bash
