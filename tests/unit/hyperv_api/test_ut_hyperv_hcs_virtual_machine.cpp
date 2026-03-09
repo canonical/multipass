@@ -497,7 +497,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_failure)
 
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
 
-    uut->suspend();
+    ASSERT_THROW(uut->suspend(), multipass::hyperv::SaveComputeSystemException);
 
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
 }
