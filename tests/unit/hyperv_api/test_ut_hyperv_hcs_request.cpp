@@ -101,7 +101,6 @@ TYPED_TEST(HyperVHcsRequest_UnitTests, network_adapter_add_with_settings)
     hyperv::hcs::HcsNetworkAdapter settings{};
     settings.endpoint_guid = "endpoint guid";
     settings.mac_address = "mac address";
-    settings.instance_guid = "instance guid";
     uut.settings = settings;
     static constexpr auto expected_result = string_literal<TypeParam>(R"json(
         {

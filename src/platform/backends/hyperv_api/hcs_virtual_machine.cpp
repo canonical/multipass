@@ -52,6 +52,7 @@ namespace mpl = mp::logging;
 using mp::hyperv::hcn::HCN;
 using mp::hyperv::hcs::HCS;
 using mp::hyperv::virtdisk::VirtDisk;
+using namespace mp::hyperv;
 
 inline auto mac2uuid(std::string mac_addr)
 {
@@ -61,11 +62,13 @@ inline auto mac2uuid(std::string mac_addr)
     return fmt::format(format_str, mac_addr);
 }
 
-inline auto replace_colon_with_dash(std::string& addr)
+inline auto replace_colon_with_dash(const std::string& addr)
 {
     if (addr.empty())
-        return;
-    std::ranges::replace(addr, ':', '-');
+        return addr;
+    std::string result{addr};
+    std::ranges::replace(result, ':', '-');
+    return result;
 }
 
 /**
@@ -188,6 +191,7 @@ void try_create_endpoints(
         }
     }
 }
+
 } // namespace
 
 namespace multipass::hyperv
@@ -353,77 +357,58 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         throw OpenComputeSystemException{"Failed with error code: {}", result.code};
     }
 
-    const auto create_endpoint_params = [this]() {
-        std::vector<hcn::CreateEndpointParameters> params{};
+    // Create the VM from scratch.
 
-        // The primary endpoint (management)
-        hcn::CreateEndpointParameters primary_endpoint{};
-        primary_endpoint.network_guid = primary_network_guid;
-        primary_endpoint.endpoint_guid = mac2uuid(description.default_mac_address);
-        primary_endpoint.mac_address = description.default_mac_address;
-        replace_colon_with_dash(primary_endpoint.mac_address.value());
-        params.push_back(primary_endpoint);
+    const auto endpoints = [this]() {
+        std::vector<hcn::CreateEndpointParameters> params{
+            // The primary endpoint (management)
+            {.network_guid = primary_network_guid,
+             .endpoint_guid = mac2uuid(description.default_mac_address),
+             .mac_address = replace_colon_with_dash(description.default_mac_address)}};
 
         // Additional endpoints, a.k.a. extra interfaces.
-        for (const auto& v : description.extra_interfaces)
-        {
-            hcn::CreateEndpointParameters extra_endpoint{};
-            extra_endpoint.network_guid = multipass::utils::make_uuid(v.id).toStdString();
-            extra_endpoint.endpoint_guid = mac2uuid(v.mac_address);
-            extra_endpoint.mac_address = v.mac_address;
-            replace_colon_with_dash(extra_endpoint.mac_address.value());
-            params.push_back(extra_endpoint);
-        }
+        std::ranges::transform(description.extra_interfaces,
+                               std::back_inserter(params),
+                               [](const auto& v) -> hcn::CreateEndpointParameters {
+                                   return {.network_guid =
+                                               multipass::utils::make_uuid(v.id).toStdString(),
+                                           .endpoint_guid = mac2uuid(v.mac_address),
+                                           .mac_address = replace_colon_with_dash(v.mac_address)};
+                               });
+
         return params;
     }();
 
-    // Create the VM from scratch.
-    const auto create_compute_system_params = [this, &create_endpoint_params]() {
-        hcs::CreateComputeSystemParameters params{};
-        params.name = description.vm_name;
-        params.memory_size_mb = description.mem_size.in_megabytes();
-        params.processor_count = description.num_cores;
+    const hcs::CreateComputeSystemParameters create_compute_system_params{
+        .name = description.vm_name,
+        .memory_size_mb = static_cast<uint32_t>(description.mem_size.in_megabytes()),
+        .processor_count = static_cast<uint32_t>(description.num_cores),
+        .scsi_devices = {{.type = hcs::HcsScsiDeviceType::VirtualDisk(),
+                          .name = "Primary disk",
+                          .path = get_primary_disk_path(),
+                          .read_only = false},
+                         {.type = hcs::HcsScsiDeviceType::Iso(),
+                          .name = "cloud-init ISO file",
+                          .path = description.cloud_init_iso.toStdString(),
+                          .read_only = true}},
+        .network_adapters =
+            [&] {
+                const auto view =
+                    endpoints |
+                    std::views::transform([](const auto& endpoint) -> hcs::HcsNetworkAdapter {
+                        return {.endpoint_guid = endpoint.endpoint_guid,
+                                .mac_address = endpoint.mac_address.value()};
+                    });
+                return std::vector(std::ranges::begin(view), std::ranges::end(view));
+            }(),
+        .shares = {},
+        .guest_state = {.guest_state_file_path = get_guest_state_file_path(),
+                        .runtime_state_file_path = get_runtime_state_file_path(),
+                        .save_state_file_path = has_saved_state_file()
+                                                    ? std::optional(get_saved_state_file_path())
+                                                    : std::nullopt}};
 
-        hcs::HcsScsiDevice primary_disk{hcs::HcsScsiDeviceType::VirtualDisk()};
-        primary_disk.name = "Primary disk";
-        primary_disk.path = get_primary_disk_path();
-        primary_disk.read_only = false;
-        params.scsi_devices.push_back(primary_disk);
-
-        hcs::HcsScsiDevice cloudinit_iso{hcs::HcsScsiDeviceType::Iso()};
-        cloudinit_iso.name = "cloud-init ISO file";
-        cloudinit_iso.path = description.cloud_init_iso.toStdString();
-        cloudinit_iso.read_only = true;
-        params.scsi_devices.push_back(cloudinit_iso);
-
-        params.guest_state.guest_state_file_path = get_guest_state_file_path();
-        params.guest_state.runtime_state_file_path = get_runtime_state_file_path();
-
-        // Check if this is a resume from suspend to disk.
-        if (MP_FILEOPS.exists(get_saved_state_file_path()))
-        {
-            params.guest_state.save_state_file_path = get_saved_state_file_path();
-        }
-
-        const auto create_endpoint_to_network_adapter = [this](const auto& create_params) {
-            hcs::HcsNetworkAdapter network_adapter{};
-            network_adapter.endpoint_guid = create_params.endpoint_guid;
-            if (!create_params.mac_address)
-            {
-                throw CreateEndpointException("One of the endpoints do not have a MAC address!");
-            }
-            network_adapter.mac_address = create_params.mac_address.value();
-            return network_adapter;
-        };
-
-        std::transform(create_endpoint_params.begin(),
-                       create_endpoint_params.end(),
-                       std::back_inserter(params.network_adapters),
-                       create_endpoint_to_network_adapter);
-        return params;
-    }();
-
-    try_create_endpoints(get_name(), create_endpoint_params);
+    try_create_endpoints(get_name(), endpoints);
 
     if (const auto create_result =
             HCS().create_compute_system(create_compute_system_params, hcs_system);
@@ -526,7 +511,7 @@ void HCSVirtualMachine::start()
         handle_state_update();
         throw StartComputeSystemException{"Could not start the VM: {}", status};
     }
-    else if (MP_FILEOPS.exists(get_saved_state_file_path()))
+    else if (has_saved_state_file())
     {
         mpl::trace(get_name(), "start() -> Saved state file exits, attempting to remove");
         std::error_code ec{};
@@ -709,7 +694,6 @@ void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
     {
         throw ResizeDiskException{"Disk resize failed, details: {}", result};
     }
-    // TODO: Check if succeeded.
     description.disk_space = new_size;
 }
 
