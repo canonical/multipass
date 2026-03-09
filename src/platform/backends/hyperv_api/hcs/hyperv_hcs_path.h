@@ -29,8 +29,11 @@ namespace multipass::hyperv::hcs
  */
 struct HcsPath
 {
-    template <typename... Args>
-    HcsPath(Args&&... args) : value{std::forward<Args>(args)...}
+    HcsPath() = default;
+
+    template <typename T>
+        requires std::constructible_from<std::filesystem::path, T>
+    HcsPath(T&& arg) : value{std::forward<T>(arg)}
     {
     }
 
