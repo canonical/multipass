@@ -60,5 +60,6 @@ private:
      * Retrieve a list of available network adapters.
      */
     [[nodiscard]] static std::vector<NetworkInterfaceInfo> get_adapters();
+    [[nodiscard]] static std::vector<NetworkInterfaceInfo> get_hyperv_vswitches();
 };
 } // namespace multipass::hyperv
