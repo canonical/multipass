@@ -26,7 +26,6 @@ namespace multipass::hyperv::hcs
 
 struct HcsNetworkAdapter
 {
-    std::string instance_guid;
     std::string endpoint_guid;
     std::string mac_address;
 };
