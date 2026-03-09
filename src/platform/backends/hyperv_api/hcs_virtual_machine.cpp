@@ -326,26 +326,30 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
     }
 }
 
+void HCSVirtualMachine::set_compute_system_callback_handler()
+{
+    if (hcs_system)
+    {
+        top_catch_all(get_name(), [this] {
+            if (!HCS().set_compute_system_callback(
+                    hcs_system,
+                    this,
+                    HCSVirtualMachine::compute_system_event_callback))
+            {
+                mpl::warn(get_name(),
+                          "Could not set compute system callback for VM: `{}`!",
+                          get_name());
+            }
+        });
+    }
+}
+
 bool HCSVirtualMachine::maybe_create_compute_system()
 {
     // Always reset the handle and create a new one.
     hcs_system.reset();
-    auto attach_callback_handler = sg::make_scope_guard([this]() noexcept {
-        if (hcs_system)
-        {
-            top_catch_all(get_name(), [this] {
-                if (!HCS().set_compute_system_callback(
-                        hcs_system,
-                        this,
-                        HCSVirtualMachine::compute_system_event_callback))
-                {
-                    mpl::warn(get_name(),
-                              "Could not set compute system callback for VM: `{}`!",
-                              get_name());
-                }
-            });
-        }
-    });
+    auto attach_callback_handler =
+        sg::make_scope_guard([this]() noexcept { set_compute_system_callback_handler(); });
 
     if (const auto result = HCS().open_compute_system(get_name(), hcs_system))
     {
@@ -358,7 +362,6 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     }
 
     // Create the VM from scratch.
-
     const auto endpoints = [this]() {
         std::vector<hcn::CreateEndpointParameters> params{
             // The primary endpoint (management)
