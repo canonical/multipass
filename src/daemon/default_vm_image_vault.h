@@ -26,6 +26,8 @@
 #include <QDir>
 #include <QFuture>
 
+#include <boost/json.hpp>
+
 #include <mutex>
 #include <optional>
 #include <unordered_map>
@@ -98,4 +100,10 @@ private:
     std::unordered_map<std::string, VaultRecord> instance_image_records;
     std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
 };
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const VaultRecord& record);
+VaultRecord tag_invoke(const boost::json::value_to_tag<VaultRecord>&,
+                       const boost::json::value& json);
 } // namespace multipass
