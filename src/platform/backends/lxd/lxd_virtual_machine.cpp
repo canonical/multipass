@@ -225,7 +225,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
 
         auto json_reply = lxd_request(manager,
                                       "POST",
-                                      QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
+                                      QUrl(QString("%1/instances").arg(base_url.toString())),
                                       virtual_machine);
 
         // TODO: Need a way to pass in the daemon timeout and make in general for all back ends
@@ -420,7 +420,7 @@ std::string mp::LXDVirtualMachine::ipv6()
 
 const QUrl mp::LXDVirtualMachine::url() const
 {
-    return QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name);
+    return QString("%1/instances/%2").arg(base_url.toString()).arg(name);
 }
 
 const QUrl mp::LXDVirtualMachine::state_url()

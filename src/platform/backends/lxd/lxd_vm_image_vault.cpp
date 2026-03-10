@@ -183,7 +183,7 @@ mp::VMImage mp::LXDVMImageVault::fetch_image(const FetchType& fetch_type,
 
         auto instance_info = lxd_request(manager,
                                          "GET",
-                                         QUrl(QString("%1/virtual-machines/%2")
+                                         QUrl(QString("%1/instances/%2")
                                                   .arg(base_url.toString())
                                                   .arg(QString::fromStdString(query.name))));
 
@@ -364,7 +364,7 @@ void mp::LXDVMImageVault::remove(const std::string& name)
         auto task_reply = lxd_request(
             manager,
             "DELETE",
-            QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
+            QUrl(QString("%1/instances/%2").arg(base_url.toString()).arg(name.c_str())));
 
         lxd_wait(manager, base_url, task_reply, 120000);
     }
@@ -380,10 +380,9 @@ bool mp::LXDVMImageVault::has_record_for(const std::string& name)
 {
     try
     {
-        lxd_request(
-            manager,
-            "GET",
-            QUrl(QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name.c_str())));
+        lxd_request(manager,
+                    "GET",
+                    QUrl(QString("%1/instances/%2").arg(base_url.toString()).arg(name.c_str())));
 
         return true;
     }
