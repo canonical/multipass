@@ -38,7 +38,10 @@ auto get_common_args(const QString& host_arch)
 
     if (host_arch == "aarch64")
     {
-        qemu_args << "-machine" << "virt,gic-version=3";
+        // clang-format off
+        qemu_args << "-machine"
+                  << "virt,gic-version=3";
+        // clang-format on
     }
 
     return qemu_args;
@@ -71,9 +74,12 @@ QStringList mp::QemuPlatformDetail::vmstate_platform_args()
 QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     QStringList qemu_args;
+    // clang-format off
 
     qemu_args
-        << common_args << "-accel" << "hvf" << "-drive"
+        << common_args << "-accel"
+        << "hvf"
+        << "-drive"
         << QString("file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
                .arg(QCoreApplication::applicationDirPath())
                .arg(host_arch)
@@ -92,6 +98,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     // The subnet 192.168.252.0/24 is chosen to tackle an issue with subnet collision in macos-26:
     // #4383
 
+    // clang-format on
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
         qemu_args << "-nic"
