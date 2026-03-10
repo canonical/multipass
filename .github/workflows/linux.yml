@@ -101,6 +101,9 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
+    - name: Read snapcraft.yml parameters
+      uses: ./.github/actions/read-snapcraft-yml-params
+
     - name: Apply snapcraft-ci-override.yaml
       env:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
@@ -110,11 +113,6 @@ jobs:
 
       run: |
         go install github.com/mikefarah/yq/v4@latest
-
-        # Extract CLANG_VERSION from snapcraft.yaml (single source of truth)
-        CLANG_VERSION=$(yq '.parts.multipass.build-environment[] | select(has("CLANG_VERSION")) | .CLANG_VERSION' snap/snapcraft.yaml | tr -d '"')
-        [ -z "$CLANG_VERSION" ] && { echo "::error::CLANG_VERSION not found in snapcraft.yaml"; exit 1; }
-        export CLANG_VERSION
 
         # Substitute the environment variables in the snapcraft-ci-override.yaml
         envsubst < snap/local/snapcraft-ci-override.yaml.in | yq eval 'del(.. | select(. == null or . == "")) | del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))' -P > snap/local/snapcraft-ci-override.yaml
