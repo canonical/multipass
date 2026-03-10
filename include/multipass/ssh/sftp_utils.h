@@ -45,6 +45,7 @@ struct SFTPError : public std::runtime_error
 
 MP_SFTP_UNIQUE_PTR(sftp_new, sftp_free)
 MP_SFTP_UNIQUE_PTR(sftp_open, sftp_close)
+MP_SFTP_UNIQUE_PTR(sftp_limits, sftp_limits_free)
 MP_SFTP_UNIQUE_PTR(sftp_stat, sftp_attributes_free)
 MP_SFTP_UNIQUE_PTR(sftp_lstat, sftp_attributes_free)
 MP_SFTP_UNIQUE_PTR(sftp_opendir, sftp_closedir)
