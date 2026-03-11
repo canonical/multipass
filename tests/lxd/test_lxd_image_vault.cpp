@@ -86,7 +86,7 @@ TEST_F(LXDImageVault, instanceExistsFetchReturnsExpectedImageInfo)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                if (url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
@@ -124,7 +124,7 @@ TEST_F(LXDImageVault, instanceExistsCustomImageReturnsExpectedImageInfo)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                if (url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_custom_info_data);
                 }
@@ -163,7 +163,7 @@ TEST_F(LXDImageVault, instanceExistsUsesCachedReleaseTitle)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                if (url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data_with_image_release);
                 }
@@ -201,7 +201,7 @@ TEST_F(LXDImageVault, instanceExistsNoCachedReleaseTitleInfoForFails)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                if (url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
@@ -393,7 +393,7 @@ TEST_F(LXDImageVault, instanceExistsMissingImageDoesNotDownloadImage)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                if (url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
@@ -613,7 +613,7 @@ TEST_F(LXDImageVault, deleteRequestedOnInstanceRemove)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "DELETE" && url.contains("1.0/virtual-machines/pied-piper-valley"))
+            if (op == "DELETE" && url.contains("1.0/instances/pied-piper-valley"))
             {
                 delete_requested = true;
                 return new mpt::MockLocalSocketReply(mpt::delete_vm_data);
@@ -648,7 +648,7 @@ TEST_F(LXDImageVault, logsWarningWhenRemovingNonexistentInstance)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "DELETE" && url.contains("1.0/virtual-machines/pied-piper-valley"))
+            if (op == "DELETE" && url.contains("1.0/instances/pied-piper-valley"))
             {
                 return new mpt::MockLocalSocketReply(mpt::post_no_error_data);
             }
@@ -682,7 +682,7 @@ TEST_F(LXDImageVault, hasRecordForReturnsExpectedValues)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                if (url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
