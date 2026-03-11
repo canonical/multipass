@@ -110,6 +110,25 @@ def create_directory(vm_name, path):
         )
     )
 
+def list_directory(vm_name, path, filter_pattern=None):
+    """List files in the given directory inside the instance and return them as a list."""
+
+    assert multipass("start", vm_name)
+    result = multipass(
+        "exec",
+        vm_name,
+        "--",
+        "ls",
+        "-1",
+        Path(path).as_posix(),
+        timeout=180,
+    )
+    files = result.content.splitlines() if result else []
+    if filter_pattern is not None:
+        regex = re.compile(filter_pattern)
+        files = [f for f in files if regex.search(f)]
+    return files
+
 
 def write_file(vm_name, path, contents):
     """

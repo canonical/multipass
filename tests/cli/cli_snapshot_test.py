@@ -33,6 +33,7 @@ from cli.multipass import (
     random_vm_name,
     state,
     snapshot_count,
+    list_directory,
 )
 
 
@@ -45,7 +46,8 @@ class TestSnapshot:
         """Verify that taking a snapshot of a non-existent instance fails with
         an appropriate error."""
         name = random_vm_name()
-        assert f'instance "{name}" does not exist' in multipass("snapshot", f"{name}")
+        assert f'instance "{name}" does not exist' in multipass(
+            "snapshot", f"{name}")
 
     def test_try_restore_snapshot_of_nonexistent_instance(self):
         """Verify that restoring a snapshot for a non-existent instance fails
@@ -149,27 +151,27 @@ class TestSnapshot:
         assert multipass("restore", f"{instance}.snapshot1", "--destructive")
         assert snapshot_count(instance) == 3
 
-        assert path_exists(instance, "before_snapshot1")
-        assert not path_exists(instance, "before_snapshot2")
-        assert not path_exists(instance, "before_snapshot3")
+        assert path_exists(instance, "snapshot1")
+        assert not path_exists(instance, "snapshot2")
+        assert not path_exists(instance, "snapshot3")
 
         assert multipass("stop", instance)
 
         assert multipass("restore", f"{instance}.snapshot2", "--destructive")
         assert snapshot_count(instance) == 3
 
-        assert path_exists(instance, "before_snapshot1")
-        assert path_exists(instance, "before_snapshot2")
-        assert not path_exists(instance, "before_snapshot3")
+        assert path_exists(instance, "snapshot1")
+        assert path_exists(instance, "snapshot2")
+        assert not path_exists(instance, "snapshot3")
 
         assert multipass("stop", instance)
 
         assert multipass("restore", f"{instance}.snapshot3", "--destructive")
         assert snapshot_count(instance) == 3
 
-        assert path_exists(instance, "before_snapshot1")
-        assert path_exists(instance, "before_snapshot2")
-        assert path_exists(instance, "before_snapshot3")
+        assert path_exists(instance, "snapshot1")
+        assert path_exists(instance, "snapshot2")
+        assert path_exists(instance, "snapshot3")
 
         assert multipass("stop", instance)
 
@@ -199,26 +201,26 @@ class TestSnapshot:
         assert multipass("restore", f"{instance}.snapshot1", "--destructive")
         assert snapshot_count(instance) == 3
 
-        assert path_exists(instance, "before_snapshot1")
-        assert not path_exists(instance, "before_snapshot2a")
-        assert not path_exists(instance, "before_snapshot3a")
+        assert path_exists(instance, "snapshot1")
+        assert not path_exists(instance, "snapshot2a")
+        assert not path_exists(instance, "snapshot3a")
 
         assert multipass("stop", instance)
 
         assert multipass("restore", f"{instance}.snapshot2a", "--destructive")
         assert snapshot_count(instance) == 3
 
-        assert path_exists(instance, "before_snapshot1")
-        assert path_exists(instance, "before_snapshot2a")
-        assert not path_exists(instance, "before_snapshot3a")
+        assert path_exists(instance, "snapshot1")
+        assert path_exists(instance, "snapshot2a")
+        assert not path_exists(instance, "snapshot3a")
 
         assert multipass("stop", instance)
 
         take_snapshot(instance, "snapshot3b", "snapshot2a")
         assert snapshot_count(instance) == 4
 
-        assert path_exists(instance, "before_snapshot1")
-        assert path_exists(instance, "before_snapshot3b")
+        assert path_exists(instance, "snapshot1")
+        assert path_exists(instance, "snapshot3b")
 
         assert multipass("stop", instance)
 
@@ -267,7 +269,7 @@ class TestSnapshot:
         # We'll expect all checkpoint files to exist
         lineage = find_lineage(snapshot_tree, "snapshot5b")
         for ancestor in lineage:
-            assert path_exists(instance, f"before_{ancestor}")
+            assert path_exists(instance, f"{ancestor}")
 
         assert multipass("stop", instance)
 
@@ -343,3 +345,73 @@ class TestSnapshot:
                 "snapshot5b": {},
             }
             assert collapse_to_snapshot_tree(result) == expected_snapshot_tree
+
+    @pytest.mark.slow  # I mean it.
+    def test_take_snapshot_name_tbd(self, instance):
+        """
+        Test snapshot forward merging.
+
+        Given snapshot a -> b -> c, and snapshot "b" being deleted, snapshot b
+        should be merged into snapshot "c", and its other children, if any. The
+        test confirmst that it is the case.
+        """
+        assert snapshot_count(instance) == 0
+
+        # Snapshot tree structure to build
+        snapshot_tree = {
+            "snapshot0": {
+                "snapshot1": {
+                    "snapshot2": {
+                        "snapshot3": {},
+                        "snapshot2b": {}
+                    },
+                    "snapshot1b": {}
+                }
+            }
+        }
+
+        build_snapshot_tree(instance, snapshot_tree)
+        assert snapshot_count(instance) == 6
+
+        # Delete snapshot 2 so snapshot3 and 2b would be orphaned. We expect
+        # snapshot 3 and 2b contain snapshot2's delta, and snapshot1 unaltered.
+        assert multipass("delete", f"{instance}.snapshot2", "--purge")
+
+        with multipass(
+            "info", "--format=json", "--snapshots", f"{instance}"
+        ).json() as output:
+            result = output.jq(f'.info["{instance}"].snapshots').first()
+            expected_snapshot_tree = {
+                "snapshot0": {
+                    "snapshot1": {
+                        "snapshot3": {},
+                        "snapshot2b": {},
+                        "snapshot1b": {}
+                    }
+                }
+            }
+            assert collapse_to_snapshot_tree(result) == expected_snapshot_tree
+
+        assert multipass("stop", instance)
+        assert multipass("restore", f"{instance}.snapshot0", "--destructive")
+        assert list_directory(instance, ".", "snapshot.*") == ["snapshot0"]
+
+        assert multipass("stop", instance)
+        assert multipass("restore", f"{instance}.snapshot1", "--destructive")
+        assert list_directory(
+            instance, ".", "snapshot.*") == ["snapshot0", "snapshot1"]
+
+        assert multipass("stop", instance)
+        assert multipass("restore", f"{instance}.snapshot1b", "--destructive")
+        assert list_directory(
+            instance, ".", "snapshot.*") == ["snapshot0", "snapshot1", "snapshot1b"]
+
+        assert multipass("stop", instance)
+        assert multipass("restore", f"{instance}.snapshot3", "--destructive")
+        assert list_directory(
+            instance, ".", "snapshot.*") == ["snapshot0", "snapshot1", "snapshot2",  "snapshot3"]
+
+        assert multipass("stop", instance)
+        assert multipass("restore", f"{instance}.snapshot2b", "--destructive")
+        assert list_directory(
+            instance, ".", "snapshot.*") == ["snapshot0", "snapshot1", "snapshot2",  "snapshot2b"]

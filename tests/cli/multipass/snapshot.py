@@ -38,8 +38,8 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
     Raises:
         AssertionError: If any command fails or snapshot metadata does not match expectations.
     """
-    assert multipass("exec", f"{vm_name}", "--", "touch", f"before_{snapshot_name}")
-    assert multipass("exec", f"{vm_name}", "--", "ls", f"before_{snapshot_name}")
+    assert multipass("exec", f"{vm_name}", "--", "touch", f"{snapshot_name}")
+    assert multipass("exec", f"{vm_name}", "--", "ls", f"{snapshot_name}")
     assert multipass("stop", f"{vm_name}")
 
     with multipass("snapshot", f"{vm_name}", "--name", f"{snapshot_name}") as output:
