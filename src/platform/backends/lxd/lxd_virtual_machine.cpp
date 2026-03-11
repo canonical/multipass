@@ -118,7 +118,7 @@ QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& 
 {
     QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
                        {"limits.memory", QString::number(desc.mem_size.in_bytes())},
-                       {"security.secureboot", "false"}};
+                       {"boot.mode", "uefi-nosecureboot"}};
 
     if (!desc.meta_data_config.IsNull())
         config["user.meta-data"] =
@@ -217,6 +217,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
 
         QJsonObject virtual_machine{
             {"name", name},
+            {"type", "virtual-machine"},
             {"config", generate_base_vm_config(desc)},
             {"devices", generate_devices_config(desc, mac_addr, storage_pool)},
             {"source",
