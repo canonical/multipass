@@ -53,7 +53,7 @@ std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
 {
     QFile db_file{db_name};
     auto opened = db_file.open(QIODevice::ReadOnly);
-    if (!opened)
+    if (!opened || db_file.size() == 0)
         return {};
 
     auto records = boost::json::parse(std::string_view(db_file.readAll()));
