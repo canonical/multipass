@@ -469,7 +469,8 @@ TEST_F(LXDBackend, createsInStoppedState)
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
-
+                else if (url.endsWith("1.0?project=multipass"))
+                    return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
                 return new mpt::MockLocalSocketReply(mpt::not_found_data,
                                                      QNetworkReply::ContentNotFoundError);
             }
@@ -958,6 +959,8 @@ TEST_F(LXDBackend, postsExpectedDataWhenCreatingInstance)
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
+                else if (url.endsWith("1.0?project=multipass"))
+                    return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
 
                 return new mpt::MockLocalSocketReply(mpt::not_found_data,
                                                      QNetworkReply::ContentNotFoundError);
@@ -2414,6 +2417,14 @@ void setup_vm_creation_expectations(mpt::MockNetworkAccessManager& mock_network_
         .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::not_found_data,
                                                        QNetworkReply::ContentNotFoundError}))
         .WillRepeatedly([] { return new mpt::MockLocalSocketReply{mpt::vm_info_data}; });
+
+    EXPECT_CALL(mock_network_access_mgr,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("GET", "1.0?project=multipass"),
+                              _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{
+            mpt::lxd_server_info_data,
+        }));
 
     EXPECT_CALL(mock_network_access_mgr,
                 createRequest(QNetworkAccessManager::CustomOperation,

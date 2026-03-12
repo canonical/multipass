@@ -232,8 +232,10 @@ void mp::LXDVirtualMachineFactory::hypervisor_health_check()
     }
     catch (const LXDNotFoundException&)
     {
-        QJsonObject network{{"name", multipass_bridge_name},
-                            {"description", "Network bridge for Multipass"}};
+        QJsonObject network{
+            {"name", multipass_bridge_name},
+            //{"config", QJsonObject{{"ipv4.firewall", "false"}, {"ipv6.firewall", "false"}}},
+            {"description", "Network bridge for Multipass"}};
 
         lxd_request(manager.get(),
                     "POST",
