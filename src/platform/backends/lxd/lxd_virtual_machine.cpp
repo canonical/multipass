@@ -114,11 +114,19 @@ std::optional<mp::IPAddress> get_ip_for(const QString& mac_addr,
     return std::nullopt;
 }
 
-QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& desc)
+QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& desc,
+                                    mp::NetworkAccessManager* manager,
+                                    const QUrl& url)
 {
+    const auto lxd_metadata = mp::lxd_request(manager, "GET", url);
+    const auto version = lxd_metadata["metadata"]["environment"]["server_version"].toString();
+    bool isV6OrNewer = (version >= QString{"6.7"});
+    const auto boot_mode_key = (isV6OrNewer ? "boot.mode" : "security.secureboot");
+    const auto boot_mode_value = (isV6OrNewer ? "uefi-nosecureboot" : "false");
+
     QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
                        {"limits.memory", QString::number(desc.mem_size.in_bytes())},
-                       {"boot.mode", "uefi-nosecureboot"}};
+                       {boot_mode_key, boot_mode_value}};
 
     if (!desc.meta_data_config.IsNull())
         config["user.meta-data"] =
@@ -218,7 +226,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
         QJsonObject virtual_machine{
             {"name", name},
             {"type", "virtual-machine"},
-            {"config", generate_base_vm_config(desc)},
+            {"config", generate_base_vm_config(desc, manager, base_url)},
             {"devices", generate_devices_config(desc, mac_addr, storage_pool)},
             {"source",
              QJsonObject{{"type", "image"},
