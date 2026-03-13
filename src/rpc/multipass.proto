@@ -151,6 +151,7 @@ message FindReply {
         repeated string aliases = 4;
         string codename = 5;
         string remote_name = 6;
+        string image_hash = 7;
     }
     repeated ImageInfo images_info = 1;
     string log_line = 2;

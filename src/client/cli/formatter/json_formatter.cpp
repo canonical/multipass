@@ -51,6 +51,7 @@ QJsonObject format_images(
 
         image_obj.insert("aliases", aliases_arr);
         image_obj.insert("remote", QString::fromStdString(image.remote_name()));
+        image_obj.insert("image_hash", QString::fromStdString(image.image_hash()));
 
         images_obj.insert(
             QString::fromStdString(mp::format::image_string_for(image.remote_name(), aliases[0])),

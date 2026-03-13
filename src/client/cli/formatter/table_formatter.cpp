@@ -36,7 +36,13 @@ template <typename Dest>
 void format_images(Dest&& dest,
                    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
 {
-    fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
+    fmt::format_to(dest,
+                   "{:<28}{:<18}{:<17}{:<15}{:<}\n",
+                   "Image",
+                   "Aliases",
+                   "Version",
+                   "Hash",
+                   "Description");
 
     auto sorted_images = images_info;
     std::sort(sorted_images.begin(),
@@ -56,12 +62,16 @@ void format_images(Dest&& dest,
         auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
+        auto hash = image.image_hash();
+        auto short_hash = hash.size() > 12 ? hash.substr(0, 12) : hash;
+
         fmt::format_to(
             dest,
-            "{:<28}{:<18}{:<17}{:<}\n",
+            "{:<28}{:<18}{:<17}{:<15}{:<}\n",
             mp::format::image_string_for(image.remote_name(), aliases[0]),
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
             image.version(),
+            short_hash,
             fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
     }
     fmt::format_to(dest, "\n");
