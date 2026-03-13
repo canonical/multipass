@@ -20,7 +20,6 @@ These guides explain the lifecycle, identity, and resources of the virtual machi
 - [Instance](explanation-instance)
 - [Image](explanation-image)
 - [Settings keys and values](explanation-settings-keys-values)
-- [Blueprint (removed)](explanation-blueprint)
 
 ## Using Multipass
 
@@ -53,7 +52,6 @@ driver
 instance
 image
 settings-keys-values
-blueprint
 multipass-exec-and-shells
 mount
 alias
