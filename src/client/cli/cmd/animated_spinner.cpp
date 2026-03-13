@@ -16,6 +16,7 @@
 
 #include "animated_spinner.h"
 
+#include <cassert>
 #include <iostream>
 
 namespace mp = multipass;
@@ -29,8 +30,8 @@ void clear_line(std::ostream& out)
 }
 } // namespace
 
-mp::AnimatedSpinner::AnimatedSpinner(std::ostream& cout)
-    : spinner{'|', '/', '-', '\\'}, cout{cout}, running{false}
+mp::AnimatedSpinner::AnimatedSpinner(std::ostream& cout, bool is_live)
+    : spinner{'|', '/', '-', '\\'}, cout{cout}, running{false}, is_live(is_live)
 {
 }
 
@@ -41,11 +42,15 @@ mp::AnimatedSpinner::~AnimatedSpinner()
 
 void mp::AnimatedSpinner::start(const std::string& start_message)
 {
+    if (!is_live)
+        return;
+
     std::unique_lock<decltype(mutex)> lock{mutex};
     if (!running)
     {
         current_message = start_message;
         running = true;
+
         clear_line(cout);
         cout << start_message << "  " << std::flush;
         t = std::thread(&AnimatedSpinner::draw, this);
@@ -54,12 +59,15 @@ void mp::AnimatedSpinner::start(const std::string& start_message)
 
 void mp::AnimatedSpinner::start()
 {
-    if (!current_message.empty())
+    if (is_live && !current_message.empty())
         start(current_message);
 }
 
 void mp::AnimatedSpinner::stop()
 {
+    if(!is_live)
+        return;
+
     std::unique_lock<decltype(mutex)> lock{mutex};
     if (running)
     {
@@ -69,11 +77,16 @@ void mp::AnimatedSpinner::stop()
         if (t.joinable())
             t.join();
     }
+
+    
     clear_line(cout);
 }
 
 void mp::AnimatedSpinner::print(std::ostream& stream, const std::string& message)
 {
+    if (!is_live)
+        return;
+    
     stop();
 
     stream << message;
@@ -84,6 +97,9 @@ void mp::AnimatedSpinner::print(std::ostream& stream, const std::string& message
 void mp::AnimatedSpinner::draw()
 {
     std::unique_lock<decltype(mutex)> lock{mutex};
+
+    assert(is_live && "should only draw when running live");
+
     auto it = spinner.begin();
     while (running)
     {
@@ -92,6 +108,5 @@ void mp::AnimatedSpinner::draw()
         cout << "\b" << *it << std::flush;
         cv.wait_for(lock, std::chrono::milliseconds(100));
     }
-    cout << "\b"
-         << " " << std::flush;
+    cout << "\b" << " " << std::flush;
 }

@@ -468,7 +468,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
 {
     if (!spinner)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
-            cout); // Creating just in time to work around canonical/multipass#2075
+            cout, term->cout_is_live()); // Creating just in time to work around canonical/multipass#2075
 
     if (timer)
         timer->resume();
