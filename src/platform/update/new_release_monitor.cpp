@@ -72,11 +72,11 @@ public:
         }
         catch (const mp::DownloadException& e)
         {
-            mpl::info("update", "Failed to fetch update info: {}", qUtf8Printable(e.what()));
+            mpl::warn("update", "Failed to fetch update info: {}", qUtf8Printable(e.what()));
         }
         catch (const std::runtime_error& e)
         {
-            mpl::info("update", "Failed to parse update info: {}", qUtf8Printable(e.what()));
+            mpl::error("update", "Failed to parse update info: {}", qUtf8Printable(e.what()));
         }
     }
 signals:
