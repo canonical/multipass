@@ -27,12 +27,11 @@
 #include <multipass/logging/log.h>
 #include <multipass/query.h>
 
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonParseError>
 #include <QUrl>
 
 #include <unordered_set>
+
+#include <boost/json.hpp>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -57,17 +56,14 @@ struct CustomImageHost : public Test
 
     int num_images_for_arch(const QByteArray& manifest)
     {
-        const QString arch = QSysInfo::currentCpuArchitecture();
-        QJsonDocument images = QJsonDocument::fromJson(manifest);
-        if (!images.isObject())
-            return -1;
+        const auto arch = QSysInfo::currentCpuArchitecture().toStdString();
+        auto images = boost::json::parse(std::string_view{manifest});
 
         int supported_count = 0;
-        for (const auto& distro_val : images.object())
+        for (const auto& [_, distro] : images.as_object())
         {
-            QJsonObject distro_obj = distro_val.toObject();
-            QJsonObject items_obj = distro_obj.value("items").toObject();
-            if (items_obj.contains(arch))
+            const auto items = distro.at("items").as_object();
+            if (items.contains(arch))
                 supported_count++;
         }
 
