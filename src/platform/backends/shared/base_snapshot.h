@@ -20,9 +20,9 @@
 #include <multipass/snapshot.h>
 
 #include <multipass/memory_size.h>
+#include <multipass/snapshot_description.h>
 #include <multipass/vm_mount.h>
 
-#include <QJsonObject>
 #include <QString>
 
 #include <boost/json.hpp>
@@ -43,7 +43,7 @@ public:
                  const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
-                 const VirtualMachine& vm);
+                 VirtualMachine& vm);
     BaseSnapshot(const QString& filename,
                  VirtualMachine& vm,
                  const VirtualMachineDescription& desc);
@@ -84,24 +84,11 @@ protected:
     virtual void apply_impl() = 0;
 
 private:
-    BaseSnapshot(const QJsonObject& json,
-                 VirtualMachine& vm,
-                 const VirtualMachineDescription& desc);
-    BaseSnapshot(const std::string& name,
-                 const std::string& comment,
-                 const std::string& cloud_init_instance_id,
+    BaseSnapshot(SnapshotDescription desc,
                  std::shared_ptr<Snapshot> parent,
-                 int index,
-                 QDateTime&& creation_timestamp,
-                 int num_cores,
-                 MemorySize mem_size,
-                 MemorySize disk_space,
-                 std::vector<NetworkInterface> extra_interfaces,
-                 VirtualMachine::State state,
-                 std::unordered_map<std::string, VMMount> mounts,
-                 boost::json::object metadata,
-                 const QDir& storage_dir,
+                 VirtualMachine& vm,
                  bool captured);
+    BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured);
 
     auto erase_helper();
     QString derive_snapshot_filename() const;
@@ -109,23 +96,13 @@ private:
     void persist() const;
 
 private:
-    std::string name;
-    std::string comment;
+    SnapshotDescription desc;
     std::shared_ptr<Snapshot> parent;
 
-    // This class is non-copyable and having these const simplifies thread safety
+    // This class is non-copyable and having these const simplifies thread safety.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::string cloud_init_instance_id;
-    const int index;
     const QString id;
-    const QDateTime creation_timestamp;
-    const int num_cores;
-    const MemorySize mem_size;
-    const MemorySize disk_space;
-    const std::vector<NetworkInterface> extra_interfaces;
-    const VirtualMachine::State state;
-    const std::unordered_map<std::string, VMMount> mounts;
-    const boost::json::object metadata;
     const QDir storage_dir;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
@@ -137,28 +114,28 @@ private:
 inline std::string multipass::BaseSnapshot::get_name() const
 {
     const std::unique_lock lock{mutex};
-    return name;
+    return desc.name;
 }
 
 inline std::string multipass::BaseSnapshot::get_comment() const
 {
     const std::unique_lock lock{mutex};
-    return comment;
+    return desc.comment;
 }
 
 inline std::string multipass::BaseSnapshot::get_cloud_init_instance_id() const noexcept
 {
-    return cloud_init_instance_id;
+    return desc.cloud_init_instance_id;
 }
 
 inline int multipass::BaseSnapshot::get_index() const noexcept
 {
-    return index;
+    return desc.index;
 }
 
 inline QDateTime multipass::BaseSnapshot::get_creation_timestamp() const noexcept
 {
-    return creation_timestamp;
+    return desc.creation_timestamp;
 }
 
 inline std::string multipass::BaseSnapshot::get_parents_name() const
@@ -189,39 +166,39 @@ inline auto multipass::BaseSnapshot::get_parent() -> std::shared_ptr<Snapshot>
 
 inline int multipass::BaseSnapshot::get_num_cores() const noexcept
 {
-    return num_cores;
+    return desc.num_cores;
 }
 
 inline auto multipass::BaseSnapshot::get_mem_size() const noexcept -> MemorySize
 {
-    return mem_size;
+    return desc.mem_size;
 }
 
 inline auto multipass::BaseSnapshot::get_disk_space() const noexcept -> MemorySize
 {
-    return disk_space;
+    return desc.disk_space;
 }
 
 inline auto multipass::BaseSnapshot::get_extra_interfaces() const noexcept
     -> std::vector<NetworkInterface>
 {
-    return extra_interfaces;
+    return desc.extra_interfaces;
 }
 
 inline auto multipass::BaseSnapshot::get_state() const noexcept -> VirtualMachine::State
 {
-    return state;
+    return desc.state;
 }
 
 inline auto multipass::BaseSnapshot::get_mounts() const noexcept
     -> const std::unordered_map<std::string, VMMount>&
 {
-    return mounts;
+    return desc.mounts;
 }
 
 inline const boost::json::object& multipass::BaseSnapshot::get_metadata() const noexcept
 {
-    return metadata;
+    return desc.metadata;
 }
 
 inline void multipass::BaseSnapshot::set_name(const std::string& n)
@@ -229,7 +206,7 @@ inline void multipass::BaseSnapshot::set_name(const std::string& n)
     const std::unique_lock lock{mutex};
     assert(captured && "precondition: only captured snapshots can be edited");
 
-    name = n;
+    desc.name = n;
     persist();
 }
 
@@ -238,7 +215,7 @@ inline void multipass::BaseSnapshot::set_comment(const std::string& c)
     const std::unique_lock lock{mutex};
     assert(captured && "precondition: only captured snapshots can be edited");
 
-    comment = c;
+    desc.comment = c;
     persist();
 }
 
@@ -248,6 +225,7 @@ inline void multipass::BaseSnapshot::set_parent(std::shared_ptr<Snapshot> p)
     assert(captured && "precondition: only captured snapshots can be edited");
 
     parent = std::move(p);
+    desc.parent_index = parent ? parent->get_index() : 0;
     persist();
 }
 
