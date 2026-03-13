@@ -11,6 +11,8 @@ permissions:
 
 jobs:
   list-packages:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
     runs-on: ubuntu-latest
 
     outputs:

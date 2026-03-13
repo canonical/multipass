@@ -11,6 +11,8 @@ permissions:
 
 jobs:
   build:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
     runs-on: self-hosted-linux-amd64-noble-large-tiobe
 
     env:
