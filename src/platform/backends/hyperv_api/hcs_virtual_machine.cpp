@@ -23,6 +23,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <shared/windows/smb_mount_handler.h>
@@ -279,7 +280,9 @@ bool HCSVirtualMachine::has_saved_state_file() const
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
     const std::filesystem::path base_vhdx = description.image.image_path.toStdString();
-    return base_vhdx;
+    const std::filesystem::path head_avhdx =
+        base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
+    return MP_FILEOPS.exists(head_avhdx) ? head_avhdx : base_vhdx;
 }
 
 void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
@@ -686,6 +689,12 @@ void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
                get_name(),
                new_size.in_megabytes());
 
+    if (get_num_snapshots() > 0)
+    {
+        throw ResizeDiskException{"Cannot resize the primary disk while there are "
+                                  "snapshots. To resize, delete the snapshots first."};
+    }
+
     if (const auto result =
             VirtDisk().resize_virtual_disk(description.image.image_path.toStdString(),
                                            new_size.in_bytes());
@@ -743,12 +752,18 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
     const VMSpecs& specs,
     std::shared_ptr<Snapshot> parent)
 {
-    throw NotImplementedOnThisBackendException{"snapshot"};
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(snapshot_name,
+                                                        comment,
+                                                        instance_id,
+                                                        parent,
+                                                        specs,
+                                                        *this,
+                                                        description);
 }
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
 {
-    throw NotImplementedOnThisBackendException{"snapshot"};
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename, *this, description);
 }
 
 } // namespace multipass::hyperv
