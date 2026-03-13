@@ -13,47 +13,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
+ * Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
  *
  */
 
 #pragma once
 
-#include <multipass/name_generator.h>
+#include <multipass/petname_interface.h>
 
-#include <random>
+#include <petname/src/lib.rs.h>
+#include <rust/cxx.h>
+
 #include <string>
 
 namespace multipass
 {
-class Petname final : public NameGenerator
+class PetnameProvider final : public PetnameInterface
 {
 public:
-    enum class NumWords
-    {
-        ONE,
-        TWO,
-        THREE
-    };
-
     /// Constructs an instance that will generate names using
     /// the requested separator and the requested number of words
-    Petname(NumWords num_words, std::string separator);
-    /// Constructs an instance that will generate names using
-    /// a default separator of "-" and the requested number of words
-    explicit Petname(NumWords num_words);
-    /// Constructs an instance that will generate names using
-    /// the requested separator and two words
-    explicit Petname(std::string separator);
+    PetnameProvider(petname::NumWords num_words, char separator);
 
     std::string make_name() override;
 
 private:
-    std::string separator;
-    NumWords num_words;
-    std::mt19937 engine;
-    std::uniform_int_distribution<std::size_t> name_dist;
-    std::uniform_int_distribution<std::size_t> adjective_dist;
-    std::uniform_int_distribution<std::size_t> adverb_dist;
+    rust::Box<rxx::petname::PetnameGenerator> generator;
 };
 } // namespace multipass
