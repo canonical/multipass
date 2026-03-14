@@ -18,6 +18,7 @@ class WindowsPlatform extends MpPlatform {
   Map<String, String> get drivers => const {
         'hyperv': 'Hyper-V',
         'virtualbox': 'VirtualBox',
+        'hyperv_api': 'Hyper-V (API)'
       };
 
   @override
