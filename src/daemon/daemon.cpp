@@ -127,7 +127,7 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     else if (QString::fromStdString(image).startsWith("http"))
         query_type = mp::Query::Type::HttpDownload;
 
-    return {name, image, false, request->remote_name(), query_type, true};
+    return {name, image, false, request->remote_name(), query_type};
 }
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
@@ -282,7 +282,7 @@ auto fetch_image_for(const std::string& name,
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
     auto stub_progress = [](int download_type, int progress) { return true; };
 
-    mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
+    mp::Query query{name, "", false, "", mp::Query::Type::Alias};
 
     return vault.fetch_image(factory.fetch_type(),
                              query,
@@ -1621,8 +1621,7 @@ try
                                                           request->search_string(),
                                                           false,
                                                           request->remote_name(),
-                                                          Query::Type::Alias,
-                                                          request->allow_unsupported()});
+                                                          Query::Type::Alias});
         }
         catch (const std::exception& e)
         {
@@ -1658,7 +1657,7 @@ try
             auto action = [&images_found, request, &response](const std::string& remote,
                                                               const mp::VMImageInfo& info) {
                 if (remote != mp::snapcraft_remote &&
-                    (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
+                    !info.aliases.empty() &&
                     images_found.find(info.release_title.toStdString()) == images_found.end())
                 {
                     add_aliases(response.mutable_images_info(), remote, info);
@@ -1675,7 +1674,7 @@ try
             request->force_manifest_network_download());
         const auto& remote = request->remote_name();
         auto image_host = config->vault->image_host_for(remote);
-        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
+        auto vm_images_info = image_host->all_images_for(remote);
 
         for (const auto& info : vm_images_info)
             add_aliases(response.mutable_images_info(), remote, info);

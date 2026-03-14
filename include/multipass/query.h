@@ -40,7 +40,6 @@ public:
     bool persistent;
     std::string remote_name;
     Type query_type;
-    bool allow_unsupported{false};
 };
 
 inline void tag_invoke(const boost::json::value_from_tag&,

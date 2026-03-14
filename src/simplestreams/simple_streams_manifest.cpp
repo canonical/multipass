@@ -135,7 +135,10 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
         const auto supported =
             product["supported"].toBool() || product_aliases.contains("devel") ||
             (product["os"] == "ubuntu-core" && product["image_type"] == "stable");
-
+        
+        if (!supported)
+            continue;
+        
         const auto versions = product["versions"].toObject();
         if (versions.isEmpty())
             continue;
