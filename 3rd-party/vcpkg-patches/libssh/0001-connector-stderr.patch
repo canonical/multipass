@@ -1,0 +1,35 @@
+From 99bee08ef9a9aa495f757fec3c93286b0cf60db2 Mon Sep 17 00:00:00 2001
+From: Chris Townsend <christopher.townsend@canonical.com>
+Date: Tue, 7 Jan 2020 15:05:34 -0500
+Subject: [PATCH] connector: Account for stderr when handling polling and
+ callbacks
+
+Addresses canonical/multipass#1180
+---
+ src/connector.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/connector.c b/src/connector.c
+index 9aecf6ea..658ab2cf 100644
+--- a/src/connector.c
++++ b/src/connector.c
+@@ -328,8 +328,8 @@ ssh_connector_fd_out_cb(ssh_connector connector)
+ 
+     if (connector->in_available) {
+         if (connector->in_channel != NULL) {
+-            r = ssh_channel_read_nonblocking(connector->in_channel, buffer,
+-                                             CHUNKSIZE, 0);
++            r = ssh_channel_read_nonblocking(connector->in_channel, buffer, CHUNKSIZE,
++                                             connector->in_flags & SSH_CONNECTOR_STDERR);
+             if (r == SSH_ERROR) {
+                 ssh_connector_except_channel(connector, connector->in_channel);
+                 return;
+@@ -607,7 +607,7 @@ int ssh_connector_set_event(ssh_connector connector, ssh_event event)
+                 ssh_channel_get_session(connector->in_channel));
+         if (rc != SSH_OK)
+             goto error;
+-        if (ssh_channel_poll_timeout(connector->in_channel, 0, 0) > 0){
++        if (ssh_channel_poll_timeout(connector->in_channel, 0, connector->in_flags & SSH_CONNECTOR_STDERR) > 0){
+             connector->in_available = 1;
+         }
+     }
