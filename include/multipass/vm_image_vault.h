@@ -87,6 +87,7 @@ public:
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
     virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(
         const Query& query) const = 0;
+    virtual std::vector<std::pair<std::string, VMImage>> cached_images() const = 0;
 
 protected:
     VMImageVault() = default;

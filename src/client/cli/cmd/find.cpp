@@ -82,13 +82,21 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     const QCommandLineOption force_manifest_network_download(
         "force-update",
         "Force the image information to update from the network");
-    parser->addOptions({unsupportedOption, formatOption, force_manifest_network_download});
+    QCommandLineOption onlyCachedOption("only-cached", "Show only locally cached images");
+    parser->addOptions(
+        {unsupportedOption, formatOption, force_manifest_network_download, onlyCachedOption});
 
     auto status = parser->commandParse(this);
 
     if (status != ParseCode::Ok)
     {
         return status;
+    }
+
+    if (parser->isSet(onlyCachedOption) && parser->positionalArguments().count() > 0)
+    {
+        cerr << "Cannot use --only-cached with a search string\n";
+        return ParseCode::CommandLineError;
     }
 
     if (parser->positionalArguments().count() > 1)
@@ -119,6 +127,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 
     request.set_allow_unsupported(parser->isSet(unsupportedOption));
     request.set_force_manifest_network_download(parser->isSet(force_manifest_network_download));
+    request.set_only_cached(parser->isSet(onlyCachedOption));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
 

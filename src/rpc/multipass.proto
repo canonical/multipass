@@ -141,6 +141,7 @@ message FindRequest {
     int32 verbosity_level = 3;
     bool allow_unsupported = 4;
     bool force_manifest_network_download = 5;
+    bool only_cached = 6;
 }
 
 message FindReply {
