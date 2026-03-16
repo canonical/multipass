@@ -45,7 +45,7 @@ const QString json_template = R"END({
 class StubUpdateJson
 {
 public:
-    StubUpdateJson(QString version, QString url)
+    StubUpdateJson(std::string version, std::string url)
     {
         if (!json_file.open())
             throw std::runtime_error("test failed to create temporary file");
@@ -62,12 +62,12 @@ private:
     QTemporaryFile json_file;
 };
 
-auto check_for_new_release(QString currentVersion, QString newVersion, QString newVersionUrl = "")
+auto check_for_new_release(std::string currentVersion, std::string newVersion, std::string newVersionUrl = "")
 {
     QEventLoop e;
     StubUpdateJson json(newVersion, newVersionUrl);
 
-    mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url());
+    mp::NewReleaseMonitor monitor(currentVersion, std::chrono::hours(1), json.url().toStdString());
 
     // TODO replace with a thread sync mechanism (e.g. condition)
     QTimer::singleShot(timeout, &e, &QEventLoop::quit);
@@ -83,8 +83,8 @@ TEST(NewReleaseMonitor, checksNewRelease)
     auto new_release = check_for_new_release("0.1.0", "0.2.0", "https://something_unique.com");
 
     ASSERT_TRUE(new_release);
-    EXPECT_EQ("0.2.0", new_release->version.toStdString());
-    EXPECT_EQ("https://something_unique.com", new_release->url.toString().toStdString());
+    EXPECT_EQ("0.2.0", new_release->version);
+    EXPECT_EQ("https://something_unique.com", new_release->url);
 }
 
 TEST(NewReleaseMonitor, checksNewReleaseWhenNothingNew)
@@ -128,7 +128,7 @@ TEST(NewReleaseMonitor, devPrereleaseOrderingCorrect1)
     auto new_release = check_for_new_release("0.6.0-dev.238+g5c642f4", "0.6.0");
 
     ASSERT_TRUE(new_release);
-    EXPECT_EQ("0.6.0", new_release->version.toStdString());
+    EXPECT_EQ("0.6.0", new_release->version);
 }
 
 TEST(NewReleaseMonitor, rcPrereleaseOrderingCorrect)
