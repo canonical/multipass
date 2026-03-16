@@ -38,7 +38,6 @@ mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& de
 QStringList mp::QemuVMProcessSpec::arguments() const
 {
     QStringList args;
-
     if (resume_data)
     {
         args = resume_data->arguments;
@@ -63,6 +62,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     }
     else
     {
+        // The UUID needs to be unique per VM and must be consistent across boots.
+        const auto vm_uuid = utils::make_uuid(desc.vm_name);
         auto mem_size =
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
@@ -78,25 +79,24 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
              << "-drive"
              << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda")
                     .arg(desc.image.image_path)
-             << "-device"
-             << "scsi-hd,drive=hda,bus=scsi0.0";
+             << "-device" << "scsi-hd,drive=hda,bus=scsi0.0";
         // Number of cpu cores
         args << "-smp" << QString::number(desc.num_cores);
         // Memory to use for VM
         args << "-m" << mem_size;
         // Control interface
-        args << "-qmp"
-             << "stdio";
+        args << "-qmp" << "stdio";
         // No console
         args << "-chardev"
              // TODO Read and log machine output when verbose
-             << "null,id=char0"
-             << "-serial"
+             << "null,id=char0" << "-serial"
              << "chardev:char0"
              // TODO Add a debugging mode with access to console
              << "-nographic";
         // Cloud-init disk
         args << "-cdrom" << desc.cloud_init_iso;
+        // To make `/sys/class/dmi/id/product_uuid` present
+        args << "-uuid" << vm_uuid;
     }
 
     for (const auto& [_, mount_data] : mount_args)
