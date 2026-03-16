@@ -18,7 +18,8 @@
                 "openssl",
                 "dbus"
             ]
-        }
+        },
+        "xz-embedded"
     ],
     "overrides": [
         {

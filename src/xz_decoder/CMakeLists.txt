@@ -16,6 +16,6 @@ add_library(xz_image_decoder STATIC
   xz_image_decoder.cpp)
 
 target_link_libraries(xz_image_decoder
-  xz-embedded
+  xz-embedded::xz-embedded
   fmt::fmt-header-only
   rpc)
