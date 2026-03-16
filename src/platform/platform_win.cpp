@@ -716,7 +716,7 @@ auto new_ACL(LPSTR path)
         return newACL;
     }
 
-    if(nullptr == pOldDACL)
+    if (nullptr == pOldDACL)
         return newACL;
 
     DWORD size = sizeof(ACL);
