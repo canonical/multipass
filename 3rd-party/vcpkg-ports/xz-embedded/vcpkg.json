@@ -1,0 +1,11 @@
+{
+  "name": "xz-embedded",
+  "version-date": "2024-12-30",
+  "description": "Lightweight XZ decompressor for embedded use",
+  "homepage": "https://github.com/tukaani-project/xz-embedded",
+  "license": "0BSD",
+  "dependencies": [
+    { "name": "vcpkg-cmake", "host": true },
+    { "name": "vcpkg-cmake-config", "host": true }
+  ]
+}
