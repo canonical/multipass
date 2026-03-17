@@ -68,11 +68,7 @@ struct HyperVVirtDisk_UnitTests : public ::testing::Test
 
 TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
@@ -128,11 +124,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_happy_path)
 
 TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhd_happy_path)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
@@ -192,11 +184,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
     EXPECT_CALL(*mock_file_ops, exists(TypedEq<const fs::path&>(L"source.vhdx")))
         .WillOnce(Return(true));
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
@@ -318,11 +306,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
 
 TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, CreateVirtualDisk)
             .WillOnce(DoAll([](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                                PCWSTR Path,
@@ -360,11 +344,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
 
 TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
@@ -421,11 +401,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_happy_path)
 
 TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_open_failed)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         open_vhd_expect_failure();
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
@@ -445,11 +421,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_open_failed)
 TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
 {
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll([](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
                                PCWSTR Path,
@@ -489,11 +461,7 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
 
 TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
@@ -584,11 +552,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_happy_path)
 
 TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
                 [](PVIRTUAL_STORAGE_TYPE VirtualStorageType,
@@ -665,11 +629,7 @@ TEST_F(HyperVVirtDisk_UnitTests, get_virtual_disk_info_fail_some)
 
 TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
 
         EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
@@ -728,11 +688,7 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
 TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_open_disk_failure)
 {
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         open_vhd_expect_failure();
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,
@@ -751,11 +707,7 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_open_disk_failure)
 
 TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
 
         EXPECT_CALL(mock_virtdisk_api, OpenVirtualDisk)
             .WillOnce(DoAll(
@@ -817,11 +769,7 @@ TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_happy_path)
 TEST_F(HyperVVirtDisk_UnitTests, merge_virtual_disk_open_disk_failure)
 {
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         open_vhd_expect_failure();
         logger_scope.mock_logger->expect_log(
             mpl::Level::debug,

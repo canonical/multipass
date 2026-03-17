@@ -71,11 +71,7 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
@@ -121,10 +117,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
@@ -144,11 +137,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
@@ -191,10 +180,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -217,11 +203,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_policies)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
@@ -271,10 +253,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -300,11 +279,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
@@ -360,10 +335,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateNetworkParameters params{};
         params.type = hcn::HcnNetworkType::Transparent();
         params.name = "multipass-hyperv-api-hcn-create-test";
@@ -391,11 +363,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
@@ -411,10 +379,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_hcn_operation(...)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
@@ -434,11 +399,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
@@ -459,10 +420,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_hcn_operation(...)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateNetworkParameters params{};
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
@@ -484,11 +442,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
  */
 TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnDeleteNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
@@ -506,10 +460,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
                                              "perform_hcn_operation(...) > result: true");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, error_msg] =
             HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status);
@@ -524,11 +475,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
  */
 TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnDeleteNetwork)
             .WillOnce(DoAll(
                 [&](REFGUID, PWSTR* error_record) {
@@ -549,10 +496,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
                                              "perform_hcn_operation(...) > result: false");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, error_msg] =
             HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status);
@@ -568,11 +512,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateEndpoint)
             .WillOnce(DoAll(
                 [&](HCN_NETWORK network,
@@ -636,10 +576,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                                              testing::Exactly(2));
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
@@ -657,11 +594,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnOpenNetwork).WillOnce(Return(E_POINTER));
 
         logger_scope.mock_logger->expect_log(mpl::Level::trace,
@@ -673,10 +606,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
                                              "perform_hcn_operation(...) > result: false");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
@@ -692,11 +622,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
 
 TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnCreateEndpoint)
             .WillOnce(DoAll(
                 [&](HCN_NETWORK network,
@@ -760,10 +686,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                                              "perform_hcn_operation(...) > result: false");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         hcn::CreateEndpointParameters params{};
         params.endpoint_guid = "77c27c1e-8204-437d-a7cc-fb4ce1614819";
         params.network_guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
@@ -782,11 +705,7 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
  */
 TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnDeleteEndpoint)
             .WillOnce(DoAll(
                 [&](REFGUID guid, PWSTR* error_record) {
@@ -804,10 +723,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
                                              "perform_hcn_operation(...) > result: true");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, error_msg] =
             HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status);
@@ -822,11 +738,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
  */
 TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnDeleteEndpoint)
             .WillOnce(DoAll([&](REFGUID, PWSTR* error_record) { *error_record = mock_error_msg; },
                             Return(E_POINTER)));
@@ -843,10 +755,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
                                              "perform_hcn_operation(...) > result: false");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, error_msg] =
             HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status);
