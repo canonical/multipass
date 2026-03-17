@@ -105,6 +105,7 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
         for (const auto& elem : attached_endpoints)
         {
             const auto remove_result = HCN().delete_endpoint(elem);
+
             mpl::trace(log_category,
                        "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
                        elem,
@@ -269,31 +270,40 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_adapters()
 std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_hyperv_vswitches()
 {
     std::vector<NetworkInterfaceInfo> result;
-
     std::vector<std::string> hyperv_network_guids;
     std::vector<hyperv::hcn::HcnNetworkInfo> hyperv_network_infos;
-    const auto& [status, status_msg] = HCN().enumerate_networks(hyperv_network_guids);
 
-    for (const auto& network_guid : hyperv_network_guids)
+    if (const auto enumerate_result = HCN().enumerate_networks(hyperv_network_guids))
     {
-        if (const auto result =
-                HCN().query_network(network_guid, hyperv_network_infos.emplace_back());
-            !result)
+        for (const auto& network_guid : hyperv_network_guids)
         {
-            hyperv_network_infos.pop_back();
+            if (const auto result =
+                    HCN().query_network(network_guid, hyperv_network_infos.emplace_back());
+                !result)
+            {
+                mpl::warn(log_category,
+                          "Could not retrieve network information for {}, result: {}",
+                          network_guid,
+                          result);
+                hyperv_network_infos.pop_back();
+            }
+        }
+
+        for (const auto& network_info : hyperv_network_infos)
+        {
+            result.emplace_back(NetworkInterfaceInfo{
+                .id = network_info.name,
+                .type = MP_PLATFORM.bridge_nomenclature(),
+                .description = fmt::format("Hyper-V vSwitch({})", network_info.type),
+                .links = network_info.network_adapter_name.has_value()
+                             ? std::vector<std::string>{network_info.network_adapter_name.value()}
+                             : std::vector<std::string>{},
+                .needs_authorization = false});
         }
     }
-
-    for (const auto& network_info : hyperv_network_infos)
+    else
     {
-        result.emplace_back(NetworkInterfaceInfo{
-            .id = network_info.name,
-            .type = MP_PLATFORM.bridge_nomenclature(),
-            .description = fmt::format("Hyper-V vSwitch({})", network_info.type),
-            .links = network_info.network_adapter_name.has_value()
-                         ? std::vector<std::string>{network_info.network_adapter_name.value()}
-                         : std::vector<std::string>{},
-            .needs_authorization = false});
+        mpl::warn(log_category, "Network enumeration failed, result: {}", enumerate_result);
     }
 
     return result;
