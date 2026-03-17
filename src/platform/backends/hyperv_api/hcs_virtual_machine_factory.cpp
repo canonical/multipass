@@ -106,10 +106,11 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
         {
             const auto remove_result = HCN().delete_endpoint(elem);
 
-            mpl::trace(log_category,
-                       "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
-                       elem,
-                       remove_result.code);
+            mpl::log(remove_result ? mpl::Level::trace : mpl::Level::warning,
+                     log_category,
+                     "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
+                     elem,
+                     remove_result.code);
         }
     }
     else
