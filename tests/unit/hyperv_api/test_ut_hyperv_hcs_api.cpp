@@ -174,11 +174,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
         }
     })";
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -256,10 +252,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             "grant_vm_access(...) > name: (test_vm), file_path: (non-empty.vmrs)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -285,11 +278,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
 
 TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmgs_create_fail)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data
         EXPECT_CALL(mock_hcs_api, HcsCreateEmptyGuestStateFile(StrEq(L"non-empty.vmgs")))
             .WillOnce(Return(E_POINTER));
 
@@ -297,10 +286,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmgs_create_fail)
                                              "HCSWrapper::create_compute_system(...) > params:");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -319,11 +305,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmgs_create_fail)
 
 TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmrs_create_fail)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateEmptyGuestStateFile(StrEq(L"non-empty.vmgs")))
             .WillOnce(Return(NOERROR));
 
@@ -339,10 +321,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmrs_create_fail)
             "grant_vm_access(...) > name: (test_vm), file_path: (non-empty.vmgs)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -418,11 +397,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
         }
     })";
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -483,10 +458,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                                              "wait_for_operation_result(...) > finished");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -564,11 +536,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
         }
     })";
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -629,10 +597,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                                              "wait_for_operation_result(...) > finished");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -700,11 +665,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
         }
     })";
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -765,10 +726,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
                                              "wait_for_operation_result(...) > finished");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -790,11 +748,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
  */
 TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -808,10 +762,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -900,11 +851,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
          }
      })";
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -942,10 +889,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "create_operation(...)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -1034,11 +978,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
          }
      })";
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -1099,10 +1039,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                                              "wait_for_operation_result(...) > finished");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
         CreateComputeSystemParameters params{};
         params.name = "test_vm";
@@ -1128,11 +1065,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
  */
 TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_success)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsGrantVmAccess)
             .WillOnce(DoAll(
                 [](PCWSTR vmId, PCWSTR filePath) {
@@ -1148,10 +1081,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_success)
             "grant_vm_access(...) > name: (test_vm), file_path: (this is a path)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().grant_vm_access("test_vm", "this is a path");
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
@@ -1162,11 +1092,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_success)
 
 TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_fail)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsGrantVmAccess)
             .WillOnce(DoAll(
                 [](PCWSTR vmId, PCWSTR filePath) {
@@ -1182,10 +1108,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_fail)
             "grant_vm_access(...) > name: (test_vm), file_path: (this is a path)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().grant_vm_access("test_vm", "this is a path");
         ASSERT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
@@ -1200,11 +1123,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_fail)
  */
 TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_success)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsRevokeVmAccess)
             .WillOnce(DoAll(
                 [](PCWSTR vmId, PCWSTR filePath) {
@@ -1220,10 +1139,7 @@ TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_success)
             "revoke_vm_access(...) > name: (test_vm), file_path: (this is a path)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().revoke_vm_access("test_vm", "this is a path");
         ASSERT_TRUE(status);
         ASSERT_TRUE(status_msg.empty());
@@ -1234,11 +1150,7 @@ TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_success)
 
 TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_fail)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsRevokeVmAccess)
             .WillOnce(DoAll(
                 [](PCWSTR vmId, PCWSTR filePath) {
@@ -1253,10 +1165,7 @@ TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_fail)
             "revoke_vm_access(...) > name: (test_vm), file_path: (this is a path)");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().revoke_vm_access("test_vm", "this is a path");
         ASSERT_FALSE(status);
         ASSERT_FALSE(status_msg.empty());
@@ -1276,11 +1185,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_happy_path(UutCallableT uut_callb
                                                           PWSTR operation_result_document,
                                                           PWSTR expected_status_msg)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -1338,10 +1243,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_happy_path(UutCallableT uut_callb
                                              "wait_for_operation_result(...) > finished");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
         ASSERT_TRUE(status);
 
@@ -1360,11 +1262,7 @@ template <typename UutCallableT>
 void HyperVHCSAPI_UnitTests::generic_operation_hcs_open_fail(UutCallableT uut_callback,
                                                              PWSTR expected_status_msg)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsOpenComputeSystem)
             .WillOnce(DoAll(
                 [&](PCWSTR id, DWORD requestedAccess, HCS_SYSTEM* computeSystem) {
@@ -1385,10 +1283,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_hcs_open_fail(UutCallableT uut_ca
             "open_compute_system(...) > failed to open (test_vm), result code: (0x80004003:");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
 
@@ -1408,11 +1303,7 @@ template <typename UutCallableT>
 void HyperVHCSAPI_UnitTests::generic_operation_create_operation_fail(UutCallableT uut_callback,
                                                                      PWSTR expected_status_msg)
 {
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
 
         EXPECT_CALL(mock_hcs_api, HcsOpenComputeSystem)
             .WillOnce(DoAll(
@@ -1444,10 +1335,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_create_operation_fail(UutCallable
             "perform_hcs_operation(...) > HcsCreateOperation failed!");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
 
@@ -1468,11 +1356,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_fail(UutCallableT uut_callback,
                                                     PWSTR expected_status_msg)
 {
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -1506,10 +1390,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_fail(UutCallableT uut_callback,
                                              "perform_hcs_operation(...) > Operation failed!");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
         if (nullptr == expected_status_msg)
@@ -1531,11 +1412,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_wait_for_operation_fail(
     PWSTR expected_status_msg)
 {
 
-    /******************************************************
-     * Verify that the dependencies are called with right
-     * data.
-     ******************************************************/
-    {
+    { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
             .WillOnce(DoAll(
                 [](const void* context, HCS_OPERATION_COMPLETION callback) {
@@ -1593,10 +1470,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_wait_for_operation_fail(
                                              "wait_for_operation_result(...) > finished");
     }
 
-    /******************************************************
-     * Verify the expected outcome.
-     ******************************************************/
-    {
+    { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
         ASSERT_FALSE(status);
 
