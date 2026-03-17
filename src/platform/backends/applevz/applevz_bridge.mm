@@ -36,10 +36,10 @@ namespace multipass::applevz
 {
 struct VirtualMachineHandle
 {
-    std::shared_ptr<void> vm;                        // Ownership transfer of VZVirtualMachine*
-    dispatch_queue_t queue;                          // Dispatch queue for VM operations
-    uint64_t id;                                     // Unique VM ID
-    std::vector<std::unique_ptr<VmnetRelay>> relays; // Vmnet relays
+    std::shared_ptr<void> vm;             // Ownership transfer of VZVirtualMachine*
+    dispatch_queue_t queue;               // Dispatch queue for VM operations
+    uint64_t id;                          // Unique VM ID
+    std::vector<VmnetRelayHandle> relays; // vmnet relay lifetime handles
 };
 } // namespace multipass::applevz
 
@@ -191,34 +191,18 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         [networkDevices addObject:netDevice];
 
         // Extra bridged interfaces
-        NSArray<VZBridgedNetworkInterface*>* hostInterfaces =
-            [VZBridgedNetworkInterface networkInterfaces];
+        std::vector<VmnetRelayHandle> relays;
         for (const auto& extra : desc.extra_interfaces)
         {
-            NSString* targetId = [NSString stringWithCString:extra.id.c_str()
-                                                    encoding:NSUTF8StringEncoding];
-
-            VZBridgedNetworkInterface* found = nil;
-            for (VZBridgedNetworkInterface* hostIface in hostInterfaces)
-            {
-                if ([hostIface.identifier isEqualToString:targetId])
-                {
-                    found = hostIface;
-                    break;
-                }
-            }
-
-            assert(found && "Bridged interface not found - extra_interfaces must be validated "
-                            "before VM creation");
-
-            VZBridgedNetworkDeviceAttachment* bridgedAttachment =
-                [[VZBridgedNetworkDeviceAttachment alloc] initWithInterface:found];
+            VmnetBridge bridge = create_vmnet_bridge(extra.id);
 
             VZVirtioNetworkDeviceConfiguration* bridgedDevice =
                 [[VZVirtioNetworkDeviceConfiguration alloc] init];
-            bridgedDevice.attachment = bridgedAttachment;
+            bridgedDevice.attachment = bridge.attachment;
 
             [networkDevices addObject:bridgedDevice];
+
+            relays.push_back(std::move(bridge.relay));
         }
 
         config.networkDevices = networkDevices;
@@ -235,7 +219,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         }
 
         out_handle = std::make_shared<VirtualMachineHandle>();
-
+        out_handle->relays = std::move(relays);
         out_handle->id = vmIDCounter.fetch_add(1, std::memory_order_relaxed);
 
         // Create dispatch queue
