@@ -374,7 +374,7 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
                         ssh_get_error(sftp->session)};
 
     // create an uninitialized buffer to use.
-    const auto max_write = sftp_limits(sftp.get())->max_write_length;
+    const auto max_write = mp_sftp_limits(sftp.get())->max_write_length;
     const std::unique_ptr<char[]> buffer{new char[max_write]};
 
     while (auto r = source.read(buffer.get(), max_write).gcount())
@@ -393,7 +393,7 @@ void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
                         ssh_get_error(sftp->session)};
 
     // create an uninitialized buffer to use.
-    const auto max_read = sftp_limits(sftp.get())->max_read_length;
+    const auto max_read = mp_sftp_limits(sftp.get())->max_read_length;
     const std::unique_ptr<char[]> buffer{new char[max_read]};
 
     while (auto r = sftp_read(remote_file.get(), buffer.get(), max_read))

@@ -34,7 +34,10 @@ auto get_common_args(const QString& host_arch)
 
     if (host_arch == "aarch64")
     {
-        qemu_args << "-machine" << "virt,gic-version=3";
+        // clang-format off
+        qemu_args << "-machine"
+                  << "virt,gic-version=3";
+        // clang-format on
     }
 
     return qemu_args;
@@ -86,8 +89,11 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     QStringList qemu_args;
     const Subnet& subnet = bridges.at(vm_desc.zone);
 
+    // clang-format off
     qemu_args
-        << common_args << "-accel" << "hvf" << "-drive"
+        << common_args << "-accel"
+        << "hvf"
+        << "-drive"
         << QString("file=%1/../Resources/qemu/edk2-%2-code.fd,if=pflash,format=raw,readonly=on")
                .arg(QCoreApplication::applicationDirPath())
                .arg(host_arch)
@@ -95,12 +101,13 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
         << "host"
         // Set up the network related args
         << "-nic"
-        << QString::fromStdString(fmt::format("vmnet-shared,model=virtio-net-pci,mac={},"
-                                              "start-address={},end-address={},subnet-mask={}",
-                                              vm_desc.default_mac_address,
+        << QString::fromStdString(fmt::format("vmnet-shared,start-address={},end-address={}"
+                                              ",subnet-mask={},model=virtio-net-pci,mac={}",
                                               subnet.min_address().as_string(),
                                               subnet.max_address().as_string(),
-                                              subnet.subnet_mask().as_string()));
+                                              subnet.subnet_mask().as_string(),
+                                              vm_desc.default_mac_address));
+    // clang-format on
 
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {

@@ -58,6 +58,7 @@ SFTPAttributesUPtr SFTPDirIterator::next()
         if (attr->type == SSH_FILEXFER_TYPE_DIRECTORY)
             push_dir(path);
 
+        free(attr->name);
         attr->name = strdup(path.c_str());
         next_attr.swap(attr);
         return attr;

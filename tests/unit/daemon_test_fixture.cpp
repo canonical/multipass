@@ -580,6 +580,7 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
         (daemon.*slot)(&request, &server, &status_promise);
         inner_loop.exec();
     });
+    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
     thread->start();
 

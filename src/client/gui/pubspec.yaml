@@ -40,7 +40,7 @@ dependencies:
       ref: main
   two_dimensional_scrollables: ^0.3.3
   url_launcher: ^6.3.1
-  win32: ^5.14.0
+  win32: 6.0.0
   window_manager: ^0.5.0
   window_size:
     git:
