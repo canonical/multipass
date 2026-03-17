@@ -44,12 +44,7 @@ struct ResultCode
         return *this;
     }
 
-    [[nodiscard]] explicit operator bool() const noexcept
-    {
-        return result == ERROR_SUCCESS;
-    }
-
-    [[nodiscard]] explicit operator HRESULT() const noexcept
+    [[nodiscard]] operator HRESULT() const noexcept
     {
         return result;
     }
@@ -76,8 +71,8 @@ struct OperationResult
 {
 
     /**
-     * Status code of the operation. Evaluates to
-     * true and greater or equal to 0 on success.
+     * Status code of the operation. Equal to
+     * S_OK on success.
      */
     ResultCode code;
 
@@ -91,7 +86,7 @@ struct OperationResult
 
     [[nodiscard]] explicit operator bool() const noexcept
     {
-        return static_cast<bool>(code);
+        return code == S_OK;
     }
 
     [[nodiscard]] operator std::error_code() const noexcept
