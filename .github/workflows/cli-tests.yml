@@ -45,7 +45,7 @@ env:
   PYTHONIOENCODING: "utf-8"
 
 jobs:
-  determine-matrix:
+  GetMatrix:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.neo.outputs.matrix }}
@@ -120,12 +120,12 @@ jobs:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
       cancel-in-progress: true
     name: CLI Tests (${{ matrix.label }})
-    needs: determine-matrix
+    needs: GetMatrix
     runs-on: ${{ matrix.os }}
-    if: ${{ needs.determine-matrix.outputs.has_targets == 'true' }}
+    if: ${{ needs.GetMatrix.outputs.has_targets == 'true' }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.determine-matrix.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
     steps:
       - name: Check out cli-tests
         uses: actions/checkout@v5
