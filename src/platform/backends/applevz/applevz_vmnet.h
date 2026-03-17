@@ -17,21 +17,22 @@
 
 #pragma once
 
-#include <vmnet/vmnet.h>
+#include <Virtualization/Virtualization.h>
+
+#include <memory>
 
 namespace multipass::applevz
 {
-struct VmnetRelay
+
+// Opaque handle whose lifetime must exceed that of the attachment it was created with.
+using VmnetRelayHandle = std::shared_ptr<void>;
+
+struct VmnetBridge
 {
-    interface_ref iface;
-    int fd;
-    dispatch_source_t source;
-    dispatch_queue_t queue;
-
-    ~VmnetRelay();
-
-    VmnetRelay() = default;
-    VmnetRelay(const VmnetRelay&) = delete;
-    VmnetRelay& operator=(const VmnetRelay&) = delete;
+    VZFileHandleNetworkDeviceAttachment* attachment;
+    VmnetRelayHandle relay;
 };
+
+VmnetBridge create_vmnet_bridge(const std::string& physical_iface);
+
 } // namespace multipass::applevz
