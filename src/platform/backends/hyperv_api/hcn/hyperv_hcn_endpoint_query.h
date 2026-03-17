@@ -47,6 +47,6 @@ struct fmt::formatter<multipass::hyperv::hcn::EndpointQuery, Char>
 {
 
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::EndpointQuery& params,
-                FormatContext& ctx) const -> FormatContext::iterator;
+    auto format(const multipass::hyperv::hcn::EndpointQuery& params, FormatContext& ctx) const
+        -> FormatContext::iterator;
 };
