@@ -62,7 +62,9 @@ private:
     QTemporaryFile json_file;
 };
 
-auto check_for_new_release(std::string currentVersion, std::string newVersion, std::string newVersionUrl = "")
+auto check_for_new_release(std::string currentVersion,
+                           std::string newVersion,
+                           std::string newVersionUrl = "")
 {
     QEventLoop e;
     StubUpdateJson json(newVersion, newVersionUrl);
