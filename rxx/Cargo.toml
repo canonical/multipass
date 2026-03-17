@@ -1,0 +1,37 @@
+[workspace]
+members = [
+  "petnamers", "rust_logger",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.91"
+
+[workspace.dependencies]
+cxx = "^1.0.0"
+cxx-build = "^1.0.0"
+# This is debug
+[profile.dev]
+opt-level = 0
+debug = true
+strip = "none"
+debug-assertions = true
+overflow-checks = true
+lto = true
+panic = 'unwind'
+incremental = true
+codegen-units = 1 #Lower means slow compilation better optimization
+rpath = false
+
+[profile.release]
+lto = true
+debug = false
+strip = "debuginfo"
+opt-level = "s"
+codegen-units = 1 #Lower codegen count improves compiler optimization
+panic = "abort"
+debug-assertions = false
+overflow-checks = false
+incremental = false #Removing incremental compilation allows lower codegen count
