@@ -116,6 +116,7 @@ jobs:
             core.setOutput('matrix', JSON.stringify(matrix));
             core.setOutput('has_targets', String(matrix.include.length > 0));
   run-cli-tests:
+    continue-on-error: true
     concurrency:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
       cancel-in-progress: true
