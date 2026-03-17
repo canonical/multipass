@@ -35,7 +35,20 @@
 
 #include <fmt/std.h> // for the std::filesystem::path formatter
 
-#include <regex>
+namespace
+{
+void update_adapter_authorizations(std::vector<multipass::NetworkInterfaceInfo>& adapters,
+                                   const std::vector<multipass::NetworkInterfaceInfo>& switches)
+{
+    for (auto& adapter : adapters)
+        adapter.needs_authorization =
+            std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+                return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
+                       switch_.links.cend();
+            });
+}
+
+} // namespace
 
 namespace multipass::hyperv
 {
@@ -312,10 +325,16 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_hyperv_vswitches
 
 std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
 {
-    auto result = get_adapters();
+    auto adapters = get_adapters();
     auto switches = get_hyperv_vswitches();
-    std::move(switches.begin(), switches.end(), std::back_inserter(result));
-    return result;
+    update_adapter_authorizations(adapters, switches);
+
+    if (adapters.size() > switches.size())
+        std::swap(adapters, switches);                   // we want to move the smallest one
+
+    switches.reserve(adapters.size() + switches.size()); // avoid growing more times than needed
+    std::move(adapters.begin(), adapters.end(), std::back_inserter(switches));
+    return switches;
 }
 
 void HCSVirtualMachineFactory::hypervisor_health_check()
