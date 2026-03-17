@@ -259,7 +259,4 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
         fut.cancel()
         raise TimeoutError(f"Operation timed out after {timeout} seconds")
 
-    if fut.exception():
-        raise fut.exception()
-
     return fut.result()
