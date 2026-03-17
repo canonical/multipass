@@ -23,8 +23,8 @@
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<GUID, Char>::format(const GUID& guid,
-                                        FormatContext& ctx) const -> FormatContext::iterator
+auto fmt::formatter<GUID, Char>::format(const GUID& guid, FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     // The format string is laid out char by char to allow it
     // to be used for initializing variables with different character

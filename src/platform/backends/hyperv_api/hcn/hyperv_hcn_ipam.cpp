@@ -24,8 +24,8 @@ using namespace multipass::hyperv::hcn;
 
 template <typename Char>
 template <typename FormatContext>
-auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam,
-                                           FormatContext& ctx) const -> FormatContext::iterator
+auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& ctx) const
+    -> FormatContext::iterator
 {
     constexpr static auto json_template = string_literal<Char>(R"json(
         {{
