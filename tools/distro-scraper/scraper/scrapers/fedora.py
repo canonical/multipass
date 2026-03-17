@@ -2,13 +2,12 @@ import re
 import aiohttp
 import asyncio
 from dateutil import parser
-from ..base import BaseScraper
+from ..base import BaseScraper, DEFAULT_TIMEOUT
 from ..models import SUPPORTED_ARCHITECTURES
 
 
 PRIMARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora/linux/releases"
 SECONDARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora-secondary/releases"
-DEFAULT_TIMEOUT = 10
 
 ARCH_MAP = {
     "arm64": "aarch64",
@@ -32,12 +31,7 @@ class FedoraScraper(BaseScraper):
         Fetch the primary releases directory listing and return the highest numeric version.
         """
         url = f"{PRIMARY_RELEASES_URL}/"
-        self.logger.info("Fetching Fedora release listing from %s", url)
-        async with session.get(
-            url, timeout=aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT)
-        ) as resp:
-            resp.raise_for_status()
-            text = await resp.text()
+        text = await self._fetch_text(session, url)
         versions = re.findall(r'href="(\d+)/"', text)
         if not versions:
             raise RuntimeError("No numeric release versions found in directory listing")
@@ -51,11 +45,7 @@ class FedoraScraper(BaseScraper):
         """
         Fetch an Apache-style HTML directory listing and return the linked filenames.
         """
-        async with session.get(
-            url, timeout=aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT)
-        ) as resp:
-            resp.raise_for_status()
-            text = await resp.text()
+        text = await self._fetch_text(session, url)
         # Match href values that are plain filenames (no path separators or query strings)
         return re.findall(r'href="([^"/?][^"/]*)"', text)
 
@@ -65,11 +55,7 @@ class FedoraScraper(BaseScraper):
         """
         Fetch a Fedora CHECKSUM file and return a mapping of filename -> sha256.
         """
-        async with session.get(
-            url, timeout=aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT)
-        ) as resp:
-            resp.raise_for_status()
-            text = await resp.text()
+        text = await self._fetch_text(session, url)
         return {
             m.group(1): m.group(2)
             for m in re.finditer(
