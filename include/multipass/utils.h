@@ -32,6 +32,7 @@
 #include <filesystem>
 #include <functional>
 #include <future>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -133,6 +134,7 @@ Str&& trim(Str&& s, Filter&& filter);
 template <typename Str>
 Str&& trim(Str&& s);
 bool iequals(std::string_view lhs, std::string_view rhs);
+bool istarts_with(std::string_view str, std::string_view prefix);
 std::string& trim_newline(std::string& s);
 std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);
@@ -320,6 +322,16 @@ inline bool multipass::utils::iequals(std::string_view lhs, std::string_view rhs
     return std::ranges::equal(lhs, rhs, [](char c1, char c2) {
         return tolower(c1) == tolower(c2);
     });
+}
+
+inline bool multipass::utils::istarts_with(std::string_view str, std::string_view prefix)
+{
+    if (prefix.size() > str.size())
+        return false;
+    return std::ranges::equal(
+        str | std::views::take(prefix.size()),
+        prefix,
+        [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
 }
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
