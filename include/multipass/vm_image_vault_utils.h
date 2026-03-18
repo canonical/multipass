@@ -17,9 +17,9 @@
 
 #pragma once
 
-#include "file_ops.h"
 #include "xz_image_decoder.h"
 
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -38,28 +38,29 @@ class ImageVaultUtils : public Singleton<ImageVaultUtils>
 public:
     ImageVaultUtils(const PrivatePass&) noexcept;
 
-    using Decoder = std::function<void(const QString&, const QString&)>;
+    using Decoder = std::function<void(const std::string&, const std::string&)>;
     using DefaultDecoderT = XzImageDecoder;
 
-    virtual QString copy_to_dir(const QString& file, const QDir& output_dir) const;
-    [[nodiscard]] virtual QString compute_hash(
-        QIODevice& device,
+    virtual std::filesystem::path copy_to_dir(const std::filesystem::path& file,
+                                              const QDir& output_dir) const;
+    [[nodiscard]] virtual std::string compute_hash(
+        std::istream& stream,
         const QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256) const;
-    [[nodiscard]] virtual QString compute_file_hash(
-        const QString& file,
+    [[nodiscard]] virtual std::string compute_file_hash(
+        const std::filesystem::path& file,
         const QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256) const;
 
-    virtual void verify_file_hash(const QString& file, const QString& hash) const;
+    virtual void verify_file_hash(const std::filesystem::path& file, const std::string& hash) const;
 
-    virtual QString extract_file(const QString& file,
-                                 const Decoder& decoder,
-                                 bool delete_original = false) const;
+    virtual std::filesystem::path extract_file(const std::filesystem::path& file,
+                                               const Decoder& decoder,
+                                               bool delete_original = false) const;
 
     template <class DecoderT = DefaultDecoderT>
-    QString extract_file(const QString& file,
-                         const ProgressMonitor& monitor,
-                         bool delete_original = false,
-                         const DecoderT& = DecoderT{}) const;
+    std::filesystem::path extract_file(const std::filesystem::path& file,
+                                       const ProgressMonitor& monitor,
+                                       bool delete_original = false,
+                                       const DecoderT& = DecoderT{}) const;
 
     using HostMap = std::unordered_map<std::string, VMImageHost*>;
     using Hosts = std::vector<VMImageHost*>;
@@ -68,14 +69,14 @@ public:
 };
 
 template <class DecoderT>
-QString ImageVaultUtils::extract_file(const QString& file,
-                                      const ProgressMonitor& monitor,
-                                      bool delete_original,
-                                      const DecoderT& decoder) const
+std::filesystem::path ImageVaultUtils::extract_file(const std::filesystem::path& file,
+                                                    const ProgressMonitor& monitor,
+                                                    bool delete_original,
+                                                    const DecoderT& decoder) const
 {
-    auto decoder_fn = [&monitor, &decoder](const QString& encoded_file,
-                                           const QString& destination) {
-        return decoder.decode_to(encoded_file.toStdString(), destination.toStdString(), monitor);
+    auto decoder_fn = [&monitor, &decoder](const std::string& encoded_file,
+                                           const std::string& destination) {
+        return decoder.decode_to(encoded_file, destination, monitor);
     };
 
     return extract_file(file, decoder_fn, delete_original);

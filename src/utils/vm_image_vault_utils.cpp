@@ -15,13 +15,18 @@
  *
  */
 
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/image_host/vm_image_host.h>
+#include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/vm_image_vault_utils.h>
 #include <multipass/xz_image_decoder.h>
 
+#include <QByteArray>
 #include <QFileInfo>
+
+#include <fmt/std.h>
 
 #include <stdexcept>
 
@@ -31,79 +36,95 @@ mp::ImageVaultUtils::ImageVaultUtils(const PrivatePass& pass) noexcept : Singlet
 {
 }
 
-QString mp::ImageVaultUtils::copy_to_dir(const QString& file, const QDir& output_dir) const
+std::filesystem::path mp::ImageVaultUtils::copy_to_dir(const std::filesystem::path& file,
+                                                       const QDir& output_dir) const
 {
-    if (file.isEmpty())
+    if (file.empty())
         return "";
 
-    const QFileInfo info{file};
-    if (!MP_FILEOPS.exists(info))
+    if (!MP_FILEOPS.exists(file))
         throw std::runtime_error(fmt::format("File {} not found", file));
 
-    auto new_location = output_dir.filePath(info.fileName());
+    auto new_location = output_dir.filesystemPath() / file.filename();
 
-    if (!MP_FILEOPS.copy(file, new_location))
+    std::error_code ec{};
+    std::filesystem::copy_options options{};
+    MP_FILEOPS.copy(file, new_location, options, ec);
+    if (ec)
         throw std::runtime_error(fmt::format("Failed to copy {} to {}", file, new_location));
 
     return new_location;
 }
 
-QString mp::ImageVaultUtils::compute_hash(QIODevice& device,
-                                          const QCryptographicHash::Algorithm algo) const
+std::string mp::ImageVaultUtils::compute_hash(std::istream& stream,
+                                              const QCryptographicHash::Algorithm algo) const
 {
     QCryptographicHash hash{algo};
-    if (!hash.addData(std::addressof(device)))
-        throw std::runtime_error("Failed to read data from device to hash");
 
-    return hash.result().toHex();
+    constexpr std::size_t buf_size = 8192;
+    char buf[buf_size] = {0};
+
+    do
+    {
+        stream.read(buf, buf_size);
+
+        if (stream.bad())
+            throw std::runtime_error("Failed to read data from device to hash");
+
+        if (auto count = stream.gcount(); count > 0)
+            hash.addData(QByteArrayView{buf, static_cast<qsizetype>(count)});
+
+    } while (stream);
+
+    return hash.result().toHex().toStdString();
 }
 
-QString mp::ImageVaultUtils::compute_file_hash(const QString& path,
-                                               const QCryptographicHash::Algorithm algo) const
+std::string mp::ImageVaultUtils::compute_file_hash(const std::filesystem::path& path,
+                                                   const QCryptographicHash::Algorithm algo) const
 {
-    QFile file{path};
-    if (!MP_FILEOPS.open(file, QFile::ReadOnly))
+    std::fstream file;
+    MP_FILEOPS.open(file, path.c_str(), std::ios::in | std::ios::binary);
+    if (!file)
         throw std::runtime_error(fmt::format("Failed to open {}", path));
 
     return compute_hash(file, algo);
 }
 
-void mp::ImageVaultUtils::verify_file_hash(const QString& file, const QString& hash) const
+void mp::ImageVaultUtils::verify_file_hash(const std::filesystem::path& file,
+                                           const std::string& hash) const
 {
-    const QString sha512_prefix = QStringLiteral("sha512:");
-    QString hash_to_check = hash;
+    const std::string sha512_prefix = "sha512:";
+    std::string hash_to_check = hash;
     QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256;
 
-    if (hash.startsWith(sha512_prefix, Qt::CaseInsensitive))
+    if (utils::istarts_with(hash, sha512_prefix))
     {
-        hash_to_check = hash.mid(sha512_prefix.length());
+        hash_to_check = hash.substr(sha512_prefix.length());
         algo = QCryptographicHash::Sha512;
     }
 
     const auto file_hash = compute_file_hash(file, algo);
 
-    if (file_hash.compare(hash_to_check, Qt::CaseInsensitive) != 0)
+    if (!utils::iequals(file_hash, hash_to_check))
     {
         throw std::runtime_error(fmt::format("Hash of {} does not match (expected {} but got {})",
-                                             file.toStdString(),
-                                             hash_to_check.toStdString(),
-                                             file_hash.toStdString()));
+                                             file,
+                                             hash_to_check,
+                                             file_hash));
     }
 }
 
-QString mp::ImageVaultUtils::extract_file(const QString& file,
-                                          const Decoder& decoder,
-                                          bool delete_original) const
+std::filesystem::path mp::ImageVaultUtils::extract_file(const std::filesystem::path& file,
+                                                        const Decoder& decoder,
+                                                        bool delete_original) const
 {
-    const auto fs_new_path = MP_FILEOPS.remove_extension(file.toStdU16String());
-    auto new_path = QString::fromStdString(fs_new_path.string());
-
+    const auto new_path = MP_FILEOPS.remove_extension(file);
     decoder(file, new_path);
 
     if (delete_original)
     {
-        QFile qfile{file};
-        MP_FILEOPS.remove(qfile);
+        std::error_code ec{};
+        MP_FILEOPS.remove(file, ec);
     }
 
     return new_path;

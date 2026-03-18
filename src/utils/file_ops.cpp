@@ -370,6 +370,19 @@ void mp::FileOps::copy(const fs::path& src,
     fs::copy(src, dist, copy_options);
 }
 
+void mp::FileOps::copy(const fs::path& src,
+                       const fs::path& dist,
+                       fs::copy_options copy_options,
+                       std::error_code& ec) const
+{
+    fs::copy(src, dist, copy_options, ec);
+}
+
+bool mp::FileOps::exists(const fs::path& path) const
+{
+    return fs::exists(path);
+}
+
 bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const
 {
     return fs::exists(path, err);

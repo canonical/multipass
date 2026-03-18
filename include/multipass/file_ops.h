@@ -119,6 +119,11 @@ public:
     virtual void copy(const fs::path& src,
                       const fs::path& dist,
                       fs::copy_options copy_options) const;
+    virtual void copy(const fs::path& src,
+                      const fs::path& dist,
+                      fs::copy_options copy_options,
+                      std::error_code& ec) const;
+    virtual bool exists(const fs::path& path) const;
     virtual bool exists(const fs::path& path, std::error_code& err) const;
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;
