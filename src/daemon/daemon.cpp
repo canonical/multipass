@@ -677,9 +677,8 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer,
-                fmt::format_string<Ts...> fmt,
-                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer,fmt::format_string<Ts...> fmt, Ts&&... fmt_params) 
+    -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
@@ -1358,8 +1357,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {},
                                               {},
                                               {},
-                                              {},
-                                              false};
+                                              {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
         auto instance = instance_record[name] =
@@ -3213,8 +3211,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     config->ssh_username,
                     config->factory->get_backend_version_string().toStdString(),
                     request),
-                YAML::Node{},
-                false};
+                YAML::Node{}};
 
             query = query_from(request, name);
             vm_desc.mem_size = checked_args.mem_size;
@@ -3283,17 +3280,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
-
-            if(vm_desc.user_data_config["power_state"])
-            {
-                auto ps = vm_desc.user_data_config["power_state"];
-                if(ps["mode"] && ps["mode"].as<std::string>() == "poweroff")
-                {
-                    mpl::log(mpl::Level::error, name, "DETECTED POWEROFF IN CONFIG");
-                    vm_desc.expects_shutdown = true;
-                }
-            }
-
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 

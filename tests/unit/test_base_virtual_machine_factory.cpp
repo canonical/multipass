@@ -153,8 +153,7 @@ TEST_F(BaseFactory, createsCloudInitIsoImage)
                                           metadata,
                                           user_data,
                                           vendor_data,
-                                          network_data,
-                                          false};
+                                          network_data};
 
     factory.configure(vm_desc);
 

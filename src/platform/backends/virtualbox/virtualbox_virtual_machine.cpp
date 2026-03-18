@@ -337,7 +337,18 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
 {
-    expected_shutdown = desc.expects_shutdown;
+    if(desc.user_data_config["power_state"])
+    {
+        auto ps = desc.user_data_config["power_state"];
+        if(ps["mode"])
+        {
+            std::string mode = ps["mode"].as<std::string>();
+            if(mode == "poweroff" || mode == "halt")
+            {
+                expected_shutdown = true;
+            }
+        }
+    }
 }
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
@@ -448,17 +459,6 @@ void mp::VirtualBoxVirtualMachine::suspend()
 mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(name);
-
-    if (state == State::starting && present_state == State::stopped)
-    {
-        mpl::log(mpl::Level::info,
-                 name.toStdString(),
-                 "VM stopped during startup (cloud-init poweroff)");
-
-        state = present_state;
-        return state;
-    }
-
     if (state == State::delayed_shutdown && present_state == State::running)
         return state;
 

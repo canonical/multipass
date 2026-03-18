@@ -275,8 +275,8 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
                 return utils::TimeoutAction::done;
             } else {
                 mpl::log(mpl::Level::error, vm_name,
-                         "VM stopped unexpectedly (no power_state in cloud-init)");
-                return utils::TimeoutAction::done;
+                         "VM stopped unexpectedly");
+                throw StartException(vm_name, "VM stopped unexpectedly");
             }
         }
 
@@ -305,19 +305,18 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
 {
     auto action = [this]() -> mpu::TimeoutAction {
         detect_aborted_start(); 
-
         try
         {
             ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
             return mpu::TimeoutAction::done;
         }
-        catch (const SSHVMNotRunning&)
+        catch (const SSHVMNotRunning& e)
         {
             try_to_ssh();
             return mpu::TimeoutAction::retry;
         }
-        catch (const SSHExecFailure&)
-        {
+        catch (const SSHExecFailure& e) // transitioning away from catching generic runtime errors                         
+        {                                // TODO remove once we're confident this is an anomaly
             return mpu::TimeoutAction::retry;
         }
         catch (const std::exception& e)

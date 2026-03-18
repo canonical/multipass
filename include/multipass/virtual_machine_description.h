@@ -48,7 +48,6 @@ public:
     YAML::Node user_data_config;
     YAML::Node vendor_data_config;
     YAML::Node network_data_config;
-    bool expects_shutdown;
 };
 } // namespace multipass
 
