@@ -12,6 +12,12 @@ on:
   merge_group:
     types: [checks_requested]
 
+permissions:
+  contents: read
+  checks: write
+  actions: read
+  packages: write
+
 jobs:
   filter:
     name: Filter changed files

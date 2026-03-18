@@ -308,3 +308,39 @@ jobs:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
+
+    - name: Delete unused artifacts from github
+      uses: geekyeggo/delete-artifact@v5
+      with:
+        name: ${{ needs.BuildAndTest.outputs.snap-file }}
+        failOnError: false
+
+  Report-Workflow-Failure:
+    needs: BuildAndTest
+    if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report workflow failure
+      uses: mattermost/action-mattermost-notify@master
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: multipass
+        TEXT: |
+          :red_circle: @mp
+          Scheduled [Linux](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
+  Dispatch-CLI-Tests-Workflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
