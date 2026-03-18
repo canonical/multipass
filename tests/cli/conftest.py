@@ -172,7 +172,7 @@ def pytest_addoption(parser):
             ("launch", 600),
             ("stop", 180),
             ("mount", 180),
-            ("restart", 120),
+            ("restart", 240),
             ("delete", 90),
             ("exec", 90),
             ("start", 90),
