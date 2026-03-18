@@ -17,25 +17,22 @@
 
 #pragma once
 
-#include <QMetaType>
-#include <QUrl>
-
 #include <boost/json.hpp>
+
+#include <string>
 
 namespace multipass
 {
 
 struct NewReleaseInfo
 {
-    QString version;
-    QUrl url;
-    QString title;
-    QString description;
+    std::string version;
+    std::string url;
+    std::string title;
+    std::string description;
 };
 
 NewReleaseInfo tag_invoke(const boost::json::value_to_tag<NewReleaseInfo>&,
                           const boost::json::value& json);
 
 } // namespace multipass
-
-Q_DECLARE_METATYPE(multipass::NewReleaseInfo)
