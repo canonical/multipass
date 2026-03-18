@@ -63,17 +63,13 @@ std::string mp::ImageVaultUtils::compute_hash(std::istream& stream,
 
     constexpr std::size_t buf_size = 8192;
     char buf[buf_size] = {0};
-
     do
     {
         stream.read(buf, buf_size);
-
         if (stream.bad())
             throw std::runtime_error("Failed to read data from device to hash");
-
         if (auto count = stream.gcount(); count > 0)
             hash.addData(QByteArrayView{buf, static_cast<qsizetype>(count)});
-
     } while (stream);
 
     return hash.result().toHex().toStdString();

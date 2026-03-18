@@ -38,7 +38,7 @@ class ImageVaultUtils : public Singleton<ImageVaultUtils>
 public:
     ImageVaultUtils(const PrivatePass&) noexcept;
 
-    using Decoder = std::function<void(const std::string&, const std::string&)>;
+    using Decoder = std::function<void(const std::filesystem::path&, const std::filesystem::path&)>;
     using DefaultDecoderT = XzImageDecoder;
 
     virtual std::filesystem::path copy_to_dir(const std::filesystem::path& file,
@@ -74,8 +74,8 @@ std::filesystem::path ImageVaultUtils::extract_file(const std::filesystem::path&
                                                     bool delete_original,
                                                     const DecoderT& decoder) const
 {
-    auto decoder_fn = [&monitor, &decoder](const std::string& encoded_file,
-                                           const std::string& destination) {
+    auto decoder_fn = [&monitor, &decoder](const std::filesystem::path& encoded_file,
+                                           const std::filesystem::path& destination) {
         return decoder.decode_to(encoded_file, destination, monitor);
     };
 
