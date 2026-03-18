@@ -1,13 +1,15 @@
 import re
 import aiohttp
 import asyncio
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup
 from dateutil import parser
 from ..base import BaseScraper, DEFAULT_TIMEOUT
 from ..models import SUPPORTED_ARCHITECTURES
 
 
-PRIMARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora/linux/releases"
-SECONDARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora-secondary/releases"
+PRIMARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora/linux/releases/"
+SECONDARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora-secondary/releases/"
 
 ARCH_MAP = {
     "arm64": "aarch64",
@@ -30,9 +32,8 @@ class FedoraScraper(BaseScraper):
         """
         Fetch the primary releases directory listing and return the highest numeric version.
         """
-        url = f"{PRIMARY_RELEASES_URL}/"
-        text = await self._fetch_text(session, url)
-        versions = re.findall(r'href="(\d+)/"', text)
+        entries = await self._fetch_dir_listing(session, PRIMARY_RELEASES_URL)
+        versions = [e.rstrip("/") for e in entries if re.fullmatch(r"\d+/", e)]
         if not versions:
             raise RuntimeError("No numeric release versions found in directory listing")
         latest = str(max(int(v) for v in versions))
@@ -46,8 +47,10 @@ class FedoraScraper(BaseScraper):
         Fetch an Apache-style HTML directory listing and return the linked filenames.
         """
         text = await self._fetch_text(session, url)
-        # Match href values that are plain filenames (no path separators or query strings)
-        return re.findall(r'href="([^"/?][^"/]*)"', text)
+        soup = BeautifulSoup(text)
+        entries = (soup.find("pre").find(string="Parent Directory").parent
+                      .find_next_siblings("a"))
+        return [i.text for i in entries]
 
     async def _fetch_checksum_file(
         self, session: aiohttp.ClientSession, url: str
@@ -71,7 +74,7 @@ class FedoraScraper(BaseScraper):
         """
         fedora_arch = ARCH_MAP.get(label, label)
         base = SECONDARY_RELEASES_URL if label in SECONDARY_ARCHES else PRIMARY_RELEASES_URL
-        images_url = f"{base}/{version}/Cloud/{fedora_arch}/images/"
+        images_url = urljoin(base, f"{version}/Cloud/{fedora_arch}/images/")
 
         self.logger.info("Fetching image listing for %s from %s", fedora_arch, images_url)
         files = await self._fetch_dir_listing(session, images_url)
