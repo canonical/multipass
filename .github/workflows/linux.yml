@@ -392,3 +392,15 @@ jobs:
           Scheduled [Linux](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
         MATTERMOST_USERNAME: ${{ github.triggering_actor }}
         MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
+  Dispatch-CLI-Tests-Workflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
