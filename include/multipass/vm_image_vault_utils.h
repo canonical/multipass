@@ -42,7 +42,7 @@ public:
     using DefaultDecoderT = XzImageDecoder;
 
     virtual std::filesystem::path copy_to_dir(const std::filesystem::path& file,
-                                              const QDir& output_dir) const;
+                                              const std::filesystem::path& output_dir) const;
     [[nodiscard]] virtual std::string compute_hash(
         std::istream& stream,
         const QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256) const;

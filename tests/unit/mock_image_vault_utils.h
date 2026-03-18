@@ -31,7 +31,7 @@ public:
 
     MOCK_METHOD(std::filesystem::path,
                 copy_to_dir,
-                (const std::filesystem::path&, const QDir&),
+                (const std::filesystem::path&, const std::filesystem::path&),
                 (const, override));
 
     MOCK_METHOD(std::string,

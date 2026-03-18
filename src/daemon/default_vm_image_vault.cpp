@@ -659,15 +659,15 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared
 {
     MP_UTILS.make_dir(dest_dir);
 
-    return {
-        QString::fromStdString(
-            MP_IMAGE_VAULT_UTILS.copy_to_dir(prepared_image.image_path.toStdString(), dest_dir)),
-        prepared_image.id,
-        prepared_image.original_release,
-        prepared_image.current_release,
-        prepared_image.release_date,
-        prepared_image.os,
-        {}};
+    return {QString::fromStdString(
+                MP_IMAGE_VAULT_UTILS.copy_to_dir(prepared_image.image_path.toStdString(),
+                                                 dest_dir.toStdString())),
+            prepared_image.id,
+            prepared_image.original_release,
+            prepared_image.current_release,
+            prepared_image.release_date,
+            prepared_image.os,
+            {}};
 }
 
 std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(const std::string& id)

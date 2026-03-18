@@ -38,7 +38,7 @@ struct TestImageVaultUtils : public ::testing::Test
     const mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject<NiceMock>()};
     mpt::MockFileOps& mock_file_ops{*mock_file_ops_guard.first};
 
-    const QDir test_dir{"secrets/secret_filled_folder"};
+    const std::filesystem::path test_dir{"secrets/secret_filled_folder"};
     const std::filesystem::path test_path{"not_secrets/a_secret.txt"};
     const std::filesystem::path test_output{"secrets/secret_filled_folder/a_secret.txt"};
 };

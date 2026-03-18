@@ -36,8 +36,9 @@ mp::ImageVaultUtils::ImageVaultUtils(const PrivatePass& pass) noexcept : Singlet
 {
 }
 
-std::filesystem::path mp::ImageVaultUtils::copy_to_dir(const std::filesystem::path& file,
-                                                       const QDir& output_dir) const
+std::filesystem::path mp::ImageVaultUtils::copy_to_dir(
+    const std::filesystem::path& file,
+    const std::filesystem::path& output_dir) const
 {
     if (file.empty())
         return "";
@@ -45,7 +46,7 @@ std::filesystem::path mp::ImageVaultUtils::copy_to_dir(const std::filesystem::pa
     if (!MP_FILEOPS.exists(file))
         throw std::runtime_error(fmt::format("File {} not found", file));
 
-    auto new_location = output_dir.filesystemPath() / file.filename();
+    const auto new_location = output_dir / file.filename();
 
     std::error_code ec{};
     std::filesystem::copy_options options{};
