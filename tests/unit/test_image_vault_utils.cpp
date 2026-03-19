@@ -61,11 +61,11 @@ TEST_F(TestImageVaultUtils, copyToDirThrowsOnFailToCopy)
 {
     EXPECT_CALL(mock_file_ops, exists(test_path)).WillOnce(Return(true));
 
-    ON_CALL(mock_file_ops, copy(test_path, test_output, _, _))
-        .WillByDefault([](const std::filesystem::path&,
-                          const std::filesystem::path&,
-                          std::filesystem::copy_options,
-                          std::error_code& ec) {
+    EXPECT_CALL(mock_file_ops, copy(test_path, test_output, _, _))
+        .WillOnce([](const std::filesystem::path&,
+                     const std::filesystem::path&,
+                     std::filesystem::copy_options,
+                     std::error_code& ec) {
             ec = std::make_error_code(std::errc::no_such_file_or_directory);
         });
 
@@ -106,6 +106,17 @@ TEST_F(TestImageVaultUtils, computeHashComputesSha256)
 
     auto hash = MP_IMAGE_VAULT_UTILS.compute_hash(stream);
     EXPECT_EQ(hash, "54d626e08c1c802b305dad30b7e54a82f102390cc92c7d4db112048935236e9c");
+}
+
+TEST_F(TestImageVaultUtils, computeHashComputesSha512)
+{
+    std::istringstream stream{":)"};
+
+    auto hash =
+        MP_IMAGE_VAULT_UTILS.compute_hash(stream, mp::ImageVaultUtils::EHashAlgorithm::sha512);
+    EXPECT_EQ(hash,
+              "fec799ae04ebe814db7f1d9d21dbca0e834c175e2177ac98c8ee2c2219b3687b8d931f290209a2a6c6cf"
+              "d72a39b3724be768d69250cafd30fef947fe829711f2");
 }
 
 TEST_F(TestImageVaultUtils, computeFileHashThrowsWhenCantOpen)
