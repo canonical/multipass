@@ -116,7 +116,6 @@ jobs:
             core.setOutput('matrix', JSON.stringify(matrix));
             core.setOutput('has_targets', String(matrix.include.length > 0));
   run-cli-tests:
-    continue-on-error: true
     concurrency:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
       cancel-in-progress: true
@@ -285,7 +284,8 @@ jobs:
             trap "kill $MONITOR 2>/dev/null" EXIT
           fi
 
-          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }}
+          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }} || PYTEST_EXIT=$?
+          echo "pytest-exit=${PYTEST_EXIT:-0}" >> "$GITHUB_OUTPUT"
 
       - name: Check resources after
         if: always() && runner.os == 'macOS'
