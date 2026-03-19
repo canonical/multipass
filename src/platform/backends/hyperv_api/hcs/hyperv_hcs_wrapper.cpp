@@ -146,7 +146,7 @@ OperationResult perform_hcs_operation(const FnType& fn, const HcsSystemHandle& s
     // Perform the operation.
     const auto result = ResultCode{fn(operation.get())};
 
-    if (!result)
+    if (!result.success())
     {
         mpl::error(log_category,
                    "perform_hcs_operation(...) > Operation failed! Result code {}",
@@ -154,7 +154,7 @@ OperationResult perform_hcs_operation(const FnType& fn, const HcsSystemHandle& s
         return OperationResult{result, L"HCS operation failed!"};
     }
 
-    mpl::debug(log_category, "perform_hcs_operation(...) > result: {}", static_cast<bool>(result));
+    mpl::debug(log_category, "perform_hcs_operation(...) > result: {}", result.success());
 
     return wait_for_operation_result(std::move(operation));
 }
@@ -182,7 +182,7 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
     UniqueHcsSystem system{};
     const ResultCode result =
         API().HcsOpenComputeSystem(name_w.c_str(), requested_access_level, out_ptr(system));
-    if (!result)
+    if (!result.success())
     {
         mpl::debug(log_category,
                    "open_compute_system(...) > failed to open ({}), result code: ({})",
@@ -238,7 +238,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
                                                                 nullptr,
                                                                 out_ptr(system))};
 
-    if (!result)
+    if (!result.success())
     {
         return OperationResult{result, L"HcsCreateComputeSystem failed."};
     }
@@ -567,7 +567,7 @@ OperationResult HCSWrapper::create_empty_guest_state_file(
 {
     const std::wstring path_w = vmgs_file_path.generic_wstring();
     const auto result = ResultCode{API().HcsCreateEmptyGuestStateFile(path_w.c_str())};
-    if (result)
+    if (result.success())
     {
         return grant_vm_access(compute_system_name, vmgs_file_path);
     }
@@ -583,7 +583,7 @@ OperationResult HCSWrapper::create_empty_runtime_state_file(
 {
     const std::wstring path_w = vmrs_file_path.generic_wstring();
     const auto result = ResultCode{API().HcsCreateEmptyRuntimeStateFile(path_w.c_str())};
-    if (result)
+    if (result.success())
     {
         return grant_vm_access(compute_system_name, vmrs_file_path);
     }

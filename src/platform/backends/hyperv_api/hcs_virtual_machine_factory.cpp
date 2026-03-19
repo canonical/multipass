@@ -104,8 +104,8 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
         }
         // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
         // the VM is stopped. The base class will take care of the nuking the VM folder.
-        const auto& [status, status_msg] = HCS().terminate_compute_system(handle);
-        if (status)
+        const auto terminate_result = HCS().terminate_compute_system(handle);
+        if (terminate_result)
         {
             mpl::warn(log_category,
                       "remove_resources_for_impl() -> Host compute system {} was still alive.",
@@ -189,14 +189,14 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
                                                       const VirtualMachineDescription& desc)
 {
     // Resize the instance image to the desired size
-    const auto& [status, status_msg] =
+    const auto resize_result =
         VirtDisk().resize_virtual_disk(instance_image.image_path.toStdString(),
                                        desc.disk_space.in_bytes());
-    if (!status)
+    if (!resize_result)
     {
         throw ImageResizeException{"Failed to resize VHDX file `{}`, virtdisk API error code `{}`",
                                    instance_image.image_path.toStdString(),
-                                   status};
+                                   resize_result};
     }
 }
 
@@ -214,14 +214,17 @@ std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceI
         return network_params;
     }();
 
-    const auto& [status, status_msg] = HCN().create_network(params);
+    const auto create_network_result = HCN().create_network(params);
 
-    if (status || static_cast<HRESULT>(status) == HCN_E_NETWORK_ALREADY_EXISTS)
+    if (create_network_result ||
+        static_cast<HRESULT>(create_network_result.code) == HCN_E_NETWORK_ALREADY_EXISTS)
     {
         return params.name;
     }
 
-    throw CreateBridgeException{"Could not create vSwitch `{}`, status: {}", params.name, status};
+    throw CreateBridgeException{"Could not create vSwitch `{}`, status: {}",
+                                params.name,
+                                create_network_result};
 }
 
 VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& source_vm_name,
@@ -255,9 +258,9 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
         .path = desc.image.image_path.toStdString(),
         .predecessor = virtdisk::SourcePathParameters{src_vm_vhdx}};
 
-    const auto& [status, msg] = VirtDisk().create_virtual_disk(clone_vhdx_params);
+    const auto create_vd_result = VirtDisk().create_virtual_disk(clone_vhdx_params);
 
-    if (!status)
+    if (!create_vd_result)
     {
         throw std::runtime_error{"VHDX clone failed."};
     }
@@ -330,7 +333,7 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
     update_adapter_authorizations(adapters, switches);
 
     if (adapters.size() > switches.size())
-        std::swap(adapters, switches);                   // we want to move the smallest one
+        std::swap(adapters, switches); // we want to move the smallest one
 
     switches.reserve(adapters.size() + switches.size()); // avoid growing more times than needed
     std::move(adapters.begin(), adapters.end(), std::back_inserter(switches));

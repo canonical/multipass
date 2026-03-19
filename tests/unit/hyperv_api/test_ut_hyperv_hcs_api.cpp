@@ -267,7 +267,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
         params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_NE(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), mock_success_msg);
@@ -295,7 +295,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmgs_create_fail)
         params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         ASSERT_EQ(nullptr, handle);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -330,7 +330,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmrs_create_fail)
         params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         ASSERT_EQ(nullptr, handle);
         ASSERT_TRUE(status_msg.empty());
     }
@@ -468,7 +468,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
         params.processor_count = 8;
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_NE(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), mock_success_msg);
@@ -608,7 +608,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_NE(nullptr, handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), mock_success_msg);
     }
@@ -734,7 +734,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
         params.processor_count = 8;
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_NE(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), mock_success_msg);
@@ -774,7 +774,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
         params.processor_count = 8;
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         ASSERT_EQ(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"HcsCreateOperation failed.");
@@ -901,7 +901,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
         params.processor_count = 8;
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         ASSERT_EQ(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"HcsCreateComputeSystem failed.");
@@ -1051,7 +1051,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
         params.processor_count = 8;
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         ASSERT_EQ(nullptr, handle);
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), mock_error_msg);
@@ -1083,7 +1083,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_success)
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().grant_vm_access("test_vm", "this is a path");
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
 }
@@ -1110,7 +1110,7 @@ TEST_F(HyperVHCSAPI_UnitTests, grant_vm_access_fail)
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().grant_vm_access("test_vm", "this is a path");
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"GrantVmAccess failed!");
     }
@@ -1141,7 +1141,7 @@ TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_success)
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().revoke_vm_access("test_vm", "this is a path");
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
 }
@@ -1167,7 +1167,7 @@ TEST_F(HyperVHCSAPI_UnitTests, revoke_vm_access_fail)
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = HCS().revoke_vm_access("test_vm", "this is a path");
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         ASSERT_FALSE(status_msg.empty());
         ASSERT_STREQ(status_msg.c_str(), L"RevokeVmAccess failed!");
     }
@@ -1245,7 +1245,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_happy_path(UutCallableT uut_callb
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
 
         if (nullptr == expected_status_msg)
         {
@@ -1285,7 +1285,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_hcs_open_fail(UutCallableT uut_ca
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
 
         if (nullptr == expected_status_msg)
         {
@@ -1337,7 +1337,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_create_operation_fail(UutCallable
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
 
         if (nullptr == expected_status_msg)
         {
@@ -1392,7 +1392,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_fail(UutCallableT uut_callback,
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
         if (nullptr == expected_status_msg)
         {
             ASSERT_TRUE(status_msg.empty());
@@ -1472,7 +1472,7 @@ void HyperVHCSAPI_UnitTests::generic_operation_wait_for_operation_fail(
 
     { // Verify the expected outcome.
         const auto& [status, status_msg] = uut_callback();
-        ASSERT_FALSE(status);
+        ASSERT_FALSE(status.success());
 
         if (nullptr == expected_status_msg)
         {

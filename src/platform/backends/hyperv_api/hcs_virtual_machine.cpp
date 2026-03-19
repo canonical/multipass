@@ -493,7 +493,7 @@ void HCSVirtualMachine::start()
     handle_state_update();
     // Resume and start are the same thing in Multipass terms
     // Try to determine whether we need to resume or start here.
-    const auto& [status, status_msg] = [&] {
+    const auto result = [&] {
         // Fetch the latest state value.
         const auto hcs_state = fetch_state_from_api();
         switch (hcs_state)
@@ -516,11 +516,11 @@ void HCSVirtualMachine::start()
         }
     }();
 
-    if (!status)
+    if (!result)
     {
         state = prev_state;
         handle_state_update();
-        throw StartComputeSystemException{"Could not start the VM: {}", status};
+        throw StartComputeSystemException{"Could not start the VM: {}", result};
     }
     else if (has_saved_state_file())
     {
@@ -534,7 +534,7 @@ void HCSVirtualMachine::start()
         }
     }
 
-    mpl::debug(get_name(), "start() -> result `{}`", get_name(), status);
+    mpl::debug(get_name(), "start() -> result `{}`", get_name(), result);
 }
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
@@ -594,7 +594,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 void HCSVirtualMachine::suspend()
 {
     mpl::debug(get_name(), "suspend() -> Suspending VM `{}`, current state {}", get_name(), state);
-    if (const auto& [status, status_msg] = HCS().pause_compute_system(hcs_system); status)
+    if (const auto pause_result = HCS().pause_compute_system(hcs_system))
     {
         // Pause succeeded. We can suspend to disk now
         if (const auto& r = HCS().save_compute_system(hcs_system, get_saved_state_file_path()); r)
@@ -614,7 +614,7 @@ void HCSVirtualMachine::suspend()
     }
     else
     {
-        throw SaveComputeSystemException{"Could not pause VM for suspend: {}", status};
+        throw SaveComputeSystemException{"Could not pause VM for suspend: {}", pause_result};
     }
     set_state(fetch_state_from_api());
     handle_state_update();

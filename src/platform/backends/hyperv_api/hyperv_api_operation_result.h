@@ -38,13 +38,19 @@ struct ResultCode
     ResultCode(HRESULT r) noexcept : result(r)
     {
     }
+
     ResultCode& operator=(HRESULT r) noexcept
     {
         result = r;
         return *this;
     }
 
-    [[nodiscard]] operator HRESULT() const noexcept
+    bool success() const noexcept
+    {
+        return static_cast<HRESULT>(*this) == S_OK;
+    }
+
+    [[nodiscard]] explicit operator HRESULT() const noexcept
     {
         return result;
     }
@@ -54,7 +60,7 @@ struct ResultCode
         return static_cast<unsigned_hresult_t>(result);
     }
 
-    [[nodiscard]] operator std::error_code() const noexcept
+    [[nodiscard]] explicit operator std::error_code() const noexcept
     {
         return std::error_code{result, std::system_category()};
     }
@@ -86,12 +92,12 @@ struct OperationResult
 
     [[nodiscard]] explicit operator bool() const noexcept
     {
-        return code == S_OK;
+        return static_cast<HRESULT>(code) == S_OK;
     }
 
     [[nodiscard]] operator std::error_code() const noexcept
     {
-        return code;
+        return static_cast<std::error_code>(code);
     }
 };
 } // namespace multipass::hyperv
