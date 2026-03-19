@@ -102,12 +102,7 @@ std::string mp::ImageVaultUtils::compute_hash(std::istream& stream, EHashAlgorit
     if (EVP_DigestFinal_ex(ctx.get(), digest, &digest_len) != 1)
         throw std::runtime_error("Failed to finalize hash");
 
-    std::string hex;
-    hex.reserve(digest_len * 2);
-    for (unsigned int i = 0; i < digest_len; ++i)
-        fmt::format_to(std::back_inserter(hex), "{:02x}", digest[i]);
-
-    return hex;
+    return fmt::format("{:02x}", fmt::join(digest, digest + digest_len, ""));
 }
 
 std::string mp::ImageVaultUtils::compute_file_hash(const std::filesystem::path& path,
