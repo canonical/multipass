@@ -80,7 +80,7 @@ std::string mp::ImageVaultUtils::compute_file_hash(const std::filesystem::path& 
                                                    const QCryptographicHash::Algorithm algo) const
 {
     std::fstream file;
-    MP_FILEOPS.open(file, path.c_str(), std::ios::in | std::ios::binary);
+    MP_FILEOPS.open(file, path, std::ios::in | std::ios::binary);
     if (!file)
         throw std::runtime_error(fmt::format("Failed to open {}", path));
 

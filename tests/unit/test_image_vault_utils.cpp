@@ -110,10 +110,11 @@ TEST_F(TestImageVaultUtils, computeHashComputesSha256)
 
 TEST_F(TestImageVaultUtils, computeFileHashThrowsWhenCantOpen)
 {
-    EXPECT_CALL(mock_file_ops, open(_, StrEq(test_path.c_str()), Truly([](const auto& mode) {
-                                        return (mode & std::ios_base::in) != 0;
-                                    })))
-        .WillOnce([](std::fstream& stream, const char*, std::ios_base::openmode) {
+    EXPECT_CALL(mock_file_ops,
+                open(_,
+                     Matcher<const std::filesystem::path&>(Eq(test_path)),
+                     Truly([](const auto& mode) { return (mode & std::ios_base::in) != 0; })))
+        .WillOnce([](std::fstream& stream, const std::filesystem::path&, std::ios_base::openmode) {
             stream.setstate(std::ios::failbit);
         });
 

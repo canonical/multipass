@@ -320,7 +320,7 @@ off_t mp::FileOps::lseek(int fd, off_t offset, int whence) const
 }
 
 void mp::FileOps::open(std::fstream& stream,
-                       const char* filename,
+                       const std::filesystem::path& filename,
                        std::ios_base::openmode mode) const
 {
     stream.open(filename, mode);

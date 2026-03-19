@@ -91,7 +91,7 @@ public:
     // Mock std methods
     MOCK_METHOD(void,
                 open,
-                (std::fstream&, const char*, std::ios_base::openmode),
+                (std::fstream&, const std::filesystem::path&, std::ios_base::openmode),
                 (const, override));
     MOCK_METHOD(bool, is_open, (const std::ifstream&), (const, override));
     MOCK_METHOD(std::ifstream&, read, (std::ifstream&, char*, std::streamsize), (const, override));
