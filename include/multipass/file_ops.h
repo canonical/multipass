@@ -108,7 +108,7 @@ public:
 
     // std operations
     virtual void open(std::fstream& stream,
-                      const std::filesystem::path& filename,
+                      const fs::path& filename,
                       std::ios_base::openmode mode) const;
     virtual bool is_open(const std::ifstream& file) const;
     virtual std::ifstream& read(std::ifstream& file, char* buffer, std::streamsize size) const;
