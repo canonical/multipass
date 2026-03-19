@@ -78,7 +78,8 @@ jobs:
         gcovr -r ${{ github.workspace }} \
               --object-directory ${{ env.BUILD_DIR }} \
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
-              --gcov-ignore-parse-errors
+              --gcov-ignore-parse-errors \
+              --merge-mode-functions=separate
 
     - name: Detach TICS QServer to prevent "project already connected" issue
       env:
