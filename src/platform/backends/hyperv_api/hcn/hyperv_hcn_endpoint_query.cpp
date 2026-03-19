@@ -38,9 +38,6 @@ auto fmt::formatter<EndpointQuery, Char>::format(const EndpointQuery& params,
     }}
     )json");
 
-    auto v = json_template.format(params.vm_guid);
-    std::wprintf(L"%s\n", v.c_str());
-
     return json_template.format_to(ctx, params.vm_guid);
 }
 
