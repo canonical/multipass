@@ -36,11 +36,11 @@ public:
 
     MOCK_METHOD(std::string,
                 compute_hash,
-                (std::istream&, const QCryptographicHash::Algorithm),
+                (std::istream&, EHashAlgorithm),
                 (const, override));
     MOCK_METHOD(std::string,
                 compute_file_hash,
-                (const std::filesystem::path&, const QCryptographicHash::Algorithm),
+                (const std::filesystem::path&, EHashAlgorithm),
                 (const, override));
     MOCK_METHOD(void,
                 verify_file_hash,

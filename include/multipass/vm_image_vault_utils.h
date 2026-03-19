@@ -25,8 +25,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <QCryptographicHash>
-
 #define MP_IMAGE_VAULT_UTILS multipass::ImageVaultUtils::instance()
 
 namespace multipass
@@ -36,6 +34,12 @@ class VMImageHost;
 class ImageVaultUtils : public Singleton<ImageVaultUtils>
 {
 public:
+    enum class EHashAlgorithm : std::uint8_t
+    {
+        sha256,
+        sha512
+    };
+
     ImageVaultUtils(const PrivatePass&) noexcept;
 
     using Decoder = std::function<void(const std::filesystem::path&, const std::filesystem::path&)>;
@@ -43,12 +47,12 @@ public:
 
     virtual std::filesystem::path copy_to_dir(const std::filesystem::path& file,
                                               const std::filesystem::path& output_dir) const;
-    [[nodiscard]] virtual std::string compute_hash(
-        std::istream& stream,
-        const QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256) const;
+    [[nodiscard]] virtual std::string
+    compute_hash(std::istream& stream, EHashAlgorithm algo = EHashAlgorithm::sha256) const;
+
     [[nodiscard]] virtual std::string compute_file_hash(
         const std::filesystem::path& file,
-        const QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256) const;
+        EHashAlgorithm algo = EHashAlgorithm::sha256) const;
 
     virtual void verify_file_hash(const std::filesystem::path& file, const std::string& hash) const;
 

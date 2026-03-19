@@ -126,7 +126,8 @@ TEST_F(TestImageVaultUtils, computeFileHashThrowsWhenCantOpen)
 TEST_F(TestImageVaultUtils, verifyFileHashThrowsOnBadHash)
 {
     auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
-    EXPECT_CALL(*mock_utils, compute_file_hash(test_path, QCryptographicHash::Sha256))
+    EXPECT_CALL(*mock_utils,
+                compute_file_hash(test_path, mp::ImageVaultUtils::EHashAlgorithm::sha256))
         .WillOnce(Return(":("));
 
     MP_EXPECT_THROW_THAT(
@@ -139,7 +140,8 @@ TEST_F(TestImageVaultUtils, verifyFileHashThrowsOnBadHash)
 TEST_F(TestImageVaultUtils, verifyFileHashDoesntThrowOnGoodHash)
 {
     auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
-    EXPECT_CALL(*mock_utils, compute_file_hash(test_path, QCryptographicHash::Sha256))
+    EXPECT_CALL(*mock_utils,
+                compute_file_hash(test_path, mp::ImageVaultUtils::EHashAlgorithm::sha256))
         .WillOnce(Return(":)"));
 
     EXPECT_NO_THROW(mock_utils->ImageVaultUtils::verify_file_hash(test_path, ":)"));
@@ -148,7 +150,8 @@ TEST_F(TestImageVaultUtils, verifyFileHashDoesntThrowOnGoodHash)
 TEST_F(TestImageVaultUtils, verifyFileHashParsesAlgo)
 {
     auto [mock_utils, _] = mpt::MockImageVaultUtils::inject<StrictMock>();
-    EXPECT_CALL(*mock_utils, compute_file_hash(test_path, QCryptographicHash::Sha512))
+    EXPECT_CALL(*mock_utils,
+                compute_file_hash(test_path, mp::ImageVaultUtils::EHashAlgorithm::sha512))
         .WillOnce(Return("1234567890abcdef"));
 
     EXPECT_NO_THROW(

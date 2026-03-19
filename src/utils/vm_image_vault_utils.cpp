@@ -23,14 +23,31 @@
 #include <multipass/vm_image_vault_utils.h>
 #include <multipass/xz_image_decoder.h>
 
-#include <QByteArray>
-#include <QFileInfo>
-
 #include <fmt/std.h>
+#include <openssl/evp.h>
 
 #include <stdexcept>
 
 namespace mp = multipass;
+
+namespace
+{
+
+const EVP_MD* to_evp_md(mp::ImageVaultUtils::EHashAlgorithm algo)
+{
+    using enum mp::ImageVaultUtils::EHashAlgorithm;
+    switch (algo)
+    {
+    case sha256:
+        return EVP_sha256();
+    case sha512:
+        return EVP_sha512();
+    default:
+        throw std::runtime_error("Unsupported hash algorithm");
+    }
+}
+
+} // namespace
 
 mp::ImageVaultUtils::ImageVaultUtils(const PrivatePass& pass) noexcept : Singleton{pass}
 {
@@ -57,10 +74,13 @@ std::filesystem::path mp::ImageVaultUtils::copy_to_dir(
     return new_location;
 }
 
-std::string mp::ImageVaultUtils::compute_hash(std::istream& stream,
-                                              const QCryptographicHash::Algorithm algo) const
+std::string mp::ImageVaultUtils::compute_hash(std::istream& stream, EHashAlgorithm algo) const
 {
-    QCryptographicHash hash{algo};
+    auto ctx =
+        std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+
+    if (!ctx || EVP_DigestInit_ex(ctx.get(), to_evp_md(algo), nullptr) != 1)
+        throw std::runtime_error("Failed to initialize hash context");
 
     constexpr std::size_t buf_size = 8192;
     char buf[buf_size] = {0};
@@ -70,14 +90,28 @@ std::string mp::ImageVaultUtils::compute_hash(std::istream& stream,
         if (stream.bad())
             throw std::runtime_error("Failed to read data from device to hash");
         if (auto count = stream.gcount(); count > 0)
-            hash.addData(QByteArrayView{buf, static_cast<qsizetype>(count)});
+        {
+            if (EVP_DigestUpdate(ctx.get(), buf, static_cast<size_t>(count)) != 1)
+                throw std::runtime_error("Failed to update hash");
+        }
+
     } while (stream);
 
-    return hash.result().toHex().toStdString();
+    unsigned char digest[EVP_MAX_MD_SIZE]{};
+    unsigned int digest_len = 0;
+    if (EVP_DigestFinal_ex(ctx.get(), digest, &digest_len) != 1)
+        throw std::runtime_error("Failed to finalize hash");
+
+    std::string hex;
+    hex.reserve(digest_len * 2);
+    for (unsigned int i = 0; i < digest_len; ++i)
+        fmt::format_to(std::back_inserter(hex), "{:02x}", digest[i]);
+
+    return hex;
 }
 
 std::string mp::ImageVaultUtils::compute_file_hash(const std::filesystem::path& path,
-                                                   const QCryptographicHash::Algorithm algo) const
+                                                   EHashAlgorithm algo) const
 {
     std::fstream file;
     MP_FILEOPS.open(file, path, std::ios::in | std::ios::binary);
@@ -92,12 +126,12 @@ void mp::ImageVaultUtils::verify_file_hash(const std::filesystem::path& file,
 {
     const std::string sha512_prefix = "sha512:";
     std::string hash_to_check = hash;
-    QCryptographicHash::Algorithm algo = QCryptographicHash::Sha256;
+    EHashAlgorithm algo = EHashAlgorithm::sha256;
 
     if (utils::istarts_with(hash, sha512_prefix))
     {
         hash_to_check = hash.substr(sha512_prefix.length());
-        algo = QCryptographicHash::Sha512;
+        algo = EHashAlgorithm::sha512;
     }
 
     const auto file_hash = compute_file_hash(file, algo);
