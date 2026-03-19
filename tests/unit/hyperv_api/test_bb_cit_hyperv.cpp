@@ -92,32 +92,32 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
     // Create the test network
     {
         const auto& [status, status_msg] = HCN().create_network(network_parameters);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
     }
 
     // Create the test endpoint
     {
         const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
     }
 
     // Create the test VHDX (empty)
     {
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(create_disk_parameters);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
     }
 
     // Create test VM
     {
         const auto& [status, status_msg] =
             HCS().create_compute_system(create_vm_parameters, handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
     }
 
     // Start test VM
     {
         const auto& [status, status_msg] = HCS().start_compute_system(handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
     }
 
     (void)HCS().terminate_compute_system(handle);
@@ -197,21 +197,21 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     // Create the test network
     {
         const auto& [status, status_msg] = HCN().create_network(network_parameters);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
 
     // Create the test endpoint
     {
         const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
 
     // Create the test VHDX (empty)
     {
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(create_disk_parameters);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
 
@@ -219,7 +219,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     {
         const auto& [status, status_msg] =
             HCS().create_compute_system(create_vm_parameters, handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
 
@@ -227,7 +227,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     // Start test VM
     {
         const auto& [status, status_msg] = HCS().start_compute_system(handle);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
         ASSERT_TRUE(HCS().get_compute_system_guid(handle, vm_guid));
         ASSERT_FALSE(vm_guid.empty());
@@ -241,7 +241,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
             network_adapter};
         const auto& [status, status_msg] =
             HCS().modify_compute_system(handle, add_network_adapter_req);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
 
@@ -255,13 +255,13 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
                     .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b",
                 });
 
-            ASSERT_TRUE(status);
+            ASSERT_TRUE(status.success());
             ASSERT_TRUE(status_msg.empty());
         }
 
         std::vector<std::string> eps{};
         const auto& [status, status_msg] = HCN().enumerate_attached_endpoints(vm_guid, eps);
-        ASSERT_TRUE(status);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
         ASSERT_EQ(eps.size(), 1);
         ASSERT_EQ(eps[0], network_adapter.endpoint_guid);

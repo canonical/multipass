@@ -166,7 +166,7 @@ OperationResult perform_hcn_operation(const FnType& fn)
     // it occurred. Therefore, we can streamline all API calls through perform_hcn_operation.
     const auto result = ResultCode{fn(out_ptr(result_msgbuf))};
 
-    mpl::trace(log_category, "perform_hcn_operation(...) > result: {}", static_cast<bool>(result));
+    mpl::trace(log_category, "perform_hcn_operation(...) > result: {}", result.success());
 
     // Avoid null to be forward-compatible with C++23
     return {result, {result_msgbuf ? result_msgbuf.get() : L""}};

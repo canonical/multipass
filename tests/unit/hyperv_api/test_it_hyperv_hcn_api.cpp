@@ -42,14 +42,14 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
     (void)HCN().delete_network(params.guid);
 
     {
-        const auto& [success, error_msg] = HCN().create_network(params);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().create_network(params);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = HCN().delete_network(params.guid);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().delete_network(params.guid);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 }
@@ -64,8 +64,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, enumerate_networks)
     (void)HCN().delete_network(params.guid);
 
     {
-        const auto& [result, error_msg] = HCN().create_network(params);
-        ASSERT_TRUE(result);
+        const auto& [status, error_msg] = HCN().create_network(params);
+        ASSERT_TRUE(status.success());
     }
 
     {
@@ -77,8 +77,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, enumerate_networks)
     }
 
     {
-        const auto& [result, error_msg] = HCN().delete_network(params.guid);
-        ASSERT_TRUE(result);
+        const auto& [status, error_msg] = HCN().delete_network(params.guid);
+        ASSERT_TRUE(status.success());
     }
 
     {
@@ -100,8 +100,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, query_network)
     (void)HCN().delete_network(params.guid);
 
     {
-        const auto& [result, error_msg] = HCN().create_network(params);
-        ASSERT_TRUE(result);
+        const auto& [status, error_msg] = HCN().create_network(params);
+        ASSERT_TRUE(status.success());
     }
 
     {
@@ -114,8 +114,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, query_network)
     }
 
     {
-        const auto& [result, error_msg] = HCN().delete_network(params.guid);
-        ASSERT_TRUE(result);
+        const auto& [status, error_msg] = HCN().delete_network(params.guid);
+        ASSERT_TRUE(status.success());
     }
 }
 
@@ -141,27 +141,27 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
     (void)HCN().delete_network(network_params.guid);
 
     {
-        const auto& [success, error_msg] = HCN().create_network(network_params);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().create_network(network_params);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = HCN().create_endpoint(endpoint_params);
+        const auto& [status, error_msg] = HCN().create_endpoint(endpoint_params);
         std::wprintf(L"%s\n", error_msg.c_str());
-        ASSERT_TRUE(success);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = HCN().delete_endpoint(endpoint_params.endpoint_guid);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().delete_endpoint(endpoint_params.endpoint_guid);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = HCN().delete_network(network_params.guid);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().delete_network(network_params.guid);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 }
@@ -182,27 +182,27 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_endpoint_explicit_mac)
     (void)HCN().delete_network(network_params.guid);
 
     {
-        const auto& [success, error_msg] = HCN().create_network(network_params);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().create_network(network_params);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = HCN().create_endpoint(endpoint_params);
+        const auto& [status, error_msg] = HCN().create_endpoint(endpoint_params);
         std::wprintf(L"%s\n", error_msg.c_str());
-        ASSERT_TRUE(success);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = HCN().delete_endpoint(endpoint_params.endpoint_guid);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().delete_endpoint(endpoint_params.endpoint_guid);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 
     {
-        const auto& [success, error_msg] = HCN().delete_network(network_params.guid);
-        ASSERT_TRUE(success);
+        const auto& [status, error_msg] = HCN().delete_network(network_params.guid);
+        ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
 }

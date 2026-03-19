@@ -126,7 +126,7 @@ UniqueHandle open_virtual_disk(
         // [out] PHANDLE Handle
         out_ptr(handle));
 
-    if (!result)
+    if (!result.success())
     {
         mpl::error(log_category,
                    "open_virtual_disk(...) > OpenVirtualDisk failed with: {}",
