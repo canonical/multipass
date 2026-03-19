@@ -21,7 +21,6 @@
 #include "mock_image_host.h"
 #include "mock_image_vault_utils.h"
 
-#include <QBuffer>
 #include <multipass/progress_monitor.h>
 #include <multipass/vm_image_vault_utils.h>
 
@@ -52,9 +51,10 @@ TEST_F(TestImageVaultUtils, copyToDirThrowsOnNonexistantFile)
 {
     EXPECT_CALL(mock_file_ops, exists(test_path)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir),
-                         std::runtime_error,
-                         mpt::match_what(AllOf(HasSubstr(test_path), HasSubstr("not found"))));
+    MP_EXPECT_THROW_THAT(
+        MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir),
+        std::runtime_error,
+        mpt::match_what(AllOf(HasSubstr(test_path.string()), HasSubstr("not found"))));
 }
 
 TEST_F(TestImageVaultUtils, copyToDirThrowsOnFailToCopy)
@@ -181,7 +181,7 @@ TEST_F(TestImageVaultUtils, verifyFileHashParsesAlgo)
 
 TEST_F(TestImageVaultUtils, extractFileWillDeleteFile)
 {
-    auto decoder = [](const std::string&, const std::string&) {};
+    auto decoder = [](const std::filesystem::path&, const std::filesystem::path&) {};
 
     EXPECT_CALL(mock_file_ops, remove(test_path, _));
 
@@ -193,7 +193,7 @@ TEST_F(TestImageVaultUtils, extractFileWontDeleteFile)
     EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
 
     int calls = 0;
-    auto decoder = [&](const std::filesystem::path& path, const std::string& target) {
+    auto decoder = [&](const std::filesystem::path& path, const std::filesystem::path& target) {
         EXPECT_EQ(test_path, path);
         EXPECT_EQ(test_output, target);
         ++calls;
@@ -210,7 +210,7 @@ TEST_F(TestImageVaultUtils, extractFileExtractsFile)
     EXPECT_CALL(mock_file_ops, remove_extension(test_path)).WillOnce(Return(test_output));
 
     int calls = 0;
-    auto decoder = [&](const std::filesystem::path& path, const std::string& target) {
+    auto decoder = [&](const std::filesystem::path& path, const std::filesystem::path& target) {
         EXPECT_EQ(test_path, path);
         EXPECT_EQ(test_output, target);
         ++calls;
