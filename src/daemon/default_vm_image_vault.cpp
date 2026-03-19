@@ -621,9 +621,9 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         if (source_image.image_path.endsWith(".xz"))
         {
             source_image.image_path = QString::fromStdString(
-                MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path.toStdString(),
-                                                  monitor,
-                                                  true));
+                MP_IMAGE_VAULT_UTILS
+                    .extract_file(source_image.image_path.toStdString(), monitor, true)
+                    .string());
         }
 
         auto prepared_image = prepare(source_image);
@@ -660,8 +660,9 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared
     MP_UTILS.make_dir(dest_dir);
 
     return {QString::fromStdString(
-                MP_IMAGE_VAULT_UTILS.copy_to_dir(prepared_image.image_path.toStdString(),
-                                                 dest_dir.toStdString())),
+                MP_IMAGE_VAULT_UTILS
+                    .copy_to_dir(prepared_image.image_path.toStdString(), dest_dir.toStdString())
+                    .string()),
             prepared_image.id,
             prepared_image.original_release,
             prepared_image.current_release,
