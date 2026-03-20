@@ -193,7 +193,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             days_to_expire);
     }
     if (name_generator == nullptr)
-        name_generator = mp::make_petname_provider();
+        name_generator = mp::petname::make_petname_provider();
     if (server_address.empty())
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)

@@ -45,7 +45,7 @@ std::vector<std::string> split(const std::string& string, char delimiter)
 TEST(PetnameIntegration, usesDefaultSeparator)
 {
     char expected_separator{'-'};
-    mp::PetnameInterface::UPtr name_generator{multipass::make_petname_provider()};
+    mp::PetnameInterface::UPtr name_generator{multipass::petname::make_petname_provider()};
     auto name = name_generator->make_name();
     auto tokens = split(name, expected_separator);
     EXPECT_THAT(tokens.size(), Eq(2u));
@@ -53,8 +53,9 @@ TEST(PetnameIntegration, usesDefaultSeparator)
 
 TEST(PetnameIntegration, generatesTwoTokensByDefault)
 {
-    char separator{'-'};
-    mp::PetnameInterface::UPtr name_generator{multipass::make_petname_provider(separator)};
+    constexpr char separator{'-'};
+    mp::PetnameInterface::UPtr name_generator{
+        multipass::petname::make_petname_provider<separator>()};
     auto name = name_generator->make_name();
     auto tokens = split(name, separator);
     EXPECT_THAT(tokens.size(), Eq(2u));

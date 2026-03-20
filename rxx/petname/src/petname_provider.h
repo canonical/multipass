@@ -21,23 +21,20 @@
 
 #include <multipass/petname_interface.h>
 
-#include <petname/src/lib.rs.h>
-#include <rust/cxx.h>
-
 #include <string>
 
 namespace multipass
 {
+
 class PetnameProvider final : public PetnameInterface
 {
 public:
-    /// Constructs an instance that will generate names using
-    /// the requested separator and the requested number of words
     PetnameProvider(petname::NumWords num_words, char separator);
 
     std::string make_name() override;
 
 private:
-    rust::Box<rxx::petname::PetnameGenerator> generator;
+    petname::NumWords num_words;
+    char separator;
 };
 } // namespace multipass
