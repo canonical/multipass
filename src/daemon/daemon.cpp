@@ -3179,7 +3179,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 
-            delete prepare_future_watcher;
+            prepare_future_watcher->deleteLater();
         });
 
     auto make_vm_description = [this, server, request, name, checked_args, log_level]() mutable
