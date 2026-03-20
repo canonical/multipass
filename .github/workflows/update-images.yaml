@@ -15,8 +15,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.MULTIPASS_CI_BOT_ID }}
+          private-key: ${{ secrets.MULTIPASS_CI_BOT_KEY }}
+
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -38,6 +47,7 @@ jobs:
       - name: Create PR
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ steps.app-token.outputs.token }}
           commit-message: "[distro] Update Cloud Images info"
           branch: "update-cloud-images"
           title: "[distro] Update Cloud Images information"
