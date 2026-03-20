@@ -23,8 +23,6 @@ use std::fmt;
 pub enum PetnameError {
     InvalidWordNumber(i32),
     InvalidSeparator(i8),
-    InternalStateError(i32),
-    EmptyArrayError,
 }
 
 impl fmt::Display for PetnameError {
@@ -33,12 +31,6 @@ impl fmt::Display for PetnameError {
             PetnameError::InvalidWordNumber(num) => write!(f, "Invalid word number: {}", num),
             PetnameError::InvalidSeparator(sep) => {
                 write!(f, "Invalid separator, ASCII code: {}", sep)
-            }
-            PetnameError::EmptyArrayError => {
-                write!(f, "Cannot choose an element of an empty array")
-            }
-            PetnameError::InternalStateError(num) => {
-                write!(f, "Invalid internal state: numWords = {}", num)
             }
         }
     }

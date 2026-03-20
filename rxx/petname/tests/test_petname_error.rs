@@ -9,12 +9,4 @@ fn test_error_display() {
         PetnameError::InvalidSeparator(64).to_string(),
         "Invalid separator, ASCII code: 64"
     );
-    assert_eq!(
-        PetnameError::EmptyArrayError.to_string(),
-        "Cannot choose an element of an empty array"
-    );
-    assert_eq!(
-        PetnameError::InternalStateError(10).to_string(),
-        "Invalid internal state: numWords = 10"
-    );
 }

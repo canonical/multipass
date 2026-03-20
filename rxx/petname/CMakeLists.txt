@@ -26,4 +26,4 @@
 
 target_sources(petname PRIVATE
   "src/petname_interface.cpp"
-  "src/petname_provider.cpp")
+  )
