@@ -19,7 +19,7 @@
 
 pub mod petname_error;
 pub mod petname_generator;
-use petname_generator::{PetnameGenerator, make_petname_generator};
+use petname_generator::make_petname;
 
 #[cxx::bridge(namespace = "multipass::petname")]
 pub mod ffi {
@@ -32,12 +32,7 @@ pub mod ffi {
 
     #[namespace = "rxx::petname"]
     extern "Rust" {
-        type PetnameGenerator;
-        fn make_petname_generator(
-            num_words: NumWords,
-            separator: c_char,
-        ) -> Result<Box<PetnameGenerator>>;
-        fn make_name(self: &PetnameGenerator) -> Result<String>;
+        fn make_petname(num_words: NumWords, separator: c_char) -> Result<String>;
     }
     #[namespace = "multipass::petname"]
     extern "C++" {

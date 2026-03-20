@@ -22,13 +22,10 @@
 #include <multipass/petname_interface.h>
 
 namespace mp = multipass;
+namespace mpp = multipass::petname;
 
-mp::PetnameInterface::UPtr mp::make_petname_provider(mp::petname::NumWords words, char separator)
+mp::PetnameInterface::UPtr mpp::detail::make_petname_provider_impl(NumWords num_words,
+                                                                   char separator)
 {
-    return std::make_unique<mp::PetnameProvider>(words, separator);
-}
-
-mp::PetnameInterface::UPtr mp::make_petname_provider(char separator)
-{
-    return std::make_unique<mp::PetnameProvider>(mp::petname::NumWords::Two, separator);
+    return std::make_unique<PetnameProvider>(num_words, separator);
 }

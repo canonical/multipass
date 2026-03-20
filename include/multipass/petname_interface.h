@@ -26,15 +26,6 @@
 
 namespace multipass
 {
-namespace petname
-{
-enum NumWords
-{
-    One,
-    Two,
-    Three,
-};
-}
 
 class PetnameInterface : private DisabledCopyMove
 {
@@ -46,9 +37,38 @@ public:
 protected:
     PetnameInterface() = default;
 };
-// Overloaded functions to avoid exposing the PetnameProvider type in the interface header with the
-// default arguments
-PetnameInterface::UPtr make_petname_provider(petname::NumWords words = petname::NumWords::Two,
-                                             char separator = '-');
-PetnameInterface::UPtr make_petname_provider(char separator);
+
+namespace petname
+{
+enum NumWords
+{
+    One,
+    Two,
+    Three,
+};
+template <char S>
+concept IsValidSeparator = (S == '-' || S == '_');
+
+namespace detail
+{
+PetnameInterface::UPtr make_petname_provider_impl(NumWords num_words, char separator);
+} // namespace detail
+
+// Templated functions to avoid exposing the PetnameProvider type in the interface header with
+// the default arguments. The templates ensure the argument checks are done at compile-time.
+template <NumWords NW = NumWords::Two, char S = '-'>
+    requires IsValidSeparator<S>
+PetnameInterface::UPtr make_petname_provider()
+{
+    return detail::make_petname_provider_impl(NW, S);
+};
+
+template <char S>
+    requires IsValidSeparator<S>
+PetnameInterface::UPtr make_petname_provider()
+{
+    return detail::make_petname_provider_impl(NumWords::Two, S);
+}
+} // namespace petname
+
 } // namespace multipass
