@@ -50,7 +50,7 @@ jobs:
 
       - name: Install clang-format
         shell: bash
-        run: sudo apt-get install --no-install-recommends --yes clang-format-$SNAP_CLANG_VERSION
+        run: sudo apt-get install --no-install-recommends --yes clang-format-$SNAP_CLANG_VERSION clang-tools-$SNAP_CLANG_VERSION
 
       - name: Run clang-format through the diff
         shell: bash
@@ -65,7 +65,7 @@ jobs:
           git diff -U0 --no-color HEAD^1 \
             | grep -vE '^\+\+\+ b/tests/unit/test_data/formatters/' \
             | grep -vE '^\+\+\+ b/docs/\.sphinx/' \
-            | clang-format-diff -p1 \
+            | clang-format-diff-$SNAP_CLANG_VERSION -p1 \
             | tee ${HOME}/clang-diff
 
           if [ "$( stat --printf='%s' ${HOME}/clang-diff )" -ne 0 ]; then
