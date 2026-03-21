@@ -273,6 +273,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
       power_shell{std::make_unique<PowerShell>(vm_name)},
       monitor{&monitor}
 {
+    expected_shutdown = mp::utils::expects_shutdown_from_cloud_init(desc.user_data_config);
 }
 
 void mp::HyperVVirtualMachine::setup_network_interfaces()

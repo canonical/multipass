@@ -20,6 +20,7 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_status_monitor.h>
+#include <multipass/utils.h>
 
 namespace multipass::applevz
 {
@@ -29,6 +30,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
+    expected_shutdown = utils::expects_shutdown_from_cloud_init(desc.user_data_config);
 }
 
 AppleVZVirtualMachine::~AppleVZVirtualMachine()

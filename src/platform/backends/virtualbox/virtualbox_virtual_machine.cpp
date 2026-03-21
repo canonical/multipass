@@ -337,18 +337,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
 {
-    if(desc.user_data_config["power_state"])
-    {
-        auto ps = desc.user_data_config["power_state"];
-        if(ps["mode"])
-        {
-            std::string mode = ps["mode"].as<std::string>();
-            if(mode == "poweroff" || mode == "halt")
-            {
-                expected_shutdown = true;
-            }
-        }
-    }
+    expected_shutdown = mp::utils::expects_shutdown_from_cloud_init(desc.user_data_config);
 }
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()

@@ -270,12 +270,10 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
         if (vm_state == State::stopped || vm_state == State::off)
         {
             if (expected_shutdown) {
-                mpl::log(mpl::Level::info, vm_name,
-                         "VM powered off as configured in cloud-init");
-                return utils::TimeoutAction::done;
+                mpl::log(mpl::Level::info, vm_name, "VM powered off as configured in cloud-init");
+                throw IntentionalShutdownException(vm_name);
             } else {
-                mpl::log(mpl::Level::error, vm_name,
-                         "VM stopped unexpectedly");
+                mpl::log(mpl::Level::error, vm_name, "VM stopped unexpectedly");
                 throw StartException(vm_name, "VM stopped unexpectedly");
             }
         }
@@ -286,25 +284,28 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     auto timeout_action = std::bind_front(&BaseVirtualMachine::timeout_ssh, this);
     mpu::try_action_for(timeout_action, timeout, action);
 
-    auto final_state = current_state();
-    if (final_state == State::stopped || final_state == State::off)
-    {
-        if (expected_shutdown) {
-            throw mp::IntentionalShutdownException(vm_name);
-        }
-        else
-        {
-            throw StartException(vm_name, "VM stopped unexpectdely");
-        }
-    }
-
     mpl::debug(vm_name, "Caching initial SSH session");
 }
 
 void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
     auto action = [this]() -> mpu::TimeoutAction {
-        detect_aborted_start(); 
+        detect_aborted_start();
+        
+        auto vm_state = current_state();
+        if(vm_state == State::stopped || vm_state == State::off)
+        {
+            if(expected_shutdown)
+            {
+                mpl::log(mpl::Level::error, vm_name, "VM powered off as configured in cloud-init");
+                throw IntentionalShutdownException(vm_name);
+            }
+            else
+            {
+                mpl::log(mpl::Level::error, vm_name, "VM stopped unexpectedly during cloud-init");
+                throw StartException(vm_name, "VM Stopped unexpectedly during cloud-init");
+            }
+        }
         try
         {
             ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
