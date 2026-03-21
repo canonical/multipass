@@ -199,6 +199,10 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
             VZVirtioNetworkDeviceConfiguration* bridgedDevice =
                 [[VZVirtioNetworkDeviceConfiguration alloc] init];
             bridgedDevice.attachment = bridge.attachment;
+            VZMACAddress* bridgedMac = [[VZMACAddress alloc]
+                initWithString:[NSString stringWithCString:extra.mac_address.c_str()
+                                                  encoding:NSUTF8StringEncoding]];
+            [bridgedDevice setMACAddress:bridgedMac];
 
             [networkDevices addObject:bridgedDevice];
 
