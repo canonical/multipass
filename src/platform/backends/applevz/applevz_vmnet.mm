@@ -17,23 +17,46 @@
 
 #include <applevz/applevz_vmnet.h>
 
-namespace multipass::applevz
-{
-VmnetRelay::~VmnetRelay()
-{
-    if (source)
-        dispatch_source_cancel(source);
+#include <vmnet/vmnet.h>
 
-    if (iface)
+namespace
+{
+constexpr uint32_t kDefaultMaxPacketBytes = 1518;
+
+struct VmnetRelay
+{
+    interface_ref iface{nullptr};
+    int fd{-1};
+    dispatch_source_t source{nullptr};
+    dispatch_queue_t queue{nullptr};
+    uint32_t max_packet_bytes{kDefaultMaxPacketBytes};
+
+    ~VmnetRelay()
     {
-        dispatch_semaphore_t s = dispatch_semaphore_create(0);
-        vmnet_stop_interface(iface, queue, ^(vmnet_return_t) {
-          dispatch_semaphore_signal(s);
-        });
-        dispatch_semaphore_wait(s, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC));
+        if (source)
+            dispatch_source_cancel(source);
+
+        if (iface)
+        {
+            dispatch_semaphore_t s = dispatch_semaphore_create(0);
+            vmnet_stop_interface(iface,
+                                 dispatch_get_global_queue(QOS_CLASS_UTILITY, 0),
+                                 ^(vmnet_return_t) {
+                                   dispatch_semaphore_signal(s);
+                                 });
+            dispatch_semaphore_wait(s, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC));
+        }
+
+        if (fd >= 0)
+            close(fd);
     }
 
-    if (fd >= 0)
-        close(fd);
-}
+    VmnetRelay() = default;
+    VmnetRelay(const VmnetRelay&) = delete;
+    VmnetRelay& operator=(const VmnetRelay&) = delete;
+};
+} // namespace
+
+namespace multipass::applevz
+{
 } // namespace multipass::applevz
