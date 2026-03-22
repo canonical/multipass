@@ -784,22 +784,22 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
 
 void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
 {
-    if (!management_ip)
-    {
-        auto action = [this] {
-            detect_aborted_start();
-            return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-                       ? mpu::TimeoutAction::done
-                       : mpu::TimeoutAction::retry;
-        };
+    if (management_ip)
+        return;
 
-        auto on_timeout = [this, &timeout] {
-            state = State::unknown;
-            throw InternalTimeoutException{"determine IP address", timeout};
-        };
+    auto action = [this] {
+        detect_aborted_start();
+        return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
+                   ? mpu::TimeoutAction::done
+                   : mpu::TimeoutAction::retry;
+    };
 
-        mpu::try_action_for(on_timeout, timeout, action);
-    }
+    auto on_timeout = [this, &timeout] {
+        state = State::unknown;
+        throw InternalTimeoutException{"determine IP address", timeout};
+    };
+
+    mpu::try_action_for(on_timeout, timeout, action);
 }
 
 void mp::QemuVirtualMachine::refresh_start()
