@@ -27,7 +27,9 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto kLogCategory = "vmnet";
+constexpr auto category = "vmnet";
+constexpr uint32_t kSendBufferSize{65 * 1024};
+constexpr uint32_t kRecvBufferSize{4 * 1024 * 1024};
 
 struct VmnetRelay
 {
@@ -100,7 +102,7 @@ void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
                                              physical_iface));
     }
 
-    mpl::debug(kLogCategory, "vmnet bridged interface started on '{}'", physical_iface);
+    mpl::debug(category, "vmnet bridged interface started on '{}'", physical_iface);
 }
 
 void setup_relay(VmnetRelay& relay, int relay_fd)
@@ -109,7 +111,16 @@ void setup_relay(VmnetRelay& relay, int relay_fd)
 
 std::pair<int, int> create_socket_pair()
 {
-    return {-1, -1};
+    int fds[2];
+    if (socketpair(AF_UNIX, SOCK_DGRAM, 0, fds) < 0)
+        throw std::runtime_error(fmt::format("socketpair() failed: {}", strerror(errno)));
+
+    setsockopt(fds[0], SOL_SOCKET, SO_RCVBUF, &kRecvBufferSize, sizeof(kRecvBufferSize));
+    setsockopt(fds[0], SOL_SOCKET, SO_SNDBUF, &kSendBufferSize, sizeof(kSendBufferSize));
+    setsockopt(fds[1], SOL_SOCKET, SO_RCVBUF, &kRecvBufferSize, sizeof(kRecvBufferSize));
+    setsockopt(fds[1], SOL_SOCKET, SO_SNDBUF, &kSendBufferSize, sizeof(kSendBufferSize));
+
+    return {fds[0], fds[1]};
 }
 } // namespace
 
