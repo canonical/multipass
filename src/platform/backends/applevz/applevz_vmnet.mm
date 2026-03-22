@@ -107,6 +107,56 @@ void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
 
 void setup_relay(VmnetRelay& relay, int relay_fd)
 {
+    relay.fd = relay_fd;
+
+    const auto iface = relay.iface;
+    const auto max_packet_bytes = relay.max_packet_bytes;
+
+    // read from socket, write to vmnet
+    relay.source =
+        dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, (uintptr_t)relay_fd, 0, relay.queue);
+
+    dispatch_source_set_event_handler(relay.source, ^{
+      std::vector<uint8_t> buf(max_packet_bytes);
+      ssize_t n = recv(relay_fd, buf.data(), buf.size(), 0);
+      if (n <= 0)
+          return;
+
+      struct iovec iov{buf.data(), (size_t)n};
+      struct vmpktdesc pkt{};
+      pkt.vm_pkt_size = (size_t)n;
+      pkt.vm_pkt_iov = &iov;
+      pkt.vm_pkt_iovcnt = 1;
+      pkt.vm_flags = 0;
+
+      int count = 1;
+      vmnet_write(iface, &pkt, &count);
+    });
+    dispatch_resume(relay.source);
+
+    // read from vmnet, write to socket
+    vmnet_interface_set_event_callback(iface,
+                                       VMNET_INTERFACE_PACKETS_AVAILABLE,
+                                       relay.queue,
+                                       ^(interface_event_t /*event*/, xpc_object_t /*params*/) {
+                                         for (;;)
+                                         {
+                                             std::vector<uint8_t> buf(max_packet_bytes);
+                                             struct iovec iov{buf.data(), buf.size()};
+                                             struct vmpktdesc pkt{};
+                                             pkt.vm_pkt_size = buf.size();
+                                             pkt.vm_pkt_iov = &iov;
+                                             pkt.vm_pkt_iovcnt = 1;
+                                             pkt.vm_flags = 0;
+
+                                             int count = 1;
+                                             if (vmnet_read(iface, &pkt, &count) != VMNET_SUCCESS ||
+                                                 count == 0)
+                                                 break;
+
+                                             send(relay_fd, buf.data(), pkt.vm_pkt_size, 0);
+                                         }
+                                       });
 }
 
 std::pair<int, int> create_socket_pair()
