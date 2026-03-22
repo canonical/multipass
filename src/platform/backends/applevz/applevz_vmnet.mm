@@ -55,8 +55,36 @@ struct VmnetRelay
     VmnetRelay(const VmnetRelay&) = delete;
     VmnetRelay& operator=(const VmnetRelay&) = delete;
 };
+
+void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
+{
+}
+
+void setup_relay(VmnetRelay& relay, int relay_fd)
+{
+}
+
+std::pair<int, int> create_socket_pair()
+{
+    return {-1, -1};
+}
 } // namespace
 
 namespace multipass::applevz
 {
+VmnetBridge create_vmnet_bridge(const std::string& physical_iface)
+{
+    auto relay = std::make_unique<VmnetRelay>();
+    start_vmnet_interface(*relay, physical_iface);
+
+    auto [vz_fd, relay_fd] = create_socket_pair();
+    setup_relay(*relay, relay_fd);
+
+    NSFileHandle* vz_handle = [[NSFileHandle alloc] initWithFileDescriptor:vz_fd
+                                                            closeOnDealloc:YES];
+    VZFileHandleNetworkDeviceAttachment* attachment =
+        [[VZFileHandleNetworkDeviceAttachment alloc] initWithFileHandle:vz_handle];
+
+    return VmnetBridge{attachment, std::move(relay)};
+}
 } // namespace multipass::applevz
