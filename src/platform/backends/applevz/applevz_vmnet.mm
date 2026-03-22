@@ -16,12 +16,18 @@
  */
 
 #include <applevz/applevz_vmnet.h>
+#include <multipass/logging/log.h>
 
+#include <fmt/format.h>
+
+#include <errno.h>
 #include <vmnet/vmnet.h>
+
+namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr uint32_t kDefaultMaxPacketBytes = 1518;
+constexpr auto kLogCategory = "vmnet";
 
 struct VmnetRelay
 {
@@ -29,7 +35,7 @@ struct VmnetRelay
     int fd{-1};
     dispatch_source_t source{nullptr};
     dispatch_queue_t queue{nullptr};
-    uint32_t max_packet_bytes{kDefaultMaxPacketBytes};
+    uint32_t max_packet_bytes{0};
 
     ~VmnetRelay()
     {
@@ -58,6 +64,43 @@ struct VmnetRelay
 
 void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
 {
+    relay.queue = dispatch_queue_create(
+        fmt::format("com.canonical.multipassd.vmnet.{}", physical_iface).c_str(),
+        DISPATCH_QUEUE_SERIAL);
+
+    xpc_object_t iface_opts = xpc_dictionary_create(nullptr, nullptr, 0);
+    xpc_dictionary_set_uint64(iface_opts, vmnet_operation_mode_key, VMNET_BRIDGED_MODE);
+    xpc_dictionary_set_string(iface_opts, vmnet_shared_interface_name_key, physical_iface.c_str());
+
+    uuid_t iface_uuid;
+    uuid_generate_random(iface_uuid);
+    xpc_dictionary_set_uuid(iface_opts, vmnet_interface_id_key, iface_uuid);
+
+    dispatch_semaphore_t vmnet_sema = dispatch_semaphore_create(0);
+    __block vmnet_return_t vmnet_status = VMNET_FAILURE;
+
+    // Starting the vmnet interface requires root on macOS 15 and older
+    relay.iface = vmnet_start_interface(
+        iface_opts,
+        relay.queue,
+        ^(vmnet_return_t status, xpc_object_t params) {
+          vmnet_status = status;
+          if (status == VMNET_SUCCESS)
+              relay.max_packet_bytes =
+                  (uint32_t)xpc_dictionary_get_uint64(params, vmnet_max_packet_size_key);
+          dispatch_semaphore_signal(vmnet_sema);
+        });
+
+    dispatch_semaphore_wait(vmnet_sema, DISPATCH_TIME_FOREVER);
+
+    if (vmnet_status != VMNET_SUCCESS || !relay.iface)
+    {
+        throw std::runtime_error(fmt::format("vmnet_start_interface() failed (status {}) for '{}'",
+                                             static_cast<int>(vmnet_status),
+                                             physical_iface));
+    }
+
+    mpl::debug(kLogCategory, "vmnet bridged interface started on '{}'", physical_iface);
 }
 
 void setup_relay(VmnetRelay& relay, int relay_fd)
