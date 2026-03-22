@@ -24,10 +24,10 @@
 
 namespace multipass::test
 {
-class MockAppleVZImageUtils : public multipass::applevz::AppleVZImageUtils
+class MockAppleVZUtils : public multipass::applevz::AppleVZUtils
 {
 public:
-    using AppleVZImageUtils::AppleVZImageUtils;
+    using AppleVZUtils::AppleVZUtils;
 
     MOCK_METHOD(std::filesystem::path,
                 convert_to_supported_format,
@@ -39,6 +39,6 @@ public:
                 (const, override));
     MOCK_METHOD(bool, macos_at_least, (int major, int minor, int patch), (const, override));
 
-    MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZImageUtils, AppleVZImageUtils);
+    MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZUtils, AppleVZUtils);
 };
 } // namespace multipass::test

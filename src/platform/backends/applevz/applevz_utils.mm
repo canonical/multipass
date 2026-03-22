@@ -276,7 +276,7 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
 
 namespace multipass::applevz
 {
-std::filesystem::path AppleVZImageUtils::convert_to_supported_format(
+std::filesystem::path AppleVZUtils::convert_to_supported_format(
     const std::filesystem::path& image_path) const
 {
     if (macos_at_least(26, 0))
@@ -289,8 +289,8 @@ std::filesystem::path AppleVZImageUtils::convert_to_supported_format(
     }
 }
 
-void AppleVZImageUtils::resize_image(const MemorySize& disk_space,
-                                     const std::filesystem::path& image_path) const
+void AppleVZUtils::resize_image(const MemorySize& disk_space,
+                                const std::filesystem::path& image_path) const
 {
     mpl::trace(category, "Resizing image to: {}", disk_space.human_readable());
 
@@ -319,7 +319,7 @@ void AppleVZImageUtils::resize_image(const MemorySize& disk_space,
     mpl::trace(category, "Successfully resized image: {}", image_path);
 }
 
-bool AppleVZImageUtils::macos_at_least(int major, int minor, int patch) const
+bool AppleVZUtils::macos_at_least(int major, int minor, int patch) const
 {
     NSOperatingSystemVersion v{major, minor, patch};
     return [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:v];

@@ -15,7 +15,7 @@
  *
  */
 
-#include "mock_applevz_image_utils.h"
+#include "mock_applevz_utils.h"
 #include "mock_applevz_wrapper.h"
 #include "tests/unit/common.h"
 #include "tests/unit/mock_logger.h"
@@ -64,9 +64,9 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
         mpt::MockAppleVZWrapper::inject<NiceMock>()};
     mpt::MockAppleVZWrapper& mock_applevz = *mock_applevz_wrapper_injection.first;
 
-    mpt::MockAppleVZImageUtils::GuardedMock mock_image_utils_injection{
-        mpt::MockAppleVZImageUtils::inject<NiceMock>()};
-    mpt::MockAppleVZImageUtils& mock_image_utils = *mock_image_utils_injection.first;
+    mpt::MockAppleVZUtils::GuardedMock mock_image_utils_injection{
+        mpt::MockAppleVZUtils::inject<NiceMock>()};
+    mpt::MockAppleVZUtils& mock_image_utils = *mock_image_utils_injection.first;
 
     mpt::TempDir instance_dir;
 

@@ -22,14 +22,14 @@
 
 #include <filesystem>
 
-#define MP_APPLEVZ_UTILS multipass::applevz::AppleVZImageUtils::instance()
+#define MP_APPLEVZ_UTILS multipass::applevz::AppleVZUtils::instance()
 
 namespace multipass::applevz
 {
-class AppleVZImageUtils : public Singleton<AppleVZImageUtils>
+class AppleVZUtils : public Singleton<AppleVZUtils>
 {
 public:
-    using Singleton<AppleVZImageUtils>::Singleton;
+    using Singleton<AppleVZUtils>::Singleton;
 
     virtual std::filesystem::path convert_to_supported_format(
         const std::filesystem::path& image_path) const;

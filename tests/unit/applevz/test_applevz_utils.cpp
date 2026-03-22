@@ -15,7 +15,7 @@
  *
  */
 
-#include "mock_applevz_image_utils.h"
+#include "mock_applevz_utils.h"
 #include "mock_applevz_wrapper.h"
 #include "tests/unit/common.h"
 #include "tests/unit/mock_logger.h"
@@ -39,7 +39,7 @@ struct AppleVZUtils_UnitTests : public testing::Test
     {
         ON_CALL(mock_applevz_utils, convert_to_supported_format(_))
             .WillByDefault([this](const std::filesystem::path& path) {
-                return mock_applevz_utils.AppleVZImageUtils::convert_to_supported_format(path);
+                return mock_applevz_utils.AppleVZUtils::convert_to_supported_format(path);
             });
     }
 
@@ -49,9 +49,9 @@ struct AppleVZUtils_UnitTests : public testing::Test
         mpt::MockAppleVZWrapper::inject<NiceMock>()};
     mpt::MockAppleVZWrapper& mock_applevz = *mock_applevz_injection.first;
 
-    mpt::MockAppleVZImageUtils::GuardedMock mock_applevz_utils_injection{
-        mpt::MockAppleVZImageUtils::inject<NiceMock>()};
-    mpt::MockAppleVZImageUtils& mock_applevz_utils = *mock_applevz_utils_injection.first;
+    mpt::MockAppleVZUtils::GuardedMock mock_applevz_utils_injection{
+        mpt::MockAppleVZUtils::inject<NiceMock>()};
+    mpt::MockAppleVZUtils& mock_applevz_utils = *mock_applevz_utils_injection.first;
 
     std::unique_ptr<mpt::MockProcessFactory::Scope> process_factory_scope =
         mpt::MockProcessFactory::Inject();
