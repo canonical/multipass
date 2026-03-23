@@ -17,6 +17,7 @@
 
 #include <shared/windows/wsa_init_wrapper.h>
 
+#include <multipass/exceptions/wsa_init_exception.h>
 #include <multipass/logging/log.h>
 
 #include <windows.h>
@@ -27,6 +28,7 @@ namespace mp = multipass;
 namespace mpl = mp::logging;
 namespace multipass
 {
+
 wsa_init_wrapper::wsa_init_wrapper()
     : wsa_data(new ::WSAData()), wsa_init_result(::WSAStartup(MAKEWORD(2, 2), wsa_data))
 {
@@ -35,11 +37,9 @@ wsa_init_wrapper::wsa_init_wrapper()
 
     if (!operator bool())
     {
-
-        mpl::error(category,
-                   " WSAStartup failed with `{}`: {}",
-                   wsa_init_result,
-                   std::system_category().message(wsa_init_result));
+        throw WSAInitException{" WSAStartup failed with `{}`: {}",
+                               wsa_init_result,
+                               std::system_category().message(wsa_init_result)};
     }
 }
 

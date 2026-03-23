@@ -85,14 +85,6 @@ auto resolve_ip_addresses(const std::string& hostname)
                "resolve_ip_addresses() -> resolve being called for hostname `{}`",
                hostname);
 
-    if (!wsa_context)
-    {
-        mpl::error("resolve-ip-addr",
-                   "resolve_ip_addresses() -> WSA not initialized! `{}`",
-                   hostname);
-        return std::make_pair(ipv4, ipv6);
-    }
-
     // Wrap the raw addrinfo pointer so it's always destroyed properly.
     const auto& [result, addr_info] = [&]() {
         struct addrinfo* result = {nullptr};
