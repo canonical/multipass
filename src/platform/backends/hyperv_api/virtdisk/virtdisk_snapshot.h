@@ -59,6 +59,8 @@ protected:
     void apply_impl() override;
 
 private:
+    using SnapshotsMap = std::map<std::filesystem::path, std::shared_ptr<const Snapshot>>;
+
     /**
      * Create a new differencing child disk from the parent
      *
@@ -68,14 +70,9 @@ private:
     void create_new_child_disk(const std::filesystem::path& parent,
                                const std::filesystem::path& child) const;
 
-    /**
-     * Change the parent disk of the snapshot differencing disks
-     *
-     * @param [in] snapshots The list of snapshots to reparent the differencing disks of
-     * @param [in] new_parent The path to the new parent virtual disk
-     */
-    void reparent_snapshot_disks(const VirtualMachine::SnapshotVista& snapshots,
-                                 const std::filesystem::path& new_parent) const;
+    SnapshotsMap get_children() const;
+
+    bool is_head_attached_to_this() const;
 
     /**
      * Path to the base disk, i.e. the ancestor of all differencing disks.
