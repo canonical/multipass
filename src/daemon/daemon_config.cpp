@@ -24,7 +24,7 @@
 #include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
-#include <multipass/petname_interface.h>
+#include <multipass/name_generator.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>

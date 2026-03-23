@@ -26,16 +26,15 @@
 
 namespace multipass
 {
-
-class PetnameInterface : private DisabledCopyMove
+class NameGenerator : private DisabledCopyMove
 {
 public:
-    using UPtr = std::unique_ptr<PetnameInterface>;
-    virtual ~PetnameInterface() = default;
+    using UPtr = std::unique_ptr<NameGenerator>;
+    virtual ~NameGenerator() = default;
     virtual std::string make_name() = 0;
 
 protected:
-    PetnameInterface() = default;
+    NameGenerator() = default;
 };
 
 namespace petname
@@ -51,21 +50,21 @@ concept IsValidSeparator = (S == '-' || S == '_');
 
 namespace detail
 {
-PetnameInterface::UPtr make_petname_provider_impl(NumWords num_words, char separator);
+NameGenerator::UPtr make_petname_provider_impl(NumWords num_words, char separator);
 } // namespace detail
 
 // Templated functions to avoid exposing the PetnameProvider type in the interface header with
 // the default arguments. The templates ensure the argument checks are done at compile-time.
 template <NumWords NW = NumWords::Two, char S = '-'>
     requires IsValidSeparator<S>
-PetnameInterface::UPtr make_petname_provider()
+NameGenerator::UPtr make_petname_provider()
 {
     return detail::make_petname_provider_impl(NW, S);
 };
 
 template <char S>
     requires IsValidSeparator<S>
-PetnameInterface::UPtr make_petname_provider()
+NameGenerator::UPtr make_petname_provider()
 {
     return detail::make_petname_provider_impl(NumWords::Two, S);
 }

@@ -176,7 +176,7 @@ target_link_libraries(multipass_cpp_tests
   ip_address
   iso
   network
-  petname
+  namegen
   settings
   simplestreams
   sftp_test

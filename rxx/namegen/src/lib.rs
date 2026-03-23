@@ -17,24 +17,26 @@
  *
  */
 
-#pragma once
+pub mod petname_error;
+pub mod petname_generator;
+use petname_generator::make_petname;
 
-#include <multipass/petname_interface.h>
+#[cxx::bridge(namespace = "multipass::petname")]
+pub mod ffi {
+    #[repr(i32)]
+    pub enum NumWords {
+        One,
+        Two,
+        Three,
+    }
 
-#include <string>
-
-namespace multipass
-{
-
-class PetnameProvider final : public PetnameInterface
-{
-public:
-    PetnameProvider(petname::NumWords num_words, char separator);
-
-    std::string make_name() override;
-
-private:
-    petname::NumWords num_words;
-    char separator;
-};
-} // namespace multipass
+    #[namespace = "rxx::petname"]
+    extern "Rust" {
+        fn make_petname(num_words: NumWords, separator: c_char) -> Result<String>;
+    }
+    #[namespace = "multipass::petname"]
+    extern "C++" {
+        include!("multipass/name_generator.h");
+        type NumWords;
+    }
+}
