@@ -252,7 +252,7 @@ jobs:
           sudo du -sh /var/root/Library/Application\ Support/multipassd/ 2>/dev/null || true
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         with:
           name: CLI Test results (${{ matrix.label }})
           path: reports/junit.xml
