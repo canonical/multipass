@@ -164,7 +164,7 @@ jobs:
       # integration where the snapd is auto-refreshing itself on
       # container start.
       #  https://github.com/canonical/craft-providers/issues/391
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@v4
       with:
         # We have to set a value for this as it's not optional
         # https://github.com/nick-fields/retry/issues/51
