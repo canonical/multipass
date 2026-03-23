@@ -38,7 +38,6 @@ mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& de
 QStringList mp::QemuVMProcessSpec::arguments() const
 {
     QStringList args;
-
     if (resume_data)
     {
         args = resume_data->arguments;
@@ -63,10 +62,12 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     }
     else
     {
+        // The UUID needs to be unique per VM and must be consistent across boots.
+        const auto vm_uuid = utils::make_uuid(desc.vm_name);
         auto mem_size =
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
-
+        // clang-format off
         args << platform_args;
         // The VM image itself
         args << "-device"
@@ -97,6 +98,9 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
              << "-nographic";
         // Cloud-init disk
         args << "-cdrom" << desc.cloud_init_iso;
+        // To make `/sys/class/dmi/id/product_uuid` present
+        args << "-uuid" << vm_uuid;
+        // clang-format on
     }
 
     for (const auto& [_, mount_data] : mount_args)
