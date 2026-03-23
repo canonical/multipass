@@ -17,15 +17,16 @@
  *
  */
 
-#include "petname_provider.h"
+#include "petname_generator.h"
+
+#include <multipass/name_generator.h>
+
 #include <memory>
-#include <multipass/petname_interface.h>
 
 namespace mp = multipass;
 namespace mpp = multipass::petname;
 
-mp::PetnameInterface::UPtr mpp::detail::make_petname_provider_impl(NumWords num_words,
-                                                                   char separator)
+mp::NameGenerator::UPtr mpp::detail::make_petname_provider_impl(NumWords num_words, char separator)
 {
-    return std::make_unique<PetnameProvider>(num_words, separator);
+    return std::make_unique<PetnameGenerator>(num_words, separator);
 }

@@ -15,7 +15,7 @@
 # Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
 
 [package]
-name = "petname"
+name = "namegen"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

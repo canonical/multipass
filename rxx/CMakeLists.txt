@@ -42,7 +42,7 @@ set(CARGO_CMD ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${RUST_BUILD_DIR}" ${CAR
 #have to be built, since the CXX glue code has to be generated and compiled
 #for said usage
 set(CRATES
-  petname
+  namegen
 )
 
 if(NOT CRATES STREQUAL "")

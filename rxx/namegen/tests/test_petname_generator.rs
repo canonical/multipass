@@ -1,4 +1,4 @@
-use petname::{ffi::NumWords, petname_error::PetnameError, petname_generator::make_petname};
+use namegen::{ffi::NumWords, petname_error::PetnameError, petname_generator::make_petname};
 use std::collections::HashSet;
 use std::ffi::c_char;
 

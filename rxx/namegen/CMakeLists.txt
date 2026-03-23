@@ -24,6 +24,7 @@
 #Link necessary libraries for the exceptions header
 #target_link_libraries(${crate_name} PRIVATE fmt::fmt-header-only Qt::Core)
 
-target_sources(petname PRIVATE
-  "src/petname_interface.cpp"
+target_sources(namegen PRIVATE
+  "src/name_generator.cpp"
+  "src/petname_generator.cpp"
   )
