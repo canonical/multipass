@@ -453,7 +453,7 @@ jobs:
 
     steps:
     - name: Delete unused artifacts from github
-      uses: geekyeggo/delete-artifact@v5
+      uses: geekyeggo/delete-artifact@v6
       with:
         name: |
           ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
