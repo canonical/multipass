@@ -550,7 +550,7 @@ static const auto& ip_utils()
 {
     // Winsock initialization has to happen before we can call network
     // related functions, even the conversion ones (e.g. inet_ntop)
-    static mp::wsa_init_wrapper wrapper;
+    const static mp::wsa_init_wrapper wrapper;
 
     /**
      * Helper struct that provides address conversion
