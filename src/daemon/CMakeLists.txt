@@ -34,7 +34,7 @@ target_link_libraries(daemon
   fmt::fmt-header-only
   image_host
   logger
-  petname
+  namegen
   platform
   rpc
   settings

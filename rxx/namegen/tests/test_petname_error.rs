@@ -1,4 +1,4 @@
-use petname::petname_error::PetnameError;
+use namegen::petname_error::PetnameError;
 #[test]
 fn test_error_display() {
     assert_eq!(

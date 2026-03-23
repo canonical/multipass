@@ -194,7 +194,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "petname"
+name = "namegen"
 version = "0.1.0"
 dependencies = [
  "cxx",
