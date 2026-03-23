@@ -74,10 +74,6 @@ void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
     xpc_dictionary_set_uint64(iface_opts, vmnet_operation_mode_key, VMNET_BRIDGED_MODE);
     xpc_dictionary_set_string(iface_opts, vmnet_shared_interface_name_key, physical_iface.c_str());
 
-    uuid_t iface_uuid;
-    uuid_generate_random(iface_uuid);
-    xpc_dictionary_set_uuid(iface_opts, vmnet_interface_id_key, iface_uuid);
-
     dispatch_semaphore_t vmnet_sema = dispatch_semaphore_create(0);
     __block vmnet_return_t vmnet_status = VMNET_FAILURE;
 
