@@ -21,6 +21,7 @@
 
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QVersionNumber>
 
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/exceptions/snap_environment_exception.h>
@@ -119,10 +120,11 @@ QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& 
                                     const QUrl& url)
 {
     const auto lxd_metadata = mp::lxd_request(manager, "GET", url);
-    const auto version = lxd_metadata["metadata"]["environment"]["server_version"].toString();
-    bool isV6OrNewer = (version >= QString{"6.7"});
-    const auto boot_mode_key = (isV6OrNewer ? "boot.mode" : "security.secureboot");
-    const auto boot_mode_value = (isV6OrNewer ? "uefi-nosecureboot" : "false");
+    const auto version = QVersionNumber::fromString(
+        lxd_metadata["metadata"]["environment"]["server_version"].toString());
+    bool useBootMode = (version >= QVersionNumber(6, 7));
+    const auto boot_mode_key = (useBootMode ? "boot.mode" : "security.secureboot");
+    const auto boot_mode_value = (useBootMode ? "uefi-nosecureboot" : "false");
 
     QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
                        {"limits.memory", QString::number(desc.mem_size.in_bytes())},
