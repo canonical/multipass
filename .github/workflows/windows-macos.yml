@@ -256,7 +256,7 @@ jobs:
 
     - name: Install cmake
       if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v4.2.3
+      uses: lukka/get-cmake@v4.3.0
 
     - name: Set up MSVC
       if: ${{ runner.os == 'Windows' }}
