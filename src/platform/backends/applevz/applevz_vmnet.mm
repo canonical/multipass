@@ -49,10 +49,15 @@ struct VmnetRelay
             dispatch_semaphore_t s = dispatch_semaphore_create(0);
             vmnet_stop_interface(iface,
                                  dispatch_get_global_queue(QOS_CLASS_UTILITY, 0),
-                                 ^(vmnet_return_t) {
+                                 ^(vmnet_return_t status) {
+                                   if (status != VMNET_SUCCESS)
+                                       mpl::info(category,
+                                                 "vmnet_stop_interface() failed (status {})",
+                                                 static_cast<int>(status));
                                    dispatch_semaphore_signal(s);
                                  });
-            dispatch_semaphore_wait(s, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC));
+            if (dispatch_semaphore_wait(s, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) != 0)
+                mpl::info(category, "timed out waiting for vmnet_stop_interface() to complete");
         }
 
         if (fd >= 0)
