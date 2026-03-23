@@ -181,6 +181,25 @@ QString mp::utils::normalize_path(const QString& path)
     return QString::fromStdString(normalize_path(path.toStdString()));
 }
 
+std::filesystem::path mp::utils::qstr_to_path(const QString& qstr)
+{
+#ifdef _WIN32
+    return std::filesystem::path{qstr.toStdWString()};
+#else
+    // On Linux/macOS the native encoding is UTF-8
+    return std::filesystem::path{qstr.toStdString()};
+#endif
+}
+
+QString mp::utils::path_to_qstr(const std::filesystem::path& path)
+{
+#ifdef _WIN32
+    return QString::fromStdWString(path.generic_wstring());
+#else
+    return QString::fromStdString(path.generic_string());
+#endif
+}
+
 bool mp::utils::valid_hostname(const std::string& name_string)
 {
     QRegularExpression matcher{

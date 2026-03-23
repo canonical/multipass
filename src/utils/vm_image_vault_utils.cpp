@@ -63,8 +63,10 @@ std::filesystem::path mp::ImageVaultUtils::copy_to_dir(
     if (!MP_FILEOPS.exists(file))
         throw std::runtime_error(fmt::format("File {} not found", file));
 
-    const auto new_location = output_dir / file.filename();
+    auto new_location = output_dir / file.filename();
 
+    // Normalize the path to platform's preferred slashes
+    new_location.make_preferred();
     std::error_code ec{};
     std::filesystem::copy_options options{};
     MP_FILEOPS.copy(file, new_location, options, ec);
