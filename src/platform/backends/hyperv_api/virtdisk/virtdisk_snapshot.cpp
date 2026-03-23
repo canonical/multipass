@@ -27,7 +27,7 @@
 namespace
 {
 constexpr auto log_category = "virtdisk-snapshot";
-}
+} // namespace
 
 namespace multipass::hyperv::virtdisk
 {
@@ -36,6 +36,18 @@ struct CreateVirtdiskSnapshotError : FormattedExceptionBase<std::system_error>
 {
     using FormattedExceptionBase::FormattedExceptionBase;
 };
+
+static std::filesystem::path get_parent_disk_of(const std::filesystem::path& disk)
+{
+    std::vector<std::filesystem::path> chain{};
+    constexpr auto depth = 2;
+    const auto list_r = VirtDisk().list_virtual_disk_chain(disk, chain, depth);
+
+    if (chain.size() == depth)
+        return chain[1];
+
+    throw CreateVirtdiskSnapshotError{list_r, "Could not determine parent disk of `{}`", disk};
+}
 
 VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
                                    const std::string& comment,
@@ -59,8 +71,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const QString& filename,
 
 std::string VirtDiskSnapshot::make_snapshot_filename(const Snapshot& ss)
 {
-    constexpr auto snapshot_name_format = "{}.avhdx";
-    return fmt::format(snapshot_name_format, ss.get_name());
+    return fmt::format("{}.avhdx", ss.get_name());
 }
 
 std::filesystem::path VirtDiskSnapshot::make_snapshot_path(const Snapshot& ss) const
@@ -75,8 +86,8 @@ std::filesystem::path VirtDiskSnapshot::make_head_disk_path() const
 
 void VirtDiskSnapshot::capture_impl()
 {
-    const auto& head_path = make_head_disk_path();
-    const auto& snapshot_path = make_snapshot_path(*this);
+    const auto head_path = make_head_disk_path();
+    const auto snapshot_path = make_snapshot_path(*this);
     mpl::debug(log_category,
                "capture_impl() -> head_path: {}, snapshot_path: {}",
                head_path,
@@ -86,8 +97,8 @@ void VirtDiskSnapshot::capture_impl()
     // that has no snapshots yet.
     if (!MP_FILEOPS.exists(head_path))
     {
-        const auto& parent = get_parent();
-        const auto& target = parent ? make_snapshot_path(*parent) : base_vhdx_path;
+        const auto parent = get_parent();
+        const auto target = parent ? make_snapshot_path(*parent) : base_vhdx_path;
         create_new_child_disk(target, head_path);
     }
 
@@ -119,155 +130,107 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
                                                        .predecessor =
                                                            virtdisk::ParentPathParameters{parent}};
 
-    const auto result = VirtDisk().create_virtual_disk(params);
-    if (result)
+    if (const auto result = VirtDisk().create_virtual_disk(params); !result)
     {
-        mpl::debug(log_category, "Successfully created the child disk: `{}`", child);
-        return;
+        throw CreateVirtdiskSnapshotError{
+            result,
+            "Could not create the head differencing disk for the snapshot"};
     }
 
-    throw CreateVirtdiskSnapshotError{
-        result,
-        "Could not create the head differencing disk for the snapshot"};
+    mpl::debug(log_category, "Successfully created the child disk: `{}`", child);
 }
 
-void VirtDiskSnapshot::reparent_snapshot_disks(const VirtualMachine::SnapshotVista& snapshots,
-                                               const std::filesystem::path& new_parent) const
+VirtDiskSnapshot::SnapshotsMap VirtDiskSnapshot::get_children() const
 {
-    mpl::debug(log_category,
-               "reparent_snapshot_disks() -> snapshots_count: {}, new_parent: {}",
-               snapshots.size(),
-               new_parent);
+    const auto self_path = make_snapshot_path(*this);
+    const auto all_snapshots =
+        vm.view_snapshots([this_index = this->get_index()](const Snapshot& ss) {
+            // All except self
+            return ss.get_index() != this_index;
+        });
 
-    // The parent must already exist.
-    if (!MP_FILEOPS.exists(new_parent))
-        throw CreateVirtdiskSnapshotError{
-            std::make_error_code(std::errc::no_such_file_or_directory),
-            "Parent disk `{}` does not exist",
-            new_parent};
+    SnapshotsMap result;
 
-    for (const auto& child : snapshots)
+    for (const auto& elem : all_snapshots)
     {
-        const auto& child_path = make_snapshot_path(*child);
-
-        if (!MP_FILEOPS.exists(child_path))
-            throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
-                                              "Child disk `{}` does not exists",
-                                              child_path};
-        if (const auto result = VirtDisk().reparent_virtual_disk(child_path, new_parent); !result)
+        const auto& path = make_snapshot_path(*elem);
+        std::vector<std::filesystem::path> chain;
+        if (VirtDisk().list_virtual_disk_chain(path, chain, 2) && chain.size() >= 2)
         {
-            mpl::warn(log_category,
-                      "Could not reparent `{}` to `{}`: {}",
-                      child_path,
-                      new_parent,
-                      static_cast<std::error_code>(result));
-            continue;
+            if (MP_FILEOPS.weakly_canonical(chain[1]) == MP_FILEOPS.weakly_canonical(self_path))
+                result.insert(std::make_pair(path, elem));
         }
-        mpl::debug(log_category,
-                   "Successfully reparented the child disk `{}` to `{}`",
-                   child_path,
-                   new_parent);
     }
+    return result;
+}
+
+bool VirtDiskSnapshot::is_head_attached_to_this() const
+{
+    const auto self_path = make_snapshot_path(*this);
+    const auto head_path = make_head_disk_path();
+    const auto head_parent_path = get_parent_disk_of(head_path);
+    return MP_FILEOPS.weakly_canonical(head_parent_path) == MP_FILEOPS.weakly_canonical(self_path);
 }
 
 void VirtDiskSnapshot::erase_impl()
 {
+    const auto self_path = make_snapshot_path(*this);
+    const auto head_path = make_head_disk_path();
 
-    const auto& parent = get_parent();
-    const auto& self_path = make_snapshot_path(*this);
-    const auto& head_path = make_head_disk_path();
-    mpl::debug(log_category,
-               "erase_impl() -> parent: {}, self_path: {}",
-               parent ? parent->get_name() : "<none>",
-               self_path);
+    auto children = get_children();
 
-    const auto& head_parent = [&]() {
-        std::vector<std::filesystem::path> chain{};
-        constexpr auto depth = 2;
-        const auto list_r = VirtDisk().list_virtual_disk_chain(head_path, chain, depth);
+    if (is_head_attached_to_this())
+        children.insert({head_path, nullptr});
 
-        if (chain.size() == depth)
-            return chain[1];
+    auto self_temp_path = self_path;
+    self_temp_path += ".tmp";
+    MP_FILEOPS.rename(self_path, self_temp_path);
 
-        throw CreateVirtdiskSnapshotError{list_r, "Could not determine head disk's parent"};
-    }();
+    // Pass 1: merge each child into a copy, stash the result as child.new
+    // No original files are modified. If anything fails, we clean up and bail.
+    std::vector<std::pair<std::filesystem::path, std::filesystem::path>>
+        staged; // {child, child.new}
 
-    const bool should_merge_head = (self_path == head_parent) && vm.get_num_snapshots() == 1;
-    const bool should_reparent_head = (self_path == head_parent) && vm.get_num_snapshots() > 1;
-
-    // If the head's parent is this, and this is the last snapshot,
-    // we need to merge the head to the snapshot first.
-    if (should_merge_head)
-    {
-        // Head is attached to the snapshot that's going to be deleted.
-        if (const auto merge_r = VirtDisk().merge_virtual_disk_into_parent(head_path); merge_r)
+    auto rollback = [&] {
+        for (const auto& [original, stashed] : staged)
         {
-            mpl::debug(log_category,
-                       "Successfully merged head differencing disk `{}` to parent disk `{}`",
-                       head_path,
-                       self_path);
-            mpl::debug(log_category, "Removing the merged head disk file: `{}`", head_path);
-            MP_FILEOPS.remove(head_path);
+            std::error_code ec;
+            MP_FILEOPS.remove(stashed, ec);
         }
-        else
+        // Restore the snapshot file
+        MP_FILEOPS.remove(self_path);
+        MP_FILEOPS.rename(self_temp_path, self_path);
+    };
+
+    for (const auto& [child_path, snapshot_ptr] : children)
+    {
+        MP_FILEOPS.copy(self_temp_path, self_path, {});
+
+        if (auto merge_r = VirtDisk().merge_virtual_disk_into_parent(child_path); !merge_r)
         {
-            throw CreateVirtdiskSnapshotError{
-                merge_r,
-                "Could not merge head differencing disk to the edge snapshot"};
+            rollback();
+            throw CreateVirtdiskSnapshotError{merge_r,
+                                              "Could not merge child disk `{}` into `{}`",
+                                              child_path,
+                                              self_path};
         }
+
+        // Stash merged result. Original child_path is untouched.
+        auto stash_path = child_path;
+        stash_path += ".new";
+        MP_FILEOPS.rename(self_path, stash_path);
+        staged.emplace_back(child_path, stash_path);
     }
 
-    //  1: Merge this to its parent
-    if (const auto merge_r = VirtDisk().merge_virtual_disk_into_parent(self_path); merge_r)
+    // Pass 2: all merges succeeded. Commit by swapping originals with results.
+    // This is a series of renames, which are atomic per-file on NTFS.
+    for (const auto& [child_path, stash_path] : staged)
     {
-        const auto& parent_path = parent ? make_snapshot_path(*parent) : base_vhdx_path;
-        mpl::debug(log_category,
-                   "Successfully merged differencing disk `{}` to parent disk `{}`",
-                   self_path,
-                   parent_path);
+        MP_FILEOPS.remove(child_path);
+        MP_FILEOPS.rename(stash_path, child_path);
+    }
 
-        // The actual reparenting of the children needs to happen here. Reparenting is not a simple
-        // "-> now this is your parent" like thing. The children include parent's metadata
-        // calculated based on actual contents, and merging a child disk to parent updates its
-        // parent's metadata, too. Hence, the reparenting operation not only needs to happen to the
-        // orphaned children, but also to the existing children of the parent as well, so the
-        // updated metadata of the parent could be reflected to the all.
-        const auto children_to_reparent =
-            vm.view_snapshots([&parent, this_index = this->get_index()](const Snapshot& ss) {
-                return
-                    // Exclude self.
-                    (ss.get_index() != this_index) &&
-                    // set_parent() for the orphaned children happens before erase() call
-                    // so they're already adopted by the self's parent at this point.
-                    (parent ? (ss.get_parents_index() == parent->get_index())
-                            : ss.get_parents_index() == 0);
-            });
-        reparent_snapshot_disks(children_to_reparent, parent_path);
-
-        if (should_reparent_head)
-        {
-            if (const auto res = VirtDisk().reparent_virtual_disk(head_path, parent_path); res)
-            {
-                mpl::debug(log_category, "Reparented head {} to {}", head_path, parent_path);
-            }
-            else
-            {
-                throw CreateVirtdiskSnapshotError{
-                    res,
-                    "Could not reparent head differencing disk to the parent"};
-            }
-        }
-    }
-    else
-    {
-        throw CreateVirtdiskSnapshotError{merge_r, "Could not merge differencing disk to parent"};
-    }
-    // Finally, erase the merged disk.
-    mpl::debug(log_category, "Removing snapshot file: `{}`", self_path);
-    if (!MP_FILEOPS.remove(self_path))
-    {
-        mpl::error(log_category, "Failed removing snapshot file: `{}`!", self_path);
-    }
+    MP_FILEOPS.remove(self_temp_path);
 }
 
 void VirtDiskSnapshot::apply_impl()
