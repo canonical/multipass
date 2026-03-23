@@ -29,11 +29,9 @@ namespace multipass::hyperv::hcs
  */
 struct HcsPath
 {
-    HcsPath() = default;
-
-    template <typename T>
-        requires std::constructible_from<std::filesystem::path, T>
-    HcsPath(T&& arg) : value{std::forward<T>(arg)}
+    template <typename... Args>
+        requires std::constructible_from<std::filesystem::path, Args...>
+    HcsPath(Args&&... arg) : value{std::forward<Args>(arg)...}
     {
     }
 
@@ -61,6 +59,6 @@ struct fmt::formatter<multipass::hyperv::hcs::HcsPath, Char>
     : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HcsPath&, FormatContext&) const
-        -> FormatContext::iterator;
+    auto format(const multipass::hyperv::hcs::HcsPath&,
+                FormatContext&) const -> FormatContext::iterator;
 };
