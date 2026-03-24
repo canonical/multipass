@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) The vmnet-helper authors
  * Copyright (C) Canonical, Ltd.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -13,6 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ */
+
+/*
+   Portions of this file are derived from vmnet-helper by Nir Soffer
+   (https://github.com/nirs/vmnet-helper), originally licensed under the
+   Apache License, Version 2.0.  The combined work is distributed under
+   the terms of GPL-3.0.
+
+   The following adaptations were made for use with Multipass:
+   - rewritten in idiomatic Objective-C++ and integrated as a library;
+   - connected to Apple Virtualization framework via a socketpair and
+     VZFileHandleNetworkDeviceAttachment;
+   - removed unused network options
+   - Multipass logging;
  */
 
 #include <applevz/applevz_utils.h>
