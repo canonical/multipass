@@ -15,6 +15,7 @@
  *
  */
 
+#include <applevz/applevz_utils.h>
 #include <applevz/applevz_vmnet.h>
 #include <multipass/logging/log.h>
 
@@ -30,19 +31,77 @@ namespace
 constexpr auto category = "vmnet";
 constexpr uint32_t kSendBufferSize{65 * 1024};
 constexpr uint32_t kRecvBufferSize{4 * 1024 * 1024};
+constexpr int kMaxPacketCount{200};
+constexpr int kMaxPacketCountLarge{16};
+constexpr uint32_t kLargePacketThreshold{64 * 1024};
+constexpr uint64_t kSendRetryDelayNs{50 * 1000};
+
+struct msghdr_x
+{
+    struct msghdr msg_hdr;
+    size_t msg_len;
+};
+extern "C" ssize_t recvmsg_x(int s, const msghdr_x* msgp, unsigned int cnt, int flags);
+extern "C" ssize_t sendmsg_x(int s, const msghdr_x* msgp, unsigned int cnt, int flags);
 
 struct VmnetRelay
 {
     interface_ref iface{nullptr};
     int fd{-1};
-    dispatch_source_t source{nullptr};
     dispatch_queue_t queue{nullptr};
+    dispatch_queue_t vm_queue{nullptr};
     uint32_t max_packet_bytes{0};
+
+    // Pre-allocated buffers for host->vm (vmnet read / socket write).
+    std::vector<uint8_t> host_buffers;
+    std::vector<vmpktdesc> host_packets;
+    std::vector<iovec> host_iovs;
+    std::vector<msghdr_x> host_msgs;
+
+    // Pre-allocated buffers for vm->host (socket read / vmnet write).
+    std::vector<uint8_t> vm_buffers;
+    std::vector<vmpktdesc> vm_packets;
+    std::vector<iovec> vm_iovs;
+    std::vector<msghdr_x> vm_msgs;
+
+    void init_buffers()
+    {
+        const int packet_count =
+            (max_packet_bytes >= kLargePacketThreshold) ? kMaxPacketCountLarge : kMaxPacketCount;
+
+        auto bind_endpoint = [&](std::vector<uint8_t>& buffers,
+                                 std::vector<vmpktdesc>& packets,
+                                 std::vector<iovec>& iovs,
+                                 std::vector<msghdr_x>& msgs) {
+            buffers.resize((size_t)packet_count * max_packet_bytes);
+            packets.resize(packet_count);
+            iovs.resize(packet_count);
+            msgs.resize(packet_count);
+            for (int i = 0; i < packet_count; i++)
+            {
+                iovs[i].iov_base = buffers.data() + (size_t)i * max_packet_bytes;
+                iovs[i].iov_len = max_packet_bytes;
+                packets[i].vm_pkt_iov = &iovs[i];
+                packets[i].vm_pkt_iovcnt = 1;
+                msgs[i].msg_hdr.msg_iov = &iovs[i];
+                msgs[i].msg_hdr.msg_iovlen = 1;
+            }
+        };
+
+        bind_endpoint(host_buffers, host_packets, host_iovs, host_msgs);
+        bind_endpoint(vm_buffers, vm_packets, vm_iovs, vm_msgs);
+    }
 
     ~VmnetRelay()
     {
-        if (source)
-            dispatch_source_cancel(source);
+        if (fd >= 0)
+            close(fd);
+
+        // Wait for the vm->host forwarding loop to exit before stopping vmnet.
+        if (vm_queue)
+            dispatch_sync(vm_queue,
+                          ^{
+                          });
 
         if (iface)
         {
@@ -51,17 +110,14 @@ struct VmnetRelay
                                  dispatch_get_global_queue(QOS_CLASS_UTILITY, 0),
                                  ^(vmnet_return_t status) {
                                    if (status != VMNET_SUCCESS)
-                                       mpl::info(category,
+                                       mpl::warn(category,
                                                  "vmnet_stop_interface() failed (status {})",
                                                  static_cast<int>(status));
                                    dispatch_semaphore_signal(s);
                                  });
             if (dispatch_semaphore_wait(s, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) != 0)
-                mpl::info(category, "timed out waiting for vmnet_stop_interface() to complete");
+                mpl::warn(category, "timed out waiting for vmnet_stop_interface() to complete");
         }
-
-        if (fd >= 0)
-            close(fd);
     }
 
     VmnetRelay() = default;
@@ -106,58 +162,156 @@ void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
     mpl::debug(category, "vmnet bridged interface started on '{}'", physical_iface);
 }
 
-void setup_relay(VmnetRelay& relay, int relay_fd)
+// Forward packets from the socket to the vmnet interface.
+// Runs as a blocking loop on a dedicated queue until the socket is closed.
+void forward_from_vm(VmnetRelay& relay, bool bulk)
 {
-    relay.fd = relay_fd;
+    for (;;)
+    {
+        int count = 0;
 
-    const auto iface = relay.iface;
-    const auto max_packet_bytes = relay.max_packet_bytes;
+        if (bulk)
+        {
+            int max_count = (int)relay.vm_msgs.size();
+            for (int i = 0; i < max_count; i++)
+                relay.vm_iovs[i].iov_len = relay.max_packet_bytes;
 
-    // read from socket, write to vmnet
-    relay.source =
-        dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, (uintptr_t)relay_fd, 0, relay.queue);
+            count = (int)recvmsg_x(relay.fd, relay.vm_msgs.data(), max_count, 0);
+            if (count < 0 && errno != EBADF && errno != ECONNRESET)
+                mpl::trace(category, "recvmsg_x() failed: {}", strerror(errno));
+        }
+        else
+        {
+            relay.vm_iovs[0].iov_len = relay.max_packet_bytes;
+            ssize_t n = recv(relay.fd, relay.vm_iovs[0].iov_base, relay.max_packet_bytes, 0);
+            if (n < 0 && errno != EBADF && errno != ECONNRESET)
+                mpl::trace(category, "recv() failed: {}", strerror(errno));
+            if (n > 0)
+            {
+                relay.vm_msgs[0].msg_len = (size_t)n;
+                count = 1;
+            }
+        }
 
-    dispatch_source_set_event_handler(relay.source, ^{
-      std::vector<uint8_t> buf(max_packet_bytes);
-      ssize_t n = recv(relay_fd, buf.data(), buf.size(), 0);
-      if (n <= 0)
-          return;
+        if (count <= 0)
+            break;
 
-      struct iovec iov{buf.data(), (size_t)n};
-      struct vmpktdesc pkt{};
-      pkt.vm_pkt_size = (size_t)n;
-      pkt.vm_pkt_iov = &iov;
-      pkt.vm_pkt_iovcnt = 1;
-      pkt.vm_flags = 0;
+        for (int i = 0; i < count; i++)
+        {
+            relay.vm_packets[i].vm_pkt_size = relay.vm_msgs[i].msg_len;
+            relay.vm_packets[i].vm_flags = 0;
+            relay.vm_iovs[i].iov_len = relay.vm_msgs[i].msg_len;
+        }
 
-      int count = 1;
-      vmnet_write(iface, &pkt, &count);
+        int write_count = count;
+        vmnet_return_t status = vmnet_write(relay.iface, relay.vm_packets.data(), &write_count);
+        if (status != VMNET_SUCCESS)
+            mpl::trace(category, "vmnet_write() failed (status {})", static_cast<int>(status));
+    }
+}
+
+// Forward one batch of packets from the vmnet interface to the socket.
+// Returns false when vmnet has no more packets to deliver this callback.
+bool forward_from_host(VmnetRelay& relay, bool bulk)
+{
+    int count = (int)relay.host_packets.size();
+    for (int i = 0; i < count; i++)
+    {
+        relay.host_packets[i].vm_pkt_size = relay.max_packet_bytes;
+        relay.host_packets[i].vm_flags = 0;
+        relay.host_iovs[i].iov_len = relay.max_packet_bytes;
+    }
+
+    vmnet_return_t read_status = vmnet_read(relay.iface, relay.host_packets.data(), &count);
+    if (read_status != VMNET_SUCCESS)
+    {
+        mpl::trace(category, "vmnet_read() failed (status {})", static_cast<int>(read_status));
+        return false;
+    }
+
+    if (bulk)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            relay.host_msgs[i].msg_len = relay.host_packets[i].vm_pkt_size;
+            relay.host_iovs[i].iov_len = relay.host_packets[i].vm_pkt_size;
+        }
+
+        int sent = 0;
+        while (sent < count)
+        {
+            ssize_t n = sendmsg_x(relay.fd, relay.host_msgs.data() + sent, count - sent, 0);
+            if (n < 0)
+            {
+                if (errno == ENOBUFS)
+                {
+                    struct timespec t{0, kSendRetryDelayNs};
+                    nanosleep(&t, nullptr);
+                    continue;
+                }
+                mpl::trace(category, "sendmsg_x() failed: {}", strerror(errno));
+                break;
+            }
+            sent += (int)n;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < count; i++)
+        {
+            const auto* data = static_cast<const uint8_t*>(relay.host_iovs[i].iov_base);
+            size_t pkt_size = relay.host_packets[i].vm_pkt_size;
+            ssize_t sent;
+            do
+            {
+                sent = send(relay.fd, data, pkt_size, 0);
+                if (sent < 0 && errno == ENOBUFS)
+                {
+                    struct timespec t{0, kSendRetryDelayNs};
+                    nanosleep(&t, nullptr);
+                }
+            } while (sent < 0 && errno == ENOBUFS);
+
+            if (sent < 0)
+                mpl::trace(category, "send() failed: {}", strerror(errno));
+        }
+    }
+
+    return count > 0;
+}
+
+void start_forwarding_from_vm(VmnetRelay& relay)
+{
+    const bool bulk = MP_APPLEVZ_UTILS.macos_at_least(14, 0);
+
+    relay.vm_queue =
+        dispatch_queue_create("com.canonical.multipassd.vmnet.vm", DISPATCH_QUEUE_SERIAL);
+    dispatch_async(relay.vm_queue, ^{
+      forward_from_vm(relay, bulk);
     });
-    dispatch_resume(relay.source);
 
-    // read from vmnet, write to socket
-    vmnet_interface_set_event_callback(iface,
-                                       VMNET_INTERFACE_PACKETS_AVAILABLE,
-                                       relay.queue,
-                                       ^(interface_event_t /*event*/, xpc_object_t /*params*/) {
-                                         for (;;)
-                                         {
-                                             std::vector<uint8_t> buf(max_packet_bytes);
-                                             struct iovec iov{buf.data(), buf.size()};
-                                             struct vmpktdesc pkt{};
-                                             pkt.vm_pkt_size = buf.size();
-                                             pkt.vm_pkt_iov = &iov;
-                                             pkt.vm_pkt_iovcnt = 1;
-                                             pkt.vm_flags = 0;
+    mpl::debug(category, "vmnet vm->host forwarding started");
+}
 
-                                             int count = 1;
-                                             if (vmnet_read(iface, &pkt, &count) != VMNET_SUCCESS ||
-                                                 count == 0)
-                                                 break;
+void start_forwarding_from_host(VmnetRelay& relay)
+{
+    const bool bulk = MP_APPLEVZ_UTILS.macos_at_least(14, 0);
 
-                                             send(relay_fd, buf.data(), pkt.vm_pkt_size, 0);
-                                         }
-                                       });
+    vmnet_return_t status =
+        vmnet_interface_set_event_callback(relay.iface,
+                                           VMNET_INTERFACE_PACKETS_AVAILABLE,
+                                           relay.queue,
+                                           ^(interface_event_t /*event*/, xpc_object_t /*params*/) {
+                                             while (forward_from_host(relay, bulk))
+                                                 ;
+                                           });
+
+    if (status != VMNET_SUCCESS)
+        throw std::runtime_error(
+            fmt::format("vmnet_interface_set_event_callback() failed (status {})",
+                        static_cast<int>(status)));
+
+    mpl::debug(category, "vmnet host->vm forwarding started");
 }
 
 std::pair<int, int> create_socket_pair()
@@ -183,7 +337,12 @@ VmnetBridge create_vmnet_bridge(const std::string& physical_iface)
     start_vmnet_interface(*relay, physical_iface);
 
     auto [vz_fd, relay_fd] = create_socket_pair();
-    setup_relay(*relay, relay_fd);
+
+    relay->fd = relay_fd;
+    relay->init_buffers();
+
+    start_forwarding_from_host(*relay);
+    start_forwarding_from_vm(*relay);
 
     NSFileHandle* vz_handle = [[NSFileHandle alloc] initWithFileDescriptor:vz_fd
                                                             closeOnDealloc:YES];
