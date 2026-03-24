@@ -57,7 +57,8 @@ AppleVZVirtualMachine::~AppleVZVirtualMachine()
         mp::top_catch_all(vm_name, [this]() {
             if (state == State::running)
             {
-                suspend();
+                // TODO: Call suspend() once fully implemented
+                shutdown();
             }
             else
             {
@@ -208,6 +209,9 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void AppleVZVirtualMachine::suspend()
 {
+    throw NotImplementedOnThisBackendException{"suspend"};
+
+    // TODO: remove the throw above once suspend-to-disk is implemented
     if (!vm_handle)
     {
         assert(state == State::stopped);
