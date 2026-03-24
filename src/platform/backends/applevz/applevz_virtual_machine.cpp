@@ -51,6 +51,7 @@ AppleVZVirtualMachine::~AppleVZVirtualMachine()
 
     if (vm_handle)
     {
+        update_shutdown_status = false;
         multipass::top_catch_all(vm_name, [this]() {
             if (state == State::running)
             {
@@ -279,7 +280,8 @@ std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 
 void AppleVZVirtualMachine::handle_state_update()
 {
-    monitor->persist_state_for(vm_name, state);
+    if (update_shutdown_status)
+        monitor->persist_state_for(vm_name, state);
 }
 
 void AppleVZVirtualMachine::update_cpus(int num_cores)
@@ -385,8 +387,6 @@ void AppleVZVirtualMachine::initialize_vm_handle()
         throw std::runtime_error(
             fmt::format("Failed to create VM handle for '{}': {}", vm_name, error));
     }
-
-    set_state(MP_APPLEVZ.get_state(vm_handle));
 
     mpl::trace(log_category, "initialize_vm_handle() -> Created handle for VM '{}'", vm_name);
 }
