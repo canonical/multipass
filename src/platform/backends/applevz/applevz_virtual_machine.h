@@ -72,5 +72,6 @@ private:
     VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
     VMHandle vm_handle{nullptr};
+    bool update_shutdown_status{true};
 };
 } // namespace multipass::applevz
