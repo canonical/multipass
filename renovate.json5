@@ -4,13 +4,8 @@
         "config:recommended",
     ],
     "reviewers": [
-        "ricab",
-        "sharder996",
-        "xmkg",
-        "jimporter",
-        "tobe2098",
+        "team:multipass",
     ],
-    "reviewersSampleSize": 1,
     "schedule": "every 2 weeks on Monday",
     "commitMessagePrefix": "[deps] ",
 }
