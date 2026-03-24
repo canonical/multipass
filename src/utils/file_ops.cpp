@@ -153,6 +153,11 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
     assert(false && "We should never get here");
 }
 
+void mp::FileOps::write_transactionally(const fs::path& file_name, std::string_view data) const
+{
+    write_transactionally(QString::fromStdString(file_name.string()), data);
+}
+
 // LCOV_EXCL_START
 
 bool mp::FileOps::exists(const QDir& dir) const

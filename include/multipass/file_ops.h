@@ -32,6 +32,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <string_view>
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
@@ -55,6 +56,7 @@ public:
 
     // High-level operations
     virtual void write_transactionally(const QString& file_name, const QByteArrayView& data) const;
+    virtual void write_transactionally(const fs::path& file_name, std::string_view data) const;
     virtual std::optional<std::string> try_read_file(const fs::path& filename) const;
 
     // QDir operations
