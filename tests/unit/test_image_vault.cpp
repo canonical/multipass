@@ -444,6 +444,86 @@ TEST_F(ImageVault, cachesPreparedImages)
     EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
 }
 
+TEST_F(ImageVault, emptyAndReleaseRemoteNamesShareCache)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    int prepare_called_count{0};
+    auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
+        ++prepare_called_count;
+        return source_image;
+    };
+
+    auto cli_query = default_query;
+    cli_query.remote_name = "";
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      cli_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      instance_dir);
+
+    auto gui_query = default_query;
+    gui_query.name = "valley-pied-piper-gui";
+    gui_query.remote_name = mpt::release_remote;
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      gui_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      save_dir.filePath(QString::fromStdString(gui_query.name)));
+
+    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    EXPECT_THAT(prepare_called_count, Eq(1));
+}
+
+TEST_F(ImageVault, sameImageIdFromDifferentRemotesSharesCache)
+{
+    NiceMock<mpt::MockImageHost> daily_host;
+    ON_CALL(daily_host, supported_remotes())
+        .WillByDefault(Return(std::vector<std::string>{"daily"}));
+    ON_CALL(daily_host, info_for(_)).WillByDefault([this](const auto&) {
+        return host.mock_bionic_image_info;
+    });
+    hosts.push_back(&daily_host);
+
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    int prepare_called_count{0};
+    auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
+        ++prepare_called_count;
+        return source_image;
+    };
+
+    auto release_query = default_query;
+    release_query.remote_name = mpt::release_remote;
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      release_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      instance_dir);
+
+    auto daily_query = default_query;
+    daily_query.name = "valley-pied-piper-daily";
+    daily_query.remote_name = "daily";
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      daily_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      save_dir.filePath(QString::fromStdString(daily_query.name)));
+
+    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    EXPECT_THAT(prepare_called_count, Eq(1));
+}
+
 TEST_F(ImageVault, remembersInstanceImages)
 {
     int prepare_called_count{0};
