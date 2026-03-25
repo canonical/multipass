@@ -108,9 +108,6 @@ const std::unordered_set<std::string> no_bridging_release =
         "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
         "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
 const std::unordered_set<std::string> no_bridging_remote = {}; // images with other remote specified
-const std::unordered_set<std::string> no_bridging_remoteless = {
-    "core",
-    "core16"}; // images which do not use remote
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -352,8 +349,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     {
         specified_image = image;
 
-        dont_allow_auto = (no_bridging_remoteless.find(image) != no_bridging_remoteless.end()) ||
-                          (no_bridging_release.find(image) != no_bridging_release.end());
+        dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
     }
     else
     {
