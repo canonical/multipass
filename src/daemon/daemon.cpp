@@ -107,7 +107,6 @@ const std::unordered_set<std::string> no_bridging_release =
         "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
         "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
         "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
-const std::unordered_set<std::string> no_bridging_remote = {}; // images with other remote specified
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -355,9 +354,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     {
         specified_image = remote + ":" + image;
 
-        dont_allow_auto = no_bridging_remote.find(specified_image) != no_bridging_remote.end();
-
-        if (!dont_allow_auto && (remote == mp::release_remote || remote == mp::daily_remote))
+        if (remote == mp::release_remote || remote == mp::daily_remote)
             dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
     }
 
@@ -371,16 +368,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
         }
 
         if (!factory_networks)
-        {
-            try
-            {
-                factory_networks = factory.networks();
-            }
-            catch (const mp::NotImplementedOnThisBackendException&)
-            {
-                throw mp::NotImplementedOnThisBackendException("networks");
-            }
-        }
+            factory_networks = factory.networks();
 
         if (dont_allow_auto && net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO)
         {
