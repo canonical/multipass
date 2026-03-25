@@ -97,6 +97,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
     const QString& host_url,
     std::function<bool(VMImageInfo&)> mutator)
 {
+    // Get the official manifest products
     const auto manifest_from_official = parse_manifest(json_from_official);
     const auto updated = manifest_from_official["updated"].toString();
 
@@ -107,6 +108,7 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
     auto arch = QSysInfo::currentCpuArchitecture();
     auto mapped_arch = arch_to_manifest.value(arch, arch);
 
+    // Get the mirror manifest products, if any
     std::optional<QJsonObject> manifest_products_from_mirror = std::nullopt;
     if (json_from_mirror)
     {
@@ -127,17 +129,25 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
         if (product["arch"].toString() != mapped_arch)
             continue;
 
+        const auto official_product = manifest_products_from_official[product_key].toObject();
+        if (official_product.isEmpty())
+            continue;
+
         auto product_aliases = product["aliases"].toString().split(",");
 
+        const auto image_type = product["image_type"].toString();
+        const auto os = product["os"].toString();
         const auto release = product["release"].toString();
         const auto release_title = product["release_title"].toString();
         const auto release_codename = product["release_codename"].toString();
-        const auto supported =
-            product["supported"].toBool() || product_aliases.contains("devel") ||
-            (product["os"] == "ubuntu-core" && product["image_type"] == "stable");
+        const auto supported = product["supported"].toBool() || product_aliases.contains("devel") ||
+                               (os == "ubuntu-core" && image_type == "stable");
 
         const auto versions = product["versions"].toObject();
         if (versions.isEmpty())
+            continue;
+        const auto official_versions = official_product["versions"].toObject();
+        if (official_versions.isEmpty())
             continue;
 
         const auto latest_version = latest_version_in(versions);
@@ -146,12 +156,8 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
         {
             const auto version_string = it.key();
             const auto version = versions[version_string].toObject();
-            const auto version_from_official = manifest_products_from_official[product_key]
-                                                   .toObject()["versions"]
-                                                   .toObject()[version_string]
-                                                   .toObject();
-
-            if (version != version_from_official)
+            const auto official_version = official_versions[version_string].toObject();
+            if (version != official_version)
                 continue;
 
             const auto items = version["items"].toObject();
@@ -169,11 +175,14 @@ std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
             if (items.contains("uefi1.img"))
                 image_key = "uefi1.img";
             // For Ubuntu Core images
-            else if (product["os"] == "ubuntu-core" && items.contains("img.xz"))
+            else if (items.contains("img.xz") && os == "ubuntu-core")
                 image_key = "img.xz";
             // Last resort, use img
-            else
+            else if (items.contains("disk1.img"))
                 image_key = "disk1.img";
+            // Otherwise, give up
+            else
+                continue;
 
             image = items[image_key].toObject();
             image_location = host_url + image["path"].toString();
