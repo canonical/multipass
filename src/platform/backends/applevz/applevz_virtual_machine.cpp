@@ -316,7 +316,9 @@ void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
     case applevz::AppleVMState::running:
     case applevz::AppleVMState::stopping:
         // No `stopping` state in Multipass yet
-        state = State::running;
+        // Let wait_until_ssh_up decide when we are running
+        if (state != State::starting)
+            state = State::running;
         break;
     case applevz::AppleVMState::paused:
         state = State::suspended;
