@@ -92,9 +92,8 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
         simple_process_spec(QString("qemu-system-%1").arg(HOST_ARCH), {"--version"}));
 
     auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
-    auto exit_state = process->execute();
 
-    if (exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); exit_state.completed_successfully())
     {
         auto match = version_re.match(process->read_all_standard_output());
 

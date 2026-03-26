@@ -53,9 +53,7 @@ void create_asif(const std::filesystem::path& image_path, const mp::MemorySize& 
                       << "--size" << QString::number(disk_space.in_bytes())
                       << MP_PLATFORM.path_to_qstr(image_path));
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Failed to create ASIF image: {}; Output: {}",
                                              exit_state.failure_message(),
@@ -74,9 +72,7 @@ std::filesystem::path attach_asif(const std::filesystem::path& image_path)
                                       QStringList() << "image" << "attach" << "--noMount"
                                                     << MP_PLATFORM.path_to_qstr(image_path));
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Failed to attach ASIF image: {}; Output: {}",
                                              exit_state.failure_message(),
@@ -96,9 +92,7 @@ void detach_asif(const std::filesystem::path& device_path)
         QStringLiteral("hdiutil"),
         QStringList() << "detach" << MP_PLATFORM.path_to_qstr(device_path));
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
     {
         throw std::runtime_error(fmt::format("Failed to detach ASIF image: {}; Output: {}",
                                              exit_state.failure_message(),
@@ -302,9 +296,7 @@ void AppleVZUtils::resize_image(const MemorySize& disk_space,
                                                         << QString::number(disk_space.in_bytes())
                                                         << MP_PLATFORM.path_to_qstr(image_path));
 
-        auto exit_state = process->execute();
-
-        if (!exit_state.completed_successfully())
+        if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
         {
             throw std::runtime_error(fmt::format("Failed to resize ASIF device: {}; Output: {}",
                                                  exit_state.failure_message(),
