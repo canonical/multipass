@@ -39,66 +39,44 @@ namespace
 {
 constexpr auto category = "applevz-utils";
 
-void create_asif(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
+std::string run_process(const QString& program, const QStringList& args, const std::string& desc)
 {
-    mpl::info(category,
-              "Creating ASIF image in directory: {}, with size: {}",
-              image_path,
-              disk_space.human_readable());
+    mpl::info(category, "Trying to {}", desc);
 
-    auto process = MP_PROCFACTORY.create_process(
-        QStringLiteral("diskutil"),
-        QStringList() << "image" << "create" << "blank" << "--fs" << "none" << "--format" << "ASIF"
-                      << "--size" << QString::number(disk_space.in_bytes())
-                      << MP_PLATFORM.path_to_qstr(image_path));
+    auto process = MP_PROCFACTORY.create_process(program, args);
 
     if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Failed to create ASIF image: {}; Output: {}",
+        throw std::runtime_error(fmt::format("Failed to {}: {}; Output: {}",
+                                             desc,
                                              exit_state.failure_message(),
                                              process->read_all_standard_error().toStdString()));
-    }
-
-    mpl::trace(category, "Successfully created ASIF image: {}", image_path);
-}
-
-std::filesystem::path attach_asif(const std::filesystem::path& image_path)
-{
-    mpl::info(category, "Attaching ASIF image: {}", image_path);
-
-    auto process =
-        MP_PROCFACTORY.create_process(QStringLiteral("diskutil"),
-                                      QStringList() << "image" << "attach" << "--noMount"
-                                                    << MP_PLATFORM.path_to_qstr(image_path));
-
-    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Failed to attach ASIF image: {}; Output: {}",
-                                             exit_state.failure_message(),
-                                             process->read_all_standard_error().toStdString()));
-    }
-
-    mpl::trace(category, "Successfully attached ASIF image: {}", image_path);
 
     return process->read_all_standard_output().trimmed().toStdString();
 }
 
+void create_asif(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
+{
+    run_process(QStringLiteral("diskutil"),
+                QStringList() << "image" << "create" << "blank" << "--fs" << "none" << "--format"
+                              << "ASIF" << "--size" << QString::number(disk_space.in_bytes())
+                              << MP_PLATFORM.path_to_qstr(image_path),
+                fmt::format("create ASIF image: {}, size: {}",
+                            image_path,
+                            disk_space.human_readable()));
+}
+
+std::filesystem::path attach_asif(const std::filesystem::path& image_path)
+{
+    return run_process(QStringLiteral("diskutil"),
+                       QStringList() << "image" << "attach" << "--noMount" << MP_PLATFORM.path_to_qstr(image_path),
+                       fmt::format("attach ASIF image: {}", image_path));
+}
+
 void detach_asif(const std::filesystem::path& device_path)
 {
-    mpl::info(category, "Detaching ASIF image: {}", device_path);
-
-    auto process = MP_PROCFACTORY.create_process(
-        QStringLiteral("hdiutil"),
-        QStringList() << "detach" << MP_PLATFORM.path_to_qstr(device_path));
-
-    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Failed to detach ASIF image: {}; Output: {}",
-                                             exit_state.failure_message(),
-                                             process->read_all_standard_error().toStdString()));
-    }
-
-    mpl::trace(category, "Successfully detached ASIF image: {}", device_path);
+    run_process(QStringLiteral("hdiutil"),
+                QStringList() << "detach" << MP_PLATFORM.path_to_qstr(device_path),
+                fmt::format("detach ASIF image: {}", device_path));
 }
 
 bool is_asif_image(const std::filesystem::path& image_path)
@@ -118,17 +96,12 @@ bool is_asif_image(const std::filesystem::path& image_path)
 
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
 {
-    auto process = MP_PROCFACTORY.create_process(
-        QStringLiteral("diskutil"),
-        QStringList() << "image" << "resize" << "--size" << QString::number(disk_space.in_bytes())
-                      << MP_PLATFORM.path_to_qstr(image_path));
-
-    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
-    {
-        throw std::runtime_error(fmt::format("Failed to resize ASIF device: {}; Output: {}",
-                                             exit_state.failure_message(),
-                                             process->read_all_standard_error().toStdString()));
-    }
+    run_process(QStringLiteral("diskutil"),
+                QStringList() << "image" << "resize" << "--size"
+                              << QString::number(disk_space.in_bytes()) << MP_PLATFORM.path_to_qstr(image_path),
+                fmt::format("resize ASIF image: {}, size: {}",
+                            image_path,
+                            disk_space.human_readable()));
 }
 
 void make_sparse(const std::filesystem::path& raw_image_path, const mp::MemorySize& disk_space)
