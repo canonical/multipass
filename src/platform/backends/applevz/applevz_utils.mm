@@ -26,11 +26,10 @@
 #include <Foundation/Foundation.h>
 
 #include <algorithm>
-#include <cstring>
-#include <fcntl.h>
+#include <array>
+#include <filesystem>
+#include <fstream>
 #include <stdexcept>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <vector>
 
 namespace mp = multipass;
@@ -105,18 +104,16 @@ void detach_asif(const std::filesystem::path& device_path)
 bool is_asif_image(const std::filesystem::path& image_path)
 {
     // ASIF format uses "shdw" magic bytes (0x73686477)
-    int fd = open(image_path.c_str(), O_RDONLY);
-    if (fd == -1)
+    std::ifstream file(image_path, std::ios::binary);
+    if (!file)
         return false;
 
-    char magic[4];
-    ssize_t bytes_read = read(fd, magic, 4);
-    close(fd);
-
-    if (bytes_read != 4)
+    std::array<char, 4> magic{};
+    file.read(magic.data(), magic.size());
+    if (file.gcount() != 4)
         return false;
 
-    return !std::memcmp(magic, "shdw", 4);
+    return std::equal(magic.begin(), magic.end(), "shdw");
 }
 
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
@@ -134,23 +131,13 @@ void resize_asif_image(const std::filesystem::path& image_path, const mp::Memory
     }
 }
 
-void make_sparse(const std::filesystem::path& path, const mp::MemorySize& disk_space)
+void make_sparse(const std::filesystem::path& raw_image_path, const mp::MemorySize& disk_space)
 {
-    int fd = open(path.c_str(), O_RDWR);
-    if (fd == -1)
-    {
-        throw std::runtime_error(
-            fmt::format("Failed to open file for resizing: {}", strerror(errno)));
-    }
+    std::error_code ec;
+    std::filesystem::resize_file(raw_image_path, disk_space.in_bytes(), ec);
 
-    auto size_bytes = static_cast<off_t>(disk_space.in_bytes());
-    if (ftruncate(fd, size_bytes) == -1)
-    {
-        close(fd);
-        throw std::runtime_error(fmt::format("Failed to resize file: {}", strerror(errno)));
-    }
-
-    close(fd);
+    if (ec)
+        throw std::runtime_error(fmt::format("Failed to resize file: {}", ec.message()));
 }
 
 std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
@@ -165,109 +152,41 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
     // NO-OP if already RAW
     auto raw_path = mp::backend::convert(source_path, "raw");
 
-    struct stat st;
-    if (stat(raw_path.c_str(), &st) == -1)
-    {
-        throw std::runtime_error(fmt::format("Failed to stat source image: {}", strerror(errno)));
-    }
-    mp::MemorySize source_size{std::to_string(st.st_size)};
+    std::error_code ec;
+    const auto source_size = std::filesystem::file_size(raw_path, ec);
+    if (ec)
+        throw std::runtime_error(fmt::format("Failed to stat source image: {}", ec.message()));
 
     auto asif_path = std::filesystem::path(source_path).replace_extension("asif");
-    create_asif(asif_path, source_size);
+    create_asif(asif_path, mp::MemorySize{std::to_string(source_size)});
 
     auto device_path = attach_asif(asif_path);
     try
     {
-        int source_fd = open(raw_path.c_str(), O_RDONLY);
-        if (source_fd == -1)
         {
-            throw std::runtime_error(
-                fmt::format("Failed to open source image {}: {}", raw_path, strerror(errno)));
-        }
+            std::ifstream source(raw_path, std::ios::binary);
+            if (!source)
+                throw std::runtime_error(fmt::format("Failed to open source image: {}", raw_path));
 
-        int target_fd = open(device_path.c_str(), O_WRONLY);
-        if (target_fd == -1)
-        {
-            close(source_fd);
-            throw std::runtime_error(
-                fmt::format("Failed to open target device {}: {}", device_path, strerror(errno)));
-        }
-
-        struct stat st;
-        if (fstat(source_fd, &st) == -1)
-        {
-            close(source_fd);
-            close(target_fd);
-            throw std::runtime_error(
-                fmt::format("Failed to stat source image: {}", strerror(errno)));
-        }
-
-        off_t total_size = st.st_size;
-        off_t bytes_copied = 0;
-
-        std::vector<char> buffer(buffer_size);
-        std::vector<char> zero_buffer(buffer_size, 0);
-
-        while (bytes_copied < total_size)
-        {
-            size_t bytes_to_read =
-                std::min(static_cast<size_t>(total_size - bytes_copied), buffer_size);
-
-            ssize_t bytes_read = read(source_fd, buffer.data(), bytes_to_read);
-            if (bytes_read == -1)
-            {
-                close(source_fd);
-                close(target_fd);
+            std::ofstream target(device_path, std::ios::binary);
+            if (!target)
                 throw std::runtime_error(
-                    fmt::format("Failed to read from source: {}", strerror(errno)));
-            }
+                    fmt::format("Failed to open target device: {}", device_path));
 
-            if (bytes_read == 0)
-                break;
-
-            // Check if block is all zeros
-            bool is_zero = std::memcmp(buffer.data(), zero_buffer.data(), bytes_read) == 0;
-
-            if (!is_zero)
+            std::vector<char> buffer(buffer_size);
+            while (source.read(buffer.data(), buffer_size) || source.gcount())
             {
-                // Write non-zero data
-                ssize_t bytes_written = write(target_fd, buffer.data(), bytes_read);
-                if (bytes_written == -1)
-                {
-                    close(source_fd);
-                    close(target_fd);
-                    throw std::runtime_error(
-                        fmt::format("Failed to write to target: {}", strerror(errno)));
-                }
+                const auto bytes_read = source.gcount();
+                const bool is_zero = std::all_of(buffer.cbegin(),
+                                                 buffer.cbegin() + bytes_read,
+                                                 [](char c) { return c == '\0'; });
 
-                if (bytes_written != bytes_read)
-                {
-                    close(source_fd);
-                    close(target_fd);
-                    throw std::runtime_error(fmt::format("Short write: read {} bytes but wrote {}",
-                                                         bytes_read,
-                                                         bytes_written));
-                }
+                is_zero ? target.seekp(bytes_read, std::ios::cur)
+                        : target.write(buffer.data(), bytes_read);
             }
-            else
-            {
-                // Skip zero blocks by seeking forward
-                if (lseek(target_fd, bytes_read, SEEK_CUR) == -1)
-                {
-                    close(source_fd);
-                    close(target_fd);
-                    throw std::runtime_error(
-                        fmt::format("Failed to seek in target: {}", strerror(errno)));
-                }
-            }
-
-            bytes_copied += bytes_read;
         }
 
-        close(source_fd);
-        close(target_fd);
-
-        mpl::info(category, "Successfully converted {} bytes to ASIF format", bytes_copied);
+        mpl::info(category, "Successfully converted to ASIF format");
 
         detach_asif(device_path);
         std::filesystem::remove(raw_path);
