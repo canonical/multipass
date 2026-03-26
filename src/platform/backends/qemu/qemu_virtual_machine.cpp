@@ -24,6 +24,7 @@
 
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -100,7 +101,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
                        const QStringList& platform_args)
 {
-    if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
+    if (!MP_FILEOPS.exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }

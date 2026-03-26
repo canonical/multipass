@@ -72,7 +72,7 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapCorrect)
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
-    mp::QemuImgProcessSpec spec({}, source_image);
+    mp::QemuImgProcessSpec spec({}, source_image.toStdString());
 
     EXPECT_TRUE(
         spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
@@ -87,7 +87,7 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithTargetCorrect)
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
-    mp::QemuImgProcessSpec spec({}, source_image, target_image);
+    mp::QemuImgProcessSpec spec({}, source_image.toStdString(), target_image.toStdString());
 
     EXPECT_TRUE(
         spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
@@ -103,7 +103,7 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithOnlyTargetCorrect)
 
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
-    mp::QemuImgProcessSpec spec({}, "", target_image);
+    mp::QemuImgProcessSpec spec({}, "", target_image.toStdString());
 
     EXPECT_TRUE(
         spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));
@@ -126,7 +126,7 @@ TEST(TestQemuImgProcessSpec,
 
     mpt::SetEnvScope e("SNAP", snap_link_dir.path().toUtf8());
     mpt::SetEnvScope e3("SNAP_NAME", snap_name);
-    mp::QemuImgProcessSpec spec({}, source_image);
+    mp::QemuImgProcessSpec spec({}, source_image.toStdString());
 
     EXPECT_TRUE(
         spec.apparmor_profile().contains(QString("%1/usr/bin/qemu-img ixr,").arg(snap_dir.path())));

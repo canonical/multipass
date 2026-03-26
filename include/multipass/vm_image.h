@@ -18,8 +18,8 @@
 #pragma once
 
 #include <multipass/json_utils.h>
-#include <multipass/path.h>
 
+#include <filesystem>
 #include <vector>
 
 #include <boost/json.hpp>
@@ -29,7 +29,7 @@ namespace multipass
 class VMImage
 {
 public:
-    Path image_path;
+    std::filesystem::path image_path;
     std::string id;
     std::string original_release;
     std::string current_release;
@@ -46,7 +46,7 @@ inline void tag_invoke(const boost::json::value_from_tag&,
     for (const auto& alias : image.aliases)
         aliases.push_back(boost::json::object{{"alias", alias}});
 
-    json = {{"path", image.image_path.toStdString()},
+    json = {{"path", image.image_path.string()},
             {"id", image.id},
             {"original_release", image.original_release},
             {"current_release", image.current_release},
@@ -61,7 +61,7 @@ inline VMImage tag_invoke(const boost::json::value_to_tag<VMImage>&, const boost
     for (const auto& entry : json.at("aliases").as_array())
         aliases.push_back(value_to<std::string>(entry.at("alias")));
 
-    return {value_to<QString>(json.at("path")),
+    return {value_to<std::filesystem::path>(json.at("path")),
             value_to<std::string>(json.at("id")),
             lookup_or<std::string>(json, "original_release", ""),
             lookup_or<std::string>(json, "current_release", ""),

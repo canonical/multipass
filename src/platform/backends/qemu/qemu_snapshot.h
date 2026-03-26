@@ -47,7 +47,7 @@ protected:
 
 private:
     VirtualMachineDescription& desc;
-    const Path& image_path;
+    const std::filesystem::path& image_path;
 };
 
 } // namespace multipass

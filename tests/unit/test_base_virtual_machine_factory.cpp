@@ -138,8 +138,10 @@ TEST_F(BaseFactory, createsCloudInitIsoImage)
         user_data{metadata}, network_data{metadata};
 
     mp::VMImage image;
-    image.image_path =
-        QString("%1/%2").arg(factory.tmp_dir->path()).arg(QString::fromStdString(name));
+    image.image_path = QString("%1/%2")
+                           .arg(factory.tmp_dir->path())
+                           .arg(QString::fromStdString(name))
+                           .toStdString();
 
     mp::VirtualMachineDescription vm_desc{2,
                                           mp::MemorySize{"3M"},

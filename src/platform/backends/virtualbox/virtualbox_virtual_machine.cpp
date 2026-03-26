@@ -232,7 +232,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                      "--type",
                                      "hdd",
                                      "--medium",
-                                     desc.image.image_path},
+                                     MP_PLATFORM.path_to_qstr(desc.image.image_path)},
                                     "Could not storageattach HDD: {}",
                                     name);
 
@@ -545,11 +545,13 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    mpu::process_throw_on_error(
-        "VBoxManage",
-        {"modifyhd", desc.image.image_path, "--resizebyte", QString::number(new_size.in_bytes())},
-        "Could not resize image: {}",
-        name);
+    mpu::process_throw_on_error("VBoxManage",
+                                {"modifyhd",
+                                 MP_PLATFORM.path_to_qstr(desc.image.image_path),
+                                 "--resizebyte",
+                                 QString::number(new_size.in_bytes())},
+                                "Could not resize image: {}",
+                                name);
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,

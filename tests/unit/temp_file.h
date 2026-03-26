@@ -23,6 +23,8 @@
 #include <QTemporaryFile>
 #include <QUrl>
 
+#include <filesystem>
+
 namespace multipass
 {
 namespace test
@@ -34,6 +36,10 @@ public:
     QString name() const
     {
         return the_name;
+    }
+    std::filesystem::path path() const
+    {
+        return the_name.toStdString();
     }
     QString url() const
     {

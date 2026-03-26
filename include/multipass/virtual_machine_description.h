@@ -19,6 +19,7 @@
 
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
+#include <multipass/path.h>
 #include <multipass/vm_image.h>
 
 #include <yaml-cpp/yaml.h>
