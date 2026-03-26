@@ -288,14 +288,8 @@ namespace multipass::applevz
 std::filesystem::path AppleVZUtils::convert_to_supported_format(
     const std::filesystem::path& image_path) const
 {
-    if (macos_at_least(26, 0))
-    {
-        return convert_to_asif(image_path);
-    }
-    else
-    {
-        return backend::convert(image_path, "raw");
-    }
+    return macos_at_least(26, 0) ? convert_to_asif(image_path)
+                                 : backend::convert(image_path, "raw");
 }
 
 void AppleVZUtils::resize_image(const MemorySize& disk_space,
@@ -303,14 +297,8 @@ void AppleVZUtils::resize_image(const MemorySize& disk_space,
 {
     mpl::trace(category, "Resizing image to: {}", disk_space.human_readable());
 
-    if (is_asif_image(image_path))
-    {
-        resize_asif_image(image_path, disk_space);
-    }
-    else
-    {
-        make_sparse(image_path, disk_space);
-    }
+    is_asif_image(image_path) ? resize_asif_image(image_path, disk_space)
+                              : make_sparse(image_path, disk_space);
 
     mpl::trace(category, "Successfully resized image: {}", image_path);
 }
