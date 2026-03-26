@@ -1,7 +1,7 @@
 (reference-command-line-interface-alias)=
 # alias
 
-> See also: [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases).
+> See also: [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases).
 
 The `alias` command makes Multipass create a persistent alias to run commands on a given instance. Its syntax is the following:
 
