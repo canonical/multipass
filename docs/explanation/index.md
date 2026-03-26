@@ -13,6 +13,8 @@ These topics cover the foundations of how Multipass operates on your machine, pr
 - [Service](explanation-service)
 - [Driver](explanation-driver)
 
+
+
 ## Instances
 
 These guides explain the lifecycle, identity, and resources of the virtual machines you create.
@@ -31,6 +33,8 @@ Concepts related to interacting and extending the functionality of your instance
 - [Alias](explanation-alias)
 - [Snapshot](explanation-snapshot)
 
+In Multipass, an **alias** is a shortcut for a command that runs inside a given instance.
+
 ## Security and performance
 
 Technical background on protecting your environment and ensuring it runs efficiently.
@@ -40,13 +44,31 @@ Technical background on protecting your environment and ensuring it runs efficie
 - [ID mapping](explanation-id-mapping)
 - [About performance](explanation-about-performance)
 
+---
+
+## Glossary
+
+(explanation-alias)=
+### Alias
+
+``` {seealso}
+See also: [`alias`](/reference/command-line-interface/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases).
+```
+In Multipass, an **alias** is a shortcut for a command that runs inside a given instance.
+
+
+(explanation-host)=
+### Host
+
+In Multipass, **host** refers the actual physical machine on which Multipass is running.
+
+
 ```{toctree}
 :titlesonly:
 :maxdepth: 2
 :hidden:
 
 reference-architecture
-host
 platform
 service
 driver
@@ -56,7 +78,6 @@ settings-keys-values
 blueprint
 multipass-exec-and-shells
 mount
-alias
 snapshot
 about-security
 authentication
