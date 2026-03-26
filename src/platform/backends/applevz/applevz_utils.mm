@@ -119,6 +119,21 @@ bool is_asif_image(const std::filesystem::path& image_path)
     return !std::memcmp(magic, "shdw", 4);
 }
 
+void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
+{
+    auto process = MP_PROCFACTORY.create_process(
+        QStringLiteral("diskutil"),
+        QStringList() << "image" << "resize" << "--size" << QString::number(disk_space.in_bytes())
+                      << MP_PLATFORM.path_to_qstr(image_path));
+
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
+    {
+        throw std::runtime_error(fmt::format("Failed to resize ASIF device: {}; Output: {}",
+                                             exit_state.failure_message(),
+                                             process->read_all_standard_error().toStdString()));
+    }
+}
+
 void make_sparse(const std::filesystem::path& path, const mp::MemorySize& disk_space)
 {
     int fd = open(path.c_str(), O_RDWR);
@@ -290,18 +305,7 @@ void AppleVZUtils::resize_image(const MemorySize& disk_space,
 
     if (is_asif_image(image_path))
     {
-        auto process =
-            MP_PROCFACTORY.create_process(QStringLiteral("diskutil"),
-                                          QStringList() << "image" << "resize" << "--size"
-                                                        << QString::number(disk_space.in_bytes())
-                                                        << MP_PLATFORM.path_to_qstr(image_path));
-
-        if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
-        {
-            throw std::runtime_error(fmt::format("Failed to resize ASIF device: {}; Output: {}",
-                                                 exit_state.failure_message(),
-                                                 process->read_all_standard_error().toStdString()));
-        }
+        resize_asif_image(image_path, disk_space);
     }
     else
     {
