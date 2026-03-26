@@ -1,7 +1,7 @@
 (how-to-guides-manage-instances-use-instance-command-aliases)=
 # Use instance command aliases
 
-> See also: [Alias](explanation-alias), [Instance](explanation-instance).
+> See also: [Instance](explanation-instance).
 
 This guide demonstrates how to create, list, run and remove aliases for commands running inside an instance.
 
