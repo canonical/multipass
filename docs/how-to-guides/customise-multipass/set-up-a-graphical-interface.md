@@ -102,6 +102,7 @@ If the IP address of the instance is not displayed in the output of `multipass l
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 On Linux, there are applications such as Remmina to visualise the desktop (make sure the package `remmina-plugin-rdp` is installed in your host along with `remmina`).
 
@@ -125,12 +126,14 @@ The system will ask for a username (`ubuntu`) and the password set above, and th
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 To connect on macOS, we can use the “Microsoft Remote Desktop” application, from the Mac App Store.
 
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 On Windows, we can connect to the RDP server with the “Remote Desktop Connection” application. There, we enter the virtual machine’s IP address, set the session to XOrg and enter the username and password we created on the previous step.
 
@@ -147,6 +150,7 @@ It might be the case that we only want Multipass to launch one application and t
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 Linux runs X by default, so no extra software in the host is needed.
 
@@ -189,6 +193,7 @@ A small window containing the X logo will show up. Done!
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 The first step in Mac is to make sure a X server is running. The easiest way is to install [XQuartz](https://www.xquartz.org).
 
@@ -201,6 +206,7 @@ Note to Apple Silicon users: some applications requiring OpenGL will not work th
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 Windows knows nothing about X, therefore we need to install an X server. Here we will use [VcXsrv](https://sourceforge.net/projects/vcxsrv/). Other options would be [Xming](http://www.straightrunning.com/XmingNotes/) (the newest versions are paid, but older versions can still be downloaded for free from their [SourceForge site](https://sourceforge.net/projects/xming/)) or installing an X server in [Cygwin](https://cygwin.com/).
 
