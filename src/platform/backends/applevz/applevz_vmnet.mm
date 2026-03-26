@@ -36,6 +36,10 @@
 
 #include <fmt/format.h>
 
+#include <array>
+#include <chrono>
+#include <thread>
+
 #include <errno.h>
 #include <vmnet/vmnet.h>
 
@@ -260,8 +264,7 @@ bool forward_from_host(VmnetRelay& relay, bool bulk)
             {
                 if (errno == ENOBUFS)
                 {
-                    struct timespec t{0, kSendRetryDelayNs};
-                    nanosleep(&t, nullptr);
+                    std::this_thread::sleep_for(std::chrono::nanoseconds{kSendRetryDelayNs});
                     continue;
                 }
                 mpl::trace(category, "sendmsg_x() failed: {}", strerror(errno));
@@ -281,10 +284,7 @@ bool forward_from_host(VmnetRelay& relay, bool bulk)
             {
                 sent = send(relay.fd, data, pkt_size, 0);
                 if (sent < 0 && errno == ENOBUFS)
-                {
-                    struct timespec t{0, kSendRetryDelayNs};
-                    nanosleep(&t, nullptr);
-                }
+                    std::this_thread::sleep_for(std::chrono::nanoseconds{kSendRetryDelayNs});
             } while (sent < 0 && errno == ENOBUFS);
 
             if (sent < 0)
@@ -331,8 +331,8 @@ void start_forwarding_from_host(VmnetRelay& relay)
 
 std::pair<int, int> create_socket_pair()
 {
-    int fds[2];
-    if (socketpair(AF_UNIX, SOCK_DGRAM, 0, fds) < 0)
+    std::array<int, 2> fds{};
+    if (socketpair(AF_UNIX, SOCK_DGRAM, 0, fds.data()) < 0)
         throw std::runtime_error(fmt::format("socketpair() failed: {}", strerror(errno)));
 
     setsockopt(fds[0], SOL_SOCKET, SO_RCVBUF, &kRecvBufferSize, sizeof(kRecvBufferSize));
