@@ -45,6 +45,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
+    // Convert existing disk images to ASIF, if supported
     amend_disk_image(this->desc);
     initialize_vm_handle();
 }
