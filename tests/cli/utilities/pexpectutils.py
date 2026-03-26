@@ -23,6 +23,7 @@ if not sys.platform == "win32":
 
 import threading
 import time
+import socket
 from queue import Empty, Queue
 
 from pexpect.exceptions import EOF
@@ -65,8 +66,19 @@ class WinptySpawn(SpawnBase):
 
     def _read_incoming(self):
         """Run in a thread to move output from a pipe to a queue."""
-        while not self.pty_proc.pty.iseof():
-            self._read_queue.put(self.pty_proc.read())
+
+        # Set timeout so read won't block forever.
+        self.pty_proc.fileobj.settimeout(1.0)
+
+        while True:
+            try:
+                data = self.pty_proc.read()
+                self._read_queue.put(data)
+            except socket.timeout:
+                if not self.pty_proc.isalive():
+                    break
+            except EOFError:
+                break
         self._read_queue.put(None)
 
     def read_nonblocking(self, size=1024, timeout=1):
