@@ -121,17 +121,21 @@ std::optional<NetworkInterfaceInfo> find_bridge_with(
 
 // string helpers
 bool has_only_digits(const std::string& value);
-template <typename Str, typename Filter>
+
+template <typename Str>
+concept mutable_type = !std::is_const_v<std::remove_reference_t<Str>>;
+
+template <mutable_type Str, typename Filter>
 Str trim_begin(Str&& s, Filter&& filter);
-template <typename Str>
+template <mutable_type Str>
 Str trim_begin(Str&& s);
-template <typename Str, typename Filter>
+template <mutable_type Str, typename Filter>
 Str trim_end(Str&& s, Filter&& filter);
-template <typename Str>
+template <mutable_type Str>
 Str trim_end(Str&& s);
-template <typename Str, typename Filter>
+template <mutable_type Str, typename Filter>
 Str trim(Str&& s, Filter&& filter);
-template <typename Str>
+template <mutable_type Str>
 Str trim(Str&& s);
 bool iequals(std::string_view lhs, std::string_view rhs);
 bool istarts_with(std::string_view str, std::string_view prefix);
@@ -276,7 +280,7 @@ namespace multipass::utils::detail
 inline constexpr auto is_space = [](unsigned char c) { return std::isspace(c); };
 } // namespace multipass::utils::detail
 
-template <typename Str, typename Filter>
+template <multipass::utils::mutable_type Str, typename Filter>
 Str multipass::utils::trim_begin(Str&& s, Filter&& filter)
 {
     const auto it = std::find_if_not(s.begin(), s.end(), std::forward<Filter>(filter));
@@ -284,13 +288,13 @@ Str multipass::utils::trim_begin(Str&& s, Filter&& filter)
     return std::forward<Str>(s);
 }
 
-template <typename Str>
+template <multipass::utils::mutable_type Str>
 Str multipass::utils::trim_begin(Str&& s)
 {
     return trim_begin(std::forward<Str>(s), detail::is_space);
 }
 
-template <typename Str, typename Filter>
+template <multipass::utils::mutable_type Str, typename Filter>
 Str multipass::utils::trim_end(Str&& s, Filter&& filter)
 {
     auto rev_it = std::find_if_not(s.rbegin(), s.rend(), std::forward<Filter>(filter));
@@ -298,20 +302,20 @@ Str multipass::utils::trim_end(Str&& s, Filter&& filter)
     return std::forward<Str>(s);
 }
 
-template <typename Str>
+template <multipass::utils::mutable_type Str>
 Str multipass::utils::trim_end(Str&& s)
 {
     return trim_end(std::forward<Str>(s), detail::is_space);
 }
 
-template <typename Str, typename Filter>
+template <multipass::utils::mutable_type Str, typename Filter>
 Str multipass::utils::trim(Str&& s, Filter&& filter)
 {
     auto&& ret = trim_end(std::forward<Str>(s), filter);
     return trim_begin(std::forward<decltype(ret)>(ret), std::forward<Filter>(filter));
 }
 
-template <typename Str>
+template <multipass::utils::mutable_type Str>
 Str multipass::utils::trim(Str&& s)
 {
     return trim(std::forward<Str>(s), detail::is_space);
