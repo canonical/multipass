@@ -95,7 +95,7 @@ std::string mp::ImageVaultUtils::compute_hash(std::istream& stream, EHashAlgorit
 
     } while (stream);
 
-    unsigned char digest[EVP_MAX_MD_SIZE]{};
+    unsigned char digest[EVP_MAX_MD_SIZE] = {0};
     unsigned int digest_len = 0;
     if (EVP_DigestFinal_ex(ctx.get(), digest, &digest_len) != 1)
         throw std::runtime_error("Failed to finalize hash");
