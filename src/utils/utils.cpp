@@ -234,6 +234,17 @@ std::string& mp::utils::trim_newline(std::string& s)
     return s;
 }
 
+bool mp::utils::istarts_with(std::string_view str, std::string_view prefix)
+{
+    if (prefix.size() > str.size())
+        return false;
+    // TODO(C++23): Use std::ranges::starts_with
+    return std::ranges::equal(
+        str | std::views::take(prefix.size()),
+        prefix,
+        [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
+}
+
 // Escape all characters which need to be escaped in the shell.
 std::string mp::utils::escape_for_shell(const std::string& in)
 {

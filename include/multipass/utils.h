@@ -327,16 +327,6 @@ inline bool multipass::utils::iequals(std::string_view lhs, std::string_view rhs
     });
 }
 
-inline bool multipass::utils::istarts_with(std::string_view str, std::string_view prefix)
-{
-    if (prefix.size() > str.size())
-        return false;
-    return std::ranges::equal(
-        str | std::views::take(prefix.size()),
-        prefix,
-        [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
-}
-
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void multipass::utils::try_action_for(OnTimeoutCallable&& on_timeout,
                                       std::chrono::milliseconds timeout,
