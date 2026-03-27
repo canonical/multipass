@@ -117,7 +117,9 @@ void mp::daemon::register_global_settings_handlers()
                                                         MP_PLATFORM.default_driver(),
                                                         driver_interpreter));
     settings.insert(std::make_unique<CustomSettingSpec>(mp::passphrase_key, "", [](QString val) {
-        return val.isEmpty() ? val : MP_UTILS.generate_scrypt_hash_for(val);
+        return val.isEmpty()
+                   ? val
+                   : QString::fromStdString(MP_UTILS.generate_scrypt_hash_for(val.toStdString()));
     }));
     settings.insert(
         std::make_unique<CustomSettingSpec>(mp::mirror_key, "", image_mirror_interpreter));

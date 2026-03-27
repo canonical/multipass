@@ -2656,8 +2656,7 @@ try
             "automatically authenticated."));
     }
 
-    auto hashed_passphrase =
-        MP_UTILS.generate_scrypt_hash_for(QString::fromStdString(request->passphrase()));
+    auto hashed_passphrase = MP_UTILS.generate_scrypt_hash_for(request->passphrase());
 
     if (stored_hash != hashed_passphrase)
     {

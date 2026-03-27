@@ -57,7 +57,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "utils";
-constexpr auto scrypt_hash_size{64};
 } // namespace
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept
     : Singleton<Utils>::Singleton{pass}
@@ -137,11 +136,12 @@ std::string mp::Utils::get_kernel_version() const
     return QSysInfo::kernelVersion().toStdString();
 }
 
-QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
+std::string mp::Utils::generate_scrypt_hash_for(const std::string& passphrase) const
 {
-    QByteArray hash(scrypt_hash_size, '\0');
+    unsigned char digest[EVP_MAX_MD_SIZE] = {0};
 
-    if (!EVP_PBE_scrypt(passphrase.toStdString().c_str(),
+    // TODO: Move to openssl singleton when we have one
+    if (!EVP_PBE_scrypt(passphrase.c_str(),
                         passphrase.size(),
                         nullptr,
                         0,
@@ -149,11 +149,11 @@ QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
                         8,
                         1,
                         0,
-                        reinterpret_cast<unsigned char*>(hash.data()),
-                        scrypt_hash_size))
+                        digest,
+                        sizeof(digest)))
         throw std::runtime_error("Cannot generate passphrase hash");
 
-    return QString(hash.toHex());
+    return fmt::format("{:02x}", fmt::join(digest, digest + sizeof(digest), ""));
 }
 
 QDir mp::utils::base_dir(const QString& path)
