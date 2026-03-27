@@ -464,7 +464,7 @@ TEST(Utils, tryActionDoesNotTimeout)
 TEST(Utils, uuidHasNoCurlyBrackets)
 {
     auto uuid = mp::utils::make_uuid();
-    EXPECT_FALSE(uuid.contains(QRegularExpression("[{}]")));
+    EXPECT_FALSE(std::ranges::any_of(uuid, [](char c) { return c == '{' || c == '}'; }));
 }
 
 TEST(Utils, contentsOfActuallyReadsContents)

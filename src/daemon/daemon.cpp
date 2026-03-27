@@ -3503,7 +3503,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watcher(
     std::function<void()> const& finished_op)
 {
-    auto uuid = mp::utils::make_uuid().toStdString();
+    auto uuid = mp::utils::make_uuid();
     auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
     auto future_watcher_p = future_watcher.get();
     async_future_watchers.insert({uuid, std::move(future_watcher)});

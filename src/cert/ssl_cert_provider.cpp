@@ -41,8 +41,7 @@ namespace
 {
 constexpr auto log_category = "ssl-cert-provider";
 template <typename T>
-concept pointer_like = requires(T t)
-{
+concept pointer_like = requires(T t) {
     *t;
     t == nullptr;
 };
@@ -311,10 +310,9 @@ public:
 
         const auto country = as_vector("US");
         const auto org = as_vector("Canonical");
-        const auto cn =
-            as_vector(cert_type == CertType::Root     ? "Multipass Root CA"
-                      : cert_type == CertType::Client ? mp::utils::make_uuid().toStdString()
-                                                      : server_name);
+        const auto cn = as_vector(cert_type == CertType::Root     ? "Multipass Root CA"
+                                  : cert_type == CertType::Client ? mp::utils::make_uuid()
+                                                                  : server_name);
         const auto subject_name = X509_get_subject_name(cert.get());
         X509_NAME_add_entry_by_txt(subject_name,
                                    "C",

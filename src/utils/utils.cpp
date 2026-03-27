@@ -366,11 +366,11 @@ QString mp::utils::get_multipass_storage()
     return QString::fromUtf8(qgetenv(mp::multipass_storage_env_var));
 }
 
-QString mp::utils::make_uuid(const std::optional<std::string>& seed)
+std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
 {
     auto uuid =
         seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
-    return uuid.toString(QUuid::WithoutBraces);
+    return uuid.toString(QUuid::WithoutBraces).toStdString();
 }
 
 std::string mp::utils::contents_of(const multipass::Path& file_path)
@@ -409,7 +409,7 @@ std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
     return bytes;
 }
 
-QString mp::Utils::make_uuid(const std::optional<std::string>& seed) const
+std::string mp::Utils::make_uuid(const std::optional<std::string>& seed) const
 {
     return mp::utils::make_uuid(seed);
 }
