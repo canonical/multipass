@@ -122,17 +122,17 @@ std::optional<NetworkInterfaceInfo> find_bridge_with(
 // string helpers
 bool has_only_digits(const std::string& value);
 template <typename Str, typename Filter>
-Str&& trim_begin(Str&& s, Filter&& filter);
+Str trim_begin(Str&& s, Filter&& filter);
 template <typename Str>
-Str&& trim_begin(Str&& s);
+Str trim_begin(Str&& s);
 template <typename Str, typename Filter>
-Str&& trim_end(Str&& s, Filter&& filter);
+Str trim_end(Str&& s, Filter&& filter);
 template <typename Str>
-Str&& trim_end(Str&& s);
+Str trim_end(Str&& s);
 template <typename Str, typename Filter>
-Str&& trim(Str&& s, Filter&& filter);
+Str trim(Str&& s, Filter&& filter);
 template <typename Str>
-Str&& trim(Str&& s);
+Str trim(Str&& s);
 bool iequals(std::string_view lhs, std::string_view rhs);
 bool istarts_with(std::string_view str, std::string_view prefix);
 std::string& trim_newline(std::string& s);
@@ -277,7 +277,7 @@ inline constexpr auto is_space = [](unsigned char c) { return std::isspace(c); }
 } // namespace multipass::utils::detail
 
 template <typename Str, typename Filter>
-Str&& multipass::utils::trim_begin(Str&& s, Filter&& filter)
+Str multipass::utils::trim_begin(Str&& s, Filter&& filter)
 {
     const auto it = std::find_if_not(s.begin(), s.end(), std::forward<Filter>(filter));
     s.erase(s.begin(), it);
@@ -285,13 +285,13 @@ Str&& multipass::utils::trim_begin(Str&& s, Filter&& filter)
 }
 
 template <typename Str>
-Str&& multipass::utils::trim_begin(Str&& s)
+Str multipass::utils::trim_begin(Str&& s)
 {
     return trim_begin(std::forward<Str>(s), detail::is_space);
 }
 
 template <typename Str, typename Filter>
-Str&& multipass::utils::trim_end(Str&& s, Filter&& filter)
+Str multipass::utils::trim_end(Str&& s, Filter&& filter)
 {
     auto rev_it = std::find_if_not(s.rbegin(), s.rend(), std::forward<Filter>(filter));
     s.erase(rev_it.base(), s.end());
@@ -299,20 +299,20 @@ Str&& multipass::utils::trim_end(Str&& s, Filter&& filter)
 }
 
 template <typename Str>
-Str&& multipass::utils::trim_end(Str&& s)
+Str multipass::utils::trim_end(Str&& s)
 {
     return trim_end(std::forward<Str>(s), detail::is_space);
 }
 
 template <typename Str, typename Filter>
-Str&& multipass::utils::trim(Str&& s, Filter&& filter)
+Str multipass::utils::trim(Str&& s, Filter&& filter)
 {
     auto&& ret = trim_end(std::forward<Str>(s), filter);
     return trim_begin(std::forward<decltype(ret)>(ret), std::forward<Filter>(filter));
 }
 
 template <typename Str>
-Str&& multipass::utils::trim(Str&& s)
+Str multipass::utils::trim(Str&& s)
 {
     return trim(std::forward<Str>(s), detail::is_space);
 }

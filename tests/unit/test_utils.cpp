@@ -325,6 +325,21 @@ TEST(Utils, toCmdArgumentsWithDoubleQuotesAreEscaped)
     EXPECT_THAT(output, ::testing::StrEq("they said \\\"please\\\""));
 }
 
+// clang-format off
+#define STATIC_ASSERT_STR_REF_OVERLOADS(func, ...)                                                                                    \
+    static_assert(std::is_same_v<decltype(func(std::declval<std::string&>(),       ##__VA_ARGS__)), std::string&>);        \
+    static_assert(std::is_same_v<decltype(func(std::declval<const std::string&>(), ##__VA_ARGS__)), const std::string&>);  \
+    static_assert(std::is_same_v<decltype(func(std::declval<std::string&&>(),      ##__VA_ARGS__)), std::string>);         \
+    static_assert(std::is_same_v<decltype(func(std::declval<std::string>(),        ##__VA_ARGS__)), std::string>)
+// clang-format on
+
+STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_begin, std::declval<decltype(::isspace)&>());
+STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_begin);
+STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_end, std::declval<decltype(::isspace)&>());
+STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_end);
+STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim, std::declval<decltype(::isspace)&>());
+STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim);
+
 struct TestTrimUtilities : public Test
 {
     std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
