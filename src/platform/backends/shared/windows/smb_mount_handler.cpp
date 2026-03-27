@@ -241,7 +241,7 @@ try
     SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
 
     const auto username = MP_PLATFORM.get_username();
-    const auto user_id = MP_UTILS.make_uuid(username.toStdString());
+    const auto user_id = QString::fromStdString(MP_UTILS.make_uuid(username.toStdString()));
     const auto iv_filename = user_id + ".iv";
     const auto cred_filename = user_id + ".cifs";
 
