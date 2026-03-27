@@ -78,9 +78,6 @@ std::string contents_of(const multipass::Path& file_path);
 std::filesystem::path normalize_path(const std::filesystem::path& path);
 std::string normalize_path(const std::string& path);
 QString normalize_path(const QString& path);
-// Converts QString to path, using appropriate string functions depending on the platform
-[[nodiscard]] std::filesystem::path qstr_to_path(const QString& qstr);
-[[nodiscard]] QString path_to_qstr(const std::filesystem::path& path);
 
 // filesystem mount helpers
 void make_target_dir(SSHSession& session,

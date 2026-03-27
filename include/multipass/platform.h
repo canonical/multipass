@@ -80,6 +80,9 @@ public:
 
     [[nodiscard]] virtual std::filesystem::path get_root_cert_dir() const;
     [[nodiscard]] std::filesystem::path get_root_cert_path() const;
+    // Converts QString to path, using appropriate string functions depending on the platform
+    [[nodiscard]] virtual std::filesystem::path qstr_to_path(const QString& qstr) const;
+    [[nodiscard]] virtual QString path_to_qstr(const std::filesystem::path& path) const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);

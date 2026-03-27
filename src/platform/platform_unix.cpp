@@ -270,3 +270,13 @@ long long mp::platform::Platform::get_total_ram() const
 {
     return static_cast<long long>(sysconf(_SC_PHYS_PAGES)) * sysconf(_SC_PAGESIZE);
 }
+
+std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) const
+{
+    return std::filesystem::path{qstr.toStdString()};
+}
+
+QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
+{
+    return QString::fromStdString(path.generic_string());
+}

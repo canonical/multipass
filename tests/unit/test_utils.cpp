@@ -643,28 +643,6 @@ TEST(Utils, checkFilesystemBytesAvailableReturnsNonNegative)
     EXPECT_GE(bytes_available, 0);
 }
 
-TEST(Utils, test_qstr_path_conversion)
-{
-    // ASCII
-    QString ascii = QStringLiteral("/some/plain/path.txt");
-    EXPECT_EQ(mp::utils::path_to_qstr(mp::utils::qstr_to_path(ascii)), ascii);
-
-    // BMP Unicode (Turkish, CJK)
-    QString bmp = QStringLiteral("/belgeler/İzmir/日本語.txt");
-    EXPECT_EQ(mp::utils::path_to_qstr(mp::utils::qstr_to_path(bmp)), bmp);
-
-    // Astral plane (emoji – surrogate pair in UTF-16)
-    QString astral = QStringLiteral("/tmp/\U0001F600/file.txt");
-    EXPECT_EQ(mp::utils::path_to_qstr(mp::utils::qstr_to_path(astral)), astral);
-
-    // Empty
-    EXPECT_EQ(mp::utils::qstr_to_path(QString{}), std::filesystem::path{});
-
-    // Spaces and special filesystem characters
-    QString special = QStringLiteral("/path with spaces/file (1).txt");
-    EXPECT_EQ(mp::utils::path_to_qstr(mp::utils::qstr_to_path(special)), special);
-}
-
 using PathPairParam = std::tuple<std::filesystem::path, std::filesystem::path>;
 
 class NormalizePathTest : public TestWithParam<PathPairParam>

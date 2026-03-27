@@ -224,7 +224,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
 
         vm_image = prepare(source_image);
         vm_image.id =
-            MP_IMAGE_VAULT_UTILS.compute_file_hash(mp::utils::qstr_to_path(vm_image.image_path));
+            MP_IMAGE_VAULT_UTILS.compute_file_hash(MP_PLATFORM.qstr_to_path(vm_image.image_path));
 
         remove_source_images(source_image, vm_image);
 
@@ -615,14 +615,14 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         {
             mpl::debug(category, "Verifying hash \"{}\"", id);
             monitor(LaunchProgress::VERIFY, -1);
-            MP_IMAGE_VAULT_UTILS.verify_file_hash(mp::utils::qstr_to_path(source_image.image_path),
+            MP_IMAGE_VAULT_UTILS.verify_file_hash(MP_PLATFORM.qstr_to_path(source_image.image_path),
                                                   id.toStdString());
         }
 
         if (source_image.image_path.endsWith(".xz"))
         {
-            source_image.image_path = mp::utils::path_to_qstr(
-                MP_IMAGE_VAULT_UTILS.extract_file(utils::qstr_to_path(source_image.image_path),
+            source_image.image_path = MP_PLATFORM.path_to_qstr(
+                MP_IMAGE_VAULT_UTILS.extract_file(MP_PLATFORM.qstr_to_path(source_image.image_path),
                                                   monitor,
                                                   true));
         }
@@ -651,8 +651,8 @@ QString mp::DefaultVMImageVault::extract_image_from(const VMImage& source_image,
     const auto image_name = file_info.fileName().remove(".xz");
     const auto image_path = QDir(dest_dir).filePath(image_name);
 
-    return utils::path_to_qstr(
-        MP_IMAGE_VAULT_UTILS.extract_file(utils::qstr_to_path(image_path), monitor));
+    return MP_PLATFORM.path_to_qstr(
+        MP_IMAGE_VAULT_UTILS.extract_file(MP_PLATFORM.qstr_to_path(image_path), monitor));
 }
 
 mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared_image,
@@ -660,9 +660,9 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared
 {
     MP_UTILS.make_dir(dest_dir);
 
-    return {utils::path_to_qstr(
-                MP_IMAGE_VAULT_UTILS.copy_to_dir(utils::qstr_to_path(prepared_image.image_path),
-                                                 utils::qstr_to_path(dest_dir))),
+    return {MP_PLATFORM.path_to_qstr(MP_IMAGE_VAULT_UTILS.copy_to_dir(
+                MP_PLATFORM.qstr_to_path(prepared_image.image_path),
+                MP_PLATFORM.qstr_to_path(dest_dir))),
             prepared_image.id,
             prepared_image.original_release,
             prepared_image.current_release,

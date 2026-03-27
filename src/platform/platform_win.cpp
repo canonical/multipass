@@ -1076,3 +1076,13 @@ std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
     // Windows doesn't use `daemon_name` for the data directory (see `program_data_multipass_path`)
     return base_dir / "Multipass" / "data";
 }
+
+std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) const
+{
+    return std::filesystem::path{qstr.toStdWString()};
+}
+
+QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
+{
+    return QString::fromStdWString(path.generic_wstring());
+}
