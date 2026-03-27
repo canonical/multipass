@@ -401,6 +401,12 @@ TEST_F(TestTrimUtilities, trimRvalue)
     EXPECT_THAT(result, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
 }
 
+TEST_F(TestTrimUtilities, trimPrvalue)
+{
+    auto result = mp::utils::trim_end(std::string{s});
+    EXPECT_THAT(result, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
+}
+
 TEST(Utils, escapeForShellActuallyEscapes)
 {
     std::string s{"I've got \"quotes\""};
