@@ -368,9 +368,56 @@ QString mp::utils::get_multipass_storage()
 
 std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
 {
-    auto uuid =
-        seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
-    return uuid.toString(QUuid::WithoutBraces).toStdString();
+    std::array<unsigned char, 16> bytes{};
+
+    if (seed)
+    {
+        // UUID v3 path (MD5-based, deterministic)
+        constexpr std::array<unsigned char, 16> nil_ns{};
+
+        std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx{EVP_MD_CTX_new(),
+                                                                    EVP_MD_CTX_free};
+        if (!ctx)
+            throw std::runtime_error{"EVP_MD_CTX_new failed"};
+
+        unsigned int len = bytes.size();
+        if (EVP_DigestInit_ex(ctx.get(), EVP_md5(), nullptr) != 1 ||
+            EVP_DigestUpdate(ctx.get(), nil_ns.data(), nil_ns.size()) != 1 ||
+            EVP_DigestUpdate(ctx.get(), seed->data(), seed->size()) != 1 ||
+            EVP_DigestFinal_ex(ctx.get(), bytes.data(), &len) != 1)
+            throw std::runtime_error{"MD5 digest failed"};
+
+        bytes[6] = (bytes[6] & 0x0Fu) | 0x30u; // version 3
+        bytes[8] = (bytes[8] & 0x3Fu) | 0x80u; // RFC 4122 variant
+    }
+    else
+    {
+        // UUID v4 path (random)
+        if (RAND_bytes(bytes.data(), static_cast<int>(bytes.size())) != 1)
+            throw std::runtime_error{"RAND_bytes failed"};
+
+        bytes[6] = (bytes[6] & 0x0Fu) | 0x40u; // version 4
+        bytes[8] = (bytes[8] & 0x3Fu) | 0x80u; // RFC 4122 variant
+    }
+
+    return fmt::format("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:"
+                       "02x}{:02x}{:02x}{:02x}{:02x}",
+                       bytes[0],
+                       bytes[1],
+                       bytes[2],
+                       bytes[3],
+                       bytes[4],
+                       bytes[5],
+                       bytes[6],
+                       bytes[7],
+                       bytes[8],
+                       bytes[9],
+                       bytes[10],
+                       bytes[11],
+                       bytes[12],
+                       bytes[13],
+                       bytes[14],
+                       bytes[15]);
 }
 
 std::string mp::utils::contents_of(const multipass::Path& file_path)
