@@ -703,7 +703,7 @@ auto new_ACL(LPSTR path)
     PSECURITY_DESCRIPTOR pSD;
     auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
 
-    PACL pOldDACL = NULL;
+    PACL pOldDACL = nullptr;
     if (GetNamedSecurityInfo(path,
                              SE_FILE_OBJECT,
                              DACL_SECURITY_INFORMATION,
@@ -715,6 +715,9 @@ auto new_ACL(LPSTR path)
     {
         return newACL;
     }
+
+    if (nullptr == pOldDACL)
+        return newACL;
 
     DWORD size = sizeof(ACL);
     std::vector<ACCESS_ALLOWED_ACE*> aces{};
