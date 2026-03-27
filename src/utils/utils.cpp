@@ -388,7 +388,6 @@ std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
             throw std::runtime_error{"MD5 digest failed"};
 
         bytes[6] = (bytes[6] & 0x0Fu) | 0x30u; // version 3
-        bytes[8] = (bytes[8] & 0x3Fu) | 0x80u; // RFC 4122 variant
     }
     else
     {
@@ -397,8 +396,8 @@ std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
             throw std::runtime_error{"RAND_bytes failed"};
 
         bytes[6] = (bytes[6] & 0x0Fu) | 0x40u; // version 4
-        bytes[8] = (bytes[8] & 0x3Fu) | 0x80u; // RFC 4122 variant
     }
+    bytes[8] = (bytes[8] & 0x3Fu) | 0x80u; // RFC 4122 variant
 
     return fmt::format("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:"
                        "02x}{:02x}{:02x}{:02x}{:02x}",
