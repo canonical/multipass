@@ -326,19 +326,26 @@ TEST(Utils, toCmdArgumentsWithDoubleQuotesAreEscaped)
 }
 
 // clang-format off
-#define STATIC_ASSERT_STR_REF_OVERLOADS(func, ...)                                                                                    \
-    static_assert(std::is_same_v<decltype(func(std::declval<std::string&>(),       ##__VA_ARGS__)), std::string&>);        \
-    static_assert(std::is_same_v<decltype(func(std::declval<const std::string&>(), ##__VA_ARGS__)), const std::string&>);  \
-    static_assert(std::is_same_v<decltype(func(std::declval<std::string&&>(),      ##__VA_ARGS__)), std::string>);         \
-    static_assert(std::is_same_v<decltype(func(std::declval<std::string>(),        ##__VA_ARGS__)), std::string>)
+template <typename Func, typename... ExtraArgs>
+concept expected_trim_traits =
+    std::same_as<std::invoke_result_t<Func, std::string&, ExtraArgs...>, std::string&> &&
+    std::same_as<std::invoke_result_t<Func, std::string&&, ExtraArgs...>, std::string> &&
+    std::same_as<std::invoke_result_t<Func, std::string, ExtraArgs...>, std::string> &&
+    !std::is_invocable_v<Func, const std::string&, ExtraArgs...>;
+
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0834r0.html
+#define LIFT(func) [](auto&&... a)                            \
+    noexcept(noexcept(func(std::forward<decltype(a)>(a)...))) \
+    -> decltype(func(std::forward<decltype(a)>(a)...))        \
+    { return func(std::forward<decltype(a)>(a)...); }
 // clang-format on
 
-STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_begin, std::declval<decltype(::isspace)&>());
-STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_begin);
-STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_end, std::declval<decltype(::isspace)&>());
-STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim_end);
-STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim, std::declval<decltype(::isspace)&>());
-STATIC_ASSERT_STR_REF_OVERLOADS(mp::utils::trim);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim)), decltype(::isspace)&>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim))>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_begin)), decltype(::isspace)&>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_begin))>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_end)), decltype(::isspace)&>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_end))>);
 
 struct TestTrimUtilities : public Test
 {
@@ -386,6 +393,12 @@ TEST(Utils, trimNewlineAssertionWorks)
     std::string s{"wrong"};
     // https://google.github.io/googletest/advanced.html#regular-expression-syntax
     ASSERT_DEBUG_DEATH(mp::utils::trim_newline(s), "\\wssert");
+}
+
+TEST_F(TestTrimUtilities, trimRvalue)
+{
+    auto result = mp::utils::trim_end(std::move(s));
+    EXPECT_THAT(result, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
 }
 
 TEST(Utils, escapeForShellActuallyEscapes)
