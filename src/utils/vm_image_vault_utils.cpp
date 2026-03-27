@@ -67,12 +67,8 @@ std::filesystem::path mp::ImageVaultUtils::copy_to_dir(
 
     // Normalize the path to platform's preferred slashes
     new_location.make_preferred();
-    std::error_code ec{};
-    std::filesystem::copy_options options{};
-    MP_FILEOPS.copy(file, new_location, options, ec);
-    if (ec)
-        throw std::runtime_error(fmt::format("Failed to copy {} to {}", file, new_location));
 
+    MP_FILEOPS.copy(file, new_location, {});
     return new_location;
 }
 

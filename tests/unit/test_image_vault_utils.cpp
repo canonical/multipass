@@ -68,25 +68,24 @@ TEST_F(TestImageVaultUtils, copyToDirThrowsOnFailToCopy)
 {
     EXPECT_CALL(mock_file_ops, exists(test_path)).WillOnce(Return(true));
 
-    EXPECT_CALL(mock_file_ops, copy(test_path, test_output, _, _))
-        .WillOnce([](const std::filesystem::path&,
-                     const std::filesystem::path&,
-                     std::filesystem::copy_options,
-                     std::error_code& ec) {
-            ec = std::make_error_code(std::errc::no_such_file_or_directory);
-        });
+    EXPECT_CALL(mock_file_ops, copy(test_path, test_output, _))
+        .WillOnce(Throw(
+            std::filesystem::filesystem_error("copy failed",
+                                              test_path,
+                                              test_output,
+                                              std::make_error_code(std::errc::permission_denied))));
 
     MP_EXPECT_THROW_THAT(MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr(test_path.string()),
-                                               HasSubstr("Failed to copy"),
+                                               HasSubstr("copy failed"),
                                                HasSubstr(test_output.string()))));
 }
 
 TEST_F(TestImageVaultUtils, copyToDirCopysToDir)
 {
     EXPECT_CALL(mock_file_ops, exists(test_path)).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, copy(test_path, test_output, _, _));
+    EXPECT_CALL(mock_file_ops, copy(test_path, test_output, _));
 
     auto result = MP_IMAGE_VAULT_UTILS.copy_to_dir(test_path, test_dir);
     EXPECT_EQ(result, test_output);
