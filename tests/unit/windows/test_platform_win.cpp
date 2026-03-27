@@ -701,7 +701,7 @@ TEST(PlatformWin, getTotalRamReturnsGreaterThanZero)
     EXPECT_GT(MP_PLATFORM.get_total_ram(), 0LL);
 }
 
-TEST_F(PlatformWin, test_qstr_path_conversion)
+TEST(PlatformWin, test_qstr_path_conversion)
 {
     // ASCII
     QString ascii = QStringLiteral("/some/plain/path.txt");
