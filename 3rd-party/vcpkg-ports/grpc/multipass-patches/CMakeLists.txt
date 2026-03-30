@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-set(MP_VCPKG_DISABLE_CMAKE_TARGETS grpc_unsecure grpc++_unsecure grpc_authorization_provider grpc++_alts grpc++_reflection)
+set(MP_VCPKG_DISABLE_CMAKE_TARGETS grpc_unsecure grpc++_unsecure grpc_authorization_provider grpc++_alts grpc++_reflection grpcpp_channelz grpc++_error_details)
 
 function(do_target_postprocessing)
     get_property(DIR_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
