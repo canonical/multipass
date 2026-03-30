@@ -16,6 +16,7 @@
  */
 
 #include <multipass/file_ops.h>
+#include <multipass/platform.h>
 #include <multipass/single_availability_zone_manager.h>
 #include <multipass/utils.h>
 
@@ -24,7 +25,7 @@ namespace mp = multipass;
 namespace
 {
 constexpr mp::Subnet::PrefixLength subnet_prefix_length = 24;
-mp::SubnetAllocator subnet_allocator{std::string("10.97.0.0/20"), subnet_prefix_length};
+mp::SubnetAllocator subnet_allocator{MP_PLATFORM.get_preferred_subnet(), subnet_prefix_length};
 
 mp::Subnet get_subnet(const mp::Path& data_dir)
 {
