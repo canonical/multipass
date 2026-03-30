@@ -91,7 +91,7 @@ public:
     // Mock std methods
     MOCK_METHOD(void,
                 open,
-                (std::fstream&, const char*, std::ios_base::openmode),
+                (std::fstream&, const std::filesystem::path&, std::ios_base::openmode),
                 (const, override));
     MOCK_METHOD(bool, is_open, (const std::ifstream&), (const, override));
     MOCK_METHOD(std::ifstream&, read, (std::ifstream&, char*, std::streamsize), (const, override));
@@ -103,6 +103,20 @@ public:
                 open_read,
                 (const fs::path& path, std::ios_base::openmode mode),
                 (override, const));
+    MOCK_METHOD(void,
+                copy,
+                (const std::filesystem::path&,
+                 const std::filesystem::path&,
+                 fs::copy_options copy_options),
+                (const, override));
+    MOCK_METHOD(void,
+                copy,
+                (const std::filesystem::path&,
+                 const std::filesystem::path&,
+                 fs::copy_options,
+                 std::error_code&),
+                (const, override));
+    MOCK_METHOD(bool, exists, (const fs::path& path), (override, const));
     MOCK_METHOD(bool, exists, (const fs::path& path, std::error_code& err), (override, const));
     MOCK_METHOD(bool,
                 is_directory,

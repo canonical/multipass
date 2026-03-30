@@ -394,6 +394,13 @@ TEST(Utils, escapeForShellQuotesEmptyString)
     EXPECT_THAT(res, ::testing::StrEq("''"));
 }
 
+TEST(Utils, checkIstartswithComparesCaseInsensitively)
+{
+    constexpr std::string_view expected_pfx = "tHe hObBit$";
+    constexpr std::string_view content = "ThE HOBbIT$ aRe gOiNg to 1s3ng4rd!";
+    EXPECT_TRUE(mp::utils::istarts_with(content, expected_pfx));
+}
+
 TEST(Utils, tryActionActuallyTimesOut)
 {
     bool on_timeout_called{false};

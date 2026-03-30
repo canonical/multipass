@@ -208,6 +208,26 @@ TEST_F(ImageVault, downloadsImage)
     EXPECT_TRUE(url_downloader.downloaded_urls.contains(host.image.url()));
 }
 
+TEST_F(ImageVault, downloadsImageXz)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    auto query = default_query;
+    query.release = "xenial.xz";
+    auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly,
+                                      query,
+                                      stub_prepare,
+                                      stub_monitor,
+                                      std::nullopt,
+                                      instance_dir);
+
+    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    EXPECT_TRUE(url_downloader.downloaded_urls.contains(host.image.url()));
+}
+
 TEST_F(ImageVault, returnedImageContainsInstanceName)
 {
     mp::DefaultVMImageVault vault{hosts,

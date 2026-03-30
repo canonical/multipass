@@ -32,6 +32,7 @@
 #include <filesystem>
 #include <functional>
 #include <future>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -133,6 +134,7 @@ Str&& trim(Str&& s, Filter&& filter);
 template <typename Str>
 Str&& trim(Str&& s);
 bool iequals(std::string_view lhs, std::string_view rhs);
+bool istarts_with(std::string_view str, std::string_view prefix);
 std::string& trim_newline(std::string& s);
 std::string escape_for_shell(const std::string& s);
 std::vector<std::string> split(const std::string& string, const std::string& delimiter);

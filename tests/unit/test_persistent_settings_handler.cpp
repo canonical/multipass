@@ -21,9 +21,11 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/platform.h>
 #include <multipass/settings/basic_setting_spec.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/persistent_settings_handler.h>
+#include <multipass/utils.h>
 
 #include <QString>
 
@@ -75,7 +77,7 @@ public:
         fstream.setstate(std::ios_base::failbit);
 
         EXPECT_CALL(*mock_file_ops,
-                    open(_, StrEq(qPrintable(fake_filename)), Eq(std::ios_base::in)))
+                    open(_, Eq(MP_PLATFORM.qstr_to_path(fake_filename)), Eq(std::ios_base::in)))
             .WillOnce(
                 DoAll(WithArg<0>([](auto& stream) { stream.setstate(std::ios_base::failbit); }),
                       Assign(&errno, EACCES)));

@@ -29,19 +29,25 @@ class MockImageVaultUtils : public ImageVaultUtils
 public:
     using ImageVaultUtils::ImageVaultUtils;
 
-    MOCK_METHOD(QString, copy_to_dir, (const QString&, const QDir&), (const, override));
-
-    MOCK_METHOD(QString,
-                compute_hash,
-                (QIODevice&, const QCryptographicHash::Algorithm),
+    MOCK_METHOD(std::filesystem::path,
+                copy_to_dir,
+                (const std::filesystem::path&, const std::filesystem::path&),
                 (const, override));
-    MOCK_METHOD(QString,
+
+    MOCK_METHOD(std::string, compute_hash, (std::istream&, EHashAlgorithm), (const, override));
+    MOCK_METHOD(std::string,
                 compute_file_hash,
-                (const QString&, const QCryptographicHash::Algorithm),
+                (const std::filesystem::path&, EHashAlgorithm),
                 (const, override));
-    MOCK_METHOD(void, verify_file_hash, (const QString&, const QString&), (const, override));
+    MOCK_METHOD(void,
+                verify_file_hash,
+                (const std::filesystem::path&, const std::string&),
+                (const, override));
 
-    MOCK_METHOD(QString, extract_file, (const QString&, const Decoder&, bool), (const, override));
+    MOCK_METHOD(std::filesystem::path,
+                extract_file,
+                (const std::filesystem::path&, const Decoder&, bool),
+                (const, override));
 
     MOCK_METHOD(HostMap, configure_image_host_map, (const Hosts&), (const, override));
 
