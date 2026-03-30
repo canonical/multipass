@@ -4,4 +4,3 @@ set(VCPKG_LIBRARY_LINKAGE static)
 
 set(VCPKG_CMAKE_SYSTEM_NAME Linux)
 
-include("${CMAKE_CURRENT_LIST_DIR}/per-package-overrides.cmake")
