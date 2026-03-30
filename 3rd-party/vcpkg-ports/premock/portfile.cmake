@@ -10,4 +10,8 @@ file(INSTALL "${SOURCE_PATH}/premock.hpp"
      DESTINATION "${CURRENT_PACKAGES_DIR}/include"
 )
 
+file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/premock-config.cmake"
+     DESTINATION "${CURRENT_PACKAGES_DIR}/share/premock"
+)
+
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
