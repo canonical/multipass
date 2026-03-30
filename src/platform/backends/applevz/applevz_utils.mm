@@ -25,6 +25,7 @@
 #include "applevz_utils.h"
 
 #include <applevz/applevz_wrapper.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/utils/qemu_img_utils.h>
@@ -61,44 +62,16 @@ std::string run_process(const QString& program, const QStringList& args, const s
     return process->read_all_standard_output().trimmed().toStdString();
 }
 
-void create_asif(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
-{
-    run_process(QStringLiteral("diskutil"),
-                QStringList() << "image" << "create" << "blank" << "--fs" << "none" << "--format"
-                              << "ASIF" << "--size" << QString::number(disk_space.in_bytes())
-                              << MP_PLATFORM.path_to_qstr(image_path),
-                fmt::format("create ASIF image: {}, size: {}",
-                            image_path,
-                            disk_space.human_readable()));
-}
-
-std::filesystem::path attach_asif(const std::filesystem::path& image_path)
-{
-    return run_process(QStringLiteral("diskutil"),
-                       QStringList() << "image" << "attach" << "--noMount" << MP_PLATFORM.path_to_qstr(image_path),
-                       fmt::format("attach ASIF image: {}", image_path));
-}
-
-void detach_asif(const std::filesystem::path& device_path)
-{
-    run_process(QStringLiteral("hdiutil"),
-                QStringList() << "detach" << MP_PLATFORM.path_to_qstr(device_path),
-                fmt::format("detach ASIF image: {}", device_path));
-}
-
 bool is_asif_image(const std::filesystem::path& image_path)
 {
     // ASIF format uses "shdw" magic bytes (0x73686477)
-    std::ifstream file(image_path, std::ios::binary);
-    if (!file)
-        return false;
+    const auto file = MP_FILEOPS.open_read(image_path, std::ios::binary);
+    file->exceptions(std::ios::failbit | std::ios::badbit);
 
     std::array<char, 4> magic{};
-    file.read(magic.data(), magic.size());
-    if (file.gcount() != 4)
-        return false;
+    file->read(magic.data(), magic.size());
 
-    return std::equal(magic.begin(), magic.end(), "shdw");
+    return file->gcount() == 4 && std::equal(magic.begin(), magic.end(), "shdw");
 }
 
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
@@ -109,6 +82,14 @@ void resize_asif_image(const std::filesystem::path& image_path, const mp::Memory
                 fmt::format("resize ASIF image: {}, size: {}",
                             image_path,
                             disk_space.human_readable()));
+}
+
+void convert_to_asif(const std::filesystem::path& source_path, const std::filesystem::path& dest_path)
+{
+    run_process(QStringLiteral("diskutil"),
+                QStringList() << "image" << "create" << "from" << MP_PLATFORM.path_to_qstr(source_path) << MP_PLATFORM.path_to_qstr(dest_path) << "-f"
+                              << "asif",
+                fmt::format("convert {} to ASIF format at {}", source_path, dest_path));
 }
 
 void make_sparse(const std::filesystem::path& raw_image_path, const mp::MemorySize& disk_space)
@@ -125,60 +106,26 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
     if (is_asif_image(source_path))
         return source_path;
 
-    constexpr size_t buffer_size = 1024 * 1024;
-
     mpl::info(category, "Converting {} to ASIF format", source_path);
 
     // NO-OP if already RAW
     auto raw_path = mp::backend::convert(source_path, "raw");
 
-    std::error_code ec;
-    const auto source_size = std::filesystem::file_size(raw_path, ec);
-    if (ec)
-        throw std::runtime_error(fmt::format("Failed to stat source image: {}", ec.message()));
-
     auto asif_path = std::filesystem::path(source_path).replace_extension("asif");
-    create_asif(asif_path, mp::MemorySize{std::to_string(source_size)});
 
-    auto device_path = attach_asif(asif_path);
     try
     {
-        {
-            std::ifstream source(raw_path, std::ios::binary);
-            if (!source)
-                throw std::runtime_error(fmt::format("Failed to open source image: {}", raw_path));
-
-            std::ofstream target(device_path, std::ios::binary);
-            if (!target)
-                throw std::runtime_error(
-                    fmt::format("Failed to open target device: {}", device_path));
-
-            std::vector<char> buffer(buffer_size);
-            while (source.read(buffer.data(), buffer_size) || source.gcount())
-            {
-                const auto bytes_read = source.gcount();
-                const bool is_zero = std::all_of(buffer.cbegin(),
-                                                 buffer.cbegin() + bytes_read,
-                                                 [](char c) { return c == '\0'; });
-
-                is_zero ? target.seekp(bytes_read, std::ios::cur)
-                        : target.write(buffer.data(), bytes_read);
-            }
-        }
-
-        mpl::info(category, "Successfully converted to ASIF format");
-
-        detach_asif(device_path);
-        std::filesystem::remove(raw_path);
-
-        return asif_path;
+        convert_to_asif(raw_path, asif_path);
     }
     catch (...)
     {
-        detach_asif(device_path);
-        std::filesystem::remove(raw_path);
+        QFile::remove(raw_path);
+        QFile::remove(asif_path);
         throw;
     }
+
+    QFile::remove(raw_path);
+    return asif_path;
 }
 } // namespace
 
