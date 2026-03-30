@@ -1,0 +1,43 @@
+From 6c2ea2ddc8c8e1efe994daa7fdd33b0274fe2320 Mon Sep 17 00:00:00 2001
+From: x <x@x>
+Date: Mon, 30 Mar 2026 19:26:03 +0000
+Subject: [PATCH] remove thread_local from mock storage
+
+---
+ premock.hpp | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/premock.hpp b/premock.hpp
+index c8f5f25..cc7ed2c 100644
+--- a/premock.hpp
++++ b/premock.hpp
+@@ -494,7 +494,7 @@ struct FunctionTraits<R(*)(A...)> {
+ 
+  extern std::function<int(int, float)> mock_foo;
+  */
+-#define DECL_MOCK(func) extern "C" thread_local FunctionTraits<decltype(&func)>::StdFunctionType mock_##func
++#define DECL_MOCK(func) extern "C" FunctionTraits<decltype(&func)>::StdFunctionType mock_##func
+ 
+ /**
+  Definition of the std::function that will store the implementation. e.g. given:
+@@ -505,7 +505,7 @@ struct FunctionTraits<R(*)(A...)> {
+ 
+  std::function<int(int, float)> mock_foo;
+  */
+-#define MOCK_STORAGE(func) thread_local decltype(mock_##func) mock_##func
++#define MOCK_STORAGE(func) decltype(mock_##func) mock_##func
+ 
+ 
+ /**
+@@ -518,7 +518,7 @@ struct FunctionTraits<R(*)(A...)> {
+ 
+  std::function<int(int, float)> mock_foo = foo;
+  */
+-#define MOCK_STORAGE_DEFAULT(func) thread_local decltype(mock_##func) mock_##func = func
++#define MOCK_STORAGE_DEFAULT(func) decltype(mock_##func) mock_##func = func
+ 
+ /**
+  A name for the ut_premock_ function argument at position index
+-- 
+2.43.0
+
