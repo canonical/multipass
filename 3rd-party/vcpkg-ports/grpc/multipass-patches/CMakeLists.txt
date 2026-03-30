@@ -25,18 +25,14 @@ function(${INSTALL_TO_HOOK})
     # Parse the TARGETS from install command
     cmake_parse_arguments(ARG "" "" "TARGETS" ${ARGN})
 
-    if(ARG_TARGETS)
-        foreach(target ${ARG_TARGETS})
-            if(target IN_LIST MP_VCPKG_DISABLE_CMAKE_TARGETS)
-                # If we get here, skip this install command
-                message(STATUS "Skipping install for: ${ARG_TARGETS}")
-                return()
-            endif()
-        endforeach()
-        cmake_language(CALL "_${INSTALL_TO_HOOK}" ${ARGN})
-    else()
-        cmake_language(CALL "_${INSTALL_TO_HOOK}" ${ARGN})
-    endif()
+    foreach(target IN LISTS ARG_TARGETS)
+        if(target IN_LIST MP_VCPKG_DISABLE_CMAKE_TARGETS)
+            message(STATUS "Skipping install for disabled target: ${target}")
+            return()
+        endif()
+    endforeach()
+
+    cmake_language(CALL "_${INSTALL_TO_HOOK}" ${ARGN})
 endfunction()
 
 include(${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt.orig)
