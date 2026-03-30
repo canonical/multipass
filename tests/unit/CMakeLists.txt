@@ -140,7 +140,7 @@ target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
 
 target_compile_definitions(utils_test PRIVATE
-  -DEVP_PBE_scrypt=ut_EVP_PBE_scrypt)
+  -DEVP_PBE_scrypt=ut_premock_EVP_PBE_scrypt)
 
 target_link_libraries(multipass_tests
   cert

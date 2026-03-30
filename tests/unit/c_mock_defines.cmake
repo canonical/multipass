@@ -21,7 +21,7 @@ function(add_c_mocks)
 
   foreach (MOCK ${ARGN})
     # The original symbol is replaced with a prefix known by premock
-    list(APPEND c_mock_defines -D${MOCK}=ut_${MOCK})
+    list(APPEND c_mock_defines -D${MOCK}=ut_premock_${MOCK})
   endforeach()
   set(c_mock_defines ${c_mock_defines} PARENT_SCOPE)
 endfunction()
