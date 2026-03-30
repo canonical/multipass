@@ -33,6 +33,8 @@ public:
     using FileOps::FileOps;
 
     // High-level mock methods
+    // NOTE: We don't mock the `std::filesystem::path` overload of `write_transactionally`, since it
+    // just forwards to the `QString` version.
     MOCK_METHOD(void,
                 write_transactionally,
                 (const QString& file_name, const QByteArrayView& data),
