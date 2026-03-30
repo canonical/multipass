@@ -18,6 +18,7 @@ set (CMAKE_AUTOMOC ON)
 include(c_mock_defines.cmake)
 
 find_package(GTest CONFIG REQUIRED)
+find_package(premock CONFIG REQUIRED)
 
 add_executable(multipass_tests
   common.cpp
@@ -161,7 +162,7 @@ target_link_libraries(multipass_tests
   utils_test
   xz_image_decoder
   # 3rd-party
-  premock
+  premock::premock
   scope_guard
   yaml-cpp::yaml-cpp
 )
