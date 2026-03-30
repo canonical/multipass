@@ -15,6 +15,13 @@
  *
  */
 
+/*
+ * This file provides some support for creating and resizing ASIF disk images.
+ * There is no official public documentation for the ASIF format. The technical
+ * details used here are based on community reverse engineering. For reference,
+ * see: https://github.com/huven/asif-format
+ */
+
 #include "applevz_utils.h"
 
 #include <applevz/applevz_wrapper.h>
