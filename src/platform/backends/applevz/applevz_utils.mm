@@ -49,7 +49,7 @@ std::string run_process(const QString& program, const QStringList& args, const s
         throw std::runtime_error(fmt::format("Failed to {}: {}; Output: {}",
                                              desc,
                                              exit_state.failure_message(),
-                                             process->read_all_standard_error().toStdString()));
+                                             process->read_all_standard_error()));
 
     return process->read_all_standard_output().trimmed().toStdString();
 }
