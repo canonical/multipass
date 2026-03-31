@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/snapshot_description.h>
+#include "snapshot_description.h"
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
@@ -46,51 +46,52 @@ std::string choose_cloud_init_instance_id(const boost::json::value* id,
 }
 } // namespace
 
-mp::SnapshotDescription::SnapshotDescription(std::string name_,
-                                             std::string comment_,
-                                             int parent_index_,
-                                             std::string cloud_init_instance_id_,
-                                             int index_,
-                                             QDateTime creation_timestamp_,
-                                             int num_cores_,
-                                             MemorySize mem_size_,
-                                             MemorySize disk_space_,
-                                             std::vector<NetworkInterface> extra_interfaces_,
-                                             VirtualMachine::State state_,
-                                             std::unordered_map<std::string, VMMount> mounts_,
-                                             boost::json::object metadata_,
-                                             bool upgraded_)
-    : name(std::move(name_)),
-      comment(std::move(comment_)),
-      parent_index(parent_index_),
-      cloud_init_instance_id(std::move(cloud_init_instance_id_)),
-      index(index_),
-      creation_timestamp(std::move(creation_timestamp_)),
-      num_cores(num_cores_),
-      mem_size(mem_size_),
-      disk_space(disk_space_),
-      extra_interfaces(std::move(extra_interfaces_)),
-      state(state_),
-      mounts(std::move(mounts_)),
-      metadata(std::move(metadata_)),
-      upgraded(upgraded_)
+mp::SnapshotDescription::SnapshotDescription(std::string name,
+                                             std::string comment,
+                                             int parent_index,
+                                             std::string cloud_init_instance_id,
+                                             int index,
+                                             QDateTime creation_timestamp,
+                                             int num_cores,
+                                             MemorySize mem_size,
+                                             MemorySize disk_space,
+                                             std::vector<NetworkInterface> extra_interfaces,
+                                             VirtualMachine::State state,
+                                             std::unordered_map<std::string, VMMount> mounts,
+                                             boost::json::object metadata,
+                                             bool upgraded)
+    : name(std::move(name)),
+      comment(std::move(comment)),
+      parent_index(parent_index),
+      cloud_init_instance_id(std::move(cloud_init_instance_id)),
+      index(index),
+      creation_timestamp(std::move(creation_timestamp)),
+      num_cores(num_cores),
+      mem_size(mem_size),
+      disk_space(disk_space),
+      extra_interfaces(std::move(extra_interfaces)),
+      state(state),
+      mounts(std::move(mounts)),
+      metadata(std::move(metadata)),
+      upgraded(upgraded)
 {
     using St = VirtualMachine::State;
-    if (state != St::off && state != St::stopped)
+    if (this->state != St::off && this->state != St::stopped)
         throw std::runtime_error{
-            fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(state))};
-    if (index < 1)
-        throw std::runtime_error{fmt::format("Snapshot index not positive: {}", index)};
-    if (index > max_snapshots)
-        throw std::runtime_error{fmt::format("Maximum number of snapshots exceeded: {}", index)};
-    if (name.empty())
+            fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(this->state))};
+    if (this->index < 1)
+        throw std::runtime_error{fmt::format("Snapshot index not positive: {}", this->index)};
+    if (this->index > max_snapshots)
+        throw std::runtime_error{
+            fmt::format("Maximum number of snapshots exceeded: {}", this->index)};
+    if (this->name.empty())
         throw std::runtime_error{"Snapshot names cannot be empty"};
-    if (num_cores < 1)
+    if (this->num_cores < 1)
         throw std::runtime_error{
-            fmt::format("Invalid number of cores for snapshot: {}", num_cores)};
-    if (auto mem_bytes = mem_size.in_bytes(); mem_bytes < 1)
+            fmt::format("Invalid number of cores for snapshot: {}", this->num_cores)};
+    if (auto mem_bytes = this->mem_size.in_bytes(); mem_bytes < 1)
         throw std::runtime_error{fmt::format("Invalid memory size for snapshot: {}", mem_bytes)};
-    if (auto disk_bytes = disk_space.in_bytes(); disk_bytes < 1)
+    if (auto disk_bytes = this->disk_space.in_bytes(); disk_bytes < 1)
         throw std::runtime_error{fmt::format("Invalid disk size for snapshot: {}", disk_bytes)};
 }
 
@@ -134,7 +135,7 @@ mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::Snaps
         MemorySize{value_to<std::string>(json.at("disk_space"))},
         lookup_or<std::vector<NetworkInterface>>(json,
                                                  "extra_interfaces",
-                                                 std::move(ctx.vm_desc.extra_interfaces)),
+                                                 ctx.vm_desc.extra_interfaces),
         static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
         value_to<std::unordered_map<std::string, mp::VMMount>>(json.at("mounts"),
                                                                MapAsJsonArray{"target_path"}),

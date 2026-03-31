@@ -91,30 +91,30 @@ std::shared_ptr<mp::Snapshot> find_parent(const mp::SnapshotDescription& desc,
 }
 } // namespace
 
-mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_,
-                               std::shared_ptr<Snapshot> parent_,
-                               const VirtualMachine& vm_,
-                               bool captured_)
-    : desc{std::move(desc_)},
-      parent{std::move(parent_)},
-      id{snapshot_template.arg(desc.index)},
-      storage_dir{vm_.instance_directory()},
-      captured{captured_}
+mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
+                               std::shared_ptr<Snapshot> parent,
+                               const VirtualMachine& vm,
+                               bool captured)
+    : desc{std::move(desc)},
+      parent{std::move(parent)},
+      id{snapshot_template.arg(this->desc.index)},
+      storage_dir{vm.instance_directory()},
+      captured{captured}
 {
-    desc.parent_index = parent ? parent->get_index() : 0;
+    this->desc.parent_index = this->parent ? this->parent->get_index() : 0;
     if (captured && this->desc.upgraded)
         persist();
 }
 
-mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc_, VirtualMachine& vm_, bool captured_)
-    : desc{std::move(desc_)},
+mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured)
+    : desc{std::move(desc)},
       id{snapshot_template.arg(desc.index)},
-      storage_dir{vm_.instance_directory()},
-      captured{captured_}
+      storage_dir{vm.instance_directory()},
+      captured{captured}
 {
-    parent = find_parent(desc, vm_);
-    desc.parent_index = parent ? parent->get_index() : 0;
-    if (captured && desc.upgraded)
+    parent = find_parent(this->desc, vm);
+    this->desc.parent_index = parent ? parent->get_index() : 0;
+    if (captured && this->desc.upgraded)
         persist();
 }
 
