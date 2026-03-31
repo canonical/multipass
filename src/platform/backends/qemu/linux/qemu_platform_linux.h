@@ -34,7 +34,7 @@ class QemuPlatformLinux : public QemuPlatform
 {
 public:
     explicit QemuPlatformLinux(const Path& data_dir);
-    virtual ~QemuPlatformLinux(); // TODO@ricab
+    ~QemuPlatformLinux() override;
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
