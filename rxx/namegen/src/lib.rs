@@ -23,6 +23,8 @@ use petname_generator::make_petname;
 
 #[cxx::bridge(namespace = "multipass::petname")]
 pub mod ffi {
+    //Both the stated here and in extern C++ tells the CXX bridge generator
+    //to use the C++-side definition of NumWords
     #[repr(i32)]
     pub enum NumWords {
         One,
@@ -32,6 +34,8 @@ pub mod ffi {
 
     #[namespace = "rxx::petname"]
     extern "Rust" {
+        //Result<T> allows CXX to turn returned Rust Errors into cxx::RustError
+        //on the C++ side.
         fn make_petname(num_words: NumWords, separator: c_char) -> Result<String>;
     }
     #[namespace = "multipass::petname"]
