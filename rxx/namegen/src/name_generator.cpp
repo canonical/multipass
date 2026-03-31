@@ -26,7 +26,8 @@
 namespace mp = multipass;
 namespace mpp = multipass::petname;
 
-mp::NameGenerator::UPtr mpp::detail::make_petname_provider_impl(NumWords num_words, char separator)
+mp::NameGenerator::UPtr mpp::detail::make_petname_provider_impl(mpp::NumWords num_words,
+                                                                char separator)
 {
     return std::make_unique<PetnameGenerator>(num_words, separator);
 }
