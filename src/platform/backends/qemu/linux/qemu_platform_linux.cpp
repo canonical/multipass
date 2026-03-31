@@ -15,7 +15,7 @@
  *
  */
 
-#include "qemu_platform_detail.h"
+#include "qemu_platform_linux.h"
 
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -118,7 +118,7 @@ void delete_virtual_switch(const QString& bridge_name)
 }
 } // namespace
 
-mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
+mp::QemuPlatformLinux::QemuPlatformLinux(const mp::Path& data_dir)
     : bridge_name{multipass_bridge_name},
       network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
       subnet{MP_BACKEND.get_subnet(network_dir, bridge_name)},
@@ -127,7 +127,7 @@ mp::QemuPlatformDetail::QemuPlatformDetail(const mp::Path& data_dir)
 {
 }
 
-mp::QemuPlatformDetail::~QemuPlatformDetail()
+mp::QemuPlatformLinux::~QemuPlatformLinux()
 {
     for (const auto& it : name_to_net_device_map)
     {
@@ -138,12 +138,12 @@ mp::QemuPlatformDetail::~QemuPlatformDetail()
     delete_virtual_switch(bridge_name);
 }
 
-std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
+std::optional<mp::IPAddress> mp::QemuPlatformLinux::get_ip_for(const std::string& hw_addr)
 {
     return dnsmasq_server->get_ip_for(hw_addr);
 }
 
-void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
+void mp::QemuPlatformLinux::remove_resources_for(const std::string& name)
 {
     auto it = name_to_net_device_map.find(name);
     if (it != name_to_net_device_map.end())
@@ -156,7 +156,7 @@ void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
     }
 }
 
-void mp::QemuPlatformDetail::platform_health_check()
+void mp::QemuPlatformLinux::platform_health_check()
 {
     MP_BACKEND.check_for_kvm_support();
     MP_BACKEND.check_if_kvm_is_in_use();
@@ -165,7 +165,7 @@ void mp::QemuPlatformDetail::platform_health_check()
     firewall_config->verify_firewall_rules();
 }
 
-QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescription& vm_desc)
+QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     // Configure and generate the args for the default network interface
     auto tap_device_name = generate_tap_device_name(vm_desc.vm_name);
@@ -239,20 +239,20 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
-    return std::make_unique<mp::QemuPlatformDetail>(data_dir);
+    return std::make_unique<mp::QemuPlatformLinux>(data_dir);
 }
 
-bool mp::QemuPlatformDetail::is_network_supported(const std::string& network_type) const
+bool mp::QemuPlatformLinux::is_network_supported(const std::string& network_type) const
 {
     return network_type == "bridge" || network_type == "ethernet";
 }
 
-bool mp::QemuPlatformDetail::needs_network_prep() const
+bool mp::QemuPlatformLinux::needs_network_prep() const
 {
     return true;
 }
 
-void mp::QemuPlatformDetail::set_authorization(std::vector<NetworkInterfaceInfo>& networks)
+void mp::QemuPlatformLinux::set_authorization(std::vector<NetworkInterfaceInfo>& networks)
 {
     const auto& br_nomenclature = MP_PLATFORM.bridge_nomenclature();
 
@@ -261,7 +261,7 @@ void mp::QemuPlatformDetail::set_authorization(std::vector<NetworkInterfaceInfo>
             net.needs_authorization = true;
 }
 
-std::string mp::QemuPlatformDetail::create_bridge_with(const NetworkInterfaceInfo& interface) const
+std::string mp::QemuPlatformLinux::create_bridge_with(const NetworkInterfaceInfo& interface) const
 {
     assert(interface.type == "ethernet");
     return MP_BACKEND.create_bridge_with(interface.id);

@@ -15,7 +15,7 @@
  *
  */
 
-#include "qemu_platform_detail.h"
+#include "qemu_platform_macos.h"
 
 #include <multipass/format.h>
 #include <multipass/platform.h>
@@ -48,30 +48,30 @@ auto get_common_args(const QString& host_arch)
 }
 } // namespace
 
-mp::QemuPlatformDetail::QemuPlatformDetail() : common_args{get_common_args(host_arch)}
+mp::QemuPlatformMacOS::QemuPlatformMacOS() : common_args{get_common_args(host_arch)}
 {
 }
 
-std::optional<mp::IPAddress> mp::QemuPlatformDetail::get_ip_for(const std::string& hw_addr)
+std::optional<mp::IPAddress> mp::QemuPlatformMacOS::get_ip_for(const std::string& hw_addr)
 {
     return mp::backend::get_neighbour_ip(hw_addr);
 }
 
-void mp::QemuPlatformDetail::remove_resources_for(const std::string& name)
+void mp::QemuPlatformMacOS::remove_resources_for(const std::string& name)
 {
 }
 
-void mp::QemuPlatformDetail::platform_health_check()
+void mp::QemuPlatformMacOS::platform_health_check()
 {
     // TODO: Add appropriate health checks to ensure the QEMU backend will work as expected
 }
 
-QStringList mp::QemuPlatformDetail::vmstate_platform_args()
+QStringList mp::QemuPlatformMacOS::vmstate_platform_args()
 {
     return common_args;
 }
 
-QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescription& vm_desc)
+QStringList mp::QemuPlatformMacOS::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     QStringList qemu_args;
     // clang-format off
@@ -111,32 +111,32 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     return qemu_args;
 }
 
-QString mp::QemuPlatformDetail::get_directory_name() const
+QString mp::QemuPlatformMacOS::get_directory_name() const
 {
     return "qemu";
 }
 
-bool mp::QemuPlatformDetail::is_network_supported(const std::string& network_type) const
+bool mp::QemuPlatformMacOS::is_network_supported(const std::string& network_type) const
 {
     return network_type == "ethernet" || network_type == "wifi" || network_type == "usb";
 }
 
-bool mp::QemuPlatformDetail::needs_network_prep() const
+bool mp::QemuPlatformMacOS::needs_network_prep() const
 {
     return false;
 }
 
-void mp::QemuPlatformDetail::set_authorization(std::vector<NetworkInterfaceInfo>& networks)
+void mp::QemuPlatformMacOS::set_authorization(std::vector<NetworkInterfaceInfo>& networks)
 {
     // nothing to do here
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
 {
-    return std::make_unique<mp::QemuPlatformDetail>();
+    return std::make_unique<mp::QemuPlatformMacOS>();
 }
 
-std::string mp::QemuPlatformDetail::create_bridge_with(const NetworkInterfaceInfo& interface) const
+std::string mp::QemuPlatformMacOS::create_bridge_with(const NetworkInterfaceInfo& interface) const
 {
     return interface.id;
 }

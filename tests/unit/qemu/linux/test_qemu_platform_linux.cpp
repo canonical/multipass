@@ -26,7 +26,7 @@
 #include "tests/unit/temp_dir.h"
 
 #include <multipass/process/process.h>
-#include <src/platform/backends/qemu/linux/qemu_platform_detail.h>
+#include <src/platform/backends/qemu/linux/qemu_platform_linux.h>
 
 #include <QCoreApplication>
 
@@ -38,9 +38,9 @@ using namespace testing;
 
 namespace
 {
-struct QemuPlatformDetail : public Test
+struct QemuPlatformLinux : public Test
 {
-    QemuPlatformDetail()
+    QemuPlatformLinux()
         : mock_dnsmasq_server{std::make_unique<mpt::MockDNSMasqServer>()},
           mock_firewall_config{std::make_unique<mpt::MockFirewallConfig>()}
     {
@@ -96,7 +96,7 @@ struct QemuPlatformDetail : public Test
 };
 } // namespace
 
-TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitch)
+TEST_F(QemuPlatformLinux, ctorSetsUpExpectedVirtualSwitch)
 {
     const QString qstring_subnet{QString::fromStdString(subnet)};
 
@@ -130,10 +130,10 @@ TEST_F(QemuPlatformDetail, ctorSetsUpExpectedVirtualSwitch)
             _))
         .WillOnce(Return(true));
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
+TEST_F(QemuPlatformLinux, getIpForReturnsExpectedInfo)
 {
     const mp::IPAddress ip_address{fmt::format("{}.5", subnet)};
 
@@ -141,14 +141,14 @@ TEST_F(QemuPlatformDetail, getIpForReturnsExpectedInfo)
         return ip_address;
     });
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 
-    auto addr = qemu_platform_detail.get_ip_for(hw_addr);
+    auto addr = qemu_platform_linux.get_ip_for(hw_addr);
 
     EXPECT_EQ(*addr, ip_address);
 }
 
-TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpected)
+TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected)
 {
     mp::VirtualMachineDescription vm_desc;
     mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
@@ -171,9 +171,9 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
             return false;
         });
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 
-    const auto platform_args = qemu_platform_detail.vm_platform_args(vm_desc);
+    const auto platform_args = qemu_platform_linux.vm_platform_args(vm_desc);
 
 #if defined Q_PROCESSOR_S390
     const auto network_interface = "virtio-net-ccw";
@@ -233,22 +233,22 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
                                    _))
         .WillOnce(Return(true));
 
-    qemu_platform_detail.remove_resources_for(name);
+    qemu_platform_linux.remove_resources_for(name);
 }
 
-TEST_F(QemuPlatformDetail, platformHealthCheckCallsExpectedMethods)
+TEST_F(QemuPlatformLinux, platformHealthCheckCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
     EXPECT_CALL(*mock_backend, check_if_kvm_is_in_use()).WillOnce(Return());
     EXPECT_CALL(*mock_dnsmasq_server, check_dnsmasq_running()).WillOnce(Return());
     EXPECT_CALL(*mock_firewall_config, verify_firewall_rules()).WillOnce(Return());
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 
-    qemu_platform_detail.platform_health_check();
+    qemu_platform_linux.platform_health_check();
 }
 
-TEST_F(QemuPlatformDetail, openingIpforwardFileFailureLogsExpectedMessage)
+TEST_F(QemuPlatformLinux, openingIpforwardFileFailureLogsExpectedMessage)
 {
     logger_scope.mock_logger->screen_logs(
         mpl::Level::warning); // warning and above expected explicitly in tests
@@ -257,10 +257,10 @@ TEST_F(QemuPlatformDetail, openingIpforwardFileFailureLogsExpectedMessage)
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, writingIpforwardFileFailureLogsExpectedMessage)
+TEST_F(QemuPlatformLinux, writingIpforwardFileFailureLogsExpectedMessage)
 {
     logger_scope.mock_logger->screen_logs(
         mpl::Level::warning); // warning and above expected explicitly in tests
@@ -269,12 +269,12 @@ TEST_F(QemuPlatformDetail, writingIpforwardFileFailureLogsExpectedMessage)
 
     EXPECT_CALL(*mock_file_ops, write(_, QByteArray("1"))).WillOnce(Return(-1));
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 }
 
-TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
+TEST_F(QemuPlatformLinux, platformCorrectlySetsAuthorization)
 {
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 
     std::vector<mp::NetworkInterfaceInfo> networks{
         mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
@@ -284,19 +284,19 @@ TEST_F(QemuPlatformDetail, platformCorrectlySetsAuthorization)
     const auto& non_bridged_network =
         networks.emplace_back(mp::NetworkInterfaceInfo{"en1", "ethernet", "", {}, false});
 
-    qemu_platform_detail.set_authorization(networks);
+    qemu_platform_linux.set_authorization(networks);
 
     EXPECT_FALSE(bridged_network.needs_authorization);
     EXPECT_TRUE(non_bridged_network.needs_authorization);
 }
 
-TEST_F(QemuPlatformDetail, createBridgeWithCallsExpectedMethods)
+TEST_F(QemuPlatformLinux, createBridgeWithCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, create_bridge_with("en0")).WillOnce(Return("br-en0"));
 
-    mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path()};
 
-    EXPECT_EQ(qemu_platform_detail.create_bridge_with(
+    EXPECT_EQ(qemu_platform_linux.create_bridge_with(
                   mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),
               "br-en0");
 }

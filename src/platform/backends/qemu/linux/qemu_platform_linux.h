@@ -30,11 +30,11 @@
 namespace multipass
 {
 // This class is the platform detail for QEMU on Linux
-class QemuPlatformDetail : public QemuPlatform
+class QemuPlatformLinux : public QemuPlatform
 {
 public:
-    explicit QemuPlatformDetail(const Path& data_dir);
-    virtual ~QemuPlatformDetail();
+    explicit QemuPlatformLinux(const Path& data_dir);
+    virtual ~QemuPlatformLinux(); // TODO@ricab
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;

@@ -24,10 +24,10 @@
 namespace multipass
 {
 // This class is the platform detail for QEMU on macOS
-class QemuPlatformDetail : public QemuPlatform
+class QemuPlatformMacOS : public QemuPlatform
 {
 public:
-    explicit QemuPlatformDetail();
+    explicit QemuPlatformMacOS();
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
