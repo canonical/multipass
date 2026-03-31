@@ -20,6 +20,7 @@
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
 
@@ -78,7 +79,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
 #endif
              << "-drive"
              << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda")
-                    .arg(desc.image.image_path)
+                    .arg(MP_PLATFORM.path_to_qstr(desc.image.image_path))
              << "-device"
              << "scsi-hd,drive=hda,bus=scsi0.0";
         // Number of cpu cores
@@ -230,7 +231,7 @@ profile %1 flags=(attach_disconnected) {
                                 firmware,
                                 root_dir,
                                 program(),
-                                desc.image.image_path,
+                                QString::fromStdString(desc.image.image_path),
                                 desc.cloud_init_iso,
                                 mount_dirs);
 }

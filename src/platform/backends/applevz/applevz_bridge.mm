@@ -50,6 +50,11 @@ NSString* nsstring_from_qstring(const QString& s)
     return [NSString stringWithUTF8String:utf8.constData()];
 }
 
+NSString* nsstring_from_stdstring(const std::string& s)
+{
+    return [NSString stringWithCString:s.c_str() encoding:NSUTF8StringEncoding];
+}
+
 template <typename Callable>
 multipass::applevz::CFError call_on_vm_queue(const multipass::applevz::VMHandle& vm_handle,
                                              Callable callable,
@@ -114,7 +119,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         // cachingMode is set to VZDiskImageCachingModeCached so as to avoid disk corruption on ARM:
         // - https://github.com/utmapp/UTM/issues/4840#issuecomment-1824340975
         // - https://github.com/utmapp/UTM/issues/4840#issuecomment-1824542732
-        NSString* diskPath = nsstring_from_qstring(desc.image.image_path);
+        NSString* diskPath = nsstring_from_stdstring(desc.image.image_path.string());
         NSURL* diskURL = [NSURL fileURLWithPath:diskPath];
         VZDiskImageStorageDeviceAttachment* diskAttachment =
             [[VZDiskImageStorageDeviceAttachment alloc]
@@ -174,9 +179,8 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         VZNATNetworkDeviceAttachment* natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
         netDevice.attachment = natAttachment;
 
-        VZMACAddress* mac = [[VZMACAddress alloc]
-            initWithString:[NSString stringWithCString:desc.default_mac_address.c_str()
-                                              encoding:NSUTF8StringEncoding]];
+        VZMACAddress* mac =
+            [[VZMACAddress alloc] initWithString:nsstring_from_stdstring(desc.default_mac_address)];
         [netDevice setMACAddress:mac];
 
         config.networkDevices = @[ netDevice ];

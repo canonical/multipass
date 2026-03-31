@@ -1488,6 +1488,10 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         fmt::format("{{\n{},\n{}\n}}", std::move(stayed_json), std::move(gone_json)));
     config_builder.data_directory = temp_dir->path();
 
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
+
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, stayed), _, _, _, _))
         .WillRepeatedly(
@@ -1511,7 +1515,6 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
@@ -2270,6 +2273,8 @@ TEST_F(Daemon, purgePersistsInstances)
     config_builder.data_directory = temp_dir->path();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())

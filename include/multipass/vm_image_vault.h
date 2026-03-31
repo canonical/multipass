@@ -28,6 +28,7 @@
 #include <QFile>
 #include <QString>
 
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -43,7 +44,7 @@ namespace vault
 class DeleteOnException
 {
 public:
-    explicit DeleteOnException(const Path& path) : file(path)
+    explicit DeleteOnException(const std::filesystem::path& path) : file(path)
     {
     }
     ~DeleteOnException()

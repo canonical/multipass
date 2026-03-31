@@ -20,6 +20,7 @@
 #include <multipass/path.h>
 #include <multipass/platform.h>
 
+#include <filesystem>
 #include <optional>
 
 namespace multipass
@@ -39,12 +40,13 @@ public:
 Process::UPtr checked_exec_qemu_img(std::unique_ptr<QemuImgProcessSpec> spec,
                                     const std::string& custom_error_prefix = "Internal error",
                                     std::optional<int> timeout = std::nullopt);
-void resize_instance_image(const MemorySize& disk_space, const multipass::Path& image_path);
-Path convert_to_qcow_if_necessary(const Path& image_path);
-void amend_to_qcow2_v3(const Path& image_path);
-Path convert_to_raw(const Path& image_path);
-bool instance_image_has_snapshot(const Path& image_path, QString snapshot_tag);
-QByteArray snapshot_list_output(const Path& image_path);
-void delete_snapshot_from_image(const Path& image_path, const QString& snapshot_tag);
+void resize_instance_image(const MemorySize& disk_space, const std::filesystem::path& image_path);
+std::filesystem::path convert_to_qcow_if_necessary(const std::filesystem::path& image_path);
+void amend_to_qcow2_v3(const std::filesystem::path& image_path);
+std::filesystem::path convert_to_raw(const std::filesystem::path& image_path);
+bool instance_image_has_snapshot(const std::filesystem::path& image_path, QString snapshot_tag);
+QByteArray snapshot_list_output(const std::filesystem::path& image_path);
+void delete_snapshot_from_image(const std::filesystem::path& image_path,
+                                const QString& snapshot_tag);
 } // namespace backend
 } // namespace multipass

@@ -178,7 +178,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 
     // Work around for Xenial where UEFI images are not one and the same
     if (!(vm_desc.image.original_release == "16.04 LTS" &&
-          vm_desc.image.image_path.contains("disk1.img")))
+          vm_desc.image.image_path.filename() == "disk1.img"))
     {
 #if defined Q_PROCESSOR_X86
         opts << "-bios"

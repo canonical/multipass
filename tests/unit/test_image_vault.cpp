@@ -35,6 +35,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/format.h>
+#include <multipass/platform.h>
 #include <multipass/query.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
@@ -46,6 +47,7 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
+namespace mpu = multipass::utils;
 
 using namespace testing;
 
@@ -242,7 +244,7 @@ TEST_F(ImageVault, returnedImageContainsInstanceName)
                                       std::nullopt,
                                       instance_dir);
 
-    EXPECT_TRUE(vm_image.image_path.contains(QString::fromStdString(instance_name)));
+    EXPECT_TRUE(vm_image.image_path.string().find(instance_name) != std::string::npos);
 }
 
 TEST_F(ImageVault, imageCloneSuccess)
@@ -551,7 +553,7 @@ TEST_F(ImageVault, usesImageFromPrepare)
     mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name, source_image.id, "", "", "", "", {}};
+        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
     };
 
     mp::DefaultVMImageVault vault{hosts,
@@ -566,7 +568,7 @@ TEST_F(ImageVault, usesImageFromPrepare)
                                       std::nullopt,
                                       instance_dir);
 
-    const auto image_data = mp::utils::contents_of(vm_image.image_path);
+    const auto image_data = mp::utils::contents_of(MP_PLATFORM.path_to_qstr(vm_image.image_path));
     EXPECT_THAT(image_data, StrEq(expected_data));
     EXPECT_THAT(vm_image.id, Eq(mpt::default_id));
 }
@@ -584,7 +586,7 @@ TEST_F(ImageVault, imagePurgedExpired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, source_image.id, "", "", "", "", {}};
+        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly,
                                       default_query,
@@ -613,7 +615,7 @@ TEST_F(ImageVault, imageExistsNotExpired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name, source_image.id, "", "", "", "", {}};
+        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly,
                                       default_query,
@@ -670,7 +672,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(fileBasedFetchCopiesImageAndRetu
                                       std::nullopt,
                                       instance_dir);
 
-    EXPECT_TRUE(QFileInfo::exists(vm_image.image_path));
+    EXPECT_TRUE(exists(vm_image.image_path));
     EXPECT_EQ(vm_image.id, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 }
 

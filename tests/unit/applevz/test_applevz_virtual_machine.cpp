@@ -47,7 +47,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
                                        "aa:bb:cc:dd:ee:ff",
                                        {},
                                        "",
-                                       {dummy_image.name(), "", "", "", {}, {}},
+                                       {dummy_image.path(), "", "", "", {}, {}},
                                        dummy_cloud_init_iso.name(),
                                        {},
                                        {},
