@@ -174,26 +174,48 @@ TEST_F(QemuPlatformDetail, platformArgsGenerateNetResourcesRemovesWorksAsExpecte
     mp::QemuPlatformDetail qemu_platform_detail{data_dir.path()};
 
     const auto platform_args = qemu_platform_detail.vm_platform_args(vm_desc);
+    const auto network_interface = "virtio-net-pci";
 
     // Tests the order and correctness of the arguments returned
     std::vector<QString> expected_platform_args
     {
+        // clang-format off
 #if defined Q_PROCESSOR_X86
-        "-bios", "OVMF.fd",
+        "-bios",
+        "OVMF.fd",
 #elif defined Q_PROCESSOR_ARM
-        "-bios", "QEMU_EFI.fd", "-machine", "virt",
+        "-bios",
+        "QEMU_EFI.fd",
+        "-machine",
+        "virt",
+#elif defined Q_PROCESSOR_S390
+        "-machine",
+        "s390-ccw-virtio",
+#elif defined Q_PROCESSOR_POWER
+        "-machine",
+        "pseries,cap-large-decr=off",
 #endif
-            "--enable-kvm", "-cpu", "host", "-nic",
-            QString::fromStdString(
-                fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
-                            tap_name,
-                            vm_desc.default_mac_address)),
+        "--enable-kvm",
+#if defined Q_PROCESSOR_POWER
+        "-cpu",
+        "POWER9",
+#else
+        "-cpu",
+        "host",
+#endif
+            // clang-format on
             "-nic",
             QString::fromStdString(
-                fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
-                            extra_interface.id,
-                            extra_interface.mac_address,
-                            QCoreApplication::applicationDirPath() + "/bridge_helper"))
+                fmt::format("tap,ifname={},script=no,downscript=no,model={},mac={}",
+                            tap_name,
+                            network_interface,
+                            vm_desc.default_mac_address)),
+            "-nic",
+            QString::fromStdString(fmt::format("bridge,br={},model={},mac={},helper={}",
+                                               extra_interface.id,
+                                               network_interface,
+                                               extra_interface.mac_address,
+                                               "./bridge_helper"))
     };
 
     EXPECT_THAT(platform_args, ElementsAreArray(expected_platform_args));

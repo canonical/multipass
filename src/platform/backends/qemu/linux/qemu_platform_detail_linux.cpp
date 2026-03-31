@@ -184,6 +184,7 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
     if (!(vm_desc.image.original_release == "16.04 LTS" &&
           vm_desc.image.image_path.contains("disk1.img")))
     {
+        // clang-format off
 #if defined Q_PROCESSOR_X86
         opts << "-bios"
              << "OVMF.fd";
@@ -195,28 +196,32 @@ QStringList mp::QemuPlatformDetail::vm_platform_args(const VirtualMachineDescrip
 #endif
     }
 
-    opts << "--enable-kvm"
-         // Pass host CPU flags to VM
-         << "-cpu"
-         << "host"
-         // Set up the network related args
-         << "-nic"
+    opts << "--enable-kvm";
+
+    // Pass host CPU flags to VM
+#if defined Q_PROCESSOR_POWER
+    opts << "-cpu"
+         << "POWER9";
+#else
+    opts << "-cpu"
+         << "host";
+#endif
+    // clang-format on
+
+    // Set up the network related args
+    opts << "-nic"
          << QString::fromStdString(
                 fmt::format("tap,ifname={},script=no,downscript=no,model=virtio-net-pci,mac={}",
                             tap_device_name,
                             vm_desc.default_mac_address));
 
-    const auto bridge_helper_exec_path =
-        QDir(QCoreApplication::applicationDirPath()).filePath(BRIDGE_HELPER_EXEC_NAME_CPP);
-
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
         opts << "-nic"
              << QString::fromStdString(
-                    fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper={}",
+                    fmt::format("bridge,br={},model=virtio-net-pci,mac={},helper=./bridge_helper",
                                 extra_interface.id,
-                                extra_interface.mac_address,
-                                bridge_helper_exec_path));
+                                extra_interface.mac_address));
     }
 
     return opts;
