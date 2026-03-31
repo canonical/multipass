@@ -31,7 +31,7 @@ public:
 
     MOCK_METHOD(std::filesystem::path,
                 convert_to_supported_format,
-                (const std::filesystem::path& image_path),
+                (const std::filesystem::path& image_path, bool destructive),
                 (const, override));
     MOCK_METHOD(void,
                 resize_image,

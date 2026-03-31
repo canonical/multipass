@@ -36,9 +36,10 @@ struct AppleVZUtils_UnitTests : public testing::Test
 {
     AppleVZUtils_UnitTests()
     {
-        ON_CALL(mock_applevz_utils, convert_to_supported_format(_))
-            .WillByDefault([this](const std::filesystem::path& path) {
-                return mock_applevz_utils.AppleVZUtils::convert_to_supported_format(path);
+        ON_CALL(mock_applevz_utils, convert_to_supported_format(_, _))
+            .WillByDefault([this](const std::filesystem::path& path, bool destructive) {
+                return mock_applevz_utils.AppleVZUtils::convert_to_supported_format(path,
+                                                                                    destructive);
             });
     }
 
@@ -66,21 +67,15 @@ TEST_F(AppleVZUtils_UnitTests, convertUsesRawFormatOnPreMacOS26)
         if (process->program() == "qemu-img")
         {
             const auto args = process->arguments();
-            if (args.size() >= 2 && args.at(0) == "info")
-            {
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
+            if (args.contains("info"))
                 EXPECT_CALL(*process, read_all_standard_output)
                     .WillOnce(Return(QByteArray(R"({"format": "qcow2"})")));
-            }
-            else if (args.size() >= 5 && args.at(0) == "convert")
-            {
+            else if (args.contains("convert"))
                 EXPECT_EQ(args.at(3), "raw");
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
-            }
         }
     });
 
-    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
+    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
 
     EXPECT_EQ(result.extension(), ".raw");
     EXPECT_NE(result, test_image.path());
@@ -94,16 +89,13 @@ TEST_F(AppleVZUtils_UnitTests, convertIsNoOpWhenAlreadyRaw)
         if (process->program() == "qemu-img")
         {
             const auto args = process->arguments();
-            if (args.size() >= 2 && args.at(0) == "info")
-            {
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
+            if (args.contains("info"))
                 EXPECT_CALL(*process, read_all_standard_output)
                     .WillOnce(Return(QByteArray(R"({"format": "raw"})")));
-            }
         }
     });
 
-    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
+    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
 
     EXPECT_EQ(result, test_image.path());
 }
@@ -112,13 +104,13 @@ TEST_F(AppleVZUtils_UnitTests, asifImagesNotConvertedOnMacOS26)
 {
     EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
 
-    MP_UTILS.make_file_with_content(test_image.name().toStdString(), "shdw", true);
+    MP_UTILS.make_file_with_content(test_image.path(), "shdw", true);
 
     bool conversion_attempted = false;
     process_factory_scope->register_callback(
         [&conversion_attempted](mpt::MockProcess* process) { conversion_attempted = true; });
 
-    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
+    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
 
     EXPECT_EQ(result, test_image.path());
     EXPECT_FALSE(conversion_attempted);
@@ -128,64 +120,66 @@ TEST_F(AppleVZUtils_UnitTests, nonAsifBytesTriggerConversionOnMacOS26)
 {
     EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
 
-    MP_UTILS.make_file_with_content(test_image.name().toStdString(), std::string(4, '\xFF'), true);
+    MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
 
-    bool diskutil_create_called = false;
-    process_factory_scope->register_callback([&diskutil_create_called,
-                                              &image = test_image](mpt::MockProcess* process) {
+    bool asif_created = false;
+    process_factory_scope->register_callback([&asif_created](mpt::MockProcess* process) {
         if (process->program() == "qemu-img")
         {
             const auto args = process->arguments();
-            if (args.size() >= 2 && args.at(0) == "info")
-            {
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
+            if (args.contains("info"))
                 EXPECT_CALL(*process, read_all_standard_output)
                     .WillOnce(Return(QByteArray(R"({"format": "raw"})")));
-            }
         }
         else if (process->program() == "diskutil")
         {
             const auto args = process->arguments();
-            if (args.size() >= 2 && args.at(0) == "image")
-            {
-                if (args.at(1) == "create")
-                    diskutil_create_called = true;
-
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
-
-                if (args.at(1) == "attach")
-                    EXPECT_CALL(*process, read_all_standard_output)
-                        .WillOnce(Return(image.name().toUtf8()));
-            }
-        }
-        else if (process->program() == "hdiutil") // detach
-        {
-            EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
+            if (args.contains("image") && args.contains("create"))
+                asif_created = true;
         }
     });
 
-    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
+    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
 
-    EXPECT_TRUE(diskutil_create_called);
+    EXPECT_TRUE(asif_created);
     EXPECT_EQ(result.extension(), ".asif");
 }
 
-TEST_F(AppleVZUtils_UnitTests, conversionDetachesAndRemovesAsifOnFailure)
+TEST_F(AppleVZUtils_UnitTests, conversionKeepsRawFileWhenNonDestructive)
 {
     EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
 
     MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
 
-    bool hdiutil_detach_called = false;
-    QString asif_path;
-    process_factory_scope->register_callback([&hdiutil_detach_called,
-                                              &asif_path](mpt::MockProcess* process) {
+    process_factory_scope->register_callback([](mpt::MockProcess* process) {
         if (process->program() == "qemu-img")
         {
             const auto args = process->arguments();
-            if (args.size() >= 2 && args.at(0) == "info")
+            if (args.contains("info"))
+                EXPECT_CALL(*process, read_all_standard_output)
+                    .WillOnce(Return(QByteArray(R"({"format": "raw"})")));
+        }
+    });
+
+    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), false);
+
+    EXPECT_EQ(result.extension(), ".asif");
+    EXPECT_TRUE(std::filesystem::exists(test_image.path()));
+}
+
+TEST_F(AppleVZUtils_UnitTests, conversionRemovesAsifOnFailure)
+{
+    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
+
+    MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
+
+    QString asif_path;
+    process_factory_scope->register_callback([&asif_path](mpt::MockProcess* process) {
+        if (process->program() == "qemu-img")
+        {
+            const auto args = process->arguments();
+            if (args.contains("info"))
             {
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
                 EXPECT_CALL(*process, read_all_standard_output)
                     .WillOnce(Return(QByteArray(R"({"format": "raw"})")));
             }
@@ -193,76 +187,73 @@ TEST_F(AppleVZUtils_UnitTests, conversionDetachesAndRemovesAsifOnFailure)
         else if (process->program() == "diskutil")
         {
             const auto args = process->arguments();
-            if (args.size() >= 2 && args.at(0) == "image")
+            if (args.contains("image") && args.contains("create"))
             {
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
-
-                if (args.at(1) == "create")
-                {
-                    asif_path = args.last();
-                    MP_UTILS.make_file_with_content(asif_path.toStdString(), "placeholder", true);
-                }
-                else if (args.at(1) == "attach")
-                    // Return a path that cannot be opened for writing, which causes
-                    // std::ofstream to fail inside the try block and trigger the catch.
-                    EXPECT_CALL(*process, read_all_standard_output)
-                        .WillOnce(Return("/nonexistent/device"));
+                asif_path = args.at(4);
+                MP_UTILS.make_file_with_content(asif_path.toStdString(), "placeholder", true);
+                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
             }
-        }
-        else if (process->program() == "hdiutil")
-        {
-            hdiutil_detach_called = true;
-            EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
         }
     });
 
-    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path()),
+    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true),
                  std::runtime_error);
-    EXPECT_TRUE(hdiutil_detach_called);
-    EXPECT_FALSE(QFileInfo(asif_path).exists());
+    EXPECT_FALSE(std::filesystem::exists(asif_path.toStdString()));
 }
 
-TEST_F(AppleVZUtils_UnitTests, asifMagicWithTrailingDataIsStillAsif)
+TEST_F(AppleVZUtils_UnitTests, conversionKeepsRawOnNonDestructiveFailure)
 {
     EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
 
-    MP_UTILS.make_file_with_content(test_image.name().toStdString(),
-                                    std::string("shdw") + std::string(100, '\xAB'),
-                                    true);
+    MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
 
-    bool conversion_attempted = false;
-    process_factory_scope->register_callback(
-        [&conversion_attempted](mpt::MockProcess*) { conversion_attempted = true; });
+    QString asif_path;
+    process_factory_scope->register_callback([&asif_path](mpt::MockProcess* process) {
+        if (process->program() == "qemu-img")
+        {
+            const auto args = process->arguments();
+            if (args.contains("info"))
+                EXPECT_CALL(*process, read_all_standard_output)
+                    .WillOnce(Return(QByteArray(R"({"format": "raw"})")));
+        }
+        else if (process->program() == "diskutil")
+        {
+            const auto args = process->arguments();
+            if (args.contains("image") && args.contains("create"))
+            {
+                asif_path = args.at(4);
+                MP_UTILS.make_file_with_content(asif_path.toStdString(), "placeholder", false);
+                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
+            }
+        }
+    });
 
-    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
-
-    EXPECT_EQ(result, test_image.path());
-    EXPECT_FALSE(conversion_attempted);
+    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), false),
+                 std::runtime_error);
+    EXPECT_FALSE(std::filesystem::exists(asif_path.toStdString()));
+    EXPECT_TRUE(std::filesystem::exists(test_image.path()));
 }
 
 TEST_F(AppleVZUtils_UnitTests, asifImageResizesViaDiskutil)
 {
-    MP_UTILS.make_file_with_content(test_image.name().toStdString(), "shdw", true);
+    MP_UTILS.make_file_with_content(test_image.path(), "shdw", true);
 
     const auto target_size = mp::MemorySize::from_bytes(512LL * 1024 * 1024);
     bool diskutil_resize_called = false;
 
-    process_factory_scope->register_callback([&diskutil_resize_called,
-                                              &target_size,
-                                              &image = test_image](mpt::MockProcess* process) {
-        if (process->program() == "diskutil")
-        {
-            const auto args = process->arguments();
-            if (args.size() >= 5 && args.at(0) == "image" && args.at(1) == "resize" &&
-                args.at(2) == "--size")
+    process_factory_scope->register_callback(
+        [&diskutil_resize_called, &target_size, &image = test_image](mpt::MockProcess* process) {
+            if (process->program() == "diskutil")
             {
-                diskutil_resize_called = true;
-                EXPECT_EQ(args.at(3), QString::number(target_size.in_bytes()));
-                EXPECT_EQ(args.at(4), image.name());
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{0, std::nullopt}));
+                const auto args = process->arguments();
+                if (args.contains("image") && args.contains("resize"))
+                {
+                    diskutil_resize_called = true;
+                    EXPECT_EQ(args.at(3), QString::number(target_size.in_bytes()));
+                    EXPECT_EQ(args.at(4), image.name());
+                }
             }
-        }
-    });
+        });
 
     mock_applevz_utils.AppleVZUtils::resize_image(target_size, test_image.path());
 
@@ -271,12 +262,130 @@ TEST_F(AppleVZUtils_UnitTests, asifImageResizesViaDiskutil)
 
 TEST_F(AppleVZUtils_UnitTests, nonAsifImageResizesToExactSize)
 {
-    MP_UTILS.make_file_with_content(test_image.name().toStdString(), "test", true);
+    MP_UTILS.make_file_with_content(test_image.path(), "test", true);
 
     constexpr auto target_size = 4096;
     mock_applevz_utils.AppleVZUtils::resize_image(mp::MemorySize::from_bytes(target_size),
                                                   test_image.path());
 
     EXPECT_EQ(std::filesystem::file_size(test_image.path()), target_size);
+}
+
+TEST_F(AppleVZUtils_UnitTests, resizeAsifImageThrowsOnDiskutilFailure)
+{
+    MP_UTILS.make_file_with_content(test_image.path(), "shdw", true);
+
+    process_factory_scope->register_callback([](mpt::MockProcess* process) {
+        if (process->program() == "diskutil")
+        {
+            const auto args = process->arguments();
+            if (args.contains("image") && args.contains("resize"))
+                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
+        }
+    });
+
+    const auto target_size = mp::MemorySize::from_bytes(512LL * 1024 * 1024);
+    EXPECT_THROW(mock_applevz_utils.AppleVZUtils::resize_image(target_size, test_image.path()),
+                 std::runtime_error);
+}
+
+TEST_F(AppleVZUtils_UnitTests, makeSparseThrowsWhenResizeFileFails)
+{
+    MP_UTILS.make_file_with_content(test_image.path(), "test", true);
+    QFile::setPermissions(test_image.name(), QFileDevice::ReadOwner | QFileDevice::ReadUser);
+
+    const auto target_size = mp::MemorySize::from_bytes(512LL * 1024 * 1024);
+    EXPECT_THROW(mock_applevz_utils.AppleVZUtils::resize_image(target_size, test_image.path()),
+                 std::runtime_error);
+
+    QFile::setPermissions(test_image.name(),
+                          QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser |
+                              QFileDevice::WriteUser);
+}
+
+TEST_F(AppleVZUtils_UnitTests, fileShorterThanMagicTreatedAsRaw)
+{
+    MP_UTILS.make_file_with_content(test_image.path(), "ab", true);
+
+    constexpr auto target_size = 4096;
+    mock_applevz_utils.AppleVZUtils::resize_image(mp::MemorySize::from_bytes(target_size),
+                                                  test_image.path());
+
+    EXPECT_EQ(std::filesystem::file_size(test_image.path()), target_size);
+}
+
+TEST_F(AppleVZUtils_UnitTests, conversionDeletesIntermediateRawOnSuccess)
+{
+    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
+
+    MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
+
+    QString raw_path;
+    process_factory_scope->register_callback([&raw_path](mpt::MockProcess* process) {
+        if (process->program() == "qemu-img")
+        {
+            const auto args = process->arguments();
+            if (args.contains("info"))
+                EXPECT_CALL(*process, read_all_standard_output)
+                    .WillOnce(Return(QByteArray(R"({"format": "qcow2"})")));
+            else if (args.contains("convert"))
+            {
+                raw_path = args.at(5);
+                MP_UTILS.make_file_with_content(raw_path.toStdString(),
+                                                std::string(4, '\xFF'),
+                                                false);
+            }
+        }
+    });
+
+    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
+
+    EXPECT_EQ(result.extension(), ".asif");
+    EXPECT_FALSE(std::filesystem::exists(raw_path.toStdString()));
+    EXPECT_TRUE(std::filesystem::exists(test_image.path()));
+}
+
+TEST_F(AppleVZUtils_UnitTests, conversionDeletesFilesOnFailure)
+{
+    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
+
+    MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
+
+    QString raw_path;
+    QString asif_path;
+    process_factory_scope->register_callback([&raw_path, &asif_path](mpt::MockProcess* process) {
+        if (process->program() == "qemu-img")
+        {
+            const auto args = process->arguments();
+            if (args.contains("info"))
+                EXPECT_CALL(*process, read_all_standard_output)
+                    .WillOnce(Return(QByteArray(R"({"format": "qcow2"})")));
+            else if (args.contains("convert"))
+            {
+                // args: ["convert", "-p", "-O", "raw", source, dest]
+                raw_path = args.at(5);
+                MP_UTILS.make_file_with_content(raw_path.toStdString(),
+                                                std::string(4, '\xFF'),
+                                                false);
+            }
+        }
+        else if (process->program() == "diskutil")
+        {
+            const auto args = process->arguments();
+            if (args.contains("image") && args.contains("create"))
+            {
+                asif_path = args.at(4);
+                MP_UTILS.make_file_with_content(asif_path.toStdString(), "placeholder", false);
+                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
+            }
+        }
+    });
+
+    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true),
+                 std::runtime_error);
+
+    EXPECT_FALSE(std::filesystem::exists(raw_path.toStdString()));
+    EXPECT_FALSE(std::filesystem::exists(asif_path.toStdString()));
+    EXPECT_TRUE(std::filesystem::exists(test_image.path()));
 }
 } // namespace

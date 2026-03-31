@@ -66,7 +66,9 @@ bool is_asif_image(const std::filesystem::path& image_path)
 {
     // ASIF format uses "shdw" magic bytes (0x73686477)
     const auto file = MP_FILEOPS.open_read(image_path, std::ios::binary);
-    file->exceptions(std::ios::failbit | std::ios::badbit);
+    file->exceptions(std::ios::badbit);
+    if (file->fail())
+        throw std::runtime_error(fmt::format("Failed to open file for reading: {}", image_path));
 
     std::array<char, 4> magic{};
     file->read(magic.data(), magic.size());
@@ -83,8 +85,8 @@ void resize_asif_image(const std::filesystem::path& image_path, const mp::Memory
         fmt::format("resize ASIF image: {}, size: {}", image_path, disk_space.human_readable()));
 }
 
-void convert_to_asif(const std::filesystem::path& source_path,
-                     const std::filesystem::path& dest_path)
+void create_asif_from(const std::filesystem::path& source_path,
+                      const std::filesystem::path& dest_path)
 {
     run_process(QStringLiteral("diskutil"),
                 QStringList() << "image" << "create" << "from"
@@ -117,7 +119,7 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path, 
 
     try
     {
-        convert_to_asif(raw_path, asif_path);
+        create_asif_from(raw_path, asif_path);
     }
     catch (...)
     {
