@@ -33,7 +33,9 @@ constexpr static auto log_category = "applevz-vm";
 
 void amend_disk_image(mp::VirtualMachineDescription& desc)
 {
-    desc.image.image_path = MP_APPLEVZ_UTILS.convert_to_supported_format(desc.image.image_path);
+    // Keep the source image intact in case anything goes wrong
+    desc.image.image_path =
+        MP_APPLEVZ_UTILS.convert_to_supported_format(desc.image.image_path, false);
 }
 } // namespace
 

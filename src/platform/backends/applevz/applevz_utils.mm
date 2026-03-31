@@ -76,18 +76,20 @@ bool is_asif_image(const std::filesystem::path& image_path)
 
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
 {
-    run_process(QStringLiteral("diskutil"),
-                QStringList() << "image" << "resize" << "--size"
-                              << QString::number(disk_space.in_bytes()) << MP_PLATFORM.path_to_qstr(image_path),
-                fmt::format("resize ASIF image: {}, size: {}",
-                            image_path,
-                            disk_space.human_readable()));
+    run_process(
+        QStringLiteral("diskutil"),
+        QStringList() << "image" << "resize" << "--size" << QString::number(disk_space.in_bytes())
+                      << MP_PLATFORM.path_to_qstr(image_path),
+        fmt::format("resize ASIF image: {}, size: {}", image_path, disk_space.human_readable()));
 }
 
-void convert_to_asif(const std::filesystem::path& source_path, const std::filesystem::path& dest_path)
+void convert_to_asif(const std::filesystem::path& source_path,
+                     const std::filesystem::path& dest_path)
 {
     run_process(QStringLiteral("diskutil"),
-                QStringList() << "image" << "create" << "from" << MP_PLATFORM.path_to_qstr(source_path) << MP_PLATFORM.path_to_qstr(dest_path) << "-f"
+                QStringList() << "image" << "create" << "from"
+                              << MP_PLATFORM.path_to_qstr(source_path)
+                              << MP_PLATFORM.path_to_qstr(dest_path) << "-f"
                               << "asif",
                 fmt::format("convert {} to ASIF format at {}", source_path, dest_path));
 }
@@ -101,7 +103,7 @@ void make_sparse(const std::filesystem::path& raw_image_path, const mp::MemorySi
         throw std::runtime_error(fmt::format("Failed to resize file: {}", ec.message()));
 }
 
-std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
+std::filesystem::path convert_to_asif(const std::filesystem::path& source_path, bool destructive)
 {
     if (is_asif_image(source_path))
         return source_path;
@@ -119,12 +121,15 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
     }
     catch (...)
     {
-        QFile::remove(raw_path);
+        if (destructive)
+            QFile::remove(raw_path);
         QFile::remove(asif_path);
         throw;
     }
 
-    QFile::remove(raw_path);
+    // This is often an intermediate file so we remove it, unless it came from an existing VM
+    if (destructive)
+        QFile::remove(raw_path);
     return asif_path;
 }
 } // namespace
@@ -132,9 +137,10 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
 namespace multipass::applevz
 {
 std::filesystem::path AppleVZUtils::convert_to_supported_format(
-    const std::filesystem::path& image_path) const
+    const std::filesystem::path& image_path,
+    bool destructive) const
 {
-    return macos_at_least(26, 0) ? convert_to_asif(image_path)
+    return macos_at_least(26, 0) ? convert_to_asif(image_path, destructive)
                                  : backend::convert(image_path, "raw");
 }
 
