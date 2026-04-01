@@ -99,6 +99,15 @@ struct HyperVHCSAPI_UnitTests : public ::testing::Test
     void generic_operation_create_operation_fail(
         UutCallableT uut_callback,
         PWSTR expected_status_msg = hcs_create_operation_fail_msg);
+
+    void verify_create_compute_system_failure(const CreateComputeSystemParameters& params)
+    {
+        HcsSystemHandle handle{nullptr};
+        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
+        ASSERT_FALSE(status.success());
+        ASSERT_EQ(nullptr, handle);
+        ASSERT_TRUE(status_msg.empty());
+    }
 };
 
 // ---------------------------------------------------------
@@ -244,17 +253,20 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
 
     { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true});
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
-        params.memory_size_mb = 16384;
-        params.processor_count = 8;
-        params.guest_state.guest_state_file_path = "non-empty.vmgs";
-        params.guest_state.runtime_state_file_path = "non-empty.vmrs";
-        params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
+        const CreateComputeSystemParameters params{
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+            .scsi_devices = {
+                {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
+                {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+            },
+            .guest_state = {
+                .guest_state_file_path = "non-empty.vmgs",
+                .runtime_state_file_path = "non-empty.vmrs",
+                .save_state_file_path = "non-empty.savedstate.vmrs",
+            },
+        };
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_TRUE(status.success());
@@ -274,17 +286,14 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmgs_create_fail)
     }
 
     { // Verify the expected outcome.
-        HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.guest_state.guest_state_file_path = "non-empty.vmgs";
-        params.guest_state.runtime_state_file_path = "non-empty.vmrs";
-        params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
-
-        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_FALSE(status.success());
-        ASSERT_EQ(nullptr, handle);
-        ASSERT_TRUE(status_msg.empty());
+        verify_create_compute_system_failure({
+            .name = "test_vm",
+            .guest_state = {
+                .guest_state_file_path = "non-empty.vmgs",
+                .runtime_state_file_path = "non-empty.vmrs",
+                .save_state_file_path = "non-empty.savedstate.vmrs",
+            },
+        });
     }
 }
 
@@ -303,17 +312,14 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_vmrs_create_fail)
     }
 
     { // Verify the expected outcome.
-        HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.guest_state.guest_state_file_path = "non-empty.vmgs";
-        params.guest_state.runtime_state_file_path = "non-empty.vmrs";
-        params.guest_state.save_state_file_path = "non-empty.savedstate.vmrs";
-
-        const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
-        ASSERT_FALSE(status.success());
-        ASSERT_EQ(nullptr, handle);
-        ASSERT_TRUE(status_msg.empty());
+        verify_create_compute_system_failure({
+            .name = "test_vm",
+            .guest_state = {
+                .guest_state_file_path = "non-empty.vmgs",
+                .runtime_state_file_path = "non-empty.vmrs",
+                .save_state_file_path = "non-empty.savedstate.vmrs",
+            },
+        });
     }
 }
 
@@ -433,12 +439,14 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
 
     { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
-        params.memory_size_mb = 16384;
-        params.processor_count = 8;
+        const CreateComputeSystemParameters params{
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+            .scsi_devices = {
+                {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+            },
+        };
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_TRUE(status.success());
@@ -564,12 +572,14 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
 
     { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true});
-        params.memory_size_mb = 16384;
-        params.processor_count = 8;
+        const CreateComputeSystemParameters params{
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+            .scsi_devices = {
+                {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
+            },
+        };
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_NE(nullptr, handle);
@@ -685,10 +695,11 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
 
     { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.memory_size_mb = 16384;
-        params.processor_count = 8;
+        const CreateComputeSystemParameters params{
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+        };
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_TRUE(status.success());
@@ -717,14 +728,15 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
 
     { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true});
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
-        params.memory_size_mb = 16384;
-        params.processor_count = 8;
+        const CreateComputeSystemParameters params{
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+            .scsi_devices = {
+                {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
+                {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+            },
+        };
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_FALSE(status.success());
@@ -840,14 +852,15 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
 
     { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true});
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
-        params.memory_size_mb = 16384;
-        params.processor_count = 8;
+        const CreateComputeSystemParameters params{
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+            .scsi_devices = {
+                {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
+                {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+            },
+        };
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_FALSE(status.success());
@@ -982,14 +995,15 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
 
     { // Verify the expected outcome.
         HcsSystemHandle handle{nullptr};
-        CreateComputeSystemParameters params{};
-        params.name = "test_vm";
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true});
-        params.scsi_devices.push_back(
-            HcsScsiDevice{HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"});
-        params.memory_size_mb = 16384;
-        params.processor_count = 8;
+        const CreateComputeSystemParameters params{
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+            .scsi_devices = {
+                {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
+                {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+            },
+        };
 
         const auto& [status, status_msg] = HCS().create_compute_system(params, handle);
         ASSERT_FALSE(status.success());
