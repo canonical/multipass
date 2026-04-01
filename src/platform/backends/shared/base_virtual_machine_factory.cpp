@@ -143,7 +143,8 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
         if (entry.path().extension().string() == ".iso" ||
             entry.path().extension().string() == ".img" ||
             entry.path().extension().string() == ".qcow2" ||
-            entry.path().extension().string() == ".raw")
+            entry.path().extension().string() == ".raw" ||
+            entry.path().extension().string() == ".asif")
         {
             const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
             fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
