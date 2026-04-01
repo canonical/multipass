@@ -325,6 +325,28 @@ TEST(Utils, toCmdArgumentsWithDoubleQuotesAreEscaped)
     EXPECT_THAT(output, ::testing::StrEq("they said \\\"please\\\""));
 }
 
+// clang-format off
+template <typename Func, typename... ExtraArgs>
+concept expected_trim_traits =
+    std::same_as<std::invoke_result_t<Func, std::string&, ExtraArgs...>, std::string&> &&
+    std::same_as<std::invoke_result_t<Func, std::string&&, ExtraArgs...>, std::string> &&
+    std::same_as<std::invoke_result_t<Func, std::string, ExtraArgs...>, std::string> &&
+    !std::is_invocable_v<Func, const std::string&, ExtraArgs...>;
+
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0834r0.html
+#define LIFT(func) [](auto&&... a)                            \
+    noexcept(noexcept(func(std::forward<decltype(a)>(a)...))) \
+    -> decltype(func(std::forward<decltype(a)>(a)...))        \
+    { return func(std::forward<decltype(a)>(a)...); }
+// clang-format on
+
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim)), decltype(::isspace)&>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim))>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_begin)), decltype(::isspace)&>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_begin))>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_end)), decltype(::isspace)&>);
+static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim_end))>);
+
 struct TestTrimUtilities : public Test
 {
     std::string s{"\n \f \n \r \t   \vI'm a great\n\t string \n \f \n \r \t   \v"};
@@ -371,6 +393,18 @@ TEST(Utils, trimNewlineAssertionWorks)
     std::string s{"wrong"};
     // https://google.github.io/googletest/advanced.html#regular-expression-syntax
     ASSERT_DEBUG_DEATH(mp::utils::trim_newline(s), "\\wssert");
+}
+
+TEST_F(TestTrimUtilities, trimRvalue)
+{
+    auto result = mp::utils::trim_end(std::move(s));
+    EXPECT_THAT(result, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
+}
+
+TEST_F(TestTrimUtilities, trimPrvalue)
+{
+    auto result = mp::utils::trim_end(std::string{s});
+    EXPECT_THAT(result, ::testing::StrEq("\n \f \n \r \t   \vI'm a great\n\t string"));
 }
 
 TEST(Utils, escapeForShellActuallyEscapes)
