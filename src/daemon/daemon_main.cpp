@@ -121,6 +121,10 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
 
 int main(int argc, char* argv[])
 {
+    // Verify that the version of the library that we linked against is
+    // compatible with the version of the headers we compiled against.
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     mp::Signal app_ready_signal{};
     //
     // Register the signal handler as the first thing so the signal handler won't miss
