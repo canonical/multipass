@@ -389,11 +389,11 @@ TEST_F(LXDBackend, factoryCreatesValidVirtualMachinePtr)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
@@ -465,15 +465,16 @@ TEST_F(LXDBackend, createsInStoppedState)
                     vm_created = true;
                     return new mpt::MockLocalSocketReply(mpt::create_vm_finished_data);
                 }
-                else if (vm_created && url.contains("1.0/virtual-machines/pied-piper-valley"))
+                else if (vm_created && url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
-
+                else if (url.endsWith("1.0?project=multipass"))
+                    return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
                 return new mpt::MockLocalSocketReply(mpt::not_found_data,
                                                      QNetworkReply::ContentNotFoundError);
             }
-            else if (op == "POST" && url.contains("1.0/virtual-machines"))
+            else if (op == "POST" && url.contains("1.0/instances"))
             {
                 return new mpt::MockLocalSocketReply(mpt::create_vm_data);
             }
@@ -508,7 +509,7 @@ TEST_F(LXDBackend, machinePersistsAndSetsStateOnStart)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley"))
             {
                 if (url.contains("state"))
                 {
@@ -526,7 +527,7 @@ TEST_F(LXDBackend, machinePersistsAndSetsStateOnStart)
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("start"))
             {
                 start_called = true;
@@ -572,7 +573,7 @@ TEST_F(LXDBackend, machinePersistsAndSetsStateOnShutdown)
                     vm_shutdown = true;
                     return new mpt::MockLocalSocketReply(mpt::vm_stop_wait_task_data);
                 }
-                else if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                else if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     if (vm_shutdown)
                     {
@@ -584,7 +585,7 @@ TEST_F(LXDBackend, machinePersistsAndSetsStateOnShutdown)
                     }
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
@@ -624,7 +625,7 @@ TEST_F(LXDBackend, machinePersistsInternalStoppedStateOnDestruction)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 if (!vm_created)
                 {
@@ -681,7 +682,7 @@ TEST_F(LXDBackend, machineDoesNotUpdateStateInDtor)
                     vm_shutdown = true;
                     return new mpt::MockLocalSocketReply(mpt::vm_stop_wait_task_data);
                 }
-                else if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                else if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     if (vm_shutdown)
                     {
@@ -693,7 +694,7 @@ TEST_F(LXDBackend, machineDoesNotUpdateStateInDtor)
                     }
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 stop_requested = true;
@@ -742,7 +743,7 @@ TEST_F(LXDBackend, machineLogsNotFoundExceptionInDtor)
                     vm_shutdown = true;
                     return new mpt::MockLocalSocketReply(mpt::vm_stop_wait_task_data);
                 }
-                else if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                else if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     if (vm_shutdown)
                     {
@@ -754,7 +755,7 @@ TEST_F(LXDBackend, machineLogsNotFoundExceptionInDtor)
                     }
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 stop_requested = true;
@@ -802,12 +803,12 @@ TEST_F(LXDBackend, doesNotCallStopWhenSnapRefreshIsDetected)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 stop_requested = true;
@@ -856,12 +857,12 @@ TEST_F(LXDBackend, callsStopWhenSnapRefreshDoesNotExist)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 stop_requested = true;
@@ -904,9 +905,9 @@ TEST_F(LXDBackend, postsExpectedDataWhenCreatingInstance)
 
     QByteArray expected_data{"{"
                              "\"config\":{"
+                             "\"boot.mode\":\"uefi-nosecureboot\","
                              "\"limits.cpu\":\"2\","
                              "\"limits.memory\":\"3145728\","
-                             "\"security.secureboot\":\"false\","
                              "\"user.meta-data\":\"#cloud-config\\nLuke: Jedi\\n\","
                              "\"user.user-data\":\"#cloud-config\\nVader: Sith\\n\","
                              "\"user.vendor-data\":\"#cloud-config\\nSolo: Scoundrel\\n\""
@@ -934,7 +935,8 @@ TEST_F(LXDBackend, postsExpectedDataWhenCreatingInstance)
                              "\"source\":{"
                              "\"fingerprint\":\"\","
                              "\"type\":\"image\""
-                             "}"
+                             "},"
+                             "\"type\":\"virtual-machine\""
                              "}"};
 
     bool vm_created{false};
@@ -953,15 +955,17 @@ TEST_F(LXDBackend, postsExpectedDataWhenCreatingInstance)
                     vm_created = true;
                     return new mpt::MockLocalSocketReply(mpt::create_vm_finished_data);
                 }
-                else if (vm_created && url.contains("1.0/virtual-machines/pied-piper-valley"))
+                else if (vm_created && url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
+                else if (url.endsWith("1.0?project=multipass"))
+                    return new mpt::MockLocalSocketReply(mpt::lxd_server_info_data);
 
                 return new mpt::MockLocalSocketReply(mpt::not_found_data,
                                                      QNetworkReply::ContentNotFoundError);
             }
-            else if (op == "POST" && url.contains("1.0/virtual-machines"))
+            else if (op == "POST" && url.contains("1.0/instances"))
             {
                 // This is the test to ensure the expected data
                 EXPECT_EQ(data, expected_data);
@@ -1213,7 +1217,7 @@ TEST_P(LXDNetworkInfoSuite, returnsExpectedNetworkInfo)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
                 }
@@ -1222,7 +1226,7 @@ TEST_P(LXDNetworkInfoSuite, returnsExpectedNetworkInfo)
                     return new mpt::MockLocalSocketReply(leases_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
@@ -1267,7 +1271,7 @@ TEST_F(LXDBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
                 }
@@ -1276,7 +1280,7 @@ TEST_F(LXDBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
                     return new mpt::MockLocalSocketReply(mpt::network_no_leases_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
@@ -1312,7 +1316,7 @@ TEST_F(LXDBackend, noIpAddressReturnsUnknown)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_state_partial_running_data);
                 }
@@ -1321,7 +1325,7 @@ TEST_F(LXDBackend, noIpAddressReturnsUnknown)
                     return new mpt::MockLocalSocketReply(mpt::network_no_leases_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
@@ -1694,11 +1698,11 @@ TEST_F(LXDBackend, unsupportedSuspendThrows)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 return new mpt::MockLocalSocketReply(mpt::vm_state_fully_running_data);
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
@@ -1734,11 +1738,11 @@ TEST_F(LXDBackend, startWhileFrozenUnfreezes)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 return new mpt::MockLocalSocketReply(mpt::vm_state_frozen_data);
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("unfreeze"))
             {
                 unfreeze_called = true;
@@ -1777,7 +1781,7 @@ TEST_F(LXDBackend, shutdownWhileStoppedDoesNothingAndLogsDebug)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
             }
@@ -1818,7 +1822,7 @@ TEST_F(LXDBackend, shutdownWhileFrozenThrowsAndLogsInfo)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 return new mpt::MockLocalSocketReply(mpt::vm_state_frozen_data);
             }
@@ -1860,7 +1864,7 @@ TEST_F(LXDBackend, ensureVmRunningDoesNotThrowStarting)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 if (!start_called)
                 {
@@ -1871,7 +1875,7 @@ TEST_F(LXDBackend, ensureVmRunningDoesNotThrowStarting)
                     return new mpt::MockLocalSocketReply(mpt::vm_state_starting_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 if (data.contains("start"))
                 {
@@ -1915,7 +1919,7 @@ TEST_F(LXDBackend, shutdownWhileStartingThrowsAndSetsCorrectState)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 if ((!stop_called && !start_called) || (stop_called && start_called))
                 {
@@ -1926,7 +1930,7 @@ TEST_F(LXDBackend, shutdownWhileStartingThrowsAndSetsCorrectState)
                     return new mpt::MockLocalSocketReply(mpt::vm_state_starting_data);
                 }
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 if (data.contains("start"))
                 {
@@ -1986,7 +1990,7 @@ TEST_F(LXDBackend, startFailureWhileStartingThrowsAndSetsCorrectState)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 if (!start_called || running_returned > 1)
                 {
@@ -1996,7 +2000,7 @@ TEST_F(LXDBackend, startFailureWhileStartingThrowsAndSetsCorrectState)
                 ++running_returned;
                 return new mpt::MockLocalSocketReply(mpt::vm_state_partial_running_data);
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("start"))
             {
                 start_called = true;
@@ -2046,7 +2050,7 @@ TEST_F(LXDBackend, rebootsWhileStartingDoesNotThrowAndSetsCorrectState)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 if (!start_called || ++running_returned == 2)
                 {
@@ -2060,7 +2064,7 @@ TEST_F(LXDBackend, rebootsWhileStartingDoesNotThrowAndSetsCorrectState)
 
                 return new mpt::MockLocalSocketReply(mpt::vm_state_partial_running_data);
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("start"))
             {
                 start_called = true;
@@ -2130,11 +2134,11 @@ TEST_P(LXDInstanceStatusTestSuite, lxdStateReturnsExpectedVirtualmachineState)
             auto op = request.attribute(QNetworkRequest::CustomVerbAttribute).toString();
             auto url = request.url().toString();
 
-            if (op == "GET" && url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+            if (op == "GET" && url.contains("1.0/instances/pied-piper-valley/state"))
             {
                 return new mpt::MockLocalSocketReply(status_data);
             }
-            else if (op == "PUT" && url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
+            else if (op == "PUT" && url.contains("1.0/instances/pied-piper-valley/state") &&
                      data.contains("stop"))
             {
                 return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
@@ -2416,7 +2420,15 @@ void setup_vm_creation_expectations(mpt::MockNetworkAccessManager& mock_network_
 
     EXPECT_CALL(mock_network_access_mgr,
                 createRequest(QNetworkAccessManager::CustomOperation,
-                              custom_request_matcher("POST", "virtual-machines"),
+                              custom_request_matcher("GET", "1.0?project=multipass"),
+                              _))
+        .WillOnce(Return(new mpt::MockLocalSocketReply{
+            mpt::lxd_server_info_data,
+        }));
+
+    EXPECT_CALL(mock_network_access_mgr,
+                createRequest(QNetworkAccessManager::CustomOperation,
+                              custom_request_matcher("POST", "instances"),
                               request_contents_matcher))
         .WillOnce(Return(new mpt::MockLocalSocketReply{mpt::create_vm_data}));
 
@@ -2527,23 +2539,22 @@ TEST_F(LXDBackend, addsNetworkInterface)
 
             if (op == "GET")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state"))
+                if (url.contains("1.0/instances/pied-piper-valley/state"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_state_stopped_data);
                 }
-                if (url.contains("1.0/virtual-machines/pied-piper-valley"))
+                if (url.contains("1.0/instances/pied-piper-valley"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::vm_info_data);
                 }
             }
             if (op == "PUT")
             {
-                if (url.contains("1.0/virtual-machines/pied-piper-valley/state") &&
-                    data.contains("stop"))
+                if (url.contains("1.0/instances/pied-piper-valley/state") && data.contains("stop"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::stop_vm_data);
                 }
-                if (url.contains("1.0/virtual-machines"))
+                if (url.contains("1.0/instances"))
                 {
                     return new mpt::MockLocalSocketReply(mpt::delete_vm_wait_task_data);
                 }

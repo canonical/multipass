@@ -21,6 +21,7 @@
 
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QVersionNumber>
 
 #include <multipass/exceptions/local_socket_connection_exception.h>
 #include <multipass/exceptions/snap_environment_exception.h>
@@ -114,11 +115,20 @@ std::optional<mp::IPAddress> get_ip_for(const QString& mac_addr,
     return std::nullopt;
 }
 
-QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& desc)
+QJsonObject generate_base_vm_config(const multipass::VirtualMachineDescription& desc,
+                                    mp::NetworkAccessManager* manager,
+                                    const QUrl& url)
 {
+    const auto lxd_metadata = mp::lxd_request(manager, "GET", url);
+    const auto version = QVersionNumber::fromString(
+        lxd_metadata["metadata"]["environment"]["server_version"].toString());
+    bool useBootMode = (version >= QVersionNumber(6, 7));
+    const auto boot_mode_key = (useBootMode ? "boot.mode" : "security.secureboot");
+    const auto boot_mode_value = (useBootMode ? "uefi-nosecureboot" : "false");
+
     QJsonObject config{{"limits.cpu", QString::number(desc.num_cores)},
                        {"limits.memory", QString::number(desc.mem_size.in_bytes())},
-                       {"security.secureboot", "false"}};
+                       {boot_mode_key, boot_mode_value}};
 
     if (!desc.meta_data_config.IsNull())
         config["user.meta-data"] =
@@ -217,7 +227,8 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
 
         QJsonObject virtual_machine{
             {"name", name},
-            {"config", generate_base_vm_config(desc)},
+            {"type", "virtual-machine"},
+            {"config", generate_base_vm_config(desc, manager, base_url)},
             {"devices", generate_devices_config(desc, mac_addr, storage_pool)},
             {"source",
              QJsonObject{{"type", "image"},
@@ -225,7 +236,7 @@ mp::LXDVirtualMachine::LXDVirtualMachine(const VirtualMachineDescription& desc,
 
         auto json_reply = lxd_request(manager,
                                       "POST",
-                                      QUrl(QString("%1/virtual-machines").arg(base_url.toString())),
+                                      QUrl(QString("%1/instances").arg(base_url.toString())),
                                       virtual_machine);
 
         // TODO: Need a way to pass in the daemon timeout and make in general for all back ends
@@ -420,7 +431,7 @@ std::string mp::LXDVirtualMachine::ipv6()
 
 const QUrl mp::LXDVirtualMachine::url() const
 {
-    return QString("%1/virtual-machines/%2").arg(base_url.toString()).arg(name);
+    return QString("%1/instances/%2").arg(base_url.toString()).arg(name);
 }
 
 const QUrl mp::LXDVirtualMachine::state_url()
