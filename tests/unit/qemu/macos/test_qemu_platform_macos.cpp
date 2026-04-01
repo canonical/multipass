@@ -17,7 +17,7 @@
 
 #include "tests/unit/common.h"
 
-#include <src/platform/backends/qemu/macos/qemu_platform_detail.h>
+#include <src/platform/backends/qemu/macos/qemu_platform_macos.h>
 
 #include <algorithm>
 #include <vector>
@@ -28,7 +28,7 @@ using namespace testing;
 
 namespace
 {
-struct TestQemuPlatformDetail : public Test
+struct TestQemuPlatformMacOS : public Test
 {
     void check_expected_args(const std::vector<QStringList>& expected_args,
                              const QStringList& platform_args)
@@ -53,11 +53,11 @@ struct TestQemuPlatformDetail : public Test
 
     const std::string hw_addr{"52:54:00:6f:29:7e"};
     const QString host_arch{HOST_ARCH};
-    mp::QemuPlatformDetail qemu_platform_detail;
+    mp::QemuPlatformMacOS qemu_platform_macos;
 };
 } // namespace
 
-TEST_F(TestQemuPlatformDetail, vmPlatformArgsReturnsExpectedArguments)
+TEST_F(TestQemuPlatformMacOS, vmPlatformArgsReturnsExpectedArguments)
 {
     std::vector<QStringList> expected_args{
         {"-accel", "hvf"},
@@ -75,10 +75,10 @@ TEST_F(TestQemuPlatformDetail, vmPlatformArgsReturnsExpectedArguments)
         expected_args.push_back(QStringList({"-machine", "virt,gic-version=3"}));
     }
 
-    check_expected_args(expected_args, qemu_platform_detail.vm_platform_args(vm_desc));
+    check_expected_args(expected_args, qemu_platform_macos.vm_platform_args(vm_desc));
 }
 
-TEST_F(TestQemuPlatformDetail, vmstatePlatformArgsReturnsExpectedArguments)
+TEST_F(TestQemuPlatformMacOS, vmstatePlatformArgsReturnsExpectedArguments)
 {
     std::vector<QStringList> expected_args;
 
@@ -87,10 +87,10 @@ TEST_F(TestQemuPlatformDetail, vmstatePlatformArgsReturnsExpectedArguments)
         expected_args.push_back(QStringList({"-machine", "virt,gic-version=3"}));
     }
 
-    check_expected_args(expected_args, qemu_platform_detail.vmstate_platform_args());
+    check_expected_args(expected_args, qemu_platform_macos.vmstate_platform_args());
 }
 
-TEST_F(TestQemuPlatformDetail, getDirectoryNameReturnsExpectedString)
+TEST_F(TestQemuPlatformMacOS, getDirectoryNameReturnsExpectedString)
 {
-    EXPECT_EQ(qemu_platform_detail.get_directory_name(), "qemu");
+    EXPECT_EQ(qemu_platform_macos.get_directory_name(), "qemu");
 }

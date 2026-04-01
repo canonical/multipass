@@ -31,7 +31,7 @@ target_link_libraries(qemu_backend
   fmt::fmt-header-only
   ip_address
   logger
-  qemu_platform_detail
+  qemu_platform_impl
   scope_guard
   utils
   Qt6::Core)

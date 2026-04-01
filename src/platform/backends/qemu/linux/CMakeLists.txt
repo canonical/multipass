@@ -14,17 +14,17 @@
 
 set(BRIDGE_HELPER_EXEC_NAME "bridge_helper")
 
-add_library(qemu_platform_detail
+add_library(qemu_platform_impl
   dnsmasq_process_spec.cpp
   dnsmasq_server.cpp
   firewall_config.cpp
-  qemu_platform_detail_linux.cpp)
+  qemu_platform_linux.cpp)
 
-target_compile_definitions(qemu_platform_detail PRIVATE BRIDGE_HELPER_EXEC_NAME_CPP="${BRIDGE_HELPER_EXEC_NAME}")
+target_compile_definitions(qemu_platform_impl PRIVATE BRIDGE_HELPER_EXEC_NAME_CPP="${BRIDGE_HELPER_EXEC_NAME}")
 
-target_include_directories(qemu_platform_detail PRIVATE ../)
+target_include_directories(qemu_platform_impl PRIVATE ../)
 
-target_link_libraries(qemu_platform_detail
+target_link_libraries(qemu_platform_impl
   logger
   shared_linux
   utils
