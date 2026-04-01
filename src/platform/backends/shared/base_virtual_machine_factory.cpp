@@ -30,6 +30,7 @@ namespace mp = multipass;
 namespace mpu = multipass::utils;
 
 const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
+const std::unordered_set<std::string> cloneable_files{".iso", ".img", ".qcow2", ".raw", ".asif"};
 
 mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir)
     : instances_dir{instances_dir} {};
@@ -140,11 +141,7 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
     for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
         // snapshot files are intentionally skipped;
-        if (entry.path().extension().string() == ".iso" ||
-            entry.path().extension().string() == ".img" ||
-            entry.path().extension().string() == ".qcow2" ||
-            entry.path().extension().string() == ".raw" ||
-            entry.path().extension().string() == ".asif")
+        if (cloneable_files.contains(entry.path().extension().string()))
         {
             const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
             fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
