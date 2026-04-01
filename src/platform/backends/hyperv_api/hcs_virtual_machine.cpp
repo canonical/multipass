@@ -254,18 +254,16 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
 
 std::filesystem::path HCSVirtualMachine::get_guest_state_file_path() const
 {
-    return std::filesystem::path{description.image.image_path.toStdString()}.replace_extension(
-        ".vmgs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(".vmgs");
 }
 std::filesystem::path HCSVirtualMachine::get_runtime_state_file_path() const
 {
-    return std::filesystem::path{description.image.image_path.toStdString()}.replace_extension(
-        ".vmrs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(".vmrs");
 }
 
 std::filesystem::path HCSVirtualMachine::get_saved_state_file_path() const
 {
-    return std::filesystem::path{description.image.image_path.toStdString()}.replace_extension(
+    return std::filesystem::path{description.image.image_path}.replace_extension(
         ".SavedState.vmrs");
 }
 
@@ -276,8 +274,7 @@ bool HCSVirtualMachine::has_saved_state_file() const
 
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
-    const std::filesystem::path base_vhdx = description.image.image_path.toStdString();
-    return base_vhdx;
+    return description.image.image_path;
 }
 
 void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
@@ -685,8 +682,7 @@ void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
                new_size.in_megabytes());
 
     if (const auto result =
-            VirtDisk().resize_virtual_disk(description.image.image_path.toStdString(),
-                                           new_size.in_bytes());
+            VirtDisk().resize_virtual_disk(description.image.image_path, new_size.in_bytes());
         !result)
     {
         throw ResizeDiskException{"Disk resize failed, details: {}", result};

@@ -136,14 +136,13 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
 
 VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
 {
-    const std::filesystem::path source_file{source_image.image_path.toStdString()};
-
-    if (!std::filesystem::exists(source_file))
+    const auto& source_file = source_image.image_path;
+    if (!MP_FILEOPS.exists(source_file))
     {
         throw ImageConversionException{"Image {} does not exist", source_file};
     }
 
-    const std::filesystem::path target_file = [source_file]() {
+    const std::filesystem::path target_file = [&source_file]() {
         auto target_file = source_file;
         target_file.replace_extension(".vhdx");
         return target_file;
@@ -154,8 +153,8 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
                                     "subformat=dynamic",
                                     "-O",
                                     "vhdx",
-                                    QString::fromStdString(source_file.string()),
-                                    QString::fromStdString(target_file.string())};
+                                    MP_PLATFORM.path_to_qstr(source_file),
+                                    MP_PLATFORM.path_to_qstr(target_file)};
 
     QProcess qemu_img_process{};
     qemu_img_process.setProgram("qemu-img.exe");
@@ -181,7 +180,7 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
     }
 
     VMImage result{source_image};
-    result.image_path = QString::fromStdString(target_file.string());
+    result.image_path = target_file.generic_wstring();
     return result;
 }
 
@@ -190,12 +189,11 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
 {
     // Resize the instance image to the desired size
     const auto resize_result =
-        VirtDisk().resize_virtual_disk(instance_image.image_path.toStdString(),
-                                       desc.disk_space.in_bytes());
+        VirtDisk().resize_virtual_disk(instance_image.image_path, desc.disk_space.in_bytes());
     if (!resize_result)
     {
         throw ImageResizeException{"Failed to resize VHDX file `{}`, virtdisk API error code `{}`",
-                                   instance_image.image_path.toStdString(),
+                                   instance_image.image_path,
                                    resize_result};
     }
 }
@@ -255,7 +253,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     // Copy the VHDX file.
     const hyperv::virtdisk::CreateVirtualDiskParameters clone_vhdx_params{
         .size_in_bytes = 0, // 512 MiB
-        .path = desc.image.image_path.toStdString(),
+        .path = desc.image.image_path,
         .predecessor = virtdisk::SourcePathParameters{src_vm_vhdx}};
 
     const auto create_vd_result = VirtDisk().create_virtual_disk(clone_vhdx_params);

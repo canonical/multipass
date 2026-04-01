@@ -137,9 +137,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image)
     multipass::VirtualMachineDescription desc;
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
-    EXPECT_CALL(
-        mock_virtdisk,
-        resize_virtual_disk(Eq(img.image_path.toStdString()), Eq(desc.disk_space.in_bytes())))
+    EXPECT_CALL(mock_virtdisk,
+                resize_virtual_disk(Eq(img.image_path), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
     ASSERT_NO_THROW(uut = construct_factory());
@@ -155,9 +154,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image_failed)
     multipass::VirtualMachineDescription desc;
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
-    EXPECT_CALL(
-        mock_virtdisk,
-        resize_virtual_disk(Eq(img.image_path.toStdString()), Eq(desc.disk_space.in_bytes())))
+    EXPECT_CALL(mock_virtdisk,
+                resize_virtual_disk(Eq(img.image_path), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{1, L""}));
 
     ASSERT_NO_THROW(uut = construct_factory());
