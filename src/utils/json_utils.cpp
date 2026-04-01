@@ -103,48 +103,6 @@ QJsonValue mp::JsonUtils::update_cloud_init_instance_id(const QJsonValue& id,
     return QJsonValue{QString::fromStdString(id_str.replace(0, src_vm_name.size(), dest_vm_name))};
 }
 
-QJsonArray mp::JsonUtils::extra_interfaces_to_json_array(
-    const std::vector<mp::NetworkInterface>& extra_interfaces) const
-{
-    QJsonArray json;
-
-    for (const auto& interface : extra_interfaces)
-    {
-        QJsonObject entry;
-        entry.insert("id", QString::fromStdString(interface.id));
-        entry.insert("mac_address", QString::fromStdString(interface.mac_address));
-        entry.insert("auto_mode", interface.auto_mode);
-        json.append(entry);
-    }
-
-    return json;
-}
-
-std::optional<std::vector<mp::NetworkInterface>> mp::JsonUtils::read_extra_interfaces(
-    const QJsonObject& record) const
-{
-    if (record.contains("extra_interfaces"))
-    {
-        std::vector<mp::NetworkInterface> extra_interfaces;
-
-        for (QJsonValueRef entry : record["extra_interfaces"].toArray())
-        {
-            auto id = entry.toObject()["id"].toString().toStdString();
-            auto mac_address = entry.toObject()["mac_address"].toString().toStdString();
-            if (!mpu::valid_mac_address(mac_address))
-            {
-                throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
-            }
-            auto auto_mode = entry.toObject()["auto_mode"].toBool();
-            extra_interfaces.push_back(mp::NetworkInterface{id, mac_address, auto_mode});
-        }
-
-        return extra_interfaces;
-    }
-
-    return std::nullopt;
-}
-
 boost::json::object mp::update_unique_identifiers_of_metadata(const boost::json::object& metadata,
                                                               const multipass::VMSpecs& src_specs,
                                                               const multipass::VMSpecs& dest_specs,

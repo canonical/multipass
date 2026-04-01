@@ -24,6 +24,7 @@
 
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -100,7 +101,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
                        const QStringList& platform_args)
 {
-    if (!QFile::exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
+    if (!MP_FILEOPS.exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }
@@ -786,22 +787,22 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
 
 void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
 {
-    if (!management_ip)
-    {
-        auto action = [this] {
-            detect_aborted_start();
-            return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-                       ? mpu::TimeoutAction::done
-                       : mpu::TimeoutAction::retry;
-        };
+    if (management_ip)
+        return;
 
-        auto on_timeout = [this, &timeout] {
-            state = State::unknown;
-            throw InternalTimeoutException{"determine IP address", timeout};
-        };
+    auto action = [this] {
+        detect_aborted_start();
+        return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
+                   ? mpu::TimeoutAction::done
+                   : mpu::TimeoutAction::retry;
+    };
 
-        mpu::try_action_for(on_timeout, timeout, action);
-    }
+    auto on_timeout = [this, &timeout] {
+        state = State::unknown;
+        throw InternalTimeoutException{"determine IP address", timeout};
+    };
+
+    mpu::try_action_for(on_timeout, timeout, action);
 }
 
 void mp::QemuVirtualMachine::refresh_start()

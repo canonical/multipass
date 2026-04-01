@@ -17,31 +17,40 @@
 
 #pragma once
 
+#include "dnsmasq_server.h"
+#include "firewall_config.h"
+
 #include <qemu_platform.h>
 
 #include <multipass/path.h>
 
+#include <unordered_map>
+#include <utility>
+
 namespace multipass
 {
-// This class is the platform detail for QEMU on macOS
-class QemuPlatformDetail : public QemuPlatform
+// This class is the platform detail for QEMU on Linux
+class QemuPlatformLinux : public QemuPlatform
 {
 public:
-    explicit QemuPlatformDetail();
+    explicit QemuPlatformLinux(const Path& data_dir);
+    ~QemuPlatformLinux() override;
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
     void remove_resources_for(const std::string& name) override;
     void platform_health_check() override;
-    QStringList vmstate_platform_args() override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
-    QString get_directory_name() const override;
     bool is_network_supported(const std::string& network_type) const override;
     bool needs_network_prep() const override;
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) const override;
     void set_authorization(std::vector<NetworkInterfaceInfo>& networks) override;
 
 private:
-    const QString host_arch{HOST_ARCH};
-    const QStringList common_args;
+    const QString bridge_name;
+    const Path network_dir;
+    const std::string subnet;
+    DNSMasqServer::UPtr dnsmasq_server;
+    FirewallConfig::UPtr firewall_config;
+    std::unordered_map<std::string, std::pair<QString, std::string>> name_to_net_device_map;
 };
 } // namespace multipass

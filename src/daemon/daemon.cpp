@@ -1333,7 +1333,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
-        if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
+        if (!vm_image.image_path.empty() && !MP_FILEOPS.exists(vm_image.image_path))
         {
             mpl::warn(category,
                       "Could not find image for '{}'. Expected location: {}",
@@ -1343,7 +1343,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
+        const auto instance_dir =
+            mp::utils::base_dir(MP_PLATFORM.path_to_qstr(vm_image.image_path));
         const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
         mp::VirtualMachineDescription vm_desc{spec.num_cores,
                                               spec.mem_size,
@@ -3180,7 +3181,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 
-            delete prepare_future_watcher;
+            prepare_future_watcher->deleteLater();
         });
 
     auto make_vm_description = [this, server, request, name, checked_args, log_level]() mutable

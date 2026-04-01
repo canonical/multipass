@@ -78,9 +78,12 @@ struct SFTPClient : public testing::Test
                            std::calloc(1, sizeof(struct sftp_session_struct)));
                        return sftp;
                    }},
-          free_sftp{mock_sftp_free, [](sftp_session sftp) { std::free(sftp); }}
+          free_sftp{mock_sftp_free, [](sftp_session sftp) { std::free(sftp); }},
+          close_sftp{mock_sftp_close, [](sftp_file file) {
+                         std::free(file);
+                         return SSH_OK;
+                     }}
     {
-        close.returnValue(SSH_OK);
     }
 
     mp::SFTPClient make_sftp_client()
@@ -95,9 +98,9 @@ struct SFTPClient : public testing::Test
         return SSH_OK;                                                                             \
     });
 
-    decltype(MOCK(sftp_close)) close{MOCK(sftp_close)};
     MockScope<decltype(mock_sftp_new)> sftp_new;
     MockScope<decltype(mock_sftp_free)> free_sftp;
+    MockScope<decltype(mock_sftp_close)> close_sftp;
 
     sftp_limits_struct limits{32768, 32768, 32768, 0};
 

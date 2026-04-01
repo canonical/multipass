@@ -17,9 +17,12 @@
 
 #include "qemu_vm_process_spec.h"
 
+#include <QCoreApplication>
+#include <QRegularExpression>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
 
@@ -38,7 +41,6 @@ mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& de
 QStringList mp::QemuVMProcessSpec::arguments() const
 {
     QStringList args;
-
     if (resume_data)
     {
         args = resume_data->arguments;
@@ -57,17 +59,22 @@ QStringList mp::QemuVMProcessSpec::arguments() const
                       "Cannot determine QEMU machine type. Falling back to system default.");
         }
 
+        args.replaceInStrings(QRegularExpression("helper=.*bridge_helper"),
+                              "helper=./bridge_helper");
         // need to fix old-style vmnet arguments
         // TODO: remove in due time
         args.replaceInStrings("vmnet-macos,mode=shared,", "vmnet-shared,");
     }
     else
     {
+        // The UUID needs to be unique per VM and must be consistent across boots.
+        const auto vm_uuid = utils::make_uuid(desc.vm_name);
         auto mem_size =
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
-
+        // clang-format off
         args << platform_args;
+        // clang-format off
         // The VM image itself
         args << "-device"
 #if defined Q_PROCESSOR_S390
@@ -77,7 +84,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
 #endif
              << "-drive"
              << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda")
-                    .arg(desc.image.image_path)
+                    .arg(MP_PLATFORM.path_to_qstr(desc.image.image_path))
              << "-device"
              << "scsi-hd,drive=hda,bus=scsi0.0";
         // Number of cpu cores
@@ -97,7 +104,11 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
              << "-nographic";
         // Cloud-init disk
         args << "-cdrom" << desc.cloud_init_iso;
+        // To make `/sys/class/dmi/id/product_uuid` present
+        args << "-uuid" << vm_uuid;
+        // clang-format on
     }
+    // clang-format on
 
     for (const auto& [_, mount_data] : mount_args)
     {
@@ -226,7 +237,7 @@ profile %1 flags=(attach_disconnected) {
                                 firmware,
                                 root_dir,
                                 program(),
-                                desc.image.image_path,
+                                QString::fromStdString(desc.image.image_path),
                                 desc.cloud_init_iso,
                                 mount_dirs);
 }
@@ -234,4 +245,9 @@ profile %1 flags=(attach_disconnected) {
 QString mp::QemuVMProcessSpec::identifier() const
 {
     return QString::fromStdString(desc.vm_name);
+}
+
+QString mp::QemuVMProcessSpec::working_directory() const
+{
+    return QDir(QCoreApplication::applicationDirPath()).absolutePath();
 }

@@ -101,6 +101,9 @@ jobs:
       id: build-params
       uses: ./.github/actions/build-params
 
+    - name: Read snapcraft.yml parameters
+      uses: ./.github/actions/read-snapcraft-yml-params
+
     - name: Apply snapcraft-ci-override.yaml
       env:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
@@ -110,11 +113,6 @@ jobs:
 
       run: |
         go install github.com/mikefarah/yq/v4@latest
-
-        # Extract CLANG_VERSION from snapcraft.yaml (single source of truth)
-        CLANG_VERSION=$(yq '.parts.multipass.build-environment[] | select(has("CLANG_VERSION")) | .CLANG_VERSION' snap/snapcraft.yaml | tr -d '"')
-        [ -z "$CLANG_VERSION" ] && { echo "::error::CLANG_VERSION not found in snapcraft.yaml"; exit 1; }
-        export CLANG_VERSION
 
         # Substitute the environment variables in the snapcraft-ci-override.yaml
         envsubst < snap/local/snapcraft-ci-override.yaml.in | yq eval 'del(.. | select(. == null or . == "")) | del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))' -P > snap/local/snapcraft-ci-override.yaml
@@ -166,7 +164,7 @@ jobs:
       # integration where the snapd is auto-refreshing itself on
       # container start.
       #  https://github.com/canonical/craft-providers/issues/391
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@v4
       with:
         # We have to set a value for this as it's not optional
         # https://github.com/nick-fields/retry/issues/51
@@ -304,7 +302,7 @@ jobs:
         set +o xtrace
 
     - name: Upload test coredump
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
       with:
         name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
@@ -332,7 +330,7 @@ jobs:
         echo "snap-file=$( ls *.snap )" >> $GITHUB_OUTPUT
 
     - name: Upload the snap
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       if: ${{ matrix.build-type == 'Release' }}
       with:
         name: ${{ steps.build-snap.outputs.snap-file }}
@@ -358,7 +356,7 @@ jobs:
     timeout-minutes: 15
     steps:
     - name: Download the built snap
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
 
@@ -372,7 +370,7 @@ jobs:
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
 
     - name: Delete unused artifacts from github
-      uses: geekyeggo/delete-artifact@v5
+      uses: geekyeggo/delete-artifact@v6
       with:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
         failOnError: false
@@ -394,3 +392,15 @@ jobs:
           Scheduled [Linux](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
         MATTERMOST_USERNAME: ${{ github.triggering_actor }}
         MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
+  Dispatch-CLI-Tests-Workflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}

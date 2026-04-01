@@ -259,6 +259,9 @@ add_subdirectory(3rd-party)
 # Qt config
 find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 
+# xz-embedded config
+find_package(xz-embedded CONFIG)
+
 include(src/cmake/versioning.cmake)
 determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})

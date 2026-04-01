@@ -49,6 +49,3 @@ add_subdirectory(libssh SYSTEM)
 add_library(premock INTERFACE)
 target_include_directories(premock INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/premock)
-
-# xz-decoder config
-add_subdirectory(xz-decoder SYSTEM EXCLUDE_FROM_ALL)

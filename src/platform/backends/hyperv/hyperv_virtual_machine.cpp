@@ -23,6 +23,7 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
@@ -165,7 +166,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                "-Generation",
                                "2",
                                "-VHDPath",
-                               '"' + desc.image.image_path + '"',
+                               '"' + MP_PLATFORM.path_to_qstr(desc.image.image_path) + '"',
                                "-BootDevice",
                                "VHD",
                                "-SwitchName",

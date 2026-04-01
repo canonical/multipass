@@ -199,6 +199,10 @@ catch (...)
 int main(int argc, char* argv[])
 try
 {
+    // Verify that the version of the library that we linked against is
+    // compatible with the version of the headers we compiled against.
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     service_argv.assign(argv, argv + argc);
 
     auto logger = mp::platform::make_logger(mpl::Level::info);

@@ -12,7 +12,8 @@ on:
 
 permissions:
   contents: read
-  checks: read
+  checks: write
+  actions: read
   packages: write
 
 jobs:
@@ -31,7 +32,7 @@ jobs:
 
       - name: Detect changed files
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           # 'base' and 'ref' are ignored for pull requests
           # For merge group events, compare against the target branch (main)

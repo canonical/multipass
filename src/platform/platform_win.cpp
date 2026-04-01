@@ -703,7 +703,7 @@ auto new_ACL(LPSTR path)
     PSECURITY_DESCRIPTOR pSD;
     auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
 
-    PACL pOldDACL = NULL;
+    PACL pOldDACL = nullptr;
     if (GetNamedSecurityInfo(path,
                              SE_FILE_OBJECT,
                              DACL_SECURITY_INFORMATION,
@@ -715,6 +715,9 @@ auto new_ACL(LPSTR path)
     {
         return newACL;
     }
+
+    if (nullptr == pOldDACL)
+        return newACL;
 
     DWORD size = sizeof(ACL);
     std::vector<ACCESS_ALLOWED_ACE*> aces{};
@@ -1075,4 +1078,14 @@ std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 
     // Windows doesn't use `daemon_name` for the data directory (see `program_data_multipass_path`)
     return base_dir / "Multipass" / "data";
+}
+
+std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) const
+{
+    return std::filesystem::path{qstr.toStdWString()};
+}
+
+QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
+{
+    return QString::fromStdWString(path.generic_wstring());
 }

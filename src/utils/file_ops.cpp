@@ -153,6 +153,11 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
     assert(false && "We should never get here");
 }
 
+void mp::FileOps::write_transactionally(const fs::path& file_name, std::string_view data) const
+{
+    write_transactionally(QString::fromStdString(file_name.string()), data);
+}
+
 // LCOV_EXCL_START
 
 bool mp::FileOps::exists(const QDir& dir) const
@@ -320,7 +325,7 @@ off_t mp::FileOps::lseek(int fd, off_t offset, int whence) const
 }
 
 void mp::FileOps::open(std::fstream& stream,
-                       const char* filename,
+                       const std::filesystem::path& filename,
                        std::ios_base::openmode mode) const
 {
     stream.open(filename, mode);
@@ -368,6 +373,19 @@ void mp::FileOps::copy(const fs::path& src,
                        fs::copy_options copy_options) const
 {
     fs::copy(src, dist, copy_options);
+}
+
+void mp::FileOps::copy(const fs::path& src,
+                       const fs::path& dist,
+                       fs::copy_options copy_options,
+                       std::error_code& ec) const
+{
+    fs::copy(src, dist, copy_options, ec);
+}
+
+bool mp::FileOps::exists(const fs::path& path) const
+{
+    return fs::exists(path);
 }
 
 bool mp::FileOps::exists(const fs::path& path, std::error_code& err) const

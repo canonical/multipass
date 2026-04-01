@@ -75,6 +75,7 @@ jobs:
       mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
+      windows-pkg-url: ${{ steps.publish-data.outputs.windows-2025-s3-url }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -163,13 +164,13 @@ jobs:
 
     - name: Install specific QEMU from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
+      uses: crazy-max/ghaction-chocolatey@v4
       with:
         args: install --yes qemu --version=2023.4.24
 
     - name: Install other packages from Choco
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
+      uses: crazy-max/ghaction-chocolatey@v4
       with:
         args: install --yes wget unzip
 
@@ -249,13 +250,13 @@ jobs:
 
     - name: Install Windows ADK
       if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v3
+      uses: crazy-max/ghaction-chocolatey@v4
       with:
         args: install --yes windows-adk-deploy
 
     - name: Install cmake
       if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v4.2.3
+      uses: lukka/get-cmake@v4.3.0
 
     - name: Set up MSVC
       if: ${{ runner.os == 'Windows' }}
@@ -302,7 +303,7 @@ jobs:
         runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
         path: ${{ steps.cmake-package.outputs.path }}
@@ -339,6 +340,8 @@ jobs:
         echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
 
+        echo "${{ matrix.runs-on }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
+
     - name: Save sccache
       uses: actions/cache/save@v5
       if: ${{ github.ref == 'refs/heads/main' }}
@@ -354,6 +357,9 @@ jobs:
 
     runs-on: macos-latest
 
+    outputs:
+      macos-pkg-url: ${{ steps.s3-upload.outputs.url }}
+
     steps:
     - name: Check out code
       uses: actions/checkout@v6
@@ -367,13 +373,13 @@ jobs:
 
     - name: Retrieve the macOS x86 package
       id: retrieve-x86
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
 
     - name: Retrieve the macOS ARM package
       id: retrieve-arm
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
 
@@ -401,7 +407,7 @@ jobs:
 
     - name: Upload combined macOS package
       if: ${{ steps.combine-package.outputs.path }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.combine-package.outputs.name }}
         path: ${{ steps.combine-package.outputs.path }}
@@ -424,6 +430,20 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
+  DispatchCLITestsWorkflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - CombineAndPublishMacOSPackage
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      macos-pkg-url: ${{ needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url }}
+      windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
+
   DeleteSeparateMacPackages:
     if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
 
@@ -433,7 +453,7 @@ jobs:
 
     steps:
     - name: Delete unused artifacts from github
-      uses: geekyeggo/delete-artifact@v5
+      uses: geekyeggo/delete-artifact@v6
       with:
         name: |
           ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}

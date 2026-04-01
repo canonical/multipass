@@ -26,6 +26,10 @@ namespace mp = multipass;
 // also define main... DAMN THEM!
 int main(int argc, char* argv[])
 {
+    // Verify that the version of the library that we linked against is
+    // compatible with the version of the headers we compiled against.
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("multipass_tests");
 

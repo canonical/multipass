@@ -26,6 +26,8 @@
 #include <QDir>
 #include <QFuture>
 
+#include <boost/json.hpp>
+
 #include <mutex>
 #include <optional>
 #include <unordered_map>
@@ -75,9 +77,9 @@ private:
                                               const FetchType& fetch_type,
                                               const PrepareAction& prepare,
                                               const ProgressMonitor& monitor);
-    QString extract_image_from(const VMImage& source_image,
-                               const ProgressMonitor& monitor,
-                               const Path& dest_dir);
+    std::filesystem::path extract_image_from(const VMImage& source_image,
+                                             const ProgressMonitor& monitor,
+                                             const std::filesystem::path& dest_dir);
     std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
     VMImage finalize_image_records(const Query& query,
                                    const VMImage& prepared_image,
@@ -98,4 +100,10 @@ private:
     std::unordered_map<std::string, VaultRecord> instance_image_records;
     std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
 };
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const VaultRecord& record);
+VaultRecord tag_invoke(const boost::json::value_to_tag<VaultRecord>&,
+                       const boost::json::value& json);
 } // namespace multipass

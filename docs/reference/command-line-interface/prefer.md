@@ -1,7 +1,7 @@
 (reference-command-line-interface-prefer)=
 # prefer
 
-> See also:  [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
+> See also:  [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
 
 The `prefer` command, introduced in Multipass release 1.11.0,  is used to switch alias contexts. It accepts a single argument, specifying the name of the context to switch to.
 

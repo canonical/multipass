@@ -179,10 +179,12 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(
     auto vdi_file =
         QString("%1/%2.vdi").arg(source_file.path()).arg(source_file.completeBaseName());
 
-    QStringList convert_args({"convert", "-O", "vdi", source_image.image_path, vdi_file});
+    QStringList convert_args(
+        {"convert", "-O", "vdi", MP_PLATFORM.path_to_qstr(source_image.image_path), vdi_file});
 
-    auto qemuimg_convert_spec =
-        std::make_unique<mp::QemuImgProcessSpec>(convert_args, source_image.image_path, vdi_file);
+    auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(convert_args,
+                                                                         source_image.image_path,
+                                                                         vdi_file.toStdString());
     auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
 
     auto process_state = qemuimg_convert_process->execute(mp::image_resize_timeout);
@@ -200,7 +202,7 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(
     }
 
     auto prepared_image = source_image;
-    prepared_image.image_path = vdi_file;
+    prepared_image.image_path = vdi_file.toStdString();
     return prepared_image;
 }
 
@@ -209,13 +211,14 @@ void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(
     const VirtualMachineDescription& desc)
 {
     // Need to generate a new medium UUID
-    mpu::process_throw_on_error("VBoxManage",
-                                {"internalcommands", "sethduuid", instance_image.image_path},
-                                "Could not generate a new UUID: {}");
+    mpu::process_throw_on_error(
+        "VBoxManage",
+        {"internalcommands", "sethduuid", MP_PLATFORM.path_to_qstr(instance_image.image_path)},
+        "Could not generate a new UUID: {}");
 
     mpu::process_log_on_error("VBoxManage",
                               {"modifyhd",
-                               instance_image.image_path,
+                               MP_PLATFORM.path_to_qstr(instance_image.image_path),
                                "--resize",
                                QString::number(desc.disk_space.in_megabytes())},
                               "Could not resize image: {}",
