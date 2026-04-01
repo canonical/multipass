@@ -71,7 +71,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                                        "aa:bb:cc:dd:ee:ff",
                                        {},
                                        "",
-                                       {dummy_image.name(), "", "", "", {}, {}},
+                                       {dummy_image.name().toStdString(), "", "", "", {}, {}},
                                        dummy_cloud_init_iso.name(),
                                        {},
                                        {},
@@ -628,8 +628,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
                      hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
                   Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(mock_virtdisk,
-                resize_virtual_disk(Eq(desc.image.image_path.toStdString()), Eq(123456)))
+    EXPECT_CALL(mock_virtdisk, resize_virtual_disk(Eq(desc.image.image_path), Eq(123456)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
     EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
