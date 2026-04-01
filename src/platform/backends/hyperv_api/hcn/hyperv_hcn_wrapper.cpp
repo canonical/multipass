@@ -321,8 +321,7 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
             {
                 const auto& obj = as_json.as_object();
                 out_info.guid = network_guid;
-                if (const auto* value = obj.if_contains("Name"))
-                    out_info.name = value->as_string();
+                out_info.name = obj.at("Name").as_string();
 
                 if (const auto* value = obj.if_contains("NetworkAdapterName"))
                     out_info.network_adapter_name = value->as_string();
