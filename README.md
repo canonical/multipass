@@ -223,6 +223,10 @@ approved, be merged into the main branch.
 
 # Community-led integrations
 
+## Multipass MCP Server
+
+- [WangYihang/multipass-mcp](https://github.com/WangYihang/multipass-mcp)
+
 ## Terraform providers
 
 - [todoroff/terraform-provider-multipass](https://github.com/todoroff/terraform-provider-multipass)
