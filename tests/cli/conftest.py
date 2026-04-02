@@ -309,11 +309,28 @@ def pytest_collection_modifyitems(config, items):
                     "Skipped -- LXD driver does not support the `snapshot` feature."
                 )
             )
+        if config.getoption("--driver") == "applevz":
+            item.add_marker(
+                pytest.mark.skip(
+                    "Skipped -- AppleVZ driver does not support the `snapshot` feature."
+                )
+            )
+
+    def maybe_skip_suspend_test(item):
+        if not item.get_closest_marker("suspend"):
+            return
+        if config.getoption("--driver") == "applevz":
+            item.add_marker(
+                pytest.mark.skip(
+                    "Skipped -- AppleVZ driver does not support suspend/restore."
+                )
+            )
 
     for item in items:
         maybe_skip_mount_test(item)
         maybe_skip_clone_test(item)
         maybe_skip_snapshot_test(item)
+        maybe_skip_suspend_test(item)
 
 
 def pytest_runtest_setup(item):
