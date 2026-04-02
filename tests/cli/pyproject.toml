@@ -26,6 +26,7 @@ known_first_party = ["cli_tests"]
 filterwarnings = ["ignore:.*multi-threaded.*forkpty.*:DeprecationWarning"]
 markers = [
     "snapshot: Snapshot tests.",
+    "suspend: VM suspension and restore.",
     "clone: Clone tests.",
     "slow: The tests that known to have a slow run time.",
     "lifecycle: Basic VM lifecycle tests.",

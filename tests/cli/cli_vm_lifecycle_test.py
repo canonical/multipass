@@ -58,6 +58,7 @@ class TestVmLifecycle:
         assert state(f"{instance}") == "Running"
         assert boot_id_before != get_boot_id(instance)
 
+    @pytest.mark.suspend
     def test_suspend_resume(self, instance):
         assert state(f"{instance}") == "Running"
         boot_id_before = get_boot_id(instance)
@@ -116,6 +117,7 @@ class TestVmLifecycle:
                     assert not output
                     assert "does not exist" in output
 
+    @pytest.mark.suspend
     def test_lifecycle_multiple(self):
         with (
             launch({"autopurge": False}) as name1,
