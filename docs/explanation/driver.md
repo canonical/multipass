@@ -46,9 +46,11 @@ There are two exceptions to the above:
 
 While we strive to offer a uniform interface across the board, not all features are available on all backends and there are some behaviour differences:
 
-| Feature | Only supported on... | Notes |
+| Feature | Not supported on... | Notes |
 |--- | --- | --- |
-| **Native mounts** | <ul><li>Hyper-V</li><li>QEMU</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
+| **Native mounts** | <ul><li>AppleVZ</li><li>VirtualBox</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
+| **Snapshots** | <ul><li>AppleVZ</li></ul> | This affects the [`snapshot`](/reference/command-line-interface/snapshot) command. |
+| **Suspend** | <ul><li>AppleVZ</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
 
 <!-- old formatting
 - **Native mounts** are supported only on Hyper-V and QEMU. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).
