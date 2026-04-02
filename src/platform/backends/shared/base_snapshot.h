@@ -17,10 +17,11 @@
 
 #pragma once
 
+#include "snapshot_description.h"
+
 #include <multipass/snapshot.h>
 
 #include <multipass/memory_size.h>
-#include <multipass/snapshot_description.h>
 #include <multipass/vm_mount.h>
 
 #include <QString>

@@ -17,9 +17,9 @@
 
 #pragma once
 
-#include "memory_size.h"
-#include "virtual_machine.h"
-#include "vm_mount.h"
+#include <multipass/memory_size.h>
+#include <multipass/virtual_machine.h>
+#include <multipass/vm_mount.h>
 
 #include <string>
 #include <unordered_map>
