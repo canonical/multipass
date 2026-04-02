@@ -145,7 +145,7 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
     fs::create_directory(dest_instance_dir_path);
     for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
-        const auto ext = entry.path().extension();
+        const auto ext = entry.path().extension().string();
         // snapshot files are intentionally skipped; .raw is skipped when an .asif image exists
         if (cloneable_files.contains(ext) && !(ext == ".raw" && has_asif))
         {
