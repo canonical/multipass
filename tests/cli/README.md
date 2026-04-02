@@ -173,6 +173,18 @@ pytest tests/cli/ --daemon-backend=snapd --driver=lxd # Test the `lxd` backend o
 pytest tests/cli/ --daemon-backend=winsvc --driver=virtualbox # Test the `virtualbox` backend on Windows
 ```
 
+```bash
+pytest tests/cli/ --daemon-controller=launchd --driver=applevz # Test the `applevz` backend on macOS
+```
+
+Some backends do not support all Multipass features. The test suite automatically skips tests that require unsupported features for a given driver:
+
+| Feature       | Unsupported drivers       | Skipped marker  |
+| ------------- | ------------------------- | --------------- |
+| snapshots     | `lxd`, `applevz`          | `snapshot`      |
+| suspend/restore | `applevz`               | `suspend`       |
+| clone         | `lxd`                     | `clone`         |
+
 #### `--remove-all-instances` flag
 
 Additionally, there's a convenience flag called `--remove-all-instances`. The test executor would remove the instance storage directories (including backend-specific ones), like `vault/instances`, `qemu/vault/instances`, `virtualbox/vault/instances` while keeping the image cache and other things intact. This would allow reuse of a `MULTIPASS_STORAGE_DIR` without having adverse effects on future test runs due to persisted instances.
