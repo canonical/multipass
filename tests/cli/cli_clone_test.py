@@ -55,6 +55,7 @@ class TestClone:
             assert not output
             assert "already exist" in output
 
+    @pytest.mark.snapshot
     def test_clone_instance_with_snapshot(self, instance):
         take_snapshot(instance, "snapshot1")
         with multipass("clone", f"{instance}") as output:
