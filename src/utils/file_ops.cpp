@@ -404,6 +404,11 @@ bool mp::FileOps::is_symlink(const fs::path& path) const
     return fs::is_symlink(path);
 }
 
+bool mp::FileOps::is_directory(const fs::path& path) const
+{
+    return fs::is_directory(path);
+}
+
 bool mp::FileOps::is_directory(const fs::path& path, std::error_code& err) const
 {
     return fs::is_directory(path, err);
@@ -427,6 +432,11 @@ bool mp::FileOps::remove(const fs::path& path) const
 bool mp::FileOps::remove(const fs::path& path, std::error_code& err) const noexcept
 {
     return fs::remove(path, err);
+}
+
+bool mp::FileOps::remove_all(const fs::path& path) const
+{
+    return fs::remove_all(path);
 }
 
 void mp::FileOps::create_symlink(const fs::path& to,

@@ -17,6 +17,10 @@
 
 #pragma once
 
+#include <multipass/platform.h>
+
+#include <filesystem>
+
 #include <QString>
 #include <QTemporaryDir>
 
@@ -33,9 +37,19 @@ public:
         return the_path;
     }
 
+    operator std::filesystem::path() const
+    {
+        return MP_PLATFORM.qstr_to_path(the_path);
+    }
+
     QString filePath(const QString& fileName)
     {
         return dir.filePath(fileName);
+    }
+
+    std::filesystem::path operator/(const std::string& fileName)
+    {
+        return static_cast<std::filesystem::path>(*this) / fileName;
     }
 
 private:

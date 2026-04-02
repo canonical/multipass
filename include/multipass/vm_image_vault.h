@@ -18,14 +18,11 @@
 #pragma once
 
 #include "disabled_copy_move.h"
+#include "file_ops.h"
 #include "memory_size.h"
 #include "path.h"
 #include "progress_monitor.h"
 #include "vm_image_info.h"
-
-#include <QDir>
-#include <QFile>
-#include <QString>
 
 #include <filesystem>
 #include <functional>
@@ -50,12 +47,14 @@ public:
     {
         if (std::uncaught_exceptions() > initial_exc_count)
         {
-            file.remove();
+            // Be careful not to throw another exception here!
+            std::error_code ec;
+            remove(file, ec);
         }
     }
 
 private:
-    QFile file;
+    std::filesystem::path file;
     const int initial_exc_count = std::uncaught_exceptions();
 };
 } // namespace vault
@@ -73,7 +72,7 @@ public:
                                 const PrepareAction& prepare,
                                 const ProgressMonitor& monitor,
                                 const std::optional<std::string>& checksum,
-                                const Path& save_dir) = 0;
+                                const std::filesystem::path& save_dir) = 0;
     virtual void remove(const std::string& name) = 0;
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;
