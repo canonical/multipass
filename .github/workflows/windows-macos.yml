@@ -282,6 +282,9 @@ jobs:
       run: |
         bin/multipass_tests
 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
