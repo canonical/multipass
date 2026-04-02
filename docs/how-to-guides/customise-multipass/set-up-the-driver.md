@@ -39,7 +39,17 @@ By default, Multipass on Windows uses the `hyperv` driver.
 ````{tab-item} macOS
 :sync: macOS
 
-An alternative option is to use VirtualBox.
+An alternative option is to use the Apple Virtualization framework.
+
+To switch the Multipass driver to AppleVZ, run this command:
+
+```{code-block} text
+sudo multipass set local.driver=applevz
+```
+
+From now on, all instances started with `multipass launch` will use the Apple Virtualization framework behind the scenes.
+
+An additional option is to use VirtualBox.
 
 To switch the Multipass driver to VirtualBox, run this command:
 
@@ -229,7 +239,7 @@ You can then open, say, https://localhost:8081/, and the service running inside 
 ````{tab-item} Linux
 :sync: Linux
 
-This option only applies to macOS systems.
+This option only applies to macOS and Windows systems.
 
 ````
 
