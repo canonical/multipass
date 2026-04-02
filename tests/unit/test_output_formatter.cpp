@@ -838,7 +838,7 @@ auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::
                        prepend ? "prepend" : "append");
 }
 
-// TODO: When removing the AVAILABILITY_ZONES_FEATURE flag, remove this function.
+// TODO(az): When removing the AVAILABILITY_ZONES_FEATURE flag, remove this function.
 QByteArray load_formatter_file(const char* file_name)
 {
 #ifdef AVAILABILITY_ZONES_FEATURE

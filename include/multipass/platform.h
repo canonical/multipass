@@ -78,13 +78,14 @@ public:
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
-#ifndef AVAILABILITY_ZONES_FEATURE
+
+    // TODO(az): Remove this when AZs are feature-complete.
     // When AZs are disabled, we maintain the old networking configuration as closely as possible.
     // This means that each platform uses a different subnet for instances. When AZs are enabled,
     // all platforms will use the same base subnet, so this function is unnecessary in that
     // configuration.
     [[nodiscard]] virtual Subnet get_preferred_subnet() const;
-#endif
+
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
 

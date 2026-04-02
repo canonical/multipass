@@ -394,12 +394,10 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     return can_reach_gateway(subnet.min_address()) || can_reach_gateway(subnet.max_address());
 }
 
-#ifndef AVAILABILITY_ZONES_FEATURE
 mp::Subnet mp::platform::Platform::get_preferred_subnet() const
 {
     return {"10.97.0.0/20"};
 }
-#endif
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
     -> std::map<std::string, NetworkInterfaceInfo>

@@ -22,8 +22,6 @@
 
 namespace multipass
 {
-// TODO: When removing the AZ feature flag, move this to
-// tests/unit/stub_availability_zone_manager.h.
 class SingleAvailabilityZoneManager final : public AvailabilityZoneManager
 {
 public:
