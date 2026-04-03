@@ -397,10 +397,14 @@ TEST_F(SubnetAllocatorTest, nextAvailableFailsOnBadIndex)
 {
     EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
-    mp::SubnetAllocator allocator{subnet, 17};
-    std::ignore = allocator.next_available();
-    std::ignore = allocator.next_available();
-    EXPECT_THROW(std::ignore = allocator.next_available(), std::invalid_argument);
+    mp::SubnetAllocator allocator16{subnet, 16};
+    std::ignore = allocator16.next_available();
+    EXPECT_THROW(std::ignore = allocator16.next_available(), std::invalid_argument);
+
+    mp::SubnetAllocator allocator17{subnet, 17};
+    std::ignore = allocator17.next_available();
+    std::ignore = allocator17.next_available();
+    EXPECT_THROW(std::ignore = allocator17.next_available(), std::invalid_argument);
 }
 
 TEST_F(SubnetAllocatorTest, failsOnBadLength)

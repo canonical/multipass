@@ -631,6 +631,11 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     return false;
 }
 
+mp::Subnet mp::platform::Platform::get_preferred_subnet() const
+{
+    return {"10.97.0.0/20"};
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = systemprofile_app_data_path();

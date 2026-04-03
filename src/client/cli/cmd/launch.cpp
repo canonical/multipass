@@ -247,7 +247,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
         "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
+#ifdef AVAILABILITY_ZONES_FEATURE
     QCommandLineOption zoneOption("zone", "The zone in which to launch the instance.", "zone");
+#endif
     QCommandLineOption mountOption(
         "mount",
         QStringLiteral("Mount a local directory inside the instance. If <target> is omitted, the "
@@ -264,7 +266,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         cloudInitOption,
         networkOption,
         bridgedOption,
+#ifdef AVAILABILITY_ZONES_FEATURE
         zoneOption,
+#endif
         mountOption,
     });
 
@@ -476,6 +480,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
             cout); // Creating just in time to work around canonical/multipass#2075
 
+#ifdef AVAILABILITY_ZONES_FEATURE
     if (parser->isSet("zone"))
     {
         auto zone = parser->value("zone").trimmed();
@@ -486,6 +491,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         }
         request.set_zone(zone.toStdString());
     }
+#endif
 
     if (timer)
         timer->resume();
@@ -555,7 +561,11 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             }
         }
 
+#ifdef AVAILABILITY_ZONES_FEATURE
         cout << "Launched: " << reply.vm_instance_name() << " in " << reply.zone() << "\n";
+#else
+        cout << "Launched: " << reply.vm_instance_name() << "\n";
+#endif
 
         if (term->is_live() && update_available(reply.update_info()))
         {
