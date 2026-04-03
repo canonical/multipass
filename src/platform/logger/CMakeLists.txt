@@ -37,6 +37,8 @@ else()
 
 
   # Determine if syslog is available.
+  include(CheckIncludeFiles)
+  include(CheckFunctionExists)
   check_include_files(syslog.h HAVE_SYSLOG_H)
   check_function_exists(syslog HAVE_SYSLOG)
 
