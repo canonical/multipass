@@ -18,7 +18,7 @@ cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 include(src/cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
-option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
+option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
@@ -53,7 +53,7 @@ if(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-if(NOT VCPKG_BUILD_DEFAULT)
+if(NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
   message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
 
   # Propagate macOS deployment target to vcpkg triplet
@@ -70,6 +70,10 @@ if(NOT VCPKG_BUILD_DEFAULT)
 
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+else()
+  set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+  set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+  message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
@@ -168,6 +172,9 @@ find_package(gRPC CONFIG REQUIRED)
 # fmt config
 find_package(fmt CONFIG REQUIRED)
 # targets: fmt::fmt, fmt::fmt-header-only
+
+# libssh config
+find_package(libssh CONFIG REQUIRED)
 
 # Needs to be here before we set further compilation options
 add_subdirectory(3rd-party)
@@ -293,7 +300,6 @@ if(MSVC)
   add_definitions(-D_WIN32_WINNT=0xA00) # A gprc header requires this (specifies Windows 10)
   add_definitions(-DNOMINMAX) # otherwise windows defines macros which interfere with std::min, std::max
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
-  add_definitions(-DLIBSSH_STATIC) # otherwise adds declspec specifiers to libssh apis
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   set(MULTIPASS_BACKENDS hyperv virtualbox)
