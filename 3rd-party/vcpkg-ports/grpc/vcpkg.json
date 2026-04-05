@@ -10,6 +10,7 @@
       "name": "c-ares",
       "platform": "!uwp"
     },
+    "openssl",
     {
       "name": "grpc",
       "host": true,
