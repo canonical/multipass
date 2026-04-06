@@ -71,32 +71,21 @@ struct VmnetRelay
     dispatch_queue_t vm_queue{nullptr};
     uint32_t max_packet_bytes{0};
 
-    // Pre-allocated buffers for host->vm (vmnet read / socket write).
-    std::vector<uint8_t> host_buffers;
-    std::vector<vmpktdesc> host_packets;
-    std::vector<iovec> host_iovs;
-    std::vector<msghdr_x> host_msgs;
-
-    // Pre-allocated buffers for vm->host (socket read / vmnet write).
-    std::vector<uint8_t> vm_buffers;
-    std::vector<vmpktdesc> vm_packets;
-    std::vector<iovec> vm_iovs;
-    std::vector<msghdr_x> vm_msgs;
-
-    void init_buffers()
+    struct EndpointBuffers
     {
-        const int packet_count =
-            (max_packet_bytes >= kLargePacketThreshold) ? kMaxPacketCountLarge : kMaxPacketCount;
+        std::vector<uint8_t> buffers;
+        std::vector<vmpktdesc> packets;
+        std::vector<iovec> iovs;
+        std::vector<msghdr_x> msgs;
 
-        auto bind_endpoint = [&](std::vector<uint8_t>& buffers,
-                                 std::vector<vmpktdesc>& packets,
-                                 std::vector<iovec>& iovs,
-                                 std::vector<msghdr_x>& msgs) {
-            buffers.resize((size_t)packet_count * max_packet_bytes);
-            packets.resize(packet_count);
-            iovs.resize(packet_count);
-            msgs.resize(packet_count);
-            for (int i = 0; i < packet_count; i++)
+        void bind_endpoint(int max_packet_count, uint32_t max_packet_bytes)
+        {
+            buffers.resize((size_t)max_packet_count * max_packet_bytes);
+            packets.resize(max_packet_count);
+            iovs.resize(max_packet_count);
+            msgs.resize(max_packet_count);
+
+            for (int i = 0; i < max_packet_count; i++)
             {
                 iovs[i].iov_base = buffers.data() + (size_t)i * max_packet_bytes;
                 iovs[i].iov_len = max_packet_bytes;
@@ -105,10 +94,21 @@ struct VmnetRelay
                 msgs[i].msg_hdr.msg_iov = &iovs[i];
                 msgs[i].msg_hdr.msg_iovlen = 1;
             }
-        };
+        }
+    };
 
-        bind_endpoint(host_buffers, host_packets, host_iovs, host_msgs);
-        bind_endpoint(vm_buffers, vm_packets, vm_iovs, vm_msgs);
+    // Pre-allocated buffers for host->vm (vmnet read / socket write).
+    EndpointBuffers host_endpoint;
+    // Pre-allocated buffers for vm->host (socket read / vmnet write).
+    EndpointBuffers vm_endpoint;
+
+    void init_buffers()
+    {
+        const int packet_count =
+            (max_packet_bytes >= kLargePacketThreshold) ? kMaxPacketCountLarge : kMaxPacketCount;
+
+        host_endpoint.bind_endpoint(packet_count, max_packet_bytes);
+        vm_endpoint.bind_endpoint(packet_count, max_packet_bytes);
     }
 
     ~VmnetRelay()
@@ -191,23 +191,24 @@ void forward_from_vm(VmnetRelay& relay, bool bulk)
 
         if (bulk)
         {
-            int max_count = (int)relay.vm_msgs.size();
+            int max_count = (int)relay.vm_endpoint.msgs.size();
             for (int i = 0; i < max_count; i++)
-                relay.vm_iovs[i].iov_len = relay.max_packet_bytes;
+                relay.vm_endpoint.iovs[i].iov_len = relay.max_packet_bytes;
 
-            count = (int)recvmsg_x(relay.fd, relay.vm_msgs.data(), max_count, 0);
+            count = (int)recvmsg_x(relay.fd, relay.vm_endpoint.msgs.data(), max_count, 0);
             if (count < 0 && errno != EBADF && errno != ECONNRESET)
                 mpl::trace(category, "recvmsg_x() failed: {}", strerror(errno));
         }
         else
         {
-            relay.vm_iovs[0].iov_len = relay.max_packet_bytes;
-            ssize_t n = recv(relay.fd, relay.vm_iovs[0].iov_base, relay.max_packet_bytes, 0);
+            relay.vm_endpoint.iovs[0].iov_len = relay.max_packet_bytes;
+            ssize_t n =
+                recv(relay.fd, relay.vm_endpoint.iovs[0].iov_base, relay.max_packet_bytes, 0);
             if (n < 0 && errno != EBADF && errno != ECONNRESET)
                 mpl::trace(category, "recv() failed: {}", strerror(errno));
             if (n > 0)
             {
-                relay.vm_msgs[0].msg_len = (size_t)n;
+                relay.vm_endpoint.msgs[0].msg_len = (size_t)n;
                 count = 1;
             }
         }
@@ -217,13 +218,14 @@ void forward_from_vm(VmnetRelay& relay, bool bulk)
 
         for (int i = 0; i < count; i++)
         {
-            relay.vm_packets[i].vm_pkt_size = relay.vm_msgs[i].msg_len;
-            relay.vm_packets[i].vm_flags = 0;
-            relay.vm_iovs[i].iov_len = relay.vm_msgs[i].msg_len;
+            relay.vm_endpoint.packets[i].vm_pkt_size = relay.vm_endpoint.msgs[i].msg_len;
+            relay.vm_endpoint.packets[i].vm_flags = 0;
+            relay.vm_endpoint.iovs[i].iov_len = relay.vm_endpoint.msgs[i].msg_len;
         }
 
         int write_count = count;
-        vmnet_return_t status = vmnet_write(relay.iface, relay.vm_packets.data(), &write_count);
+        vmnet_return_t status =
+            vmnet_write(relay.iface, relay.vm_endpoint.packets.data(), &write_count);
         if (status != VMNET_SUCCESS)
             mpl::trace(category, "vmnet_write() failed (status {})", static_cast<int>(status));
     }
@@ -233,15 +235,16 @@ void forward_from_vm(VmnetRelay& relay, bool bulk)
 // Returns false when vmnet has no more packets to deliver this callback.
 bool forward_from_host(VmnetRelay& relay, bool bulk)
 {
-    int count = (int)relay.host_packets.size();
+    int count = (int)relay.host_endpoint.packets.size();
     for (int i = 0; i < count; i++)
     {
-        relay.host_packets[i].vm_pkt_size = relay.max_packet_bytes;
-        relay.host_packets[i].vm_flags = 0;
-        relay.host_iovs[i].iov_len = relay.max_packet_bytes;
+        relay.host_endpoint.packets[i].vm_pkt_size = relay.max_packet_bytes;
+        relay.host_endpoint.packets[i].vm_flags = 0;
+        relay.host_endpoint.iovs[i].iov_len = relay.max_packet_bytes;
     }
 
-    vmnet_return_t read_status = vmnet_read(relay.iface, relay.host_packets.data(), &count);
+    vmnet_return_t read_status =
+        vmnet_read(relay.iface, relay.host_endpoint.packets.data(), &count);
     if (read_status != VMNET_SUCCESS)
     {
         mpl::trace(category, "vmnet_read() failed (status {})", static_cast<int>(read_status));
@@ -252,14 +255,15 @@ bool forward_from_host(VmnetRelay& relay, bool bulk)
     {
         for (int i = 0; i < count; i++)
         {
-            relay.host_msgs[i].msg_len = relay.host_packets[i].vm_pkt_size;
-            relay.host_iovs[i].iov_len = relay.host_packets[i].vm_pkt_size;
+            relay.host_endpoint.msgs[i].msg_len = relay.host_endpoint.packets[i].vm_pkt_size;
+            relay.host_endpoint.iovs[i].iov_len = relay.host_endpoint.packets[i].vm_pkt_size;
         }
 
         int sent = 0;
         while (sent < count)
         {
-            ssize_t n = sendmsg_x(relay.fd, relay.host_msgs.data() + sent, count - sent, 0);
+            ssize_t n =
+                sendmsg_x(relay.fd, relay.host_endpoint.msgs.data() + sent, count - sent, 0);
             if (n < 0)
             {
                 if (errno == ENOBUFS)
@@ -277,8 +281,8 @@ bool forward_from_host(VmnetRelay& relay, bool bulk)
     {
         for (int i = 0; i < count; i++)
         {
-            const auto* data = static_cast<const uint8_t*>(relay.host_iovs[i].iov_base);
-            size_t pkt_size = relay.host_packets[i].vm_pkt_size;
+            const auto* data = static_cast<const uint8_t*>(relay.host_endpoint.iovs[i].iov_base);
+            size_t pkt_size = relay.host_endpoint.packets[i].vm_pkt_size;
             ssize_t sent;
             do
             {
