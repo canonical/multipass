@@ -281,16 +281,16 @@ bool forward_from_host(VmnetRelay& relay, bool bulk)
         {
             const auto* data = static_cast<const uint8_t*>(relay.host_endpoint.iovs[i].iov_base);
             size_t pkt_size = relay.host_endpoint.packets[i].vm_pkt_size;
-            ssize_t sent;
-            do
+            while (send(relay.fd, data, pkt_size, 0) < 0)
             {
-                sent = send(relay.fd, data, pkt_size, 0);
-                if (sent < 0 && errno == ENOBUFS)
+                if (errno == ENOBUFS)
                     std::this_thread::sleep_for(kSendRetryDelay);
-            } while (sent < 0 && errno == ENOBUFS);
-
-            if (sent < 0)
-                mpl::trace(category, "send() failed: {}", strerror(errno));
+                else
+                {
+                    mpl::trace(category, "send() failed: {}", strerror(errno));
+                    break;
+                }
+            }
         }
     }
 
