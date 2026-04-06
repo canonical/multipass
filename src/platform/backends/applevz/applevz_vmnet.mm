@@ -53,7 +53,7 @@ constexpr uint32_t kRecvBufferSize{4 * 1024 * 1024};
 constexpr int kMaxPacketCount{200};
 constexpr int kMaxPacketCountLarge{16};
 constexpr uint32_t kLargePacketThreshold{64 * 1024};
-constexpr uint64_t kSendRetryDelayNs{50 * 1000};
+constexpr std::chrono::microseconds kSendRetryDelay{50};
 
 struct msghdr_x
 {
@@ -268,7 +268,7 @@ bool forward_from_host(VmnetRelay& relay, bool bulk)
             {
                 if (errno == ENOBUFS)
                 {
-                    std::this_thread::sleep_for(std::chrono::nanoseconds{kSendRetryDelayNs});
+                    std::this_thread::sleep_for(kSendRetryDelay);
                     continue;
                 }
                 mpl::trace(category, "sendmsg_x() failed: {}", strerror(errno));
@@ -288,7 +288,7 @@ bool forward_from_host(VmnetRelay& relay, bool bulk)
             {
                 sent = send(relay.fd, data, pkt_size, 0);
                 if (sent < 0 && errno == ENOBUFS)
-                    std::this_thread::sleep_for(std::chrono::nanoseconds{kSendRetryDelayNs});
+                    std::this_thread::sleep_for(kSendRetryDelay);
             } while (sent < 0 && errno == ENOBUFS);
 
             if (sent < 0)
