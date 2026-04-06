@@ -18,6 +18,8 @@ cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 include(src/cmake/environment-utils.cmake)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
+option(VCPKG_BUILD_DEFAULT "Enable or disable building the default vcpkg triplet, which includes both debug and release variants." OFF)
+
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
@@ -26,10 +28,18 @@ if(NOT ${IS_RUNNING_IN_CI})
 endif()
 
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
+cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
+
+if ("${HOST_ARCH}" STREQUAL "arm64" OR "${HOST_ARCH}" STREQUAL "aarch64")
+  set(VCPKG_HOST_ARCH "arm64")
+else()
+  set(VCPKG_HOST_ARCH "x64")
+endif()
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0") # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
 elseif("${HOST_OS_NAME}" STREQUAL "Windows")
   set(VCPKG_HOST_OS "windows-static-md")
 else()
@@ -43,16 +53,19 @@ if(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  set(VCPKG_BUILD_DEFAULT TRUE)
-endif()
+if(NOT VCPKG_BUILD_DEFAULT)
+  message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
 
-if(NOT DEFINED VCPKG_BUILD_DEFAULT)
-  cmake_host_system_information(RESULT VCPKG_HOST_ARCH QUERY OS_PLATFORM)
-  if("${VCPKG_HOST_ARCH}" STREQUAL "x86_64" OR "${VCPKG_HOST_ARCH}" STREQUAL "AMD64")
-    set(VCPKG_HOST_ARCH "x64")
-  elseif("${VCPKG_HOST_ARCH}" STREQUAL "aarch64")
-    set(VCPKG_HOST_ARCH "arm64")
+  # Propagate macOS deployment target to vcpkg triplet
+  if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+    configure_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
+      "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
+      @ONLY
+    )
+    set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
+    message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
 
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
@@ -147,7 +160,7 @@ if(UNIX)
 endif()
 
 # OpenSSL config
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL CONFIG REQUIRED)
 
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)

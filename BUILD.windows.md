@@ -15,9 +15,9 @@ After chocolatey is installed you can now install the rest of the dependencies:
 
     choco install visualstudio2019buildtools visualstudio2019-workload-vctools cmake ninja cmder qemu-img openssl -yfd
 
-You may have to disable Windows Defender Real-time protection if you want the packages to install quicker. Search for
-Windows Defender Security Center, go to Virus & threat protection, then Virus and thread protection settings, disable
-Real-time protection.
+```[pwsh]
+choco install cmake ninja qemu-img git wget unzip -yfd
+```
 
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any new compiler tool
 updates so choco upgrade will report no new updates available. To update the compiler and related tooling, you will need

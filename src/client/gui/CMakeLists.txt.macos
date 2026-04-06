@@ -18,6 +18,12 @@ set(MULTIPASS_GUI_BUNDLE_RELATIVE "Multipass.app")
 set(MULTIPASS_GUI_EXEC_PATH_RELATIVE_TO_BUNDLE Contents/MacOS)
 set(MULTIPASS_GUI_EXECUTABLE multipass_gui)
 
+configure_file(
+  ${CMAKE_SOURCE_DIR}/src/client/gui/macos/Runner/Configs/DeploymentTarget.xcconfig.in
+  ${CMAKE_SOURCE_DIR}/src/client/gui/macos/Runner/Configs/DeploymentTarget.xcconfig
+  @ONLY
+)
+
 set(MULTIPASS_GUI_BUILD_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 cmake_path(RELATIVE_PATH MULTIPASS_GUI_BUILD_DIR)
 

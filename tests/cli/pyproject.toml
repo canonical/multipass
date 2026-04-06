@@ -1,0 +1,46 @@
+[project]
+name = "multipass-cli-tests"
+version = "1.0.0"
+readme = "README.md"
+# pywinpty 3 hangs when "pty_proc.pty.iseof()" is called. Remove the pin when it's fixed.
+dependencies = ["pytest", "pexpect", "jq", "pywinpty==2.0.15; sys_platform == 'win32'", "pywin32; sys_platform == 'win32'" ]
+
+# This project is not intended for packaging.
+[tool.setuptools]
+py-modules = []
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = ["logging-fstring-interpolation"]
+
+[tool.pylint.master]
+known-first-party = ["cli_tests"]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["cli_tests"]
+
+[tool.ruff]
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore:.*multi-threaded.*forkpty.*:DeprecationWarning"]
+markers = [
+    "snapshot: Snapshot tests.",
+    "clone: Clone tests.",
+    "slow: The tests that known to have a slow run time.",
+    "lifecycle: Basic VM lifecycle tests.",
+    "mount: Mount tests.",
+    "resource: VM resource modification tests",
+    "settings: Tests for the available settings",
+    "shell: VM shell tests",
+    "launch: Launch tests",
+    "list: List tests",
+    "alias: Alias tests",
+    "transfer: Transfer tests",
+    "authenticate: Authenticate tests",
+    "help: Help tests",
+    "version: Version tests",
+    "find: Find tests",
+    "exec: Exec tests",
+]
