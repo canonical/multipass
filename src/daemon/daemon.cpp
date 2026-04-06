@@ -117,7 +117,16 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     if (!request->remote_name().empty() && request->image().empty())
         throw std::runtime_error("Must specify an image when specifying a remote");
 
-    std::string image = request->image().empty() ? "default" : request->image();
+    std::string image;
+    if (request->image().empty())
+    {
+        auto configured = MP_SETTINGS.get(mp::default_image_key).toStdString();
+        image = configured.empty() ? "default" : configured;
+    }
+    else
+    {
+        image = request->image();
+    }
     // TODO: persistence should be specified by the rpc as well
 
     mp::Query::Type query_type{mp::Query::Type::Alias};
@@ -141,7 +150,9 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
 
     if (pollinate_alias.isEmpty())
     {
-        pollinate_alias = "default";
+        pollinate_alias = MP_SETTINGS.get(mp::default_image_key);
+        if (pollinate_alias.isEmpty())
+            pollinate_alias = "default";
     }
     else if (pollinate_alias.startsWith("http"))
     {
