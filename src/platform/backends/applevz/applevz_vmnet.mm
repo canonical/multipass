@@ -332,7 +332,7 @@ void start_forwarding_from_host(VmnetRelay& relay)
     mpl::debug(category, "vmnet host->vm forwarding started");
 }
 
-std::pair<int, int> create_socket_pair()
+std::array<int, 2> create_socket_pair()
 {
     std::array<int, 2> fds{};
     if (socketpair(AF_UNIX, SOCK_DGRAM, 0, fds.data()) < 0)
@@ -343,7 +343,7 @@ std::pair<int, int> create_socket_pair()
     setsockopt(fds[1], SOL_SOCKET, SO_RCVBUF, &kRecvBufferSize, sizeof(kRecvBufferSize));
     setsockopt(fds[1], SOL_SOCKET, SO_SNDBUF, &kSendBufferSize, sizeof(kSendBufferSize));
 
-    return {fds[0], fds[1]};
+    return fds;
 }
 } // namespace
 
