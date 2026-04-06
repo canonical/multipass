@@ -64,6 +64,7 @@ constexpr auto driver_key = "local.driver";
 constexpr auto passphrase_key = "local.passphrase";
 constexpr auto bridged_interface_key = "local.bridged-network";
 constexpr auto mounts_key = "local.privileged-mounts";
+constexpr auto default_image_key = "local.default-image";
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
 constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
 
