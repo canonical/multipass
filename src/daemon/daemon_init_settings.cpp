@@ -111,6 +111,7 @@ void mp::daemon::register_global_settings_handlers()
         MP_PLATFORM
             .extra_daemon_settings(); // platform settings override inserts with the same key below
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
+    settings.insert(std::make_unique<BasicSettingSpec>(default_image_key, ""));
     settings.insert(
         std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
     settings.insert(std::make_unique<CustomSettingSpec>(driver_key,
