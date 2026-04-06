@@ -339,14 +339,11 @@ std::vector<NetworkInterfaceInfo> bridged_network_interfaces()
 
     for (VZBridgedNetworkInterface* iface in [VZBridgedNetworkInterface networkInterfaces])
     {
-        NetworkInterfaceInfo info;
-        info.id = iface.identifier.UTF8String;
-        info.type = "N/A";
-        info.description = iface.localizedDisplayName
-                               ? std::string(iface.localizedDisplayName.UTF8String)
-                               : info.id;
-
-        result.push_back(std::move(info));
+        result.emplace_back(/* id = */ iface.identifier.UTF8String,
+                            /* type = */ "N/A",
+                            /* description = */ iface.localizedDisplayName
+                                ? std::string(iface.localizedDisplayName.UTF8String)
+                                : iface.identifier.UTF8String);
     }
 
     return result;
