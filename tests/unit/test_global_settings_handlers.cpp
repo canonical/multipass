@@ -239,7 +239,10 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSett
     inject_default_returning_mock_qsettings();
 
     expect_setting_values(
-        {{mp::driver_key, driver}, {mp::bridged_interface_key, ""}, {mp::mounts_key, mount}});
+        {{mp::driver_key, driver},
+         {mp::bridged_interface_key, ""},
+         {mp::mounts_key, mount},
+         {mp::default_image_key, ""}});
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
