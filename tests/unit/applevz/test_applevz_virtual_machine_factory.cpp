@@ -18,6 +18,7 @@
 #include "mock_applevz_utils.h"
 #include "mock_applevz_wrapper.h"
 #include "tests/unit/common.h"
+#include "tests/unit/mock_cloud_init_file_ops.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
@@ -29,6 +30,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_image.h>
+#include <multipass/vm_specs.h>
 
 #include <QDir>
 
@@ -184,4 +186,52 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, createVirtualMachine)
     auto vm = uut->create_virtual_machine(desc, stub_key_provider, stub_monitor);
 
     EXPECT_NE(vm, nullptr);
+}
+
+TEST_F(AppleVZVirtualMachineFactory_UnitTests, cloneCopiesRelevantFiles)
+{
+    auto uut = construct_factory();
+
+    const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
+        mpt::MockCloudInitFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, update_identifiers(_, _, _, _)).Times(1);
+
+    namespace fs = std::filesystem;
+    const fs::path instances_dir{dummy_data_dir.filePath("applevz/vault/instances").toStdString()};
+    constexpr auto* src_vm_name = "dummy_src_name";
+    constexpr auto* dest_vm_name = "dummy_dest_name";
+
+    const fs::path src_vm_dir = instances_dir / src_vm_name;
+    const fs::path dest_vm_dir = instances_dir / dest_vm_name;
+
+    const std::list<std::string> source_files{"dummy.iso", "dummy.raw"};
+    const std::unordered_set<std::string> expected_files{"dummy.iso", "dummy.raw"};
+
+    fs::create_directories(src_vm_dir);
+    for (const auto& file : source_files)
+    {
+        std::ofstream(src_vm_dir / file);
+    }
+
+    EXPECT_CALL(mock_applevz, create_vm(_, _))
+        .WillOnce(DoAll(SetArgReferee<1>(mock_handle), Return(mp::applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, get_state(_))
+        .WillRepeatedly(Return(mp::applevz::AppleVMState::stopped));
+    EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_, _))
+        .WillRepeatedly(ReturnArg<0>());
+    EXPECT_CALL(mock_applevz_utils, resize_image(_, _)).WillRepeatedly(Return());
+
+    EXPECT_TRUE(
+        uut->clone_bare_vm({}, {}, src_vm_name, dest_vm_name, {}, stub_key_provider, stub_monitor));
+
+    std::unordered_set<std::string> actual_files;
+    for (const auto& file : fs::directory_iterator(dest_vm_dir))
+    {
+        if (fs::is_regular_file(file.status()))
+        {
+            actual_files.insert(file.path().filename().string());
+        }
+    }
+
+    EXPECT_EQ(actual_files, expected_files);
 }
