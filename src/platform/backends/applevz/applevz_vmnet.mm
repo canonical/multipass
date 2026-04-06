@@ -181,54 +181,52 @@ void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
     mpl::debug(category, "vmnet bridged interface started on '{}'", physical_iface);
 }
 
-// Forward packets from the socket to the vmnet interface.
-// Runs as a blocking loop on a dedicated queue until the socket is closed.
-void forward_from_vm(VmnetRelay& relay, bool bulk)
+// Forward one batch of packets from the socket to the vmnet interface.
+// Returns false when the socket is closed.
+bool forward_from_vm(VmnetRelay& relay, bool bulk)
 {
-    for (;;)
+    int count = 0;
+
+    if (bulk)
     {
-        int count = 0;
+        int max_count = (int)relay.vm_endpoint.msgs.size();
+        for (int i = 0; i < max_count; i++)
+            relay.vm_endpoint.iovs[i].iov_len = relay.max_packet_bytes;
 
-        if (bulk)
-        {
-            int max_count = (int)relay.vm_endpoint.msgs.size();
-            for (int i = 0; i < max_count; i++)
-                relay.vm_endpoint.iovs[i].iov_len = relay.max_packet_bytes;
-
-            count = (int)recvmsg_x(relay.fd, relay.vm_endpoint.msgs.data(), max_count, 0);
-            if (count < 0 && errno != EBADF && errno != ECONNRESET)
-                mpl::trace(category, "recvmsg_x() failed: {}", strerror(errno));
-        }
-        else
-        {
-            relay.vm_endpoint.iovs[0].iov_len = relay.max_packet_bytes;
-            ssize_t n =
-                recv(relay.fd, relay.vm_endpoint.iovs[0].iov_base, relay.max_packet_bytes, 0);
-            if (n < 0 && errno != EBADF && errno != ECONNRESET)
-                mpl::trace(category, "recv() failed: {}", strerror(errno));
-            if (n > 0)
-            {
-                relay.vm_endpoint.msgs[0].msg_len = (size_t)n;
-                count = 1;
-            }
-        }
-
-        if (count <= 0)
-            break;
-
-        for (int i = 0; i < count; i++)
-        {
-            relay.vm_endpoint.packets[i].vm_pkt_size = relay.vm_endpoint.msgs[i].msg_len;
-            relay.vm_endpoint.packets[i].vm_flags = 0;
-            relay.vm_endpoint.iovs[i].iov_len = relay.vm_endpoint.msgs[i].msg_len;
-        }
-
-        int write_count = count;
-        vmnet_return_t status =
-            vmnet_write(relay.iface, relay.vm_endpoint.packets.data(), &write_count);
-        if (status != VMNET_SUCCESS)
-            mpl::trace(category, "vmnet_write() failed (status {})", static_cast<int>(status));
+        count = (int)recvmsg_x(relay.fd, relay.vm_endpoint.msgs.data(), max_count, 0);
+        if (count < 0 && errno != EBADF && errno != ECONNRESET)
+            mpl::trace(category, "recvmsg_x() failed: {}", strerror(errno));
     }
+    else
+    {
+        relay.vm_endpoint.iovs[0].iov_len = relay.max_packet_bytes;
+        ssize_t n = recv(relay.fd, relay.vm_endpoint.iovs[0].iov_base, relay.max_packet_bytes, 0);
+        if (n < 0 && errno != EBADF && errno != ECONNRESET)
+            mpl::trace(category, "recv() failed: {}", strerror(errno));
+        if (n > 0)
+        {
+            relay.vm_endpoint.msgs[0].msg_len = (size_t)n;
+            count = 1;
+        }
+    }
+
+    if (count <= 0)
+        return false;
+
+    for (int i = 0; i < count; i++)
+    {
+        relay.vm_endpoint.packets[i].vm_pkt_size = relay.vm_endpoint.msgs[i].msg_len;
+        relay.vm_endpoint.packets[i].vm_flags = 0;
+        relay.vm_endpoint.iovs[i].iov_len = relay.vm_endpoint.msgs[i].msg_len;
+    }
+
+    int write_count = count;
+    vmnet_return_t status =
+        vmnet_write(relay.iface, relay.vm_endpoint.packets.data(), &write_count);
+    if (status != VMNET_SUCCESS)
+        mpl::trace(category, "vmnet_write() failed (status {})", static_cast<int>(status));
+
+    return true;
 }
 
 // Forward one batch of packets from the vmnet interface to the socket.
@@ -306,7 +304,8 @@ void start_forwarding_from_vm(VmnetRelay& relay)
     relay.vm_queue =
         dispatch_queue_create("com.canonical.multipassd.vmnet.vm", DISPATCH_QUEUE_SERIAL);
     dispatch_async(relay.vm_queue, ^{
-      forward_from_vm(relay, bulk);
+      while (forward_from_vm(relay, bulk))
+          ;
     });
 
     mpl::debug(category, "vmnet vm->host forwarding started");
