@@ -12,10 +12,6 @@
         "openssl",
         "xz-embedded",
         {
-            "name": "qemu",
-            "platform": "linux | osx"
-        },
-        {
             "name": "qtbase",
             "default-features": false,
             "features": [
@@ -49,6 +45,12 @@
             "description": "Enable test dependencies",
             "dependencies": [
                 "gtest"
+            ]
+        },
+        "qemu": {
+            "description": "Enable vendored QEMU",
+            "dependencies": [
+                "qemu"
             ]
         }
     }
