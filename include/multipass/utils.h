@@ -254,7 +254,7 @@ public:
     virtual std::string get_kernel_version() const;
 
     // scrypt hash generator
-    virtual QString generate_scrypt_hash_for(const QString& passphrase) const;
+    virtual std::string generate_scrypt_hash_for(const std::string& passphrase) const;
 
     // virtual machine helpers
     [[nodiscard]] virtual bool is_running(const VirtualMachine::State& state) const;

@@ -52,7 +52,7 @@ public:
                 (const override));
     MOCK_METHOD(Path, make_dir, (const QDir&, std::filesystem::perms), (const override));
     MOCK_METHOD(std::string, get_kernel_version, (), (const, override));
-    MOCK_METHOD(QString, generate_scrypt_hash_for, (const QString&), (const, override));
+    MOCK_METHOD(std::string, generate_scrypt_hash_for, (const std::string&), (const, override));
     MOCK_METHOD(bool, client_certs_exist, (const QString&), (const));
     MOCK_METHOD(void, copy_client_certs_to_common_dir, (const QString&, const QString&), (const));
     MOCK_METHOD(bool, is_running, (const VirtualMachine::State& state), (const, override));
