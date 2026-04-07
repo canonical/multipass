@@ -178,11 +178,11 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
     return std::nullopt;
 }
 
-std::string get_alias_script_path(const std::string& alias)
+std::filesystem::path get_alias_script_path(const std::string& alias)
 {
-    QDir aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+    auto aliases_folder = MP_PLATFORM.qstr_to_path(MP_PLATFORM.get_alias_scripts_folder().path());
 
-    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+    return absolute(aliases_folder / alias);
 }
 } // namespace
 

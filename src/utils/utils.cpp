@@ -102,11 +102,11 @@ bool mp::Utils::run_cmd_for_status(const QString& cmd,
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
 
-void mp::Utils::make_file_with_content(const std::string& file_name,
+void mp::Utils::make_file_with_content(const std::filesystem::path& file_name,
                                        const std::string& content,
                                        const bool& overwrite)
 {
-    QFile file(QString::fromStdString(file_name));
+    QFile file(MP_PLATFORM.path_to_qstr(file_name));
     if (!overwrite && MP_FILEOPS.exists(file))
         throw std::runtime_error(fmt::format("file '{}' already exists", file_name));
 

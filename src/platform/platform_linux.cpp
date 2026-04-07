@@ -177,11 +177,11 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
     }
 }
 
-std::string get_alias_script_path(const std::string& alias)
+std::filesystem::path get_alias_script_path(const std::string& alias)
 {
-    auto aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+    auto aliases_folder = MP_PLATFORM.qstr_to_path(MP_PLATFORM.get_alias_scripts_folder().path());
 
-    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+    return absolute(aliases_folder / alias);
 }
 } // namespace
 
