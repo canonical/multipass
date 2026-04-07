@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../catalogue/catalogue.dart';
 import '../extensions.dart';
+import '../l10n/app_localizations.dart';
 import '../sidebar.dart';
 
 class NoVms extends ConsumerWidget {
@@ -11,6 +12,8 @@ class NoVms extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+
     final multipassLogo = SvgPicture.asset(
       'assets/multipass.svg',
       width: 40,
@@ -30,14 +33,15 @@ class NoVms extends ConsumerWidget {
           children: [
             multipassLogo,
             const SizedBox(height: 22),
-            const Text('Zero Instances', style: TextStyle(fontSize: 21)),
+            Text(l10n.noVmsTitle, style: const TextStyle(fontSize: 21)),
             const SizedBox(height: 8),
             Text.rich(
               [
-                'Return to the '.span,
-                'Catalogue'.span.color(Colors.blue).link(ref, goToCatalogue),
-                ' to choose your instance or get started with the primary Ubuntu Image'
-                    .span,
+                l10n.noVmsMessageBefore.span,
+                l10n.noVmsMessageLink.span
+                    .color(Colors.blue)
+                    .link(ref, goToCatalogue),
+                l10n.noVmsMessageAfter.span,
               ].spans.size(16),
             ),
           ],

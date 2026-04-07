@@ -177,5 +177,21 @@
                 "description": "The error message"
             }
         }
+    },
+    "noVmsTitle": "Zero Instances",
+    "@noVmsTitle": {
+        "description": "Heading shown when the user has no VM instances"
+    },
+    "noVmsMessageBefore": "Return to the ",
+    "@noVmsMessageBefore": {
+        "description": "Text before the Catalogue link in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
+    },
+    "noVmsMessageLink": "Catalogue",
+    "@noVmsMessageLink": {
+        "description": "Link label in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
+    },
+    "noVmsMessageAfter": " to choose your instance or get started with the primary Ubuntu Image",
+    "@noVmsMessageAfter": {
+        "description": "Text after the Catalogue link in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
     }
 }
