@@ -368,7 +368,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias,
 
     std::string script = "#!/bin/sh\n\n\"" + multipass_exec + "\" " + alias + " -- " + "\"${@}\"\n";
 
-    MP_UTILS.make_file_with_content(file_path, script, true);
+    MP_FILEOPS.write_file(file_path, script, true);
 
     auto permissions = MP_FILEOPS.get_permissions(file_path) | fs::perms::owner_exec |
                        fs::perms::group_exec | fs::perms::others_exec;

@@ -484,9 +484,9 @@ void mp::BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
         head_snapshot = std::move(old_head);
         if (wrote_head)
             top_catch_all(vm_name, [this, &head_path] {
-                MP_UTILS.make_file_with_content(head_path.toStdString(),
-                                                std::to_string(head_snapshot->get_index()) + "\n",
-                                                yes_overwrite);
+                MP_FILEOPS.write_file(head_path.toStdString(),
+                                      std::to_string(head_snapshot->get_index()) + "\n",
+                                      yes_overwrite);
             });
     }
 }
@@ -669,7 +669,7 @@ auto mp::BaseVirtualMachine::make_common_file_rollback(const Path& file_path,
                                                        const std::string& old_contents) const
 {
     return sg::make_scope_guard(
-        [this, &file_path, &file, old_contents, existed = file.exists()]() noexcept {
+        [this, &file_path, &file, old_contents, existed = MP_FILEOPS.exists(file)]() noexcept {
             common_file_rollback_helper(file_path, file, old_contents, existed);
         });
 }
@@ -681,10 +681,10 @@ void mp::BaseVirtualMachine::common_file_rollback_helper(const Path& file_path,
 {
     // best effort, ignore returns
     if (!existed)
-        file.remove();
+        MP_FILEOPS.remove(file);
     else
         top_catch_all(vm_name, [&file_path, &old_contents] {
-            MP_UTILS.make_file_with_content(file_path.toStdString(), old_contents, yes_overwrite);
+            MP_FILEOPS.write_file(file_path.toStdString(), old_contents, yes_overwrite);
         });
 }
 
@@ -706,9 +706,9 @@ void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
     auto count_file_rollback = make_common_file_rollback(count_path,
                                                          count_file,
                                                          std::to_string(snapshot_count - 1) + "\n");
-    MP_UTILS.make_file_with_content(count_path.toStdString(),
-                                    std::to_string(snapshot_count) + "\n",
-                                    yes_overwrite);
+    MP_FILEOPS.write_file(count_path.toStdString(),
+                          std::to_string(snapshot_count) + "\n",
+                          yes_overwrite);
 
     count_file_rollback.dismiss();
     head_file_rollback.dismiss();
@@ -717,9 +717,9 @@ void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
 void mp::BaseVirtualMachine::persist_head_snapshot_index(const Path& head_path) const
 {
     auto head_index = head_snapshot ? head_snapshot->get_index() : 0;
-    MP_UTILS.make_file_with_content(head_path.toStdString(),
-                                    std::to_string(head_index) + "\n",
-                                    yes_overwrite);
+    MP_FILEOPS.write_file(head_path.toStdString(),
+                          std::to_string(head_index) + "\n",
+                          yes_overwrite);
 }
 
 std::string mp::BaseVirtualMachine::generate_snapshot_name() const

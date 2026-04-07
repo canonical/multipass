@@ -922,7 +922,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias,
 
     std::string script = "@\"" + multipass_exec + "\" " + alias + " -- %*\n";
 
-    MP_UTILS.make_file_with_content(file_path, script, true);
+    MP_FILEOPS.write_file(file_path, script, true);
 }
 
 void mp::platform::Platform::remove_alias_script(const std::string& alias) const

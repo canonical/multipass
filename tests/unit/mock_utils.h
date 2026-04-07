@@ -41,14 +41,6 @@ public:
                 (const QString&, const QStringList&, const int),
                 (const, override));
     MOCK_METHOD(std::string, contents_of, (const multipass::Path&), (const, override));
-    MOCK_METHOD(void,
-                make_file_with_content,
-                (const std::filesystem::path&, const std::string&),
-                ());
-    MOCK_METHOD(void,
-                make_file_with_content,
-                (const std::filesystem::path&, const std::string&, const bool&),
-                (override));
     MOCK_METHOD(Path,
                 make_dir,
                 (const QDir&, const QString&, std::filesystem::perms),

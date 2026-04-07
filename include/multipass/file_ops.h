@@ -57,6 +57,9 @@ public:
     // High-level operations
     virtual void write_transactionally(const QString& file_name, const QByteArrayView& data) const;
     virtual void write_transactionally(const fs::path& file_name, std::string_view data) const;
+    virtual void write_file(const fs::path& file_name,
+                            const std::string& content,
+                            bool overwrite = false);
     virtual std::optional<std::string> try_read_file(const fs::path& filename) const;
 
     // QDir operations

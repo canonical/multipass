@@ -18,6 +18,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/posix.h>
 
 #include <chrono>
@@ -155,10 +156,40 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
 
 void mp::FileOps::write_transactionally(const fs::path& file_name, std::string_view data) const
 {
-    write_transactionally(QString::fromStdString(file_name.string()), data);
+    write_transactionally(MP_PLATFORM.path_to_qstr(file_name), data);
 }
 
 // LCOV_EXCL_START
+
+void mp::FileOps::write_file(const std::filesystem::path& file_name,
+                             const std::string& content,
+                             bool overwrite)
+{
+    QFile file(MP_PLATFORM.path_to_qstr(file_name));
+    if (!overwrite && MP_FILEOPS.exists(file))
+        throw std::runtime_error(fmt::format("file '{}' already exists", file_name));
+
+    QDir parent_dir{QFileInfo{file}.absoluteDir()};
+    if (!MP_FILEOPS.mkpath(parent_dir, "."))
+        throw std::runtime_error(fmt::format("failed to create dir '{}'", parent_dir.path()));
+
+    if (!MP_FILEOPS.open(file, QFile::WriteOnly))
+        throw std::runtime_error(
+            fmt::format("failed to open file '{}' for writing: {}", file_name, file.errorString()));
+
+    // TODO use a QTextStream instead. Theoretically, this may fail to write it all in one go but
+    // still succeed. In practice, that seems unlikely. See https://stackoverflow.com/a/70933650 for
+    // more.
+    if (MP_FILEOPS.write(file, content.c_str(), content.size()) != (qint64)content.size())
+        throw std::runtime_error(
+            fmt::format("failed to write to file '{}': {}", file_name, file.errorString()));
+
+    if (!MP_FILEOPS.flush(file)) // flush manually to check return (which QFile::close ignores)
+        throw std::runtime_error(
+            fmt::format("failed to flush file '{}': {}", file_name, file.errorString()));
+
+    return; // file closed, flush called again with errors ignored
+}
 
 bool mp::FileOps::exists(const QDir& dir) const
 {
