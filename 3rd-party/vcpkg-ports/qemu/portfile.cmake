@@ -45,9 +45,9 @@ endif()
 
 # Static linking if triplet requests it
 set(STATIC_FLAG "")
-if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
-    set(STATIC_FLAG "--static")
-endif()
+# if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+#     set(STATIC_FLAG "--static")
+# endif()
 
 # Replace the real configure with our configure wrapper so we can strip the unsupported flags.
 # This is done to make use of vcpkg_configure_make.
@@ -55,6 +55,10 @@ file(RENAME "${SOURCE_PATH}/configure" "${SOURCE_PATH}/configure.real")
 file(COPY "${CMAKE_CURRENT_LIST_DIR}/configure-wrapper" DESTINATION "${SOURCE_PATH}")
 file(RENAME "${SOURCE_PATH}/configure-wrapper" "${SOURCE_PATH}/configure")
 file(CHMOD "${SOURCE_PATH}/configure" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
+
+# Ensure the QEMU build process uses the vcpkg's pkgconfig files
+set(ENV{PKG_CONFIG_PATH} "${CURRENT_INSTALLED_DIR}/lib/pkgconfig")
+set(ENV{PKG_CONFIG_LIBDIR} "${CURRENT_INSTALLED_DIR}/lib/pkgconfig")
 
 # vcpkg_configure_make provides "clean" build environment for the configure process.
 # This way, configure won't use anything from the system accidentally.
@@ -98,6 +102,7 @@ vcpkg_configure_make(
         "--disable-gtk"
         "--disable-opengl"
         "--disable-libudev"
+        "--disable-af-xdp"
 )
 
 vcpkg_build_make()

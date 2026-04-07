@@ -8,6 +8,9 @@
   "supports": "osx | linux",
   "dependencies": [
     "glib",
-    "pixman"
+    "pixman",
+    "zlib",
+    "zstd",
+    "ncurses"
   ]
 }
