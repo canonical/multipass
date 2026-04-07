@@ -48,27 +48,25 @@ mp::SnapshotDescription read_snapshot_json(const std::filesystem::path& filename
                                            const mp::VirtualMachine& vm,
                                            const mp::VirtualMachineDescription& vm_desc)
 {
-    QFile file{filename};
-    if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
-        throw std::runtime_error{
-            fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
-
-    const auto& data = MP_FILEOPS.read_all(file);
-    if (data.isEmpty())
-        throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
-
-    try
+    if (auto data = MP_FILEOPS.try_read_file(filename))
     {
-        const auto json = boost::json::parse(std::string_view(data));
-        return value_to<mp::SnapshotDescription>(json.at("snapshot"),
-                                                 mp::SnapshotContext{vm, vm_desc});
+        try
+        {
+            const auto json = boost::json::parse(*data);
+            return value_to<mp::SnapshotDescription>(json.at("snapshot"),
+                                                     mp::SnapshotContext{vm, vm_desc});
+        }
+        catch (const boost::system::system_error& e)
+        {
+            throw std::runtime_error{
+                fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
+                            e.what(),
+                            filename)};
+        }
     }
-    catch (const boost::system::system_error& e)
-    {
-        throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
-                                             e.what(),
-                                             file.fileName())};
-    }
+
+    throw std::runtime_error{
+        fmt::format("Could not open snapshot file for for reading: {}", filename)};
 }
 
 std::shared_ptr<mp::Snapshot> find_parent(const mp::SnapshotDescription& desc,
