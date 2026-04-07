@@ -73,8 +73,10 @@ QStringList mp::QemuVMProcessSpec::arguments() const
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
         // clang-format off
+        // Tell QEMU to where to look for the BIOS files
+        args << "-L"
+             << QDir{QCoreApplication::applicationDirPath()}.absoluteFilePath("../Resources/qemu");
         args << platform_args;
-        // clang-format off
         // The VM image itself
         args << "-device"
 #if defined Q_PROCESSOR_S390
@@ -108,7 +110,6 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         args << "-uuid" << vm_uuid;
         // clang-format on
     }
-    // clang-format on
 
     for (const auto& [_, mount_data] : mount_args)
     {
@@ -229,7 +230,8 @@ profile %1 flags=(attach_disconnected) {
     catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
-        firmware = "/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/*";
+        firmware =
+            QDir{QCoreApplication::applicationDirPath()}.absoluteFilePath("../Resources/qemu/*");
     }
 
     return profile_template.arg(apparmor_profile_name(),
