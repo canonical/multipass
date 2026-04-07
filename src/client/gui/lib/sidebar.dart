@@ -182,10 +182,7 @@ class SideBar extends ConsumerWidget {
             duration: SideBar.animationDuration,
             child: Text.rich(
               [
-                'Canonical\n'
-                    .span
-                    .size(12)
-                    .color(Colors.white),
+                'Canonical\n'.span.size(12).color(Colors.white),
                 'Multipass'.span.size(24).color(Colors.white),
               ].spans,
             ),

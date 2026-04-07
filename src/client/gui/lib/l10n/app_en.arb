@@ -156,5 +156,31 @@
     "sidebarSettings": "Settings",
     "@sidebarSettings": {
         "description": "Sidebar navigation label for the Settings screen"
+    },
+    "deleteInstanceTitle": "{count, plural, =1{Delete instance} other{Delete instances}}",
+    "@deleteInstanceTitle": {
+        "description": "Title of the delete instance confirmation dialog",
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "deleteInstanceBody": "{count, plural, =1{You won't be able to recover this instance.} other{You won't be able to recover these instances.}}",
+    "@deleteInstanceBody": {
+        "description": "Body text of the delete instance confirmation dialog",
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "deleteInstanceConfirm": "Delete",
+    "@deleteInstanceConfirm": {
+        "description": "Confirm button label on the delete instance dialog"
+    },
+    "dialogCancel": "Cancel",
+    "@dialogCancel": {
+        "description": "Generic cancel button label for dialogs"
     }
 }
