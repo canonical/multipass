@@ -1,5 +1,6 @@
 #include "multipass/dart_ffi.h"
 #include "multipass/cli/client_common.h"
+#include "multipass/file_ops.h"
 #include "multipass/logging/log.h"
 #include "multipass/memory_size.h"
 #include "multipass/name_generator.h"
@@ -101,7 +102,7 @@ char* get_root_cert()
     try
     {
         const auto cert_path = MP_PLATFORM.get_root_cert_path();
-        const auto cert = MP_UTILS.contents_of(QString::fromStdU16String(cert_path.u16string()));
+        const auto cert = MP_FILEOPS.read_file(cert_path);
         return strdup(cert.c_str());
     }
     catch (const std::exception& e)

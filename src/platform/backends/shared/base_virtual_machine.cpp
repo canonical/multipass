@@ -28,6 +28,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/ssh_session.h>
@@ -78,7 +79,7 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
 
 std::string trimmed_contents_of(const QString& file_path)
 {
-    return mpu::trim(mpu::contents_of(file_path));
+    return mpu::trim(MP_FILEOPS.read_file(MP_PLATFORM.qstr_to_path(file_path)));
 }
 
 template <typename ExceptionT>

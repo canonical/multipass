@@ -344,24 +344,6 @@ QString mp::utils::make_uuid(const std::optional<std::string>& seed)
     return uuid.toString(QUuid::WithoutBraces);
 }
 
-std::string mp::utils::contents_of(const multipass::Path& file_path)
-{
-    // TODO this should protect against long contents
-    const std::string name{file_path.toStdString()};
-    std::ifstream in(name, std::ios::in | std::ios::binary);
-    if (!in)
-        throw FileOpenFailedException(name);
-
-    std::stringstream stream;
-    stream << in.rdbuf();
-    return stream.str();
-}
-
-std::string mp::Utils::contents_of(const multipass::Path& file_path) const
-{
-    return mp::utils::contents_of(file_path);
-}
-
 std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
 {
     std::vector<uint8_t> bytes(len, 0);

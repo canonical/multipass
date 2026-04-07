@@ -568,7 +568,7 @@ TEST_F(ImageVault, usesImageFromPrepare)
                                       std::nullopt,
                                       instance_dir);
 
-    const auto image_data = mp::utils::contents_of(MP_PLATFORM.path_to_qstr(vm_image.image_path));
+    const auto image_data = mpt::load(MP_PLATFORM.path_to_qstr(vm_image.image_path));
     EXPECT_THAT(image_data, StrEq(expected_data));
     EXPECT_THAT(vm_image.id, Eq(mpt::default_id));
 }

@@ -380,11 +380,21 @@ std::optional<std::string> mp::FileOps::try_read_file(const fs::path& filename) 
     else if (err)
         throw fs::filesystem_error(
             fmt::format("error reading file {}: {}", filename, err.message()),
+            filename,
             err);
 
     const auto file = MP_FILEOPS.open_read(filename);
     file->exceptions(std::ifstream::failbit | std::ifstream::badbit);
     return std::string{std::istreambuf_iterator{*file}, {}};
+}
+
+std::string mp::FileOps::read_file(const fs::path& filename) const
+{
+    if (auto contents = try_read_file(filename))
+        return *contents;
+    throw fs::filesystem_error(fmt::format("file {} does not exist", filename),
+                               filename,
+                               std::make_error_code(std::errc::no_such_file_or_directory));
 }
 
 std::unique_ptr<std::ostream> mp::FileOps::open_write(const fs::path& path,

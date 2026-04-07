@@ -106,7 +106,7 @@ struct Daemon : public mpt::DaemonTestFixture
             .WillByDefault([this](const QString& data_directory) {
                 return mock_utils.Utils::filesystem_bytes_available(data_directory);
             });
-        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
+        ON_CALL(mock_file_ops, read_file(_)).WillByDefault(Return(mpt::root_cert));
 
         EXPECT_CALL(mock_platform, multipass_storage_location())
             .Times(AnyNumber())
@@ -136,6 +136,9 @@ a few more tests for `false`, since there are different portions of code dependi
 
     mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
     mpt::MockUtils& mock_utils = *mock_utils_injection.first;
+
+    mpt::MockFileOps::GuardedMock mock_file_ops_injection{mpt::MockFileOps::inject<NiceMock>()};
+    mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
 
     mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
@@ -1092,8 +1095,7 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
     config_builder.data_directory = QString("invalid_data_directory");
     mp::Daemon daemon{config_builder.build()};
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
-    EXPECT_CALL(*mock_file_ops, write_transactionally).Times(1); // avoid creating directory
+    EXPECT_CALL(mock_file_ops, write_transactionally).Times(1); // avoid creating directory
 
     std::stringstream stream;
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
@@ -1161,8 +1163,7 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
-    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+    EXPECT_CALL(mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(WithArg<1>([&mac_addr, &extra_interfaces](const QByteArrayView& data) {
             auto obj = boost::json::parse({data.begin(), data.end()}).as_object();
             check_interfaces_in_json(obj, mac_addr, extra_interfaces);
@@ -1242,8 +1243,7 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         EXPECT_THAT(list_reply.instance_list().instances(), instance_matcher);
     }
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
-    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+    EXPECT_CALL(mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(WithArg<1>([&mounts](const QByteArrayView& data) {
             auto obj = boost::json::parse({data.begin(), data.end()});
             check_mounts_in_json(obj, mounts);
@@ -1281,8 +1281,7 @@ TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
     send_command({"list"}, stream);
     EXPECT_THAT(stream.str(), HasSubstr("real-zebraphant"));
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
-    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+    EXPECT_CALL(mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(WithArg<1>([&uid_mappings, &gid_mappings](const QByteArrayView& data) {
             auto obj = boost::json::parse({data.begin(), data.end()});
             check_maps_in_json(obj, uid_mappings, gid_mappings);
@@ -1488,8 +1487,7 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         fmt::format("{{\n{},\n{}\n}}", std::move(stayed_json), std::move(gone_json)));
     config_builder.data_directory = temp_dir->path();
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
-    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1515,7 +1513,7 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+    EXPECT_CALL(mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
             EXPECT_THAT(data.toByteArray().toStdString(),
@@ -2272,10 +2270,9 @@ TEST_F(Daemon, purgePersistsInstances)
     const auto [temp_dir, filename] = plant_instance_json(json_contents);
     config_builder.data_directory = temp_dir->path();
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
-    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+    EXPECT_CALL(mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&name1, &name2](const QByteArrayView& data) {

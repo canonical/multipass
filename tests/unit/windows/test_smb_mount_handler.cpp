@@ -77,10 +77,10 @@ struct SmbMountHandlerTest : public ::Test
         EXPECT_CALL(file_ops, status)
             .WillOnce(
                 Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
+        ON_CALL(file_ops, read_file).WillByDefault(Return("irrelevant"));
         ON_CALL(file_ops, write_file(_, _)).WillByDefault(Return());
         EXPECT_CALL(utils, make_dir(_, QString{"enc-keys"}, _)).WillOnce(Return("enc-keys"));
         EXPECT_CALL(platform, get_username).WillOnce(Return(username));
-        ON_CALL(utils, contents_of).WillByDefault(Return("irrelevant"));
         EXPECT_CALL(utils, make_uuid(std::make_optional(vm.get_name())))
             .WillOnce(Return(vm_name_uuid));
         EXPECT_CALL(utils, make_uuid(std::make_optional(target))).WillOnce(Return(target_uuid));

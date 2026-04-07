@@ -223,6 +223,10 @@ struct HighLevelFileOps : public Test
             .WillRepeatedly([this]<typename... Args>(Args&&... args) {
                 return mock_file_ops.FileOps::try_read_file(std::forward<Args>(args)...);
             });
+        EXPECT_CALL(mock_file_ops, read_file(A<const fs::path&>()))
+            .WillRepeatedly([this]<typename... Args>(Args&&... args) {
+                return mock_file_ops.FileOps::read_file(std::forward<Args>(args)...);
+            });
     }
 
     mpt::MockFileOps::GuardedMock guarded_mock_file_ops = mpt::MockFileOps::inject<StrictMock>();
@@ -503,4 +507,24 @@ TEST_F(HighLevelFileOps, tryReadFileThrowsOnBadbit)
     EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filestream)));
 
     EXPECT_THROW(mock_file_ops.try_read_file(":("), std::ios_base::failure);
+}
+
+TEST_F(HighLevelFileOps, readFileReadsFromFile)
+{
+    auto filestream = std::make_unique<std::stringstream>();
+    *filestream << "Hello, world!";
+
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filestream)));
+    const auto filedata = mock_file_ops.try_read_file("exists");
+
+    EXPECT_EQ(filedata, "Hello, world!");
+}
+
+TEST_F(HighLevelFileOps, readFileThrowsForMissingFile)
+{
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(false));
+    const auto filedata = mock_file_ops.try_read_file("exists");
+
+    EXPECT_THROW(mock_file_ops.read_file(":("), std::filesystem::filesystem_error);
 }

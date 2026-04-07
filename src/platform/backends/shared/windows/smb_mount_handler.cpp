@@ -199,18 +199,18 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
 
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
     auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys")};
-    auto key_file = QDir{enc_key_dir_path}.filePath("aes.key");
+    auto key_file = MP_PLATFORM.qstr_to_path(QDir{enc_key_dir_path}.filePath("aes.key"));
 
-    if (MP_FILEOPS.exists(QFile{key_file}))
+    if (MP_FILEOPS.exists(key_file))
     {
-        const auto key_str = MP_UTILS.contents_of(key_file);
+        const auto key_str = MP_FILEOPS.readfile(key_file);
         enc_key.assign(key_str.begin(), key_str.end());
         enc_key.resize(MP_AES.aes_256_key_size());
     }
     else
     {
         enc_key = MP_UTILS.random_bytes(MP_AES.aes_256_key_size());
-        MP_FILEOPS.write_file(key_file.toStdString(), {enc_key.begin(), enc_key.end()});
+        MP_FILEOPS.write_file(key_file, {enc_key.begin(), enc_key.end()});
         mpl::info(category, "Successfully generated new encryption key");
     }
 }

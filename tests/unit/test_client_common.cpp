@@ -22,6 +22,7 @@
 #include "mock_cert_store.h"
 #include "mock_client_rpc.h"
 #include "mock_daemon.h"
+#include "mock_file_ops.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_standard_paths.h"
@@ -46,7 +47,7 @@ struct TestClientCommon : public mpt::DaemonTestFixture
         ON_CALL(mpt::MockStandardPaths::mock_instance(),
                 writableLocation(mp::StandardPaths::GenericDataLocation))
             .WillByDefault(Return(temp_dir.path()));
-        ON_CALL(*mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
+        ON_CALL(*mock_file_ops, read_file(_)).WillByDefault(Return(mpt::root_cert));
         // delegate some functions to the orignal implementation
         ON_CALL(*mock_utils,
                 make_dir(A<const QDir&>(), A<const QString&>(), A<std::filesystem::perms>()))
@@ -77,6 +78,8 @@ struct TestClientCommon : public mpt::DaemonTestFixture
     std::unique_ptr<mpt::MockCertStore> mock_cert_store{std::make_unique<mpt::MockCertStore>()};
     const mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
     const mpt::MockUtils* mock_utils = utils_attr.first;
+    const mpt::MockFileOps::GuardedMock file_ops_attr{mpt::MockFileOps::inject<NiceMock>()};
+    const mpt::MockFileOps* mock_file_ops = file_ops_attr.first;
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();

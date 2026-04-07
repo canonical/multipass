@@ -40,7 +40,6 @@ public:
                 run_cmd_for_status,
                 (const QString&, const QStringList&, const int),
                 (const, override));
-    MOCK_METHOD(std::string, contents_of, (const multipass::Path&), (const, override));
     MOCK_METHOD(Path,
                 make_dir,
                 (const QDir&, const QString&, std::filesystem::perms),

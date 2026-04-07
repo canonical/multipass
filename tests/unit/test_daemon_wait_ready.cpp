@@ -18,10 +18,10 @@
 #include "common.h"
 #include "daemon_test_fixture.h"
 #include "mock_cert_provider.h"
+#include "mock_file_ops.h"
 #include "mock_image_host.h"
 #include "mock_permission_utils.h"
 #include "mock_settings.h"
-#include "mock_utils.h"
 
 #include <src/daemon/daemon.h>
 
@@ -40,7 +40,7 @@ struct DaemonWaitReady : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
-        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
+        ON_CALL(mock_file_ops, read_file(_)).WillByDefault(Return(mpt::root_cert));
     }
 
     mpt::MockSettings::GuardedMock mock_settings_injection =
@@ -51,8 +51,8 @@ struct DaemonWaitReady : public mpt::DaemonTestFixture
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
 
-    mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
-    mpt::MockUtils& mock_utils = *mock_utils_injection.first;
+    mpt::MockFileOps::GuardedMock mock_file_ops_injection{mpt::MockFileOps::inject<NiceMock>()};
+    mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
 
     const std::string wait_msg = fmt::format("Waiting for the Multipass daemon to be ready");
 };

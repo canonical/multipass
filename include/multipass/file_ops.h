@@ -61,6 +61,7 @@ public:
                             const std::string& content,
                             bool overwrite = false);
     virtual std::optional<std::string> try_read_file(const fs::path& filename) const;
+    virtual std::string read_file(const fs::path& filename) const;
 
     // QDir operations
     virtual bool exists(const QDir& dir) const;

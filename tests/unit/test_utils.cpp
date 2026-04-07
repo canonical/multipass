@@ -296,32 +296,6 @@ TEST(Utils, uuidHasNoCurlyBrackets)
     EXPECT_FALSE(uuid.contains(QRegularExpression("[{}]")));
 }
 
-TEST(Utils, contentsOfActuallyReadsContents)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    std::string expected_content{"just a bit of test content here"};
-    mpt::make_file_with_content(file_name, expected_content);
-
-    auto content = mp::utils::contents_of(file_name);
-    EXPECT_THAT(content, StrEq(expected_content));
-}
-
-TEST(Utils, contentsOfThrowsOnMissingFile)
-{
-    EXPECT_THROW(mp::utils::contents_of("this-file-does-not-exist"), std::runtime_error);
-}
-
-TEST(Utils, contentsOfEmptyContentsOnEmptyFile)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/empty_test_file";
-    mpt::make_file_with_content(file_name, "");
-
-    auto content = mp::utils::contents_of(file_name);
-    EXPECT_TRUE(content.empty());
-}
-
 TEST(Utils, splitReturnsTokenList)
 {
     std::vector<std::string> expected_tokens;
