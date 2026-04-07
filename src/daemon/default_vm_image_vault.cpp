@@ -325,30 +325,16 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             if (!query.name.empty())
             {
-                for (auto& record : prepared_image_records)
+                if (auto entry = prepared_image_records.find(id);
+                    entry != prepared_image_records.end())
                 {
-                    if (record.second.query.remote_name != query.remote_name)
-                        continue;
-
-                    const auto aliases = record.second.image.aliases;
-                    if (id == record.first ||
-                        std::find(aliases.cbegin(), aliases.cend(), query.release) !=
-                            aliases.cend())
+                    try
                     {
-                        const auto prepared_image = record.second.image;
-                        try
-                        {
-                            return finalize_image_records(query,
-                                                          prepared_image,
-                                                          record.first,
-                                                          save_dir);
-                        }
-                        catch (const std::exception& e)
-                        {
-                            mpl::warn(category, "Cannot create instance image: {}", e.what());
-
-                            break;
-                        }
+                        return finalize_image_records(query, entry->second.image, id, save_dir);
+                    }
+                    catch (const std::exception& e)
+                    {
+                        mpl::warn(category, "Cannot create instance image: {}", e.what());
                     }
                 }
             }

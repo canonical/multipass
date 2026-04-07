@@ -1372,14 +1372,9 @@ std::vector<std::string> old_releases{
     "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
     "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
 
-std::vector<std::string> old_remoteless_rels{"core", "core16"};
-
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease,
                          RefuseBridging,
                          Combine(Values("release", "daily", ""), ValuesIn(old_releases)));
-INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless,
-                         RefuseBridging,
-                         Combine(Values(""), ValuesIn(old_remoteless_rels)));
 
 TEST_F(Daemon, failsWithImageNotFoundAlsoIfImageIsAlsoNonBridgeable)
 {
