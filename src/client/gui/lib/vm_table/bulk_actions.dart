@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../delete_instance_dialog.dart';
 import '../extensions.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../vm_action.dart';
@@ -23,6 +24,8 @@ class BulkActionsBar extends ConsumerWidget {
         .values
         .toSet();
 
+    final l10n = AppLocalizations.of(context)!;
+
     Function(VmAction) wrapInNotification(
       Future<void> Function(Iterable<String>) function,
     ) {
@@ -34,10 +37,10 @@ class BulkActionsBar extends ConsumerWidget {
         final notificationsNotifier = ref.read(notificationsProvider.notifier);
         notificationsNotifier.addOperation(
           function(selectedVms),
-          loading: '${action.continuousTense} $object',
-          onSuccess: (_) => '${action.pastTense} $object',
+          loading: '${action.continuousTense(l10n)} $object',
+          onSuccess: (_) => '${action.pastTense(l10n)} $object',
           onError: (error) {
-            return 'Failed to ${action.name.toLowerCase()} $object: $error';
+            return 'Failed to ${action.label(l10n).toLowerCase()} $object: $error';
           },
         );
       };
