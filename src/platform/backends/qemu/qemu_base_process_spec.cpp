@@ -20,12 +20,16 @@
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
 
+#include <QCoreApplication>
+#include <QDir>
+
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
 QString mp::QemuBaseProcessSpec::program() const
 {
-    return QString("qemu-system-%1").arg(HOST_ARCH);
+    return QDir(QCoreApplication::applicationDirPath())
+        .filePath(QString("qemu-system-%1").arg(HOST_ARCH));
 }
 
 QString mp::QemuBaseProcessSpec::working_directory() const
