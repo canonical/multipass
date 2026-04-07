@@ -5,8 +5,6 @@ import 'package:local_notifier/local_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'package:flutter_localizations/flutter_localizations.dart';
-
 import 'before_quit_dialog.dart';
 import 'l10n/app_localizations.dart';
 import 'catalogue/catalogue.dart';
