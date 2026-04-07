@@ -198,5 +198,47 @@
     "closeTerminalConfirm": "Close tab",
     "@closeTerminalConfirm": {
         "description": "Confirm button label on the close terminal tab dialog"
+    },
+    "launchSuccessTitle": "{name} is up and running",
+    "@launchSuccessTitle": {
+        "description": "Bold heading in the launch success notification",
+        "placeholders": {
+            "name": {
+                "type": "String",
+                "description": "The VM instance name"
+            }
+        }
+    },
+    "launchSuccessBody": "You can start using it now",
+    "@launchSuccessBody": {
+        "description": "Subtitle in the launch success notification"
+    },
+    "launchGoToInstance": "Go to instance",
+    "@launchGoToInstance": {
+        "description": "Button label in the launch success notification that navigates to the VM"
+    },
+    "launchVerifyingImage": "Verifying image",
+    "@launchVerifyingImage": {
+        "description": "Progress message shown while verifying a VM image during launch"
+    },
+    "launchDownloadingImage": "Downloading image {percent}%",
+    "@launchDownloadingImage": {
+        "description": "Progress message shown while downloading a VM image during launch",
+        "placeholders": {
+            "percent": {
+                "type": "String",
+                "description": "Download completion percentage"
+            }
+        }
+    },
+    "launchInProgress": "Launching {name}",
+    "@launchInProgress": {
+        "description": "Bold heading in the in-progress launch notification",
+        "placeholders": {
+            "name": {
+                "type": "String",
+                "description": "The VM instance name"
+            }
+        }
     }
 }
