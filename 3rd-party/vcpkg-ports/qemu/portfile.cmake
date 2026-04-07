@@ -60,7 +60,6 @@ vcpkg_configure_make(
     SOURCE_PATH "${SOURCE_PATH}"
     DISABLE_VERBOSE_FLAGS
     OPTIONS
-        "--firmwarepath=Resources/qemu/"
         "--ninja=${NINJA}"
         "--target-list=${QEMU_ARCH}-softmmu"
         ${ACCEL_FLAG}
