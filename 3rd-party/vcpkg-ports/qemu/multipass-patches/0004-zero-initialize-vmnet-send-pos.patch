@@ -1,0 +1,22 @@
+From ac0f482614d8311e1783db050e634628d6e07789 Mon Sep 17 00:00:00 2001
+From: Chris Townsend <christopher.townsend@canonical.com>
+Date: Wed, 19 Oct 2022 09:31:51 -0400
+Subject: [PATCH] [vmnet] Explicitly initialize some VmnetState struct
+
+---
+ net/vmnet-common.m | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/net/vmnet-common.m b/net/vmnet-common.m
+index ab33ce2b0c243..62aa1b2b73d2f 100644
+--- a/net/vmnet-common.m
++++ b/net/vmnet-common.m
+@@ -206,6 +206,8 @@ static void vmnet_send_bh(void *opaque)
+ {
+     NetClientState *nc = (NetClientState *) opaque;
+     VmnetState *s = DO_UPCAST(VmnetState, nc, nc);
++    s->packets_send_current_pos = 0;
++    s->packets_send_end_pos = 0;
+ 
+     /*
+      * Do nothing if QEMU is not ready - wait

@@ -1,0 +1,302 @@
+From b2f6703ac694045d43793bda14f7e7e08768799e Mon Sep 17 00:00:00 2001
+From: Chris Townsend <christopher.townsend@canonical.com>
+Date: Mon, 8 Aug 2022 16:19:54 -0400
+Subject: [PATCH] [9pfs] Add support for a uid/gid mapping between host & guest
+
+---
+ fsdev/file-op-9p.h      | 14 +++++++
+ fsdev/qemu-fsdev-opts.c | 12 ++++++
+ fsdev/qemu-fsdev.c      |  2 +
+ hw/9pfs/9p-local.c      | 83 +++++++++++++++++++++++++++++++++++++++++
+ hw/9pfs/9p.c            |  3 ++
+ qemu-options.hx         |  7 ++++
+ system/vl.c             | 13 ++++++-
+ 7 files changed, 133 insertions(+), 1 deletion(-)
+
+diff --git a/fsdev/file-op-9p.h b/fsdev/file-op-9p.h
+index 4997677460e8c..c75a76d93dd63 100644
+--- a/fsdev/file-op-9p.h
++++ b/fsdev/file-op-9p.h
+@@ -83,6 +83,16 @@ typedef struct ExtendedOps {
+ typedef struct FileOperations FileOperations;
+ typedef struct XattrOperations XattrOperations;
+ 
++typedef struct UidMap {
++    uid_t host_uid;
++    uid_t guest_uid;
++} UidMap;
++
++typedef struct GidMap {
++    gid_t host_gid;
++    gid_t guest_gid;
++} GidMap;
++
+ /*
+  * Structure to store the various fsdev's passed through command line.
+  */
+@@ -94,6 +104,8 @@ typedef struct FsDriverEntry {
+     FsThrottle fst;
+     mode_t fmode;
+     mode_t dmode;
++    UidMap uid_map;
++    GidMap gid_map;
+ } FsDriverEntry;
+ 
+ struct FsContext {
+@@ -107,6 +119,8 @@ struct FsContext {
+     void *private;
+     mode_t fmode;
+     mode_t dmode;
++    UidMap uid_map;
++    GidMap gid_map;
+ };
+ 
+ struct V9fsPath {
+diff --git a/fsdev/qemu-fsdev-opts.c b/fsdev/qemu-fsdev-opts.c
+index 07a18c6e48d31..ee14c13353f14 100644
+--- a/fsdev/qemu-fsdev-opts.c
++++ b/fsdev/qemu-fsdev-opts.c
+@@ -46,6 +46,12 @@ static QemuOptsList qemu_fsdev_opts = {
+         }, {
+             .name = "dmode",
+             .type = QEMU_OPT_NUMBER,
++        }, {
++            .name = "uid_map",
++            .type = QEMU_OPT_STRING,
++        }, {
++            .name = "gid_map",
++            .type = QEMU_OPT_STRING,
+         },
+ 
+         THROTTLE_OPTS,
+@@ -92,6 +98,12 @@ static QemuOptsList qemu_virtfs_opts = {
+         }, {
+             .name = "dmode",
+             .type = QEMU_OPT_NUMBER,
++        }, {
++            .name = "uid_map",
++            .type = QEMU_OPT_STRING,
++        }, {
++            .name = "gid_map",
++            .type = QEMU_OPT_STRING,
+         },
+ 
+         { /*End of list */ }
+diff --git a/fsdev/qemu-fsdev.c b/fsdev/qemu-fsdev.c
+index 57877dad0a799..0e5907eb693fe 100644
+--- a/fsdev/qemu-fsdev.c
++++ b/fsdev/qemu-fsdev.c
+@@ -59,6 +59,8 @@ static FsDriverTable FsDrivers[] = {
+             "fmode",
+             "dmode",
+             "multidevs",
++            "uid_map",
++            "gid_map",
+             "throttling.bps-total",
+             "throttling.bps-read",
+             "throttling.bps-write",
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 928523afcc6c0..812163dda83ec 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -223,6 +223,14 @@ static int local_lstat(FsContext *fs_ctx, V9fsPath *fs_path, struct stat *stbuf)
+         }
+     } else if (fs_ctx->export_flags & V9FS_SM_MAPPED_FILE) {
+         local_mapped_file_attr(dirfd, name, stbuf);
++    } else if (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH ||
++               fs_ctx->export_flags & V9FS_SM_NONE) {
++        if (stbuf->st_uid == fs_ctx->uid_map.host_uid) {
++            stbuf->st_uid = le32_to_cpu(fs_ctx->uid_map.guest_uid);
++        }
++        if (stbuf->st_gid == fs_ctx->gid_map.host_gid) {
++            stbuf->st_gid = le32_to_cpu(fs_ctx->gid_map.guest_gid);
++        }
+     }
+ 
+ err_out:
+@@ -443,6 +451,13 @@ static int local_set_xattrat(int dirfd, const char *path, FsCred *credp)
+ static int local_set_cred_passthrough(FsContext *fs_ctx, int dirfd,
+                                       const char *name, FsCred *credp)
+ {
++    if (credp->fc_uid == fs_ctx->uid_map.guest_uid) {
++        credp->fc_uid = fs_ctx->uid_map.host_uid;
++    }
++    if (credp->fc_gid == fs_ctx->gid_map.guest_gid) {
++        credp->fc_gid = fs_ctx->gid_map.host_gid;
++    }
++
+     if (fchownat(dirfd, name, credp->fc_uid, credp->fc_gid,
+                  AT_SYMLINK_NOFOLLOW) < 0) {
+         /*
+@@ -807,6 +822,14 @@ static int local_fstat(FsContext *fs_ctx, int fid_type,
+     } else if (fs_ctx->export_flags & V9FS_SM_MAPPED_FILE) {
+         errno = EOPNOTSUPP;
+         return -1;
++    } else if (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH ||
++               fs_ctx->export_flags & V9FS_SM_NONE) {
++        if (stbuf->st_uid == fs_ctx->uid_map.host_uid) {
++            stbuf->st_uid = le32_to_cpu(fs_ctx->uid_map.guest_uid);
++        }
++        if (stbuf->st_gid == fs_ctx->gid_map.host_gid) {
++            stbuf->st_gid = le32_to_cpu(fs_ctx->gid_map.guest_gid);
++        }
+     }
+     return err;
+ }
+@@ -1054,6 +1077,12 @@ static int local_chown(FsContext *fs_ctx, V9fsPath *fs_path, FsCred *credp)
+     if ((credp->fc_uid == -1 && credp->fc_gid == -1) ||
+         (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH) ||
+         (fs_ctx->export_flags & V9FS_SM_NONE)) {
++        if (credp->fc_uid == fs_ctx->uid_map.guest_uid) {
++            credp->fc_uid = fs_ctx->uid_map.host_uid;
++        }
++        if (credp->fc_gid == fs_ctx->gid_map.guest_gid) {
++            credp->fc_gid = fs_ctx->gid_map.host_gid;
++        }
+         ret = fchownat(dirfd, name, credp->fc_uid, credp->fc_gid,
+                        AT_SYMLINK_NOFOLLOW);
+     } else if (fs_ctx->export_flags & V9FS_SM_MAPPED) {
+@@ -1493,12 +1522,46 @@ static void error_append_security_model_hint(Error *const *errp)
+                       "[passthrough|mapped-xattr|mapped-file|none]\n");
+ }
+ 
++static int get_id_mapping(const char *id_map, u_int *host_id, u_int *guest_id, Error **errp)
++{
++    if (strchr(id_map, ':') == NULL) {
++        error_setg(errp, "must use a \':\' to separate map values");
++        return -1;
++    }
++
++    char *end;
++    char *map = strdup(id_map);
++    char *id = strtok(map, ":");
++
++    *host_id = strtol(id, &end, 10);
++
++    if (id == end) {
++        error_setg(errp, "\'%s\' is not valid. Must use an integer value.", id);
++        return -1;
++    }
++
++    id = strtok(NULL, ":");
++
++    *guest_id = strtol(id, &end, 10);
++
++    if (id == end) {
++        error_setg(errp, "\'%s\' is not valid. Must use an integer value.", id);
++        return -1;
++    }
++
++    free(map);
++
++    return 0;
++}
++
+ static int local_parse_opts(QemuOpts *opts, FsDriverEntry *fse, Error **errp)
+ {
+     ERRP_GUARD();
+     const char *sec_model = qemu_opt_get(opts, "security_model");
+     const char *path = qemu_opt_get(opts, "path");
+     const char *multidevs = qemu_opt_get(opts, "multidevs");
++    const char *uid_map = qemu_opt_get(opts, "uid_map");
++    const char *gid_map = qemu_opt_get(opts, "gid_map");
+ 
+     if (!sec_model) {
+         error_setg(errp, "security_model property not set");
+@@ -1543,6 +1606,26 @@ static int local_parse_opts(QemuOpts *opts, FsDriverEntry *fse, Error **errp)
+         fse->export_flags |= V9FS_REMAP_INODES;
+     }
+ 
++    if (fse->export_flags & V9FS_SM_PASSTHROUGH || fse->export_flags & V9FS_SM_NONE) {
++        if (uid_map) {
++            if (get_id_mapping(uid_map, &fse->uid_map.host_uid, &fse->uid_map.guest_uid, errp) < 0) {
++                return -1;
++            }
++        } else {
++            fse->uid_map.host_uid = -1;
++            fse->uid_map.guest_uid = -1;
++        }
++
++        if (gid_map) {
++            if (get_id_mapping(gid_map, &fse->gid_map.host_gid, &fse->gid_map.guest_gid, errp) < 0) {
++                return -1;
++            }
++        } else {
++            fse->gid_map.host_gid = -1;
++            fse->gid_map.guest_gid = -1;
++        }
++    }
++
+     if (!path) {
+         error_setg(errp, "path property not set");
+         return -1;
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index 80b190ff5b5f4..1d3014c2eab74 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -4301,6 +4301,9 @@ int v9fs_device_realize_common(V9fsState *s, const V9fsTransport *t,
+     s->ctx.dmode = fse->dmode;
+ 
+     s->fids = g_hash_table_new(NULL, NULL);
++    s->ctx.uid_map = fse->uid_map;
++    s->ctx.gid_map = fse->gid_map;
++
+     qemu_co_rwlock_init(&s->rename_lock);
+ 
+     if (s->ops->init(&s->ctx, errp) < 0) {
+diff --git a/qemu-options.hx b/qemu-options.hx
+index 396eea7ef203d..9ce95d3e6d5d3 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -1907,6 +1907,7 @@ ERST
+ DEF("virtfs", HAS_ARG, QEMU_OPTION_virtfs,
+     "-virtfs local,path=path,mount_tag=tag,security_model=mapped-xattr|mapped-file|passthrough|none\n"
+     "        [,id=id][,writeout=immediate][,readonly=on][,fmode=fmode][,dmode=dmode][,multidevs=remap|forbid|warn]\n"
++    "        [,uid_map=host_uid:guest_uid][,gid_map=host_gid:guest_gid]\n"
+     "-virtfs synth,mount_tag=tag[,id=id][,readonly=on]\n",
+     QEMU_ARCH_ALL)
+ 
+@@ -2010,6 +2011,12 @@ SRST
+         though that "forbid" does currently not block all possible file
+         access operations (e.g. readdir() would still return entries from
+         other devices).
++
++    ``uid_map=uid_map``
++        Specify a mapping between a host uid and a guest uid.
++
++    ``gid_map=gid_map``
++        Specify a mapping between a host gid and a guest gid.
+ ERST
+ 
+ DEF("iscsi", HAS_ARG, QEMU_OPTION_iscsi,
+diff --git a/system/vl.c b/system/vl.c
+index ec93988a03a4c..28d8db1a3313e 100644
+--- a/system/vl.c
++++ b/system/vl.c
+@@ -3256,7 +3256,7 @@ void qemu_init(int argc, char **argv)
+                 QemuOpts *fsdev;
+                 QemuOpts *device;
+                 const char *writeout, *sock_fd, *socket, *path, *security_model,
+-                           *multidevs;
++                           *multidevs, *uid_map, *gid_map;
+ 
+                 olist = qemu_find_opts("virtfs");
+                 if (!olist) {
+@@ -3320,6 +3320,17 @@ void qemu_init(int argc, char **argv)
+                 if (multidevs) {
+                     qemu_opt_set(fsdev, "multidevs", multidevs, &error_abort);
+                 }
++
++                uid_map = qemu_opt_get(opts, "uid_map");
++                if (uid_map) {
++                    qemu_opt_set(fsdev, "uid_map", uid_map, &error_abort);
++                }
++
++                gid_map = qemu_opt_get(opts, "gid_map");
++                if (gid_map) {
++                    qemu_opt_set(fsdev, "gid_map", gid_map, &error_abort);
++                }
++
+                 device = qemu_opts_create(qemu_find_opts("device"), NULL, 0,
+                                           &error_abort);
+                 qemu_opt_set(device, "driver", "virtio-9p-pci", &error_abort);
