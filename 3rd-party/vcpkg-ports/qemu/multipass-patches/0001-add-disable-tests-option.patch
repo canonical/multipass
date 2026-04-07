@@ -1,0 +1,78 @@
+From b57f0af88c99ad0c7aab5e6d50b27efcaf659a77 Mon Sep 17 00:00:00 2001
+From: Chris Townsend <christopher.townsend@canonical.com>
+Date: Wed, 9 Jun 2021 11:32:00 -0400
+Subject: [PATCH] [build] Add ability to conditionally build tests
+
+---
+ configure         | 6 ++++++
+ meson.build       | 5 ++++-
+ meson_options.txt | 2 ++
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/configure b/configure
+index 02f1dd2311f8c..1fdda8929f89a 100755
+--- a/configure
++++ b/configure
+@@ -258,6 +258,7 @@ rust="disabled"
+ rust_target_triple=""
+ gdb_bin=$(command -v "gdb-multiarch" || command -v "gdb")
+ gdb_arches=""
++tests="auto"
+ 
+ # Don't accept a target_list environment variable.
+ unset target_list
+@@ -780,6 +781,10 @@ for opt do
+   ;;
+   --disable-rust) rust=disabled
+   ;;
++  --disable-tests) tests="disabled"
++  ;;
++  --enable-tests) tests="enabled"
++  ;;
+   # everything else has the same name in configure and meson
+   --*) meson_option_parse "$opt" "$optarg"
+   ;;
+@@ -1945,6 +1950,7 @@ if test "$skip_meson" = no; then
+   test "$default_feature" = no && meson_option_add -Dauto_features=disabled
+   test "$static" = yes && meson_option_add -Dprefer_static=true
+   test "$pie" = no && meson_option_add -Db_pie=false
++  test "$tests" != enabled && meson_option_add "-Dtests=$tests"
+ 
+   # QEMU options
+   test "$rust" != "disabled" && meson_option_add "-Drust=$rust"
+diff --git a/meson.build b/meson.build
+index 8ec796d835df2..fd3af3d979ffc 100644
+--- a/meson.build
++++ b/meson.build
+@@ -4444,7 +4444,9 @@ subdir('scripts')
+ subdir('tools')
+ subdir('pc-bios')
+ subdir('docs')
+-subdir('tests')
++if get_option('tests').enabled()
++  subdir('tests')
++endif
+ if gtk.found()
+   subdir('po')
+ endif
+@@ -4557,6 +4559,7 @@ summary_info += {'vhost-user-crypto support': have_vhost_user_crypto}
+ summary_info += {'vhost-user-blk server support': have_vhost_user_blk_server}
+ summary_info += {'vhost-vdpa support': have_vhost_vdpa}
+ summary_info += {'build guest agent': have_ga}
++summary_info += {'build tests': get_option('tests').enabled()}
+ summary(summary_info, bool_yn: true, section: 'Configurable features')
+ 
+ # Compilation information
+diff --git a/meson_options.txt b/meson_options.txt
+index 59d973bca00fa..fb2bee8501364 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -275,6 +275,8 @@ option('fuse', type: 'feature', value: 'auto',
+        description: 'FUSE block device export')
+ option('fuse_lseek', type : 'feature', value : 'auto',
+        description: 'SEEK_HOLE/SEEK_DATA support for FUSE exports')
++option('tests', type : 'feature', value : 'auto',
++       description: 'Tests build support')
+ 
+ option('trace_backends', type: 'array', value: ['log'],
+        choices: ['dtrace', 'ftrace', 'log', 'nop', 'simple', 'syslog', 'ust'],
