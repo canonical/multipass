@@ -17,11 +17,13 @@ cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(feature-flags.cmake)
 include(src/cmake/environment-utils.cmake)
-is_running_in_ci(IS_RUNNING_IN_CI)
+include(CMakeDependentOption)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
 
+is_running_in_ci(IS_RUNNING_IN_CI)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
@@ -44,8 +46,7 @@ else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
 
-include(CMakeDependentOption)
-cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
+
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
@@ -127,7 +128,11 @@ else()
 endif()
 
 if(MULTIPASS_ENABLE_TESTS)
-  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
+  list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+
+if("qemu" IN_LIST MULTIPASS_BACKENDS)
+  list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
@@ -304,6 +309,10 @@ else()
     set(MULTIPASS_PLATFORM linux)
     set(LINUX TRUE)
   endif()
+endif()
+
+if("qemu" IN_LIST MULTIPASS_BACKENDS)
+  include(src/cmake/qemu-install-and-copy.cmake)
 endif()
 
 if(cmake_build_type_lower MATCHES "coverage")
