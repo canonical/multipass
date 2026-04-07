@@ -147,10 +147,17 @@ foreach(fw IN LISTS FIRMWARE)
 endforeach()
 
 # On aarch64, also provide the QEMU_EFI.fd alias
-if(QEMU_ARCH STREQUAL "aarch64" AND EXISTS "${CURRENT_PACKAGES_DIR}/Resources/qemu/edk2-aarch64-code.fd")
-    file(COPY_FILE
+if(QEMU_ARCH STREQUAL "x86_64")
+    file(CREATE_LINK
+        "${CURRENT_PACKAGES_DIR}/Resources/qemu/edk2-x86_64-code.fd"
+        "${CURRENT_PACKAGES_DIR}/Resources/qemu/OVMF.fd"
+        COPY_ON_ERROR
+    )
+elseif(QEMU_ARCH STREQUAL "aarch64")
+    file(CREATE_LINK
         "${CURRENT_PACKAGES_DIR}/Resources/qemu/edk2-aarch64-code.fd"
         "${CURRENT_PACKAGES_DIR}/Resources/qemu/QEMU_EFI.fd"
+        COPY_ON_ERROR
     )
 endif()
 
