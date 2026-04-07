@@ -43,12 +43,6 @@ else()
     set(ACCEL_FLAG "--enable-kvm")
 endif()
 
-# Static linking if triplet requests it
-set(STATIC_FLAG "")
-# if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
-#     set(STATIC_FLAG "--static")
-# endif()
-
 # Replace the real configure with our configure wrapper so we can strip the unsupported flags.
 # This is done to make use of vcpkg_configure_make.
 file(RENAME "${SOURCE_PATH}/configure" "${SOURCE_PATH}/configure.real")
@@ -70,7 +64,6 @@ vcpkg_configure_make(
         "--ninja=${NINJA}"
         "--target-list=${QEMU_ARCH}-softmmu"
         ${ACCEL_FLAG}
-        ${STATIC_FLAG}
         "--enable-virtfs"
         "--extra-cflags=-I${CURRENT_INSTALLED_DIR}/include"
         "--extra-ldflags=-L${CURRENT_INSTALLED_DIR}/lib"
