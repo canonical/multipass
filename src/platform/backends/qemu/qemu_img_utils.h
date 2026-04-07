@@ -22,6 +22,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string>
 
 namespace multipass
 {
@@ -44,7 +45,8 @@ void resize_instance_image(const MemorySize& disk_space, const std::filesystem::
 std::filesystem::path convert_to_qcow_if_necessary(const std::filesystem::path& image_path);
 void amend_to_qcow2_v3(const std::filesystem::path& image_path);
 std::filesystem::path convert_to_raw(const std::filesystem::path& image_path);
-bool instance_image_has_snapshot(const std::filesystem::path& image_path, QString snapshot_tag);
+bool instance_image_has_snapshot(const std::filesystem::path& image_path,
+                                 const std::string& snapshot_tag);
 QByteArray snapshot_list_output(const std::filesystem::path& image_path);
 void delete_snapshot_from_image(const std::filesystem::path& image_path,
                                 const QString& snapshot_tag);

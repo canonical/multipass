@@ -37,10 +37,9 @@ namespace
 {
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto index_digits = 4; // these two go together
-const auto snapshot_template =
-    QStringLiteral("@s%1"); /* avoid confusion with snapshot names by prepending a character
-                               that can't be part of the name (users can call a snapshot
-                               "s1", but they cannot call it "@s1") */
+// Avoid confusion with snapshot names by prepending a character that can't be part of the name
+// (users can call a snapshot "s1", but they cannot call it "@s1").
+constexpr auto snapshot_template = "@s{}";
 
 QString derive_index_string(int index)
 {
@@ -97,7 +96,7 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
                                bool captured)
     : desc{std::move(desc)},
       parent{std::move(parent)},
-      id{snapshot_template.arg(this->desc.index)},
+      id{fmt::format(snapshot_template, this->desc.index)},
       storage_dir{vm.instance_directory()},
       captured{captured}
 {
@@ -108,7 +107,7 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
 
 mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured)
     : desc{std::move(desc)},
-      id{snapshot_template.arg(desc.index)},
+      id{fmt::format(snapshot_template, desc.index)},
       storage_dir{vm.instance_directory()},
       captured{captured}
 {

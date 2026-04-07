@@ -25,15 +25,16 @@ namespace mpu = multipass::utils;
 
 namespace
 {
-bool snapshot_exists(const QString& vm_name, const QString& snapshot_id)
+bool snapshot_exists(const QString& vm_name, const std::string& snapshot_id)
 {
-    return mpu::process_log_on_error("VBoxManage",
-                                     {"snapshot", vm_name, "showvminfo", snapshot_id},
-                                     "Could not find snapshot: {}",
-                                     vm_name);
+    return mpu::process_log_on_error(
+        "VBoxManage",
+        {"snapshot", vm_name, "showvminfo", QString::fromStdString(snapshot_id)},
+        "Could not find snapshot: {}",
+        vm_name);
 }
 
-void require_unique_id(const QString& vm_name, const QString& snapshot_id)
+void require_unique_id(const QString& vm_name, const std::string& snapshot_id)
 {
     if (snapshot_exists(vm_name, snapshot_id))
         throw std::runtime_error{
@@ -69,10 +70,11 @@ void multipass::VirtualBoxSnapshot::capture_impl()
 
     const auto description_arg =
         QString{"--description=%1: %2"}.arg(get_name().c_str(), get_comment().c_str());
-    mpu::process_throw_on_error("VBoxManage",
-                                {"snapshot", vm_name, "take", id, description_arg},
-                                "Could not take snapshot: {}",
-                                vm_name);
+    mpu::process_throw_on_error(
+        "VBoxManage",
+        {"snapshot", vm_name, "take", QString::fromStdString(id), description_arg},
+        "Could not take snapshot: {}",
+        vm_name);
 }
 
 void multipass::VirtualBoxSnapshot::erase_impl()
@@ -80,7 +82,7 @@ void multipass::VirtualBoxSnapshot::erase_impl()
     const auto& id = get_id();
     if (snapshot_exists(vm_name, id))
         mpu::process_throw_on_error("VBoxManage",
-                                    {"snapshot", vm_name, "delete", get_id()},
+                                    {"snapshot", vm_name, "delete", QString::fromStdString(id)},
                                     "Could not delete snapshot: {}",
                                     vm_name);
     else
@@ -91,8 +93,9 @@ void multipass::VirtualBoxSnapshot::erase_impl()
 
 void multipass::VirtualBoxSnapshot::apply_impl()
 {
+    const auto id = QString::fromStdString(get_id());
     mpu::process_throw_on_error("VBoxManage",
-                                {"snapshot", vm_name, "restore", get_id()},
+                                {"snapshot", vm_name, "restore", id},
                                 "Could not restore snapshot: {}",
                                 vm_name);
 }
