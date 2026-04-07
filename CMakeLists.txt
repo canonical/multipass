@@ -29,6 +29,8 @@ if(NOT ${IS_RUNNING_IN_CI})
   configure_linker()
 endif()
 
+include(src/cmake/populate-supported-backends-list.cmake)
+
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
 cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
 
@@ -216,16 +218,6 @@ if(UNIX)
   if (${HOST_ARCH} STREQUAL "ppc64le")
     set(HOST_ARCH "ppc64")
   endif ()
-
-  if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND ${HOST_ARCH} MATCHES "x86_64"))
-      list(APPEND MULTIPASS_BACKENDS virtualbox)
-  endif()
-
-  list(APPEND MULTIPASS_BACKENDS qemu)
-
-  if(APPLEVZ_ENABLED)
-    list(APPEND MULTIPASS_BACKENDS applevz)
-  endif()
 endif()
 
 # Boost config
@@ -286,11 +278,6 @@ if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   add_definitions(-DSECURITY_WIN32)
-  set(MULTIPASS_BACKENDS hyperv virtualbox)
-  if(HYPERV_HCS_ENABLED)
-    add_definitions(-DHYPERV_HCS_ENABLED=1)
-    list(APPEND MULTIPASS_BACKENDS hyperv_api)
-  endif()
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
