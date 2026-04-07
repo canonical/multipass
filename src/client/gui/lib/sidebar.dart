@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'catalogue/catalogue.dart';
 import 'extensions.dart';
 import 'help.dart';
+import 'l10n/app_localizations.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
 import 'vm_details/terminal.dart';
@@ -101,6 +102,7 @@ class SideBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final selectedSidebarKey = ref.watch(sidebarKeyProvider);
     final sidebarKeyNotifier = sidebarKeyProvider.notifier;
     final vmNames = ref.watch(vmNamesProvider);
@@ -112,7 +114,7 @@ class SideBar extends ConsumerWidget {
     final catalogue = SidebarEntry(
       icon: SvgPicture.asset('assets/catalogue.svg'),
       selected: isSelected(CatalogueScreen.sidebarKey),
-      label: 'Catalogue',
+      label: l10n.sidebarCatalogue,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(CatalogueScreen.sidebarKey);
       },
@@ -122,7 +124,7 @@ class SideBar extends ConsumerWidget {
       icon: SvgPicture.asset('assets/instances.svg'),
       selected: isSelected(VmTableScreen.sidebarKey) ||
           !expanded && selectedSidebarKey.startsWith('vm-'),
-      label: 'Instances',
+      label: l10n.sidebarInstances,
       badge: vmNames.length.toString(),
       onPressed: () {
         ref.read(sidebarKeyProvider.notifier).set(VmTableScreen.sidebarKey);
@@ -132,7 +134,7 @@ class SideBar extends ConsumerWidget {
     final help = SidebarEntry(
       icon: SvgPicture.asset('assets/help.svg'),
       selected: isSelected(HelpScreen.sidebarKey),
-      label: 'Help',
+      label: l10n.sidebarHelp,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(HelpScreen.sidebarKey);
       },
@@ -141,7 +143,7 @@ class SideBar extends ConsumerWidget {
     final settings = SidebarEntry(
       icon: SvgPicture.asset('assets/settings.svg'),
       selected: isSelected(SettingsScreen.sidebarKey),
-      label: 'Settings',
+      label: l10n.sidebarSettings,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(SettingsScreen.sidebarKey);
       },
@@ -180,7 +182,10 @@ class SideBar extends ConsumerWidget {
             duration: SideBar.animationDuration,
             child: Text.rich(
               [
-                'Canonical\n'.span.size(12).color(Colors.white),
+                'Canonical\n'
+                    .span
+                    .size(12)
+                    .color(Colors.white),
                 'Multipass'.span.size(24).color(Colors.white),
               ].spans,
             ),

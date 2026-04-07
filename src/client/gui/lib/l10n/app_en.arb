@@ -140,5 +140,21 @@
     "helpViewDocs": "View documentation",
     "@helpViewDocs": {
         "description": "Button label that opens the Multipass documentation URL"
+    },
+    "sidebarCatalogue": "Catalogue",
+    "@sidebarCatalogue": {
+        "description": "Sidebar navigation label for the Catalogue screen"
+    },
+    "sidebarInstances": "Instances",
+    "@sidebarInstances": {
+        "description": "Sidebar navigation label for the Instances screen"
+    },
+    "sidebarHelp": "Help",
+    "@sidebarHelp": {
+        "description": "Sidebar navigation label for the Help screen"
+    },
+    "sidebarSettings": "Settings",
+    "@sidebarSettings": {
+        "description": "Sidebar navigation label for the Settings screen"
     }
 }
