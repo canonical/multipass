@@ -34,7 +34,7 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
     // clang-format off
     // Tell QEMU to where to look for the BIOS files
     args << "-L"
-         << QDir{QCoreApplication::applicationDirPath()}.absoluteFilePath("../Resources/qemu");
+         << QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath();
     args << platform_args
 #if defined Q_PROCESSOR_ARM
          << "-machine"
