@@ -24,6 +24,9 @@ find_program(QEMU_SYSTEM qemu-system-${HOST_ARCH}
     NO_DEFAULT_PATH REQUIRED
 )
 
+set(QEMU_FIRMWARE_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/Resources/qemu")
+
+# Copy QEMU and QEMU tools to build tree
 add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/bin/qemu-img" "${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin"
@@ -32,12 +35,26 @@ add_custom_command(
     DEPENDS "${QEMU_IMG}" "${QEMU_SYSTEM}"
 )
 
+# Copy firmware to build tree
+add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/Resources/qemu"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/Resources/qemu"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${QEMU_FIRMWARE_DIR}" "${CMAKE_BINARY_DIR}/Resources/qemu"
+)
+
 add_custom_target(qemu ALL DEPENDS
     "${CMAKE_BINARY_DIR}/bin/qemu-img"
     "${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}"
+    "${CMAKE_BINARY_DIR}/Resources/qemu"
 )
 
 install(PROGRAMS "${QEMU_IMG}" "${QEMU_SYSTEM}"
     DESTINATION bin
+    COMPONENT multipassd
+)
+
+# Install firmware
+install(DIRECTORY "${QEMU_FIRMWARE_DIR}/"
+    DESTINATION Resources/qemu
     COMPONENT multipassd
 )
