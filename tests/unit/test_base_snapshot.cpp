@@ -686,23 +686,13 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
 
-    EXPECT_CALL(*mock_file_ops,
-                open(mpt::FileNameMatches(Eq(QString::fromStdString(test_json_file_path))), _))
-        .WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, try_read_file(Eq(test_json_file_path)))
+        .WillOnce(Return(std::nullopt));
 
-    MP_EXPECT_THROW_THAT(
-        (MockBaseSnapshot{test_json_file_path, vm, desc}),
-        std::runtime_error,
-        mpt::match_what(AllOf(HasSubstr("Could not open"), HasSubstr(test_json_file_path))));
-}
-
-TEST_F(TestBaseSnapshot, throwsOnEmptyFile)
-{
-    const auto snapshot_file_path = vm.tmp_dir->filePath("wrong");
-    mpt::make_file_with_content(snapshot_file_path, "");
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{MP_PLATFORM.qstr_to_path(snapshot_file_path), vm, desc}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm, desc}),
                          std::runtime_error,
-                         mpt::match_what(HasSubstr("Empty")));
+                         mpt::match_what(AllOf(HasSubstr("Could not open"),
+                                               HasSubstr(test_json_file_path.string()))));
 }
 
 TEST_F(TestBaseSnapshot, throwsOnEmptyJsonObject)
