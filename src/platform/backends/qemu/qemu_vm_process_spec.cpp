@@ -75,7 +75,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         // clang-format off
         // Tell QEMU to where to look for the BIOS files
         args << "-L"
-             << QDir{QCoreApplication::applicationDirPath()}.absoluteFilePath("../Resources/qemu");
+             << QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath();
         args << platform_args;
         // The VM image itself
         args << "-device"
@@ -231,7 +231,8 @@ profile %1 flags=(attach_disconnected) {
     {
         signal_peer = "unconfined";
         firmware =
-            QDir{QCoreApplication::applicationDirPath()}.absoluteFilePath("../Resources/qemu/*");
+            QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath() +
+            "/*";
     }
 
     return profile_template.arg(apparmor_profile_name(),
