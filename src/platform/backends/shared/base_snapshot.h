@@ -78,7 +78,7 @@ public:
     void apply() final;
 
 protected:
-    const QString& get_id() const noexcept;
+    const std::string& get_id() const noexcept;
 
     virtual void capture_impl() = 0;
     virtual void erase_impl() = 0;
@@ -101,7 +101,7 @@ private:
 
     // This class is non-copyable and having these const simplifies thread safety.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QString id;
+    const std::string id;
     const QDir storage_dir;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
@@ -251,7 +251,7 @@ inline void multipass::BaseSnapshot::apply()
     // already persist)
 }
 
-inline const QString& multipass::BaseSnapshot::get_id() const noexcept
+inline const std::string& multipass::BaseSnapshot::get_id() const noexcept
 {
     return id;
 }

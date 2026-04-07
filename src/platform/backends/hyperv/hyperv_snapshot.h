@@ -48,7 +48,7 @@ protected:
     void apply_impl() override;
 
 private:
-    const QString quoted_id;
+    const std::string quoted_id;
     const QString vm_name;
     PowerShell& power_shell;
 };
