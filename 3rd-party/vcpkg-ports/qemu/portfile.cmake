@@ -27,38 +27,49 @@ vcpkg_from_github(
 
 find_program(NINJA ninja REQUIRED)
 
-if(VCPKG_TARGET_IS_OSX)
-    vcpkg_host_architecture(HOST_ARCH)
-    if(HOST_ARCH STREQUAL "arm64")
-        set(QEMU_ARCH aarch64)
-    else()
-        set(QEMU_ARCH x86_64)
-    endif()
-
-    set(EXTRA_ENV "")
-    if(DEFINED ENV{MACOSX_DEPLOYMENT_TARGET})
-        set(EXTRA_ENV "MACOSX_DEPLOYMENT_TARGET=$ENV{MACOSX_DEPLOYMENT_TARGET}")
-    endif()
-
-    set(HVF_FLAG "--enable-hvf")
-else()
+# Derive QEMU arch from vcpkg target
+if(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")
+    set(QEMU_ARCH aarch64)
+elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
     set(QEMU_ARCH x86_64)
-    set(EXTRA_ENV "")
-    set(HVF_FLAG "")
+else()
+    message(FATAL_ERROR "Unsupported architecture: ${VCPKG_TARGET_ARCHITECTURE}")
 endif()
 
-set(BUILD_DIR "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel")
-file(MAKE_DIRECTORY "${BUILD_DIR}")
+# Platform-specific acceleration
+if(VCPKG_TARGET_IS_OSX)
+    set(ACCEL_FLAG "--enable-hvf")
+else()
+    set(ACCEL_FLAG "--enable-kvm")
+endif()
 
-message(STATUS "Configuring QEMU")
-vcpkg_execute_required_process(
-    COMMAND "${SOURCE_PATH}/configure"
-        "--prefix=${CURRENT_PACKAGES_DIR}"
+# Static linking if triplet requests it
+set(STATIC_FLAG "")
+if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+    set(STATIC_FLAG "--static")
+endif()
+
+# Replace the real configure with our configure wrapper so we can strip the unsupported flags.
+# This is done to make use of vcpkg_configure_make.
+file(RENAME "${SOURCE_PATH}/configure" "${SOURCE_PATH}/configure.real")
+file(COPY "${CMAKE_CURRENT_LIST_DIR}/configure-wrapper" DESTINATION "${SOURCE_PATH}")
+file(RENAME "${SOURCE_PATH}/configure-wrapper" "${SOURCE_PATH}/configure")
+file(CHMOD "${SOURCE_PATH}/configure" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
+
+# vcpkg_configure_make provides "clean" build environment for the configure process.
+# This way, configure won't use anything from the system accidentally.
+vcpkg_configure_make(
+    SOURCE_PATH "${SOURCE_PATH}"
+    DISABLE_VERBOSE_FLAGS
+    OPTIONS
         "--firmwarepath=Resources/qemu/"
         "--ninja=${NINJA}"
         "--target-list=${QEMU_ARCH}-softmmu"
-        ${HVF_FLAG}
+        ${ACCEL_FLAG}
+        ${STATIC_FLAG}
         "--enable-virtfs"
+        "--extra-cflags=-I${CURRENT_INSTALLED_DIR}/include"
+        "--extra-ldflags=-L${CURRENT_INSTALLED_DIR}/lib"
         "--disable-bochs"
         "--disable-cloop"
         "--disable-docs"
@@ -83,25 +94,16 @@ vcpkg_execute_required_process(
         "--disable-libvduse"
         "--disable-vduse-blk-export"
         "--disable-dbus-display"
-    WORKING_DIRECTORY "${BUILD_DIR}"
-    LOGNAME configure-${TARGET_TRIPLET}
+        "--disable-xkbcommon"
+        "--disable-gtk"
+        "--disable-opengl"
+        "--disable-libudev"
 )
 
-message(STATUS "Building QEMU")
-vcpkg_execute_required_process(
-    COMMAND ${CMAKE_COMMAND} -E env ${EXTRA_ENV} "${NINJA}"
-    WORKING_DIRECTORY "${BUILD_DIR}"
-    LOGNAME build-${TARGET_TRIPLET}
-)
+vcpkg_build_make()
+vcpkg_install_make()
 
-message(STATUS "Installing QEMU")
-vcpkg_execute_required_process(
-    COMMAND "${NINJA}" install
-    WORKING_DIRECTORY "${BUILD_DIR}"
-    LOGNAME install-${TARGET_TRIPLET}
-)
-
-# Keep only the binaries and firmware files Multipass needs
+# Verify expected binaries exist
 set(TOOLS
     "${CURRENT_PACKAGES_DIR}/bin/qemu-img"
     "${CURRENT_PACKAGES_DIR}/bin/qemu-system-${QEMU_ARCH}"
@@ -112,20 +114,40 @@ foreach(tool IN LISTS TOOLS)
     endif()
 endforeach()
 
-set(FIRMWARE
-    "edk2-${QEMU_ARCH}-code.fd"
-    "efi-virtio.rom"
-    "vgabios-stdvga.bin"
-)
+# Arch-specific firmware
+if(QEMU_ARCH STREQUAL "aarch64")
+    set(FIRMWARE
+        "edk2-aarch64-code.fd"
+        "efi-virtio.rom"
+    )
+else()
+    set(FIRMWARE
+        "edk2-x86_64-code.fd"
+        "efi-virtio.rom"
+        "vgabios-stdvga.bin"
+    )
+endif()
 
 # Move firmware to expected layout
 file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/Resources/qemu")
 foreach(fw IN LISTS FIRMWARE)
-    file(RENAME
-        "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}"
-        "${CURRENT_PACKAGES_DIR}/Resources/qemu/${fw}"
-    )
+    if(EXISTS "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}")
+        file(RENAME
+            "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}"
+            "${CURRENT_PACKAGES_DIR}/Resources/qemu/${fw}"
+        )
+    else()
+        message(WARNING "Firmware file not found: ${fw}")
+    endif()
 endforeach()
+
+# On aarch64, also provide the QEMU_EFI.fd alias
+if(QEMU_ARCH STREQUAL "aarch64" AND EXISTS "${CURRENT_PACKAGES_DIR}/Resources/qemu/edk2-aarch64-code.fd")
+    file(COPY_FILE
+        "${CURRENT_PACKAGES_DIR}/Resources/qemu/edk2-aarch64-code.fd"
+        "${CURRENT_PACKAGES_DIR}/Resources/qemu/QEMU_EFI.fd"
+    )
+endif()
 
 # Clean up everything Multipass doesn't need
 file(REMOVE_RECURSE
@@ -137,8 +159,6 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/var"
 )
 
-# No include folders for QEMU as it produces executables
 set(VCPKG_POLICY_EMPTY_INCLUDE_FOLDER enabled)
 
-# vcpkg requires a copyright file
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING")
