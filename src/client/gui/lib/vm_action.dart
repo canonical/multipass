@@ -14,38 +14,10 @@ enum VmAction {
   purge,
   edit;
 
-  String label(AppLocalizations l10n) => switch (this) {
-        start => l10n.vmActionStartLabel,
-        stop => l10n.vmActionStopLabel,
-        suspend => l10n.vmActionSuspendLabel,
-        restart => l10n.vmActionRestartLabel,
-        delete => l10n.vmActionDeleteLabel,
-        recover => l10n.vmActionRecoverLabel,
-        purge => l10n.vmActionPurgeLabel,
-        edit => l10n.vmActionEditLabel,
-      };
-
-  String pastTense(AppLocalizations l10n) => switch (this) {
-        start => l10n.vmActionStartPastTense,
-        stop => l10n.vmActionStopPastTense,
-        suspend => l10n.vmActionSuspendPastTense,
-        restart => l10n.vmActionRestartPastTense,
-        delete => l10n.vmActionDeletePastTense,
-        recover => l10n.vmActionRecoverPastTense,
-        purge => l10n.vmActionPurgePastTense,
-        edit => l10n.vmActionEditPastTense,
-      };
-
-  String continuousTense(AppLocalizations l10n) => switch (this) {
-        start => l10n.vmActionStartContinuousTense,
-        stop => l10n.vmActionStopContinuousTense,
-        suspend => l10n.vmActionSuspendContinuousTense,
-        restart => l10n.vmActionRestartContinuousTense,
-        delete => l10n.vmActionDeleteContinuousTense,
-        recover => l10n.vmActionRecoverContinuousTense,
-        purge => l10n.vmActionPurgeContinuousTense,
-        edit => l10n.vmActionEditContinuousTense,
-      };
+  String label(AppLocalizations l10n) => l10n.vmActionLabel(name);
+  String pastTense(AppLocalizations l10n) => l10n.vmActionPastTense(name);
+  String continuousTense(AppLocalizations l10n) =>
+      l10n.vmActionContinuousTense(name);
 
   Set<Status> get allowedStatuses => switch (this) {
         start => const {Status.STOPPED, Status.SUSPENDED},

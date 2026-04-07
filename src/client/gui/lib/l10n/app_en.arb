@@ -1,100 +1,31 @@
 {
     "@@locale": "en",
-    "vmActionStartLabel": "Start",
-    "@vmActionStartLabel": {
-        "description": "Label for the Start action button"
+    "vmActionLabel": "{action, select, start{Start} stop{Stop} suspend{Suspend} restart{Restart} delete{Delete} recover{Recover} purge{Purge} edit{Edit} other{}}",
+    "@vmActionLabel": {
+        "description": "Button label for a VM action. The 'action' parameter is the lowercase enum name (start, stop, suspend, restart, delete, recover, purge, edit).",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            }
+        }
     },
-    "vmActionStartPastTense": "Started",
-    "@vmActionStartPastTense": {
-        "description": "Notification text after a VM has been started"
+    "vmActionPastTense": "{action, select, start{Started} stop{Stopped} suspend{Suspended} restart{Restarted} delete{Deleted} recover{Recovered} purge{Purged} edit{Edited} other{}}",
+    "@vmActionPastTense": {
+        "description": "Past-tense form of a VM action, used in success notifications. The 'action' parameter is the lowercase enum name.",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            }
+        }
     },
-    "vmActionStartContinuousTense": "Starting",
-    "@vmActionStartContinuousTense": {
-        "description": "Notification text while a VM is being started"
-    },
-    "vmActionStopLabel": "Stop",
-    "@vmActionStopLabel": {
-        "description": "Label for the Stop action button"
-    },
-    "vmActionStopPastTense": "Stopped",
-    "@vmActionStopPastTense": {
-        "description": "Notification text after a VM has been stopped"
-    },
-    "vmActionStopContinuousTense": "Stopping",
-    "@vmActionStopContinuousTense": {
-        "description": "Notification text while a VM is being stopped"
-    },
-    "vmActionSuspendLabel": "Suspend",
-    "@vmActionSuspendLabel": {
-        "description": "Label for the Suspend action button"
-    },
-    "vmActionSuspendPastTense": "Suspended",
-    "@vmActionSuspendPastTense": {
-        "description": "Notification text after a VM has been suspended"
-    },
-    "vmActionSuspendContinuousTense": "Suspending",
-    "@vmActionSuspendContinuousTense": {
-        "description": "Notification text while a VM is being suspended"
-    },
-    "vmActionRestartLabel": "Restart",
-    "@vmActionRestartLabel": {
-        "description": "Label for the Restart action button"
-    },
-    "vmActionRestartPastTense": "Restarted",
-    "@vmActionRestartPastTense": {
-        "description": "Notification text after a VM has been restarted"
-    },
-    "vmActionRestartContinuousTense": "Restarting",
-    "@vmActionRestartContinuousTense": {
-        "description": "Notification text while a VM is being restarted"
-    },
-    "vmActionDeleteLabel": "Delete",
-    "@vmActionDeleteLabel": {
-        "description": "Label for the Delete action button"
-    },
-    "vmActionDeletePastTense": "Deleted",
-    "@vmActionDeletePastTense": {
-        "description": "Notification text after a VM has been deleted"
-    },
-    "vmActionDeleteContinuousTense": "Deleting",
-    "@vmActionDeleteContinuousTense": {
-        "description": "Notification text while a VM is being deleted"
-    },
-    "vmActionRecoverLabel": "Recover",
-    "@vmActionRecoverLabel": {
-        "description": "Label for the Recover action button"
-    },
-    "vmActionRecoverPastTense": "Recovered",
-    "@vmActionRecoverPastTense": {
-        "description": "Notification text after a VM has been recovered"
-    },
-    "vmActionRecoverContinuousTense": "Recovering",
-    "@vmActionRecoverContinuousTense": {
-        "description": "Notification text while a VM is being recovered"
-    },
-    "vmActionPurgeLabel": "Purge",
-    "@vmActionPurgeLabel": {
-        "description": "Label for the Purge action button"
-    },
-    "vmActionPurgePastTense": "Purged",
-    "@vmActionPurgePastTense": {
-        "description": "Notification text after a VM has been purged"
-    },
-    "vmActionPurgeContinuousTense": "Purging",
-    "@vmActionPurgeContinuousTense": {
-        "description": "Notification text while a VM is being purged"
-    },
-    "vmActionEditLabel": "Edit",
-    "@vmActionEditLabel": {
-        "description": "Label for the Edit action button"
-    },
-    "vmActionEditPastTense": "Edited",
-    "@vmActionEditPastTense": {
-        "description": "Notification text after a VM has been edited"
-    },
-    "vmActionEditContinuousTense": "Editing",
-    "@vmActionEditContinuousTense": {
-        "description": "Notification text while a VM is being edited"
+    "vmActionContinuousTense": "{action, select, start{Starting} stop{Stopping} suspend{Suspending} restart{Restarting} delete{Deleting} recover{Recovering} purge{Purging} edit{Editing} other{}}",
+    "@vmActionContinuousTense": {
+        "description": "Continuous-tense form of a VM action, used in progress notifications. The 'action' parameter is the lowercase enum name.",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            }
+        }
     },
     "beforeQuitTitle": "Stop running instances?",
     "@beforeQuitTitle": {
