@@ -227,6 +227,8 @@ parts:
 
   qemu:
     build-environment:
+    - CXX: clang++-15
+    - CC: clang-15
     - LD_LIBRARY_PATH: ""
     - XDG_DATA_DIRS: /root/stage/usr/share:/usr/share
     - PKG_CONFIG_PATH: ""

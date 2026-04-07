@@ -14,8 +14,10 @@
 
 cmake_minimum_required(VERSION 3.20)
 cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
+cmake_policy(SET CMP0127 NEW) # New cmake_dependent_option logic
 
 include(src/cmake/environment-utils.cmake)
+include(CMakeDependentOption)
 is_running_in_ci(IS_RUNNING_IN_CI)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
