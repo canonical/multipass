@@ -240,5 +240,158 @@
                 "description": "The VM instance name"
             }
         }
+    },
+    "aboutTitle": "About",
+    "@aboutTitle": {
+        "description": "Section heading on the About settings page"
+    },
+    "aboutVersionLabel": "Multipass version",
+    "@aboutVersionLabel": {
+        "description": "Label for the Multipass client version field on the About page"
+    },
+    "aboutDaemonVersionLabel": "Multipass daemon version",
+    "@aboutDaemonVersionLabel": {
+        "description": "Label for the Multipass daemon version field on the About page"
+    },
+    "generalTitle": "General",
+    "@generalTitle": {
+        "description": "Section heading on the General settings page"
+    },
+    "generalAutostartLabel": "Open the Multipass GUI on startup",
+    "@generalAutostartLabel": {
+        "description": "Toggle label for the autostart setting"
+    },
+    "generalAutostartError": "Failed to set autostart: {error}",
+    "@generalAutostartError": {
+        "description": "Error notification when the autostart setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "generalOnCloseLabel": "When closing Multipass",
+    "@generalOnCloseLabel": {
+        "description": "Label for the dropdown that controls what happens when Multipass is closed"
+    },
+    "generalOnCloseAsk": "Ask about running instances",
+    "@generalOnCloseAsk": {
+        "description": "Dropdown option: ask the user what to do with running instances on close"
+    },
+    "generalOnCloseStop": "Stop running instances",
+    "@generalOnCloseStop": {
+        "description": "Dropdown option: automatically stop running instances on close"
+    },
+    "generalOnCloseNothing": "Do not stop running instances",
+    "@generalOnCloseNothing": {
+        "description": "Dropdown option: leave running instances running on close"
+    },
+    "usageTitle": "Usage",
+    "@usageTitle": {
+        "description": "Section heading on the Usage settings page"
+    },
+    "usagePrivilegedMountsLabel": "Allow privileged mounts",
+    "@usagePrivilegedMountsLabel": {
+        "description": "Toggle label for the privileged mounts setting"
+    },
+    "usagePrivilegedMountsError": "Failed to set privileged mounts: {error}",
+    "@usagePrivilegedMountsError": {
+        "description": "Error notification when the privileged mounts setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "usageAskTerminalCloseLabel": "Ask before closing terminal",
+    "@usageAskTerminalCloseLabel": {
+        "description": "Toggle label for the ask-before-closing-terminal setting"
+    },
+    "usagePrimaryNameLabel": "Primary instance name",
+    "@usagePrimaryNameLabel": {
+        "description": "Label for the primary instance name field in Usage settings"
+    },
+    "usagePrimaryNameErrorStartLetter": "Name must start with a letter",
+    "@usagePrimaryNameErrorStartLetter": {
+        "description": "Validation error when the primary instance name does not start with a letter"
+    },
+    "usagePrimaryNameErrorTooShort": "Name must be at least 2 characters",
+    "@usagePrimaryNameErrorTooShort": {
+        "description": "Validation error when the primary instance name is too short"
+    },
+    "usagePrimaryNameErrorEndChar": "Name must end in digit or letter",
+    "@usagePrimaryNameErrorEndChar": {
+        "description": "Validation error when the primary instance name ends with a hyphen"
+    },
+    "usageHotkeyLabel": "Primary instance hotkey",
+    "@usageHotkeyLabel": {
+        "description": "Label for the primary instance hotkey field in Usage settings"
+    },
+    "usagePassphraseLabel": "Authentication passphrase",
+    "@usagePassphraseLabel": {
+        "description": "Label for the authentication passphrase field in Usage settings"
+    },
+    "usagePassphraseError": "Failed to set passphrase: {error}",
+    "@usagePassphraseError": {
+        "description": "Error notification when the passphrase cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "virtualizationTitle": "Virtualization",
+    "@virtualizationTitle": {
+        "description": "Section heading on the Virtualization settings page"
+    },
+    "virtualizationDriverLabel": "Driver",
+    "@virtualizationDriverLabel": {
+        "description": "Label for the hypervisor driver dropdown"
+    },
+    "virtualizationDriverError": "Failed to set driver: {error}",
+    "@virtualizationDriverError": {
+        "description": "Error notification when the driver setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "virtualizationBridgedNetworkLabel": "Bridged network",
+    "@virtualizationBridgedNetworkLabel": {
+        "description": "Label for the bridged network dropdown"
+    },
+    "virtualizationBridgedNetworkNone": "None",
+    "@virtualizationBridgedNetworkNone": {
+        "description": "Dropdown option representing no bridged network selected"
+    },
+    "virtualizationBridgedNetworkError": "Failed to set bridged network: {error}",
+    "@virtualizationBridgedNetworkError": {
+        "description": "Error notification when the bridged network setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "settingsTitle": "Settings",
+    "@settingsTitle": {
+        "description": "Page heading on the Settings screen"
+    },
+    "hotkeyUnknownKey": "...",
+    "@hotkeyUnknownKey": {
+        "description": "Placeholder shown for the key portion of a hotkey when no key has been recorded yet"
+    },
+    "hotkeyCtrl": "Ctrl",
+    "@hotkeyCtrl": {
+        "description": "Display name for the Control modifier key in a hotkey combination"
+    },
+    "hotkeyShift": "Shift",
+    "@hotkeyShift": {
+        "description": "Display name for the Shift modifier key in a hotkey combination"
+    },
+    "hotkeyInputPrompt": "Input...",
+    "@hotkeyInputPrompt": {
+        "description": "Placeholder shown in the hotkey recorder when it has focus and is waiting for input"
     }
 }
