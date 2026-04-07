@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'confirmation_dialog.dart';
+import 'l10n/app_localizations.dart';
 
 class CloseTerminalDialog extends StatefulWidget {
   final Function() onYes;
@@ -23,16 +24,15 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ConfirmationDialog(
-      title: 'Close tab?',
+      title: l10n.closeTerminalTitle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 8),
-            child: const Text(
-              'Are you sure you want to close this tab? Its current state will be lost.',
-            ),
+            child: Text(l10n.closeTerminalBody),
           ),
           const SizedBox(height: 24),
           Row(
@@ -42,19 +42,19 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
                 onChanged: (value) => setState(() => doNotAsk = value!),
               ),
               const SizedBox(width: 8),
-              const Text('Do not ask me again'),
+              Text(l10n.closeTerminalDoNotAsk),
             ],
           ),
         ],
       ),
-      actionText: 'Close tab',
+      actionText: l10n.closeTerminalConfirm,
       onAction: () {
         widget.onDoNotAsk(
           doNotAsk,
         ); // Apply "do not ask" setting only when closing
         widget.onYes();
       },
-      inactionText: 'Cancel',
+      inactionText: l10n.dialogCancel,
       onInaction: () {
         widget.onNo(); // Don't apply "do not ask" setting when canceling
       },

@@ -182,5 +182,21 @@
     "dialogCancel": "Cancel",
     "@dialogCancel": {
         "description": "Generic cancel button label for dialogs"
+    },
+    "closeTerminalTitle": "Close tab?",
+    "@closeTerminalTitle": {
+        "description": "Title of the dialog asking the user to confirm closing a terminal tab"
+    },
+    "closeTerminalBody": "Are you sure you want to close this tab? Its current state will be lost.",
+    "@closeTerminalBody": {
+        "description": "Body text of the close terminal tab confirmation dialog"
+    },
+    "closeTerminalDoNotAsk": "Do not ask me again",
+    "@closeTerminalDoNotAsk": {
+        "description": "Checkbox label to suppress the close terminal dialog in future"
+    },
+    "closeTerminalConfirm": "Close tab",
+    "@closeTerminalConfirm": {
+        "description": "Confirm button label on the close terminal tab dialog"
     }
 }
