@@ -121,5 +121,61 @@
     "beforeQuitKeepAction": "Leave instances running",
     "@beforeQuitKeepAction": {
         "description": "Cancel button label to leave instances running on quit"
+    },
+    "bulkActionInstanceCount": "{count, plural, =1{1 instance} other{{count} instances}}",
+    "@bulkActionInstanceCount": {
+        "description": "Refers to a number of VM instances in bulk action notifications",
+        "placeholders": {
+            "count": {
+                "type": "int",
+                "description": "Number of selected VM instances"
+            }
+        }
+    },
+    "bulkActionLoading": "{verb} {object}",
+    "@bulkActionLoading": {
+        "description": "Notification shown while a bulk action is in progress",
+        "placeholders": {
+            "verb": {
+                "type": "String",
+                "description": "The action in continuous tense, e.g. Starting"
+            },
+            "object": {
+                "type": "String",
+                "description": "The instance name or count, e.g. primary or 3 instances"
+            }
+        }
+    },
+    "bulkActionSuccess": "{verb} {object}",
+    "@bulkActionSuccess": {
+        "description": "Notification shown after a bulk action succeeds",
+        "placeholders": {
+            "verb": {
+                "type": "String",
+                "description": "The action in past tense, e.g. Started"
+            },
+            "object": {
+                "type": "String",
+                "description": "The instance name or count"
+            }
+        }
+    },
+    "bulkActionError": "Failed to {verb} {object}: {error}",
+    "@bulkActionError": {
+        "description": "Notification shown when a bulk action fails",
+        "placeholders": {
+            "verb": {
+                "type": "String",
+                "description": "The action label in lowercase, e.g. start"
+            },
+            "object": {
+                "type": "String",
+                "description": "The instance name or count"
+            },
+            "error": {
+                "type": "String",
+                "description": "The error message"
+            }
+        }
     }
 }
