@@ -128,5 +128,17 @@
     "searchBoxHint": "Search instances...",
     "@searchBoxHint": {
         "description": "Placeholder text in the instance search box"
+    },
+    "helpTitle": "Help",
+    "@helpTitle": {
+        "description": "Title of the Help screen"
+    },
+    "helpBody": "View tutorials, how-to guides, and references in our extensive Multipass Documentation site.",
+    "@helpBody": {
+        "description": "Introductory text on the Help screen"
+    },
+    "helpViewDocs": "View documentation",
+    "@helpViewDocs": {
+        "description": "Button label that opens the Multipass documentation URL"
     }
 }

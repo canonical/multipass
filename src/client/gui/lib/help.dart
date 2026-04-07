@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'l10n/app_localizations.dart';
+
 class HelpScreen extends StatelessWidget {
   static const sidebarKey = 'help';
 
@@ -10,6 +12,7 @@ class HelpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 140).copyWith(top: 40),
@@ -17,19 +20,19 @@ class HelpScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Help', style: TextStyle(fontSize: 37)),
+            Text(l10n.helpTitle, style: const TextStyle(fontSize: 37)),
             const SizedBox(height: 32),
-            const SizedBox(
+            SizedBox(
               width: 530,
               child: Text(
-                'View tutorials, how-to guides, and references in our extensive Multipass Documentation site.',
-                style: TextStyle(fontSize: 16),
+                l10n.helpBody,
+                style: const TextStyle(fontSize: 16),
               ),
             ),
             const SizedBox(height: 32),
             TextButton(
               onPressed: () => launchUrl(docsUrl),
-              child: const Text('View documentation'),
+              child: Text(l10n.helpViewDocs),
             ),
           ],
         ),
