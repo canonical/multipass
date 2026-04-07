@@ -24,10 +24,9 @@
 #include <multipass/memory_size.h>
 #include <multipass/vm_mount.h>
 
-#include <QString>
-
 #include <boost/json.hpp>
 
+#include <filesystem>
 #include <mutex>
 
 namespace multipass
@@ -45,7 +44,7 @@ public:
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
-    BaseSnapshot(const QString& filename,
+    BaseSnapshot(const std::filesystem::path& filename,
                  VirtualMachine& vm,
                  const VirtualMachineDescription& desc);
 
@@ -92,7 +91,7 @@ private:
     BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured);
 
     auto erase_helper();
-    QString derive_snapshot_filename() const;
+    std::string derive_snapshot_filename() const;
     void persist() const;
 
 private:
@@ -102,7 +101,7 @@ private:
     // This class is non-copyable and having these const simplifies thread safety.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::string id;
-    const QDir storage_dir;
+    const std::filesystem::path storage_dir;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     bool captured;

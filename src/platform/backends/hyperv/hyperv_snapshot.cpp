@@ -80,7 +80,7 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
 {
 }
 
-mp::HyperVSnapshot::HyperVSnapshot(const QString& filename,
+mp::HyperVSnapshot::HyperVSnapshot(const std::filesystem::path& filename,
                                    HyperVVirtualMachine& vm,
                                    const VirtualMachineDescription& desc,
                                    PowerShell& power_shell)

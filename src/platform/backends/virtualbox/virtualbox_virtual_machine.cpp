@@ -602,7 +602,7 @@ void mp::VirtualBoxVirtualMachine::remove_snapshots_from_backend() const
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<VirtualBoxSnapshot>(filename, *this, desc);
+    return std::make_shared<VirtualBoxSnapshot>(MP_PLATFORM.qstr_to_path(filename), *this, desc);
 }
 
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
