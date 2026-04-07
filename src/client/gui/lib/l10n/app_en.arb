@@ -784,5 +784,29 @@
                 "type": "int"
             }
         }
+    },
+    "vmTableColumnName": "NAME",
+    "@vmTableColumnName": {
+        "description": "Column header label for the instance name column in the VM table"
+    },
+    "vmTableColumnsButton": "Columns",
+    "@vmTableColumnsButton": {
+        "description": "Label on the button that opens the column show/hide menu"
+    },
+    "vmTableAllInstances": "All Instances",
+    "@vmTableAllInstances": {
+        "description": "Page heading above the VM table"
+    },
+    "vmTableLaunch": "Launch",
+    "@vmTableLaunch": {
+        "description": "Button label that opens the catalogue to launch a new instance"
+    },
+    "vmTableShowRunningOnly": "Show running instances only",
+    "@vmTableShowRunningOnly": {
+        "description": "Toggle label that filters the VM table to running instances"
+    },
+    "vmTableTotal": "Total",
+    "@vmTableTotal": {
+        "description": "Label for the totals row at the bottom of the VM table"
     }
 }
