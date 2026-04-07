@@ -16,6 +16,7 @@
  */
 
 #include "qemu_virtual_machine_factory.h"
+#include "qemu_base_process_spec.h"
 #include "qemu_img_utils.h"
 #include "qemu_virtual_machine.h"
 
@@ -88,8 +89,14 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
 {
-    auto process = mp::platform::make_process(
-        simple_process_spec(QString("qemu-system-%1").arg(HOST_ARCH), {"--version"}));
+    struct QemuVersionProcSpec : QemuBaseProcessSpec
+    {
+        QStringList arguments() const override
+        {
+            return QStringList{"--version"};
+        }
+    };
+    auto process = mp::platform::make_process(std::make_unique<QemuVersionProcSpec>());
 
     auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
     auto exit_state = process->execute();
