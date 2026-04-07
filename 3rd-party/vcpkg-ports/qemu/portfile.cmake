@@ -137,5 +137,8 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/var"
 )
 
+# No include folders for QEMU as it produces executables
+set(VCPKG_POLICY_EMPTY_INCLUDE_FOLDER enabled)
+
 # vcpkg requires a copyright file
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING")
