@@ -1,0 +1,29 @@
+{
+    "@@locale": "en",
+    "beforeQuitTitle": "Stop running instances?",
+    "@beforeQuitTitle": {
+        "description": "Title of the dialog asking the user whether to stop running VMs on quit"
+    },
+    "beforeQuitMessage": "{count, plural, =1{There is 1 running instance. Do you want to stop it?} other{There are {count} running instances. Do you want to stop them?}}",
+    "@beforeQuitMessage": {
+        "description": "Body of the dialog asking the user whether to stop running VMs on quit",
+        "placeholders": {
+            "count": {
+                "type": "int",
+                "description": "Number of running VM instances"
+            }
+        }
+    },
+    "beforeQuitDoNotAsk": "Do not ask me again",
+    "@beforeQuitDoNotAsk": {
+        "description": "Checkbox label to suppress the quit dialog in future"
+    },
+    "beforeQuitStopAction": "Stop instances",
+    "@beforeQuitStopAction": {
+        "description": "Confirm button label to stop running instances on quit"
+    },
+    "beforeQuitKeepAction": "Leave instances running",
+    "@beforeQuitKeepAction": {
+        "description": "Cancel button label to leave instances running on quit"
+    }
+}
