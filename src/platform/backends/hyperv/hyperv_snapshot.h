@@ -37,7 +37,7 @@ public:
                    const QString& vm_name,
                    HyperVVirtualMachine& vm,
                    PowerShell& power_shell);
-    HyperVSnapshot(const QString& filename,
+    HyperVSnapshot(const std::filesystem::path& filename,
                    HyperVVirtualMachine& vm,
                    const VirtualMachineDescription& desc,
                    PowerShell& power_shell);

@@ -34,7 +34,7 @@ public:
                        const QString& vm_name,
                        const VMSpecs& specs,
                        VirtualBoxVirtualMachine& vm);
-    VirtualBoxSnapshot(const QString& filename,
+    VirtualBoxSnapshot(const std::filesystem::path& filename,
                        VirtualBoxVirtualMachine& vm,
                        const VirtualMachineDescription& desc);
 

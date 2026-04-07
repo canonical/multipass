@@ -82,7 +82,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name,
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QString& filename,
+mp::QemuSnapshot::QemuSnapshot(const std::filesystem::path& filename,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
     : BaseSnapshot{filename, vm, desc}, desc{desc}, image_path{desc.image.image_path}
