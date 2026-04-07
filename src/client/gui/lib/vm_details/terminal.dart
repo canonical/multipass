@@ -13,6 +13,7 @@ import 'package:synchronized/synchronized.dart';
 import 'package:xterm/xterm.dart';
 
 import '../logger.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
@@ -239,15 +240,16 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
   Future<void> startVmIfNeeded(final bool vmRunning) async {
     if (vmRunning) return;
+    final l10n = AppLocalizations.of(context)!;
     final name = widget.name;
     final action = VmAction.start;
     final operation = ref.read(grpcClientProvider).start([name]);
     ref.read(notificationsProvider.notifier).addOperation(
           operation,
-          loading: '${action.continuousTense} $name',
-          onSuccess: (_) => '${action.pastTense} $name',
+          loading: l10n.vmActionNotificationLoading(action.continuousTense(l10n), name),
+          onSuccess: (_) => l10n.vmActionNotificationSuccess(action.pastTense(l10n), name),
           onError: (error) {
-            return 'Failed to ${action.name.toLowerCase()} $name: $error';
+            return l10n.vmActionNotificationError(action.name.toLowerCase(), name, '$error');
           },
         );
     await operation;
@@ -297,16 +299,17 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   );
 
   void openContextMenu(Offset offset, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final buttonItems = [
       ContextMenuButtonItem(
-        label: 'Copy',
+        label: l10n.terminalContextCopy,
         onPressed: () {
           ContextMenuController.removeAny();
           Actions.maybeInvoke(context, CopySelectionTextIntent.copy);
         },
       ),
       ContextMenuButtonItem(
-        label: 'Paste',
+        label: l10n.terminalContextPaste,
         onPressed: () {
           ContextMenuController.removeAny();
           Actions.maybeInvoke(
@@ -316,7 +319,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
         },
       ),
       ContextMenuButtonItem(
-        label: 'Select All',
+        label: l10n.terminalContextSelectAll,
         onPressed: () {
           ContextMenuController.removeAny();
           Actions.maybeInvoke(
@@ -348,6 +351,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final terminal = ref.watch(terminalProvider(terminalIdentifier));
     final vmStatus = ref.watch(
       vmInfoProvider(widget.name).select((info) {
@@ -373,7 +377,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
               onPressed: canStartVm || vmRunning
                   ? () => startVmIfNeeded(vmRunning).then((_) => openShell())
                   : null,
-              child: const Text('Open shell'),
+              child: Text(l10n.terminalOpenShell),
             ),
             const SizedBox(height: 32),
           ],

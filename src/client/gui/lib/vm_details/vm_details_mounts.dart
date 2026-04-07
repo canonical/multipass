@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../confirmation_dialog.dart';
 import '../extensions.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
@@ -27,6 +28,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mounts = ref.watch(
       vmInfoProvider(widget.name).select((info) {
         return info.mountInfo.mountPaths.build();
@@ -52,7 +54,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         if (!(formKey.currentState?.validate() ?? false)) return;
         formKey.currentState?.save();
       },
-      child: const Text('Save'),
+      child: Text(l10n.dialogSave),
     );
 
     final configureButton = OutlinedButton(
@@ -62,7 +64,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             .read(activeEditPageProvider(widget.name).notifier)
             .set(ActiveEditPage.mounts);
       },
-      child: const Text('Configure'),
+      child: Text(l10n.dialogConfigure),
     );
 
     final cancelButton = OutlinedButton(
@@ -70,7 +72,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         setState(() => phase = MountDetailsPhase.idle);
         ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
-      child: const Text('Cancel'),
+      child: Text(l10n.dialogCancel),
     );
 
     final addMountButton = OutlinedButton(
@@ -80,7 +82,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             .read(activeEditPageProvider(widget.name).notifier)
             .set(ActiveEditPage.mounts);
       },
-      child: const Text('Add mount'),
+      child: Text(l10n.mountsAddMount),
     );
 
     final topRightButton = phase == MountDetailsPhase.idle
@@ -95,9 +97,9 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         children: [
           Row(
             children: [
-              const SizedBox(
+              SizedBox(
                 height: 50,
-                child: Text('Mounts', style: TextStyle(fontSize: 24)),
+                child: Text(l10n.mountsTitle, style: const TextStyle(fontSize: 24)),
               ),
               const Spacer(),
               topRightButton,
@@ -116,6 +118,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
   }
 
   void doMount(MountRequest request) {
+    final l10n = AppLocalizations.of(context)!;
     final grpcClient = ref.read(grpcClientProvider);
     final notificationsNotifier = ref.read(notificationsProvider.notifier);
     final target = request.targetPaths.first.targetPath;
@@ -124,15 +127,16 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     request.targetPaths.first.instanceName = widget.name;
     notificationsNotifier.addOperation(
       grpcClient.mount(request),
-      loading: 'Mounting $description',
-      onSuccess: (_) => 'Mounted $description',
-      onError: (error) => 'Failed to mount $description: $error',
+      loading: l10n.mountNotificationLoading(description),
+      onSuccess: (_) => l10n.mountNotificationSuccess(description),
+      onError: (error) => l10n.mountNotificationError(description, '$error'),
     );
     setState(() => phase = MountDetailsPhase.idle);
     ref.read(activeEditPageProvider(widget.name).notifier).set(null);
   }
 
   void doUnmount(MountPaths mountPaths) {
+    final l10n = AppLocalizations.of(context)!;
     final target = mountPaths.targetPath;
     final grpcClient = ref.read(grpcClientProvider);
     final notificationsNotifier = ref.read(notificationsProvider.notifier);
@@ -141,27 +145,27 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       context: context,
       barrierDismissible: false,
       builder: (context) => ConfirmationDialog(
-        title: 'Delete mount',
+        title: l10n.mountDeleteTitle,
         body: Text.rich(
           [
-            'Are you sure you want to remove the mount\n'.span,
+            '${l10n.mountDeleteBodyPrefix}\n'.span,
             '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
-            ' from ${widget.name}?'.span,
+            l10n.mountDeleteBodySuffix(widget.name).span,
           ].spans,
         ),
-        actionText: 'Delete',
+        actionText: l10n.mountDeleteAction,
         onAction: () {
           Navigator.pop(context);
           notificationsNotifier.addOperation(
             grpcClient.umount(widget.name, target),
-            loading: "Unmounting '$target' from ${widget.name}",
-            onSuccess: (_) => "Unmounted '$target' from ${widget.name}",
+            loading: l10n.unmountNotificationLoading(target, widget.name),
+            onSuccess: (_) => l10n.unmountNotificationSuccess(target, widget.name),
             onError: (error) {
-              return "Failed to unmount '$target' from ${widget.name}: $error";
+              return l10n.unmountNotificationError(target, widget.name, '$error');
             },
           );
         },
-        inactionText: 'Cancel',
+        inactionText: l10n.dialogCancel,
         onInaction: () => Navigator.pop(context),
       ),
     );

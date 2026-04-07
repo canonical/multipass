@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../copyable_text.dart';
 import '../extensions.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'cpu_sparkline.dart';
 import 'memory_usage.dart';
@@ -27,19 +28,20 @@ class VmDetailsHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final info = ref.watch(vmInfoProvider(name));
 
     final cpu = VmStat(
       width: 120,
       height: 35,
-      label: 'CPU USAGE',
+      label: l10n.vmStatCpuUsage,
       child: CpuSparkline(info.name),
     );
 
     final memory = VmStat(
       width: 110,
       height: 35,
-      label: 'MEMORY USAGE',
+      label: l10n.vmStatMemoryUsage,
       child: MemoryUsage(
         used: info.instanceInfo.memoryUsage,
         total: info.memoryTotal,
@@ -49,7 +51,7 @@ class VmDetailsHeader extends ConsumerWidget {
     final disk = VmStat(
       width: 110,
       height: 35,
-      label: 'DISK USAGE',
+      label: l10n.vmStatDiskUsage,
       child: MemoryUsage(
         used: info.instanceInfo.diskUsage,
         total: info.diskTotal,
@@ -151,41 +153,42 @@ class GeneralDetails extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final info = ref.watch(vmInfoProvider(name));
     final isLaunching = ref.watch(isLaunchingProvider(name));
 
     final status = VmStat(
       width: 100,
       height: baseVmStatHeight,
-      label: 'STATE',
+      label: l10n.vmStatState,
       child: VmStatusIcon(info.instanceStatus.status, isLaunching: isLaunching),
     );
 
     final image = VmStat(
       width: 150,
       height: baseVmStatHeight,
-      label: 'IMAGE',
+      label: l10n.vmStatImage,
       child: CopyableText(info.instanceInfo.currentRelease),
     );
 
     final privateIp = VmStat(
       width: 150,
       height: baseVmStatHeight,
-      label: 'PRIVATE IP',
+      label: l10n.vmStatPrivateIp,
       child: CopyableText(info.instanceInfo.ipv4.firstOrNull ?? '-'),
     );
 
     final publicIp = VmStat(
       width: 150,
       height: baseVmStatHeight,
-      label: 'PUBLIC IP',
+      label: l10n.vmStatPublicIp,
       child: CopyableText(info.instanceInfo.ipv4.skip(1).firstOrNull ?? '-'),
     );
 
     final created = VmStat(
       width: 140,
       height: baseVmStatHeight,
-      label: 'CREATED',
+      label: l10n.vmStatCreated,
       child: CopyableText(
         info.instanceInfo.formattedCreationTime(isLaunching: isLaunching),
       ),
@@ -194,7 +197,7 @@ class GeneralDetails extends ConsumerWidget {
     final uptime = VmStat(
       width: 300,
       height: baseVmStatHeight,
-      label: 'UPTIME',
+      label: l10n.vmStatUptime,
       child: Text(info.instanceInfo.uptime),
     );
 
@@ -202,9 +205,9 @@ class GeneralDetails extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(
+        SizedBox(
           height: baseVmStatHeight,
-          child: Text('General', style: TextStyle(fontSize: 24)),
+          child: Text(l10n.vmDetailsGeneralTitle, style: const TextStyle(fontSize: 24)),
         ),
         Wrap(
           spacing: 50,

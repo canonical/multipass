@@ -393,5 +393,396 @@
     "hotkeyInputPrompt": "Input...",
     "@hotkeyInputPrompt": {
         "description": "Placeholder shown in the hotkey recorder when it has focus and is waiting for input"
+    },
+    "dialogSave": "Save",
+    "@dialogSave": {
+        "description": "Generic Save button label used across multiple dialogs and edit forms"
+    },
+    "dialogConfigure": "Configure",
+    "@dialogConfigure": {
+        "description": "Generic Configure button label used to enter edit mode"
+    },
+    "vmStatCpuUsage": "CPU USAGE",
+    "@vmStatCpuUsage": {
+        "description": "Column header label for the CPU usage stat"
+    },
+    "vmStatMemoryUsage": "MEMORY USAGE",
+    "@vmStatMemoryUsage": {
+        "description": "Column header label for the memory usage stat"
+    },
+    "vmStatDiskUsage": "DISK USAGE",
+    "@vmStatDiskUsage": {
+        "description": "Column header label for the disk usage stat"
+    },
+    "vmStatState": "STATE",
+    "@vmStatState": {
+        "description": "Column header label for the VM state stat"
+    },
+    "vmStatImage": "IMAGE",
+    "@vmStatImage": {
+        "description": "Column header label for the image stat"
+    },
+    "vmStatPrivateIp": "PRIVATE IP",
+    "@vmStatPrivateIp": {
+        "description": "Column header label for the private IP address stat"
+    },
+    "vmStatPublicIp": "PUBLIC IP",
+    "@vmStatPublicIp": {
+        "description": "Column header label for the public IP address stat"
+    },
+    "vmStatCreated": "CREATED",
+    "@vmStatCreated": {
+        "description": "Column header label for the creation timestamp stat"
+    },
+    "vmStatUptime": "UPTIME",
+    "@vmStatUptime": {
+        "description": "Column header label for the uptime stat"
+    },
+    "vmDetailsGeneralTitle": "General",
+    "@vmDetailsGeneralTitle": {
+        "description": "Section heading on the General VM details tab"
+    },
+    "ipAddressesOtherTitle": "Other IP addresses",
+    "@ipAddressesOtherTitle": {
+        "description": "Tooltip and popup header for the secondary IP addresses list"
+    },
+    "mountHostDirLabel": "HOST DIRECTORY",
+    "@mountHostDirLabel": {
+        "description": "Column header for the host (source) directory in a mount point row"
+    },
+    "mountHostDirTooltip": "A directory on your local machine that will be shared with the instance",
+    "@mountHostDirTooltip": {
+        "description": "Tooltip explaining the host directory field"
+    },
+    "mountGuestDirLabel": "GUEST DIRECTORY",
+    "@mountGuestDirLabel": {
+        "description": "Column header for the guest (target) directory in a mount point row"
+    },
+    "mountGuestDirTooltip": "A destination inside the instance for the shared directory.\nIf the destination directory already exists, its contents will not be visible until unmounting.",
+    "@mountGuestDirTooltip": {
+        "description": "Tooltip explaining the guest directory field"
+    },
+    "mountSourceEmpty": "Source cannot be empty",
+    "@mountSourceEmpty": {
+        "description": "Validation error when the mount source path is blank"
+    },
+    "mountSelectButton": "Select",
+    "@mountSelectButton": {
+        "description": "Button label and file picker confirm label for selecting a host directory"
+    },
+    "mountDuplicatePath": "This path is used by another mount",
+    "@mountDuplicatePath": {
+        "description": "Validation error when the mount target path conflicts with an existing mount"
+    },
+    "mountsTitle": "Mounts",
+    "@mountsTitle": {
+        "description": "Section heading on the Mounts details tab"
+    },
+    "mountsAddMount": "Add mount",
+    "@mountsAddMount": {
+        "description": "Button label to open the add-mount form"
+    },
+    "mountDeleteTitle": "Delete mount",
+    "@mountDeleteTitle": {
+        "description": "Title of the confirmation dialog for removing a mount"
+    },
+    "mountDeleteBodyPrefix": "Are you sure you want to remove the mount",
+    "@mountDeleteBodyPrefix": {
+        "description": "First part of the delete-mount confirmation body (followed by the mount path on a new line)"
+    },
+    "mountDeleteBodySuffix": " from {instanceName}?",
+    "@mountDeleteBodySuffix": {
+        "description": "Last part of the delete-mount confirmation body",
+        "placeholders": {
+            "instanceName": {
+                "type": "String"
+            }
+        }
+    },
+    "mountDeleteAction": "Delete",
+    "@mountDeleteAction": {
+        "description": "Confirm button label in the delete-mount dialog"
+    },
+    "mountNotificationLoading": "Mounting {description}",
+    "@mountNotificationLoading": {
+        "description": "Loading notification while a mount operation is in progress",
+        "placeholders": {
+            "description": {
+                "type": "String"
+            }
+        }
+    },
+    "mountNotificationSuccess": "Mounted {description}",
+    "@mountNotificationSuccess": {
+        "description": "Success notification after a mount operation completes",
+        "placeholders": {
+            "description": {
+                "type": "String"
+            }
+        }
+    },
+    "mountNotificationError": "Failed to mount {description}: {error}",
+    "@mountNotificationError": {
+        "description": "Error notification when a mount operation fails",
+        "placeholders": {
+            "description": {
+                "type": "String"
+            },
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "unmountNotificationLoading": "Unmounting ''{target}'' from {instanceName}",
+    "@unmountNotificationLoading": {
+        "description": "Loading notification while an unmount operation is in progress",
+        "placeholders": {
+            "target": {
+                "type": "String"
+            },
+            "instanceName": {
+                "type": "String"
+            }
+        }
+    },
+    "unmountNotificationSuccess": "Unmounted ''{target}'' from {instanceName}",
+    "@unmountNotificationSuccess": {
+        "description": "Success notification after an unmount operation completes",
+        "placeholders": {
+            "target": {
+                "type": "String"
+            },
+            "instanceName": {
+                "type": "String"
+            }
+        }
+    },
+    "unmountNotificationError": "Failed to unmount ''{target}'' from {instanceName}: {error}",
+    "@unmountNotificationError": {
+        "description": "Error notification when an unmount operation fails",
+        "placeholders": {
+            "target": {
+                "type": "String"
+            },
+            "instanceName": {
+                "type": "String"
+            },
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "bridgeTitle": "Bridged network",
+    "@bridgeTitle": {
+        "description": "Section heading on the Bridged Network details tab"
+    },
+    "bridgeConnect": "Connect to bridged network.",
+    "@bridgeConnect": {
+        "description": "Checkbox label to enable bridged network connection"
+    },
+    "bridgeNoNetworks": "No networks found.",
+    "@bridgeNoNetworks": {
+        "description": "Status message when no host networks are available for bridging"
+    },
+    "bridgeNoValidNetwork": "No valid bridged network is set.",
+    "@bridgeNoValidNetwork": {
+        "description": "Status message when a bridged network is not configured"
+    },
+    "bridgeEstablishedWarning": "Once established, you won't be able to unset the connection.",
+    "@bridgeEstablishedWarning": {
+        "description": "Warning shown when the bridged network checkbox is available"
+    },
+    "bridgeStatusConnected": "Status: connected",
+    "@bridgeStatusConnected": {
+        "description": "Status line shown when the instance is connected to the bridged network"
+    },
+    "bridgeStatusNotConnected": "Status: not connected",
+    "@bridgeStatusNotConnected": {
+        "description": "Status line shown when the instance is not connected to the bridged network"
+    },
+    "bridgeFailedNetwork": "Failed to set bridged network: {error}",
+    "@bridgeFailedNetwork": {
+        "description": "Error notification when the bridged network setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "vmDetailsStopToConfigure": "Stop instance to configure",
+    "@vmDetailsStopToConfigure": {
+        "description": "Tooltip shown on the Configure button when the instance is running"
+    },
+    "resourcesTitle": "Resources",
+    "@resourcesTitle": {
+        "description": "Section heading on the Resources details tab"
+    },
+    "resourcesCpusDisplay": "CPUs {value}",
+    "@resourcesCpusDisplay": {
+        "description": "Read-only display of the CPU count",
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesMemoryDisplay": "Memory {value}",
+    "@resourcesMemoryDisplay": {
+        "description": "Read-only display of the memory size",
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesDiskDisplay": "Disk {value}",
+    "@resourcesDiskDisplay": {
+        "description": "Read-only display of the disk size",
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesSaveChanges": "Save changes",
+    "@resourcesSaveChanges": {
+        "description": "Save button label on the Resources edit form"
+    },
+    "resourcesFailedCpus": "Failed to set CPUs: {error}",
+    "@resourcesFailedCpus": {
+        "description": "Error notification when the CPU count cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesFailedMemory": "Failed to set memory size: {error}",
+    "@resourcesFailedMemory": {
+        "description": "Error notification when the memory size cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesFailedDisk": "Failed to set disk size: {error}",
+    "@resourcesFailedDisk": {
+        "description": "Error notification when the disk size cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "cpusSliderLabel": "CPUs",
+    "@cpusSliderLabel": {
+        "description": "Label for the CPU count field in the sliders form"
+    },
+    "cpusSliderOverProvisioning": "Over-provisioning of cores",
+    "@cpusSliderOverProvisioning": {
+        "description": "Warning shown when the requested CPU count exceeds the host CPU count"
+    },
+    "memorySliderOverProvisioning": "Over-provisioning of {label}",
+    "@memorySliderOverProvisioning": {
+        "description": "Warning shown when the requested memory/disk size exceeds the host available amount",
+        "placeholders": {
+            "label": {
+                "type": "String"
+            }
+        }
+    },
+    "ramSliderLabel": "Memory",
+    "@ramSliderLabel": {
+        "description": "Label for the RAM slider widget"
+    },
+    "diskSliderLabel": "Disk",
+    "@diskSliderLabel": {
+        "description": "Label for the disk size slider widget"
+    },
+    "diskSizeCannotDecrease": "Disk size cannot be decreased",
+    "@diskSizeCannotDecrease": {
+        "description": "Tooltip shown on the disk slider when the disk size cannot be reduced"
+    },
+    "terminalSshFailed": "Failed to get SSH information: {error}",
+    "@terminalSshFailed": {
+        "description": "Error notification when SSH connection info cannot be retrieved",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "terminalContextCopy": "Copy",
+    "@terminalContextCopy": {
+        "description": "Context menu item to copy selected terminal text"
+    },
+    "terminalContextPaste": "Paste",
+    "@terminalContextPaste": {
+        "description": "Context menu item to paste text into the terminal"
+    },
+    "terminalContextSelectAll": "Select All",
+    "@terminalContextSelectAll": {
+        "description": "Context menu item to select all terminal text"
+    },
+    "terminalOpenShell": "Open shell",
+    "@terminalOpenShell": {
+        "description": "Button label to open a new shell in the terminal view"
+    },
+    "vmActionNotificationLoading": "{action} {instance}",
+    "@vmActionNotificationLoading": {
+        "description": "Loading notification while a VM action is in progress (e.g. 'Starting vm1')",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            },
+            "instance": {
+                "type": "String"
+            }
+        }
+    },
+    "vmActionNotificationSuccess": "{action} {instance}",
+    "@vmActionNotificationSuccess": {
+        "description": "Success notification after a VM action completes (e.g. 'Started vm1')",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            },
+            "instance": {
+                "type": "String"
+            }
+        }
+    },
+    "vmActionNotificationError": "Failed to {action} {instance}: {error}",
+    "@vmActionNotificationError": {
+        "description": "Error notification when a VM action fails",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            },
+            "instance": {
+                "type": "String"
+            },
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "vmActionsMenuTooltip": "Show actions",
+    "@vmActionsMenuTooltip": {
+        "description": "Tooltip on the actions popup-menu button"
+    },
+    "vmActionsMenuTitle": "Actions",
+    "@vmActionsMenuTitle": {
+        "description": "Title label displayed inside the VM actions popup menu"
+    },
+    "terminalTabTitle": "Shell {id}",
+    "@terminalTabTitle": {
+        "description": "Title for a terminal tab, where id is the shell number",
+        "placeholders": {
+            "id": {
+                "type": "int"
+            }
+        }
     }
 }
