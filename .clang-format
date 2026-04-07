@@ -47,4 +47,5 @@ DisableFormat: true
 ---
 Language: Json
 ColumnLimit: 0
+InsertNewlineAtEOF: true
 ...
