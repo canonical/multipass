@@ -3,7 +3,8 @@
         "3rd-party/vcpkg-ports/xz-embedded",
         "3rd-party/vcpkg-ports/libssh",
         "3rd-party/vcpkg-ports/grpc",
-        "3rd-party/vcpkg-ports/premock"
+        "3rd-party/vcpkg-ports/premock",
+        "3rd-party/vcpkg-ports/qemu"
     ],
     "overlay-triplets": [
         "3rd-party/vcpkg-triplets"
