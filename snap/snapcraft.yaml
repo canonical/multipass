@@ -145,6 +145,7 @@ parts:
     # https://github.com/microsoft/vcpkg/issues/47920
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     - python3-pip
+    - bison
     stage-packages:
     - apparmor
     - libpng16-16
