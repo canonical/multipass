@@ -104,6 +104,8 @@ vcpkg_configure_make(
         "--disable-dbus-display"
         "--disable-xkbcommon"
         "--disable-gtk"
+        "--disable-sdl"
+        "--disable-sdl-image"
         "--disable-opengl"
         "--disable-libudev"
         "--disable-af-xdp"
