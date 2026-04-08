@@ -17,14 +17,15 @@
 
 #include "qemu_vm_process_spec.h"
 
-#include <QCoreApplication>
-#include <QRegularExpression>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
+
+#include <QCoreApplication>
+#include <QRegularExpression>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -75,7 +76,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         // clang-format off
         // Tell QEMU to where to look for the BIOS files
         args << "-L"
-             << QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath();
+             << firmware_path();
         args << platform_args;
         // The VM image itself
         args << "-device"
@@ -230,9 +231,7 @@ profile %1 flags=(attach_disconnected) {
     catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
-        firmware =
-            QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath() +
-            "/*";
+        firmware = firmware_path() + "/*";
     }
 
     return profile_template.arg(apparmor_profile_name(),
