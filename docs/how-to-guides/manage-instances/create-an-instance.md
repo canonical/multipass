@@ -213,7 +213,8 @@ use NetworkManager's command-line interface to remove the bridge:
 `nmcli connection delete br-eth0 br-eth0-child`.
 Use `nmcli connection show` to obtain the actual connection names.
 
-On installations that do not have `NetworkManager` installed (e.g. Ubuntu Server), the user can
+On installations that do not have `NetworkManager` installed (for example, Ubuntu Server), the user
+can
 still create a bridge by other means and pass that to Multipass. For instance, this configuration
 snippet achieves that with Netplan:
 
