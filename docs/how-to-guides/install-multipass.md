@@ -27,7 +27,7 @@ Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/)
 
 <!--### Hypervisor.framework / hyperkit-->
 
-The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M-series or Intel based) with **macOS 10.15 Catalina or later** installed.
+The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M-series or Intel based) with **macOS 13.3 Ventura or later** installed.
 
 ````
 
