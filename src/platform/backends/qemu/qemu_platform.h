@@ -57,7 +57,6 @@ public:
     virtual bool needs_network_prep() const = 0;
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) const = 0;
     virtual void set_authorization(std::vector<NetworkInterfaceInfo>& networks) = 0;
-    virtual QString get_firmware_path() const;
 
 protected:
     explicit QemuPlatform() = default;

@@ -30,6 +30,9 @@ public:
     QString program() const override;
     QString working_directory() const override;
     QString apparmor_profile() const override;
+
+protected:
+    virtual QString firmware_path() const;
 };
 
 } // namespace multipass
