@@ -32,6 +32,10 @@ if(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")
     set(QEMU_ARCH aarch64)
 elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
     set(QEMU_ARCH x86_64)
+elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL "ppc64le")
+    set(QEMU_ARCH ppc64)
+elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL "s390x")
+    set(QEMU_ARCH s390x)
 else()
     message(FATAL_ERROR "Unsupported architecture: ${VCPKG_TARGET_ARCHITECTURE}")
 endif()
@@ -123,16 +127,13 @@ endforeach()
 
 # Arch-specific firmware
 if(QEMU_ARCH STREQUAL "aarch64")
-    set(FIRMWARE
-        "edk2-aarch64-code.fd"
-        "efi-virtio.rom"
-    )
-else()
-    set(FIRMWARE
-        "edk2-x86_64-code.fd"
-        "efi-virtio.rom"
-        "vgabios-stdvga.bin"
-    )
+    set(FIRMWARE "edk2-aarch64-code.fd")
+elseif(QEMU_ARCH STREQUAL "x86_64")
+    set(FIRMWARE "edk2-x86_64-code.fd")
+elseif(QEMU_ARCH STREQUAL "ppc64")
+    set(FIRMWARE "slof.bin")
+elseif(QEMU_ARCH STREQUAL "s390x")
+    set(FIRMWARE "s390-ccw.img")
 endif()
 
 # Move firmware to expected layout
