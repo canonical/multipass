@@ -146,6 +146,7 @@ parts:
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     - autoconf-archive # vcpkg-systemd: libxcrypt requires autoconf-archive
     - python3-pip
+    - bison
     stage-packages:
     - apparmor
     - libpng16-16
