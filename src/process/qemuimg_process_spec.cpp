@@ -56,7 +56,7 @@ profile %1 flags=(attach_disconnected) {
   %2
 
   # binary and its libs
-  %3/usr/bin/%4 ixr,
+  %3/bin/%4 ixr,
   %3/{usr/,}lib/@{multiarch}/{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap

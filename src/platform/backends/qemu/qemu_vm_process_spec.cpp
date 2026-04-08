@@ -194,7 +194,7 @@ profile %1 flags=(attach_disconnected) {
   /sys/module/vhost/parameters/max_mem_regions r,
 
   # binary and its libs
-  %4/usr/bin/%5 ixr,
+  %4/bin/%5 ixr,
   %4/{,usr/}lib/{,@{multiarch}/}{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap
