@@ -849,5 +849,107 @@
     "updateAvailableUpgrade": "Upgrade now",
     "@updateAvailableUpgrade": {
         "description": "Button label to start the upgrade process"
+    },
+    "catalogueLoadError": "Failed to retrieve images: {error}",
+    "@catalogueLoadError": {
+        "description": "Error message shown when image retrieval fails",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "catalogueRefresh": "Refresh",
+    "@catalogueRefresh": {
+        "description": "Button label to refresh the image catalogue"
+    },
+    "catalogueWelcomeTitle": "Welcome to Multipass",
+    "@catalogueWelcomeTitle": {
+        "description": "Welcome screen heading in the image catalogue"
+    },
+    "catalogueWelcomeBody": "Get an instant VM in seconds. Multipass can launch and run virtual machines and configure them like a public cloud.",
+    "@catalogueWelcomeBody": {
+        "description": "Welcome screen body text in the image catalogue"
+    },
+    "imageCardTitleUbuntuCore": "Ubuntu Core",
+    "@imageCardTitleUbuntuCore": {
+        "description": "Display title for Ubuntu Core image"
+    },
+    "imageCardTitleUbuntuServer": "Ubuntu Server",
+    "@imageCardTitleUbuntuServer": {
+        "description": "Display title for Ubuntu Server image"
+    },
+    "imageCardTitleDebian": "Debian",
+    "@imageCardTitleDebian": {
+        "description": "Display title for Debian image"
+    },
+    "imageCardTitleFedora": "Fedora",
+    "@imageCardTitleFedora": {
+        "description": "Display title for Fedora image"
+    },
+    "imageCardDescUbuntuCore": "Ubuntu operating system optimised for IoT and Edge",
+    "@imageCardDescUbuntuCore": {
+        "description": "Description for Ubuntu Core image"
+    },
+    "imageCardDescUbuntuServer": "Ubuntu operating system designed as a backbone for the internet",
+    "@imageCardDescUbuntuServer": {
+        "description": "Description for Ubuntu Server image"
+    },
+    "imageCardDescDebian": "Debian official cloud image",
+    "@imageCardDescDebian": {
+        "description": "Description for Debian image"
+    },
+    "imageCardDescFedora": "Fedora Cloud Edition",
+    "@imageCardDescFedora": {
+        "description": "Description for Fedora image"
+    },
+    "imageCardLogoSemantics": "{os} logo",
+    "@imageCardLogoSemantics": {
+        "description": "Accessibility label for an OS logo image",
+        "placeholders": {
+            "os": {
+                "type": "String"
+            }
+        }
+    },
+    "launchFormTitle": "Configure instance",
+    "@launchFormTitle": {
+        "description": "Title of the launch/configure instance form"
+    },
+    "launchFormImageLabel": "Image",
+    "@launchFormImageLabel": {
+        "description": "Section label for the image selection in the launch form"
+    },
+    "launchFormNameLabel": "Name",
+    "@launchFormNameLabel": {
+        "description": "Label for the instance name input in the launch form"
+    },
+    "launchFormNameHelper": "Names cannot be changed once an instance is created",
+    "@launchFormNameHelper": {
+        "description": "Helper text for the instance name input in the launch form"
+    },
+    "launchFormBridgeConnect": "Connect to the bridged network.\nOnce established, you won't be able to unset the connection.",
+    "@launchFormBridgeConnect": {
+        "description": "Label on the bridged network switch when a valid bridged network is configured"
+    },
+    "launchFormBridgeNoValidNetwork": "No valid bridged network is set.\nYou can set one in the Settings page.",
+    "@launchFormBridgeNoValidNetwork": {
+        "description": "Message on the bridged network switch when no valid bridged network is configured"
+    },
+    "launchFormLaunchAndConfigureNext": "Launch & Configure next",
+    "@launchFormLaunchAndConfigureNext": {
+        "description": "Button label to launch and then configure the next instance"
+    },
+    "launchFormNameErrorInvalidChars": "Name must contain only letters, numbers and dashes",
+    "@launchFormNameErrorInvalidChars": {
+        "description": "Validation error when instance name contains invalid characters"
+    },
+    "launchFormNameErrorInUse": "Name is already in use",
+    "@launchFormNameErrorInUse": {
+        "description": "Validation error when instance name is already taken"
+    },
+    "launchFormNameErrorDeletedInUse": "Name is already in use by a deleted instance",
+    "@launchFormNameErrorDeletedInUse": {
+        "description": "Validation error when instance name belongs to a deleted instance"
     }
 }
