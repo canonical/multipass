@@ -7,6 +7,7 @@
                 "bionic",
                 "lts"
             ],
+            "image_hash": "",
             "os": "Ubuntu",
             "release": "18.04 LTS",
             "remote": "release",
@@ -16,6 +17,7 @@
             "aliases": [
                 "disco"
             ],
+            "image_hash": "",
             "os": "Ubuntu",
             "release": "19.04",
             "remote": "release",
@@ -26,6 +28,7 @@
                 "eoan",
                 "devel"
             ],
+            "image_hash": "",
             "os": "Ubuntu",
             "release": "19.10",
             "remote": "daily",
