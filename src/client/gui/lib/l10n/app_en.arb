@@ -41,9 +41,9 @@
             }
         }
     },
-    "beforeQuitDoNotAsk": "Do not ask me again",
-    "@beforeQuitDoNotAsk": {
-        "description": "Checkbox label to suppress the quit dialog in future"
+    "dialogDoNotAskAgain": "Do not ask me again",
+    "@dialogDoNotAskAgain": {
+        "description": "Checkbox label to suppress a recurring confirmation dialog"
     },
     "beforeQuitStopAction": "Stop instances",
     "@beforeQuitStopAction": {
@@ -63,31 +63,17 @@
             }
         }
     },
-    "bulkActionLoading": "{verb} {object}",
-    "@bulkActionLoading": {
-        "description": "Notification shown while a bulk action is in progress",
+    "bulkActionMessage": "{verb} {object}",
+    "@bulkActionMessage": {
+        "description": "Notification for a bulk action; verb is in continuous tense (e.g. Starting) or past tense (e.g. Started) depending on context",
         "placeholders": {
             "verb": {
                 "type": "String",
-                "description": "The action in continuous tense, e.g. Starting"
+                "description": "The action verb, e.g. Starting or Started"
             },
             "object": {
                 "type": "String",
                 "description": "The instance name or count, e.g. primary or 3 instances"
-            }
-        }
-    },
-    "bulkActionSuccess": "{verb} {object}",
-    "@bulkActionSuccess": {
-        "description": "Notification shown after a bulk action succeeds",
-        "placeholders": {
-            "verb": {
-                "type": "String",
-                "description": "The action in past tense, e.g. Started"
-            },
-            "object": {
-                "type": "String",
-                "description": "The instance name or count"
             }
         }
     },
@@ -117,10 +103,6 @@
     "@noVmsMessageBefore": {
         "description": "Text before the Catalogue link in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
     },
-    "noVmsMessageLink": "Catalogue",
-    "@noVmsMessageLink": {
-        "description": "Link label in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
-    },
     "noVmsMessageAfter": " to choose your instance or get started with the primary Ubuntu Image",
     "@noVmsMessageAfter": {
         "description": "Text after the Catalogue link in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
@@ -128,10 +110,6 @@
     "searchBoxHint": "Search instances...",
     "@searchBoxHint": {
         "description": "Placeholder text in the instance search box"
-    },
-    "helpTitle": "Help",
-    "@helpTitle": {
-        "description": "Title of the Help screen"
     },
     "helpBody": "View tutorials, how-to guides, and references in our extensive Multipass Documentation site.",
     "@helpBody": {
@@ -141,21 +119,21 @@
     "@helpViewDocs": {
         "description": "Button label that opens the Multipass documentation URL"
     },
-    "sidebarCatalogue": "Catalogue",
-    "@sidebarCatalogue": {
-        "description": "Sidebar navigation label for the Catalogue screen"
+    "catalogueLabel": "Catalogue",
+    "@catalogueLabel": {
+        "description": "The word 'Catalogue' used as a navigation label, page heading, and link text"
     },
     "sidebarInstances": "Instances",
     "@sidebarInstances": {
         "description": "Sidebar navigation label for the Instances screen"
     },
-    "sidebarHelp": "Help",
-    "@sidebarHelp": {
-        "description": "Sidebar navigation label for the Help screen"
+    "helpLabel": "Help",
+    "@helpLabel": {
+        "description": "The word 'Help' used as a navigation label and page heading"
     },
-    "sidebarSettings": "Settings",
-    "@sidebarSettings": {
-        "description": "Sidebar navigation label for the Settings screen"
+    "settingsLabel": "Settings",
+    "@settingsLabel": {
+        "description": "The word 'Settings' used as a navigation label and page heading"
     },
     "deleteInstanceTitle": "{count, plural, =1{Delete instance} other{Delete instances}}",
     "@deleteInstanceTitle": {
@@ -175,9 +153,9 @@
             }
         }
     },
-    "deleteInstanceConfirm": "Delete",
-    "@deleteInstanceConfirm": {
-        "description": "Confirm button label on the delete instance dialog"
+    "dialogDelete": "Delete",
+    "@dialogDelete": {
+        "description": "Generic Delete confirm button label used across delete confirmation dialogs"
     },
     "dialogCancel": "Cancel",
     "@dialogCancel": {
@@ -190,10 +168,6 @@
     "closeTerminalBody": "Are you sure you want to close this tab? Its current state will be lost.",
     "@closeTerminalBody": {
         "description": "Body text of the close terminal tab confirmation dialog"
-    },
-    "closeTerminalDoNotAsk": "Do not ask me again",
-    "@closeTerminalDoNotAsk": {
-        "description": "Checkbox label to suppress the close terminal dialog in future"
     },
     "closeTerminalConfirm": "Close tab",
     "@closeTerminalConfirm": {
@@ -357,26 +331,9 @@
             }
         }
     },
-    "virtualizationBridgedNetworkLabel": "Bridged network",
-    "@virtualizationBridgedNetworkLabel": {
-        "description": "Label for the bridged network dropdown"
-    },
     "virtualizationBridgedNetworkNone": "None",
     "@virtualizationBridgedNetworkNone": {
         "description": "Dropdown option representing no bridged network selected"
-    },
-    "virtualizationBridgedNetworkError": "Failed to set bridged network: {error}",
-    "@virtualizationBridgedNetworkError": {
-        "description": "Error notification when the bridged network setting cannot be changed",
-        "placeholders": {
-            "error": {
-                "type": "String"
-            }
-        }
-    },
-    "settingsTitle": "Settings",
-    "@settingsTitle": {
-        "description": "Page heading on the Settings screen"
     },
     "hotkeyUnknownKey": "...",
     "@hotkeyUnknownKey": {
@@ -438,10 +395,6 @@
     "@vmStatUptime": {
         "description": "Column header label for the uptime stat"
     },
-    "vmDetailsGeneralTitle": "General",
-    "@vmDetailsGeneralTitle": {
-        "description": "Section heading on the General VM details tab"
-    },
     "ipAddressesOtherTitle": "Other IP addresses",
     "@ipAddressesOtherTitle": {
         "description": "Tooltip and popup header for the secondary IP addresses list"
@@ -498,10 +451,6 @@
                 "type": "String"
             }
         }
-    },
-    "mountDeleteAction": "Delete",
-    "@mountDeleteAction": {
-        "description": "Confirm button label in the delete-mount dialog"
     },
     "mountNotificationLoading": "Mounting {description}",
     "@mountNotificationLoading": {
@@ -729,21 +678,9 @@
     "@terminalOpenShell": {
         "description": "Button label to open a new shell in the terminal view"
     },
-    "vmActionNotificationLoading": "{action} {instance}",
-    "@vmActionNotificationLoading": {
-        "description": "Loading notification while a VM action is in progress (e.g. 'Starting vm1')",
-        "placeholders": {
-            "action": {
-                "type": "String"
-            },
-            "instance": {
-                "type": "String"
-            }
-        }
-    },
-    "vmActionNotificationSuccess": "{action} {instance}",
-    "@vmActionNotificationSuccess": {
-        "description": "Success notification after a VM action completes (e.g. 'Started vm1')",
+    "vmActionNotification": "{action} {instance}",
+    "@vmActionNotification": {
+        "description": "Notification for a VM action; action is the verb in continuous tense (e.g. 'Starting vm1') or past tense (e.g. 'Started vm1') depending on context",
         "placeholders": {
             "action": {
                 "type": "String"

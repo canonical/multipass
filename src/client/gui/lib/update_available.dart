@@ -137,7 +137,8 @@ class UpdateAvailableNotification extends StatelessWidget {
               if (!context.mounted) return;
               closeNotification(context);
             },
-            child: Text(l10n.updateAvailableUpgrade, style: const TextStyle(fontSize: 14)),
+            child: Text(l10n.updateAvailableUpgrade,
+                style: const TextStyle(fontSize: 14)),
           ),
         ],
       ),

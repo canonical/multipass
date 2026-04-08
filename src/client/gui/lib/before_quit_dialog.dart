@@ -42,7 +42,7 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
                 onChanged: (value) => setState(() => remember = value!),
               ),
               const SizedBox(width: 8),
-              Text(l10n.beforeQuitDoNotAsk),
+              Text(l10n.dialogDoNotAskAgain),
             ],
           ),
         ],

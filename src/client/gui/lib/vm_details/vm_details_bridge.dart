@@ -70,16 +70,16 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       builder: (field) {
         final validBridgedNetwork = networks.contains(bridgedNetworkSetting);
         final message = networks.isEmpty
-              ? l10n.bridgeNoNetworks
-              : validBridgedNetwork
-                  ? l10n.bridgeEstablishedWarning
-                  : l10n.bridgeNoValidNetwork;
+            ? l10n.bridgeNoNetworks
+            : validBridgedNetwork
+                ? l10n.bridgeEstablishedWarning
+                : l10n.bridgeNoValidNetwork;
         return CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           enabled: validBridgedNetwork,
           onChanged: field.didChange,
-            title: Text(l10n.bridgeConnect),
+          title: Text(l10n.bridgeConnect),
           value: field.value!,
           visualDensity: VisualDensity.standard,
           subtitle: Text(message),
@@ -130,7 +130,8 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
             children: [
               SizedBox(
                 height: 50,
-                child: Text(l10n.bridgeTitle, style: const TextStyle(fontSize: 24)),
+                child: Text(l10n.bridgeTitle,
+                    style: const TextStyle(fontSize: 24)),
               ),
               const Spacer(),
               if (editing)
@@ -142,7 +143,9 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
           editing
               ? SizedBox(width: 300, child: bridgedCheckbox)
               : Text(
-                  bridged ?? false ? l10n.bridgeStatusConnected : l10n.bridgeStatusNotConnected,
+                  bridged ?? false
+                      ? l10n.bridgeStatusConnected
+                      : l10n.bridgeStatusNotConnected,
                   style: const TextStyle(fontSize: 16),
                 ),
           if (editing)

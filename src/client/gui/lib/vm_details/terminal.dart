@@ -246,10 +246,13 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     final operation = ref.read(grpcClientProvider).start([name]);
     ref.read(notificationsProvider.notifier).addOperation(
           operation,
-          loading: l10n.vmActionNotificationLoading(action.continuousTense(l10n), name),
-          onSuccess: (_) => l10n.vmActionNotificationSuccess(action.pastTense(l10n), name),
+          loading:
+              l10n.vmActionNotification(action.continuousTense(l10n), name),
+          onSuccess: (_) =>
+              l10n.vmActionNotification(action.pastTense(l10n), name),
           onError: (error) {
-            return l10n.vmActionNotificationError(action.name.toLowerCase(), name, '$error');
+            return l10n.vmActionNotificationError(
+                action.name.toLowerCase(), name, '$error');
           },
         );
     await operation;

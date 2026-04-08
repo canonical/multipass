@@ -37,9 +37,9 @@ class BulkActionsBar extends ConsumerWidget {
         final notificationsNotifier = ref.read(notificationsProvider.notifier);
         notificationsNotifier.addOperation(
           function(selectedVms),
-          loading: l10n.bulkActionLoading(action.continuousTense(l10n), object),
+          loading: l10n.bulkActionMessage(action.continuousTense(l10n), object),
           onSuccess: (_) =>
-              l10n.bulkActionSuccess(action.pastTense(l10n), object),
+              l10n.bulkActionMessage(action.pastTense(l10n), object),
           onError: (error) {
             return l10n.bulkActionError(
                 action.label(l10n).toLowerCase(), object, '$error');

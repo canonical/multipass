@@ -99,7 +99,8 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             children: [
               SizedBox(
                 height: 50,
-                child: Text(l10n.mountsTitle, style: const TextStyle(fontSize: 24)),
+                child: Text(l10n.mountsTitle,
+                    style: const TextStyle(fontSize: 24)),
               ),
               const Spacer(),
               topRightButton,
@@ -153,15 +154,17 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             l10n.mountDeleteBodySuffix(widget.name).span,
           ].spans,
         ),
-        actionText: l10n.mountDeleteAction,
+        actionText: l10n.dialogDelete,
         onAction: () {
           Navigator.pop(context);
           notificationsNotifier.addOperation(
             grpcClient.umount(widget.name, target),
             loading: l10n.unmountNotificationLoading(target, widget.name),
-            onSuccess: (_) => l10n.unmountNotificationSuccess(target, widget.name),
+            onSuccess: (_) =>
+                l10n.unmountNotificationSuccess(target, widget.name),
             onError: (error) {
-              return l10n.unmountNotificationError(target, widget.name, '$error');
+              return l10n.unmountNotificationError(
+                  target, widget.name, '$error');
             },
           );
         },

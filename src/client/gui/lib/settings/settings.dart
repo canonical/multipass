@@ -39,7 +39,7 @@ class SettingsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.settingsTitle, style: const TextStyle(fontSize: 37)),
+              Text(l10n.settingsLabel, style: const TextStyle(fontSize: 37)),
               const SizedBox(height: 32),
               const Expanded(child: SingleChildScrollView(child: settings)),
             ],

@@ -63,7 +63,8 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             onSaved: (value) {
               if (value == null || value == cpus) return;
               ref.read(cpusProvider.notifier).set('$value').onError(
-                    ref.notifyError((error) => l10n.resourcesFailedCpus('$error')),
+                    ref.notifyError(
+                        (error) => l10n.resourcesFailedCpus('$error')),
                   );
             },
           );
@@ -147,7 +148,8 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             children: [
               SizedBox(
                 height: 50,
-                child: Text(l10n.resourcesTitle, style: const TextStyle(fontSize: 24)),
+                child: Text(l10n.resourcesTitle,
+                    style: const TextStyle(fontSize: 24)),
               ),
               const Spacer(),
               editing ? cancelButton : configureButton,

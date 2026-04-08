@@ -54,7 +54,7 @@ class VirtualizationSettings extends ConsumerWidget {
         const SizedBox(height: 20),
         if (networks.isNotEmpty)
           Dropdown<String>(
-            label: l10n.virtualizationBridgedNetworkLabel,
+            label: l10n.bridgeTitle,
             width: 260,
             value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
             items: {
@@ -63,8 +63,7 @@ class VirtualizationSettings extends ConsumerWidget {
             },
             onChanged: (value) {
               ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
-                    ref.notifyError(
-                        (e) => l10n.virtualizationBridgedNetworkError('$e')),
+                    ref.notifyError((e) => l10n.bridgeFailedNetwork('$e')),
                   );
             },
           ),

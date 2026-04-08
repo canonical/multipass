@@ -114,7 +114,7 @@ class SideBar extends ConsumerWidget {
     final catalogue = SidebarEntry(
       icon: SvgPicture.asset('assets/catalogue.svg'),
       selected: isSelected(CatalogueScreen.sidebarKey),
-      label: l10n.sidebarCatalogue,
+      label: l10n.catalogueLabel,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(CatalogueScreen.sidebarKey);
       },
@@ -134,7 +134,7 @@ class SideBar extends ConsumerWidget {
     final help = SidebarEntry(
       icon: SvgPicture.asset('assets/help.svg'),
       selected: isSelected(HelpScreen.sidebarKey),
-      label: l10n.sidebarHelp,
+      label: l10n.helpLabel,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(HelpScreen.sidebarKey);
       },
@@ -143,7 +143,7 @@ class SideBar extends ConsumerWidget {
     final settings = SidebarEntry(
       icon: SvgPicture.asset('assets/settings.svg'),
       selected: isSelected(SettingsScreen.sidebarKey),
-      label: l10n.sidebarSettings,
+      label: l10n.settingsLabel,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(SettingsScreen.sidebarKey);
       },

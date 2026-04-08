@@ -20,9 +20,9 @@ import 'vms.dart';
 /// Returns a [childBuilder] for [TableHeader] that renders a localized column label.
 Widget Function(String) _l10nHeader(String Function(AppLocalizations) label) {
   return (_) => Builder(
-    builder: (context) =>
-        TableHeader.defaultHeaderBuilder(label(AppLocalizations.of(context)!)),
-  );
+        builder: (context) => TableHeader.defaultHeaderBuilder(
+            label(AppLocalizations.of(context)!)),
+      );
 }
 
 final headers = <TableHeader<VmInfo>>[

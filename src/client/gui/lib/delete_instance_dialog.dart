@@ -19,7 +19,7 @@ class DeleteInstanceDialog extends StatelessWidget {
     return ConfirmationDialog(
       title: l10n.deleteInstanceTitle(count),
       body: Text(l10n.deleteInstanceBody(count)),
-      actionText: l10n.deleteInstanceConfirm,
+      actionText: l10n.dialogDelete,
       onAction: () {
         onDelete();
         Navigator.pop(context);

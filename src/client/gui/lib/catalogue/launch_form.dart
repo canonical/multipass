@@ -260,7 +260,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const Divider(height: 60),
         SizedBox(
           height: 50,
-          child: Text(l10n.resourcesTitle, style: const TextStyle(fontSize: 24)),
+          child:
+              Text(l10n.resourcesTitle, style: const TextStyle(fontSize: 24)),
         ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,

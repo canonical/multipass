@@ -38,7 +38,7 @@ class NoVms extends ConsumerWidget {
             Text.rich(
               [
                 l10n.noVmsMessageBefore.span,
-                l10n.noVmsMessageLink.span
+                l10n.catalogueLabel.span
                     .color(Colors.blue)
                     .link(ref, goToCatalogue),
                 l10n.noVmsMessageAfter.span,

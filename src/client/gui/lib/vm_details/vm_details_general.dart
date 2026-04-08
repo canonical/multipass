@@ -207,7 +207,7 @@ class GeneralDetails extends ConsumerWidget {
       children: [
         SizedBox(
           height: baseVmStatHeight,
-          child: Text(l10n.vmDetailsGeneralTitle, style: const TextStyle(fontSize: 24)),
+          child: Text(l10n.generalTitle, style: const TextStyle(fontSize: 24)),
         ),
         Wrap(
           spacing: 50,

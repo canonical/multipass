@@ -38,7 +38,9 @@ class _CopyableTextState extends State<CopyableText> {
           setState(() => _copied = true);
         },
         child: Tooltip(
-          message: _copied ? AppLocalizations.of(context)!.copyableTextCopied : AppLocalizations.of(context)!.copyableTextClickToCopy,
+          message: _copied
+              ? AppLocalizations.of(context)!.copyableTextCopied
+              : AppLocalizations.of(context)!.copyableTextClickToCopy,
           child: text,
         ),
       ),

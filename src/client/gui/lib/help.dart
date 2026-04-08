@@ -20,7 +20,7 @@ class HelpScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.helpTitle, style: const TextStyle(fontSize: 37)),
+            Text(l10n.helpLabel, style: const TextStyle(fontSize: 37)),
             const SizedBox(height: 32),
             SizedBox(
               width: 530,

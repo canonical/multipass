@@ -42,7 +42,7 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
                 onChanged: (value) => setState(() => doNotAsk = value!),
               ),
               const SizedBox(width: 8),
-              Text(l10n.closeTerminalDoNotAsk),
+              Text(l10n.dialogDoNotAskAgain),
             ],
           ),
         ],

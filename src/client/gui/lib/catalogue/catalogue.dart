@@ -160,8 +160,9 @@ class CatalogueScreen extends ConsumerWidget {
           skipLoadingOnRefresh: false,
           data: _buildCatalogue,
           error: (error, _) {
-            final errorMessage =
-                error is GrpcError ? (error.message ?? error.toString()) : error.toString();
+            final errorMessage = error is GrpcError
+                ? (error.message ?? error.toString())
+                : error.toString();
             return Center(
               child: Column(
                 children: [
@@ -187,7 +188,8 @@ class CatalogueScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.catalogueWelcomeTitle, style: const TextStyle(fontSize: 37)),
+          Text(l10n.catalogueWelcomeTitle,
+              style: const TextStyle(fontSize: 37)),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
