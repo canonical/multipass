@@ -54,6 +54,14 @@ file(CHMOD "${SOURCE_PATH}/configure" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_E
 set(ENV{PKG_CONFIG_PATH} "${CURRENT_INSTALLED_DIR}/lib/pkgconfig")
 set(ENV{PKG_CONFIG_LIBDIR} "${CURRENT_INSTALLED_DIR}/lib/pkgconfig")
 
+if("system" IN_LIST FEATURES)
+    set(QEMU_TARGET_LIST "${QEMU_ARCH}-softmmu")
+else()
+    set(QEMU_TARGET_LIST "")
+endif()
+
+message(STATUS "FEATURES: ${FEATURES}")
+
 # vcpkg_configure_make provides "clean" build environment for the configure process.
 # This way, configure won't use anything from the system accidentally.
 vcpkg_configure_make(
@@ -61,7 +69,7 @@ vcpkg_configure_make(
     DISABLE_VERBOSE_FLAGS
     OPTIONS
         "--ninja=${NINJA}"
-        "--target-list=${QEMU_ARCH}-softmmu"
+        "--target-list=${QEMU_TARGET_LIST}"
         ${ACCEL_FLAG}
         "--enable-virtfs"
         "--extra-cflags=-I${CURRENT_INSTALLED_DIR}/include"
