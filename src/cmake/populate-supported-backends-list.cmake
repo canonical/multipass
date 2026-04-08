@@ -22,7 +22,7 @@ if(UNIX)
     if(APPLEVZ_ENABLED)
         list(APPEND MULTIPASS_BACKENDS applevz)
     endif()
-elseif(MSVC)
+elseif(WIN32)
     set(MULTIPASS_BACKENDS hyperv virtualbox)
 
     if(HYPERV_HCS_ENABLED)
