@@ -1,8 +1,3 @@
-From 6c2ea2ddc8c8e1efe994daa7fdd33b0274fe2320 Mon Sep 17 00:00:00 2001
-From: x <x@x>
-Date: Mon, 30 Mar 2026 19:26:03 +0000
-Subject: [PATCH] remove thread_local from mock storage
-
 ---
  premock.hpp | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
