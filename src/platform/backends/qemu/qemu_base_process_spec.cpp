@@ -34,14 +34,7 @@ QString mp::QemuBaseProcessSpec::program() const
 
 QString mp::QemuBaseProcessSpec::working_directory() const
 {
-    try
-    {
-        return mpu::snap_dir().append("/qemu");
-    }
-    catch (const mp::SnapEnvironmentException&)
-    {
-        return QString();
-    }
+    return firmware_path();
 }
 
 QString mp::QemuBaseProcessSpec::apparmor_profile() const
