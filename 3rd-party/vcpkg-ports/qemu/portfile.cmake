@@ -76,7 +76,7 @@ vcpkg_configure_make(
         "--target-list=${QEMU_TARGET_LIST}"
         ${ACCEL_FLAG}
         "--enable-virtfs"
-        "--extra-cflags=-I${CURRENT_INSTALLED_DIR}/include"
+        "--extra-cflags=-I${CURRENT_INSTALLED_DIR}/include -UNDEBUG"
         "--extra-ldflags=-L${CURRENT_INSTALLED_DIR}/lib"
         "--disable-bochs"
         "--disable-cloop"
