@@ -147,9 +147,14 @@ parts:
     - libgtkmm-3.0-dev
     # https://github.com/microsoft/vcpkg/issues/47920
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
-    - autoconf-archive # vcpkg-systemd: libxcrypt requires autoconf-archive
+    - autoconf # libxcrypt
+    - autoconf-archive # libxcrypt
+    - automake # libxcrypt
+    - libtool # libxcrypt
     - python3-pip
     - bison
+
+
     stage-packages:
     - apparmor
     - libpng16-16
