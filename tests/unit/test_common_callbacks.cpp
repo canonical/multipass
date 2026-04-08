@@ -199,3 +199,55 @@ TEST_F(TestSpinnerCallbacks, confirmationCallbackAnswers)
     EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), clearStreamMatcher());
 }
+
+TEST_F(TestSpinnerCallbacks, nonLiveLoggingSpinnerCallbackLogsWithoutSpinnerArtifacts)
+{
+    constexpr auto log = "message in a bottle";
+    mp::AnimatedSpinner non_live_spinner{out, false};
+
+    mp::MountReply reply;
+    reply.set_log_line(log);
+
+    auto cb =
+        mp::make_logging_spinner_callback<mp::MountRequest, mp::MountReply>(non_live_spinner, err);
+    cb(reply, nullptr);
+
+    EXPECT_THAT(err.str(), StrEq(log));
+    EXPECT_THAT(out.str(), IsEmpty());
+}
+
+TEST_F(TestSpinnerCallbacks, nonLiveReplySpinnerCallbackPrintsAllMessagesWithoutSpinnerArtifacts)
+{
+    constexpr auto log = "message in a bottle";
+    constexpr auto msg = "answer";
+    mp::AnimatedSpinner non_live_spinner{out, false};
+
+    mp::MountReply reply;
+    reply.set_log_line(log);
+    reply.set_reply_message(msg);
+
+    auto cb =
+        mp::make_reply_spinner_callback<mp::MountRequest, mp::MountReply>(non_live_spinner, err);
+    cb(reply, nullptr);
+
+    EXPECT_THAT(err.str(), StrEq(log));
+    EXPECT_THAT(out.str(), StrEq(msg));
+}
+
+TEST_F(TestSpinnerCallbacks, nonLiveIterativeSpinnerCallbackPrintsAllMessagesWithoutSpinnerArtifacts)
+{
+    constexpr auto log = "message in a bottle";
+    constexpr auto msg = "answer";
+    mp::AnimatedSpinner non_live_spinner{out, false};
+
+    mp::MountReply reply;
+    reply.set_log_line(log);
+    reply.set_reply_message(msg);
+
+    auto cb = mp::make_iterative_spinner_callback<mp::MountRequest, mp::MountReply>(
+        non_live_spinner, term);
+    cb(reply, nullptr);
+
+    EXPECT_THAT(err.str(), StrEq(log));
+    EXPECT_THAT(out.str(), StrEq(msg));
+}

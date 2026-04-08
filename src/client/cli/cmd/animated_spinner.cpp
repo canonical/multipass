@@ -43,14 +43,17 @@ mp::AnimatedSpinner::~AnimatedSpinner()
 void mp::AnimatedSpinner::start(const std::string& start_message)
 {
     if (!is_live)
+    {
+        current_message = start_message;
+        cout << start_message << std::flush;
         return;
+    }
 
     std::unique_lock<decltype(mutex)> lock{mutex};
     if (!running)
     {
         current_message = start_message;
         running = true;
-
         clear_line(cout);
         cout << start_message << "  " << std::flush;
         t = std::thread(&AnimatedSpinner::draw, this);
@@ -65,7 +68,7 @@ void mp::AnimatedSpinner::start()
 
 void mp::AnimatedSpinner::stop()
 {
-    if(!is_live)
+    if (!is_live)
         return;
 
     std::unique_lock<decltype(mutex)> lock{mutex};
@@ -77,16 +80,11 @@ void mp::AnimatedSpinner::stop()
         if (t.joinable())
             t.join();
     }
-
-    
     clear_line(cout);
 }
 
 void mp::AnimatedSpinner::print(std::ostream& stream, const std::string& message)
 {
-    if (!is_live)
-        return;
-    
     stop();
 
     stream << message;
