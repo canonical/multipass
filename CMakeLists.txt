@@ -229,7 +229,7 @@ if(UNIX)
 endif()
 
 # Boost config
-find_package(Boost CONFIG REQUIRED COMPONENTS json)
+find_package(Boost CONFIG REQUIRED COMPONENTS json uuid)
 
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
