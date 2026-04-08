@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'notifications/notification_entries.dart';
 import 'notifications/notifications_provider.dart';
+import 'l10n/app_localizations.dart';
 import 'platform/platform.dart';
 import 'providers.dart';
 
@@ -72,6 +73,7 @@ class UpdateAvailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final icon = Container(
       alignment: Alignment.center,
       color: _color,
@@ -81,13 +83,13 @@ class UpdateAvailable extends StatelessWidget {
     );
 
     final text = Text(
-      'Multipass ${updateInfo.version} is available',
+      l10n.updateAvailableTitle(updateInfo.version),
       style: const TextStyle(fontSize: 16),
     );
 
-    const button = TextButton(
+    final button = TextButton(
       onPressed: launchInstallUrl,
-      child: Text('Upgrade now'),
+      child: Text(l10n.updateAvailableUpgrade),
     );
 
     return Container(
@@ -113,6 +115,7 @@ class UpdateAvailableNotification extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SimpleNotification(
       barColor: _color,
       icon: SvgPicture.asset(
@@ -124,7 +127,7 @@ class UpdateAvailableNotification extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Multipass ${updateInfo.version} is available',
+            l10n.updateAvailableTitle(updateInfo.version),
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 12),
@@ -134,7 +137,7 @@ class UpdateAvailableNotification extends StatelessWidget {
               if (!context.mounted) return;
               closeNotification(context);
             },
-            child: const Text('Upgrade now', style: TextStyle(fontSize: 14)),
+            child: Text(l10n.updateAvailableUpgrade, style: const TextStyle(fontSize: 14)),
           ),
         ],
       ),

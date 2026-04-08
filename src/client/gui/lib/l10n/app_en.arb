@@ -808,5 +808,46 @@
     "vmTableTotal": "Total",
     "@vmTableTotal": {
         "description": "Label for the totals row at the bottom of the VM table"
+    },
+    "copyableTextClickToCopy": "Click to copy",
+    "@copyableTextClickToCopy": {
+        "description": "Tooltip shown on a copyable text widget before the user clicks"
+    },
+    "copyableTextCopied": "Copied",
+    "@copyableTextCopied": {
+        "description": "Tooltip shown on a copyable text widget after the user clicks"
+    },
+    "daemonCopyErrorTooltip": "Copy error message",
+    "@daemonCopyErrorTooltip": {
+        "description": "Tooltip on the copy-icon button in the fatal error overlay (before copying)"
+    },
+    "daemonCopied": "Copied!",
+    "@daemonCopied": {
+        "description": "Tooltip on the copy-icon button in the fatal error overlay (after copying)"
+    },
+    "daemonFatalError": "Fatal Error",
+    "@daemonFatalError": {
+        "description": "Heading in the fatal FFI error overlay"
+    },
+    "daemonExitButton": "Exit Application",
+    "@daemonExitButton": {
+        "description": "Button label to exit the app from the fatal error overlay"
+    },
+    "daemonWaiting": "Waiting for daemon...",
+    "@daemonWaiting": {
+        "description": "Status message shown while waiting for the Multipass daemon to become available"
+    },
+    "updateAvailableTitle": "Multipass {version} is available",
+    "@updateAvailableTitle": {
+        "description": "In-app banner and notification text announcing a new Multipass version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "updateAvailableUpgrade": "Upgrade now",
+    "@updateAvailableUpgrade": {
+        "description": "Button label to start the upgrade process"
     }
 }
