@@ -48,3 +48,8 @@ QString mp::QemuBaseProcessSpec::apparmor_profile() const
 {
     return QString();
 }
+
+QString mp::QemuBaseProcessSpec::firmware_path() const
+{
+    return QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath();
+}
