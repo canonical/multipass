@@ -208,8 +208,8 @@ This will temporarily disrupt connectivity on that interface.
 
 Do you want to continue (yes/no)?
 ```
-Multipass requires `NetworkManager` to achieve this. You can also
-use `NetworkManager`'s command-line interface to remove the bridge:
+Multipass requires [NetworkManager](https://www.networkmanager.dev/) to achieve this. You can also
+use NetworkManager's command-line interface to remove the bridge:
 `nmcli connection delete br-eth0 br-eth0-child`.
 Use `nmcli connection show` to obtain the actual connection names.
 
