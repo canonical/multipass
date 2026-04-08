@@ -24,7 +24,8 @@ add_library(qemu_backend STATIC
   qemu_vm_process_spec.cpp
   qemu_vmstate_process_spec.cpp
   qemu_virtual_machine_factory.cpp
-  qemu_virtual_machine.cpp)
+  qemu_virtual_machine.cpp
+  qemu_platform.cpp)
 
 target_link_libraries(qemu_backend
   daemon
