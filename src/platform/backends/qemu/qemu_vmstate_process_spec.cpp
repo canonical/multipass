@@ -16,8 +16,6 @@
  */
 
 #include "qemu_vmstate_process_spec.h"
-#include <QCoreApplication>
-#include <QDir>
 
 namespace mp = multipass;
 
@@ -34,7 +32,7 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
     // clang-format off
     // Tell QEMU to where to look for the BIOS files
     args << "-L"
-         << QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath();
+         << firmware_path();
     args << platform_args
 #if defined Q_PROCESSOR_ARM
          << "-machine"
