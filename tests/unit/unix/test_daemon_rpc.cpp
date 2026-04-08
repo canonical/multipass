@@ -20,6 +20,7 @@
 #include <tests/unit/mock_cert_provider.h>
 #include <tests/unit/mock_cert_store.h>
 #include <tests/unit/mock_daemon.h>
+#include <tests/unit/mock_file_ops.h>
 #include <tests/unit/mock_logger.h>
 #include <tests/unit/mock_permission_utils.h>
 #include <tests/unit/mock_platform.h>
@@ -43,7 +44,7 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
         EXPECT_CALL(*mock_platform, multipass_storage_location())
             .Times(AnyNumber())
             .WillRepeatedly(Return(QString()));
-        EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
+        EXPECT_CALL(*mock_file_ops, read_file(_)).WillRepeatedly(Return(mpt::root_cert));
     }
 
     mp::Rpc::Stub make_secure_stub()
@@ -85,8 +86,11 @@ struct TestDaemonRpc : public mpt::DaemonTestFixture
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = platform_attr.first;
 
-    mpt::MockUtils::GuardedMock attr{mpt::MockUtils::inject<NiceMock>()};
-    mpt::MockUtils* mock_utils = attr.first;
+    mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils* mock_utils = utils_attr.first;
+
+    mpt::MockFileOps::GuardedMock file_ops_attr{mpt::MockFileOps::inject<NiceMock>()};
+    mpt::MockFileOps* mock_file_ops = file_ops_attr.first;
 
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();

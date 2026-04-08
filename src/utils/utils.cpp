@@ -101,36 +101,6 @@ bool mp::Utils::run_cmd_for_status(const QString& cmd,
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
 
-void mp::Utils::make_file_with_content(const std::string& file_name,
-                                       const std::string& content,
-                                       const bool& overwrite)
-{
-    QFile file(QString::fromStdString(file_name));
-    if (!overwrite && MP_FILEOPS.exists(file))
-        throw std::runtime_error(fmt::format("file '{}' already exists", file_name));
-
-    QDir parent_dir{QFileInfo{file}.absoluteDir()};
-    if (!MP_FILEOPS.mkpath(parent_dir, "."))
-        throw std::runtime_error(fmt::format("failed to create dir '{}'", parent_dir.path()));
-
-    if (!MP_FILEOPS.open(file, QFile::WriteOnly))
-        throw std::runtime_error(
-            fmt::format("failed to open file '{}' for writing: {}", file_name, file.errorString()));
-
-    // TODO use a QTextStream instead. Theoretically, this may fail to write it all in one go but
-    // still succeed. In practice, that seems unlikely. See https://stackoverflow.com/a/70933650 for
-    // more.
-    if (MP_FILEOPS.write(file, content.c_str(), content.size()) != (qint64)content.size())
-        throw std::runtime_error(
-            fmt::format("failed to write to file '{}': {}", file_name, file.errorString()));
-
-    if (!MP_FILEOPS.flush(file)) // flush manually to check return (which QFile::close ignores)
-        throw std::runtime_error(
-            fmt::format("failed to flush file '{}': {}", file_name, file.errorString()));
-
-    return; // file closed, flush called again with errors ignored
-}
-
 std::string mp::Utils::get_kernel_version() const
 {
     return QSysInfo::kernelVersion().toStdString();
@@ -371,24 +341,6 @@ QString mp::utils::make_uuid(const std::optional<std::string>& seed)
     auto uuid =
         seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
     return uuid.toString(QUuid::WithoutBraces);
-}
-
-std::string mp::utils::contents_of(const multipass::Path& file_path)
-{
-    // TODO this should protect against long contents
-    const std::string name{file_path.toStdString()};
-    std::ifstream in(name, std::ios::in | std::ios::binary);
-    if (!in)
-        throw FileOpenFailedException(name);
-
-    std::stringstream stream;
-    stream << in.rdbuf();
-    return stream.str();
-}
-
-std::string mp::Utils::contents_of(const multipass::Path& file_path) const
-{
-    return mp::utils::contents_of(file_path);
 }
 
 std::vector<uint8_t> mp::Utils::random_bytes(size_t len)

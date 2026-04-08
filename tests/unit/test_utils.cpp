@@ -40,25 +40,6 @@ namespace mpu = mp::utils;
 
 using namespace testing;
 
-namespace
-{
-std::string file_contents{"line 1 of file contents\nline 2\n"};
-
-void check_file_contents(QFile& checked_file, const std::string& checked_contents)
-{
-    ASSERT_TRUE(checked_file.open(QIODevice::ReadOnly | QIODevice::Text));
-
-    QString actual_contents;
-
-    while (!checked_file.atEnd())
-        actual_contents += checked_file.readLine();
-
-    checked_file.close();
-
-    ASSERT_EQ(checked_contents, actual_contents.toStdString());
-}
-} // namespace
-
 TEST(Utils, hostnameBeginsWithLetterIsValid)
 {
     EXPECT_TRUE(mp::utils::valid_hostname("foo"));
@@ -151,124 +132,6 @@ TEST(Utils, pathHomeFooValid)
 TEST(Utils, pathHomeUbuntuFooValid)
 {
     EXPECT_FALSE(MP_UTILS.invalid_target_path(QString("/home/ubuntu/foo")));
-}
-
-TEST(Utils, makeFileWithContentWorks)
-{
-    mpt::TempDir temp_dir;
-    QString file_name = temp_dir.path() + "/test-file";
-
-    EXPECT_NO_THROW(MP_UTILS.make_file_with_content(file_name.toStdString(), file_contents));
-
-    QFile checked_file(file_name);
-    check_file_contents(checked_file, file_contents);
-}
-
-TEST(Utils, makeFileWithContentDoesNotOverwrite)
-{
-    mpt::TempDir temp_dir;
-    QString file_name = temp_dir.path() + "/test-file";
-
-    EXPECT_NO_THROW(MP_UTILS.make_file_with_content(file_name.toStdString(), file_contents));
-
-    QFile checked_file(file_name);
-    check_file_contents(checked_file, file_contents);
-
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name.toStdString(), "other stuff\n"),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("already exists")));
-
-    check_file_contents(checked_file, file_contents);
-}
-
-TEST(Utils, makeFileWithContentOverwritesWhenAsked)
-{
-    mpt::TempDir temp_dir;
-    QString file_name = temp_dir.path() + "/test-file";
-
-    EXPECT_NO_THROW(MP_UTILS.make_file_with_content(file_name.toStdString(), file_contents));
-
-    QFile checked_file(file_name);
-    check_file_contents(checked_file, file_contents);
-
-    EXPECT_NO_THROW(
-        MP_UTILS.make_file_with_content(file_name.toStdString(), "other stuff\n", true));
-
-    check_file_contents(checked_file, "other stuff\n");
-}
-
-TEST(Utils, makeFileWithContentCreatesPath)
-{
-    mpt::TempDir temp_dir;
-    QString file_name = temp_dir.path() + "/new_dir/test-file";
-
-    EXPECT_NO_THROW(MP_UTILS.make_file_with_content(file_name.toStdString(), file_contents));
-
-    QFile checked_file(file_name);
-    check_file_contents(checked_file, file_contents);
-}
-
-TEST(Utils, makeFileWithContentFailsIfPathCannotBeCreated)
-{
-    std::string file_name{"some_dir/test-file"};
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
-
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to create dir")));
-}
-
-TEST(Utils, makeFileWithContentFailsIfFileCannotBeCreated)
-{
-    std::string file_name{"some_dir/test-file"};
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
-
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to open file")));
-}
-
-TEST(Utils, makeFileWithContentThrowsOnWriteError)
-{
-    std::string file_name{"some_dir/test-file"};
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
-
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to write to file")));
-}
-
-TEST(Utils, makeFileWithContentThrowsOnFailureToFlush)
-{
-    std::string file_name{"some_dir/test-file"};
-
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _))
-        .WillOnce(Return(file_contents.size()));
-    EXPECT_CALL(*mock_file_ops, flush(A<QFileDevice&>())).WillOnce(Return(false));
-
-    MP_EXPECT_THROW_THAT(MP_UTILS.make_file_with_content(file_name, file_contents),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("failed to flush file")));
 }
 
 TEST(Utils, expectedScryptHashReturned)
@@ -465,32 +328,6 @@ TEST(Utils, uuidHasNoCurlyBrackets)
 {
     auto uuid = mp::utils::make_uuid();
     EXPECT_FALSE(uuid.contains(QRegularExpression("[{}]")));
-}
-
-TEST(Utils, contentsOfActuallyReadsContents)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    std::string expected_content{"just a bit of test content here"};
-    mpt::make_file_with_content(file_name, expected_content);
-
-    auto content = mp::utils::contents_of(file_name);
-    EXPECT_THAT(content, StrEq(expected_content));
-}
-
-TEST(Utils, contentsOfThrowsOnMissingFile)
-{
-    EXPECT_THROW(mp::utils::contents_of("this-file-does-not-exist"), std::runtime_error);
-}
-
-TEST(Utils, contentsOfEmptyContentsOnEmptyFile)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/empty_test_file";
-    mpt::make_file_with_content(file_name, "");
-
-    auto content = mp::utils::contents_of(file_name);
-    EXPECT_TRUE(content.empty());
 }
 
 TEST(Utils, splitReturnsTokenList)

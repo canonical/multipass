@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -71,7 +72,7 @@ void openssl_check(T result, const std::string& errorMessage)
 class WritableFile
 {
 public:
-    explicit WritableFile(const QString& file_path) : fp{open_file(file_path)}
+    explicit WritableFile(const std::filesystem::path& file_path) : fp{open_file(file_path)}
     {
     }
 
@@ -84,13 +85,12 @@ private:
     // decltype(&fclose) does not preserve these some extra function attributes of fclose, leads to
     // warning and compilation error
     using FilePtr = std::unique_ptr<FILE, int (*)(FILE*)>;
-    [[nodiscard]] static FilePtr open_file(const QString& file_path)
+    [[nodiscard]] static FilePtr open_file(const std::filesystem::path& file_path)
     {
-        const std::filesystem::path file_path_std{file_path.toStdString()};
-        std::filesystem::create_directories(file_path_std.parent_path());
+        std::filesystem::create_directories(file_path.parent_path());
         // make sure the parent directory exist
 
-        const auto raw_fp = fopen(file_path_std.string().c_str(), "wb");
+        const auto raw_fp = fopen(file_path.string().c_str(), "wb");
         openssl_check(
             raw_fp,
             fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
@@ -117,13 +117,12 @@ public:
         return mem.as_string();
     }
 
-    void write(const QString& key_path) const
+    void write(const std::filesystem::path& key_path) const
     {
-        const std::filesystem::path key_path_std = key_path.toStdU16String();
-        if (std::filesystem::exists(key_path_std))
+        if (std::filesystem::exists(key_path))
         {
             // enable fopen in WritableFile with wb mode
-            MP_PLATFORM.set_permissions(key_path_std,
+            MP_PLATFORM.set_permissions(key_path,
                                         std::filesystem::perms::owner_read |
                                             std::filesystem::perms::owner_write);
         }
@@ -133,7 +132,7 @@ public:
             PEM_write_PrivateKey(file.get(), key.get(), nullptr, nullptr, 0, nullptr, nullptr),
             fmt::format("Failed writing certificate private key to file '{}'", key_path));
 
-        MP_PLATFORM.set_permissions(key_path_std, std::filesystem::perms::owner_read);
+        MP_PLATFORM.set_permissions(key_path, std::filesystem::perms::owner_read);
     }
 
     EVP_PKEY* get() const
@@ -398,14 +397,13 @@ public:
         return mem.as_string();
     }
 
-    void write(const QString& cert_path) const
+    void write(const std::filesystem::path& cert_path) const
     {
         WritableFile file{cert_path};
 
         openssl_check(PEM_write_X509(file.get(), cert.get()),
                       fmt::format("Failed writing certificate to file '{}'", cert_path));
-        const std::filesystem::path cert_path_std = cert_path.toStdU16String();
-        MP_PLATFORM.set_permissions(cert_path_std,
+        MP_PLATFORM.set_permissions(cert_path,
                                     std::filesystem::perms::owner_all |
                                         std::filesystem::perms::group_read |
                                         std::filesystem::perms::others_read);
@@ -425,23 +423,22 @@ private:
     std::unique_ptr<X509, decltype(&X509_free)> cert{X509_new(), X509_free};
 };
 
-std::unique_ptr<X509, decltype(&X509_free)> load_cert_from_file(const std::string& path)
+std::unique_ptr<X509, decltype(&X509_free)> load_cert_from_file(const std::filesystem::path& path)
 {
-    std::unique_ptr<FILE, int (*)(FILE*)> file{fopen(path.c_str(), "r"), &fclose};
+    std::unique_ptr<FILE, int (*)(FILE*)> file{fopen(path.string().c_str(), "r"), &fclose};
     if (!file)
         return {nullptr, X509_free};
 
     return {PEM_read_X509(file.get(), nullptr, nullptr, nullptr), X509_free};
 }
 
-mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
+mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const std::filesystem::path& cert_dir,
                                                            const std::string& server_name)
 {
-    const QString prefix =
-        server_name.empty() ? "multipass_cert" : QString::fromStdString(server_name);
+    const std::string prefix = server_name.empty() ? "multipass_cert" : server_name;
 
-    const auto priv_key_path = cert_dir.filePath(prefix + "_key.pem");
-    const auto cert_path = cert_dir.filePath(prefix + ".pem");
+    const auto priv_key_path = cert_dir / (prefix + "_key.pem");
+    const auto cert_path = cert_dir / (prefix + ".pem");
 
     if (!server_name.empty())
     {
@@ -450,8 +447,8 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
             QFile::exists(cert_path))
         {
             // Ensure that we can load both certificates
-            const auto root_cert = load_cert_from_file(root_cert_path.string());
-            const auto cert = load_cert_from_file(cert_path.toStdString());
+            const auto root_cert = load_cert_from_file(root_cert_path);
+            const auto cert = load_cert_from_file(cert_path);
 
             if (root_cert && cert)
             {
@@ -459,7 +456,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                            "Certificates for the gRPC server (root: {}, subordinate: {}) are valid "
                            "X.509 files",
                            root_cert_path,
-                           cert_path.toStdString());
+                           cert_path);
 
                 // TODO: Remove in Multipass 1.18
                 if (!cert_has_eku_nid(*cert.get(), NID_server_auth))
@@ -467,7 +464,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                     mpl::warn(log_category,
                               "Existing gRPC server certificate (`{}`) does not contain the "
                               "correct extensions",
-                              cert_path.toStdString());
+                              cert_path);
                 }
                 else if (!is_issuer_of(*root_cert.get(), *cert.get()))
                 {
@@ -475,14 +472,14 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                               "Existing root certificate (`{}`) is not the signer of the gRPC "
                               "server certificate (`{}`)",
                               root_cert_path,
-                              cert_path.toStdString());
+                              cert_path);
                 }
                 else if (is_expired(*cert.get()))
                 {
                     mpl::warn(
                         log_category,
                         "Existing gRPC server certificate (`{}`) validity period is not valid",
-                        cert_path.toStdString());
+                        cert_path);
                 }
                 else
                 {
@@ -494,8 +491,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                                                 std::filesystem::perms::owner_all |
                                                     std::filesystem::perms::group_read |
                                                     std::filesystem::perms::others_read);
-                    return {mp::utils::contents_of(cert_path),
-                            mp::utils::contents_of(priv_key_path)};
+                    return {MP_FILEOPS.read_file(cert_path), MP_FILEOPS.read_file(priv_key_path)};
                 }
             }
             else
@@ -504,12 +500,12 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                           "Could not load either of the root (`{}`) or subordinate (`{}`) "
                           "certificates for the gRPC server",
                           root_cert_path,
-                          cert_path.toStdString());
+                          cert_path);
             }
         }
         mpl::info(log_category, "Regenerating certificates for the gRPC server");
 
-        const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
+        const auto priv_root_key_path = cert_dir / (prefix + "_root_key.pem");
 
         EVPKey root_cert_key{};
         X509Cert root_cert{root_cert_key, X509Cert::CertType::Root};
@@ -534,7 +530,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
             // even on `multipass list`
             // Re-enable it after fixing.
             // mpl::trace(kLogCategory, "Re-using existing certificates for the gRPC client");
-            return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
+            return {MP_FILEOPS.read_file(cert_path), MP_FILEOPS.read_file(priv_key_path)};
         }
 
         // mpl::trace(kLogCategory, "Regenerating certificates for the gRPC client");
@@ -543,7 +539,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
         client_cert_key.write(priv_key_path);
         client_cert.write(cert_path);
 
-        MP_PLATFORM.set_permissions(priv_key_path.toStdU16String(),
+        MP_PLATFORM.set_permissions(priv_key_path,
                                     std::filesystem::perms::owner_all |
                                         std::filesystem::perms::group_read |
                                         std::filesystem::perms::others_read);
@@ -555,7 +551,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
 mp::SSLCertProvider::SSLCertProvider(const multipass::Path& cert_dir,
                                      const std::string& server_name)
-    : key_cert_pair{make_cert_key_pair(cert_dir, server_name)}
+    : key_cert_pair{make_cert_key_pair(MP_PLATFORM.qstr_to_path(cert_dir), server_name)}
 {
 }
 

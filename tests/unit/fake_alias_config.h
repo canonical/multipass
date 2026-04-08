@@ -19,6 +19,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/constants.h>
+#include <multipass/platform.h>
 
 #include "common.h"
 #include "mock_standard_paths.h"
@@ -39,12 +40,12 @@ struct FakeAliasConfig
             .WillRepeatedly(Return(fake_alias_dir.path()));
     }
 
-    std::string db_filename()
+    std::filesystem::path db_filename()
     {
 
         const auto file_name = QStringLiteral("%1/%1_aliases.json").arg(mp::client_name);
 
-        return fake_alias_dir.filePath(file_name).toStdString();
+        return MP_PLATFORM.qstr_to_path(fake_alias_dir.filePath(file_name));
     }
 
     void populate_db_file(const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases)

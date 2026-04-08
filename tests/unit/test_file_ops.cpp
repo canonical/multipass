@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_file_ops.h"
+#include "temp_dir.h"
 
 #include <multipass/file_ops.h>
 
@@ -210,9 +211,21 @@ struct HighLevelFileOps : public Test
             .WillRepeatedly([this]<typename... Args>(Args&&... args) {
                 return mock_file_ops.FileOps::write_transactionally(std::forward<Args>(args)...);
             });
+        EXPECT_CALL(mock_file_ops, write_file(_, _))
+            .WillRepeatedly([this]<typename... Args>(Args&&... args) {
+                return mock_file_ops.FileOps::write_file(std::forward<Args>(args)...);
+            });
+        EXPECT_CALL(mock_file_ops, write_file(_, _, _))
+            .WillRepeatedly([this]<typename... Args>(Args&&... args) {
+                return mock_file_ops.FileOps::write_file(std::forward<Args>(args)...);
+            });
         EXPECT_CALL(mock_file_ops, try_read_file(A<const fs::path&>()))
             .WillRepeatedly([this]<typename... Args>(Args&&... args) {
                 return mock_file_ops.FileOps::try_read_file(std::forward<Args>(args)...);
+            });
+        EXPECT_CALL(mock_file_ops, read_file(A<const fs::path&>()))
+            .WillRepeatedly([this]<typename... Args>(Args&&... args) {
+                return mock_file_ops.FileOps::read_file(std::forward<Args>(args)...);
             });
     }
 
@@ -360,6 +373,91 @@ TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToCommit)
         mpt::match_what(AllOf(HasSubstr("Could not commit"), HasSubstr(file_path.toStdString()))));
 }
 
+TEST_F(HighLevelFileOps, writeFileWorks)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops,
+                write(mpt::FileNameMatches(Eq(file_path)),
+                      Eq(std::string{file_text}),
+                      Eq(strlen(file_text))))
+        .WillOnce(Return(14));
+    EXPECT_CALL(mock_file_ops, flush).WillOnce(Return(true));
+
+    EXPECT_NO_THROW(mock_file_ops.write_file(file_path.toStdString(), file_text));
+}
+
+TEST_F(HighLevelFileOps, writeFileDoesNotOverwrite)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
+
+    MP_EXPECT_THROW_THAT(mock_file_ops.write_file(file_path.toStdString(), file_text),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("already exists")));
+}
+
+TEST_F(HighLevelFileOps, writeFileOverwritesWhenAsked)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).Times(0);
+    EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops,
+                write(mpt::FileNameMatches(Eq(file_path)),
+                      Eq(std::string{file_text}),
+                      Eq(strlen(file_text))))
+        .WillOnce(Return(14));
+    EXPECT_CALL(mock_file_ops, flush).WillOnce(Return(true));
+
+    EXPECT_NO_THROW(mock_file_ops.write_file(file_path.toStdString(), file_text, true));
+}
+
+TEST_F(HighLevelFileOps, writeFileFailsIfPathCannotBeCreated)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(mock_file_ops.write_file(file_path.toStdString(), file_text),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to create dir")));
+}
+
+TEST_F(HighLevelFileOps, writeFileFailsIfFileCannotBeCreated)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(mock_file_ops.write_file(file_path.toStdString(), file_text),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to open file")));
+}
+
+TEST_F(HighLevelFileOps, writeFileThrowsOnWriteError)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
+
+    MP_EXPECT_THROW_THAT(mock_file_ops.write_file(file_path.toStdString(), file_text),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to write to file")));
+}
+
+TEST_F(HighLevelFileOps, writeFileThrowsOnFailureToFlush)
+{
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(strlen(file_text)));
+    EXPECT_CALL(mock_file_ops, flush(A<QFileDevice&>())).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(mock_file_ops.write_file(file_path.toStdString(), file_text),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to flush file")));
+}
+
 TEST_F(HighLevelFileOps, tryReadFileReadsFromFile)
 {
     auto filestream = std::make_unique<std::stringstream>();
@@ -409,4 +507,24 @@ TEST_F(HighLevelFileOps, tryReadFileThrowsOnBadbit)
     EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filestream)));
 
     EXPECT_THROW(mock_file_ops.try_read_file(":("), std::ios_base::failure);
+}
+
+TEST_F(HighLevelFileOps, readFileReadsFromFile)
+{
+    auto filestream = std::make_unique<std::stringstream>();
+    *filestream << "Hello, world!";
+
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open_read(_, _)).WillOnce(Return(std::move(filestream)));
+    const auto filedata = mock_file_ops.try_read_file("exists");
+
+    EXPECT_EQ(filedata, "Hello, world!");
+}
+
+TEST_F(HighLevelFileOps, readFileThrowsForMissingFile)
+{
+    EXPECT_CALL(mock_file_ops, exists(_, _)).WillOnce(Return(false));
+    const auto filedata = mock_file_ops.try_read_file("exists");
+
+    EXPECT_THROW(mock_file_ops.read_file(":("), std::filesystem::filesystem_error);
 }

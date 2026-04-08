@@ -70,7 +70,6 @@ enum class TimeoutAction
 QDir base_dir(const QString& path);
 bool is_dir(const std::filesystem::path& path);
 QString backend_directory_path(const Path& path, const QString& subdirectory);
-std::string contents_of(const multipass::Path& file_path);
 
 // path normalization: returns the lexically-normal form of the path with any trailing directory
 // separator removed. The string overloads additionally convert directory separators to generic
@@ -228,10 +227,6 @@ public:
 
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code) const;
-    virtual std::string contents_of(const multipass::Path& file_path) const;
-    virtual void make_file_with_content(const std::string& file_name,
-                                        const std::string& content,
-                                        const bool& overwrite = false);
     virtual Path make_dir(const QDir& a_dir,
                           const QString& name,
                           std::filesystem::perms permissions = std::filesystem::perms::none) const;

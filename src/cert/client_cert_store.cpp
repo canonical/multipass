@@ -20,6 +20,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 
 #include <QDir>
@@ -92,7 +93,7 @@ std::string mp::ClientCertStore::PEM_cert_chain() const
 {
     auto path = cert_dir.filePath(chain_name);
     if (QFile::exists(path))
-        return mp::utils::contents_of(path);
+        return MP_FILEOPS.read_file(MP_PLATFORM.qstr_to_path(path));
     return {};
 }
 

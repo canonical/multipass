@@ -319,11 +319,11 @@ std::string interpret_net_type(const QString& media_type, const QString& physica
         return physical_media_type.toLower().toStdString();
 }
 
-QString get_alias_script_path(const std::string& alias)
+std::filesystem::path get_alias_script_path(const std::string& alias)
 {
-    auto aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+    auto aliases_folder = MP_PLATFORM.qstr_to_path(MP_PLATFORM.get_alias_scripts_folder().path());
 
-    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)) + ".bat";
+    return absolute(aliases_folder / (alias + ".bat"));
 }
 
 QString program_data_multipass_path()
@@ -922,14 +922,14 @@ void mp::platform::Platform::create_alias_script(const std::string& alias,
 
     std::string script = "@\"" + multipass_exec + "\" " + alias + " -- %*\n";
 
-    MP_UTILS.make_file_with_content(file_path.toStdString(), script, true);
+    MP_FILEOPS.write_file(file_path, script, true);
 }
 
 void mp::platform::Platform::remove_alias_script(const std::string& alias) const
 {
     auto file_path = get_alias_script_path(alias);
 
-    if (!QFile::remove(file_path))
+    if (!MP_FILEOPS.remove(file_path))
         throw std::runtime_error("error removing alias script");
 }
 

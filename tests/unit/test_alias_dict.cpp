@@ -21,6 +21,7 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/constants.h>
+#include <multipass/utils.h>
 
 #include "common.h"
 #include "daemon_test_fixture.h"
@@ -32,7 +33,6 @@
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_settings.h"
-#include "mock_utils.h"
 #include "mock_vm_image_vault.h"
 #include "stub_terminal.h"
 
@@ -471,8 +471,8 @@ TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
     EXPECT_CALL(*mock_image_vault, prune_expired_images()).WillRepeatedly(Return());
     EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
 
-    const auto [mock_utils, guard] = mpt::MockUtils::inject<NiceMock>();
-    EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
+    const auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, read_file(_)).WillRepeatedly(Return(mpt::root_cert));
 
     config_builder.vault = std::move(mock_image_vault);
     auto mock_factory = use_a_mock_vm_factory();

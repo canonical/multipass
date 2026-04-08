@@ -19,6 +19,7 @@
 #include "dummy_ssh_key_provider.h"
 #include "file_operations.h"
 #include "mock_cloud_init_file_ops.h"
+#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
@@ -1136,59 +1137,32 @@ TEST_F(BaseVM, persistsGenericSnapshotInfoWhenTakingSnapshot)
 
 TEST_F(BaseVM, removesGenericSnapshotInfoFilesOnFirstFailure)
 {
-    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    auto& mock_utils = *mock_utils_ptr;
+    auto [mock_file_ops_ptr, guard] = mpt::MockFileOps::inject();
+    auto& mock_file_ops = *mock_file_ops_ptr;
     mock_snapshotting();
 
-    ASSERT_FALSE(QFileInfo{head_path}.exists());
-    ASSERT_FALSE(QFileInfo{count_path}.exists());
-
-    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils,
-                                                 make_file_with_content,
-                                                 mp::Utils,
-                                                 (EndsWith(head_filename), _, Eq(true)));
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true)));
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillRepeatedly(Return(false));
+    EXPECT_CALL(mock_file_ops, write_file(EndsWith(head_filename), _, Eq(true)));
+    EXPECT_CALL(mock_file_ops, write_file(EndsWith(count_filename), _, Eq(true)))
         .WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(mock_file_ops, remove(A<QFile&>())).Times(2);
 
     EXPECT_ANY_THROW(vm.take_snapshot({}, "", ""));
-
-    EXPECT_FALSE(QFileInfo{head_path}.exists());
-    EXPECT_FALSE(QFileInfo{count_path}.exists());
 }
 
 TEST_F(BaseVM, restoresGenericSnapshotInfoFileContents)
 {
+    auto [mock_file_ops_ptr, guard] = mpt::MockFileOps::inject();
+    auto& mock_file_ops = *mock_file_ops_ptr;
     mock_snapshotting();
 
-    mp::VMSpecs specs{};
-    vm.take_snapshot(specs, "", "");
-
-    ASSERT_TRUE(QFileInfo{head_path}.exists());
-    ASSERT_TRUE(QFileInfo{count_path}.exists());
-
-    auto regex_matcher = make_index_file_contents_matcher(1);
-    EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
-    EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
-
-    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject<NiceMock>();
-    auto& mock_utils = *mock_utils_ptr;
-
-    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils,
-                                                 make_file_with_content,
-                                                 mp::Utils,
-                                                 (_, _, Eq(true)));
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true))).Times(2);
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
+    EXPECT_CALL(mock_file_ops, exists(A<const QFile&>())).WillRepeatedly(Return(true));
+    EXPECT_CALL(mock_file_ops, write_file(EndsWith(head_filename), _, Eq(true))).Times(2);
+    EXPECT_CALL(mock_file_ops, write_file(EndsWith(count_filename), _, Eq(true)))
         .WillOnce(Throw(std::runtime_error{"intentional"}))
         .WillOnce(DoDefault());
 
     EXPECT_ANY_THROW(vm.take_snapshot({}, "", ""));
-
-    EXPECT_TRUE(QFileInfo{head_path}.exists());
-    EXPECT_TRUE(QFileInfo{count_path}.exists());
-    EXPECT_THAT(mpt::load(head_path).toStdString(), regex_matcher);
-    EXPECT_THAT(mpt::load(count_path).toStdString(), regex_matcher);
 }
 
 TEST_F(BaseVM, persistsHeadIndexOnRestore)
@@ -1255,8 +1229,8 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     EXPECT_CALL(target_snapshot, get_mounts).WillRepeatedly(ReturnRef(original_specs.mounts));
     EXPECT_CALL(target_snapshot, get_metadata).WillRepeatedly(ReturnRef(original_specs.metadata));
 
-    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, make_file_with_content(_, _, _))
+    auto [mock_file_ops_ptr, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops_ptr, write_file(_, _, _))
         .WillOnce(Throw(std::runtime_error{"intentional"}))
         .WillRepeatedly(DoDefault());
 

@@ -20,8 +20,8 @@
 #include "file_operations.h"
 #include "path.h"
 
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
-#include <multipass/utils.h>
 
 #include <QDir>
 #include <QFile>
@@ -49,6 +49,6 @@ QByteArray mpt::load_test_file(const char* file_name)
 
 void mpt::make_file_with_content(const QString& file_name, const std::string& content)
 {
-    MP_UTILS.Utils::make_file_with_content(file_name.toStdString(),
-                                           content); // call the base impl even if it is a mock
+    MP_FILEOPS.FileOps::write_file(file_name.toStdString(),
+                                   content); // call the base impl even if it is a mock
 }

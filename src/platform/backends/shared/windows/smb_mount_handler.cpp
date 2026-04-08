@@ -144,10 +144,9 @@ try
     const auto iv = MP_UTILS.random_bytes(MP_AES.aes_256_block_size());
     const auto encrypted_data = MP_AES.encrypt(enc_key, iv, data);
 
-    MP_UTILS.make_file_with_content(cred_dir.filePath(iv_filename).toStdString(),
-                                    {iv.begin(), iv.end()});
-    MP_UTILS.make_file_with_content(cred_dir.filePath(cred_filename).toStdString(),
-                                    {encrypted_data.begin(), encrypted_data.end()});
+    MP_FILEOPS.write_file(cred_dir.filePath(iv_filename).toStdString(), {iv.begin(), iv.end()});
+    MP_FILEOPS.write_file(cred_dir.filePath(cred_filename).toStdString(),
+                          {encrypted_data.begin(), encrypted_data.end()});
 
     mpl::info(category, "Successfully encrypted credentials");
 }
@@ -160,8 +159,10 @@ std::string SmbMountHandler::decrypt_credentials_from_file(const QString& cred_f
                                                            const QString& iv_filename)
 try
 {
-    const auto encrypted_data = MP_UTILS.contents_of(cred_dir.filePath(cred_filename));
-    const auto iv_str = MP_UTILS.contents_of(cred_dir.filePath(iv_filename));
+    const auto encrypted_data =
+        MP_FILEOPS.read_file(MP_PLATFORM.qstr_to_path(cred_dir.filePath(cred_filename)));
+    const auto iv_str =
+        MP_FILEOPS.read_file(MP_PLATFORM.qstr_to_path(cred_dir.filePath(iv_filename)));
     std::vector<uint8_t> iv{iv_str.begin(), iv_str.end()};
     iv.resize(MP_AES.aes_256_block_size());
 
@@ -198,18 +199,18 @@ SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
 
     auto data_location{MP_PLATFORM.multipass_storage_location() + "\\data"};
     auto enc_key_dir_path{MP_UTILS.make_dir(data_location, "enc-keys")};
-    auto key_file = QDir{enc_key_dir_path}.filePath("aes.key");
+    auto key_file = MP_PLATFORM.qstr_to_path(QDir{enc_key_dir_path}.filePath("aes.key"));
 
-    if (MP_FILEOPS.exists(QFile{key_file}))
+    if (MP_FILEOPS.exists(key_file))
     {
-        const auto key_str = MP_UTILS.contents_of(key_file);
+        const auto key_str = MP_FILEOPS.readfile(key_file);
         enc_key.assign(key_str.begin(), key_str.end());
         enc_key.resize(MP_AES.aes_256_key_size());
     }
     else
     {
         enc_key = MP_UTILS.random_bytes(MP_AES.aes_256_key_size());
-        MP_UTILS.make_file_with_content(key_file.toStdString(), {enc_key.begin(), enc_key.end()});
+        MP_FILEOPS.write_file(key_file, {enc_key.begin(), enc_key.end()});
         mpl::info(category, "Successfully generated new encryption key");
     }
 }

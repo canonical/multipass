@@ -177,11 +177,11 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
     }
 }
 
-std::string get_alias_script_path(const std::string& alias)
+std::filesystem::path get_alias_script_path(const std::string& alias)
 {
-    auto aliases_folder = MP_PLATFORM.get_alias_scripts_folder();
+    auto aliases_folder = MP_PLATFORM.qstr_to_path(MP_PLATFORM.get_alias_scripts_folder().path());
 
-    return aliases_folder.absoluteFilePath(QString::fromStdString(alias)).toStdString();
+    return absolute(aliases_folder / alias);
 }
 } // namespace
 
@@ -301,7 +301,7 @@ void mp::platform::Platform::create_alias_script(const std::string& alias,
 
     std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + " -- \"${@}\"\n";
 
-    MP_UTILS.make_file_with_content(file_path, script, true);
+    MP_FILEOPS.write_file(file_path, script, true);
 
     auto permissions = MP_FILEOPS.get_permissions(file_path) | fs::perms::owner_exec |
                        fs::perms::group_exec | fs::perms::others_exec;

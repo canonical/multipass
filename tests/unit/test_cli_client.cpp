@@ -197,7 +197,7 @@ struct Client : public Test
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true"));
         EXPECT_CALL(mock_settings, register_handler(_)).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
-        EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
+        EXPECT_CALL(*mock_file_ops, read_file(_)).WillRepeatedly(Return(mpt::root_cert));
 
         EXPECT_CALL(mpt::MockStandardPaths::mock_instance(), locate(_, _, _))
             .Times(AnyNumber()); // needed to allow general calls once we have added the specific
@@ -438,6 +438,8 @@ struct Client : public Test
     const mpt::MockPlatform* mock_platform = platform_attr.first;
     const mpt::MockUtils::GuardedMock utils_attr{mpt::MockUtils::inject<NiceMock>()};
     const mpt::MockUtils* mock_utils = utils_attr.first;
+    const mpt::MockFileOps::GuardedMock file_ops_attr{mpt::MockFileOps::inject<NiceMock>()};
+    const mpt::MockFileOps* mock_file_ops = file_ops_attr.first;
 
     mpt::StubCertStore cert_store;
     StrictMock<MockDaemonRpc> mock_daemon{
@@ -641,12 +643,11 @@ TEST_F(Client, transferCmdInstanceSourceLocalTarget)
 
 TEST_F(Client, transferCmdInstanceSourcesLocalTargetNotDir)
 {
-    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
     auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
         .WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
-    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(false));
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
@@ -663,13 +664,12 @@ TEST_F(Client, transferCmdInstanceSourcesLocalTargetNotDir)
 
 TEST_F(Client, transferCmdInstanceSourcesLocalTargetCannotAccess)
 {
-    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
     auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
         .WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
     auto err = std::make_error_code(std::errc::permission_denied);
-    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce([&](auto, std::error_code& e) {
+    EXPECT_CALL(*mock_file_ops, is_directory).WillOnce([&](auto, std::error_code& e) {
         e = err;
         return false;
     });
@@ -1421,14 +1421,13 @@ TEST_F(Client, launchCmdMountOption)
 
 TEST_F(Client, launchCmdMountOptionFailsOnInvalidDir)
 {
-    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mocked_file_ops, exists(A<const QFileInfo&>()))
+    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
         .WillOnce(Return(false))
         .WillRepeatedly(Return(true));
-    EXPECT_CALL(*mocked_file_ops, isDir(A<const QFileInfo&>()))
+    EXPECT_CALL(*mock_file_ops, isDir(A<const QFileInfo&>()))
         .WillOnce(Return(false))
         .WillRepeatedly(Return(true));
-    EXPECT_CALL(*mocked_file_ops, isReadable(A<const QFileInfo&>()))
+    EXPECT_CALL(*mock_file_ops, isReadable(A<const QFileInfo&>()))
         .WillOnce(Return(false))
         .WillRepeatedly(Return(true));
 
@@ -4542,7 +4541,6 @@ TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
 
 TEST_F(ClientAlias, failsIfUnableToCreateDirectory)
 {
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, write_transactionally, FileOps);
 
     EXPECT_CALL(*mock_file_ops, try_read_file(_)).WillOnce(Return(std::nullopt));

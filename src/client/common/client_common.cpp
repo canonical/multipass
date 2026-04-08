@@ -19,6 +19,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
@@ -75,7 +76,7 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
 {
     auto opts = grpc::SslCredentialsOptions();
 
-    opts.pem_root_certs = MP_UTILS.contents_of(MP_PLATFORM.get_root_cert_path().u8string().c_str());
+    opts.pem_root_certs = MP_FILEOPS.read_file(MP_PLATFORM.get_root_cert_path());
     opts.pem_cert_chain = cert_provider.PEM_certificate();
     opts.pem_private_key = cert_provider.PEM_signing_key();
 

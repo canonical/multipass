@@ -625,40 +625,26 @@ TEST(PlatformWin, createAliasScriptWorks)
 
 TEST(PlatformWin, createAliasScriptOverwrites)
 {
-    auto [mock_utils, guard1] = mpt::MockUtils::inject();
-    auto [mock_file_ops, guard2] = mpt::MockFileOps::inject();
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
+    EXPECT_CALL(*mock_file_ops, write_file(_, _, true)).Times(1);
 
     EXPECT_NO_THROW(
         MP_PLATFORM.create_alias_script("alias_name",
                                         mp::AliasDefinition{"instance", "other_command"}));
 }
 
-TEST(PlatformWin, createAliasScriptThrowsIfCannotCreatePath)
-{
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
-
-    MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-        std::runtime_error,
-        mpt::match_what(HasSubstr("failed to create dir '")));
-}
-
 TEST(PlatformWin, createAliasScriptThrowsIfCannotWriteScript)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
+    EXPECT_CALL(*mock_file_ops, write_file(_, _, true))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
 
     MP_EXPECT_THROW_THAT(
         MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
         std::runtime_error,
-        mpt::match_what(HasSubstr("failed to write to file '")));
+        mpt::match_what(StrEq("intentional")));
 }
 
 TEST(PlatformWin, removeAliasScriptWorks)
@@ -670,7 +656,7 @@ TEST(PlatformWin, removeAliasScriptWorks)
                 writableLocation(mp::StandardPaths::HomeLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    MP_UTILS.make_file_with_content(script_file.fileName().toStdString(), "script content\n");
+    MP_FILEOPS.write_file(script_file.fileName().toStdString(), "script content\n");
 
     EXPECT_NO_THROW(MP_PLATFORM.remove_alias_script("alias_name"));
 
