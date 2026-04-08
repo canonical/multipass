@@ -12,5 +12,10 @@
     "zlib",
     "zstd",
     "ncurses"
-  ]
+  ],
+  "features": {
+    "system": {
+      "description": "Build qemu-system-<arch> emulator"
+    }
+  }
 }
