@@ -109,7 +109,6 @@ vcpkg_configure_make(
         "--disable-opengl"
         "--disable-libudev"
         "--disable-af-xdp"
-        "--disable-rust"
         "--disable-slirp"
 )
 
