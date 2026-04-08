@@ -81,6 +81,8 @@ auto make_confirmation_callback(Terminal& term, QString key)
 {
     return [key = std::move(key),
             &term](Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
+        if (!reply.log_line().empty())
+            term.cout() << reply.log_line() << '\n';
         if (key.startsWith(daemon_settings_root) && key.endsWith(bridged_network_name) &&
             reply.needs_authorization())
         {
