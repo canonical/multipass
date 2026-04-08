@@ -208,10 +208,10 @@ This will temporarily disrupt connectivity on that interface.
 
 Do you want to continue (yes/no)?
 ```
-
-Multipass requires `NetworkManager` to achieve this, whose command-line interface can also be used
-to remove the bridge: `nmcli connection delete br-eth0 br-eth0-child`. Use `nmcli connection show`
-to obtain the actual connection names.
+Multipass requires `NetworkManager` to achieve this. You can also
+use `NetworkManager`'s command-line interface to remove the bridge:
+`nmcli connection delete br-eth0 br-eth0-child`.
+Use `nmcli connection show` to obtain the actual connection names.
 
 On installations that do not have `NetworkManager` installed (e.g. Ubuntu Server), the user can
 still create a bridge by other means and pass that to Multipass. For instance, this configuration
