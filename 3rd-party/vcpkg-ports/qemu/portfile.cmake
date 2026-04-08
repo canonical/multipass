@@ -104,6 +104,7 @@ vcpkg_configure_make(
         "--disable-libudev"
         "--disable-af-xdp"
         "--disable-rust"
+        "--disable-slirp"
 )
 
 vcpkg_build_make()
