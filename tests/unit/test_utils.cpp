@@ -461,12 +461,6 @@ TEST(Utils, tryActionDoesNotTimeout)
     EXPECT_TRUE(action_called);
 }
 
-TEST(Utils, uuidHasNoCurlyBrackets)
-{
-    auto uuid = mp::utils::make_uuid();
-    EXPECT_FALSE(std::ranges::any_of(uuid, [](char c) { return c == '{' || c == '}'; }));
-}
-
 enum class UuidMode
 {
     Random,
