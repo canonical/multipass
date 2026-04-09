@@ -5,13 +5,28 @@
   "description": "QEMU with Canonical's patches for Multipass",
   "homepage": "https://github.com/qemu/QEMU",
   "license": "GPL-2.0-only",
-  "supports": "osx | linux",
+  "supports": "osx | linux | windows",
   "dependencies": [
-    "glib",
-    "pixman",
-    "zlib",
-    "zstd",
-    "ncurses"
+    {
+      "name": "glib",
+      "platform": "!windows"
+    },
+    {
+      "name": "pixman",
+      "platform": "!windows"
+    },
+    {
+      "name": "zlib",
+      "platform": "!windows"
+    },
+    {
+      "name": "zstd",
+      "platform": "!windows"
+    },
+    {
+      "name": "ncurses",
+      "platform": "!windows"
+    }
   ],
   "features": {
     "system": {

@@ -14,11 +14,6 @@
 
 # This module propagates QEMU binaries to wherever they're needed to exist.
 
-find_program(QEMU_IMG qemu-img
-      PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin"
-      NO_DEFAULT_PATH REQUIRED
-)
-
 find_program(QEMU_SYSTEM qemu-system-${HOST_ARCH}
     PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin"
     NO_DEFAULT_PATH REQUIRED
@@ -28,11 +23,10 @@ set(QEMU_FIRMWARE_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/Resources/
 
 # Copy QEMU and QEMU tools to build tree
 add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/bin/qemu-img" "${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}"
+    OUTPUT "${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin"
-    COMMAND ${CMAKE_COMMAND} -E copy "${QEMU_IMG}" "${CMAKE_BINARY_DIR}/bin/"
     COMMAND ${CMAKE_COMMAND} -E copy "${QEMU_SYSTEM}" "${CMAKE_BINARY_DIR}/bin/"
-    DEPENDS "${QEMU_IMG}" "${QEMU_SYSTEM}"
+    DEPENDS "${QEMU_SYSTEM}"
 )
 
 # Copy firmware to build tree
@@ -42,13 +36,12 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${QEMU_FIRMWARE_DIR}" "${CMAKE_BINARY_DIR}/Resources/qemu"
 )
 
-add_custom_target(qemu ALL DEPENDS
-    "${CMAKE_BINARY_DIR}/bin/qemu-img"
+add_custom_target(qemu-system ALL DEPENDS
     "${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}"
     "${CMAKE_BINARY_DIR}/Resources/qemu"
 )
 
-install(PROGRAMS "${QEMU_IMG}" "${QEMU_SYSTEM}"
+install(PROGRAMS "${QEMU_SYSTEM}"
     DESTINATION bin
     COMPONENT multipassd
 )
@@ -58,3 +51,4 @@ install(DIRECTORY "${QEMU_FIRMWARE_DIR}/"
     DESTINATION Resources/qemu
     COMPONENT multipassd
 )
+

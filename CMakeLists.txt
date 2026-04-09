@@ -131,7 +131,8 @@ if(MULTIPASS_ENABLE_TESTS)
   list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
 
-if("qemu" IN_LIST MULTIPASS_BACKENDS)
+# Windows needs qemu-img
+if("qemu" IN_LIST MULTIPASS_BACKENDS OR WIN32)
   list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 endif()
 
@@ -312,8 +313,10 @@ else()
 endif()
 
 if("qemu" IN_LIST MULTIPASS_BACKENDS)
-  include(src/cmake/qemu-install-and-copy.cmake)
+  include(src/cmake/qemu-system-install-and-copy.cmake)
 endif()
+
+include(src/cmake/qemu-img-install-and-copy.cmake)
 
 if(cmake_build_type_lower MATCHES "coverage")
   find_program(GCOV gcov)
