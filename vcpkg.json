@@ -6,11 +6,11 @@
     "fmt",
     "openssl",
     {
-        "name": "libssh",
-        "default-features": false,
-        "features": [
-            "server"
-        ]
+      "name": "libssh",
+      "default-features": false,
+      "features": [
+          "server"
+      ]
     }
   ],
   "overrides": [
@@ -19,8 +19,8 @@
       "version": "11.0.2"
     },
     {
-        "name": "libssh",
-        "version": "0.11.3"
+      "name": "libssh",
+      "version": "0.11.3"
     }
   ]
 }
