@@ -31,6 +31,7 @@
 #include "tests/unit/windows/powershell_test_helper.h"
 
 #include "smb_mount_handler.h"
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 
@@ -512,7 +513,6 @@ TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
     EXPECT_CALL(sftp_utils, make_SFTPClient).WillOnce(Return(std::move(sftp_client)));
 
     auto umount_error = "error reason";
-    ssh_outputs[umount_command] = {umount_error, 1};
     logger.expect_log(mpl::Level::warning,
                       fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}",
                                   target,
@@ -524,6 +524,9 @@ TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
 
     mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
+
+    EXPECT_CALL(vm, ssh_exec(umount_command, false))
+        .WillOnce(Throw(mp::SSHExecFailure(umount_error, 1)));
     EXPECT_NO_THROW(handler.deactivate(/*force=*/true));
 }
 
@@ -542,13 +545,16 @@ TEST_F(SmbMountHandlerTest, stopNonForceFailUmountCommand)
     EXPECT_CALL(sftp_utils, make_SFTPClient).WillOnce(Return(std::move(sftp_client)));
 
     auto umount_error = "error reason";
-    ssh_outputs[umount_command] = {umount_error, 1};
 
     EXPECT_CALL(smb_manager, share_exists).WillRepeatedly(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
     mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
+
+    EXPECT_CALL(vm, ssh_exec(umount_command, false))
+        .WillOnce(Throw(mp::SSHExecFailure(umount_error, 1)))
+        .WillRepeatedly(Return(""));
     MP_EXPECT_THROW_THAT(handler.deactivate(/*force=*/false),
                          std::runtime_error,
                          mpt::match_what(StrEq(umount_error)));
