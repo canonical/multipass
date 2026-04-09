@@ -26,6 +26,7 @@
 
 #include "qemu_mount_handler.h"
 
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 
@@ -261,7 +262,6 @@ TEST_F(QemuMountHandlerTest, startSuccessStopSuccess)
 TEST_F(QemuMountHandlerTest, stopFailNonforceThrows)
 {
     auto error = "device is busy";
-    command_outputs.at(command_umount(default_target)) = {error, 1};
 
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
@@ -269,19 +269,26 @@ TEST_F(QemuMountHandlerTest, stopFailNonforceThrows)
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
+
+    EXPECT_CALL(vm, ssh_exec(command_umount(default_target), false))
+        .WillOnce(Throw(mp::SSHExecFailure(error, 1)))
+        .WillRepeatedly(Return(""));
     MP_EXPECT_THROW_THAT(handler.deactivate(), std::runtime_error, mpt::match_what(StrEq(error)));
 }
 
 TEST_F(QemuMountHandlerTest, stopFailForceLogs)
 {
     auto error = "device is busy";
-    command_outputs.at(command_umount(default_target)) = {error, 1};
+
     std::string ssh_command_output;
     REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
     REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
-    EXPECT_NO_THROW(handler.activate(&server));
+    EXPECT_NO_THROW(handler.activate(&server)); // deactivated upon destruction
+
+    EXPECT_CALL(vm, ssh_exec(command_umount(default_target), false))
+        .WillOnce(Throw(mp::SSHExecFailure(error, 1)));
     EXPECT_CALL(*logger_scope.mock_logger, log).WillRepeatedly(Return());
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
