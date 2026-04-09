@@ -54,7 +54,7 @@ private:
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const override;
     void fetch_manifests(const bool force_update) override;
     void clear() override;
-    const CustomManifest* manifest_from(const std::string& remote_name) const;
+    const CustomManifest& manifest_from(const std::string& remote_name) const;
 
     const QString arch;
     std::pair<std::string, std::unique_ptr<CustomManifest>> manifest;

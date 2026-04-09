@@ -106,9 +106,9 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
     for (const auto& remote_name : remotes_to_search)
     {
-        auto* manifest = manifest_from(remote_name);
+        const auto& manifest = manifest_from(remote_name);
 
-        if (const auto* info = match_alias(key, *manifest); info)
+        if (const auto* info = match_alias(key, manifest); info)
         {
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
@@ -119,7 +119,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
         {
             std::unordered_set<std::string> found_hashes;
 
-            for (const auto& entry : manifest->products)
+            for (const auto& entry : manifest.products)
             {
                 if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
                     found_hashes.find(entry.id.toStdString()) == found_hashes.end())
@@ -155,9 +155,9 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for_impl(
     const bool allow_unsupported) const
 {
     std::vector<mp::VMImageInfo> images;
-    auto manifest = manifest_from(remote_name);
+    const auto& manifest = manifest_from(remote_name);
 
-    for (const auto& entry : manifest->products)
+    for (const auto& entry : manifest.products)
     {
         if (entry.supported || allow_unsupported)
         {
@@ -254,7 +254,7 @@ void mp::UbuntuVMImageHost::clear()
     manifests.clear();
 }
 
-const mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(
+const mp::SimpleStreamsManifest& mp::UbuntuVMImageHost::manifest_from(
     const std::string& remote) const
 {
     const auto it = std::find_if(
@@ -269,7 +269,7 @@ const mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(
                                              "mirror is enabled, please confirm it is valid.",
                                              remote));
 
-    return it->second.get();
+    return *it->second;
 }
 
 const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
