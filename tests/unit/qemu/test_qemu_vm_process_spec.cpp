@@ -21,7 +21,6 @@
 #include <multipass/snap_utils.h>
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QString>
 #include <QStringList>

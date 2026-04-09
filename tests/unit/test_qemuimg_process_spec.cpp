@@ -21,7 +21,6 @@
 
 #include <multipass/process/qemuimg_process_spec.h>
 
-#include <QCoreApplication>
 #include <QFile>
 #include <QTemporaryDir>
 
