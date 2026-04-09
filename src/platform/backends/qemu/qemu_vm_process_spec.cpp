@@ -194,7 +194,7 @@ profile %1 flags=(attach_disconnected) {
   /sys/module/vhost/parameters/max_mem_regions r,
 
   # binary and its libs
-  %4/bin/%5 ixr,
+  %5 ixr,
   %4/{,usr/}lib/{,@{multiarch}/}{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap
@@ -222,16 +222,16 @@ profile %1 flags=(attach_disconnected) {
         mount_dirs += QString::fromStdString(source_path) + "/** rwlk,\n  ";
     }
 
+    firmware = firmware_path() + "/*";
+
     try
     {
         root_dir = mpu::snap_dir();
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
-        firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
     }
     catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
-        firmware = firmware_path() + "/*";
     }
 
     return profile_template.arg(apparmor_profile_name(),
