@@ -74,9 +74,8 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapCorrect)
     mpt::SetEnvScope e("SNAP", snap_dir.path().toUtf8());
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image.toStdString());
-    fmt::print("{}", spec.apparmor_profile().toStdString());
-    EXPECT_TRUE(spec.apparmor_profile().contains(
-        QString("%1 ixr,").arg(QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img"))));
+
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 
@@ -90,8 +89,7 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithTargetCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image.toStdString(), target_image.toStdString());
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(
-        QString("%1 ixr,").arg(QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img"))));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
 }
@@ -106,8 +104,7 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithOnlyTargetCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, "", target_image.toStdString());
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(
-        QString("%1 ixr,").arg(QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img"))));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
 }
 
@@ -129,8 +126,7 @@ TEST(TestQemuImgProcessSpec,
     mpt::SetEnvScope e3("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image.toStdString());
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(
-        QString("%1 ixr,").arg(QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img"))));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
     EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
 }
 
@@ -143,6 +139,5 @@ TEST(TestQemuImgProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
     mp::QemuImgProcessSpec spec({}, "");
 
     EXPECT_TRUE(spec.apparmor_profile().contains("capability dac_read_search,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains(
-        QString("%1 ixr,").arg(QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img"))));
+    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
 }
