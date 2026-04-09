@@ -121,7 +121,7 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
 {
 }
 
-std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for_impl(const Query& query)
+std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for_impl(const Query& query) const
 {
     auto custom_manifest = manifest_from(query.remote_name);
 
@@ -134,7 +134,7 @@ std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for_impl(const Query&
 }
 
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for_impl(
-    const Query& query)
+    const Query& query) const
 {
     std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
@@ -146,7 +146,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for_impl(
     const std::string& remote_name,
-    const bool allow_unsupported)
+    const bool allow_unsupported) const
 {
     if (auto custom_manifest = manifest_from(remote_name))
         return custom_manifest->products;
@@ -154,12 +154,12 @@ std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for_impl(
     return {};
 }
 
-std::vector<std::string> mp::CustomVMImageHost::supported_remotes()
+std::vector<std::string> mp::CustomVMImageHost::supported_remotes() const
 {
     return {remote};
 }
 
-void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
+void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action) const
 {
     for (const auto& info : manifest.second->products)
     {
@@ -167,7 +167,7 @@ void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action)
     }
 }
 
-mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
+mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string& full_hash) const
 {
     for (const auto& product : manifest.second->products)
     {
@@ -199,7 +199,8 @@ void mp::CustomVMImageHost::clear()
     manifest = std::pair<std::string, std::unique_ptr<CustomManifest>>{};
 }
 
-mp::CustomManifest* mp::CustomVMImageHost::manifest_from(const std::string& remote_name)
+const mp::CustomManifest* mp::CustomVMImageHost::manifest_from(
+    const std::string& remote_name) const
 {
     if (remote_name != manifest.first)
         throw std::runtime_error(

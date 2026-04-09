@@ -68,7 +68,7 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(
 {
 }
 
-std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query& query)
+std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query& query) const
 {
     auto images = all_info_for_impl(query);
 
@@ -87,7 +87,7 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query&
 }
 
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for_impl(
-    const Query& query)
+    const Query& query) const
 {
     auto key = key_from(query.release);
 
@@ -134,7 +134,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
     return images;
 }
 
-mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
+mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string& full_hash) const
 {
     for (const auto& manifest : manifests)
     {
@@ -152,7 +152,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for_impl(
     const std::string& remote_name,
-    const bool allow_unsupported)
+    const bool allow_unsupported) const
 {
     std::vector<mp::VMImageInfo> images;
     auto manifest = manifest_from(remote_name);
@@ -172,7 +172,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for_impl(
     return images;
 }
 
-void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
+void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action) const
 {
     for (const auto& [remote_name, manifest] : manifests)
     {
@@ -183,7 +183,7 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
     }
 }
 
-std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
+std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes() const
 {
     std::vector<std::string> supported_remotes;
 
@@ -254,7 +254,8 @@ void mp::UbuntuVMImageHost::clear()
     manifests.clear();
 }
 
-mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::string& remote)
+const mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(
+    const std::string& remote) const
 {
     const auto it = std::find_if(
         manifests.cbegin(),
