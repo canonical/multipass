@@ -305,7 +305,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
 {
     mpt::MockProcess* vmproc = nullptr;
     process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+        if (process->program().contains("qemu-system-") &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -324,7 +324,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     machine->start();
     ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread{[&machine, vmproc] {
+    mp::AutoJoinThread thread{[&machine, &vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
         machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
     }};
