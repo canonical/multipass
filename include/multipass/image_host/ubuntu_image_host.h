@@ -50,7 +50,7 @@ private:
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const override;
     void fetch_manifests(const bool force_update) override;
     void clear() override;
-    const SimpleStreamsManifest* manifest_from(const std::string& remote) const;
+    const SimpleStreamsManifest& manifest_from(const std::string& remote) const;
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
