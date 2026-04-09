@@ -18,11 +18,10 @@ vcpkg_from_github(
     SHA512 f0220682d64a439227c685e849c63710bf346303606dcf9b2b770376f407219d789564b4814cacb31bee345ec8ecf497063c79a4af4d01ea5f1610aad7b731da
     HEAD_REF master
     PATCHES
-        multipass-patches/0001-add-disable-tests-option.patch
-        multipass-patches/0002-9p-uid-gid-mapping-support.patch
-        multipass-patches/0003-revert-old-highmem-off-behavior.patch
-        multipass-patches/0004-zero-initialize-vmnet-send-pos.patch
-        multipass-patches/0005-revert-fix-encodings-for-id-aa64pfr1-el1.patch
+        multipass-patches/0001-9p-uid-gid-mapping-support.patch
+        multipass-patches/0002-revert-old-highmem-off-behavior.patch
+        multipass-patches/0003-zero-initialize-vmnet-send-pos.patch
+        multipass-patches/0004-revert-fix-encodings-for-id-aa64pfr1-el1.patch
 )
 
 find_program(NINJA ninja REQUIRED)
@@ -66,6 +65,9 @@ endif()
 
 message(STATUS "FEATURES: ${FEATURES}")
 
+# Blank out tests/meson.build so nothing in tests/ gets built
+file(WRITE "${SOURCE_PATH}/tests/meson.build" "")
+
 # vcpkg_configure_make provides "clean" build environment for the configure process.
 # This way, configure won't use anything from the system accidentally.
 vcpkg_configure_make(
@@ -93,7 +95,6 @@ vcpkg_configure_make(
         "--disable-lzo"
         "--disable-vvfat"
         "--disable-curl"
-        "--disable-tests"
         "--disable-nettle"
         "--disable-libusb"
         "--disable-bzip2"
