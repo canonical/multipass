@@ -38,18 +38,19 @@ public:
     UbuntuVMImageHost(std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
                       URLDownloader* downloader);
 
-    std::vector<std::string> supported_remotes() override;
+    std::vector<std::string> supported_remotes() const override;
 
 private:
-    std::optional<VMImageInfo> info_for_impl(const Query& query) override;
-    std::vector<std::pair<std::string, VMImageInfo>> all_info_for_impl(const Query& query) override;
+    std::optional<VMImageInfo> info_for_impl(const Query& query) const override;
+    std::vector<std::pair<std::string, VMImageInfo>> all_info_for_impl(
+        const Query& query) const override;
     std::vector<VMImageInfo> all_images_for_impl(const std::string& remote_name,
-                                                 const bool allow_unsupported) override;
-    void for_each_entry_do_impl(const Action& action) override;
-    VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
+                                                 const bool allow_unsupported) const override;
+    void for_each_entry_do_impl(const Action& action) const override;
+    VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const override;
     void fetch_manifests(const bool force_update) override;
     void clear() override;
-    SimpleStreamsManifest* manifest_from(const std::string& remote);
+    const SimpleStreamsManifest* manifest_from(const std::string& remote) const;
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
