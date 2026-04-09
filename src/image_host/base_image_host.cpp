@@ -67,7 +67,7 @@ void mp::BaseVMImageHost::for_each_entry_do(const Action& action) const
 
 void mp::BaseVMImageHost::update_manifests(const bool force_update)
 {
-    std::unique_lock lock{manifest_mutex};
+    std::lock_guard lock{manifest_mutex};
     clear();
     fetch_manifests(force_update);
 }
