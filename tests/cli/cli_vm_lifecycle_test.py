@@ -21,6 +21,7 @@
 import pytest
 
 from cli.multipass import multipass, state, launch, random_vm_name, get_boot_id
+from cli.config import cfg
 
 
 @pytest.mark.lifecycle
