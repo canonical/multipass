@@ -1,7 +1,7 @@
 vcpkg_download_distfile(distfile
-    URLS https://www.libssh.org/files/0.11/libssh-${VERSION}.tar.xz
-    FILENAME libssh-${VERSION}.tar.xz
-    SHA512 0670bee29a7cf5507dba7dd82b82cd8a926b83a43cee441fa8a698be2523b16aacb392433f9e63887bd72e6eb817667f6ef986f292f335d1856759af4ede40c4
+    URLS https://gitlab.com/libssh/libssh-mirror/-/archive/libssh-${VERSION}/libssh-mirror-libssh-${VERSION}.tar.gz
+    FILENAME libssh-${VERSION}.tar.gz
+    SHA512 950975f9b936cde668be0e09c2fa01cb5f413e912e124eac1fbbddf53da5417b330cb450a62d5cec6cfa0e53e1414e03c762f1c2c96d17b716444478104ff54f
 )
 vcpkg_extract_source_archive(SOURCE_PATH
     ARCHIVE "${distfile}"
