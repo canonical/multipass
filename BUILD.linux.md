@@ -58,8 +58,8 @@ First, install Multipass's runtime dependencies. On AMD64 architecture, you can 
 ```
 sudo apt update
 sudo apt install libgl1 libpng16-16 libxml2 dnsmasq-base \
-    dnsmasq-utils qemu-utils libslang2 iproute2 iptables \
-    iputils-ping libatm1 libxtables12 xterm
+    dnsmasq-utils libslang2 iproute2 iptables iputils-ping \
+    libatm1 libxtables12 xterm
 ```
 
 On ARM64 architecture, you can do this by running:
@@ -67,23 +67,8 @@ On ARM64 architecture, you can do this by running:
 ```
 sudo apt update
 sudo apt install libgl1 libpng16-16 libxml2 dnsmasq-base \
-    dnsmasq-utils qemu-efi-aarch64 qemu-utils libslang2 \
-    iproute2 iptables iputils-ping libatm1 libxtables12 \
-    xterm
-```
-
-You will also need to install your CPU architecture's variant of `qemu-system`. For example, you will need
-
-```
-sudo apt install qemu-system-x86
-```
-
-on x86_64 machines.
-
-Additionally, on ARM64 architecture, there is an extra step to set up the `QEMU_EFI.fd` file:
-
-```
-sudo cp /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/qemu/QEMU_EFI.fd
+    dnsmasq-utils libslang2 iproute2 iptables iputils-ping \
+    libatm1 libxtables12 xterm
 ```
 
 Then run the Multipass daemon:
