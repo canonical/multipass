@@ -23,6 +23,8 @@
 #include <QStringList>
 #include <QTimer>
 
+#include <shared_mutex>
+
 namespace multipass
 {
 
@@ -44,6 +46,7 @@ protected:
     virtual void clear() = 0;
     virtual void fetch_manifests(const bool force_update) = 0;
 
+    mutable std::shared_mutex manifest_mutex;
     URLDownloader* const url_downloader;
 };
 

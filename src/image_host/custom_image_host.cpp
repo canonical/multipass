@@ -123,6 +123,7 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
 
 std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& query)
 {
+    std::shared_lock lock{manifest_mutex};
     auto custom_manifest = manifest_from(query.remote_name);
 
     auto it = custom_manifest->image_records.find(query.release);
@@ -136,6 +137,7 @@ std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for(const Query& quer
 std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for(
     const Query& query)
 {
+    std::shared_lock lock{manifest_mutex};
     std::vector<std::pair<std::string, mp::VMImageInfo>> images;
 
     if (auto image = info_for(query))
@@ -147,6 +149,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for(const std::string& remote_name,
                                                                    const bool allow_unsupported)
 {
+    std::shared_lock lock{manifest_mutex};
     if (auto custom_manifest = manifest_from(remote_name))
         return custom_manifest->products;
 

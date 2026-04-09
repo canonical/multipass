@@ -34,16 +34,19 @@ mp::BaseVMImageHost::BaseVMImageHost(URLDownloader* downloader) : url_downloader
 
 void mp::BaseVMImageHost::for_each_entry_do(const Action& action)
 {
+    std::shared_lock lock{manifest_mutex};
     for_each_entry_do_impl(action);
 }
 
 auto mp::BaseVMImageHost::info_for_full_hash(const std::string& full_hash) -> VMImageInfo
 {
+    std::shared_lock lock{manifest_mutex};
     return info_for_full_hash_impl(full_hash);
 }
 
 void mp::BaseVMImageHost::update_manifests(const bool force_update)
 {
+    std::unique_lock lock{manifest_mutex};
     clear();
     fetch_manifests(force_update);
 }
