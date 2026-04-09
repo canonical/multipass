@@ -27,7 +27,7 @@ target_compile_definitions(console_test PRIVATE
   -Dtcsetattr=ut_tcsetattr)
 
 target_compile_definitions(platform_test PRIVATE
-  -Dgetgrnam=ut_getgrnam
+  -Dgetgrnam=ut_premock_getgrnam
 )
 
 target_link_libraries(multipass_tests
