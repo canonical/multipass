@@ -151,6 +151,8 @@ endforeach()
 
 file(COPY "${CMAKE_CURRENT_LIST_DIR}/OVMF.fd" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
 file(COPY "${SOURCE_PATH}/pc-bios/kvmvapic.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+file(COPY "${SOURCE_PATH}/pc-bios/vgabios-stdvga.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+file(COPY "${SOURCE_PATH}/pc-bios/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
 
 # On aarch64, also provide the QEMU_EFI.fd alias
 if(QEMU_ARCH STREQUAL "aarch64")
