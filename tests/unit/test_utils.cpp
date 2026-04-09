@@ -467,6 +467,128 @@ TEST(Utils, uuidHasNoCurlyBrackets)
     EXPECT_FALSE(std::ranges::any_of(uuid, [](char c) { return c == '{' || c == '}'; }));
 }
 
+enum class UuidMode
+{
+    Random,
+    Seeded
+};
+
+class UtilsUuidTest : public ::testing::TestWithParam<UuidMode>
+{
+protected:
+    std::string make() const
+    {
+        return GetParam() == UuidMode::Seeded ? mp::utils::make_uuid("test-seed")
+                                              : mp::utils::make_uuid();
+    }
+};
+
+TEST_P(UtilsUuidTest, hasCorrectLength)
+{
+    EXPECT_EQ(make().size(), 36);
+}
+
+TEST_P(UtilsUuidTest, hasCorrectFormat)
+{
+    auto uuid = make();
+    EXPECT_EQ(uuid[8], '-');
+    EXPECT_EQ(uuid[13], '-');
+    EXPECT_EQ(uuid[18], '-');
+    EXPECT_EQ(uuid[23], '-');
+}
+
+TEST_P(UtilsUuidTest, containsOnlyValidChars)
+{
+    EXPECT_TRUE(std::ranges::all_of(make(), [](char c) { return std::isxdigit(c) || c == '-'; }));
+}
+
+TEST_P(UtilsUuidTest, hasNoCurlyBrackets)
+{
+    EXPECT_FALSE(std::ranges::any_of(make(), [](char c) { return c == '{' || c == '}'; }));
+}
+
+TEST_P(UtilsUuidTest, uuidIsLowercase)
+{
+    EXPECT_FALSE(std::ranges::any_of(make(), [](char c) { return std::isupper(c); }));
+}
+
+TEST_P(UtilsUuidTest, uuidHasCorrectSegmentLengths)
+{
+
+    auto uuid = make();
+    std::istringstream ss{uuid};
+    std::string segment;
+    std::vector<std::size_t> lengths;
+    while (std::getline(ss, segment, '-'))
+        lengths.push_back(segment.size());
+    EXPECT_EQ(lengths, (std::vector<std::size_t>{8, 4, 4, 4, 12}));
+}
+
+TEST_P(UtilsUuidTest, hasCorrectVariant)
+{
+    auto c = make()[19];
+    EXPECT_TRUE(c == '8' || c == '9' || c == 'a' || c == 'b');
+}
+
+INSTANTIATE_TEST_SUITE_P(Utils,
+                         UtilsUuidTest,
+                         ::testing::Values(UuidMode::Random, UuidMode::Seeded),
+                         [](const auto& info) {
+                             return info.param == UuidMode::Random ? "Random" : "Seeded";
+                         });
+
+TEST(Utils, uuidNoArgCallDiffers)
+{
+    const auto a = mpu::make_uuid(), b = mpu::make_uuid();
+    EXPECT_NE(a, b);
+}
+
+struct ExpectedUuid
+{
+    std::string seed;
+    std::string expected;
+};
+
+class UtilsUuidStabilityTest : public ::testing::TestWithParam<ExpectedUuid>
+{
+};
+
+TEST_P(UtilsUuidStabilityTest, matchesExpected)
+{
+    EXPECT_EQ(mp::utils::make_uuid(GetParam().seed), GetParam().expected);
+}
+
+static const auto kExpectedUuids = [] {
+    std::vector<ExpectedUuid> v;
+    v.push_back({"a", "0531103a-d8fc-3dd4-b972-d98e4750994e"});
+    v.push_back({"test-seed", "3fae61b3-c9cd-3864-ae38-42d76ba1c945"});
+    v.push_back({std::string(1024, 'x'), "f6632ff7-4921-3ae9-b5c3-f00a6405fbe0"});
+    v.push_back({"", "4ae71336-e44b-39bf-b9d2-752e234818a5"});
+    v.push_back({" ", "afd59108-0604-321a-a47f-566712b593c7"});
+    v.push_back({"émojis-🎉-and-ünïcödé", "5f9e7aa4-3969-3b38-85d6-15e2b8571a7e"});
+    v.push_back({std::string("\0\0\0", 3), "0e6bce68-99fa-3841-b790-24afbdf7db1d"});
+    v.push_back({"seed/with\\special!@#$%^&*()chars", "7afd6117-1ac8-3bc3-9cb5-3a4d61067dab"});
+    return v;
+}();
+
+static std::string stabilityTestName(const ::testing::TestParamInfo<ExpectedUuid>& info)
+{
+    static const char* names[] = {"SingleChar",
+                                  "Typical",
+                                  "Long",
+                                  "Empty",
+                                  "Whitespace",
+                                  "Unicode",
+                                  "EmbeddedNulls",
+                                  "SpecialChars"};
+    return names[info.index];
+}
+
+INSTANTIATE_TEST_SUITE_P(Utils,
+                         UtilsUuidStabilityTest,
+                         ::testing::ValuesIn(kExpectedUuids),
+                         stabilityTestName);
+
 TEST(Utils, contentsOfActuallyReadsContents)
 {
     mpt::TempDir temp_dir;
