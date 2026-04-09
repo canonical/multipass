@@ -34,8 +34,10 @@
 #include <QRegularExpression>
 #include <QStorageInfo>
 #include <QSysInfo>
-#include <QUuid>
 #include <QtGlobal>
+#include <boost/uuid.hpp>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 
 #include <algorithm>
 #include <array>
@@ -47,9 +49,6 @@
 #include <random>
 #include <regex>
 #include <sstream>
-
-#include <openssl/evp.h>
-#include <openssl/rand.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -366,11 +365,22 @@ QString mp::utils::get_multipass_storage()
     return QString::fromUtf8(qgetenv(mp::multipass_storage_env_var));
 }
 
-QString mp::utils::make_uuid(const std::optional<std::string>& seed)
+std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
 {
-    auto uuid =
-        seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
-    return uuid.toString(QUuid::WithoutBraces);
+    boost::uuids::uuid uuid{};
+
+    if (seed)
+    {
+        boost::uuids::name_generator_md5 gen(boost::uuids::nil_uuid());
+        uuid = gen(*seed);
+    }
+    else
+    {
+        thread_local boost::uuids::random_generator gen;
+        uuid = gen();
+    }
+
+    return boost::uuids::to_string(uuid);
 }
 
 std::string mp::utils::contents_of(const multipass::Path& file_path)
@@ -409,7 +419,7 @@ std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
     return bytes;
 }
 
-QString mp::Utils::make_uuid(const std::optional<std::string>& seed) const
+std::string mp::Utils::make_uuid(const std::optional<std::string>& seed) const
 {
     return mp::utils::make_uuid(seed);
 }

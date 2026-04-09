@@ -3,6 +3,7 @@
     "dependencies": [
         "boost-algorithm",
         "boost-json",
+        "boost-uuid",
         "grpc",
         "fmt",
         "scope-guard",

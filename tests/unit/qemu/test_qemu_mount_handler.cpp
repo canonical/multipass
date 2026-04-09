@@ -68,7 +68,7 @@ std::string command_get_existing_parent(const std::string& path)
 
 std::string tag_from_target(const std::string& target)
 {
-    return mp::utils::make_uuid(target).remove("-").left(30).prepend('m').toStdString();
+    return multipass::QemuMountHandler::make_tag(target);
 }
 
 std::string command_mount(const std::string& target)

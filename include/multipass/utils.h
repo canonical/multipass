@@ -152,7 +152,7 @@ std::string qenum_to_string(RegisteredQtEnum val);
 
 // other helpers
 QString get_multipass_storage();
-QString make_uuid(const std::optional<std::string>& seed = std::nullopt);
+std::string make_uuid(const std::optional<std::string>& seed = std::nullopt);
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout,
@@ -264,7 +264,7 @@ public:
 
     // various
     virtual std::vector<uint8_t> random_bytes(size_t len);
-    virtual QString make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
+    virtual std::string make_uuid(const std::optional<std::string>& seed = std::nullopt) const;
     virtual void sleep_for(const std::chrono::milliseconds& ms) const;
     virtual bool is_ipv4_valid(const std::string& ipv4) const;
 
