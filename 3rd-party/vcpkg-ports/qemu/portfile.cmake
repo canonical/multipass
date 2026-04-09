@@ -203,9 +203,6 @@ else()
     ###########################################################################
 
     find_program(NINJA ninja REQUIRED)
-    vcpkg_get_vcpkg_installed_python(PYTHON3 INTERPRETER)
-    get_filename_component(PYTHON3_DIR "${PYTHON3}" DIRECTORY)
-    vcpkg_add_to_path("${PYTHON3_DIR}")
 
     if(VCPKG_TARGET_IS_OSX)
         set(ACCEL_FLAG "--enable-hvf")
@@ -228,7 +225,6 @@ else()
         DISABLE_VERBOSE_FLAGS
         OPTIONS
             "--ninja=${NINJA}"
-            "--python=${PYTHON3}"
             "--target-list=${QEMU_TARGET_LIST}"
             ${ACCEL_FLAG}
             "--enable-virtfs"

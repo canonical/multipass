@@ -8,17 +8,17 @@ target_sources(multipass_tests
     ${CMAKE_CURRENT_LIST_DIR}/test_qemu_vmstate_process_spec.cpp
 )
 
-add_executable(qemu-img
+add_executable(mock-qemu-img
   mock_qemuimg.cpp)
 
-set_target_properties(qemu-img
+set_target_properties(mock-qemu-img
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
 add_dependencies(multipass_tests
-  qemu-img
+  mock-qemu-img
 )
 
 add_subdirectory(${MULTIPASS_PLATFORM})
