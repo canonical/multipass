@@ -285,7 +285,7 @@ TEST_F(QemuMountHandlerTest, stopFailForceLogs)
     REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
-    EXPECT_NO_THROW(handler.activate(&server)); // deactivated upon destruction
+    EXPECT_NO_THROW(handler.activate(&server));
 
     EXPECT_CALL(vm, ssh_exec(command_umount(default_target), false))
         .WillOnce(Throw(mp::SSHExecFailure(error, 1)));
@@ -296,6 +296,8 @@ TEST_F(QemuMountHandlerTest, stopFailForceLogs)
                     default_target,
                     vm.get_name(),
                     error));
+
+    EXPECT_NO_THROW(handler.deactivate(/*force=*/true));
 }
 
 TEST_F(QemuMountHandlerTest, targetDirectoryMissing)
