@@ -3567,12 +3567,18 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                 vm->wait_for_cloud_init(timeout);
             }
         }
-        catch (const mp::IntentionalShutdownException&)
+        catch (const mp::IntentionalShutdownException& e)
         {
-            mpl::log(mpl::Level::info,
-                     name,
-                     "Instance powered off intentionally during initialization");
-            return {}; // Success - intentional shutdown
+            if constexpr (std::is_same_v<Request, LaunchRequest>)
+            {
+                mpl::log(mpl::Level::info, name,
+                        "Instance powered off intentionally during initialization");
+                return {}; // Success - intentional shutdown
+            }
+            else
+            {
+                throw StartException(name, "Unexpected shutdown during start");
+            }    
         }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))

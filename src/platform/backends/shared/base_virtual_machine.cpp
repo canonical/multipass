@@ -316,12 +316,12 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
             try_to_ssh();
             return mpu::TimeoutAction::retry;
         }
-        catch (const SSHExecFailure& e) // transitioning away from catching generic runtime errors                         
-        {                                // TODO remove once we're confident this is an anomaly
+        catch (const SSHExecFailure& e)                          
+        {                                
             return mpu::TimeoutAction::retry;
         }
-        catch (const std::exception& e)
-        {
+        catch (const std::exception& e) // transitioning away from catching generic runtime errors
+        {                               // TODO remove once we're confident this is an anomaly
             mpl::log_message(mpl::Level::warning, vm_name, e.what());
             return mpu::TimeoutAction::retry;
         }
@@ -330,7 +330,6 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     auto on_timeout = [] {
         throw std::runtime_error("timed out waiting for initialization to complete");
     };
-
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
