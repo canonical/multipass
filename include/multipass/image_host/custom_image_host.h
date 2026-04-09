@@ -42,13 +42,13 @@ class CustomVMImageHost final : public BaseVMImageHost
 public:
     CustomVMImageHost(URLDownloader* downloader);
 
-    std::optional<VMImageInfo> info_for(const Query& query) override;
-    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) override;
-    std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
-                                            const bool allow_unsupported) override;
     std::vector<std::string> supported_remotes() override;
 
 private:
+    std::optional<VMImageInfo> info_for_impl(const Query& query) override;
+    std::vector<std::pair<std::string, VMImageInfo>> all_info_for_impl(const Query& query) override;
+    std::vector<VMImageInfo> all_images_for_impl(const std::string& remote_name,
+                                                 const bool allow_unsupported) override;
     void for_each_entry_do_impl(const Action& action) override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) override;
     void fetch_manifests(const bool force_update) override;

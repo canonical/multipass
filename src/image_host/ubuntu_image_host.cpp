@@ -68,9 +68,9 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(
 {
 }
 
-std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
+std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query& query)
 {
-    auto images = all_info_for(query);
+    auto images = all_info_for_impl(query);
 
     if (images.size() == 0)
         return std::nullopt;
@@ -86,10 +86,9 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& quer
     return images.front().second;
 }
 
-std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for(
+std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for_impl(
     const Query& query)
 {
-    std::shared_lock lock{manifest_mutex};
     auto key = key_from(query.release);
 
     std::vector<std::string> remotes_to_search;
@@ -151,10 +150,10 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     throw mp::ImageNotFoundException(full_hash);
 }
 
-std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name,
-                                                                   const bool allow_unsupported)
+std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for_impl(
+    const std::string& remote_name,
+    const bool allow_unsupported)
 {
-    std::shared_lock lock{manifest_mutex};
     std::vector<mp::VMImageInfo> images;
     auto manifest = manifest_from(remote_name);
 
