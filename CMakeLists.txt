@@ -344,6 +344,7 @@ if(cmake_build_type_lower MATCHES "coverage")
       COMMAND ${LCOV} --directory . --capture --output-file coverage.info ${LCOV_IGNORE_ERRORS}
       COMMAND ${LCOV}
         --remove coverage.info
+        --ignore-errors unused
         '/usr/*'
         ${CMAKE_SOURCE_DIR}'/3rd-party/*'
         ${CMAKE_SOURCE_DIR}'/tests/*'
