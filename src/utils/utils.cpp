@@ -34,7 +34,6 @@
 #include <QRegularExpression>
 #include <QStorageInfo>
 #include <QSysInfo>
-#include <QUuid>
 #include <QtGlobal>
 #include <boost/uuid.hpp>
 #include <openssl/evp.h>
