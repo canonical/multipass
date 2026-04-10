@@ -43,7 +43,7 @@ struct VirtualDiskInfo
 } // namespace multipass::hyperv::virtdisk
 
 /**
- * Formatter type specialization for CreateComputeSystemParameters
+ * Formatter type specialization for VirtualDiskInfo::size_info
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo::size_info, Char>
@@ -63,7 +63,7 @@ struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo::size_info, C
 };
 
 /**
- * Formatter type specialization for CreateComputeSystemParameters
+ * Formatter type specialization for virtdisk::VirtualDiskInfo
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::virtdisk::VirtualDiskInfo, Char>

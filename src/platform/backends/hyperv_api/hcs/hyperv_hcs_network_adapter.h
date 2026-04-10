@@ -33,13 +33,13 @@ struct HcsNetworkAdapter
 } // namespace multipass::hyperv::hcs
 
 /**
- * Formatter type specialization for HcnNetworkPolicy
+ * Formatter type specialization for HcsNetworkAdapter
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::hcs::HcsNetworkAdapter, Char>
     : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcs::HcsNetworkAdapter& policy, FormatContext& ctx) const
+    auto format(const multipass::hyperv::hcs::HcsNetworkAdapter& adapter, FormatContext& ctx) const
         -> FormatContext::iterator;
 };

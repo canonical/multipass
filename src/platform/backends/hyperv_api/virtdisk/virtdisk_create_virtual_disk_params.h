@@ -93,7 +93,7 @@ struct CreateVirtualDiskParameters
 } // namespace multipass::hyperv::virtdisk
 
 /**
- * Formatter type specialization for CreateComputeSystemParameters
+ * Formatter type specialization for CreateVirtualDiskParameters
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::virtdisk::CreateVirtualDiskParameters, Char>

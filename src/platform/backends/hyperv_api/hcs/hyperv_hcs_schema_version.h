@@ -60,7 +60,7 @@ struct SchemaUtils : public Singleton<SchemaUtils>
 } // namespace multipass::hyperv::hcs
 
 /**
- * Formatter type specialization for HcsRequest
+ * Formatter type specialization for HcsSchemaVersion
  */
 template <typename Char>
 struct fmt::formatter<multipass::hyperv::hcs::HcsSchemaVersion, Char>
