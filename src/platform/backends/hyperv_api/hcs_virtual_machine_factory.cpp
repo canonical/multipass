@@ -252,7 +252,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
 
     // Copy the VHDX file.
     const hyperv::virtdisk::CreateVirtualDiskParameters clone_vhdx_params{
-        .size_in_bytes = 0, // 512 MiB
+        .size_in_bytes = 0,
         .path = desc.image.image_path,
         .predecessor = virtdisk::SourcePathParameters{src_vm_vhdx}};
 

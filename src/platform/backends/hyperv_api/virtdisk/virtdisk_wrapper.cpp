@@ -465,13 +465,11 @@ std::optional<std::string> read_virtual_disk_info_type(const GET_VIRTUAL_DISK_IN
         return "vhd";
     case VIRTUAL_STORAGE_TYPE_DEVICE_VHDX:
         return "vhdx";
-        break;
     case VIRTUAL_STORAGE_TYPE_DEVICE_VHDSET:
         return "vhdset";
     default:
         return "unknown";
     }
-    return std::nullopt;
 }
 
 // ---------------------------------------------------------

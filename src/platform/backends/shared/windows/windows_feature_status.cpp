@@ -73,7 +73,7 @@ struct VariantGuard
     {
         VariantClear(&var);
     }
-    VARIANT* operator&()
+    VARIANT* get()
     {
         return &var;
     }
@@ -145,7 +145,7 @@ std::optional<WindowsFeatureState> get_windows_feature_state(std::wstring_view f
             return {};
 
         VariantGuard var;
-        if (FAILED(obj->Get(L"InstallState", 0, &var, nullptr, nullptr)))
+        if (FAILED(obj->Get(L"InstallState", 0, var.get(), nullptr, nullptr)))
             return {};
 
         return static_cast<WindowsFeatureState>(var.intVal());
