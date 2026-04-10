@@ -239,7 +239,9 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: >
         cmake --build . --target package
+
         echo "name=$( basename *.pkg )" >> $GITHUB_OUTPUT
+
         echo "path=$( greadlink -f *.pkg )" >> $GITHUB_OUTPUT
 
     - name: Get package logs
