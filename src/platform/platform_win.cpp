@@ -600,7 +600,10 @@ static const auto& ip_utils()
             const auto ip_hbo = ntohl(v4.S_un.S_addr);
             if (prefix_length > max_prefix_length)
             {
-                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
+                throw std::runtime_error{
+                    fmt::format("Given prefix length `{}` is larger than `{}`!",
+                                prefix_length,
+                                max_prefix_length)};
             }
             const auto mask = (prefix_length == 0) ? 0
                                                    : std::numeric_limits<std::uint32_t>::max()
