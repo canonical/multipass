@@ -123,7 +123,7 @@ QString mp::SnapshotSettingsHandler::get(const QString& key) const
     return QString::fromStdString(snapshot->get_comment());
 }
 
-void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
+mp::Qualified<void> mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 {
     auto [instance_name, snapshot_name, property] = parse_key(key);
     auto snapshot_name_stdstr = snapshot_name.toStdString();
@@ -134,7 +134,7 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
         if (snapshot_name == val)
         {
             find_snapshot(instance_name, snapshot_name_stdstr); // fail if it ain't there
-            return;
+            return {};
         }
 
         if (val_stdstr.empty() || !mp::utils::valid_hostname(val_stdstr))
@@ -148,6 +148,7 @@ void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
         auto snapshot = modify_snapshot(instance_name, snapshot_name_stdstr);
         snapshot->set_comment(val_stdstr);
     }
+    return {};
 }
 
 auto mp::SnapshotSettingsHandler::find_snapshot(const std::string& instance_name,

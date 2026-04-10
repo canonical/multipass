@@ -721,12 +721,13 @@ void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+mp::Qualified<void> mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
+    return {};
 }
 
 void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,

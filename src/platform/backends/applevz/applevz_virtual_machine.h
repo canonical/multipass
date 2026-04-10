@@ -54,7 +54,7 @@ public:
 
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
+    Qualified<void> resize_disk(const MemorySize& new_size) override;
 
 private:
     void initialize_vm_handle();

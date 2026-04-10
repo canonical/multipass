@@ -177,22 +177,20 @@ template <>
 class [[nodiscard("You must collect() or bind the returned MessageBag")]] Qualified<void>
 {
 public:
+    Qualified() = default;
     Qualified(MessageBag messages) : _messages{std::move(messages)}
     {
     }
-
     template <Qualifiable U>
     Qualified(Qualified<U>&& qualified_return)
     {
         _messages.merge(std::move(qualified_return._messages));
     }
-
     template <std::convertible_to<std::string>... Mesgs>
     Qualified(Mesgs&&... messages)
     {
         ((_messages.add_message(std::forward<Mesgs>(messages))), ...);
     }
-
     ~Qualified() = default;
 
     Qualified(const Qualified&) = delete;
