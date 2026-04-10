@@ -21,6 +21,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
+#include <multipass/reply_concepts.h>
 #include <multipass/terminal.h>
 
 #include <grpc++/grpc++.h>
@@ -28,6 +29,7 @@
 namespace multipass
 {
 template <typename Request, typename Reply>
+    requires LogReply<Reply>
 auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
     return [&spinner, &stream](const Reply& reply,
@@ -38,6 +40,7 @@ auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& strea
 }
 
 template <typename Request, typename Reply>
+    requires LogMsgReply<Reply>
 auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
     return [&spinner, &stream](const Reply& reply,
@@ -54,6 +57,7 @@ auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 }
 
 template <typename Request, typename Reply>
+    requires LogMsgReply<Reply> && requires(Reply reply) { reply.password_requested(); }
 auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
 {
     return [&spinner, &term](const Reply& reply,
@@ -77,6 +81,7 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
 }
 
 template <typename Request, typename Reply>
+    requires LogMsgReply<Reply> && requires(Reply reply) { reply.needs_authorization(); }
 auto make_confirmation_callback(Terminal& term, QString key)
 {
     return [key = std::move(key),
