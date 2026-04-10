@@ -575,7 +575,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
         // how much extra space is needed for storing the parent's path.
         // If the disk does not have a parent, the API would return ERROR_VHD_INVALID_TYPE instead.
         if (const auto r =
-                GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
+                API().GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
             r == ERROR_INSUFFICIENT_BUFFER)
         {
             // Reallocate the disk_info struct with the correct size, and also re-set
@@ -593,7 +593,8 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
             return OperationResult{E_FAIL, L"GetVirtualDiskInformation failed!"};
 
         // This is the real call to obtain the parent path.
-        const auto r = GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
+        const auto r =
+            API().GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
 
         if (r == ERROR_SUCCESS)
         {
