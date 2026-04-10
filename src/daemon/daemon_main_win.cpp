@@ -19,6 +19,7 @@
 #include "daemon.h"
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
+#include <multipass/ssh/libssh_scope_guard.h>
 
 #include <multipass/cli/client_common.h>
 #include <multipass/client_cert_store.h>
@@ -26,6 +27,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -202,6 +204,8 @@ try
     // Verify that the version of the library that we linked against is
     // compatible with the version of the headers we compiled against.
     GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+    multipass::LibsshScopeGuard libssh_guard;
 
     service_argv.assign(argv, argv + argc);
 
