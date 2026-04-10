@@ -121,7 +121,7 @@ jobs:
           needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
           needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
           needs.windows.result == 'failure' || needs.windows.result == 'cancelled' ||
-          needs.macos.result == 'failure' || needs.macos.result == 'cancelled' 
+          needs.macos.result == 'failure' || needs.macos.result == 'cancelled'
           }}
         run: exit 1
 
