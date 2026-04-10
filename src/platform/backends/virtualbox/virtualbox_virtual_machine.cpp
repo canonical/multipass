@@ -544,7 +544,7 @@ void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
         name);
 }
 
-void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
+mp::Qualified<void> mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
@@ -555,6 +555,7 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
                                  QString::number(new_size.in_bytes())},
                                 "Could not resize image: {}",
                                 name);
+    return {};
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,

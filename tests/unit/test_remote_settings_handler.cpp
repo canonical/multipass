@@ -134,7 +134,7 @@ TEST_F(RemoteSettingsTest, honorsVerbosityInSetRequest)
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"", mock_stub, &mock_term, verbosity};
-    handler.set("whatever", "works");
+    (void)handler.set("whatever", "works");
 }
 
 TEST_F(RemoteSettingsTest, keysEmptyByDefault)
@@ -285,7 +285,7 @@ TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 22};
-    handler.set(key, val);
+    (void)handler.set(key, val);
 }
 
 TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
@@ -293,7 +293,7 @@ TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
     constexpr auto prefix = "local.", key = "client.gui.something";
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
-    MP_EXPECT_THROW_THAT(handler.set(key, "val"),
+    MP_EXPECT_THROW_THAT((void)handler.set(key, "val"),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(key)));
 }
@@ -313,7 +313,7 @@ TEST_F(RemoteSettingsTest, setThrowsOnOtherErrorFromRemote)
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"a", mock_stub, &mock_term, 33};
-    MP_EXPECT_THROW_THAT(handler.set("a.ongajgsiffsgu", "dfoinig"),
+    MP_EXPECT_THROW_THAT((void)handler.set("a.ongajgsiffsgu", "dfoinig"),
                          mp::RemoteHandlerException,
                          Property(&mp::RemoteHandlerException::get_status,
                                   make_status_matcher(error_code, error_msg, error_details)));
