@@ -44,6 +44,8 @@
 #include <QThread>
 #include <QUrl>
 
+#include <future>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -126,6 +128,32 @@ struct RunningURLDownloader : public mp::URLDownloader
     {
         return {};
     }
+};
+
+struct BlockingURLDownloader : public mp::URLDownloader
+{
+    BlockingURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
+    {
+    }
+
+    void download_to(const QUrl&,
+                     const QString& file_name,
+                     int64_t,
+                     const int,
+                     const mp::ProgressMonitor&) override
+    {
+        started.set_value();
+        proceed.get_future().wait();
+        mpt::make_file_with_content(file_name, "");
+    }
+
+    QByteArray download(const QUrl&) override
+    {
+        return {};
+    }
+
+    std::promise<void> started;
+    std::promise<void> proceed;
 };
 
 struct ImageVault : public testing::Test
@@ -709,6 +737,41 @@ TEST_F(ImageVault, imageExistsNotExpired)
     vault.prune_expired_images();
 
     EXPECT_TRUE(QFileInfo::exists(file_name));
+}
+
+TEST_F(ImageVault, inProgressDownloadDirectoryNotPrunedDuringFetch)
+{
+    BlockingURLDownloader blocking_downloader;
+    mp::DefaultVMImageVault vault{hosts,
+                                  &blocking_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    auto fetch_future = std::async(std::launch::async, [&] {
+        vault.fetch_image(mp::FetchType::ImageOnly,
+                          default_query,
+                          stub_prepare,
+                          stub_monitor,
+                          std::nullopt,
+                          instance_dir);
+    });
+
+    // Wait for download to start
+    blocking_downloader.started.get_future().wait();
+
+    QDir images_dir{MP_UTILS.make_dir(cache_dir.path(), "vault/images")};
+    const auto entries = images_dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
+    ASSERT_EQ(entries.size(), 1);
+    const auto image_dir_path = entries.first().absoluteFilePath();
+
+    vault.prune_expired_images();
+
+    EXPECT_TRUE(QFileInfo::exists(image_dir_path));
+
+    // Release the downloader
+    blocking_downloader.proceed.set_value();
+    fetch_future.wait();
 }
 
 TEST_F(ImageVault, invalidImageDirIsRemoved)

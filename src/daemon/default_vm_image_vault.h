@@ -98,7 +98,7 @@ private:
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
     std::unordered_map<std::string, VaultRecord> instance_image_records;
-    std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
+    std::unordered_map<std::string, std::pair<QString, QFuture<VMImage>>> in_progress_image_fetches;
 };
 
 void tag_invoke(const boost::json::value_from_tag&,

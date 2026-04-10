@@ -311,7 +311,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                               prepare,
                               monitor));
 
-                in_progress_image_fetches[id] = future;
+                in_progress_image_fetches[id] = {image_dir, future};
             }
         }
         else
@@ -363,7 +363,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                               prepare,
                               monitor));
 
-                in_progress_image_fetches[id] = future;
+                in_progress_image_fetches[id] = {image_dir, future};
             }
         }
 
@@ -426,7 +426,12 @@ void mp::DefaultVMImageVault::prune_expired_images()
                          [&entry](const std::pair<std::string, VaultRecord>& record) {
                              return MP_PLATFORM.path_to_qstr(record.second.image.image_path)
                                  .contains(entry.absoluteFilePath());
-                         }) == prepared_image_records.cend())
+                         }) == prepared_image_records.cend() &&
+            !std::any_of(in_progress_image_fetches.cbegin(),
+                         in_progress_image_fetches.cend(),
+                         [&entry](const auto& fetch) {
+                             return fetch.second.first == entry.absoluteFilePath();
+                         }))
         {
             mpl::info(category,
                       "Source image {} is no longer valid. Removing it from the cache.",
@@ -662,7 +667,7 @@ std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(co
     auto it = in_progress_image_fetches.find(id);
     if (it != in_progress_image_fetches.end())
     {
-        return it->second;
+        return it->second.second;
     }
 
     return std::nullopt;
