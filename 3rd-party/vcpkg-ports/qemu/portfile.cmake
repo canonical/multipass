@@ -142,24 +142,18 @@ if(VCPKG_TARGET_IS_WINDOWS)
     to_msys_path("${BUILD_DIR}" BUILD_DIR_UNIX)
     list(JOIN QEMU_COMMON_OPTIONS " " COMMON_OPTIONS_STRING)
 
-    if(NOT EXISTS "${MSYS2_SETUP_STAMP}")
+     if(NOT EXISTS "${MSYS2_SETUP_STAMP}")
+        # Initial shell launch to let MSYS2 set up its environment
         vcpkg_execute_required_process(
-            COMMAND ${MINGW_SHELL} "pacman-key --init && pacman-key --populate msys2 && pacman -Sy --noconfirm"
+            COMMAND ${MINGW_SHELL} "true"
             WORKING_DIRECTORY "${MSYS2_DIR}"
-            LOGNAME msys2-sync-${TARGET_TRIPLET}
+            LOGNAME msys2-init-${TARGET_TRIPLET}
         )
         vcpkg_execute_required_process(
-            COMMAND ${MINGW_SHELL} "pacman -Rdd --noconfirm mingw-w64-x86_64-pkg-config || true"
-            WORKING_DIRECTORY "${MSYS2_DIR}"
-            LOGNAME msys2-remove-pkgconfig-${TARGET_TRIPLET}
-        )
-        vcpkg_execute_required_process(
-            COMMAND ${MINGW_SHELL} "pacman -S --noconfirm --needed --ask 4 ${MINGW_PACKAGES_STRING}"
+            COMMAND ${MINGW_SHELL} "pacman -Rdd --noconfirm mingw-w64-x86_64-pkg-config || true && pacman -Sy --noconfirm && pacman -S --noconfirm --needed ${MINGW_PACKAGES_STRING}"
             WORKING_DIRECTORY "${MSYS2_DIR}"
             LOGNAME msys2-packages-${TARGET_TRIPLET}
         )
-        # QEMU's mkvenv needs distlib and bundled wheels; MSYS2's Python ships
-        # with PEP 668 restrictions, so remove the marker and bootstrap pip.
         vcpkg_execute_required_process(
             COMMAND ${MINGW_SHELL} "${MINGW_ENV} && rm -f /mingw64/lib/python3.*/EXTERNALLY-MANAGED && python -m ensurepip && python -m pip install distlib '${SOURCE_PATH_UNIX}'/python/wheels/*.whl"
             WORKING_DIRECTORY "${MSYS2_DIR}"
