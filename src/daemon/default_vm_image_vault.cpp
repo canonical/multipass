@@ -550,16 +550,24 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
                                  " already exists in the image records");
     }
 
+    if (source_instance_name == destination_instance_name)
+    {
+        throw std::runtime_error{
+            "Destination instance name could not be the same with the source."};
+    }
+
     auto& dest_vault_record = instance_image_records[destination_instance_name] =
         instance_image_records[source_instance_name];
 
     // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
     // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
     // metadata.
-    auto image_path = dest_vault_record.image.image_path.string();
+    // The path might have mixed slashes \\ / in Windows. Normalize it before replace.
+    auto image_path = dest_vault_record.image.image_path.generic_string();
     boost::replace_all(image_path,
                        "instances/" + source_instance_name,
                        "instances/" + destination_instance_name);
+    assert(image_path != dest_vault_record.image.image_path);
     dest_vault_record.image.image_path = image_path;
 
     persist_instance_records();
