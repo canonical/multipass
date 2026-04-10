@@ -211,8 +211,7 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
     const auto state = fetch_state_from_api();
 
     mpl::debug(get_name(),
-               "HCSVirtualMachine::HCSVirtualMachine() > `{}`, created_from_scratch: {}, state: {}",
-               get_name(),
+               "HCSVirtualMachine() > created_from_scratch: {}, state: {}",
                created_from_scratch,
                state);
 
@@ -236,18 +235,14 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
     {
     case hcs::HcsEventType::SystemExited:
     {
-        mpl::info(vm->get_name(),
-                  "compute_system_event_callback() > {}:  SystemExited event received",
-                  vm->get_name());
+        mpl::info(vm->get_name(), "compute_system_event_callback() > SystemExited event received");
         vm->state = State::off;
         vm->handle_state_update();
     }
     break;
     case hcs::HcsEventType::Unknown:
     default:
-        mpl::warn(vm->get_name(),
-                  "compute_system_event_callback() > {}:  Unidentified event received",
-                  vm->get_name());
+        mpl::warn(vm->get_name(), "compute_system_event_callback() > Unidentified event received");
         break;
     }
 }
@@ -313,8 +308,7 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
         if (const auto r = HCS().grant_vm_access(get_name(), path); !r)
         {
             mpl::error(get_name(),
-                       "Could not grant access to VM `{}` for the path `{}`, error code: {}",
-                       get_name(),
+                       "Could not grant access for the path `{}`, error code: {}",
                        path,
                        r);
         }
@@ -331,9 +325,7 @@ void HCSVirtualMachine::set_compute_system_callback_handler()
                     this,
                     HCSVirtualMachine::compute_system_event_callback))
             {
-                mpl::warn(get_name(),
-                          "Could not set compute system callback for VM: `{}`!",
-                          get_name());
+                mpl::warn(get_name(), "Could not set compute system callback!");
             }
         });
     }
@@ -431,10 +423,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
 void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 {
-    mpl::debug(get_name(),
-               "set_state() -> VM `{}` HCS state `{}`",
-               get_name(),
-               compute_system_state);
+    mpl::debug(get_name(), "set_state() -> HCS state `{}`", compute_system_state);
 
     const auto prev_state = state;
     switch (compute_system_state)
@@ -460,22 +449,16 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
     if (state == prev_state)
         return;
 
-    mpl::info(get_name(),
-              "set_state() > VM {} state changed from {} to {}",
-              get_name(),
-              prev_state,
-              state);
+    mpl::info(get_name(), "set_state() > State changed from {} to {}", prev_state, state);
 }
 
 void HCSVirtualMachine::start()
 {
-    mpl::debug(get_name(), "start() -> Starting VM `{}`, current state {}", get_name(), state);
+    mpl::debug(get_name(), "start() -> Starting VM, current state {}", state);
 
     // Create the compute system, if not created yet.
     if (maybe_create_compute_system())
-        mpl::debug(get_name(),
-                   "start() -> VM `{}` was not present, created from scratch",
-                   get_name());
+        mpl::debug(get_name(), "start() -> VM was not present, created from scratch");
 
     const auto prev_state = state;
     state = VirtualMachine::State::starting;
@@ -489,17 +472,14 @@ void HCSVirtualMachine::start()
         {
         case hcs::ComputeSystemState::paused:
         {
-            mpl::debug(get_name(), "start() -> VM `{}` is in paused state, resuming", get_name());
+            mpl::debug(get_name(), "start() -> VM is in paused state, resuming");
             return HCS().resume_compute_system(hcs_system);
         }
         case hcs::ComputeSystemState::created:
             [[fallthrough]];
         default:
         {
-            mpl::debug(get_name(),
-                       "start() -> VM `{}` is in {} state, starting",
-                       get_name(),
-                       state);
+            mpl::debug(get_name(), "start() -> VM is in {} state, starting", state);
             return HCS().start_compute_system(hcs_system);
         }
         }
@@ -523,11 +503,11 @@ void HCSVirtualMachine::start()
         }
     }
 
-    mpl::debug(get_name(), "start() -> result `{}`", get_name(), result);
+    mpl::debug(get_name(), "start() -> result `{}`", result);
 }
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
-    mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", get_name(), state);
+    mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", state);
 
     try
     {
@@ -582,7 +562,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void HCSVirtualMachine::suspend()
 {
-    mpl::debug(get_name(), "suspend() -> Suspending VM `{}`, current state {}", get_name(), state);
+    mpl::debug(get_name(), "suspend() -> Suspending, current state {}", state);
     if (const auto pause_result = HCS().pause_compute_system(hcs_system))
     {
         // Pause succeeded. We can suspend to disk now
@@ -658,28 +638,19 @@ hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
 
 void HCSVirtualMachine::update_cpus(int num_cores)
 {
-    mpl::debug(get_name(),
-               "update_cpus() -> called for VM `{}`, num_cores `{}`",
-               get_name(),
-               num_cores);
+    mpl::debug(get_name(), "update_cpus() -> num_cores `{}`", num_cores);
     description.num_cores = num_cores;
 }
 
 void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
 {
-    mpl::debug(get_name(),
-               "resize_memory() -> called for VM `{}`, new_size `{}` MiB",
-               get_name(),
-               new_size.in_megabytes());
+    mpl::debug(get_name(), "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
     description.mem_size = new_size;
 }
 
 void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
 {
-    mpl::debug(get_name(),
-               "resize_disk() -> called for VM `{}`, new_size `{}` MiB",
-               get_name(),
-               new_size.in_megabytes());
+    mpl::debug(get_name(), "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
 
     if (const auto result =
             VirtDisk().resize_virtual_disk(description.image.image_path, new_size.in_bytes());
@@ -695,10 +666,9 @@ void HCSVirtualMachine::add_network_interface(int index,
                                               const NetworkInterface& extra_interface)
 {
     mpl::debug(get_name(),
-               "add_network_interface() -> called for VM `{}`, index: {}, default_mac: {}, "
+               "add_network_interface() -> index: {}, default_mac: {}, "
                "extra_interface: (mac: {}, "
                "mac_address: {}, id: {})",
-               get_name(),
                index,
                default_mac_addr,
                extra_interface.mac_address,
@@ -716,10 +686,7 @@ void HCSVirtualMachine::add_network_interface(int index,
 std::unique_ptr<MountHandler>
 HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VMMount& mount)
 {
-    mpl::debug(get_name(),
-               "make_native_mount_handler() -> called for VM `{}`, target: {}",
-               get_name(),
-               target);
+    mpl::debug(get_name(), "make_native_mount_handler() -> target: {}", target);
 
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
