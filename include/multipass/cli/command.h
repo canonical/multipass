@@ -84,8 +84,8 @@ protected:
         auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1);
 
         grpc::ClientContext context;
-        std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client =
-            rpc_method(&context);
+        std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client = rpc_method(
+            &context);
 
         client->Write(request);
 
@@ -156,6 +156,13 @@ protected:
                 if (!reply.log_line().empty())
                 {
                     cerr << reply.log_line();
+                }
+                if constexpr (requires { reply.reply_message(); })
+                {
+                    if (!reply.reply_message().empty())
+                    {
+                        cout << reply.reply_message();
+                    }
                 }
             });
     }
