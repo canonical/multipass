@@ -1,4 +1,4 @@
-name: WindowsMacOS
+name: MacOS
 
 on:
   workflow_call:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-macos-${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  group: macos-${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -38,13 +38,6 @@ jobs:
         script: |
           const matrix = { include: [] };
 
-          // Windows targets
-          matrix.include.push({
-              "name": "Windows Server 2025",
-              "runs-on": "windows-2025"
-          });
-
-          // macOS targets
           matrix.include.push({
             "name": "macOS Latest (Apple Silicon)",
             "runs-on": "macos-latest"
@@ -75,7 +68,6 @@ jobs:
       mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
-      windows-pkg-url: ${{ steps.publish-data.outputs.windows-2025-s3-url }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -101,20 +93,11 @@ jobs:
       with:
         xcode-version: '16.2'
 
-    - name: Enable symlinks
-      if: ${{ runner.os == 'Windows' }}
-      run: git config --local core.symlinks true
-
-    - name: Disable auto CRLF on Windows
-      if: ${{ runner.os == 'Windows' }}
-      run: git config --local core.autocrlf false
-
     - name: Determine build parameters
       id: build-params
       uses: ./.github/actions/build-params
 
     - name: Set preferred tar
-      if: ${{ runner.os == 'macOS' }}
       id: preferred-tar
       run: |
         # Prepend gnu-tar's (future) location to the path, to prioritize it over system tar
@@ -123,13 +106,11 @@ jobs:
 
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
-      if: ${{ runner.os == 'macOS' }}
       run: |
         mkdir -p ~/.pip
         echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
 
     - name: Install dependencies from brew
-      if: ${{ runner.os == 'macOS' }}
       run: |
         # Avoid reinstalling cmake
         brew list cmake > /dev/null || brew install cmake
@@ -158,21 +139,8 @@ jobs:
         brew link --overwrite nuget
 
     - name: Install dependencies from pip
-      if: ${{ runner.os == 'macOS' }}
       run: |
         python3 -m pip install --user --upgrade distlib
-
-    - name: Install specific QEMU from Choco
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v4
-      with:
-        args: install --yes qemu --version=2023.4.24
-
-    - name: Install other packages from Choco
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v4
-      with:
-        args: install --yes wget unzip
 
     - name: Set up vcpkg
       id: setup-vcpkg
@@ -192,13 +160,12 @@ jobs:
         NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
         MONO_WRAPPER=""
 
-        if [[ "$RUNNER_OS" == "macOS" ]]; then
-            # Check if we actually need to call NuGet through mono.
-            # That would be the case if NuGet is the real PE32 executable
-            # instead of a shim.
-            if file "$NUGET_PATH" | grep -q "PE32"; then
-                MONO_WRAPPER="mono"
-            fi
+
+        # Check if we actually need to call NuGet through mono.
+        # That would be the case if NuGet is the real PE32 executable
+        # instead of a shim.
+        if file "$NUGET_PATH" | grep -q "PE32"; then
+            MONO_WRAPPER="mono"
         fi
 
         $MONO_WRAPPER "$NUGET_PATH" \
@@ -248,20 +215,6 @@ jobs:
       with:
         version: "v0.12.0"
 
-    - name: Install Windows ADK
-      if: ${{ runner.os == 'Windows' }}
-      uses: crazy-max/ghaction-chocolatey@v4
-      with:
-        args: install --yes windows-adk-deploy
-
-    - name: Install cmake
-      if: ${{ runner.os == 'Windows' }}
-      uses: lukka/get-cmake@v4.3.0
-
-    - name: Set up MSVC
-      if: ${{ runner.os == 'Windows' }}
-      uses: ilammy/msvc-dev-cmd@v1
-
     - name: Configure
       run: >
         cmake
@@ -270,7 +223,6 @@ jobs:
         -GNinja
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
-        ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ github.event_name == 'schedule' && '-DMP_ALLOW_OPTIONAL_FEATURES=OFF' || '' }}
         ${{ github.workspace }}
 
@@ -287,20 +239,12 @@ jobs:
       working-directory: ${{ env.BUILD_DIR }}
       run: >
         cmake --build . --target package
-
-        echo "name=$( ${{ runner.os != 'Windows' && 'basename *.pkg' ||
-        '( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name' }} ) " >>
-        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
-
-        echo "path=$( ${{ runner.os != 'Windows' && 'greadlink -f *.pkg' ||
-        '( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName' }} )" >>
-        ${{ runner.os != 'Windows' && '$GITHUB_OUTPUT' || '$env:GITHUB_OUTPUT' }}
+        echo "name=$( basename *.pkg )" >> $GITHUB_OUTPUT
+        echo "path=$( greadlink -f *.pkg )" >> $GITHUB_OUTPUT
 
     - name: Get package logs
       if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
-      run: >
-        ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR,
-        runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
+      run: cat ${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/productbuild/InstallOutput.log
 
     - name: Upload package
       uses: actions/upload-artifact@v7
@@ -366,7 +310,6 @@ jobs:
 
       # TODO: find a friendlier approach for installing pip packages on GitHub runners
     - name: Force pip to allow break-system-packages via pip.conf
-      if: ${{ runner.os == 'macOS' }}
       run: |
         mkdir -p ~/.pip
         echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
@@ -436,13 +379,10 @@ jobs:
       actions: read
       checks:  write
     secrets: inherit
-    needs:
-      - BuildAndTest
-      - CombineAndPublishMacOSPackage
+    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
     uses: ./.github/workflows/cli-tests.yml
     with:
       macos-pkg-url: ${{ needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url }}
-      windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
 
   DeleteSeparateMacPackages:
     if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
@@ -474,6 +414,6 @@ jobs:
         MATTERMOST_CHANNEL: multipass
         TEXT: |
           :red_circle: @mp
-          Scheduled [WindowsMacOS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+          Scheduled [MacOS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
         MATTERMOST_USERNAME: ${{ github.triggering_actor }}
         MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
