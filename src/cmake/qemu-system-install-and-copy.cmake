@@ -51,4 +51,3 @@ install(DIRECTORY "${QEMU_FIRMWARE_DIR}/"
     DESTINATION Resources/qemu
     COMPONENT multipassd
 )
-
