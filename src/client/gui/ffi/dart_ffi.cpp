@@ -180,7 +180,7 @@ enum SettingResult set_setting(char* key, char* value, char** output)
     try
     {
         std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
-        MP_SETTINGS.set(key_string, value_string);
+        (void)MP_SETTINGS.set(key_string, value_string);
         *output = nullptr;
         return SettingResult::Ok;
     }

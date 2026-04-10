@@ -129,13 +129,14 @@ auto mp::PersistentSettingsHandler::get_setting(const QString& key) const -> con
     }
 }
 
-void mp::PersistentSettingsHandler::set(const QString& key, const QString& val)
+mp::Qualified<void> mp::PersistentSettingsHandler::set(const QString& key, const QString& val)
 {
     auto interpreted = get_setting(key).interpret(
         val); // check both key and value validity, convert as appropriate
 
     auto settings_file = persistent_settings(filename);
     checked_set(*settings_file, key, interpreted, mutex);
+    return {};
 }
 
 std::set<QString> mp::PersistentSettingsHandler::keys() const

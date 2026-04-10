@@ -292,12 +292,13 @@ void AppleVZVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-void AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
+multipass::Qualified<void> AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
     MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
+    return {};
 }
 
 void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
