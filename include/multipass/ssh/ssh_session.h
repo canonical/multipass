@@ -46,9 +46,8 @@ public:
 
     ~SSHSession();
 
-    SSHProcess exec(const std::string& cmd,
-                    bool whisper = false); /* locks the session until the process is destroyed
-                                              or exit_code is called! */
+    // locks the session until the process is destroyed or exit_code is called!
+    SSHProcess exec(const std::string& cmd, bool whisper = false);
     [[nodiscard]] bool is_connected() const;
 
     operator ssh_session(); // careful, not thread safe
