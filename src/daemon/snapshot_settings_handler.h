@@ -39,7 +39,7 @@ public:
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
-    void set(const QString& key, const QString& val) override;
+    Qualified<void> set(const QString& key, const QString& val) override;
 
 private:
     std::shared_ptr<const Snapshot> find_snapshot(const std::string& instance_name,

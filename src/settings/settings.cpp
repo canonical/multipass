@@ -89,16 +89,17 @@ QString mp::Settings::get(const QString& key) const
     throw UnrecognizedSettingException{key};
 }
 
-void mp::Settings::set(const QString& key, const QString& val)
+mp::Qualified<void> mp::Settings::set(const QString& key, const QString& val)
 {
     auto success = false;
+    MessageBag bag{};
     for (const auto& handler : handlers)
     {
         try
         {
             assert(handler && "can't have null settings handler"); // TODO use a `not_null` type
                                                                    // (e.g. gsl::not_null)
-            handler->set(key, val);
+            handler->set(key, val).collect(bag);
             success = true; // don't return yet, give all handlers a chance to react
         }
         catch (const UnrecognizedSettingException&)
@@ -109,4 +110,5 @@ void mp::Settings::set(const QString& key, const QString& val)
 
     if (!success)
         throw UnrecognizedSettingException{key};
+    return {std::move(bag)};
 }
