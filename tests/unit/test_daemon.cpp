@@ -1922,6 +1922,7 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
     auto thrower = [](const auto& e) { throw e; };
     EXPECT_CALL(mock_settings, set).WillOnce(WithoutArgs([&thrower, e = &exception] {
         std::visit(thrower, *e);
+        return mp::Qualified<void>{};
     })); /*
 lambda capture with initializer works around forbidden capture of structured binding */
 
@@ -1974,7 +1975,9 @@ TEST_F(Daemon, setWorksIfUserAuthorizes)
 
     const auto& exception = mp::NonAuthorizedBridgeSettingsException{"reason", "instance", "eth8"};
 
-    EXPECT_CALL(mock_settings, set).WillOnce(Throw(exception)).WillOnce(Return());
+    EXPECT_CALL(mock_settings, set)
+        .WillOnce(Throw(exception))
+        .WillOnce(Return(mp::Qualified<void>{}));
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
 

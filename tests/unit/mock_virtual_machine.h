@@ -93,7 +93,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, handle_state_update, (), (override));
     MOCK_METHOD(void, update_cpus, (int), (override));
     MOCK_METHOD(void, resize_memory, (const MemorySize&), (override));
-    MOCK_METHOD(void, resize_disk, (const MemorySize&), (override));
+    MOCK_METHOD(Qualified<void>, resize_disk, (const MemorySize&), (override));
     MOCK_METHOD(void,
                 add_network_interface,
                 (int, const std::string&, const NetworkInterface&),

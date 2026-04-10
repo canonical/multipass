@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/disabled_copy_move.h>
+#include <multipass/qualified_return_value.h>
 
 #include <QString>
 
@@ -61,7 +62,7 @@ public:
      * @c key, according to this SettingHandler's interpretation.
      * @note Descendents are free to throw other exceptions as well.
      */
-    virtual void set(const QString& key, const QString& val) = 0;
+    virtual Qualified<void> set(const QString& key, const QString& val) = 0;
 };
 
 } // namespace multipass

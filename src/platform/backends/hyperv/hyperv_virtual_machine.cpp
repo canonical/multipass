@@ -492,7 +492,7 @@ void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
     power_shell->easy_run(resize_cmd, "Could not resize memory");
 }
 
-void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
+mp::Qualified<void> mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
@@ -502,6 +502,7 @@ void mp::HyperVVirtualMachine::resize_disk(const MemorySize& new_size)
     QStringList resize_cmd = {"Get-VM", "-VMName", name, "|", "Select-Object", "VMId", "|", "Get-VHD", "|",
                               "Resize-VHD", "-SizeBytes", QString::number(new_size.in_bytes())}; // clang-format on
     power_shell->easy_run(resize_cmd, "Could not resize disk");
+    return {};
 }
 
 void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this backend */,

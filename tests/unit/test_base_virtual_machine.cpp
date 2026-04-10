@@ -197,8 +197,9 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    void resize_disk(const mp::MemorySize&) override
+    mp::Qualified<void> resize_disk(const mp::MemorySize&) override
     {
+        return {};
     }
 
     std::unique_ptr<mpt::TempDir> tmp_dir;
