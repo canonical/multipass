@@ -83,8 +83,8 @@ if(VCPKG_TARGET_IS_WINDOWS)
     #
     # NOTE: MinGW packages are fetched via pacman and are not version-pinned.
     # Builds are not fully hermetic on Windows. The MSYS2 base tarball is
-    # pinned to limit variance. pacman -S and -Sy require network access,
-    # which is atypical for vcpkg ports.
+    # pinned to limit variance. pacman requires network access, which is
+    # atypical for vcpkg ports.
     ###########################################################################
 
     if(NOT VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
@@ -108,6 +108,14 @@ if(VCPKG_TARGET_IS_WINDOWS)
     set(MINGW_SHELL "${MSYS2_BASH}" -lc)
     set(MINGW_ENV "export MSYSTEM=MINGW64 && source /etc/profile")
     set(MSYS2_SETUP_STAMP "${MSYS2_DIR}/.qemu-vcpkg-setup-complete")
+
+    macro(msys2_exec COMMAND_STRING LOGNAME_SUFFIX)
+        vcpkg_execute_required_process(
+            COMMAND ${MINGW_SHELL} "${COMMAND_STRING}"
+            WORKING_DIRECTORY "${MSYS2_DIR}"
+            LOGNAME ${LOGNAME_SUFFIX}-${TARGET_TRIPLET}
+        )
+    endmacro()
 
     vcpkg_download_distfile(MSYS2_ARCHIVE
         URLS "https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-base-x86_64-20250221.tar.zst"
@@ -140,48 +148,17 @@ if(VCPKG_TARGET_IS_WINDOWS)
     set(BUILD_DIR "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel")
     file(MAKE_DIRECTORY "${BUILD_DIR}")
     to_msys_path("${BUILD_DIR}" BUILD_DIR_UNIX)
-    list(JOIN QEMU_COMMON_OPTIONS " " COMMON_OPTIONS_STRING)
 
-     if(NOT EXISTS "${MSYS2_SETUP_STAMP}")
-        # Initial shell launch to let MSYS2 set up its environment
-        vcpkg_execute_required_process(
-            COMMAND ${MINGW_SHELL} "true"
-            WORKING_DIRECTORY "${MSYS2_DIR}"
-            LOGNAME msys2-init-${TARGET_TRIPLET}
-        )
-        vcpkg_execute_required_process(
-            COMMAND ${MINGW_SHELL} "pacman -Rdd --noconfirm mingw-w64-x86_64-pkg-config || true && pacman -Sy --noconfirm && pacman -S --noconfirm --needed ${MINGW_PACKAGES_STRING}"
-            WORKING_DIRECTORY "${MSYS2_DIR}"
-            LOGNAME msys2-packages-${TARGET_TRIPLET}
-        )
-        vcpkg_execute_required_process(
-            COMMAND ${MINGW_SHELL} "${MINGW_ENV} && rm -f /mingw64/lib/python3.*/EXTERNALLY-MANAGED && python -m ensurepip && python -m pip install distlib '${SOURCE_PATH_UNIX}'/python/wheels/*.whl"
-            WORKING_DIRECTORY "${MSYS2_DIR}"
-            LOGNAME msys2-python-deps-${TARGET_TRIPLET}
-        )
+    if(NOT EXISTS "${MSYS2_SETUP_STAMP}")
+        msys2_exec("true" msys2-init)
+        msys2_exec("pacman -Rdd --noconfirm mingw-w64-x86_64-pkg-config || true && pacman -Sy --noconfirm && pacman -S --noconfirm --needed ${MINGW_PACKAGES_STRING}" msys2-packages)
+        msys2_exec("${MINGW_ENV} && rm -f /mingw64/lib/python3.*/EXTERNALLY-MANAGED && python -m ensurepip && python -m pip install distlib '${SOURCE_PATH_UNIX}'/python/wheels/*.whl" msys2-python-deps)
         file(TOUCH "${MSYS2_SETUP_STAMP}")
     endif()
 
-    # Configure
-    vcpkg_execute_required_process(
-        COMMAND ${MINGW_SHELL} "${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && '${SOURCE_PATH_UNIX}/configure' --static --enable-tools --target-list='${QEMU_TARGET_LIST}' --prefix='${INSTALL_PREFIX_UNIX}' --extra-cflags='-UNDEBUG' --extra-ldflags='-liconv' ${COMMON_OPTIONS_STRING}"
-        WORKING_DIRECTORY "${BUILD_DIR}"
-        LOGNAME configure-${TARGET_TRIPLET}
-    )
-
-    # Build
-    vcpkg_execute_required_process(
-        COMMAND ${MINGW_SHELL} "${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && ninja -j${VCPKG_CONCURRENCY}"
-        WORKING_DIRECTORY "${BUILD_DIR}"
-        LOGNAME build-${TARGET_TRIPLET}
-    )
-
-    # Install
-    vcpkg_execute_required_process(
-        COMMAND ${MINGW_SHELL} "${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && ninja install"
-        WORKING_DIRECTORY "${BUILD_DIR}"
-        LOGNAME install-${TARGET_TRIPLET}
-    )
+    msys2_exec("${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && '${SOURCE_PATH_UNIX}/configure' --static --enable-tools --target-list='${QEMU_TARGET_LIST}' --prefix='${INSTALL_PREFIX_UNIX}' --extra-cflags='-UNDEBUG' --extra-ldflags='-liconv'" configure)
+    msys2_exec("${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && ninja -j${VCPKG_CONCURRENCY}" build)
+    msys2_exec("${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && ninja install" install)
 
     # ninja install puts binaries in the prefix root; move to bin/
     file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/bin")
