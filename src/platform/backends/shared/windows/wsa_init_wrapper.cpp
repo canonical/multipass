@@ -30,7 +30,8 @@ namespace multipass
 {
 
 wsa_init_wrapper::wsa_init_wrapper()
-    : wsa_data(new ::WSAData()), wsa_init_result(::WSAStartup(MAKEWORD(2, 2), wsa_data))
+    : wsa_data(std::make_unique<::WSAData>()),
+      wsa_init_result(::WSAStartup(MAKEWORD(2, 2), wsa_data.get()))
 {
     constexpr auto category = "wsa-init-wrapper";
     mpl::debug(category, " initialized WSA, status `{}`", wsa_init_result);
@@ -55,6 +56,5 @@ wsa_init_wrapper::~wsa_init_wrapper()
     {
         WSACleanup();
     }
-    delete wsa_data;
 }
 } // namespace multipass

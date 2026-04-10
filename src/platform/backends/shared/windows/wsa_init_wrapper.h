@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <memory>
+
 /**
  * fwdecl for the Windows Sockets info struct
  */
@@ -41,7 +43,7 @@ struct wsa_init_wrapper
     }
 
 private:
-    WSAData* wsa_data{nullptr};
+    std::unique_ptr<WSAData> wsa_data{nullptr};
     const int wsa_init_result{-1};
 };
 } // namespace multipass
