@@ -113,13 +113,7 @@ OperationResult wait_for_operation_result(
                fmt::ptr(op.get()),
                hresult_code);
 
-    const auto result = OperationResult{hresult_code, result_msg ? result_msg.get() : L""};
-    // FIXME: Replace with unicode logging
-    fmt::print(L"{}{}{}",
-               result.status_msg.empty() ? L"" : L"Result document: ",
-               result.status_msg,
-               result.status_msg.empty() ? L"" : L"\n");
-    return result;
+    return OperationResult{hresult_code, result_msg ? result_msg.get() : L""};
 }
 
 // ---------------------------------------------------------
