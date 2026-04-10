@@ -435,7 +435,8 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
-  DispatchCLITestsWorkflow:
+  DispatchCLITestsWorkflowWin:
+    name: "Dispatch CLI Tests (Windows)"
     permissions:
       contents: read
       actions: read
@@ -443,11 +444,23 @@ jobs:
     secrets: inherit
     needs:
       - BuildAndTest
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
+      backend-driver: hyperv_api
+
+  DispatchCLITestsWorkflowMac:
+    name: "Dispatch CLI Tests (macOS)"
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
       - CombineAndPublishMacOSPackage
     uses: ./.github/workflows/cli-tests.yml
     with:
       macos-pkg-url: ${{ needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url }}
-      windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
 
   DeleteSeparateMacPackages:
     if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
