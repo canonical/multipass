@@ -104,7 +104,7 @@ auto resolve_ip_addresses(const std::string& hostname)
     if (result == 0)
     {
         assert(addr_info.get());
-        for (auto ptr = addr_info.get(); ptr != nullptr; ptr = addr_info->ai_next)
+        for (auto ptr = addr_info.get(); ptr != nullptr; ptr = ptr->ai_next)
         {
             switch (ptr->ai_family)
             {
