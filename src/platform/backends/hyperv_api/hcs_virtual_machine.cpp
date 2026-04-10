@@ -709,7 +709,7 @@ void HCSVirtualMachine::add_network_interface(int index,
     {
         // No need to do it for stopped machines
         mpl::info(get_name(),
-                  "add_network_interface() -> Skipping hot-plug, VM is in a stopped state.");
+                  "add_network_interface() -> Skipping hot-plug, VM is in a non-stopped state.");
         return;
     }
 }
