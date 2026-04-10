@@ -19,7 +19,6 @@
 #include "daemon.h"
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
-#include <multipass/ssh/libssh_scope_guard.h>
 
 #include <multipass/cli/client_common.h>
 #include <multipass/client_cert_store.h>
