@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <multipass.grpc.pb.h>
+
 #include <concepts>
 #include <iterator>
 #include <string>
@@ -234,6 +236,18 @@ private:
 
     MessageBag _messages;
 };
+
+template <typename Reply, typename Request>
+void send_messages(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                   MessageBag&& message_bag)
+{
+    auto reply = SetReply{};
+    for (const auto& message : message_bag)
+    {
+        reply.set_log_line(message);
+        server->Write(reply);
+    }
+}
 } // namespace multipass
 
 namespace std
