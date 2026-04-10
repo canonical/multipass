@@ -33,6 +33,8 @@
 
 #include <Foundation/Foundation.h>
 
+#include <scope_guard.hpp>
+
 #include <algorithm>
 #include <array>
 #include <filesystem>
@@ -115,23 +117,20 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path, 
     // NO-OP if already RAW
     auto raw_path = mp::backend::convert(source_path, "raw");
 
-    auto asif_path = std::filesystem::path(source_path).replace_extension("asif");
-
-    try
-    {
-        create_asif_from(raw_path, asif_path);
-    }
-    catch (...)
-    {
-        if (destructive)
-            QFile::remove(raw_path);
-        QFile::remove(asif_path);
-        throw;
-    }
-
     // This is often an intermediate file so we remove it, unless it came from an existing VM
-    if (destructive)
-        QFile::remove(raw_path);
+    auto intermediate_cleanup =
+        sg::make_scope_guard([intermediate = (raw_path != source_path), raw_path]() noexcept {
+            if (intermediate)
+                QFile::remove(raw_path);
+        });
+
+    auto asif_path = std::filesystem::path(source_path).replace_extension("asif");
+    auto asif_file_cleanup =
+        sg::make_scope_guard([&asif_path]() noexcept { QFile::remove(asif_path); });
+
+    create_asif_from(raw_path, asif_path);
+    asif_file_cleanup.dismiss();
+
     return asif_path;
 }
 } // namespace
