@@ -202,7 +202,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
                 constexpr auto expected_name = "Multipass vSwitch (bbaa)";
                 EXPECT_EQ(params.name, expected_name);
                 EXPECT_EQ(params.type, mhv::hcn::HcnNetworkType::Transparent());
-                EXPECT_EQ(params.guid, multipass::utils::make_uuid(expected_name).toStdString());
+                EXPECT_EQ(params.guid, multipass::utils::make_uuid(expected_name));
                 ASSERT_EQ(params.policies.size(), 1);
                 EXPECT_EQ(params.policies[0].type,
                           mhv::hcn::HcnNetworkPolicyType::NetAdapterName());

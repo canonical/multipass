@@ -343,8 +343,7 @@ std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_para
     std::ranges::transform(description.extra_interfaces,
                            std::back_inserter(params),
                            [](const auto& v) -> hcn::CreateEndpointParameters {
-                               return {.network_guid =
-                                           multipass::utils::make_uuid(v.id).toStdString(),
+                               return {.network_guid = multipass::utils::make_uuid(v.id),
                                        .endpoint_guid = mac2uuid(v.mac_address),
                                        .mac_address = replace_colon_with_dash(v.mac_address)};
                            });
