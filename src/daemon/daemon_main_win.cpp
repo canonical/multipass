@@ -26,6 +26,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
@@ -199,6 +200,9 @@ catch (...)
 int main(int argc, char* argv[])
 try
 {
+
+    multipass::LibsshScopeGuard libssh_guard;
+
     service_argv.assign(argv, argv + argc);
 
     auto logger = mp::platform::make_logger(mpl::Level::info);
