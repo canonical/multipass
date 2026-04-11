@@ -18,7 +18,8 @@ function(add_ssh_target TARGET_NAME)
     openssh_key_provider.cpp
     ssh_client_key_provider.cpp
     ssh_process.cpp
-    ssh_session.cpp)
+    ssh_session.cpp
+    libssh_scope_guard.cpp)
 
   target_link_libraries(${TARGET_NAME}
     fmt::fmt-header-only
