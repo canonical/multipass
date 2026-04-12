@@ -53,7 +53,7 @@ jobs:
       FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
       SNAPCRAFT_BUILD_INFO: 1
       USERNAME: ${{ github.repository_owner }}
-      VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
+      VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,write"
 
     timeout-minutes: 120
     steps:
