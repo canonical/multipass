@@ -137,17 +137,12 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
 {
     assert(fs::exists(source_instance_dir_path) && fs::is_directory(source_instance_dir_path));
 
-    const bool has_asif =
-        std::any_of(fs::directory_iterator(source_instance_dir_path),
-                    fs::directory_iterator{},
-                    [](const auto& e) { return e.path().extension() == ".asif"; });
-
     fs::create_directory(dest_instance_dir_path);
     for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
         const auto ext = entry.path().extension().string();
         // snapshot files are intentionally skipped; .raw is skipped when an .asif image exists
-        if (cloneable_files.contains(ext) && !(ext == ".raw" && has_asif))
+        if (cloneable_files.contains(ext))
         {
             const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
             fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);
