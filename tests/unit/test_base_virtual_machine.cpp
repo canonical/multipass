@@ -136,13 +136,11 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    StubBaseVirtualMachine(St s, mp::AvailabilityZone& zone, std::unique_ptr<mpt::TempDir> tmp_dir)
-        : mp::BaseVirtualMachine{s,
-                                 "stub",
-                                 mp::VirtualMachineDescription{},
-                                 mpt::StubSSHKeyProvider{},
-                                 zone,
-                                 tmp_dir->path()},
+    StubBaseVirtualMachine(St s,
+                           mp::AvailabilityZone& zone,
+                           std::unique_ptr<mpt::TempDir> tmp_dir,
+                           const mp::VirtualMachineDescription& desc = {})
+        : mp::BaseVirtualMachine{s, "stub", desc, mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -205,10 +203,14 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
     mp::Qualified<void> resize_disk(const mp::MemorySize&) override
     {
-        return {};
+        if (is_core())
+            return {core_image_disk_resize_message()};
+        else
+            return {};
     }
 
     std::unique_ptr<mpt::TempDir> tmp_dir;
+    using mp::BaseVirtualMachine::core_image_disk_resize_message;
 };
 
 struct BaseVM : public Test
@@ -1509,6 +1511,21 @@ TEST_F(BaseVM, setAvailableKeepsOffOff)
 
     base_vm.set_available(true);
     EXPECT_EQ(base_vm.current_state(), St::off);
+}
+
+TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
+{
+    multipass::VirtualMachineDescription desc{};
+    desc.image.original_release = "Ubuntu Core 24";
+
+    StubBaseVirtualMachine vm{St::off, zone, std::make_unique<mpt::TempDir>(), desc};
+    auto qualified_return = vm.resize_disk(mp::MemorySize{});
+    auto expected_return = mp::Qualified<void>{};
+    expected_return.add_message(vm.core_image_disk_resize_message());
+    EXPECT_TRUE(std::equal(qualified_return.get_messages().begin(),
+                           qualified_return.get_messages().end(),
+                           expected_return.get_messages().begin(),
+                           expected_return.get_messages().end()));
 }
 
 } // namespace
