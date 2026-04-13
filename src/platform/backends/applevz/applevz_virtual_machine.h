@@ -68,7 +68,6 @@ private:
     void set_state(applevz::AppleVMState vm_state);
 
 private:
-    VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
     VMHandle vm_handle{nullptr};
     bool update_shutdown_status{true};
