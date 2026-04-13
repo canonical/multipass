@@ -317,6 +317,27 @@ TEST_F(ImageVault, invalidFileURLThrows)
             StrEq(fmt::format("Invalid file URL `{}`; did you forget a slash?", invalid_url))));
 }
 
+TEST_F(ImageVault, imageCloneWithInvalidInstanceDirThrows)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      default_query,
+                      stub_prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      this->save_dir.path()); // no "/instances" in save dir
+
+    const std::string dest_name = instance_name + "clone";
+    MP_EXPECT_THROW_THAT(vault.clone(instance_name, dest_name),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Path replace for the cloned image failed!")));
+    EXPECT_FALSE(vault.has_record_for(dest_name));
+}
+
 TEST_F(ImageVault, nonexistentLocalFileImageThrows)
 {
     mp::DefaultVMImageVault vault{hosts,
