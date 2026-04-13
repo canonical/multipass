@@ -199,3 +199,38 @@ TEST_F(TestSpinnerCallbacks, confirmationCallbackAnswers)
     EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), clearStreamMatcher());
 }
+
+TEST_F(TestSpinnerCallbacks, confirmationCallbackLogs)
+{
+    constexpr auto key = "local.instance-name.not-bridged";
+    constexpr auto log = "[error] The Death Star has detonated.";
+
+    mpt::MockClientReaderWriter<mp::SetRequest, mp::SetReply> mock_client;
+
+    mp::SetReply reply;
+    reply.set_log_line(log);
+
+    auto callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(term, key);
+    callback(reply, &mock_client);
+
+    EXPECT_THAT(err.str(), StrEq(log));
+    EXPECT_THAT(out.str(), clearStreamMatcher());
+}
+
+TEST_F(TestSpinnerCallbacks, confirmationCallbackSendsMessages)
+{
+    constexpr auto key = "local.instance-name.not-bridged";
+    constexpr auto message = "THE END, Star Wars IV.";
+    constexpr auto printed_message = "THE END, Star Wars IV.\n";
+
+    mpt::MockClientReaderWriter<mp::SetRequest, mp::SetReply> mock_client;
+
+    mp::SetReply reply;
+    reply.set_reply_message(message);
+
+    auto callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(term, key);
+    callback(reply, &mock_client);
+
+    EXPECT_THAT(err.str(), IsEmpty());
+    EXPECT_THAT(out.str(), StrEq(printed_message));
+}

@@ -176,9 +176,15 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
     EXPECT_CALL(daemon, get)
         .WillOnce(
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::GetRequest, mp::GetReply>));
-    EXPECT_CALL(daemon, set)
-        .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SetRequest, mp::SetReply>));
+    EXPECT_CALL(daemon, set).WillOnce([](auto, auto server, auto status_promise) {
+        mp::SetReply reply;
+        reply.set_reply_message("Message");
+
+        server->Write(reply);
+        status_promise->set_value(grpc::Status::OK);
+
+        return grpc::Status{};
+    });
     EXPECT_CALL(daemon, create(_, _, _))
         .WillOnce(Invoke(&daemon,
                          &mpt::MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
