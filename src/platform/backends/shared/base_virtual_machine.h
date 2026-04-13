@@ -107,6 +107,8 @@ protected:
     virtual void drop_ssh_session(); // virtual to allow mocking
     virtual bool unplugged();
 
+    bool is_core() const;
+    std::string core_image_disk_resize_message() const;
     /**
      * Refresh the VM, if possible, when the startup appears stuck.
      *
@@ -237,4 +239,19 @@ inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noe
 inline void multipass::BaseVirtualMachine::refresh_start()
 {
     // nothing to do in the general case
+}
+
+inline bool multipass::BaseVirtualMachine::is_core() const
+{
+    return desc.image.original_release.find("Core") != std::string::npos;
+}
+
+inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message() const
+{
+    return std::string("Disk resized. To make the new space available on this Ubuntu Core "
+                       "instance, run the following commands:\n\n"
+                       "        multipass exec <instance> -- sudo growpart /dev/sda 5\n"
+                       "        multipass exec <instance> -- sudo resize2fs /dev/sda5\n\n"
+                       "Check the resize status with the command below:\n\n"
+                       "         multipass info <instance>");
 }
