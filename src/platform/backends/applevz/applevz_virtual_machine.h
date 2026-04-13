@@ -62,7 +62,6 @@ private:
     void fetch_ip(std::chrono::milliseconds timeout);
 
 private:
-    VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
     VMHandle vm_handle{nullptr};
 };

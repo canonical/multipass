@@ -24,6 +24,7 @@
 #include "mock_ssh_test_fixture.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
+#include "multipass/virtual_machine_description.h"
 #include "stub_availability_zone.h"
 #include "temp_dir.h"
 
@@ -136,7 +137,12 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
     StubBaseVirtualMachine(St s, mp::AvailabilityZone& zone, std::unique_ptr<mpt::TempDir> tmp_dir)
-        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
+        : mp::BaseVirtualMachine{s,
+                                 "stub",
+                                 mp::VirtualMachineDescription{},
+                                 mpt::StubSSHKeyProvider{},
+                                 zone,
+                                 tmp_dir->path()},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -255,7 +261,10 @@ struct BaseVM : public Test
     mpt::StubAvailabilityZone zone{};
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
-    NiceMock<MockBaseVirtualMachine> vm{"mock-vm", key_provider, zone};
+    NiceMock<MockBaseVirtualMachine> vm{"mock-vm",
+                                        mp::VirtualMachineDescription{},
+                                        key_provider,
+                                        zone};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);

@@ -232,10 +232,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                              ? State::suspended
                              : State::off,
                          desc.vm_name,
+                         desc,
                          key_provider,
                          zone,
                          instance_dir},
-      desc{desc},
       qemu_platform{qemu_platform},
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}

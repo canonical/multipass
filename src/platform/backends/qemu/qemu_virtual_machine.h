@@ -81,7 +81,7 @@ protected:
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir)
-        : BaseVirtualMachine{name, key_provider, zone, instance_dir}
+        : BaseVirtualMachine{name, {}, key_provider, zone, instance_dir}
     {
     }
 
@@ -109,7 +109,6 @@ private:
 
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     QemuPlatform* qemu_platform;
     VMStatusMonitor* monitor;

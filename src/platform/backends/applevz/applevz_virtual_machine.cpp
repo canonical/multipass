@@ -39,9 +39,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const SSHKeyProvider& key_provider,
                                              AvailabilityZone& zone,
                                              const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
-      desc{desc},
-      monitor{&monitor}
+    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir}, monitor{&monitor}
 {
     initialize_vm_handle();
 }
