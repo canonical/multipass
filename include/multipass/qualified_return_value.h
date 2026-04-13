@@ -244,7 +244,7 @@ void send_messages(grpc::ServerReaderWriterInterface<Reply, Request>* server,
     auto reply = SetReply{};
     for (const auto& message : message_bag)
     {
-        reply.set_log_line(message);
+        reply.set_reply_message(message);
         server->Write(reply);
     }
 }
