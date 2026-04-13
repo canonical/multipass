@@ -57,7 +57,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
                                    const VirtualMachine& vm,
                                    const VirtualMachineDescription& desc)
     : BaseSnapshot(name, comment, instance_id, std::move(parent), specs, vm),
-      base_vhdx_path{desc.image.image_path.toStdString()},
+      base_vhdx_path{desc.image.image_path},
       vm{vm}
 {
 }
@@ -65,7 +65,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
 VirtDiskSnapshot::VirtDiskSnapshot(const QString& filename,
                                    VirtualMachine& vm,
                                    const VirtualMachineDescription& desc)
-    : BaseSnapshot(filename, vm, desc), base_vhdx_path{desc.image.image_path.toStdString()}, vm{vm}
+    : BaseSnapshot(filename, vm, desc), base_vhdx_path{desc.image.image_path}, vm{vm}
 {
 }
 
