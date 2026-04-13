@@ -253,5 +253,5 @@ inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message
                        "        multipass exec <instance> -- sudo growpart /dev/sda 5\n"
                        "        multipass exec <instance> -- sudo resize2fs /dev/sda5\n\n"
                        "Check the resize status with the command below:\n\n"
-                       "         multipass info <instance>");
+                       "         multipass info <instance>\n");
 }
