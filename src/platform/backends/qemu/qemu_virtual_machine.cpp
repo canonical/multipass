@@ -726,7 +726,10 @@ mp::Qualified<void> mp::QemuVirtualMachine::resize_disk(const MemorySize& new_si
 
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
-    return {};
+    if (is_core())
+        return {core_image_disk_resize_message()};
+    else
+        return {};
 }
 
 void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,
