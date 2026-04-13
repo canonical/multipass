@@ -335,8 +335,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr,
                                                        bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir_qstr},
-      desc{desc},
+    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir_qstr},
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
 {
