@@ -567,7 +567,12 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
     boost::replace_all(image_path,
                        "instances/" + source_instance_name,
                        "instances/" + destination_instance_name);
-    assert(image_path != dest_vault_record.image.image_path);
+
+    if (image_path == dest_vault_record.image.image_path.generic_string())
+    {
+        throw std::runtime_error{"Path replace for cloned image failed."};
+    }
+
     dest_vault_record.image.image_path = image_path;
 
     persist_instance_records();
