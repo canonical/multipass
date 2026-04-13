@@ -16,6 +16,7 @@
  */
 
 #include "virtualbox_virtual_machine.h"
+#include "multipass/qualified_return_value.h"
 #include "virtualbox_snapshot.h"
 
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
@@ -554,7 +555,10 @@ mp::Qualified<void> mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& 
                                  QString::number(new_size.in_bytes())},
                                 "Could not resize image: {}",
                                 name);
-    return {};
+    if (is_core())
+        return {core_image_disk_resize_message()};
+    else
+        return {};
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
