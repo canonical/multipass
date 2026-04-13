@@ -215,7 +215,7 @@ struct ImageVault : public testing::Test
     mpt::TempDir data_dir;
     mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
-    QString instance_dir = save_dir.filePath(QString::fromStdString(instance_name));
+    QString instance_dir = save_dir.filePath("instances/" + QString::fromStdString(instance_name));
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
 } // namespace
