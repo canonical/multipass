@@ -23,6 +23,8 @@
 
 #include <fmt/xchar.h>
 
+#include <future>
+
 namespace multipass::test
 {
 
@@ -55,16 +57,17 @@ struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
     {
         if (handle)
         {
-            bool called = false;
+            std::promise<void> exited;
+            auto fut = exited.get_future();
             ASSERT_TRUE(HCS().set_compute_system_callback(
                 handle,
-                &called,
+                &exited,
                 [](HCS_EVENT* event, void* context) {
                     ASSERT_NE(nullptr, event);
                     ASSERT_NE(nullptr, context);
                     if (hyperv::hcs::parse_event(event) == hyperv::hcs::HcsEventType::SystemExited)
                     {
-                        *static_cast<bool*>(context) = true;
+                        static_cast<std::promise<void>*>(context)->set_value();
                     }
                 }));
 
@@ -72,7 +75,8 @@ struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
             ASSERT_TRUE(d_result);
             std::wprintf(L"%s\n\n", d_result.status_msg.c_str());
             handle.reset();
-            ASSERT_TRUE(called);
+            ASSERT_EQ(std::future_status::ready, fut.wait_for(std::chrono::seconds(15)))
+                << "SystemExited callback not received within timeout";
         }
     }
 
