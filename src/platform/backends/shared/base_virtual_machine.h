@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "multipass/virtual_machine_description.h"
 #include <multipass/availability_zone.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/start_exception.h>
@@ -40,10 +41,12 @@ class BaseVirtualMachine : public VirtualMachine
 public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
+                       const VirtualMachineDescription& vm_desc,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
+                       const VirtualMachineDescription& vm_desc,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
@@ -181,6 +184,7 @@ private:
 
 protected:
     const std::string vm_name;
+    VirtualMachineDescription desc;
     const SSHKeyProvider& key_provider;
     AvailabilityZone& zone;
     const QDir instance_dir;

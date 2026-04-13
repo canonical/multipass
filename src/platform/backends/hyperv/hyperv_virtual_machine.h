@@ -92,7 +92,6 @@ private:
     void update_network_interfaces(const VMSpecs& src_specs);
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc; // TODO we should probably keep this in the base class instead
     const QString name;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
