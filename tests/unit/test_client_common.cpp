@@ -32,6 +32,8 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/utils.h>
 
+#include <grpcpp/support/status.h>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
@@ -128,4 +130,19 @@ TEST(TestClientHandleUserPassword, defaultHasNoPassword)
     EXPECT_CALL(*client, Write(Property(&mp::MountRequest::password, IsEmpty()), _)).Times(1);
 
     mp::cmd::handle_password(client.get(), &term);
+}
+
+TEST(StandardFailureHandlerFormatting, singleTrailingNewlineWhenDetailsAlreadyEndWithNewline)
+{
+    std::stringstream cerr_stream;
+    grpc::Status status{grpc::StatusCode::ABORTED, "instance(s) missing", ""};
+
+    mp::cmd::standard_failure_handler_for("start",
+                                          cerr_stream,
+                                          status,
+                                          "Instance 'asdf' does not exist.\r\n\r\n\r");
+
+    EXPECT_EQ(cerr_stream.str(),
+              "start failed: instance(s) missing\n"
+              "Instance 'asdf' does not exist.\n");
 }
