@@ -45,7 +45,7 @@ struct VirtDiskSnapshotErase : public ::testing::Test
         auto bp = QDir(vm.tmp_dir->path()).filePath("base.vhdx");
         ASSERT_TRUE(VirtDisk().create_virtual_disk(
             {.size_in_bytes = vhdx_size, .path = bp.toStdString(), .predecessor = {}}));
-        desc.image.image_path = bp;
+        desc.image.image_path = bp.toStdString();
 
         ON_CALL(vm, view_snapshots(_)).WillByDefault([this](auto pred) {
             VirtualMachine::SnapshotVista result;
@@ -95,7 +95,7 @@ struct VirtDiskSnapshotErase : public ::testing::Test
 
     Path base() const
     {
-        return desc.image.image_path.toStdString();
+        return desc.image.image_path;
     }
     Path head() const
     {
