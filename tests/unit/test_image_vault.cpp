@@ -215,7 +215,7 @@ struct ImageVault : public testing::Test
     mpt::TempDir data_dir;
     mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
-    QString instance_dir = save_dir.filePath(QString::fromStdString(instance_name));
+    QString instance_dir = save_dir.filePath("instances/" + QString::fromStdString(instance_name));
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
 } // namespace
@@ -315,6 +315,27 @@ TEST_F(ImageVault, invalidFileURLThrows)
         std::runtime_error,
         mpt::match_what(
             StrEq(fmt::format("Invalid file URL `{}`; did you forget a slash?", invalid_url))));
+}
+
+TEST_F(ImageVault, imageCloneWithInvalidInstanceDirThrows)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      default_query,
+                      stub_prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      this->save_dir.path()); // no "/instances" in save dir
+
+    const std::string dest_name = instance_name + "clone";
+    MP_EXPECT_THROW_THAT(vault.clone(instance_name, dest_name),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Path replace for the cloned image failed!")));
+    EXPECT_FALSE(vault.has_record_for(dest_name));
 }
 
 TEST_F(ImageVault, nonexistentLocalFileImageThrows)
