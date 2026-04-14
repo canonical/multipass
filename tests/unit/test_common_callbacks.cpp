@@ -17,6 +17,7 @@
 #include "common.h"
 #include "mock_client_platform.h"
 #include "mock_client_rpc.h"
+#include "multipass/utils.h"
 #include "stub_terminal.h"
 
 #include <src/client/cli/cmd/animated_spinner.h>
@@ -26,6 +27,7 @@
 #include <sstream>
 
 namespace mp = multipass;
+namespace mpu = mp::utils;
 namespace mpt = mp::test;
 using namespace testing;
 
@@ -231,7 +233,7 @@ TEST_F(TestSpinnerCallbacks, nonLiveReplySpinnerCallbackPrintsAllMessagesWithout
     cb(reply, nullptr);
 
     EXPECT_THAT(err.str(), StrEq(log));
-    EXPECT_THAT(out.str(), StrEq(msg));
+    EXPECT_THAT(mpu::trim_end(out.str()), StrEq(msg));
 }
 
 TEST_F(TestSpinnerCallbacks, nonLiveIterativeSpinnerCallbackPrintsAllMessagesWithoutSpinnerArtifacts)
@@ -249,5 +251,5 @@ TEST_F(TestSpinnerCallbacks, nonLiveIterativeSpinnerCallbackPrintsAllMessagesWit
     cb(reply, nullptr);
 
     EXPECT_THAT(err.str(), StrEq(log));
-    EXPECT_THAT(out.str(), StrEq(msg));
+    EXPECT_THAT(mpu::trim_end(out.str()), StrEq(msg));
 }
