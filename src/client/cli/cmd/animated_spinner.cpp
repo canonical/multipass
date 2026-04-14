@@ -56,7 +56,7 @@ void mp::AnimatedSpinner::start(const std::string& start_message)
             t = std::thread(&AnimatedSpinner::draw, this);
         }
         else
-            cout << start_message << std::flush;
+            cout << start_message << std::endl;
     }
 }
 
