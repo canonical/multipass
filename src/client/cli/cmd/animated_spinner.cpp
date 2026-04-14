@@ -29,8 +29,8 @@ void clear_line(std::ostream& out)
 }
 } // namespace
 
-mp::AnimatedSpinner::AnimatedSpinner(std::ostream& cout)
-    : spinner{'|', '/', '-', '\\'}, cout{cout}, running{false}
+mp::AnimatedSpinner::AnimatedSpinner(std::ostream& cout, bool is_live)
+    : spinner{'|', '/', '-', '\\'}, cout{cout}, is_live{is_live}, running{false}
 {
 }
 
@@ -46,9 +46,18 @@ void mp::AnimatedSpinner::start(const std::string& start_message)
     {
         current_message = start_message;
         running = true;
-        clear_line(cout);
-        cout << start_message << "  " << std::flush;
-        t = std::thread(&AnimatedSpinner::draw, this);
+
+        if (is_live)
+        {
+            clear_line(cout);
+            cout << start_message << "  " << std::flush;
+            t = std::thread(&AnimatedSpinner::draw, this);
+        }
+        else
+        {
+            cout << start_message << "\n" << std::flush;
+            t = std::thread(&AnimatedSpinner::draw_plain, this);
+        }
     }
 }
 
@@ -69,16 +78,23 @@ void mp::AnimatedSpinner::stop()
         if (t.joinable())
             t.join();
     }
-    clear_line(cout);
+
+    if (is_live)
+        clear_line(cout);
 }
 
 void mp::AnimatedSpinner::print(std::ostream& stream, const std::string& message)
 {
-    stop();
-
-    stream << message;
-
-    start();
+    if (is_live)
+    {
+        stop();
+        stream << message;
+        start();
+    }
+    else
+    {
+        stream << message << std::flush;
+    }
 }
 
 void mp::AnimatedSpinner::draw()
@@ -94,4 +110,15 @@ void mp::AnimatedSpinner::draw()
     }
     cout << "\b"
          << " " << std::flush;
+}
+
+void mp::AnimatedSpinner::draw_plain()
+{
+    std::unique_lock<decltype(mutex)> lock{mutex};
+    while (running)
+    {
+        cv.wait_for(lock, std::chrono::seconds(5));
+        if (running)
+            cout << "." << std::flush;
+    }
 }

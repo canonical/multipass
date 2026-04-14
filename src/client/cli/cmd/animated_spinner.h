@@ -27,7 +27,7 @@ namespace multipass
 class AnimatedSpinner
 {
 public:
-    explicit AnimatedSpinner(std::ostream& cout);
+    AnimatedSpinner(std::ostream& cout, bool is_live);
     ~AnimatedSpinner();
 
     void start(const std::string& message);
@@ -37,8 +37,10 @@ public:
 
 private:
     void draw();
+    void draw_plain();
     const std::vector<char> spinner;
     std::ostream& cout;
+    const bool is_live;
     bool running;
     std::string current_message;
     std::mutex mutex;

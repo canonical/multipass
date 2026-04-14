@@ -44,7 +44,7 @@ struct TestSpinnerCallbacks : public Test
     std::ostringstream out, err;
     std::istringstream in;
     mpt::StubTerminal term{out, err, in};
-    mp::AnimatedSpinner spinner{out};
+    mp::AnimatedSpinner spinner{out, true};
 };
 
 enum class CommonCallbackType
