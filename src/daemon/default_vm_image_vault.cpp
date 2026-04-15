@@ -569,6 +569,34 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
     persist_instance_records();
 }
 
+void mp::DefaultVMImageVault::rename(const std::string& old_name, const std::string& new_name)
+{
+    const auto source_iter = instance_image_records.find(old_name);
+
+    if (source_iter == instance_image_records.end())
+    {
+        throw std::runtime_error(old_name + " does not exist in the image records");
+    }
+
+    if (instance_image_records.find(new_name) != instance_image_records.end())
+    {
+        throw std::runtime_error(new_name + " already exists in the image records");
+    }
+
+    auto vault_record = source_iter->second;
+
+    auto image_path = vault_record.image.image_path.generic_string();
+    vault_record.image.image_path =
+        boost::replace_all_copy(image_path, "instances/" + old_name, "instances/" + new_name);
+
+    if (vault_record.image.image_path.generic_string() == image_path)
+        throw std::runtime_error{"Path replace for the renamed image failed!"};
+
+    instance_image_records[new_name] = vault_record;
+    instance_image_records.erase(source_iter);
+    persist_instance_records();
+}
+
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     const VMImageInfo& info,
     std::optional<VMImage>& existing_source_image,

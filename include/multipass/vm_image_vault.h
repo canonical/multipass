@@ -85,6 +85,7 @@ public:
     virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
     virtual void clone(const std::string& source_instance_name,
                        const std::string& destination_instance_name) = 0;
+    virtual void rename(const std::string& old_name, const std::string& new_name) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
     virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(
         const Query& query) const = 0;

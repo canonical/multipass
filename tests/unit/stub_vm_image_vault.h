@@ -83,6 +83,10 @@ struct StubVMImageVault final : public multipass::VMImageVault
     {
     }
 
+    void rename(const std::string& old_name, const std::string& new_name) override
+    {
+    }
+
     TempFile dummy_image;
 };
 } // namespace test
