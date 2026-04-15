@@ -66,7 +66,7 @@ TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
 #else
     const auto storage_interface = "virtio-scsi-pci";
 #endif
-
+    const auto expected_uuid = QString::fromStdString(multipass::utils::make_uuid(desc.vm_name));
     EXPECT_EQ(spec.arguments(),
               QStringList({"--enable-kvm",
                            "-nic",
@@ -90,6 +90,8 @@ TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
                            "-nographic",
                            "-cdrom",
                            "/path/to/cloud_init.iso",
+                           "-uuid",
+                           expected_uuid,
                            "-virtfs",
                            "local,security_model=passthrough,uid_map=1000:1000,gid_map=1000:1000,"
                            "path=path/to/target,mount_tag=m810e457178f448d9afffc9d950d726"}));

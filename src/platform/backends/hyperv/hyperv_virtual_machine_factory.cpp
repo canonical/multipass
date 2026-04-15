@@ -297,7 +297,7 @@ void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::strin
 
 mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
-    QFileInfo source_file{source_image.image_path};
+    QFileInfo source_file{MP_PLATFORM.path_to_qstr(source_image.image_path)};
     auto vhdx_file =
         QString("%1/%2.vhdx").arg(source_file.path()).arg(source_file.completeBaseName());
 
@@ -306,7 +306,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
                               "subformat=dynamic",
                               "-O",
                               "vhdx",
-                              source_image.image_path,
+                              MP_PLATFORM.path_to_qstr(source_image.image_path),
                               vhdx_file});
 
     QProcess convert;
@@ -330,7 +330,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
     }
 
     auto prepared_image = source_image;
-    prepared_image.image_path = vhdx_file;
+    prepared_image.image_path = vhdx_file.toStdString();
     return prepared_image;
 }
 
@@ -342,10 +342,14 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 
     // Resize-VHD can't operate on the sparse images that `qemu-img` produces. The `fsutil` cmd
     // allocates them fully. Images copied from the cache aren't sparse, but they remain unaffected.
-    QStringList unsparse_cmd = {"fsutil", "sparse", "setFlag", instance_image.image_path, "0"};
+    QStringList unsparse_cmd = {"fsutil",
+                                "sparse",
+                                "setFlag",
+                                MP_PLATFORM.path_to_qstr(instance_image.image_path),
+                                "0"};
     QStringList resize_cmd = {"Resize-VHD",
                               "-Path",
-                              instance_image.image_path,
+                              MP_PLATFORM.path_to_qstr(instance_image.image_path),
                               "-SizeBytes",
                               disk_size};
     PowerShell ps{desc.vm_name};

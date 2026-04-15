@@ -20,6 +20,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/console.h>
 #include <multipass/constants.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/top_catch_all.h>
 
 #include <QCoreApplication>
@@ -49,5 +50,11 @@ int main_impl(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    // Verify that the version of the library that we linked against is
+    // compatible with the version of the headers we compiled against.
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+    multipass::LibsshScopeGuard libssh_guard;
+
     return mp::top_catch_all("client", /* fallback_return = */ EXIT_FAILURE, main_impl, argc, argv);
 }

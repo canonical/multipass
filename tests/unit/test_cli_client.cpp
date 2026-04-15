@@ -478,7 +478,7 @@ struct ClientAlias : public Client, public FakeAliasConfig
 
 auto make_info_function(const std::string& source_path = "", const std::string& target_path = "")
 {
-    auto info_function = [&source_path, &target_path](
+    auto info_function = [source_path, target_path](
                              grpc::ServerContext*,
                              grpc::ServerReaderWriter<mp::InfoReply, mp::InfoRequest>* server) {
         mp::InfoRequest request;

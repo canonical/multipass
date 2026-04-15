@@ -92,7 +92,8 @@ struct TestQemuSnapshot : public Test
     mpt::StubSSHKeyProvider key_provider{};
     mpt::StubAvailabilityZone zone{};
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider, zone};
-    ArgsMatcher list_args_matcher = ElementsAre("snapshot", "-l", desc.image.image_path);
+    ArgsMatcher list_args_matcher =
+        ElementsAre("snapshot", "-l", QString::fromStdString(desc.image.image_path));
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
 
@@ -190,8 +191,10 @@ TEST_F(TestQemuSnapshot, capturesSnapshot)
 
     auto proc_count = 0;
 
-    ArgsMatcher capture_args_matcher{
-        ElementsAre("snapshot", "-c", QString::fromStdString(snapshot_tag), desc.image.image_path)};
+    ArgsMatcher capture_args_matcher{ElementsAre("snapshot",
+                                                 "-c",
+                                                 QString::fromStdString(snapshot_tag),
+                                                 QString::fromStdString(desc.image.image_path))};
 
     auto mock_factory_scope = mpt::MockProcessFactory::Inject();
     mock_factory_scope->register_callback([&](mpt::MockProcess* process) {
@@ -228,7 +231,7 @@ TEST_F(TestQemuSnapshot, captureThrowsOnRepeatedTag)
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("already exists"),
                                                HasSubstr(snapshot_tag),
-                                               HasSubstr(desc.image.image_path.toStdString()))));
+                                               HasSubstr(desc.image.image_path))));
 }
 
 TEST_F(TestQemuSnapshot, erasesSnapshot)
@@ -250,9 +253,11 @@ TEST_F(TestQemuSnapshot, erasesSnapshot)
         }
         else
         {
-            EXPECT_THAT(
-                process->arguments(),
-                ElementsAre("snapshot", "-d", QString::fromStdString(tag), desc.image.image_path));
+            EXPECT_THAT(process->arguments(),
+                        ElementsAre("snapshot",
+                                    "-d",
+                                    QString::fromStdString(tag),
+                                    QString::fromStdString(desc.image.image_path)));
         }
     });
 
@@ -295,7 +300,7 @@ TEST_F(TestQemuSnapshot, appliesSnapshot)
                     ElementsAre("snapshot",
                                 "-a",
                                 QString::fromStdString(derive_tag(snapshot.get_index())),
-                                desc.image.image_path));
+                                QString::fromStdString(desc.image.image_path)));
     });
 
     desc.num_cores = 8598;

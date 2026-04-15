@@ -996,10 +996,10 @@ packages:
     dependency: "direct main"
     description:
       name: two_dimensional_scrollables
-      sha256: e9397ae372839aecb3135d246bff5cce5e738604c9afd03d65d06c7a246ae958
+      sha256: "0e49def226623668f79ac5c7b34f2eb52b752cc6da43de0776c344e6a17611cd"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.8"
+    version: "0.4.2"
   typed_data:
     dependency: transitive
     description:

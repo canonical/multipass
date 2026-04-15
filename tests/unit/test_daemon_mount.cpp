@@ -338,6 +338,8 @@ TEST_F(TestDaemonMount, mountUsesResolvedSource)
 
     // have resolver return target_path
     const auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce(Return(target_path));
 
     // mock mount_handler to check the VMMount is using target_path as its source

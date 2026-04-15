@@ -37,7 +37,7 @@ mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_d
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
-    auto instance_dir{mpu::base_dir(vm_desc.image.image_path)};
+    auto instance_dir{mpu::base_dir(MP_PLATFORM.path_to_qstr(vm_desc.image.image_path))};
     const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
 
     if (!QFile::exists(cloud_init_iso))
@@ -139,11 +139,10 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
     for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
         // snapshot files are intentionally skipped;
-        // .iso cloud init file is included for all,
-        // .img or .qcow2 file here is not relevant for non-qemu backends.
         if (entry.path().extension().string() == ".iso" ||
             entry.path().extension().string() == ".img" ||
-            entry.path().extension().string() == ".qcow2")
+            entry.path().extension().string() == ".qcow2" ||
+            entry.path().extension().string() == ".raw")
         {
             const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
             fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);

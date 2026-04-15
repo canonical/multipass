@@ -32,6 +32,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <string_view>
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
@@ -55,6 +56,7 @@ public:
 
     // High-level operations
     virtual void write_transactionally(const QString& file_name, const QByteArrayView& data) const;
+    virtual void write_transactionally(const fs::path& file_name, std::string_view data) const;
     virtual std::optional<std::string> try_read_file(const fs::path& filename) const;
 
     // QDir operations
@@ -108,7 +110,7 @@ public:
 
     // std operations
     virtual void open(std::fstream& stream,
-                      const char* filename,
+                      const fs::path& filename,
                       std::ios_base::openmode mode) const;
     virtual bool is_open(const std::ifstream& file) const;
     virtual std::ifstream& read(std::ifstream& file, char* buffer, std::streamsize size) const;
@@ -119,6 +121,11 @@ public:
     virtual void copy(const fs::path& src,
                       const fs::path& dist,
                       fs::copy_options copy_options) const;
+    virtual void copy(const fs::path& src,
+                      const fs::path& dist,
+                      fs::copy_options copy_options,
+                      std::error_code& ec) const;
+    virtual bool exists(const fs::path& path) const;
     virtual bool exists(const fs::path& path, std::error_code& err) const;
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;

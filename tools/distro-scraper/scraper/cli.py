@@ -78,7 +78,13 @@ def write_output_file(output: dict, path: pathlib.Path) -> None:
             logger.warning("Could not load existing output file: %s", e)
 
     # Merge new data into existing
-    existing_data.update(output)
+    for dist_name, dist_data in output.items():
+        if dist_name in existing_data:
+            merged_items = existing_data[dist_name].get("items", {})
+            merged_items.update(dist_data.get("items", {}))
+            existing_data[dist_name] = {**dist_data, "items": merged_items}
+        else:
+            existing_data[dist_name] = dist_data
 
     # Write merged output
     path.parent.mkdir(parents=True, exist_ok=True)

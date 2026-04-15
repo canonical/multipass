@@ -42,7 +42,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
       // Create a reproducible unique mount tag for each mount. The cmd arg can only be 31 bytes
       // long so part of the uuid must be truncated. First character of tag must also be
       // alphabetical.
-      tag{mp::utils::make_uuid(target).remove("-").left(30).prepend('m').toStdString()}
+      tag{make_tag(target)}
 {
     auto state = vm->current_state();
     if (state == VirtualMachine::State::suspended && vm_mount_args.find(tag) != vm_mount_args.end())
@@ -160,5 +160,12 @@ QemuMountHandler::~QemuMountHandler()
 {
     deactivate(/*force=*/true);
     vm_mount_args.erase(tag);
+}
+
+std::string QemuMountHandler::make_tag(const std::string& seed)
+{
+    auto uuid = mp::utils::make_uuid(seed);
+    std::erase(uuid, '-');
+    return fmt::format("m{:.30}", uuid);
 }
 } // namespace multipass

@@ -2,45 +2,45 @@
     "errors": [
     ],
     "info": {
-        "bogus-instance": {
-            "snapshots": {
-                "snapshot2": {
-                    "children": [
-                        "snapshot3",
-                        "snapshot4"
-                    ],
-                    "comment": "",
-                    "cpu_count": "2",
-                    "created": "1972-01-01T10:00:20.021Z",
-                    "disk_space": "4.9GiB",
-                    "memory_size": "0.9GiB",
-                    "mounts": {
-                        "Home": {
-                            "source_path": "/home/user"
-                        },
-                        "source": {
-                            "source_path": "/home/user/source"
-                        }
-                    },
-                    "parent": "snapshot1",
-                    "size": ""
-                }
-            }
-        },
         "messier-87": {
             "snapshots": {
                 "black-hole": {
-                    "children": [
-                    ],
-                    "comment": "Captured by EHT",
+                    "size": "",
                     "cpu_count": "1",
-                    "created": "2019-04-10T11:59:59Z",
                     "disk_space": "1024GiB",
                     "memory_size": "128GiB",
                     "mounts": {
                     },
+                    "created": "2019-04-10T11:59:59Z",
                     "parent": "",
-                    "size": ""
+                    "children": [
+                    ],
+                    "comment": "Captured by EHT"
+                }
+            }
+        },
+        "bogus-instance": {
+            "snapshots": {
+                "snapshot2": {
+                    "size": "",
+                    "cpu_count": "2",
+                    "disk_space": "4.9GiB",
+                    "memory_size": "0.9GiB",
+                    "mounts": {
+                        "source": {
+                            "source_path": "/home/user/source"
+                        },
+                        "Home": {
+                            "source_path": "/home/user"
+                        }
+                    },
+                    "created": "1972-01-01T10:00:20.021Z",
+                    "parent": "snapshot1",
+                    "children": [
+                        "snapshot3",
+                        "snapshot4"
+                    ],
+                    "comment": ""
                 }
             }
         }

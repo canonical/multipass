@@ -204,7 +204,11 @@ std::string mp::Backend::create_bridge_with(const std::string& interface)
     rollback_guard.dismiss(); // we succeeded!
 
     auto ret = parent_name.toStdString();
-    mpl::info(log_category_create, "Created bridge: {}", ret);
+
+    mpl::info(log_category_create,
+              "Created bridge: {0}. To revert, run: `nmcli connection delete {0} {1}`",
+              ret,
+              child_name);
 
     return ret;
 }

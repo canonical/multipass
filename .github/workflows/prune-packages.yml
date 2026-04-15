@@ -55,12 +55,16 @@ jobs:
 
     steps:
       - name: Delete old package versions
-        uses: smartsquaregmbh/delete-old-packages@v0.8.1
+        uses: Wandalen/wretry.action@v3
         with:
-          organization: ${{ github.repository_owner }}
-          type: nuget
-          names: ${{ needs.list-packages.outputs.names }}
-          keep: 2
+          action: smartsquaregmbh/delete-old-packages@v0.8.1
+          with: |
+            organization: ${{ github.repository_owner }}
+            type: nuget
+            names: ${{ needs.list-packages.outputs.names }}
+            keep: 2
+          attempt_limit: 3
+          attempt_delay: 60000
 
   notify:
     runs-on: ubuntu-latest

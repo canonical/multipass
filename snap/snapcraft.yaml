@@ -207,6 +207,7 @@ parts:
     prime:
     - -protobuf
     source: .
+    source-type: git
     override-pull: |
       set -e
 

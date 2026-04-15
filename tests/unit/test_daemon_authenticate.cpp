@@ -64,7 +64,7 @@ TEST_F(TestDaemonAuthenticate, authenticateNoErrorReturnsOk)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::passphrase_key))).WillOnce(Return(saved_hash));
 
-    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(QString("foo"))))
+    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(std::string("foo"))))
         .WillOnce(Return(good_hash));
 
     mp::AuthenticateRequest request;
@@ -104,7 +104,7 @@ TEST_F(TestDaemonAuthenticate, authenticatePassphraseMismatchReturnsError)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::passphrase_key))).WillOnce(Return(saved_hash));
 
-    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(QString("foo"))))
+    EXPECT_CALL(*mock_utils, generate_scrypt_hash_for(Eq(std::string("foo"))))
         .WillOnce(Return(bad_hash));
 
     mp::AuthenticateRequest request;

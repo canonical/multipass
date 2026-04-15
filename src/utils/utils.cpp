@@ -34,8 +34,10 @@
 #include <QRegularExpression>
 #include <QStorageInfo>
 #include <QSysInfo>
-#include <QUuid>
 #include <QtGlobal>
+#include <boost/uuid.hpp>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 
 #include <algorithm>
 #include <array>
@@ -48,16 +50,12 @@
 #include <regex>
 #include <sstream>
 
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
 namespace
 {
 constexpr auto category = "utils";
-constexpr auto scrypt_hash_size{64};
 } // namespace
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept
     : Singleton<Utils>::Singleton{pass}
@@ -137,11 +135,12 @@ std::string mp::Utils::get_kernel_version() const
     return QSysInfo::kernelVersion().toStdString();
 }
 
-QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
+std::string mp::Utils::generate_scrypt_hash_for(const std::string& passphrase) const
 {
-    QByteArray hash(scrypt_hash_size, '\0');
+    unsigned char digest[EVP_MAX_MD_SIZE] = {0};
 
-    if (!EVP_PBE_scrypt(passphrase.toStdString().c_str(),
+    // TODO: Move to openssl singleton when we have one
+    if (!EVP_PBE_scrypt(passphrase.c_str(),
                         passphrase.size(),
                         nullptr,
                         0,
@@ -149,11 +148,11 @@ QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
                         8,
                         1,
                         0,
-                        reinterpret_cast<unsigned char*>(hash.data()),
-                        scrypt_hash_size))
+                        digest,
+                        sizeof(digest)))
         throw std::runtime_error("Cannot generate passphrase hash");
 
-    return QString(hash.toHex());
+    return fmt::format("{:02x}", fmt::join(digest, digest + sizeof(digest), ""));
 }
 
 QDir mp::utils::base_dir(const QString& path)
@@ -215,6 +214,17 @@ std::string& mp::utils::trim_newline(std::string& s)
     return s;
 }
 
+bool mp::utils::istarts_with(std::string_view str, std::string_view prefix)
+{
+    if (prefix.size() > str.size())
+        return false;
+    // TODO(C++23): Use std::ranges::starts_with
+    return std::ranges::equal(
+        str | std::views::take(prefix.size()),
+        prefix,
+        [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
+}
+
 // Escape all characters which need to be escaped in the shell.
 std::string mp::utils::escape_for_shell(const std::string& in)
 {
@@ -262,8 +272,10 @@ std::vector<std::string> mp::utils::split(const std::string& string, const std::
 
 std::string mp::utils::generate_mac_address()
 {
-    std::array<intmax_t, 3> octets{
-        {MP_UTILS.random_int(0, 255), MP_UTILS.random_int(0, 255), MP_UTILS.random_int(0, 255)}};
+    thread_local std::mt19937 gen{std::random_device{}()};
+    thread_local std::uniform_int_distribution<int> dist{0, 255};
+
+    std::array<int, 3> octets{{dist(gen), dist(gen), dist(gen)}};
     return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
 }
 
@@ -353,11 +365,22 @@ QString mp::utils::get_multipass_storage()
     return QString::fromUtf8(qgetenv(mp::multipass_storage_env_var));
 }
 
-QString mp::utils::make_uuid(const std::optional<std::string>& seed)
+std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
 {
-    auto uuid =
-        seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
-    return uuid.toString(QUuid::WithoutBraces);
+    boost::uuids::uuid uuid{};
+
+    if (seed)
+    {
+        boost::uuids::name_generator_md5 gen(boost::uuids::nil_uuid());
+        uuid = gen(*seed);
+    }
+    else
+    {
+        thread_local boost::uuids::random_generator gen;
+        uuid = gen();
+    }
+
+    return boost::uuids::to_string(uuid);
 }
 
 std::string mp::utils::contents_of(const multipass::Path& file_path)
@@ -396,7 +419,7 @@ std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
     return bytes;
 }
 
-QString mp::Utils::make_uuid(const std::optional<std::string>& seed) const
+std::string mp::Utils::make_uuid(const std::optional<std::string>& seed) const
 {
     return mp::utils::make_uuid(seed);
 }
@@ -662,22 +685,6 @@ bool mp::Utils::invalid_target_path(const QString& target_path) const
         QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
 
     return matcher.match(target_path).hasMatch();
-}
-
-long long mp::Utils::random_int(long long a, long long b) const
-{
-    static std::default_random_engine gen = [] {
-        // seed the rng with the time at first call
-        auto seed = std::chrono::system_clock::now().time_since_epoch().count();
-        return std::default_random_engine(seed);
-    }();
-
-    if (a > b) // avoid undefined behavior, this can only happen by programmer error
-        throw std::logic_error(fmt::format("random range [{}, {}] is invalid", a, b));
-
-    std::uniform_int_distribution<long long> dist{a, b};
-
-    return dist(gen);
 }
 
 auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,

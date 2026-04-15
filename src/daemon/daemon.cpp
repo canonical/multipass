@@ -108,10 +108,7 @@ const std::unordered_set<std::string> no_bridging_release =
         "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
         "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
         "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
-const std::unordered_set<std::string> no_bridging_remote = {}; // images with other remote specified
-const std::unordered_set<std::string> no_bridging_remoteless = {
-    "core",
-    "core16"}; // images which do not use remote
+const std::unordered_set<std::string> no_bridging_core = {"core16"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 {
@@ -354,17 +351,16 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     {
         specified_image = image;
 
-        dont_allow_auto = (no_bridging_remoteless.find(image) != no_bridging_remoteless.end()) ||
-                          (no_bridging_release.find(image) != no_bridging_release.end());
+        dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
     }
     else
     {
         specified_image = remote + ":" + image;
 
-        dont_allow_auto = no_bridging_remote.find(specified_image) != no_bridging_remote.end();
-
-        if (!dont_allow_auto && (remote == mp::release_remote || remote == mp::daily_remote))
+        if (remote == mp::release_remote || remote == mp::daily_remote)
             dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+        else if (remote == mp::core_remote)
+            dont_allow_auto = no_bridging_core.find(image) != no_bridging_core.end();
     }
 
     for (const auto& net : request->network_options())
@@ -377,16 +373,7 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
         }
 
         if (!factory_networks)
-        {
-            try
-            {
-                factory_networks = factory.networks();
-            }
-            catch (const mp::NotImplementedOnThisBackendException&)
-            {
-                throw mp::NotImplementedOnThisBackendException("networks");
-            }
-        }
+            factory_networks = factory.networks();
 
         if (dont_allow_auto && net.mode() == multipass::LaunchRequest_NetworkOptions_Mode_AUTO)
         {
@@ -1355,7 +1342,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
 
         auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
-        if (!vm_image.image_path.isEmpty() && !QFile::exists(vm_image.image_path))
+        if (!vm_image.image_path.empty() && !MP_FILEOPS.exists(vm_image.image_path))
         {
             mpl::warn(category,
                       "Could not find image for '{}'. Expected location: {}",
@@ -1365,7 +1352,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        const auto instance_dir = mp::utils::base_dir(vm_image.image_path);
+        const auto instance_dir =
+            mp::utils::base_dir(MP_PLATFORM.path_to_qstr(vm_image.image_path));
         const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
         mp::VirtualMachineDescription vm_desc{spec.num_cores,
                                               spec.mem_size,
@@ -2716,8 +2704,7 @@ try
             "automatically authenticated."));
     }
 
-    auto hashed_passphrase =
-        MP_UTILS.generate_scrypt_hash_for(QString::fromStdString(request->passphrase()));
+    auto hashed_passphrase = MP_UTILS.generate_scrypt_hash_for(request->passphrase());
 
     if (stored_hash != hashed_passphrase)
     {
@@ -3307,7 +3294,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 
-            delete prepare_future_watcher;
+            prepare_future_watcher->deleteLater();
         });
 
     auto make_vm_description =
@@ -3650,7 +3637,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watcher(
     std::function<void()> const& finished_op)
 {
-    auto uuid = mp::utils::make_uuid().toStdString();
+    auto uuid = mp::utils::make_uuid();
     auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
     auto future_watcher_p = future_watcher.get();
     async_future_watchers.insert({uuid, std::move(future_watcher)});

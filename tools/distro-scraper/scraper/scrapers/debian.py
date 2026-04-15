@@ -8,7 +8,6 @@ from ..models import SUPPORTED_ARCHITECTURES
 RELEASE_FILE_URL = "https://deb.debian.org/debian/dists/stable/Release"
 MANIFEST_URL_TEMPLATE = "https://cloud.debian.org/images/cloud/{codename}/latest/debian-{version}-generic-{arch}.json"
 IMAGE_BASE_URL = "https://cloud.debian.org/images/cloud/"
-DEFAULT_TIMEOUT = 10
 
 
 class DebianScraper(BaseScraper):
@@ -37,35 +36,6 @@ class DebianScraper(BaseScraper):
                 return item
         return None
 
-    async def _fetch_text(
-        self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
-    ) -> str:
-        """
-        GET a URL and return its text. Raises aiohttp.ClientError on bad response.
-        """
-        self.logger.info("Fetching Debian releases from %s", url)
-        async with session.get(
-            url, timeout=aiohttp.ClientTimeout(total=timeout)
-        ) as resp:
-            resp.raise_for_status()
-            return await resp.text()
-
-    async def _fetch_json(
-        self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
-    ) -> dict | None:
-        """
-        GET a URL and return JSON-decoded content, or None if not found (404).
-        """
-        self.logger.info("Fetching Debian manifest from %s", url)
-        async with session.get(
-            url, timeout=aiohttp.ClientTimeout(total=timeout)
-        ) as resp:
-            if resp.status == 404:
-                self.logger.info("Manifest not found (404): %s", url)
-                return None
-            resp.raise_for_status()
-            return await resp.json()
-
     def _parse_release_file(self, content: str) -> tuple[str, str]:
         """
         Parse RFC822-style Release file and return important fields.
@@ -80,28 +50,6 @@ class DebianScraper(BaseScraper):
             "Parsed Release file: Version=%s, Codename=%s", version, codename
         )
         return version, codename
-
-    async def _head_content_length(
-        self, session: aiohttp.ClientSession, url: str, timeout: int = DEFAULT_TIMEOUT
-    ) -> int | None:
-        """
-        HEAD the URL and return Content-Length as int if present, otherwise None.
-
-        Raises aiohttp.ClientError on non-2xx responses.
-        """
-        self.logger.info("Sending HEAD request to %s", url)
-        async with session.head(
-            url, allow_redirects=True, timeout=aiohttp.ClientTimeout(total=timeout)
-        ) as resp:
-            resp.raise_for_status()
-            length = resp.headers.get("Content-Length")
-            if length is None:
-                return None
-            try:
-                return int(length)
-            except (TypeError, ValueError):
-                self.logger.warning("Invalid Content-Length header: %s", length)
-                return None
 
     def _decode_sha512_b64_to_hex(self, digest_annotation: str | None) -> str | None:
         """

@@ -15,6 +15,7 @@ This document demonstrates how to configure the location where Multipass stores 
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 First, stop the Multipass daemon:
 
@@ -87,6 +88,7 @@ sudo rm -rf /var/snap/multipass/common/cache/multipassd
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 First, become `root`:
 
@@ -125,6 +127,7 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 First, open a PowerShell prompt with administration privileges.
 
@@ -184,6 +187,7 @@ Remove-Item -Path "C:\ProgramData\Multipass\data\vault\*" -Recurse
 `````{tab-set}
 
 ````{tab-item} Linux
+:sync: Linux
 
 Stop the Multipass daemon:
 
@@ -232,6 +236,7 @@ sudo rm -rf <path>
 ````
 
 ````{tab-item} macOS
+:sync: macOS
 
 First, become `root`:
 
@@ -266,6 +271,7 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 ````
 
 ````{tab-item} Windows
+:sync: Windows
 
 First, open a PowerShell prompt with administrator privileges.
 

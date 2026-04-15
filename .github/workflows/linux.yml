@@ -164,7 +164,7 @@ jobs:
       # integration where the snapd is auto-refreshing itself on
       # container start.
       #  https://github.com/canonical/craft-providers/issues/391
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@v4
       with:
         # We have to set a value for this as it's not optional
         # https://github.com/nick-fields/retry/issues/51
@@ -272,7 +272,7 @@ jobs:
 
     - name: Upload coverage
       if: ${{ matrix.build-type == 'Coverage' }}
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         directory: ${{ steps.coverage-setup.outputs.build }}
       env:
@@ -370,7 +370,7 @@ jobs:
         snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
 
     - name: Delete unused artifacts from github
-      uses: geekyeggo/delete-artifact@v5
+      uses: geekyeggo/delete-artifact@v6
       with:
         name: ${{ needs.BuildAndTest.outputs.snap-file }}
         failOnError: false
@@ -392,3 +392,15 @@ jobs:
           Scheduled [Linux](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
         MATTERMOST_USERNAME: ${{ github.triggering_actor }}
         MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
+  Dispatch-CLI-Tests-Workflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}

@@ -1,7 +1,7 @@
 (explanation-platform)=
 # Platform
 
-> See also: [How to install Multipass](/how-to-guides/install-multipass), [Host](/explanation/host), [Driver](/explanation/driver)
+> See also: [How to install Multipass](/how-to-guides/install-multipass), [Driver](/explanation/driver)
 
 In Multipass, **platform** refers to the host computer's operating system. This can be Windows, macOS, or Linux.
 

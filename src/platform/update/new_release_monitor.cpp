@@ -40,55 +40,54 @@ constexpr auto json_description = "description";
 mp::NewReleaseInfo mp::tag_invoke(const boost::json::value_to_tag<mp::NewReleaseInfo>&,
                                   const boost::json::value& json)
 {
-    return {value_to<QString>(json.at(::json_tag_name)),
-            value_to<QString>(json.at(::json_html_url)),
-            mp::lookup_or<QString>(json, ::json_title, ""),
-            mp::lookup_or<QString>(json, ::json_description, "")};
+    return {value_to<std::string>(json.at(::json_tag_name)),
+            value_to<std::string>(json.at(::json_html_url)),
+            mp::lookup_or<std::string>(json, ::json_title, ""),
+            mp::lookup_or<std::string>(json, ::json_description, "")};
 }
 
 class mp::LatestReleaseChecker : public QThread
 {
     Q_OBJECT
 public:
-    LatestReleaseChecker(QString update_url) : update_url(update_url)
+    LatestReleaseChecker(std::string url) : update_url(QString::fromStdString(url))
     {
     }
 
     void run() override
     {
-        QUrl url(update_url);
         try
         {
             mp::URLDownloader downloader(::timeout);
-            QByteArray json = downloader.download(url);
+            QByteArray json = downloader.download(update_url);
             const auto manifest = boost::json::parse(std::string_view{json});
             auto release = value_to<mp::NewReleaseInfo>(manifest);
 
             mpl::debug("update",
                        "Latest Multipass release available is version {}",
-                       qUtf8Printable(release.version));
+                       release.version);
 
             emit latest_release_found(release);
         }
         catch (const mp::DownloadException& e)
         {
-            mpl::info("update", "Failed to fetch update info: {}", qUtf8Printable(e.what()));
+            mpl::warn("update", "Failed to fetch update info: {}", qUtf8Printable(e.what()));
         }
         catch (const std::runtime_error& e)
         {
-            mpl::info("update", "Failed to parse update info: {}", qUtf8Printable(e.what()));
+            mpl::error("update", "Failed to parse update info: {}", qUtf8Printable(e.what()));
         }
     }
 signals:
     void latest_release_found(const multipass::NewReleaseInfo& release);
 
 private:
-    const QString update_url;
+    const QUrl update_url;
 };
 
-mp::NewReleaseMonitor::NewReleaseMonitor(const QString& current_version,
+mp::NewReleaseMonitor::NewReleaseMonitor(const std::string& current_version,
                                          std::chrono::steady_clock::duration refresh_rate,
-                                         const QString& update_url)
+                                         const std::string& update_url)
     : current_version(current_version), update_url(update_url)
 {
     qRegisterMetaType<multipass::NewReleaseInfo>(); // necessary to allow custom type be passed in
@@ -112,24 +111,22 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
 {
     try
     {
-        const multipass::opaque_semver current{current_version.toStdString()};
-        const multipass::opaque_semver latest{latest_release.version.toStdString()};
+        const multipass::opaque_semver current{current_version};
+        const multipass::opaque_semver latest{latest_release.version};
         // Deliberately keeping all version string parsing here. If any version string
         // not of correct form, throw.
         if (current < latest)
         {
             new_release = latest_release;
-            mpl::info("update",
-                      "A New Multipass release is available: {}",
-                      qUtf8Printable(new_release->version));
+            mpl::info("update", "A New Multipass release is available: {}", new_release->version);
         }
     }
     catch (const std::invalid_argument& e)
     {
         mpl::warn("update",
                   "Version strings {} and {} not comparable: {}",
-                  qUtf8Printable(current_version),
-                  qUtf8Printable(latest_release.version),
+                  current_version,
+                  latest_release.version,
                   e.what());
     }
 }

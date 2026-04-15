@@ -1,0 +1,274 @@
+name: Windows
+
+on:
+  workflow_call:
+  schedule:
+  # Daily at 00:34 UTC
+    - cron: 34 0 * * *
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+  S3_BUCKET: multipass-ci
+  USERNAME: ${{ github.repository_owner }}
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
+
+jobs:
+  GetMatrix:
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - name: Determine build matrix
+      id: set-matrix
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const matrix = { include: [] };
+
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025"
+          });
+
+          core.setOutput('matrix', JSON.stringify(matrix));
+
+  BuildAndTest:
+    needs: GetMatrix
+
+    permissions:
+      contents: read
+      packages: write
+
+    if: ${{ !cancelled() }}
+
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+      fail-fast: ${{ github.event_name == 'merge_group' }}
+
+    outputs:
+      build-label: ${{ steps.build-params.outputs.label }}
+      windows-pkg-url: ${{ steps.publish-data.outputs.windows-2025-s3-url }}
+
+    name: Build and Test (${{ matrix.name }})
+    runs-on: ${{ matrix.runs-on }}
+
+    env:
+      BUILD_DIR: ${{ github.workspace }}/build
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
+      RUSTC_WRAPPER: "sccache"
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0 # Need full history to derive version
+        submodules: 'recursive'
+
+    - name: Enable symlinks
+      run: git config --local core.symlinks true
+
+    - name: Disable auto CRLF on Windows
+      run: git config --local core.autocrlf false
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
+    - name: Install specific QEMU from Choco
+      uses: crazy-max/ghaction-chocolatey@v4
+      with:
+        args: install --yes qemu --version=2023.4.24
+
+    - name: Install other packages from Choco
+      uses: crazy-max/ghaction-chocolatey@v4
+      with:
+        args: install --yes wget unzip
+
+    - name: Set up vcpkg
+      id: setup-vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+
+    - name: Configure NuGet Source
+      id: setup_nuget
+      continue-on-error: true
+      shell: 'bash'
+      run: |
+        echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
+
+        # Retrieve vcpkg's nuget.
+        NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        MONO_WRAPPER=""
+
+        $MONO_WRAPPER "$NUGET_PATH" \
+          sources add \
+          -source "${{ env.FEED_URL }}" \
+          -storepasswordincleartext \
+          -name "GitHubPackages" \
+          -username "${{ env.USERNAME }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+
+        $MONO_WRAPPER "$NUGET_PATH" \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "${{ env.FEED_URL }}"
+
+    - name: Determine cache key
+      id: cache-key
+      shell: bash
+      run: |
+        # Find common base between main and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
+        echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+
+    - name: Restore sccache
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+        restore-keys: sccache-${{ matrix.runs-on }}
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.9
+      continue-on-error: true
+      with:
+        version: "v0.12.0"
+
+    - name: Install Windows ADK
+      uses: crazy-max/ghaction-chocolatey@v4
+      with:
+        args: install --yes windows-adk-deploy
+
+    - name: Install cmake
+      uses: lukka/get-cmake@v4.3.0
+
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Configure
+      run: >
+        cmake
+        -B${{ env.BUILD_DIR }}
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -GNinja
+        -DMULTIPASS_UPSTREAM=origin
+        -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+        ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
+        ${{ github.event_name == 'schedule' && '-DMP_ALLOW_OPTIONAL_FEATURES=OFF' || '' }}
+        ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ${{ env.BUILD_DIR }}
+
+    - name: Test
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        bin/multipass_tests
+
+    - name: Package
+      id: cmake-package
+      working-directory: ${{ env.BUILD_DIR }}
+      run: >
+        cmake --build . --target package
+
+        echo "name=$( ( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name )" >>
+        $env:GITHUB_OUTPUT
+
+        echo "path=$( ( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName )" >>
+        $env:GITHUB_OUTPUT
+
+    - name: Get package logs
+      if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
+      run: >
+        ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR,
+        runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
+
+    - name: Upload package
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
+        path: ${{ steps.cmake-package.outputs.path }}
+        if-no-files-found: error
+        retention-days: 7
+
+    # Put the package on S3 for public consumption
+    - name: Publish package on S3
+      id: s3-upload
+      uses: canonical/actions/s3-upload@release
+      if: ${{ env.AWS_ACCESS_KEY_ID }}
+      with:
+        path: ${{ steps.cmake-package.outputs.path }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ steps.build-params.outputs.label }}
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    # This shows up on this run's page
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
+    - name: Store publishing outputs
+      if: always()
+      id: publish-data
+      shell: bash
+      run: |
+        NAME="${{ steps.cmake-package.outputs.name }}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
+
+        echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+        echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
+
+        echo "${{ matrix.runs-on }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
+
+    - name: Save sccache
+      uses: actions/cache/save@v5
+      if: ${{ github.ref == 'refs/heads/main' }}
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+
+  DispatchCLITestsWorkflow:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
+
+  Report-Workflow-Failure:
+    needs: [BuildAndTest]
+    if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report workflow failure
+      uses: mattermost/action-mattermost-notify@master
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: multipass
+        TEXT: |
+          :red_circle: @mp
+          Scheduled [Windows](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

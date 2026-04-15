@@ -12,7 +12,8 @@ on:
 
 permissions:
   contents: read
-  checks: read
+  checks: write
+  actions: read
   packages: write
 
 jobs:
@@ -31,7 +32,7 @@ jobs:
 
       - name: Detect changed files
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           # 'base' and 'ref' are ignored for pull requests
           # For merge group events, compare against the target branch (main)
@@ -44,7 +45,8 @@ jobs:
               - 'docs/**'
             code:
               - ".github/workflows/linux*"
-              - ".github/workflows/windows-macos.yml"
+              - ".github/workflows/macos.yml"
+              - ".github/workflows/windows.yml"
               - ".github/.codecov.yml"
               - "3rd-party/**"
               - "completions/**"
@@ -82,11 +84,18 @@ jobs:
     uses: "./.github/workflows/linux.yml"
     secrets: inherit
 
-  windows-macos:
-    name: Windows/macOS
+  macos:
+    name: macOS
     needs: filter
     if: needs.filter.outputs.code == 'true'
-    uses: "./.github/workflows/windows-macos.yml"
+    uses: "./.github/workflows/macos.yml"
+    secrets: inherit
+
+  windows:
+    name: Windows
+    needs: filter
+    if: needs.filter.outputs.code == 'true'
+    uses: "./.github/workflows/windows.yml"
     secrets: inherit
 
   hooks:
@@ -99,7 +108,7 @@ jobs:
     name: Finalize
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [docs, lint, linux, windows-macos, hooks]
+    needs: [docs, lint, linux, windows, macos, hooks]
     steps:
       - name: Docs failure check
         if: ${{
@@ -111,7 +120,8 @@ jobs:
         if: ${{
           needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
           needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
-          needs.windows-macos.result == 'failure' || needs.windows-macos.result == 'cancelled'
+          needs.windows.result == 'failure' || needs.windows.result == 'cancelled' ||
+          needs.macos.result == 'failure' || needs.macos.result == 'cancelled'
           }}
         run: exit 1
 

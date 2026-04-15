@@ -2,28 +2,28 @@
     "errors": [
     ],
     "info": {
-        "hale-roller": {
-            "pristine": {
-                "comment": "A first snapshot",
-                "parent": ""
-            },
-            "rocking": {
-                "comment": "A very long comment that should be truncated by the table formatter",
-                "parent": "pristine"
-            },
-            "rolling": {
-                "comment": "Loaded with stuff",
-                "parent": "pristine"
-            }
-        },
         "prosperous-spadefish": {
             "snapshot10": {
-                "comment": "",
-                "parent": "snapshot2"
+                "parent": "snapshot2",
+                "comment": ""
             },
             "snapshot2": {
-                "comment": "Before restoring snap1\nContains a newline that\r\nshould be truncated",
-                "parent": ""
+                "parent": "",
+                "comment": "Before restoring snap1\nContains a newline that\r\nshould be truncated"
+            }
+        },
+        "hale-roller": {
+            "rolling": {
+                "parent": "pristine",
+                "comment": "Loaded with stuff"
+            },
+            "rocking": {
+                "parent": "pristine",
+                "comment": "A very long comment that should be truncated by the table formatter"
+            },
+            "pristine": {
+                "parent": "",
+                "comment": "A first snapshot"
             }
         }
     }

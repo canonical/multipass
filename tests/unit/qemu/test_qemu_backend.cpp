@@ -84,7 +84,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                       "",
                                                       {},
                                                       "",
-                                                      {dummy_image.name(), "", "", "", "", {}, {}},
+                                                      {dummy_image.path(), "", "", "", "", {}, {}},
                                                       dummy_cloud_init_iso.name(),
                                                       {},
                                                       {},

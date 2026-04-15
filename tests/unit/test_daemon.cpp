@@ -887,9 +887,6 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
 
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 {
-    // generate_unused_mac_address works by randomly guessing
-    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
-
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
@@ -933,9 +930,6 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
 {
-    // generate_unused_mac_address works by randomly guessing
-    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
-
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
@@ -1410,14 +1404,9 @@ std::vector<std::string> old_releases{
     "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
     "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
 
-std::vector<std::string> old_remoteless_rels{"core", "core16"};
-
 INSTANTIATE_TEST_SUITE_P(DaemonRefuseRelease,
                          RefuseBridging,
                          Combine(Values("release", "daily", ""), ValuesIn(old_releases)));
-INSTANTIATE_TEST_SUITE_P(DaemonRefuseRemoteless,
-                         RefuseBridging,
-                         Combine(Values(""), ValuesIn(old_remoteless_rels)));
 
 TEST_F(Daemon, failsWithImageNotFoundAlsoIfImageIsAlsoNonBridgeable)
 {
@@ -1526,6 +1515,10 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         fmt::format("{{\n{},\n{}\n}}", std::move(stayed_json), std::move(gone_json)));
     config_builder.data_directory = temp_dir->path();
 
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
+
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, stayed), _, _, _, _))
         .WillRepeatedly(
@@ -1549,7 +1542,6 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
@@ -1651,9 +1643,6 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
 
 TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
 {
-    // generate_unused_mac_address works by randomly guessing
-    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
-
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
@@ -1713,9 +1702,6 @@ TEST_F(Daemon, releasesMacsWhenLaunchFails)
 
 TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
 {
-    // generate_unused_mac_address works by randomly guessing
-    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, random_int, mp::Utils);
-
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
@@ -2316,6 +2302,8 @@ TEST_F(Daemon, purgePersistsInstances)
     config_builder.data_directory = temp_dir->path();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())

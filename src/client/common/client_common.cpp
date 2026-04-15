@@ -81,6 +81,7 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
 
     return opts;
 }
+
 } // namespace
 
 mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command,
@@ -88,11 +89,14 @@ mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command,
                                                      const grpc::Status& status,
                                                      const std::string& error_details)
 {
+    const auto trimmed =
+        std::string_view(error_details).substr(0, error_details.find_last_not_of("\r\n") + 1);
+
     fmt::print(cerr,
                "{} failed: {}\n{}",
                command,
                status.error_message(),
-               !error_details.empty() ? fmt::format("{}\n", error_details) : "");
+               trimmed.empty() ? "" : fmt::format("{}\n", trimmed));
 
     return return_code_for(status.error_code());
 }

@@ -24,10 +24,6 @@
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 
-#include <QDir>
-#include <QFile>
-#include <QTemporaryFile>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -62,12 +58,11 @@ mp::AliasDict::~AliasDict()
 
 std::filesystem::path mp::AliasDict::default_filename()
 {
-    const auto file_name = QStringLiteral("%1_aliases.json").arg(mp::client_name);
-    const auto user_config_path =
-        QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
-    const auto cli_client_dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
+    const auto file_name = fmt::format("{}_aliases.json", mp::client_name);
+    const std::filesystem::path user_config_path{
+        MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation).toStdString()};
 
-    return cli_client_dir_path.absoluteFilePath(file_name).toStdString();
+    return absolute(user_config_path / mp::client_name / file_name);
 }
 
 mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem::path& filename)
@@ -298,8 +293,7 @@ void mp::AliasDict::save_file()
     sanitize_contexts();
 
     auto json = boost::json::value_from(*this);
-    MP_FILEOPS.write_transactionally(QString::fromStdString(aliases_file.string()),
-                                     pretty_print(json));
+    MP_FILEOPS.write_transactionally(aliases_file, pretty_print(json));
 }
 
 // This function removes the contexts which do not contain aliases, except the active context.

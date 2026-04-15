@@ -21,7 +21,6 @@
 #include <multipass/qt_delete_later_unique_ptr.h>
 
 #include <QObject>
-#include <QString>
 #include <QTimer>
 
 #include <optional>
@@ -47,9 +46,9 @@ public:
     static constexpr auto default_update_url =
         "https://canonical.com/static/files/latest-multipass-releases.json";
 
-    NewReleaseMonitor(const QString& current_version,
+    NewReleaseMonitor(const std::string& current_version,
                       std::chrono::steady_clock::duration refresh_rate,
-                      const QString& update_url = default_update_url);
+                      const std::string& update_url = default_update_url);
     ~NewReleaseMonitor();
 
     std::optional<NewReleaseInfo> get_new_release() const;
@@ -59,7 +58,7 @@ private slots:
     void latest_release_found(const NewReleaseInfo& latest_release);
 
 private:
-    const QString current_version, update_url;
+    const std::string current_version, update_url;
     std::optional<NewReleaseInfo> new_release;
     QTimer refresh_timer;
 

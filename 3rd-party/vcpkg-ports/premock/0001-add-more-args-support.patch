@@ -1,0 +1,29 @@
+diff --git a/premock.hpp b/premock.hpp
+index 151de47..1f323f5 100644
+--- a/premock.hpp
++++ b/premock.hpp
+@@ -579,6 +579,24 @@ struct FunctionTraits<R(*)(A...)> {
+ #define UT_FUNC_ARGS_9(func) UT_FUNC_ARGS_8(func), UT_FUNC_TYPE_AND_ARG(func, 8)
+ #define UT_FUNC_FWD_9 UT_FUNC_FWD_8, UT_FUNC_ARG(8)
+ 
++#define UT_FUNC_ARGS_10(func) UT_FUNC_ARGS_9(func), UT_FUNC_TYPE_AND_ARG(func, 9)
++#define UT_FUNC_FWD_10 UT_FUNC_FWD_9, UT_FUNC_ARG(9)
++
++#define UT_FUNC_ARGS_11(func) UT_FUNC_ARGS_10(func), UT_FUNC_TYPE_AND_ARG(func, 10)
++#define UT_FUNC_FWD_11 UT_FUNC_FWD_10, UT_FUNC_ARG(10)
++
++#define UT_FUNC_ARGS_12(func) UT_FUNC_ARGS_11(func), UT_FUNC_TYPE_AND_ARG(func, 11)
++#define UT_FUNC_FWD_12 UT_FUNC_FWD_11, UT_FUNC_ARG(11)
++
++#define UT_FUNC_ARGS_13(func) UT_FUNC_ARGS_12(func), UT_FUNC_TYPE_AND_ARG(func, 12)
++#define UT_FUNC_FWD_13 UT_FUNC_FWD_12, UT_FUNC_ARG(12)
++
++#define UT_FUNC_ARGS_14(func) UT_FUNC_ARGS_13(func), UT_FUNC_TYPE_AND_ARG(func, 13)
++#define UT_FUNC_FWD_14 UT_FUNC_FWD_13, UT_FUNC_ARG(13)
++
++#define UT_FUNC_ARGS_15(func) UT_FUNC_ARGS_14(func), UT_FUNC_TYPE_AND_ARG(func, 14)
++#define UT_FUNC_FWD_15 UT_FUNC_FWD_14, UT_FUNC_ARG(14)
++
+ 
+ /**
+  The implementation of the C++ mock for function func. This version makes the mock

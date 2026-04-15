@@ -12,12 +12,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_library(qemu_platform_detail
-  qemu_platform_detail_macos.cpp)
+add_library(qemu_platform_impl
+  qemu_platform_macos.cpp)
 
-target_include_directories(qemu_platform_detail PRIVATE ../)
+target_include_directories(qemu_platform_impl PRIVATE ../)
 
-target_link_libraries(qemu_platform_detail
+target_link_libraries(qemu_platform_impl
   fmt::fmt-header-only
   logger
   utils

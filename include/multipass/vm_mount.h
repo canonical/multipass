@@ -88,18 +88,12 @@ VMMount tag_invoke(const boost::json::value_to_tag<VMMount>&, const boost::json:
 namespace fmt
 {
 template <>
-struct formatter<multipass::VMMount::MountType>
+struct formatter<multipass::VMMount::MountType> : formatter<int>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::VMMount::MountType& mount_type, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", static_cast<int>(mount_type));
+        return formatter<int>::format(static_cast<int>(mount_type), ctx);
     }
 };
 } // namespace fmt

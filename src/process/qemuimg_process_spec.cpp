@@ -23,9 +23,11 @@ namespace mp = multipass;
 namespace mpu = multipass::utils;
 
 mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args,
-                                           const QString& source_image,
-                                           const QString& target_image)
-    : args{args}, source_image{source_image}, target_image{target_image}
+                                           const std::filesystem::path& source_image,
+                                           const std::filesystem::path& target_image)
+    : args{args},
+      source_image{QString::fromStdString(source_image.string())},
+      target_image{QString::fromStdString(target_image.string())}
 {
 }
 
