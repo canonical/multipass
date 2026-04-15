@@ -65,13 +65,15 @@ Learn the complete lifecycle of a virtual machine.
 
 ## How this documentation is organized
 
-[Tutorial](tutorial-index) takes you step-by-step through your first Multipass workflow, from installation to launching and working with instances.
+This documentation uses the [Diátaxis documentation structure](https://diataxis.fr/).
 
-[How-to guides](how-to-guides-index) assume you have basic familiarity with Multipass. They cover practical tasks such as instance management, configuration, networking, and troubleshooting.
+- [Tutorial](tutorial-index) takes you step-by-step through your first Multipass workflow, from installation to launching and working with instances.
 
-[Reference](reference-index) provides technical details on CLI commands, settings, architecture, and platform-specific behavior.
+- [How-to guides](how-to-guides-index) assume you have basic familiarity with Multipass. They cover practical tasks such as instance management, configuration, networking, and troubleshooting.
 
-[Explanation](explanation-index) includes conceptual overviews, background context, and deeper discussion of how Multipass works.
+- [Reference](reference-index) provides technical details on CLI commands, settings, architecture, and platform-specific behavior.
+
+- [Explanation](explanation-index) includes conceptual overviews, background context, and deeper discussion of how Multipass works.
 
 ---
 
