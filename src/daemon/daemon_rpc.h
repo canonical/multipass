@@ -78,6 +78,9 @@ signals:
     void on_clone(const CloneRequest* request,
                   grpc::ServerReaderWriter<CloneReply, CloneRequest>* server,
                   std::promise<grpc::Status>* status_promise);
+    void on_rename(const RenameRequest* request,
+                   grpc::ServerReaderWriter<RenameReply, RenameRequest>* server,
+                   std::promise<grpc::Status>* status_promise);
     void on_networks(const NetworksRequest* request,
                      grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server,
                      std::promise<grpc::Status>* status_promise);
@@ -161,6 +164,8 @@ protected:
                       grpc::ServerReaderWriter<ListReply, ListRequest>* server) override;
     grpc::Status clone(grpc::ServerContext* context,
                        grpc::ServerReaderWriter<CloneReply, CloneRequest>* server) override;
+    grpc::Status rename(grpc::ServerContext* context,
+                        grpc::ServerReaderWriter<RenameReply, RenameRequest>* server) override;
     grpc::Status networks(
         grpc::ServerContext* context,
         grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server) override;

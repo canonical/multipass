@@ -229,6 +229,17 @@ grpc::Status mp::DaemonRpc::clone(grpc::ServerContext* context,
     return verify_client_and_dispatch_operation(adapted_on_clone, client_cert_from(context));
 }
 
+grpc::Status mp::DaemonRpc::rename(grpc::ServerContext* context,
+                                   grpc::ServerReaderWriter<RenameReply, RenameRequest>* server)
+{
+    RenameRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_rename, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
 grpc::Status mp::DaemonRpc::networks(
     grpc::ServerContext* context,
     grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server)

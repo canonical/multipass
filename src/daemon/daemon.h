@@ -154,6 +154,10 @@ public slots:
                        grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>* server,
                        std::promise<grpc::Status>* status_promise);
 
+    virtual void rename(const RenameRequest* request,
+                        grpc::ServerReaderWriterInterface<RenameReply, RenameRequest>* server,
+                        std::promise<grpc::Status>* status_promise);
+
     virtual void snapshot(const SnapshotRequest* request,
                           grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
                           std::promise<grpc::Status>* status_promise);

@@ -495,6 +495,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
     QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_rename, &daemon, &mp::Daemon::rename);
     QObject::connect(&rpc, &mp::DaemonRpc::on_networks, &daemon, &mp::Daemon::networks);
     QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
     QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover);
@@ -2878,6 +2879,97 @@ try
         rollback_resources.dismiss();
     }
     status_promise->set_value(src_vm_status);
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
+}
+
+void mp::Daemon::rename(const RenameRequest* request,
+                        grpc::ServerReaderWriterInterface<RenameReply, RenameRequest>* server,
+                        std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<RenameReply, RenameRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    const auto& old_name = request->instance_name();
+    const auto& new_name = request->new_name();
+
+    const auto [instance_trail, instance_status] =
+        find_instance_and_react(operative_instances,
+                                deleted_instances,
+                                old_name,
+                                require_operative_instances_reaction);
+    if (!instance_status.ok())
+        return status_promise->set_value(instance_status);
+
+    assert(instance_trail.index() == 0);
+    const auto source_vm_ptr = std::get<0>(instance_trail)->second;
+    assert(source_vm_ptr);
+
+    const VirtualMachine::State vm_state = source_vm_ptr->current_state();
+    if (vm_state != VirtualMachine::State::stopped && vm_state != VirtualMachine::State::off)
+    {
+        return status_promise->set_value(
+            grpc::Status{grpc::FAILED_PRECONDITION,
+                         "Multipass can only rename stopped instances."});
+    }
+
+    if (old_name == new_name)
+    {
+        return status_promise->set_value(grpc::Status::OK);
+    }
+
+    if (auto dest_status = validate_dest_name(new_name); !dest_status.ok())
+        return status_promise->set_value(std::move(dest_status));
+
+    const std::filesystem::path old_dir{
+        config->factory->get_instance_directory(old_name).toStdString()};
+    const std::filesystem::path new_dir{
+        config->factory->get_instance_directory(new_name).toStdString()};
+
+    std::filesystem::rename(old_dir, new_dir);
+
+    config->vault->rename(old_name, new_name);
+
+    auto vm_image = fetch_image_for(new_name, *config->factory, *config->vault);
+    const auto instance_dir = mp::utils::base_dir(MP_PLATFORM.path_to_qstr(vm_image.image_path));
+    const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
+
+    auto& spec = vm_instance_specs[old_name];
+    mp::VirtualMachineDescription vm_desc{spec.num_cores,
+                                          spec.mem_size,
+                                          spec.disk_space,
+                                          new_name,
+                                          spec.default_mac_address,
+                                          spec.extra_interfaces,
+                                          spec.ssh_username,
+                                          vm_image,
+                                          cloud_init_iso,
+                                          {},
+                                          {},
+                                          {},
+                                          {}};
+
+    auto new_vm =
+        config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
+    new_vm->load_snapshots();
+
+    operative_instances[new_name] = std::move(new_vm);
+    operative_instances.erase(old_name);
+
+    vm_instance_specs[new_name] = std::move(spec);
+    vm_instance_specs.erase(old_name);
+
+    mounts[new_name] = std::move(mounts[old_name]);
+    mounts.erase(old_name);
+
+    persist_instances();
+
+    status_promise->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
