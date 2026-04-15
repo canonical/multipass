@@ -30,13 +30,6 @@ namespace mpl = mp::logging;
 namespace
 {
 constexpr static auto log_category = "applevz-vm";
-
-void amend_disk_image(mp::VirtualMachineDescription& desc)
-{
-    // Keep the source image intact in case anything goes wrong
-    desc.image.image_path =
-        MP_APPLEVZ_UTILS.convert_to_supported_format(desc.image.image_path, false);
-}
 } // namespace
 
 namespace multipass::applevz
@@ -47,8 +40,6 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir}, desc{desc}, monitor{&monitor}
 {
-    // Convert existing disk images to ASIF, if supported
-    amend_disk_image(this->desc);
     initialize_vm_handle();
 }
 
