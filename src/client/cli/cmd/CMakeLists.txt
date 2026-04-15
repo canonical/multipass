@@ -34,6 +34,7 @@ add_library(commands STATIC
   purge.cpp
   recover.cpp
   remote_settings_handler.cpp
+  rename.cpp
   restart.cpp
   restore.cpp
   set.cpp

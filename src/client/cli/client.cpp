@@ -34,6 +34,7 @@
 #include "cmd/purge.h"
 #include "cmd/recover.h"
 #include "cmd/remote_settings_handler.h"
+#include "cmd/rename.h"
 #include "cmd/restart.h"
 #include "cmd/restore.h"
 #include "cmd/set.h"
@@ -98,6 +99,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Mount>();
     add_command<cmd::Prefer>(aliases);
     add_command<cmd::Recover>();
+    add_command<cmd::Rename>(aliases);
     add_command<cmd::Restore>();
     add_command<cmd::Set>();
     add_command<cmd::Shell>();
