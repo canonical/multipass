@@ -42,6 +42,7 @@ def add_flutter_gui_off(override_pull: str) -> str:
 def generate(input_path: Path, output_path: Path) -> None:
     yaml = YAML()
     yaml.preserve_quotes = True
+    yaml.width = 4096
 
     data = yaml.load(input_path)
 
