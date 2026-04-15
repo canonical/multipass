@@ -44,6 +44,7 @@ service Rpc {
     rpc snapshot (stream SnapshotRequest) returns (stream SnapshotReply);
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
     rpc clone (stream CloneRequest) returns (stream CloneReply);
+    rpc rename (stream RenameRequest) returns (stream RenameReply);
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
     rpc wait_ready (stream WaitReadyRequest) returns (stream WaitReadyReply);
 }
@@ -535,6 +536,16 @@ message CloneReply {
     string reply_message = 1;
     string log_line = 2;
 }
+message RenameRequest {
+    string instance_name = 1;
+    string new_name = 2;
+    int32 verbosity_level = 3;
+}
+
+message RenameReply {
+    string log_line = 1;
+}
+
 message DaemonInfoRequest {
     int32 verbosity_level = 1;
 }
