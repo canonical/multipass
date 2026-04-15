@@ -229,8 +229,8 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
-                    purge recover restart restore shell snapshot start stop suspend umount version get set \
-                    clone alias aliases unalias"
+                    purge recover rename restart restore shell snapshot start stop suspend umount version \
+                    get set clone alias aliases unalias"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
     then
@@ -285,6 +285,8 @@ _multipass_complete()
         ;;
         "clone")
             _add_nonrepeating_args "--name"
+        ;;
+        "rename")
         ;;
         "get")
             _add_nonrepeating_args "--raw --keys"
@@ -387,6 +389,9 @@ _multipass_complete()
                 _multipass_instances "Stopped"
             ;;
             "clone")
+                _multipass_instances "Stopped"
+            ;;
+            "rename")
                 _multipass_instances "Stopped"
             ;;
             "restore")
