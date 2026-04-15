@@ -122,7 +122,10 @@ List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
     if (ubuntuImages.isNotEmpty)
       ImageCard(
         imageKey: 'ubuntu-${ubuntuImages.first.release}',
-        parentImage: ubuntuImages.first,
+        parentImage: ubuntuImages.firstWhere(
+          (i) => i.aliases.any((a) => a == 'lts'),
+          orElse: () => ubuntuImages.first,
+        ),
         versions: ubuntuImages.toList(),
         width: cardWidth,
       ),
