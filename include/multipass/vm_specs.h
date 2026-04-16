@@ -51,6 +51,8 @@ struct VMSpecs
 };
 
 void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const VMSpecs& mount);
-VMSpecs tag_invoke(const boost::json::value_to_tag<VMSpecs>&, const boost::json::value& json, const AvailabilityZoneManager& az_manager);
+VMSpecs tag_invoke(const boost::json::value_to_tag<VMSpecs>&,
+                   const boost::json::value& json,
+                   const AvailabilityZoneManager& az_manager);
 
 } // namespace multipass
