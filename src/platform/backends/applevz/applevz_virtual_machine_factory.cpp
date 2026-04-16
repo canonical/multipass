@@ -40,6 +40,7 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
         desc,
         monitor,
         key_provider,
+        az_manager.get_zone(desc.zone),
         get_instance_directory(desc.vm_name));
 }
 
@@ -79,6 +80,7 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
         desc,
         monitor,
         key_provider,
+        az_manager.get_zone(desc.zone),
         get_instance_directory(desc.vm_name));
 }
 } // namespace multipass::applevz
