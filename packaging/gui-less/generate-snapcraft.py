@@ -46,6 +46,10 @@ def generate(input_path: Path, output_path: Path) -> None:
 
     data = yaml.load(input_path)
 
+    # Add architectures for gui-less snap
+    data["platforms"]["s390x"] = None
+    data["platforms"]["ppc64el"] = None
+
     # Remove the GUI app
     del data["apps"]["gui"]
 
@@ -65,8 +69,9 @@ def generate(input_path: Path, output_path: Path) -> None:
     glue["source-type"] = "git"
     glue["source-subdir"] = "snap-wrappers"
 
+    data.yaml_set_start_comment(HEADER)
+
     with output_path.open("w") as f:
-        f.write(f"# {HEADER}\n")
         yaml.dump(data, f)
 
 
