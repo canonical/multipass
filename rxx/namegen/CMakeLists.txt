@@ -11,8 +11,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
 
 # Here the rust build depends on the C++ side of the rust_logger bridge because
 # the rust_logger crate is compiled within this crate's static library.
