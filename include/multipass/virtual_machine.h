@@ -173,6 +173,9 @@ struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<s
         case multipass::VirtualMachine::State::unknown:
             v = "unknown";
             break;
+        case multipass::VirtualMachine::State::unavailable:
+            v = "unavailable";
+            break;
         }
 
         return fmt::formatter<string_view>::format(v, ctx);
