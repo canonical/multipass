@@ -13,8 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Antoni Bertolin Monferrer <antoni.monferrer@canonical.com>
- *
  */
 
 use crate::ffi::NumWords;
@@ -36,10 +34,9 @@ sa::const_assert!(!ADVERBS.is_empty());
 
 pub fn make_petname(num_words: NumWords, separator_8: c_char) -> Result<String, PetnameError> {
     let separator_c = separator_8 as u8 as char;
-    let separator_c: char = match separator_c {
-        '-' | '_' => separator_c,
-        _ => return Err(PetnameError::InvalidSeparator(separator_8 as i8)),
-    };
+    if !matches!(separator_c, '-' | '_') {
+        return Err(PetnameError::InvalidSeparator(separator_8 as i8));
+    }
 
     let sources: &[&[&str]] = match num_words {
         NumWords::One => &[NOUNS],
