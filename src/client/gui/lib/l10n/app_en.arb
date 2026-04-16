@@ -888,5 +888,43 @@
     "launchFormNameErrorDeletedInUse": "Name is already in use by a deleted instance",
     "@launchFormNameErrorDeletedInUse": {
         "description": "Validation error when instance name belongs to a deleted instance"
+    },
+    "trayToggleWindow": "Toggle window",
+    "@trayToggleWindow": {
+        "description": "Tray menu item label to show or hide the main window"
+    },
+    "trayMultipassVersion": "multipass version: {version}",
+    "@trayMultipassVersion": {
+        "description": "Tray menu item showing the Multipass client version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "trayCopyright": "Copyright (C) Canonical, Ltd.",
+    "@trayCopyright": {
+        "description": "Tray menu copyright notice"
+    },
+    "trayMultipassdVersion": "multipassd version: {version}",
+    "@trayMultipassdVersion": {
+        "description": "Tray menu item showing the Multipass daemon version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "trayQuit": "Quit",
+    "@trayQuit": {
+        "description": "Tray menu item label to quit the application"
+    },
+    "trayErrorInstanceData": "Failed retrieving instance data",
+    "@trayErrorInstanceData": {
+        "description": "Tray menu error message shown when instance data cannot be retrieved"
+    },
+    "trayOpenInMultipass": "Open in Multipass",
+    "@trayOpenInMultipass": {
+        "description": "Tray menu item label to open the instance in the Multipass window"
     }
 }
