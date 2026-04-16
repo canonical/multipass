@@ -149,7 +149,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         title: l10n.mountDeleteTitle,
         body: Text.rich(
           [
-            '${l10n.mountDeleteBodyPrefix}\n'.span,
+            l10n.mountDeleteBodyPrefix.span,
             '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
             l10n.mountDeleteBodySuffix(widget.name).span,
           ].spans,

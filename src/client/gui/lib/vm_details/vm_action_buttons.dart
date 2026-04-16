@@ -103,7 +103,7 @@ class ActionTile extends ConsumerWidget {
       enabled: enabled,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       title: Text(
-        action.name,
+        action.label(AppLocalizations.of(context)!),
         style: enabled ? const TextStyle(color: Colors.black) : null,
       ),
       onTap: () {

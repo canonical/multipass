@@ -9,6 +9,15 @@
             }
         }
     },
+    "vmStatusLabel": "{status, select, running{Running} stopped{Stopped} suspended{Suspended} restarting{Restarting} starting{Starting} suspending{Suspending} deleted{Deleted} delayed_shutdown{Delayed shutdown} launching{Launching} other{}}",
+    "@vmStatusLabel": {
+        "description": "Display label for a VM status. The 'status' parameter is the lowercase protobuf enum name (running, stopped, suspended, restarting, starting, suspending, deleted, delayed_shutdown) or 'launching'.",
+        "placeholders": {
+            "status": {
+                "type": "String"
+            }
+        }
+    },
     "vmActionPastTense": "{action, select, start{Started} stop{Stopped} suspend{Suspended} restart{Restarted} delete{Deleted} recover{Recovered} purge{Purged} edit{Edited} other{}}",
     "@vmActionPastTense": {
         "description": "Past-tense form of a VM action, used in success notifications. The 'action' parameter is the lowercase enum name.",
@@ -173,7 +182,7 @@
     "@closeTerminalConfirm": {
         "description": "Confirm button label on the close terminal tab dialog"
     },
-    "launchSuccessTitle": "{name} is up and running",
+    "launchSuccessTitle": "{name} is up and running\n",
     "@launchSuccessTitle": {
         "description": "Bold heading in the launch success notification",
         "placeholders": {
@@ -205,7 +214,7 @@
             }
         }
     },
-    "launchInProgress": "Launching {name}",
+    "launchInProgress": "Launching {name}\n",
     "@launchInProgress": {
         "description": "Bold heading in the in-progress launch notification",
         "placeholders": {
@@ -439,7 +448,7 @@
     "@mountDeleteTitle": {
         "description": "Title of the confirmation dialog for removing a mount"
     },
-    "mountDeleteBodyPrefix": "Are you sure you want to remove the mount",
+    "mountDeleteBodyPrefix": "Are you sure you want to remove the mount\n",
     "@mountDeleteBodyPrefix": {
         "description": "First part of the delete-mount confirmation body (followed by the mount path on a new line)"
     },
