@@ -229,10 +229,42 @@ jobs:
     - name: Build
       run: cmake --build ${{ env.BUILD_DIR }}
 
+    - name: Enable core dump generation
+      working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
+      run : |
+        # Allow core dumps
+        sudo sysctl -w kern.coredump=1
+        # This entitlement is needed for a proc to produce a coredump
+        /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" segv.entitlements
+        # Code-sign the test executable to grant core dump entitlement
+        codesign -s - -f --entitlements segv.entitlements bin/multipass_tests
+        # Ensure destination exists and is writable
+        sudo mkdir -p /cores || true
+        sudo chmod 1777 /cores
+        # Print syctl coredump parameters
+        sysctl kern.coredump kern.corefile
+        ulimit -a
+        ulimit -Hc
+
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
+        # Catch and save the test executable's exit code
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        # Set soft limit for the core file size (512MiB)
+        ulimit -c 1048576
         bin/multipass_tests
+
+    - name: Upload test coredump
+      uses: actions/upload-artifact@v4
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
+      with:
+        name: buildandtest-test-crash-${{ matrix.runs-on }}-${{ matrix.build-type }}
+        retention-days: 7
+        path: |
+          /cores/**
+          bin/multipass_tests
 
     - name: Package
       id: cmake-package
