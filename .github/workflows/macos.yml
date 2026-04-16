@@ -264,7 +264,7 @@ jobs:
         retention-days: 7
         path: |
           /cores/**
-          bin/multipass_tests
+          ${{ env.BUILD_DIR }}/bin/multipass_tests
 
     - name: Package
       id: cmake-package
