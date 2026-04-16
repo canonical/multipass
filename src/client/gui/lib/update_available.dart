@@ -1,8 +1,8 @@
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
-import 'package:local_notifier/local_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'notifications/notification_entries.dart';
@@ -30,25 +30,6 @@ class UpdateNotifier extends Notifier<UpdateInfo> {
 
     // Update the state
     state = updateInfo;
-
-    // Create and show a local notification
-    _showLocalNotification(updateInfo);
-  }
-
-  void _showLocalNotification(UpdateInfo updateInfo) {
-    if (!mpPlatform.showLocalUpdateNotifications) return;
-
-    final notification = LocalNotification(
-      title: 'Multipass Update Available',
-      body: 'Version ${updateInfo.version} is available. Click to upgrade now.',
-    );
-
-    notification.onClick = () async {
-      await launchInstallUrl();
-      await notification.close();
-    };
-
-    notification.show();
   }
 
   @override
@@ -65,6 +46,30 @@ const _color = Color(0xffE95420);
 final installUrl = Uri.parse('https://canonical.com/multipass/install');
 
 Future<void> launchInstallUrl() => launchUrl(installUrl);
+
+class UpdateSystemNotificationListener extends ConsumerWidget {
+  const UpdateSystemNotificationListener({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(updateProvider, (_, updateInfo) {
+      if (!mpPlatform.showLocalUpdateNotifications) return;
+      final l10n = AppLocalizations.of(context)!;
+      final notification = LocalNotification(
+        title: l10n.localNotificationUpdateTitle,
+        body: l10n.localNotificationUpdateBody(updateInfo.version),
+      );
+      notification.onClick = () async {
+        await launchInstallUrl();
+        await notification.close();
+      };
+      notification.show();
+    });
+    return child;
+  }
+}
 
 class UpdateAvailable extends StatelessWidget {
   final UpdateInfo updateInfo;

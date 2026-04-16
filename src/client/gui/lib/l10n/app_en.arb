@@ -796,6 +796,19 @@
     "@updateAvailableUpgrade": {
         "description": "Button label to start the upgrade process"
     },
+    "localNotificationUpdateTitle": "Multipass Update Available",
+    "@localNotificationUpdateTitle": {
+        "description": "Title of the system notification announcing a new Multipass version"
+    },
+    "localNotificationUpdateBody": "Version {version} is available. Click to upgrade now.",
+    "@localNotificationUpdateBody": {
+        "description": "Body text of the system notification announcing a new Multipass version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
     "catalogueLoadError": "Failed to retrieve images: {error}",
     "@catalogueLoadError": {
         "description": "Error message shown when image retrieval fails",
