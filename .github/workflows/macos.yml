@@ -256,7 +256,7 @@ jobs:
         trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
         # Set soft limit for the core file size (512MiB)
         ulimit -c 1048576
-        ctest --output-on-failure
+        ctest -V
 
     - name: Upload test coredump
       uses: actions/upload-artifact@v7
