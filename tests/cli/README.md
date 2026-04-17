@@ -66,7 +66,7 @@ pytest tests/cli # or pass `--daemon-controller=winsvc` explicitly
 Standalone mode needs the additional `--bin-dir` option as it needs to know where to look for the `multipassd` and `multipass` binaries. The path must contain both.
 
 ```bash
-pytest tests/cli/ --daemon-backend=standalone --bin-dir=build/bin
+pytest tests/cli/ --daemon-controller=standalone --bin-dir=build/bin
 ```
 
 By default, the `standalone` mode uses a temporary directory (e.g. `/tmp/tmp2pwysbvk`) as the `MULTIPASS_STORAGE_DIR`, which would be automatically removed after the test session ends. To override this, `--storage-dir` option can be used. The directory contents are **not removed** after the test session when the `--storage-dir` is explicitly specified. This can be used for saving time for repeated testing sessions.
@@ -166,11 +166,11 @@ pytest tests/cli/ --log-level=DEBUG # INFO, TRACE, WARN..
 By default, the CLI tests use the default driver for the platform. The `--driver` option can be used for testing different backends available in the platform.
 
 ```bash
-pytest tests/cli/ --daemon-backend=snapd --driver=lxd # Test the `lxd` backend on Linux
+pytest tests/cli/ --daemon-controller=snapd --driver=lxd # Test the `lxd` backend on Linux
 ```
 
 ```bash
-pytest tests/cli/ --daemon-backend=winsvc --driver=virtualbox # Test the `virtualbox` backend on Windows
+pytest tests/cli/ --daemon-controller=winsvc --driver=virtualbox # Test the `virtualbox` backend on Windows
 ```
 
 ```bash
