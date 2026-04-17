@@ -179,7 +179,7 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        ctest --output-on-failure
+        ctest -V
 
     - name: Package
       id: cmake-package
