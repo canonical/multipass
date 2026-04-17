@@ -288,7 +288,7 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
 
 mp::Subnet mp::platform::Platform::get_preferred_subnet() const
 {
-    return {"192.168.252.0/24"};
+    return {"192.168.252.0/22"};
 }
 
 QString mp::platform::Platform::daemon_config_home() const // temporary
