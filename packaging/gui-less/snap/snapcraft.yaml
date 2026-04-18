@@ -105,6 +105,7 @@ parts:
     - CLANG_VERSION: "19"
     - CXX: clang++-${CLANG_VERSION}
     - CC: clang-${CLANG_VERSION}
+    - CMAKE_PRESET: snap-gui-less
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
@@ -205,7 +206,7 @@ parts:
       # Do the CMake configure at the pull step so we can generate the compile_commands.json
       # for the tool consumption.
       craftctl default
-      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK} -DMULTIPASS_ENABLE_FLUTTER_GUI=OFF
+      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
     override-build: |
       # Build the project.
       cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"

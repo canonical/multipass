@@ -28,17 +28,6 @@ HEADER = (
 )
 
 
-def add_flutter_gui_off(override_pull: str) -> str:
-    flag = "-DMULTIPASS_ENABLE_FLUTTER_GUI=OFF"
-    result = re.sub(r"(cmake --preset.+)$", rf"\1 {flag}", override_pull, flags=re.MULTILINE)
-    if flag not in result:
-        raise SystemExit(
-            "ERROR: failed to add -DMULTIPASS_ENABLE_FLUTTER_GUI=OFF — "
-            "cmake --preset line not found in override-pull"
-        )
-    return result
-
-
 def generate(input_path: Path, output_path: Path) -> None:
     yaml = YAML()
     yaml.preserve_quotes = True
@@ -56,11 +45,9 @@ def generate(input_path: Path, output_path: Path) -> None:
     # Change multipass part to use remote git source
     data["parts"]["multipass"]["source"] = MULTIPASS_SOURCE
 
-    # Append -DMULTIPASS_ENABLE_FLUTTER_GUI=OFF to the cmake configure call.
-    # The override-pull is a multiline block scalar; LiteralScalarString preserves that style.
-    override_pull = str(data["parts"]["multipass"]["override-pull"])
-    data["parts"]["multipass"]["override-pull"] = LiteralScalarString(
-        add_flutter_gui_off(override_pull)
+    # Use a CMake preset to turn off the GUI
+    data["parts"]["multipass"]["build-environment"].append(
+        {"CMAKE_PRESET": "snap-gui-less"}
     )
 
     # Change glue part to clone snap-wrappers from remote git source
