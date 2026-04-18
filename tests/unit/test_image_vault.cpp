@@ -33,7 +33,6 @@
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
-#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/query.h>
@@ -1224,7 +1223,7 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
             {remote_name, host.mock_bionic_image_info},
             {remote_name, host.mock_another_image_info}}));
 
-    auto images = vault.all_info_for({"", "e3", false, "", mp::Query::Type::Alias, true});
+    auto images = vault.all_info_for({"", "e3", false, "", mp::Query::Type::Alias});
 
     EXPECT_EQ(images.size(), 2u);
 
@@ -1254,7 +1253,7 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
             {remote_name, host.mock_bionic_image_info},
             {remote_name, host.mock_another_image_info}}));
 
-    auto images = vault.all_info_for({"", "e3", false, remote_name, mp::Query::Type::Alias, true});
+    auto images = vault.all_info_for({"", "e3", false, remote_name, mp::Query::Type::Alias});
 
     EXPECT_EQ(images.size(), 2u);
 
@@ -1282,35 +1281,7 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
     EXPECT_CALL(host, all_info_for(_))
         .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
 
-    EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}).empty());
-}
-
-TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)
-{
-    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
-    vault.fetch_image(mp::FetchType::ImageOnly,
-                      default_query,
-                      stub_prepare,
-                      stub_monitor,
-                      std::nullopt,
-                      instance_dir);
-
-    EXPECT_CALL(host, info_for(_))
-        .WillOnce(Throw(mp::UnsupportedImageException(default_query.release)));
-
-    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::warning,
-                    StrEq("image vault"),
-                    StrEq(fmt::format("Skipping update: The {} release is no longer supported.",
-                                      default_query.release))));
-
-    EXPECT_NO_THROW(vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor));
+    EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias}).empty());
 }
 
 TEST_F(ImageVault, updateImagesLogsWarningOnEmptyVault)

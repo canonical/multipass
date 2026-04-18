@@ -136,7 +136,7 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
         return &mock_image_host;
     });
 
-    EXPECT_CALL(mock_image_host, all_images_for(_, _)).WillOnce([&mock_image_host](auto...) {
+    EXPECT_CALL(mock_image_host, all_images_for(_)).WillOnce([&mock_image_host](auto...) {
         std::vector<mp::VMImageInfo> images_info;
 
         images_info.push_back(mock_image_host.mock_bionic_image_info);

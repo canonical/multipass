@@ -1663,7 +1663,7 @@ try
             request->force_manifest_network_download());
         const auto& remote = request->remote_name();
         auto image_host = config->vault->image_host_for(remote);
-        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
+        auto vm_images_info = image_host->all_images_for(remote);
 
         for (const auto& info : vm_images_info)
             add_aliases(response.mutable_images_info(), remote, info);
