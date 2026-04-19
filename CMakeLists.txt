@@ -369,6 +369,14 @@ add_subdirectory(src)
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
+
+  if(MULTIPASS_ENABLE_FLUTTER_GUI)
+    add_test(
+      NAME multipass_gui_tests
+      COMMAND ${FLUTTER_EXECUTABLE} test --no-pub
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/client/gui
+    )
+  endif()
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)
