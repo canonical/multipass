@@ -18,6 +18,7 @@
 #include "qemu_mount_handler.h"
 
 #include <multipass/logging/log_location.h>
+#include <multipass/ssh/ssh_process.h>
 #include <multipass/utils.h>
 
 #include <QUuid>
@@ -97,8 +98,7 @@ bool QemuMountHandler::is_active()
 try
 {
     return active &&
-           !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
-                .exec(fmt::format("findmnt --type 9p | grep '{} {}'", target, tag))
+           !vm->ssh_exec_process(fmt::format("findmnt --type 9p | grep '{} {}'", target, tag))
                 ->exit_code();
 }
 catch (const std::exception& e)
