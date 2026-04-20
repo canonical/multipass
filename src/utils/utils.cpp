@@ -296,18 +296,17 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
                                           bool whisper) const
 {
     auto proc = session.exec(cmd, whisper);
-    return reap_ssh_process(*proc, cmd);
+    return reap_ssh_process(*proc);
 }
 
-// TODO@ricab drop cmd param, make it available from ssh process instead
-std::string mp::Utils::reap_ssh_process(mp::SSHProcess& proc, const std::string& cmd) const
+std::string mp::Utils::reap_ssh_process(mp::SSHProcess& proc) const
 {
     if (auto ec = proc.exit_code(); ec != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
         auto suffix = error_msg.empty() ? fmt::format("exit_code {} (no stderr output)", ec)
                                         : fmt::format("error message: '{}'", error_msg);
-        mpl::debug(category, "failed to run '{}', {}", cmd, suffix);
+        mpl::debug(category, "failed to run '{}', {}", proc.get_cmd(), suffix);
 
         throw mp::SSHExecFailure{error_msg, ec};
     }

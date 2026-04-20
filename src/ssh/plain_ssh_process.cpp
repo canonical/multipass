@@ -172,6 +172,11 @@ std::string mp::PlainSSHProcess::read_std_error()
     return read_stream(StreamType::err);
 }
 
+const std::string& mp::PlainSSHProcess::get_cmd() const
+{
+    return cmd;
+}
+
 std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
 {
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);

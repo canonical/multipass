@@ -62,6 +62,7 @@ public:
 
     std::string read_std_output() override;
     std::string read_std_error() override;
+    const std::string& get_cmd() const override;
 
 private:
     enum class StreamType
