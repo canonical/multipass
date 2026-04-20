@@ -48,6 +48,7 @@ public:
     std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;
+    [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override;
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;

@@ -97,6 +97,11 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return nullptr;
     }
 
+    [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override
+    {
+        return nullptr;
+    }
+
     void wait_until_ssh_up(std::chrono::milliseconds) override
     {
     }

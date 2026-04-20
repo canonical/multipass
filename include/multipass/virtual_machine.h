@@ -36,6 +36,7 @@ namespace multipass
 struct IPAddress;
 class MemorySize;
 class SSHProcess;
+class SSHSession;
 class VMMount;
 struct VMSpecs;
 class MountHandler;
@@ -87,6 +88,8 @@ public:
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
     virtual std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                          bool whisper = false) = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<SSHSession> new_ssh_session() = 0;
 
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
