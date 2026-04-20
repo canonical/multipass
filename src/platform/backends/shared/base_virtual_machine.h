@@ -99,8 +99,8 @@ protected:
 
     virtual void drop_ssh_session(); // virtual to allow mocking
 
-    // TODO@ricab make SSHSession mockable instead and use it in tests t
-    // TODO@ricab then, replace premock for SSH tests that become achievable with gmock
+    // TODO@rewiressh make SSHSession mockable instead and use it in tests t
+    // TODO@rewiressh then, replace premock for SSH tests that become achievable with gmock
     virtual std::unique_ptr<SSHProcess> make_ssh_process(const std::string& cmd, bool whisper);
 
     virtual bool unplugged();

@@ -294,7 +294,7 @@ mp::SftpServer::SftpServer(SSHSession&& session,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
-      sftp_server_session{make_sftp_session( // TODO@ricab
+      sftp_server_session{make_sftp_session( // TODO@rewiressh
           ssh_session,
           static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel())},
       source_path{source},
@@ -503,7 +503,7 @@ void mp::SftpServer::run()
 
                 sshfs_process =
                     create_sshfs_process(ssh_session, sshfs_exec_line, source_path, target_path);
-                sftp_server_session = make_sftp_session( // TODO@ricab
+                sftp_server_session = make_sftp_session( // TODO@rewiressh
                     ssh_session,
                     static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel());
 
