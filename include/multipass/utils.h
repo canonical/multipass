@@ -21,7 +21,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
-#include <multipass/ssh/ssh_session.h> // TODO@ricab should be fine with fwd decl?
+#include <multipass/ssh/ssh_session.h> // TODO@rewiressh should be fine with fwd decl?
 #include <multipass/virtual_machine.h>
 
 #include <fmt/base.h>
