@@ -47,6 +47,7 @@ public:
 
     virtual std::string read_std_output() = 0;
     virtual std::string read_std_error() = 0;
+    virtual const std::string& get_cmd() const = 0;
 
 protected:
     SSHProcess() = default;

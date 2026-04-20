@@ -29,5 +29,6 @@ struct MockSSHProcess : public SSHProcess
     MOCK_METHOD(int, exit_code, (std::chrono::milliseconds timeout), (override));
     MOCK_METHOD(std::string, read_std_output, (), (override));
     MOCK_METHOD(std::string, read_std_error, (), (override));
+    MOCK_METHOD(const std::string&, get_cmd, (), (const, override));
 };
 } // namespace multipass::test

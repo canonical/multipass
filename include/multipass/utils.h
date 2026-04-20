@@ -261,7 +261,7 @@ public:
     virtual std::string run_in_ssh_session(SSHSession& session,
                                            const std::string& cmd,
                                            bool whisper = false) const;
-    virtual std::string reap_ssh_process(SSHProcess& proc, const std::string& cmd) const;
+    virtual std::string reap_ssh_process(SSHProcess& proc) const;
 
     // various
     virtual std::vector<uint8_t> random_bytes(size_t len);
