@@ -117,6 +117,9 @@ profile %1 flags=(attach_disconnected) {
     %3/bin/sshfs_server ixr,
     %3/{usr/,}lib/** rm,
 
+    # vcpkg dependencies
+    %3/vcpkg_installed/*/lib/{,**/}*.so* rm,
+
     # CLASSIC ONLY: need to specify required libs from core snap
     /{,var/lib/snapd/}snap/core18/*/{,usr/}lib/@{multiarch}/{,**/}*.so* rm,
 
