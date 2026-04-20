@@ -189,7 +189,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
     auto proc = ssh_exec_process(cmd, whisper);
-    return MP_UTILS.reap_ssh_process(*proc, cmd);
+    return MP_UTILS.reap_ssh_process(*proc);
 }
 
 std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const std::string& cmd,
