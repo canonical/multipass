@@ -111,6 +111,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
         ON_CALL(*this, current_state).WillByDefault(Return(state));
     }
 
+    // TODO@ricab replace premock where possible
     void simulate_ssh_exec() // use if premocking libssh stuff
     {
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, ssh_exec, mp::BaseVirtualMachine);
@@ -119,6 +120,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
 
     void simulate_ssh_exec_process() // use if premocking libssh stuff
     {
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, new_ssh_session, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, ssh_exec_process, mp::BaseVirtualMachine);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, make_ssh_process, mp::BaseVirtualMachine);
     }

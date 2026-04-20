@@ -251,6 +251,12 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const s
 
 void mp::BaseVirtualMachine::renew_ssh_session()
 {
+    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
+    ssh_session = new_ssh_session();
+}
+
+std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_session()
+{
     {
         const std::unique_lock lock{state_mutex};
         if (!MP_UTILS.is_running(current_state())) // avoid wasting time
@@ -258,9 +264,9 @@ void mp::BaseVirtualMachine::renew_ssh_session()
     }
 
     mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
-    ssh_session =
-        std::make_unique<SSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    return std::make_unique<SSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 }
+
 bool multipass::BaseVirtualMachine::unplugged()
 {
     auto st = current_state();

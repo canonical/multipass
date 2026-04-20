@@ -25,6 +25,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/mount_handler.h>
 #include <multipass/ssh/ssh_process.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
 #include <concepts>
@@ -89,6 +90,7 @@ struct MockVirtualMachineT : public T
                 ssh_exec_process,
                 (const std::string& cmd, bool whisper),
                 (override));
+    MOCK_METHOD(std::unique_ptr<SSHSession>, new_ssh_session, (), (override));
 
     MOCK_METHOD(void, wait_until_ssh_up, (std::chrono::milliseconds), (override));
     MOCK_METHOD(void, wait_for_cloud_init, (std::chrono::milliseconds), (override));
