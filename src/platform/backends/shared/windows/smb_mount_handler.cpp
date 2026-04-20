@@ -346,10 +346,7 @@ void SmbMountHandler::deactivate_impl(bool force)
 try
 {
     mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->get_name());
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    MP_UTILS.run_in_ssh_session(
-        session,
-        fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
+    vm->ssh_exec(fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
     smb_manager->remove_share(share_name);
 }
 catch (const std::exception& e)
