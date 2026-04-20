@@ -30,6 +30,8 @@ namespace multipass
 struct DaemonRpcContext
 {
     virtual void set_value(grpc::Status status) = 0;
+    virtual std::future<grpc::Status> get_future() = 0;
+    virtual const logging::Logger& logger() const = 0;
     virtual ~DaemonRpcContext() = default;
 };
 
@@ -39,26 +41,33 @@ struct DaemonRpcContextImpl : DaemonRpcContext
     DaemonRpcContextImpl(grpc::ServerReaderWriterInterface<T, U>* server,
                          logging::Level level,
                          logging::MultiplexingLogger& mpx)
-        : server{server}, status_promise{promise}, logger{level, mpx, server}
+        : server{server},
+          logger_{std::make_optional<logging::ClientLogger<T, U>>(level, mpx, server)}
     {
     }
 
     void set_value(grpc::Status status) override
     {
-        logger.reset();
+        logger_.reset();
         promise.set_value(std::move(status));
     }
 
-    std::future<grpc::Status> get_future()
+    std::future<grpc::Status> get_future() override
     {
         return promise.get_future();
+    }
+
+    const logging::Logger& logger() const override
+    {
+        assert(logger_);
+        return logger_.value();
     }
 
     grpc::ServerReaderWriterInterface<T, U>* server;
 
 private:
+    std::optional<logging::ClientLogger<T, U>> logger_;
     std::promise<grpc::Status> promise;
-    std::optional<logging::ClientLogger<T, U>> logger;
 };
 
 } // namespace multipass
