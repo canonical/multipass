@@ -190,10 +190,10 @@ packages:
     dependency: transitive
     description:
       name: ffi_leak_tracker
-      sha256: "076941187786423291bacbbf19017e3e473cf01c9d96fccc869979494f2156cb"
+      sha256: "4093d4ef9ca06ffe2786e73bfb25e22aa92112b9bb4ec941f11e3e6b61489a97"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.1.2"
   file:
     dependency: transitive
     description:
@@ -1172,10 +1172,10 @@ packages:
     dependency: "direct main"
     description:
       name: win32
-      sha256: e7489db51886360dad710b3bc177108267f0554644dd04102dcb35f23b71c738
+      sha256: "316d813e24518851c2682b1a57bc7e2e54e9c7b81493d48bef502fea0c17f841"
       url: "https://pub.dev"
     source: hosted
-    version: "6.0.0"
+    version: "6.0.1"
   window_manager:
     dependency: "direct main"
     description:
@@ -1235,5 +1235,5 @@ packages:
     source: hosted
     version: "0.0.6"
 sdks:
-  dart: ">=3.11.0 <4.0.0"
+  dart: ">=3.10.0 <4.0.0"
   flutter: ">=3.35.0"
