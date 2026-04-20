@@ -18,11 +18,13 @@
 #pragma once
 
 #include "common.h"
+#include "mock_ssh_process.h"
 #include "temp_dir.h"
 
 #include <multipass/ip_address.h>
 #include <multipass/memory_size.h>
 #include <multipass/mount_handler.h>
+#include <multipass/ssh/ssh_process.h>
 #include <multipass/virtual_machine.h>
 
 #include <concepts>
@@ -82,10 +84,10 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(std::optional<IPAddress>, management_ipv4, (), (override));
     MOCK_METHOD(std::vector<IPAddress>, get_all_ipv4, (), (override));
     MOCK_METHOD(std::string, ssh_exec, (const std::string& cmd, bool whisper), (override));
-    std::string ssh_exec(const std::string& cmd)
-    {
-        return ssh_exec(cmd, false);
-    }
+    MOCK_METHOD(std::unique_ptr<SSHProcess>,
+                ssh_exec_process,
+                (const std::string& cmd, bool whisper),
+                (override));
 
     MOCK_METHOD(void, wait_until_ssh_up, (std::chrono::milliseconds), (override));
     MOCK_METHOD(void, wait_for_cloud_init, (std::chrono::milliseconds), (override));
@@ -128,6 +130,17 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
     MOCK_METHOD(QDir, instance_directory, (), (const, override));
     MOCK_METHOD(const std::string&, get_name, (), (const, override));
+
+    std::string ssh_exec(const std::string& cmd)
+    {
+        return ssh_exec(cmd, false);
+    }
+
+    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd)
+
+    {
+        return ssh_exec_process(cmd, false);
+    }
 
     std::unique_ptr<TempDir> tmp_dir;
 };

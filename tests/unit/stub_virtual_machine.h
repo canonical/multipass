@@ -91,6 +91,12 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
+    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
+                                                 bool whisper = false) override
+    {
+        return nullptr;
+    }
+
     void wait_until_ssh_up(std::chrono::milliseconds) override
     {
     }
