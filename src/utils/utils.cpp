@@ -296,24 +296,23 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
                                           bool whisper) const
 {
     auto proc = session.exec(cmd, whisper);
+    return reap_ssh_process(*proc, cmd);
+}
 
-    if (auto ec = proc->exit_code(); ec != 0)
+// TODO@ricab drop cmd param, make it available from ssh process instead
+std::string mp::Utils::reap_ssh_process(mp::SSHProcess& proc, const std::string& cmd) const
+{
+    if (auto ec = proc.exit_code(); ec != 0)
     {
-        auto error_msg = mp::utils::trim_end(proc->read_std_error());
-        if (error_msg.empty())
-        {
-            mpl::debug(category, "failed to run '{}', exit_code {} (no stderr output)", cmd, ec);
-        }
-        else
-        {
-            mpl::debug(category, "failed to run '{}', error message: '{}'", cmd, error_msg);
-        }
+        auto error_msg = mp::utils::trim_end(proc.read_std_error());
+        auto suffix = error_msg.empty() ? fmt::format("exit_code {} (no stderr output)", ec)
+                                        : fmt::format("error message: '{}'", error_msg);
+        mpl::debug(category, "failed to run '{}', {}", cmd, suffix);
 
-        throw mp::SSHExecFailure(error_msg, ec);
+        throw mp::SSHExecFailure{error_msg, ec};
     }
 
-    auto output = proc->read_std_output();
-    return mp::utils::trim_end(output);
+    return mp::utils::trim_end(proc.read_std_output());
 }
 
 mp::Path mp::Utils::make_dir(const QDir& a_dir,

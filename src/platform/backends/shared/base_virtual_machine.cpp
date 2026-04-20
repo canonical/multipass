@@ -189,18 +189,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
     auto proc = ssh_exec_process(cmd, whisper);
-
-    if (auto ec = proc->exit_code(); ec != 0)
-    {
-        auto error_msg = mpu::trim_end(proc->read_std_error());
-        auto suffix = error_msg.empty() ? fmt::format("exit_code {} (no stderr output)", ec)
-                                        : fmt::format("error message: '{}'", error_msg);
-        mpl::debug(vm_name, "failed to run '{}', {}", cmd, suffix);
-
-        throw mp::SSHExecFailure{error_msg, ec};
-    }
-
-    return mpu::trim_end(proc->read_std_output());
+    return MP_UTILS.reap_ssh_process(*proc, cmd);
 }
 
 std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const std::string& cmd,
