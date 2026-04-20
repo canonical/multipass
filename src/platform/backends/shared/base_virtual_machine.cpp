@@ -188,41 +188,20 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
-    std::unique_lock lock{state_mutex};
+    auto proc = ssh_exec_process(cmd, whisper);
 
-    std::optional<std::string> log_details = std::nullopt;
-    bool reconnect = true;
-    while (true)
+    if (auto ec = proc->exit_code(); ec != 0)
     {
-        assert(reconnect && "we should have thrown otherwise");
-        if ((!ssh_session || !ssh_session->is_connected()) && reconnect)
-        {
-            mpl::info(vm_name,
-                      "SSH session disconnected{}",
-                      log_details ? fmt::format(": {}", *log_details) : "");
+        auto error_msg = mpu::trim_end(proc->read_std_error());
+        if (error_msg.empty()) // TODO@ricab streamline
+            mpl::debug(vm_name, "failed to run '{}', exit_code {} (no stderr output)", cmd, ec);
+        else
+            mpl::debug(vm_name, "failed to run '{}', error message: '{}'", cmd, error_msg);
 
-            reconnect = false; // once only
-            lock.unlock();
-            renew_ssh_session();
-            lock.lock();
-        }
-
-        try
-        {
-            return MP_UTILS.run_in_ssh_session(*ssh_session, cmd, whisper);
-        }
-        catch (const SSHException& e)
-        {
-            assert(ssh_session);
-            if (ssh_session->is_connected() || !reconnect)
-                throw;
-
-            log_details = e.what();
-            continue; // disconnections are often only detected after attempted use
-        }
+        throw mp::SSHExecFailure{error_msg, ec};
     }
 
-    assert(false && "we should never reach here");
+    return mpu::trim_end(proc->read_std_output());
 }
 
 std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const std::string& cmd,
@@ -249,7 +228,7 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const s
 
         try
         {
-            return ssh_session->exec(cmd, whisper);
+            return make_ssh_process(cmd, whisper);
         }
         catch (const SSHException& e)
         {
@@ -263,6 +242,12 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const s
     }
 
     assert(false && "we should never reach here");
+}
+
+std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const std::string& cmd,
+                                                                         bool whisper)
+{
+    return ssh_session->exec(cmd, whisper);
 }
 
 void mp::BaseVirtualMachine::renew_ssh_session()
