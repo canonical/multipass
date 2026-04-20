@@ -35,7 +35,7 @@ mp::Subnet get_subnet(const mp::Path& data_dir)
     if (MP_FILEOPS.size(subnet_file) > 0)
     {
         auto content = MP_FILEOPS.read_all(subnet_file).trimmed().toStdString();
-        mp::Subnet{mp::IPAddress{content + ".0"}, subnet_prefix_length};
+        return mp::Subnet{mp::IPAddress{content + ".0"}, subnet_prefix_length};
     }
 
     auto new_subnet = subnet_allocator.next_available();
