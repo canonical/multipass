@@ -9,9 +9,13 @@ set(VCPKG_CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 
-set(VCPKG_C_FLAGS           "${VCPKG_C_FLAGS} -fno-omit-frame-pointer")
-set(VCPKG_CXX_FLAGS         "${VCPKG_CXX_FLAGS} -fno-omit-frame-pointer")
+set(VCPKG_C_FLAGS   "${VCPKG_C_FLAGS} -fsanitize=address,undefined,leak -fno-omit-frame-pointer")
+set(VCPKG_CXX_FLAGS "${VCPKG_CXX_FLAGS} -fsanitize=address,undefined,leak -fno-omit-frame-pointer")
 
-set(VCPKG_C_FLAGS_DEBUG     "${VCPKG_C_FLAGS_DEBUG} -O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error")
-set(VCPKG_CXX_FLAGS_DEBUG   "${VCPKG_CXX_FLAGS_DEBUG} -O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error")
-set(VCPKG_LINKER_FLAGS_DEBUG "${VCPKG_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error")
+# Qt builds host tools (moc, rcc, uic) that execute during the build.
+# Instrumenting them with sanitizers causes them to crash.
+if(NOT PORT MATCHES "^qt")
+    set(VCPKG_C_FLAGS_DEBUG   "${VCPKG_C_FLAGS_DEBUG} -O0 -g3 -fsanitize=address,undefined,leak")
+    set(VCPKG_CXX_FLAGS_DEBUG "${VCPKG_CXX_FLAGS_DEBUG} -O0 -g3 -fsanitize=address,undefined,leak")
+    set(VCPKG_LINKER_FLAGS_DEBUG "${VCPKG_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined,leak")
+endif()
