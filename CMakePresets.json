@@ -162,10 +162,11 @@
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_C_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG -fsanitize-undefined-trap-on-error",
-                "CMAKE_CXX_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize=pointer-compare,pointer-subtract -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG -fsanitize-undefined-trap-on-error",
+                "CMAKE_C_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG",
+                "CMAKE_CXX_FLAGS_DEBUG": "-O0 -g3 -fno-omit-frame-pointer -fsanitize=address,undefined,leak,float-divide-by-zero,float-cast-overflow -fsanitize=pointer-compare,pointer-subtract -fsanitize-address-use-after-scope -ftrivial-auto-var-init=pattern -fno-sanitize-recover=all -D_GLIBCXX_ASSERTIONS -DDEBUG",
                 "CMAKE_EXE_LINKER_FLAGS_DEBUG": "-fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error",
                 "CMAKE_SHARED_LINKER_FLAGS_DEBUG": "-fsanitize=address,undefined,leak -fsanitize-undefined-trap-on-error",
+                "VCPKG_HOST_TRIPLET": "x64-linux-sanitizers",
                 "VCPKG_TARGET_TRIPLET": "x64-linux-sanitizers"
             },
             "environment": {
