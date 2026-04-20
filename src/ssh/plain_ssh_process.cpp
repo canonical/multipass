@@ -19,7 +19,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log_location.h>
-#include <multipass/ssh/ssh_process.h>
+#include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/throw_on_error.h>
 
 #include <libssh/callbacks.h>
@@ -69,7 +69,7 @@ auto make_channel(ssh_session session, const std::string& cmd)
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    mp::SSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+    mp::PlainSSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] failed to open session channel",
@@ -84,9 +84,9 @@ auto make_channel(ssh_session session, const std::string& cmd)
 
 } // namespace
 
-mp::SSHProcess::SSHProcess(ssh_session session,
-                           const std::string& cmd,
-                           std::unique_lock<std::mutex> session_lock)
+mp::PlainSSHProcess::PlainSSHProcess(ssh_session session,
+                                     const std::string& cmd,
+                                     std::unique_lock<std::mutex> session_lock)
     : session_lock{std::move(
           session_lock)}, // this is held until the exit code is requested or this is destroyed
       session{session},
@@ -97,7 +97,7 @@ mp::SSHProcess::SSHProcess(ssh_session session,
     assert(this->session_lock.owns_lock());
 }
 
-bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
+bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 {
     rethrow_if_saved();
     if (std::holds_alternative<int>(exit_result))
@@ -114,7 +114,7 @@ bool mp::SSHProcess::exit_recognized(std::chrono::milliseconds timeout)
     }
 }
 
-int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
+int mp::PlainSSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
     rethrow_if_saved();
     if (auto exit_status = std::get_if<int>(&exit_result))
@@ -127,7 +127,7 @@ int mp::SSHProcess::exit_code(std::chrono::milliseconds timeout)
     return std::get<int>(exit_result);
 }
 
-void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
+void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
 {
     assert(std::holds_alternative<std::monostate>(exit_result));
     ExitStatusCallback cb{channel.get(), exit_result};
@@ -162,17 +162,17 @@ void mp::SSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save
     }
 }
 
-std::string mp::SSHProcess::read_std_output()
+std::string mp::PlainSSHProcess::read_std_output()
 {
     return read_stream(StreamType::out);
 }
 
-std::string mp::SSHProcess::read_std_error()
+std::string mp::PlainSSHProcess::read_std_error()
 {
     return read_stream(StreamType::err);
 }
 
-std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
+std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
 {
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
@@ -216,14 +216,14 @@ std::string mp::SSHProcess::read_stream(StreamType type, int timeout)
     return output.str();
 }
 
-ssh_channel mp::SSHProcess::release_channel()
+ssh_channel mp::PlainSSHProcess::release_channel()
 {
     // released at the end; callers are on their own to ensure thread safety
     auto local_lock = std::move(session_lock);
     return channel.release();
 }
 
-void multipass::SSHProcess::rethrow_if_saved() const
+void multipass::PlainSSHProcess::rethrow_if_saved() const
 {
     if (auto eptrptr = std::get_if<std::exception_ptr>(&exit_result))
     {

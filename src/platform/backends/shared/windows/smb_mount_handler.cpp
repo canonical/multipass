@@ -48,9 +48,9 @@ try
     mpl::info(category, "Installing cifs-utils in '{}'", name);
 
     auto proc = session.exec("sudo apt-get update && sudo apt-get install -y cifs-utils");
-    if (proc.exit_code(timeout) != 0)
+    if (proc->exit_code(timeout) != 0)
     {
-        auto error_msg = proc.read_std_error();
+        auto error_msg = proc->read_std_error();
         mpl::warn(category,
                   "Failed to install 'cifs-utils', error message: '{}'",
                   mp::utils::trim_end(error_msg));
@@ -223,7 +223,7 @@ try
                                   target,
                                   QHostInfo::localHostName(),
                                   share_name))
-                .exit_code();
+                ->exit_code();
 }
 catch (const std::exception& e)
 {
@@ -246,7 +246,7 @@ try
     const auto cred_filename = user_id + ".cifs";
 
     if (session.exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils")
-            .read_std_output() != "installed")
+            ->read_std_output() != "installed")
     {
         auto visitor = [](auto server) {
             if (server)
@@ -298,11 +298,11 @@ try
 
     // The following mkdir in the instance will be replaced with refactored code
     auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target));
-    if (mkdir_proc.exit_code() != 0)
+    if (mkdir_proc->exit_code() != 0)
         throw std::runtime_error(fmt::format("Cannot create \"{}\" in instance '{}': {}",
                                              target,
                                              vm->get_name(),
-                                             mkdir_proc.read_std_error()));
+                                             mkdir_proc->read_std_error()));
 
     auto smb_creds = fmt::format("username={}\npassword={}", username, password);
     const std::string credentials_path{"/tmp/.smb_credentials"};
@@ -320,15 +320,15 @@ try
                     share_name,
                     target,
                     credentials_path));
-    auto mount_exit_code = mount_proc.exit_code();
-    auto mount_error_msg = mount_proc.read_std_error();
+    auto mount_exit_code = mount_proc->exit_code();
+    auto mount_error_msg = mount_proc->read_std_error();
 
     auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
-    if (rm_proc.exit_code() != 0)
+    if (rm_proc->exit_code() != 0)
         mpl::warn(category,
                   "Failed deleting credentials file in \'{}\': {}",
                   vm->get_name(),
-                  rm_proc.read_std_error());
+                  rm_proc->read_std_error());
 
     if (mount_exit_code != 0)
     {
