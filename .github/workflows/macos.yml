@@ -257,7 +257,7 @@ jobs:
         bin/multipass_tests
 
     - name: Upload test coredump
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
       with:
         name: buildandtest-test-crash-${{ matrix.runs-on }}-${{ matrix.build-type }}
