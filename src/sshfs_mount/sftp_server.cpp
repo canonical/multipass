@@ -250,9 +250,9 @@ auto create_sshfs_process(mp::SSHSession& session,
     auto sshfs_process =
         session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
 
-    check_sshfs_status(session, sshfs_process);
+    check_sshfs_status(session, *sshfs_process);
 
-    return std::make_unique<mp::SSHProcess>(std::move(sshfs_process));
+    return sshfs_process;
 }
 
 int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
@@ -294,7 +294,9 @@ mp::SftpServer::SftpServer(SSHSession&& session,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
-      sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
+      sftp_server_session{make_sftp_session( // TODO@ricab
+          ssh_session,
+          static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel())},
       source_path{source},
       target_path{target},
       gid_mappings{gid_mappings},
@@ -491,7 +493,7 @@ void mp::SftpServer::run()
                 std::string mount_path = [this] {
                     auto proc = ssh_session.exec(
                         fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
-                    return proc.read_std_output();
+                    return proc->read_std_output();
                 }();
 
                 if (!mount_path.empty())
@@ -501,8 +503,9 @@ void mp::SftpServer::run()
 
                 sshfs_process =
                     create_sshfs_process(ssh_session, sshfs_exec_line, source_path, target_path);
-                sftp_server_session =
-                    make_sftp_session(ssh_session, sshfs_process->release_channel());
+                sftp_server_session = make_sftp_session( // TODO@ricab
+                    ssh_session,
+                    static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel());
 
                 continue;
             }

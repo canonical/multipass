@@ -99,7 +99,7 @@ try
     return active &&
            !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
                 .exec(fmt::format("findmnt --type 9p | grep '{} {}'", target, tag))
-                .exit_code();
+                ->exit_code();
 }
 catch (const std::exception& e)
 {
