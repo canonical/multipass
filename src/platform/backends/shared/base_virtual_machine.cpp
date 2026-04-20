@@ -193,10 +193,9 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
     if (auto ec = proc->exit_code(); ec != 0)
     {
         auto error_msg = mpu::trim_end(proc->read_std_error());
-        if (error_msg.empty()) // TODO@ricab streamline
-            mpl::debug(vm_name, "failed to run '{}', exit_code {} (no stderr output)", cmd, ec);
-        else
-            mpl::debug(vm_name, "failed to run '{}', error message: '{}'", cmd, error_msg);
+        auto suffix = error_msg.empty() ? fmt::format("exit_code {} (no stderr output)", ec)
+                                        : fmt::format("error message: '{}'", error_msg);
+        mpl::debug(vm_name, "failed to run '{}', {}", cmd, suffix);
 
         throw mp::SSHExecFailure{error_msg, ec};
     }
