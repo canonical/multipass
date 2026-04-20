@@ -60,6 +60,10 @@ public:
                 run_in_ssh_session,
                 (SSHSession & session, const std::string& cmd, bool whisper),
                 (const, override));
+    MOCK_METHOD(std::string,
+                reap_ssh_process,
+                (SSHProcess & proc, const std::string& cmd),
+                (const, override));
     MOCK_METHOD(std::string, make_uuid, (const std::optional<std::string>&), (const, override));
     MOCK_METHOD(void, sleep_for, (const std::chrono::milliseconds&), (const, override));
     MOCK_METHOD(bool, is_ipv4_valid, (const std::string& ipv4), (const, override));
