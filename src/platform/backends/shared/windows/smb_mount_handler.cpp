@@ -24,6 +24,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/sftp_utils.h>
+#include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
@@ -218,11 +219,10 @@ bool SmbMountHandler::is_active()
 try
 {
     return active && smb_manager->share_exists(share_name) &&
-           !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
-                .exec(fmt::format("findmnt --type cifs | grep '{} //{}/{}'",
-                                  target,
-                                  QHostInfo::localHostName(),
-                                  share_name))
+           !vm->ssh_exec_process(fmt::format("findmnt --type cifs | grep '{} //{}/{}'",
+                                             target,
+                                             QHostInfo::localHostName(),
+                                             share_name))
                 ->exit_code();
 }
 catch (const std::exception& e)
