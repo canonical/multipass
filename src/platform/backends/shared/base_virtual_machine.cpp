@@ -29,6 +29,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
+#include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
@@ -209,6 +210,46 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
         try
         {
             return MP_UTILS.run_in_ssh_session(*ssh_session, cmd, whisper);
+        }
+        catch (const SSHException& e)
+        {
+            assert(ssh_session);
+            if (ssh_session->is_connected() || !reconnect)
+                throw;
+
+            log_details = e.what();
+            continue; // disconnections are often only detected after attempted use
+        }
+    }
+
+    assert(false && "we should never reach here");
+}
+
+std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const std::string& cmd,
+                                                                         bool whisper)
+{
+    std::unique_lock lock{state_mutex};
+
+    std::optional<std::string> log_details = std::nullopt;
+    bool reconnect = true;
+    while (true)
+    {
+        assert(reconnect && "we should have thrown otherwise");
+        if ((!ssh_session || !ssh_session->is_connected()) && reconnect)
+        {
+            mpl::info(vm_name,
+                      "SSH session disconnected{}",
+                      log_details ? fmt::format(": {}", *log_details) : "");
+
+            reconnect = false; // once only
+            lock.unlock();
+            renew_ssh_session();
+            lock.lock();
+        }
+
+        try
+        {
+            return ssh_session->exec(cmd, whisper);
         }
         catch (const SSHException& e)
         {
