@@ -19,6 +19,7 @@
 
 #include "common.h"
 
+#include <multipass/daemon_rpc_context.h>
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_rpc.h>
 
@@ -35,167 +36,167 @@ struct MockDaemon : public Daemon
                 create,
                 (const CreateRequest*,
                  (grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 launch,
                 (const LaunchRequest*,
                  (grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 purge,
                 (const PurgeRequest*,
                  (grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 find,
                 (const FindRequest* request,
                  (grpc::ServerReaderWriterInterface<FindReply, FindRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 info,
                 (const InfoRequest*,
                  (grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 list,
                 (const ListRequest*,
                  (grpc::ServerReaderWriterInterface<ListReply, ListRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 mount,
                 (const MountRequest* request,
                  (grpc::ServerReaderWriterInterface<MountReply, MountRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 recover,
                 (const RecoverRequest*,
                  (grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 ssh_info,
                 (const SSHInfoRequest*,
                  (grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 start,
                 (const StartRequest*,
                  (grpc::ServerReaderWriterInterface<StartReply, StartRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 stop,
                 (const StopRequest*,
                  (grpc::ServerReaderWriterInterface<StopReply, StopRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 suspend,
                 (const SuspendRequest*,
                  (grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 restart,
                 (const RestartRequest*,
                  (grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 delet,
                 (const DeleteRequest*,
                  (grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 umount,
                 (const UmountRequest*,
                  (grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 version,
                 (const VersionRequest*,
                  (grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 keys,
                 (const KeysRequest*,
                  (grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 get,
                 (const GetRequest*,
                  (grpc::ServerReaderWriterInterface<GetReply, GetRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 set,
                 (const SetRequest*,
                  (grpc::ServerReaderWriterInterface<SetReply, SetRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 networks,
                 (const NetworksRequest*,
                  (grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 authenticate,
                 (const AuthenticateRequest*,
                  (grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 snapshot,
                 (const SnapshotRequest*,
                  (grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 restore,
                 (const RestoreRequest*,
                  (grpc::ServerReaderWriterInterface<RestoreReply, RestoreRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 clone,
                 (const CloneRequest*,
                  (grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
 
     MOCK_METHOD(void,
                 daemon_info,
                 (const DaemonInfoRequest*,
                  (grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
 
     MOCK_METHOD(void,
                 wait_ready,
                 (const WaitReadyRequest*,
                  (grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
 
     template <typename Request, typename Reply>
     void set_promise_value(const Request*,
                            grpc::ServerReaderWriterInterface<Reply, Request>*,
-                           std::promise<grpc::Status>* status_promise)
+                           DaemonRpcContext* context)
     {
-        status_promise->set_value(grpc::Status::OK);
+        context->set_value(grpc::Status::OK);
     }
 
     // The following functions are meant to test daemon's bridging functions.

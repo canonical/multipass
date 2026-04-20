@@ -35,6 +35,7 @@
 #include "mock_utils.h"
 #include "path.h"
 #include "stub_cert_store.h"
+#include "stub_logger.h"
 #include "stub_terminal.h"
 
 #include <src/client/cli/client.h>
@@ -440,10 +441,14 @@ struct Client : public Test
     const mpt::MockUtils* mock_utils = utils_attr.first;
 
     mpt::StubCertStore cert_store;
+
     StrictMock<MockDaemonRpc> mock_daemon{
         server_address,
         *daemon_cert_provider,
-        &cert_store}; // strict to fail on unexpected calls and play well with sharing
+        &cert_store,
+        std::make_shared<multipass::logging::MultiplexingLogger>(
+            std::make_unique<mpt::StubLogger>())}; // strict to fail on unexpected calls and play
+                                                   // well with sharing
     mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject();
     mpt::MockSettings& mock_settings = *mock_settings_injection.first;
     inline static std::stringstream

@@ -21,6 +21,7 @@
 #include "common.h"
 #include "file_operations.h"
 #include "mock_cert_provider.h"
+#include "mock_daemon_rpc_context.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
 #include "stub_cert_store.h"
@@ -38,6 +39,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/command.h>
+#include <multipass/daemon_rpc_context.h>
 
 #include <chrono>
 
@@ -571,9 +573,14 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
     std::promise<grpc::Status> status_promise;
     auto status_future = status_promise.get_future();
 
-    auto thread = QThread::create([&daemon, slot, &request, &server, &status_promise] {
+    NiceMock<mpt::MockDaemonRpcContext> ctx;
+    ON_CALL(ctx, set_value).WillByDefault([&status_promise](grpc::Status status) {
+        status_promise.set_value(std::move(status));
+    });
+
+    auto thread = QThread::create([&daemon, slot, &request, &server, &ctx] {
         QEventLoop inner_loop;
-        (daemon.*slot)(&request, &server, &status_promise);
+        (daemon.*slot)(&request, &server, &ctx);
         inner_loop.exec();
     });
     QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
@@ -595,174 +602,174 @@ template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     void (mp::Daemon::*)(
         const mp::AuthenticateRequest*,
         grpc::ServerReaderWriterInterface<mp::AuthenticateReply, mp::AuthenticateRequest>*,
-        std::promise<grpc::Status>*),
+        mp::DaemonRpcContext*),
     const mp::AuthenticateRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::AuthenticateReply, mp::AuthenticateRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::VersionRequest const*,
                          grpc::ServerReaderWriterInterface<mp::VersionReply, mp::VersionRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::VersionRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::VersionReply, mp::VersionRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::ListRequest*,
                          grpc::ServerReaderWriterInterface<mp::ListReply, mp::ListRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::ListRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::KeysRequest const*,
                          grpc::ServerReaderWriterInterface<mp::KeysReply, mp::KeysRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::KeysRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::KeysRequest const*,
                          grpc::ServerReaderWriterInterface<mp::KeysReply, mp::KeysRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::KeysRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::GetRequest const*,
                          grpc::ServerReaderWriterInterface<mp::GetReply, mp::GetRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::GetRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::GetRequest const*,
                          grpc::ServerReaderWriterInterface<mp::GetReply, mp::GetRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::GetRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::SetRequest const*,
                          grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::SetRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::SetRequest const*,
                          grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::SetRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::NetworksRequest const*,
                          grpc::ServerReaderWriterInterface<mp::NetworksReply, mp::NetworksRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::NetworksRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::NetworksRequest const*,
                          grpc::ServerReaderWriterInterface<mp::NetworksReply, mp::NetworksRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::NetworksRequest const&,
     NiceMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::PurgeRequest const*,
                          grpc::ServerReaderWriterInterface<mp::PurgeReply, mp::PurgeRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::PurgeRequest const&,
     NiceMock<mpt::MockServerReaderWriter<mp::PurgeReply, mp::PurgeRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::MountRequest*,
                          grpc::ServerReaderWriterInterface<mp::MountReply, mp::MountRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::MountRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::UmountRequest*,
                          grpc::ServerReaderWriterInterface<mp::UmountReply, mp::UmountRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::UmountRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(mp::LaunchRequest const*,
                          grpc::ServerReaderWriterInterface<mp::LaunchReply, mp::LaunchRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     mp::LaunchRequest const&,
     StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::StartRequest*,
                          grpc::ServerReaderWriterInterface<mp::StartReply, mp::StartRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::StartRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::RestartRequest*,
                          grpc::ServerReaderWriterInterface<mp::RestartReply, mp::RestartRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::RestartRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::RestartReply, mp::RestartRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::InfoRequest*,
                          grpc::ServerReaderWriterInterface<mp::InfoReply, mp::InfoRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::InfoRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::SuspendRequest*,
                          grpc::ServerReaderWriterInterface<mp::SuspendReply, mp::SuspendRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::SuspendRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::SnapshotRequest*,
                          grpc::ServerReaderWriterInterface<mp::SnapshotReply, mp::SnapshotRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::SnapshotRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::SnapshotRequest*,
                          grpc::ServerReaderWriterInterface<mp::SnapshotReply, mp::SnapshotRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::SnapshotRequest&,
     testing::StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::RestoreRequest*,
                          grpc::ServerReaderWriterInterface<mp::RestoreReply, mp::RestoreRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::RestoreRequest&,
     testing::StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::RestoreRequest*,
                          grpc::ServerReaderWriterInterface<mp::RestoreReply, mp::RestoreRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::RestoreRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::CloneRequest*,
                          grpc::ServerReaderWriterInterface<mp::CloneReply, mp::CloneRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::CloneRequest&,
     NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::CloneRequest*,
                          grpc::ServerReaderWriterInterface<mp::CloneReply, mp::CloneRequest>*,
-                         std::promise<grpc::Status>*),
+                         mp::DaemonRpcContext*),
     const mp::CloneRequest&,
     NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>&&);
