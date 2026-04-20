@@ -49,7 +49,7 @@ public:
                        const Path& instance_dir);
     ~BaseVirtualMachine();
 
-    virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+    std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;
 
