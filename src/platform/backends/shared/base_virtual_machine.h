@@ -45,7 +45,7 @@ public:
                        const SSHKeyProvider& key_provider,
                        const Path& instance_dir);
 
-    virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+    std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;
 
