@@ -15,11 +15,11 @@
 
 function(add_ssh_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
+    libssh_scope_guard.cpp
     openssh_key_provider.cpp
+    plain_ssh_process.cpp
     ssh_client_key_provider.cpp
-    ssh_process.cpp
-    ssh_session.cpp
-    libssh_scope_guard.cpp)
+    ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
     fmt::fmt-header-only

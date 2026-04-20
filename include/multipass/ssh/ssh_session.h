@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/ssh/ssh_process.h>
+#include <multipass/ssh/plain_ssh_process.h>
 
 #include <libssh/libssh.h>
 
@@ -47,7 +47,7 @@ public:
     ~SSHSession();
 
     // locks the session until the process is destroyed or exit_code is called!
-    SSHProcess exec(const std::string& cmd, bool whisper = false);
+    std::unique_ptr<SSHProcess> exec(const std::string& cmd, bool whisper = false);
     [[nodiscard]] bool is_connected() const;
 
     operator ssh_session(); // careful, not thread safe

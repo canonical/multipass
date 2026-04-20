@@ -102,12 +102,12 @@ multipass::SSHSession::~SSHSession()
     force_shutdown(); // do we really need this?
 }
 
-mp::SSHProcess mp::SSHSession::exec(const std::string& cmd, bool whisper)
+std::unique_ptr<mp::SSHProcess> mp::SSHSession::exec(const std::string& cmd, bool whisper)
 {
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
     mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
 
-    return {session.get(), cmd, std::unique_lock{mut}};
+    return make_unique<PlainSSHProcess>(session.get(), cmd, std::unique_lock{mut});
 }
 
 void mp::SSHSession::force_shutdown()
