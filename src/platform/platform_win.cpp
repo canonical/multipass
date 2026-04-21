@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/settings/custom_setting_spec.h>
@@ -44,8 +45,6 @@
 #include <QtGlobal>
 
 #include <scope_guard.hpp>
-
-#include <json/json.h>
 
 #include <aclapi.h>
 #include <sddl.h>
@@ -119,189 +118,39 @@ QString interpret_winterm_setting(const QString& val)
     return ret;
 }
 
-QString locate_profiles_path()
+QString windows_terminal_config_path()
 {
-    // The profiles file is expected in
-    // $env:LocalAppData\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
-    // where $env:LocalAppData is normally C:\Users\<USER>\AppData\Local
-    return MP_STDPATHS.locate(
-        mp::StandardPaths::GenericConfigLocation,
-        "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
+    // The Windows Terminal data directory is expected in
+    // "$env:LocalAppData\Windows\Windows Terminal" where $env:LocalAppData is
+    // normally C:\Users\<USER>\AppData\Local
+    const auto dirs = MP_STDPATHS.standardLocations(mp::StandardPaths::GenericConfigLocation);
+    if (dirs.isEmpty())
+        return "";
+    return QDir{dirs[0]}.filePath("Microsoft/Windows Terminal");
 }
 
-struct WintermSyncException : public std::runtime_error
+boost::json::value create_primary_profile()
 {
-    WintermSyncException(const std::string& msg, const QString& path, const std::string& reason)
-        : std::runtime_error{fmt::format("{}; location: \"{}\"; reason: {}.", msg, path, reason)}
-    {
-    }
-
-    WintermSyncException(const std::string& msg, const QString& path)
-        : WintermSyncException{msg,
-                               path,
-                               fmt::format("{} (error code: {})", std::strerror(errno), errno)}
-    {
-    }
-};
-
-struct LesserWintermSyncException : public WintermSyncException
-{
-    using WintermSyncException::WintermSyncException;
-};
-
-struct ModerateWintermSyncException : public WintermSyncException
-{
-    using WintermSyncException::WintermSyncException;
-};
-
-struct GreaterWintermSyncException : public WintermSyncException
-{
-    using WintermSyncException::WintermSyncException;
-};
-
-Json::Value& edit_profiles(const QString& path, Json::Value& json_root)
-{
-    if (!json_root.isMember("profiles"))
-        throw ModerateWintermSyncException{"Could not find profiles in Windows Terminal's settings",
-                                           path,
-                                           "No \"profiles\" node under JSON root"};
-
-    auto& profiles =
-        json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
-    return profiles.isArray() || !profiles.isMember("list")
-               ? profiles
-               : profiles["list"]; /* Notes:
-            1) don't index into "list" unless it already exists
-            2) can't look for named member on array values */
-}
-
-Json::Value read_winterm_settings(const QString& path)
-{
-    std::ifstream json_file{path.toStdString(), std::ifstream::binary};
-    if (!json_file)
-        throw ModerateWintermSyncException{"Could not read Windows Terminal's configuration", path};
-
-    Json::CharReaderBuilder rbuilder;
-    Json::Value json_root;
-    std::string errs;
-    if (!Json::parseFromStream(rbuilder, json_file, &json_root, &errs))
-        throw ModerateWintermSyncException{"Could not parse Windows Terminal's configuration",
-                                           path,
-                                           errs};
-
-    return json_root;
-}
-
-// work around white showing as pale-green, unless the user has a custom value
-void wt_patch_colors(Json::Value& primary_profile)
-{
-    static constexpr auto off_white = "#FDFDFD";
-    static constexpr auto comment_placement = Json::commentAfterOnSameLine;
-
-    if (auto& cursor_color = primary_profile["cursorColor"]; cursor_color.isNull())
-    {
-        cursor_color = off_white;
-        cursor_color.setComment("// work around white showing as pale-green", comment_placement);
-
-        // match cursor color in the foreground if there is no custom value
-        if (auto& foreground = primary_profile["foreground"]; foreground.isNull())
-        {
-            foreground = off_white;
-            foreground.setComment("// match cursor", comment_placement);
-        }
-    }
-}
-
-Json::Value create_primary_profile()
-{
-    Json::Value primary_profile{};
-    primary_profile["guid"] = mp::winterm_profile_guid;
-    primary_profile["name"] = "Multipass";
-    primary_profile["commandline"] = "multipass shell";
-    primary_profile["background"] = "#350425";
-    primary_profile["cursorShape"] = "filledBox";
-    primary_profile["fontFace"] = "Ubuntu Mono";
-    primary_profile["historySize"] = 50000;
-    primary_profile["icon"] =
-        QDir{QCoreApplication::applicationDirPath()}.filePath("multipass_wt.ico").toStdString();
-
-    return primary_profile;
-}
-
-Json::Value update_profiles(const QString& path,
-                            const Json::Value& json_root,
-                            const QString& winterm_setting)
-{
-    Json::Value ret = json_root;
-    auto& profiles = edit_profiles(path, ret);
-
-    auto primary_profile_it =
-        std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
-            return profile["guid"] == mp::winterm_profile_guid;
-        });
-
-    Json::Value* primary_profile_ptr = nullptr;
-    if (primary_profile_it != std::end(profiles))
-    {
-        if (primary_profile_it->isMember("hidden") || winterm_setting == none)
-            (*primary_profile_it)["hidden"] = winterm_setting == none;
-        primary_profile_ptr = &(*primary_profile_it);
-    }
-    else if (winterm_setting != none)
-        primary_profile_ptr = &profiles.append(create_primary_profile());
-
-    if (primary_profile_ptr)
-        wt_patch_colors(*primary_profile_ptr);
-
-    return ret;
-}
-
-void write_profiles(const std::string& path, const Json::Value& json_root)
-{
-    std::ofstream json_file{path, std::ofstream::binary};
-    json_file << json_root;
-    if (!json_file)
-        throw GreaterWintermSyncException{"Could not write Windows Terminal's configuration",
-                                          QString::fromStdString(path)};
-}
-
-std::string create_shadow_config_file(const QString& path)
-{
-    const auto tmp_file_template = path + ".XXXXXX";
-    auto tmp_file = QTemporaryFile{tmp_file_template};
-
-    if (!tmp_file.open() || !tmp_file.exists())
-        throw GreaterWintermSyncException{
-            "Could not create temporary configuration file for Windows Terminal",
-            tmp_file_template};
-
-    tmp_file.setAutoRemove(false);
-    return tmp_file.fileName().toStdString();
-}
-
-void save_profiles(const QString& path, const Json::Value& json_root)
-{
-    std::string tmp_file_name = create_shadow_config_file(path);
-    auto tmp_file_removing_guard = sg::make_scope_guard([&tmp_file_name]() noexcept {
-        std::error_code
-            ec; // ignored, there's an exception in flight and we're in a dtor, so best-effort only
-        std::filesystem::remove(tmp_file_name, ec);
-    });
-
-    write_profiles(tmp_file_name, json_root);
-
-    try
-    {
-        std::filesystem::rename(tmp_file_name, path.toStdString());
-    }
-    catch (std::filesystem::filesystem_error& e)
-    {
-        throw GreaterWintermSyncException{"Could not update Windows Terminal's configuration",
-                                          path,
-                                          e.what()};
-    }
-
-    tmp_file_removing_guard.dismiss(); // we succeeded, tmp file no longer there
+    return {{"profiles",
+             {{
+                  {"updates", mp::winterm_old_profile_guid},
+                  {"hidden", true},
+              },
+              {
+                  {"guid", mp::winterm_profile_guid},
+                  {"name", "Multipass (fragmentized)"},
+                  {"commandline", "multipass shell"},
+                  {"background", "#350425"},
+                  {"foreground", "#FDFDFD"},
+                  {"cursorColor", "#FDFDFD"},
+                  {"cursorShape", "filledBox"},
+                  {"fontFace", "Ubuntu Mono"},
+                  {"historySize", 50000},
+                  {"icon",
+                   QDir{QCoreApplication::applicationDirPath()}
+                       .filePath("multipass_wt.ico")
+                       .toStdString()},
+              }}}};
 }
 
 std::string interpret_net_type(const QString& media_type, const QString& physical_media_type)
@@ -572,34 +421,37 @@ QString mp::platform::interpret_setting(const QString& key, const QString& val)
 void mp::platform::sync_winterm_profiles()
 {
     constexpr auto log_category = "winterm";
-    const auto profiles_path = locate_profiles_path();
     const auto winterm_setting = MP_SETTINGS.get(mp::winterm_key);
+    if (winterm_setting == none)
+        return;
+
+    const auto winterm_path = windows_terminal_config_path();
+    if (winterm_path.isEmpty())
+    {
+        mpl::warn(log_category,
+                  "Could not find Windows Terminal's settings directory: {}",
+                  winterm_path.toStdString());
+        return;
+    }
+
+    const auto mp_fragment_dir =
+        QDir{MP_UTILS.make_dir(QDir{winterm_path}.filePath("Fragments/Multipass"))};
+    const auto mp_fragment_file = QDir(mp_fragment_dir).filePath("multipass.json");
+    if (MP_FILEOPS.exists(mp_fragment_file))
+    {
+        mpl::debug(log_category,
+                   "Multipass fragment for Windows Terminal already exists: {}",
+                   mp_fragment_file.toStdString());
+        return;
+    }
 
     try
     {
-        if (profiles_path.isEmpty())
-            throw LesserWintermSyncException{"Could not find Windows Terminal's settings",
-                                             profiles_path,
-                                             "File not found"};
-
-        auto json_root = read_winterm_settings(profiles_path);
-        auto updated_json = update_profiles(profiles_path, json_root, winterm_setting);
-        if (updated_json != json_root)
-            save_profiles(profiles_path, updated_json);
+        MP_FILEOPS.write_transactionally(mp_fragment_file, pretty_print(create_primary_profile()));
     }
-    catch (LesserWintermSyncException& e)
+    catch (const std::exception& e)
     {
-        const auto level = winterm_setting == none ? mpl::Level::debug : mpl::Level::warning;
-        mpl::log_message(level, log_category, e.what());
-    }
-    catch (ModerateWintermSyncException& e)
-    {
-        const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
-        mpl::log_message(level, log_category, e.what());
-    }
-    catch (GreaterWintermSyncException& e)
-    {
-        mpl::log_message(mpl::Level::error, log_category, e.what());
+        mpl::error(log_category, "Failed to write Windows Terminal fragment: {}", e.what());
     }
 }
 
