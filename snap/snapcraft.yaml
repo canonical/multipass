@@ -112,6 +112,7 @@ parts:
     plugin: cmake
     build-snaps:
     - cmake
+    - rustup
     build-environment:
     - PATH: /snap/bin:$PATH
     - PYTHON: /usr/bin/python3
@@ -211,10 +212,7 @@ parts:
     override-pull: |
       set -e
 
-      if ! snap list rustup >/dev/null 2>&1; then
-          snap install rustup --classic
-          rustup default stable
-      fi
+      rustup default stable
 
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
