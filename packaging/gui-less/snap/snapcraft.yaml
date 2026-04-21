@@ -129,6 +129,7 @@ parts:
     # https://github.com/microsoft/vcpkg/issues/47920
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     - python3-pip
+    - jq
     stage-packages:
     - apparmor
     - libpng16-16
@@ -194,6 +195,11 @@ parts:
     source-type: git
     override-pull: |
       set -e
+
+      if ! snap list rustup >/dev/null 2>&1; then
+          snap install rustup --classic
+          rustup default stable
+      fi
 
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
