@@ -34,7 +34,7 @@ struct DaemonRpcContext
 };
 
 template <typename T, typename U>
-struct DaemonRpcContextImpl : DaemonRpcContext
+struct DaemonRpcContextImpl : DaemonRpcContext, private multipass::DisabledCopyMove
 {
     DaemonRpcContextImpl(std::promise<grpc::Status>& promise,
                          grpc::ServerReaderWriterInterface<T, U>* server,
@@ -48,6 +48,7 @@ struct DaemonRpcContextImpl : DaemonRpcContext
 
     void set_value(grpc::Status status) override
     {
+        // Free any resources that depend on server here.
         logger.reset();
         promise.set_value(std::move(status));
     }
