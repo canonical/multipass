@@ -21,8 +21,6 @@
 
 #include <multipass/daemon_rpc_context.h>
 
-#include <future>
-
 namespace multipass
 {
 namespace test
@@ -31,8 +29,6 @@ namespace test
 struct MockDaemonRpcContext : DaemonRpcContext
 {
     MOCK_METHOD(void, set_value, (grpc::Status), (override));
-    MOCK_METHOD(std::future<grpc::Status>, get_future, (), (override));
-    MOCK_METHOD(const multipass::logging::Logger&, logger, (), (const, override));
 };
 
 } // namespace test

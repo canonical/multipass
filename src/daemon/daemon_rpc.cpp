@@ -102,11 +102,13 @@ grpc::Status emit_signal_and_wait_for_result(OperationSignal operation_signal,
             return mpl::Level::info;
     }();
 
-    multipass::DaemonRpcContextImpl<T, U> ctx{server, level, mpx};
+    std::promise<grpc::Status> promise;
+    auto future = promise.get_future();
+    multipass::DaemonRpcContextImpl<T, U> ctx{promise, server, level, mpx};
     emit operation_signal(request,
                           static_cast<grpc::ServerReaderWriter<T, U>*>(server),
                           static_cast<multipass::DaemonRpcContext*>(&ctx));
-    return ctx.get_future().get();
+    return future.get();
 }
 
 std::string client_cert_from(grpc::ServerContext* context)

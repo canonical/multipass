@@ -30,44 +30,31 @@ namespace multipass
 struct DaemonRpcContext
 {
     virtual void set_value(grpc::Status status) = 0;
-    virtual std::future<grpc::Status> get_future() = 0;
-    virtual const logging::Logger& logger() const = 0;
     virtual ~DaemonRpcContext() = default;
 };
 
 template <typename T, typename U>
 struct DaemonRpcContextImpl : DaemonRpcContext
 {
-    DaemonRpcContextImpl(grpc::ServerReaderWriterInterface<T, U>* server,
+    DaemonRpcContextImpl(std::promise<grpc::Status>& promise,
+                         grpc::ServerReaderWriterInterface<T, U>* server,
                          logging::Level level,
                          logging::MultiplexingLogger& mpx)
-        : server{server},
-          logger_{std::make_optional<logging::ClientLogger<T, U>>(level, mpx, server)}
+        : promise(promise),
+          // We have to construct the logger here since we can't move or copy it.
+          logger{std::make_optional<logging::ClientLogger<T, U>>(level, mpx, server)}
     {
     }
 
     void set_value(grpc::Status status) override
     {
-        logger_.reset();
+        logger.reset();
         promise.set_value(std::move(status));
     }
 
-    std::future<grpc::Status> get_future() override
-    {
-        return promise.get_future();
-    }
-
-    const logging::Logger& logger() const override
-    {
-        assert(logger_);
-        return logger_.value();
-    }
-
-    grpc::ServerReaderWriterInterface<T, U>* server;
-
 private:
-    std::optional<logging::ClientLogger<T, U>> logger_;
-    std::promise<grpc::Status> promise;
+    std::promise<grpc::Status>& promise;
+    std::optional<logging::ClientLogger<T, U>> logger;
 };
 
 } // namespace multipass
