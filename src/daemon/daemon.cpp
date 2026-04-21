@@ -2816,7 +2816,7 @@ try
 {
     WaitReadyReply response;
 
-    context->logger().log(mpl::Level::debug, "daemon", "Checking connection to image servers...");
+    mpl::debug("daemon", "Checking connection to image servers...");
 
     // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to image
     // servers.
@@ -2824,16 +2824,12 @@ try
     {
         wait_update_manifests_all_and_optionally_applied_force(
             /*force_manifest_network_download=*/false);
-        context->logger().log(mpl::Level::debug,
-                              "daemon",
-                              "Successfully connected to image servers.");
+        mpl::debug("daemon", "Successfully connected to image servers.");
         context->set_value(grpc::Status::OK);
     }
     catch (const mp::DownloadException& e)
     {
-        context->logger().log(mpl::Level::warning,
-                              "daemon",
-                              fmt::format("Failed to connect to image servers: {}", e.what()));
+        mpl::warn("daemon", "Failed to connect to image servers: {}", e.what());
         grpc::Status download_error_status{grpc::StatusCode::NOT_FOUND,
                                            "cannot connect to the image servers",
                                            ""};
