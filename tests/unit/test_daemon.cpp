@@ -22,6 +22,7 @@
 #include "json_test_utils.h"
 #include "mock_cert_provider.h"
 #include "mock_daemon.h"
+#include "mock_daemon_rpc_context.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_image_host.h"
@@ -34,6 +35,7 @@
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "stub_logger.h"
 #include "stub_virtual_machine.h"
 
 #include <src/daemon/default_vm_image_vault.h>
@@ -298,10 +300,11 @@ TEST_F(Daemon, failedRestartCommandReturnsFulfilledPromise)
     nonexistent_instance->add_instance_name("nonexistent");
     mp::RestartRequest request;
     request.set_allocated_instance_names(nonexistent_instance);
-    std::promise<grpc::Status> status_promise;
 
-    daemon.restart(&request, nullptr, &status_promise);
-    EXPECT_TRUE(is_ready(status_promise.get_future()));
+    StrictMock<mpt::MockDaemonRpcContext> mock_daemon_rpc_context;
+    EXPECT_CALL(mock_daemon_rpc_context,
+                set_value(Property(&grpc::Status::error_code, grpc::StatusCode::NOT_FOUND)));
+    daemon.restart(&request, nullptr, &mock_daemon_rpc_context);
 }
 
 TEST_F(Daemon, proxyContainsValidInfo)

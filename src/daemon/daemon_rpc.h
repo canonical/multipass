@@ -20,6 +20,7 @@
 #include <multipass/cert_provider.h>
 #include <multipass/cert_store.h>
 #include <multipass/disabled_copy_move.h>
+#include <multipass/logging/multiplexing_logger.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <grpcpp/grpcpp.h>
@@ -31,6 +32,9 @@
 
 namespace multipass
 {
+
+struct DaemonRpcContext;
+
 using CreateRequest = LaunchRequest;
 using CreateReply = LaunchReply;
 using CreateError = LaunchError;
@@ -52,99 +56,103 @@ class DaemonRpc : public QObject, public multipass::Rpc::Service, private Disabl
 public:
     DaemonRpc(const std::string& server_address,
               const CertProvider& cert_provider,
-              CertStore* client_cert_store);
+              CertStore* client_cert_store,
+              std::shared_ptr<logging::MultiplexingLogger> logger);
 
     void shutdown_and_wait();
 
 signals:
     void on_create(const CreateRequest* request,
                    grpc::ServerReaderWriter<CreateReply, CreateRequest>* server,
-                   std::promise<grpc::Status>* status_promise);
+                   DaemonRpcContext* context);
     void on_launch(const LaunchRequest* request,
                    grpc::ServerReaderWriter<LaunchReply, LaunchRequest>* server,
-                   std::promise<grpc::Status>* status_promise);
+                   DaemonRpcContext* context);
     void on_purge(const PurgeRequest* request,
                   grpc::ServerReaderWriter<PurgeReply, PurgeRequest>* server,
-                  std::promise<grpc::Status>* status_promise);
+                  DaemonRpcContext* context);
     void on_find(const FindRequest* request,
                  grpc::ServerReaderWriter<FindReply, FindRequest>* server,
-                 std::promise<grpc::Status>* status_promise);
+                 DaemonRpcContext* context);
     void on_info(const InfoRequest* request,
                  grpc::ServerReaderWriter<InfoReply, InfoRequest>* server,
-                 std::promise<grpc::Status>* status_promise);
+                 DaemonRpcContext* context);
     void on_list(const ListRequest* request,
                  grpc::ServerReaderWriter<ListReply, ListRequest>* server,
-                 std::promise<grpc::Status>* status_promise);
+                 DaemonRpcContext* context);
     void on_clone(const CloneRequest* request,
                   grpc::ServerReaderWriter<CloneReply, CloneRequest>* server,
-                  std::promise<grpc::Status>* status_promise);
+                  DaemonRpcContext* context);
     void on_networks(const NetworksRequest* request,
                      grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server,
-                     std::promise<grpc::Status>* status_promise);
+                     DaemonRpcContext* context);
     void on_mount(const MountRequest* request,
                   grpc::ServerReaderWriter<MountReply, MountRequest>* server,
-                  std::promise<grpc::Status>* status_promise);
+                  DaemonRpcContext* context);
     void on_recover(const RecoverRequest* request,
                     grpc::ServerReaderWriter<RecoverReply, RecoverRequest>* server,
-                    std::promise<grpc::Status>* status_promise);
+                    DaemonRpcContext* context);
     void on_ssh_info(const SSHInfoRequest* request,
                      grpc::ServerReaderWriter<SSHInfoReply, SSHInfoRequest>* server,
-                     std::promise<grpc::Status>* status_promise);
+                     DaemonRpcContext* context);
     void on_start(const StartRequest* request,
                   grpc::ServerReaderWriter<StartReply, StartRequest>* server,
-                  std::promise<grpc::Status>* status_promise);
+                  DaemonRpcContext* context);
     void on_stop(const StopRequest* request,
                  grpc::ServerReaderWriter<StopReply, StopRequest>* server,
-                 std::promise<grpc::Status>* status_promise);
+                 DaemonRpcContext* context);
     void on_suspend(const SuspendRequest* request,
                     grpc::ServerReaderWriter<SuspendReply, SuspendRequest>* server,
-                    std::promise<grpc::Status>* status_promise);
+                    DaemonRpcContext* context);
     void on_restart(const RestartRequest* request,
                     grpc::ServerReaderWriter<RestartReply, RestartRequest>* server,
-                    std::promise<grpc::Status>* status_promise);
+                    DaemonRpcContext* context);
     void on_delete(const DeleteRequest* request,
                    grpc::ServerReaderWriter<DeleteReply, DeleteRequest>* server,
-                   std::promise<grpc::Status>* status_promise);
+                   DaemonRpcContext* context);
     void on_umount(const UmountRequest* request,
                    grpc::ServerReaderWriter<UmountReply, UmountRequest>* server,
-                   std::promise<grpc::Status>* status_promise);
+                   DaemonRpcContext* context);
     void on_version(const VersionRequest* request,
                     grpc::ServerReaderWriter<VersionReply, VersionRequest>* server,
-                    std::promise<grpc::Status>* status_promise);
+                    DaemonRpcContext* context);
     void on_get(const GetRequest* request,
                 grpc::ServerReaderWriter<GetReply, GetRequest>* server,
-                std::promise<grpc::Status>* status_promise);
+                DaemonRpcContext* context);
     void on_set(const SetRequest* request,
                 grpc::ServerReaderWriter<SetReply, SetRequest>* server,
-                std::promise<grpc::Status>* status_promise);
+                DaemonRpcContext* context);
     void on_keys(const KeysRequest* request,
                  grpc::ServerReaderWriter<KeysReply, KeysRequest>* server,
-                 std::promise<grpc::Status>* status_promise);
+                 DaemonRpcContext* context);
     void on_authenticate(const AuthenticateRequest* request,
                          grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server,
-                         std::promise<grpc::Status>* status_promise);
+                         DaemonRpcContext* context);
     void on_snapshot(const SnapshotRequest* request,
                      grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server,
-                     std::promise<grpc::Status>* status_promise);
+                     DaemonRpcContext* context);
     void on_restore(const RestoreRequest* request,
                     grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server,
-                    std::promise<grpc::Status>* status_promise);
+                    DaemonRpcContext* context);
     void on_daemon_info(const DaemonInfoRequest* request,
                         grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server,
-                        std::promise<grpc::Status>* status_promise);
+                        DaemonRpcContext* context);
     void on_wait_ready(const WaitReadyRequest* request,
                        grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server,
-                       std::promise<grpc::Status>* status_promise);
+                       DaemonRpcContext* context);
 
 private:
-    template <typename OperationSignal>
-    grpc::Status verify_client_and_dispatch_operation(OperationSignal signal,
-                                                      const std::string& client_cert);
+    template <typename T, typename U, typename OperationSignal>
+    grpc::Status
+    verify_client_and_dispatch_operation(OperationSignal signal,
+                                         const std::string& client_cert,
+                                         grpc::ServerReaderWriterInterface<T, U>* server);
 
     const std::string server_address;
     const std::unique_ptr<grpc::Server> server;
     const ServerSocketType server_socket_type;
     CertStore* client_cert_store;
+    std::shared_ptr<logging::MultiplexingLogger> logger;
 
 protected:
     grpc::Status create(grpc::ServerContext* context,

@@ -24,6 +24,7 @@
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/daemon_rpc_context.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ghost_instance_exception.h>
@@ -1265,7 +1266,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                             config->factory->get_backend_directory_name()),
           mp::utils::backend_directory_path(config->cache_directory,
                                             config->factory->get_backend_directory_name()))},
-      daemon_rpc{config->server_address, *config->cert_provider, config->client_cert_store.get()},
+      daemon_rpc{config->server_address,
+                 *config->cert_provider,
+                 config->client_cert_store.get(),
+                 config->logger},
       instance_mod_handler{register_instance_mod(
           vm_instance_specs,
           operative_instances,
@@ -1509,31 +1513,22 @@ void mp::Daemon::shutdown_grpc_server()
 
 void mp::Daemon::create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
-                        std::promise<grpc::Status>* status_promise)
+                        DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<CreateReply, CreateRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-    return create_vm(request, server, status_promise, /*start=*/false);
+    return create_vm(request, server, context, /*start=*/false);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::launch(const LaunchRequest* request,
                         grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>* server,
-                        std::promise<grpc::Status>* status_promise)
+                        DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<LaunchReply, LaunchRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
-    return create_vm(request, server, status_promise, /*start=*/true);
+    return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
 {
@@ -1543,16 +1538,16 @@ catch (const mp::StartException& e)
     operative_instances.erase(name);
     persist_instances();
 
-    status_promise->set_value(grpc::Status(grpc::StatusCode::ABORTED, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::ABORTED, e.what(), ""));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::purge(const PurgeRequest* request,
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
-                       std::promise<grpc::Status>* status_promise)
+                       DaemonRpcContext* context)
 try
 {
     PurgeReply response;
@@ -1569,21 +1564,18 @@ try
     persist_instances();
 
     server->Write(response);
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::find(const FindRequest* request,
                       grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      std::promise<grpc::Status>* status_promise)
+                      DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<FindReply, FindRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                     *config->logger,
-                                                     server};
     FindReply response;
 
     if (!request->search_string().empty())
@@ -1670,21 +1662,18 @@ try
     }
 
     server->Write(response);
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::info(const InfoRequest* request,
                       grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>* server,
-                      std::promise<grpc::Status>* status_promise)
+                      DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<InfoReply, InfoRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                     *config->logger,
-                                                     server};
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1766,21 +1755,18 @@ try
         server->Write(response);
     }
 
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::list(const ListRequest* request,
                       grpc::ServerReaderWriterInterface<ListReply, ListRequest>* server,
-                      std::promise<grpc::Status>* status_promise)
+                      DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<ListReply, ListRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                     *config->logger,
-                                                     server};
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -1872,22 +1858,18 @@ try
     }
 
     server->Write(response);
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::networks(const NetworksRequest* request,
                           grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
-                          std::promise<grpc::Status>* status_promise)
+                          DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<NetworksReply, NetworksRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
     NetworksReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -1905,24 +1887,20 @@ try
     }
 
     server->Write(response);
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::mount(const MountRequest* request,
                        grpc::ServerReaderWriterInterface<MountReply, MountRequest>* server,
-                       std::promise<grpc::Status>* status_promise)
+                       DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<MountReply, MountRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                       *config->logger,
-                                                       server};
-
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
-        return status_promise->set_value(grpc::Status(
+        return context->set_value(grpc::Status(
             grpc::StatusCode::FAILED_PRECONDITION,
             "Mounts are disabled on this installation of Multipass.\n\n"
             "See https://canonical.com/multipass/docs/set-command#local.privileged-mounts for "
@@ -1987,7 +1965,7 @@ try
             }
             catch (const mp::SSHFSMissingError&)
             {
-                return status_promise->set_value(grpc_status_for_mount_error(name));
+                return context->set_value(grpc_status_for_mount_error(name));
             }
             catch (const std::exception& e)
             {
@@ -2002,23 +1980,18 @@ try
 
     persist_instances();
 
-    status_promise->set_value(grpc_status_for(errors));
+    context->set_value(grpc_status_for(errors));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::recover(const RecoverRequest* request,
                          grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
-                         std::promise<grpc::Status>* status_promise)
+                         DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<RecoverReply, RecoverRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2045,23 +2018,18 @@ try
         persist_instances();
     }
 
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>* server,
-                          std::promise<grpc::Status>* status_promise)
+                          DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<SSHInfoReply, SSHInfoRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2080,22 +2048,18 @@ try
             server->Write(response);
     }
 
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::start(const StartRequest* request,
                        grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
-                       std::promise<grpc::Status>* status_promise)
+                       DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<StartReply, StartRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                       *config->logger,
-                                                       server};
-
     auto timeout =
         request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
@@ -2113,9 +2077,9 @@ try
                                    custom_reaction);
 
     if (!status.ok())
-        return status_promise->set_value({status.error_code(),
-                                          "instance(s) missing",
-                                          make_start_error_details(instance_selection)});
+        return context->set_value({status.error_code(),
+                                   "instance(s) missing",
+                                   make_start_error_details(instance_selection)});
 
     bool complain_disabled_mounts = !MP_SETTINGS.get_as<bool>(mp::mounts_key);
 
@@ -2173,24 +2137,20 @@ try
                           server,
                           starting_vms,
                           timeout,
-                          status_promise,
+                          context,
                           fmt::to_string(start_errors),
                           fmt::to_string(start_warnings)));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::stop(const StopRequest* request,
                       grpc::ServerReaderWriterInterface<StopReply, StopRequest>* server,
-                      std::promise<grpc::Status>* status_promise)
+                      DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<StopReply, StopRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                     *config->logger,
-                                                     server};
-
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2215,27 +2175,22 @@ try
         status = cmd_vms(instance_selection.operative_selection, operation);
     }
 
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const mp::VMStateInvalidException& e)
 {
-    status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
+    context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
                          grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
-                         std::promise<grpc::Status>* status_promise)
+                         DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<SuspendReply, SuspendRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2253,23 +2208,18 @@ try
         });
     }
 
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::restart(const RestartRequest* request,
                          grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>* server,
-                         std::promise<grpc::Status>* status_promise)
+                         DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<RestartReply, RestartRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     auto timeout =
         request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
 
@@ -2282,7 +2232,7 @@ try
 
     if (!status.ok())
     {
-        return status_promise->set_value(status);
+        return context->set_value(status);
     }
 
     const auto& instance_targets = instance_selection.operative_selection;
@@ -2294,7 +2244,7 @@ try
 
     if (!status.ok())
     {
-        return status_promise->set_value(status);
+        return context->set_value(status);
     }
 
     auto future_watcher = create_future_watcher();
@@ -2304,24 +2254,20 @@ try
                           server,
                           names_from(instance_targets),
                           timeout,
-                          status_promise,
+                          context,
                           std::string(),
                           std::string()));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::delet(const DeleteRequest* request,
                        grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>* server,
-                       std::promise<grpc::Status>* status_promise)
+                       DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<DeleteReply, DeleteRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
     DeleteReply response;
 
     auto [instance_selection, status] =
@@ -2356,7 +2302,7 @@ try
                 throw std::runtime_error("Cannot get confirmation from client. Aborting...");
 
             if (!(purge_snapshots = client_response.purge_snapshots()))
-                return status_promise->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
+                return context->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
         }
 
         // start with deleted instances, to avoid iterator invalidation when moving instances there
@@ -2387,27 +2333,22 @@ try
     }
 
     server->Write(response);
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const mp::VMStateInvalidException& e)
 {
-    status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
+    context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
 }
 
 void mp::Daemon::umount(const UmountRequest* request,
                         grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
-                        std::promise<grpc::Status>* status_promise)
+                        DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<UmountReply, UmountRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
@@ -2458,38 +2399,29 @@ try
 
     persist_instances();
 
-    status_promise->set_value(grpc_status_for(errors));
+    context->set_value(grpc_status_for(errors));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::version(const VersionRequest* request,
                          grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>* server,
-                         std::promise<grpc::Status>* status_promise)
+                         DaemonRpcContext* context)
 {
-    mpl::ClientLogger<VersionReply, VersionRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     VersionReply reply;
     reply.set_version(multipass::version_string);
     config->update_prompt->populate(reply.mutable_update_info());
     server->Write(reply);
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 
 void mp::Daemon::get(const GetRequest* request,
                      grpc::ServerReaderWriterInterface<GetReply, GetRequest>* server,
-                     std::promise<grpc::Status>* status_promise)
+                     DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<GetReply, GetRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                   *config->logger,
-                                                   server};
-
     GetReply reply;
 
     auto key = request->key();
@@ -2498,26 +2430,22 @@ try
 
     reply.set_value(val);
     server->Write(reply);
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 catch (const mp::UnrecognizedSettingException& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::set(const SetRequest* request,
                      grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server,
-                     std::promise<grpc::Status>* status_promise)
+                     DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<SetReply, SetRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                   *config->logger,
-                                                   server};
-
     auto key = request->key();
     auto val = request->val();
     std::string bridge_name;
@@ -2539,7 +2467,7 @@ try
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 catch (const mp::NonAuthorizedBridgeSettingsException& e)
 {
@@ -2565,46 +2493,41 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
 
         mpl::debug(category, "Succeeded setting {}={}", key, val);
 
-        status_promise->set_value(grpc::Status::OK);
+        context->set_value(grpc::Status::OK);
     }
     else
     {
         mpl::debug(category, "User did not authorize, cancelling");
 
-        status_promise->set_value(
-            grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+        context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
     }
 }
 catch (const mp::BridgeFailureException& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const mp::UnrecognizedSettingException& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const mp::InstanceStateSettingsException& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 catch (const mp::InvalidSettingException& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::keys(const mp::KeysRequest* request,
                       grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>* server,
-                      std::promise<grpc::Status>* status_promise)
+                      DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<KeysReply, KeysRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                     *config->logger,
-                                                     server};
-
     KeysReply reply;
 
     for (const auto& key : MP_SETTINGS.keys())
@@ -2613,29 +2536,24 @@ try
     mpl::debug(category, "Returning {} settings keys", reply.settings_keys_size());
     server->Write(reply);
 
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::authenticate(
     const AuthenticateRequest* request,
     grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,
-    std::promise<grpc::Status>* status_promise)
+    DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<AuthenticateReply, AuthenticateRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     auto stored_hash = MP_SETTINGS.get(mp::passphrase_key);
 
     if (stored_hash.isNull() || stored_hash.isEmpty())
     {
-        return status_promise->set_value(grpc::Status(
+        return context->set_value(grpc::Status(
             grpc::StatusCode::FAILED_PRECONDITION,
             "Incorrect passphrase. No passphrase is set.\n\n"
             "To authenticate, first ask an authenticated user to set a passphrase and share it "
@@ -2648,28 +2566,22 @@ try
 
     if (stored_hash != hashed_passphrase)
     {
-        return status_promise->set_value(
-            grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                         "Passphrase is not correct. Please try again."));
+        return context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                               "Passphrase is not correct. Please try again."));
     }
 
-    status_promise->set_value(grpc::Status::OK);
+    context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
                           grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
-                          std::promise<grpc::Status>* status_promise)
+                          DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<SnapshotReply, SnapshotRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -2684,13 +2596,13 @@ try
 
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
-            return status_promise->set_value(
+            return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only take snapshots of stopped instances."});
 
         auto snapshot_name = request->snapshot();
         if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
-            return status_promise->set_value(
+            return context->set_value(
                 grpc::Status{grpc::INVALID_ARGUMENT,
                              fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
 
@@ -2704,27 +2616,22 @@ try
         server->Write(reply);
     }
 
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const SnapshotNameTakenException& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::restore(const mp::RestoreRequest* request,
                          grpc::ServerReaderWriterInterface<RestoreReply, RestoreRequest>* server,
-                         std::promise<grpc::Status>* status_promise)
+                         DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<RestoreReply, RestoreRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     RestoreReply reply;
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
@@ -2744,7 +2651,7 @@ try
 
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
-            return status_promise->set_value(
+            return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only restore snapshots of stopped instances."});
 
@@ -2793,26 +2700,22 @@ try
         server->Write(reply);
     }
 
-    status_promise->set_value(status);
+    context->set_value(status);
 }
 catch (const mp::NoSuchSnapshotException& e)
 {
-    status_promise->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
+    context->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::clone(const CloneRequest* request,
                        grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>* server,
-                       std::promise<grpc::Status>* status_promise)
+                       DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<CloneReply, CloneRequest> logger{mpl::level_from(request->verbosity_level()),
-                                                       *config->logger,
-                                                       server};
-
     const auto& source_name = request->source_name();
     const auto [src_instance_trail, src_vm_status] =
         find_instance_and_react(operative_instances,
@@ -2828,14 +2731,13 @@ try
         if (source_vm_state != VirtualMachine::State::stopped &&
             source_vm_state != VirtualMachine::State::off)
         {
-            return status_promise->set_value(
-                grpc::Status{grpc::FAILED_PRECONDITION,
-                             "Multipass can only clone stopped instances."});
+            return context->set_value(grpc::Status{grpc::FAILED_PRECONDITION,
+                                                   "Multipass can only clone stopped instances."});
         }
 
         const std::string destination_name = dest_name_for_clone(*request);
         if (auto dest_vm_status = validate_dest_name(destination_name); !dest_vm_status.ok())
-            return status_promise->set_value(std::move(dest_vm_status));
+            return context->set_value(std::move(dest_vm_status));
 
         auto rollback_resources = sg::make_scope_guard([this, destination_name]() noexcept -> void {
             top_catch_all(category, [this, destination_name]() {
@@ -2877,24 +2779,19 @@ try
         server->Write(rpc_response);
         rollback_resources.dismiss();
     }
-    status_promise->set_value(src_vm_status);
+    context->set_value(src_vm_status);
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
 }
 
 void mp::Daemon::daemon_info(
     const DaemonInfoRequest* request,
     grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
-    std::promise<grpc::Status>* status_promise)
+    DaemonRpcContext* context)
 try
 {
-    mpl::ClientLogger<DaemonInfoReply, DaemonInfoRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
     DaemonInfoReply response;
 
     QStorageInfo storage_info{config->data_directory};
@@ -2904,27 +2801,22 @@ try
     response.set_memory(MP_PLATFORM.get_total_ram());
 
     server->Write(response);
-    status_promise->set_value(grpc::Status{});
+    context->set_value(grpc::Status{});
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::wait_ready(
     const WaitReadyRequest* request,
     grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
-    std::promise<grpc::Status>* status_promise)
+    DaemonRpcContext* context)
 try
 {
     WaitReadyReply response;
 
-    mpl::ClientLogger<WaitReadyReply, WaitReadyRequest> logger{
-        mpl::level_from(request->verbosity_level()),
-        *config->logger,
-        server};
-
-    logger.log(mpl::Level::debug, "daemon", "Checking connection to image servers...");
+    mpl::debug("daemon", "Checking connection to image servers...");
 
     // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to image
     // servers.
@@ -2932,23 +2824,21 @@ try
     {
         wait_update_manifests_all_and_optionally_applied_force(
             /*force_manifest_network_download=*/false);
-        logger.log(mpl::Level::debug, "daemon", "Successfully connected to image servers.");
-        status_promise->set_value(grpc::Status::OK);
+        mpl::debug("daemon", "Successfully connected to image servers.");
+        context->set_value(grpc::Status::OK);
     }
     catch (const mp::DownloadException& e)
     {
-        logger.log(mpl::Level::warning,
-                   "daemon",
-                   fmt::format("Failed to connect to image servers: {}", e.what()));
+        mpl::warn("daemon", "Failed to connect to image servers: {}", e.what());
         grpc::Status download_error_status{grpc::StatusCode::NOT_FOUND,
                                            "cannot connect to the image servers",
                                            ""};
-        status_promise->set_value(download_error_status);
+        context->set_value(download_error_status);
     }
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::on_shutdown()
@@ -3036,17 +2926,16 @@ void mp::Daemon::release_resources(const std::string& instance)
 
 void mp::Daemon::create_vm(const CreateRequest* request,
                            grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
-                           std::promise<grpc::Status>* status_promise,
+                           DaemonRpcContext* context,
                            bool start)
 {
     auto checked_args = validate_create_arguments(request, config.get());
 
     if (!checked_args.option_errors.error_codes().empty())
     {
-        return status_promise->set_value(
-            grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                         "Invalid arguments supplied",
-                         checked_args.option_errors.SerializeAsString()));
+        return context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                               "Invalid arguments supplied",
+                                               checked_args.option_errors.SerializeAsString()));
     }
     else if (auto& nets = checked_args.nets_need_bridging;
              !nets.empty() && !request->permission_to_bridge())
@@ -3061,9 +2950,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             RepeatedPtrField from the range, then move-assigns that temporary in */
         server->Write(reply);
 
-        return status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                                                      "Missing bridges",
-                                                      create_error.SerializeAsString()});
+        return context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                               "Missing bridges",
+                                               create_error.SerializeAsString()});
     }
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
@@ -3075,12 +2964,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     assert(status.ok() == (instance_trail.index() == 2));
     if (!status.ok())
-        return status_promise->set_value(status);
+        return context->set_value(status);
 
     if (preparing_instances.find(name) != preparing_instances.end())
-        return status_promise->set_value({grpc::StatusCode::INVALID_ARGUMENT,
-                                          fmt::format("instance \"{}\" is being prepared", name),
-                                          ""});
+        return context->set_value({grpc::StatusCode::INVALID_ARGUMENT,
+                                   fmt::format("instance \"{}\" is being prepared", name),
+                                   ""});
 
     if (!instances_running(operative_instances))
         config->factory->hypervisor_health_check();
@@ -3095,7 +2984,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     QObject::connect(
         prepare_future_watcher,
         &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-        [this, server, status_promise, name, timeout, start, prepare_future_watcher, log_level] {
+        [this, server, context, name, timeout, start, prepare_future_watcher, log_level] {
             mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level,
                                                                  *config->logger,
                                                                  server};
@@ -3144,13 +3033,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                         server,
                         std::vector<std::string>{name},
                         timeout,
-                        status_promise,
+                        context,
                         std::string(),
                         std::string()));
                 }
                 else
                 {
-                    status_promise->set_value(grpc::Status::OK);
+                    context->set_value(grpc::Status::OK);
                 }
             }
             catch (const std::exception& e)
@@ -3162,7 +3051,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     persist_instances();
                 });
 
-                status_promise->set_value(
+                context->set_value(
                     grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
             }
 
@@ -3609,7 +3498,7 @@ mp::Daemon::AsyncOperationStatus
 mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                                      const std::vector<std::string>& vms,
                                      const std::chrono::seconds& timeout,
-                                     std::promise<grpc::Status>* status_promise,
+                                     DaemonRpcContext* context,
                                      const std::string& start_errors,
                                      const std::string& start_warnings)
 {
@@ -3674,7 +3563,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         }
     }
 
-    return {grpc_status_for(errors), status_promise};
+    return {grpc_status_for(errors), context};
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
@@ -3688,8 +3577,8 @@ void mp::Daemon::finish_async_operation(const std::string& async_future_key)
     if (!async_op_result.status.ok())
         persist_instances();
 
-    if (async_op_result.status_promise)
-        async_op_result.status_promise->set_value(async_op_result.status);
+    if (async_op_result.context)
+        async_op_result.context->set_value(async_op_result.status);
 }
 
 void mp::Daemon::update_manifests_all(const bool force_update)
