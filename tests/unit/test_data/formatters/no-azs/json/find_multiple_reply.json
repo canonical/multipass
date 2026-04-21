@@ -1,0 +1,35 @@
+{
+    "errors": [
+    ],
+    "images": {
+        "19.04": {
+            "os": "Ubuntu",
+            "release": "19.04",
+            "version": "20190516",
+            "aliases": [
+                "disco"
+            ],
+            "remote": "release"
+        },
+        "18.04": {
+            "os": "Ubuntu",
+            "release": "18.04 LTS",
+            "version": "20180421",
+            "aliases": [
+                "bionic",
+                "lts"
+            ],
+            "remote": "release"
+        },
+        "daily:19.10": {
+            "os": "Ubuntu",
+            "release": "19.10",
+            "version": "20190516",
+            "aliases": [
+                "eoan",
+                "devel"
+            ],
+            "remote": "daily"
+        }
+    }
+}

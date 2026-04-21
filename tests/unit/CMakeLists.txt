@@ -67,6 +67,7 @@ add_executable(multipass_tests
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
   test_daemon_wait_ready.cpp
+  test_daemon_zones.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_exception.cpp
@@ -112,6 +113,7 @@ add_executable(multipass_tests
   test_sshfsmount.cpp
   test_ssl_cert_provider.cpp
   test_standard_logger.cpp
+  test_subnet.cpp
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
@@ -122,6 +124,12 @@ add_executable(multipass_tests
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
+
+if(AVAILABILITY_ZONES_ENABLED)
+  target_sources(multipass_tests PRIVATE
+    test_base_availability_zone.cpp
+    test_base_availability_zone_manager.cpp)
+endif()
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}

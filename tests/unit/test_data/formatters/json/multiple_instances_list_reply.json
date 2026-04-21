@@ -6,14 +6,22 @@
             "ipv4": [
                 "10.21.124.56"
             ],
-            "release": "Ubuntu 16.04 LTS"
+            "release": "Ubuntu 16.04 LTS",
+            "zone": {
+                "name": "zone1",
+                "available": true
+            }
         },
         {
             "name": "bombastic",
             "state": "Stopped",
             "ipv4": [
             ],
-            "release": "Ubuntu 18.04 LTS"
+            "release": "Ubuntu 18.04 LTS",
+            "zone": {
+                "name": "zone2",
+                "available": false
+            }
         }
     ]
 }

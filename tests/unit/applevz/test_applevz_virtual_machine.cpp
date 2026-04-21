@@ -19,6 +19,7 @@
 #include "tests/unit/common.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_status_monitor.h"
+#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/temp_file.h"
@@ -44,6 +45,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
                                        mp::MemorySize{"3M"},
                                        mp::MemorySize{}, // not used
                                        dummy_vm_name,
+                                       "zone1",
                                        "aa:bb:cc:dd:ee:ff",
                                        {},
                                        "",
@@ -58,6 +60,8 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
 
     mpt::StubSSHKeyProvider stub_key_provider{};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    mpt::StubAvailabilityZoneManager az_manager{};
 
     mpt::MockAppleVZWrapper::GuardedMock mock_applevz_wrapper_injection{
         mpt::MockAppleVZWrapper::inject<NiceMock>()};
@@ -80,6 +84,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
         return std::make_shared<mp::applevz::AppleVZVirtualMachine>(desc,
                                                                     mock_monitor,
                                                                     stub_key_provider,
+                                                                    az_manager.get_zone(desc.zone),
                                                                     instance_dir.path());
     }
 };

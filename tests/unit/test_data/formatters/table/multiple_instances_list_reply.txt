@@ -1,3 +1,3 @@
-Name                    State             IPv4             Image
-bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS
-bombastic               Stopped           --               Ubuntu 18.04 LTS
+Name                    State             IPv4             Image               Zone
+bogus-instance          Running           10.21.124.56     Ubuntu 16.04 LTS    zone1(a)
+bombastic               Stopped           --               Ubuntu 18.04 LTS    zone2(u/a)

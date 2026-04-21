@@ -1,0 +1,14 @@
+{
+    "errors": [
+    ],
+    "images": {
+        "ubuntu": {
+            "os": "Ubuntu",
+            "release": "18.04 LTS",
+            "version": "20190516",
+            "aliases": [
+            ],
+            "remote": ""
+        }
+    }
+}

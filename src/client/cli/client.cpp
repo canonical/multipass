@@ -48,6 +48,12 @@
 #include "cmd/version.h"
 #include "cmd/wait_ready.h"
 
+#ifdef AVAILABILITY_ZONES_FEATURE
+#include "cmd/disable_zones.h"
+#include "cmd/enable_zones.h"
+#include "cmd/zones.h"
+#endif
+
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/client_platform.h>
@@ -113,6 +119,12 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Version>();
     add_command<cmd::Clone>();
     add_command<cmd::WaitReady>();
+
+#ifdef AVAILABILITY_ZONES_FEATURE
+    add_command<cmd::DisableZones>();
+    add_command<cmd::EnableZones>();
+    add_command<cmd::Zones>();
+#endif
 
     sort_commands();
 

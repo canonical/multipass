@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/alias_definition.h>
+#include <multipass/availability_zone_manager.h>
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
@@ -26,6 +27,7 @@
 #include <multipass/settings/setting_spec.h>
 #include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
+#include <multipass/subnet.h>
 #include <multipass/update_prompt.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
@@ -75,6 +77,15 @@ public:
     virtual QString default_driver() const;
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
+    [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
+
+    // TODO(az): Remove this when AZs are feature-complete.
+    // When AZs are disabled, we maintain the old networking configuration as closely as possible.
+    // This means that each platform uses a different subnet for instances. When AZs are enabled,
+    // all platforms will use the same base subnet, so this function is unnecessary in that
+    // configuration.
+    [[nodiscard]] virtual Subnet get_preferred_subnet() const;
+
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
 
@@ -90,7 +101,7 @@ void sync_winterm_profiles();
 
 std::string default_server_address();
 
-VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
+VirtualMachineFactory::UPtr vm_backend(const Path& data_dir, AvailabilityZoneManager& az_manager);
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);

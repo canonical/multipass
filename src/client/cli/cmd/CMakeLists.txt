@@ -46,8 +46,14 @@ add_library(commands STATIC
   umount.cpp
   unalias.cpp
   version.cpp
-  wait_ready.cpp
-)
+  wait_ready.cpp)
+
+if(AVAILABILITY_ZONES_ENABLED)
+  target_sources(commands PRIVATE
+    disable_zones.cpp
+    enable_zones.cpp
+    zones.cpp)
+endif()
 
 target_link_libraries(commands
   client_common

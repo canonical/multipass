@@ -23,9 +23,11 @@ namespace mp = multipass;
 
 namespace multipass::applevz
 {
-AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir)
+AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir,
+                                                           AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager)
 {
 }
 
@@ -38,6 +40,7 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
         desc,
         monitor,
         key_provider,
+        az_manager.get_zone(desc.zone),
         get_instance_directory(desc.vm_name));
 }
 
@@ -77,6 +80,7 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
         desc,
         monitor,
         key_provider,
+        az_manager.get_zone(desc.zone),
         get_instance_directory(desc.vm_name));
 }
 } // namespace multipass::applevz

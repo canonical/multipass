@@ -28,10 +28,6 @@ namespace mp = multipass;
 
 namespace
 {
-constexpr auto VMNET_SUBNET_PREFIX = "192.168.252";
-constexpr auto VMNET_SUBNET_MASK = "255.255.255.0";
-constexpr auto VMNET_START_ADDR = "1";
-constexpr auto VMNET_END_ADDR = "254";
 auto get_common_args(const QString& host_arch)
 {
     QStringList qemu_args;
@@ -48,7 +44,24 @@ auto get_common_args(const QString& host_arch)
 }
 } // namespace
 
-mp::QemuPlatformMacOS::QemuPlatformMacOS() : common_args{get_common_args(host_arch)}
+[[nodiscard]] mp::QemuPlatformMacOS::Bridges mp::QemuPlatformMacOS::get_bridges(
+    const AvailabilityZoneManager::Zones& zones)
+{
+    Bridges bridges{};
+    bridges.reserve(zones.size());
+
+    for (const auto& zone_ref : zones)
+    {
+        const auto& zone = zone_ref.get();
+        bridges.emplace(zone.get_name(), zone.get_subnet());
+    }
+
+    return bridges;
+}
+
+mp::QemuPlatformMacOS::QemuPlatformMacOS(const AvailabilityZoneManager::Zones& zones)
+    : common_args{get_common_args(host_arch)}, bridges{get_bridges(zones)}
+
 {
 }
 
@@ -74,8 +87,9 @@ QStringList mp::QemuPlatformMacOS::vmstate_platform_args()
 QStringList mp::QemuPlatformMacOS::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     QStringList qemu_args;
-    // clang-format off
+    const Subnet& subnet = bridges.at(vm_desc.zone);
 
+    // clang-format off
     qemu_args
         << common_args << "-accel"
         << "hvf"
@@ -87,18 +101,14 @@ QStringList mp::QemuPlatformMacOS::vm_platform_args(const VirtualMachineDescript
         << "host"
         // Set up the network related args
         << "-nic"
-        << QString::fromStdString(fmt::format("vmnet-shared,start-address={}.{},end-address={}.{}"
+        << QString::fromStdString(fmt::format("vmnet-shared,start-address={},end-address={}"
                                               ",subnet-mask={},model=virtio-net-pci,mac={}",
-                                              VMNET_SUBNET_PREFIX,
-                                              VMNET_START_ADDR,
-                                              VMNET_SUBNET_PREFIX,
-                                              VMNET_END_ADDR,
-                                              VMNET_SUBNET_MASK,
+                                              subnet.min_address().as_string(),
+                                              subnet.max_address().as_string(),
+                                              subnet.subnet_mask().as_string(),
                                               vm_desc.default_mac_address));
-    // The subnet 192.168.252.0/24 is chosen to tackle an issue with subnet collision in macos-26:
-    // #4383
-
     // clang-format on
+
     for (const auto& extra_interface : vm_desc.extra_interfaces)
     {
         qemu_args << "-nic"
@@ -131,9 +141,11 @@ void mp::QemuPlatformMacOS::set_authorization(std::vector<NetworkInterfaceInfo>&
     // nothing to do here
 }
 
-mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(const Path& data_dir) const
+mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(
+    const Path& data_dir,
+    const mp::AvailabilityZoneManager::Zones& zones) const
 {
-    return std::make_unique<mp::QemuPlatformMacOS>();
+    return std::make_unique<mp::QemuPlatformMacOS>(zones);
 }
 
 std::string mp::QemuPlatformMacOS::create_bridge_with(const NetworkInterfaceInfo& interface) const

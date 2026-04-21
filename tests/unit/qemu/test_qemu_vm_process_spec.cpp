@@ -37,6 +37,7 @@ struct TestQemuVMProcessSpec : public Test
                                              mp::MemorySize{"3G"} /*mem_size*/,
                                              mp::MemorySize{"4G"} /*disk_space*/,
                                              "vm_name",
+                                             "zone1",
                                              "00:11:22:33:44:55",
                                              {},
                                              "ssh_username",

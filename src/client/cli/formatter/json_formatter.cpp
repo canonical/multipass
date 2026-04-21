@@ -76,6 +76,9 @@ boost::json::object generate_instance_details(const mp::DetailedInfoItem& item)
     const auto& instance_details = item.instance_info();
 
     boost::json::object instance_info = {
+#ifdef AVAILABILITY_ZONES_FEATURE
+        {"zone", {{"name", item.zone().name()}, {"available", item.zone().available()}}},
+#endif
         {"state", mp::format::status_string_for(item.instance_status())},
         {"image_hash", instance_details.id()},
         {"image_release", instance_details.image_release()},
@@ -166,6 +169,10 @@ boost::json::value generate_instances_list(const mp::InstancesList& instance_lis
             {"state", mp::format::status_string_for(instance.instance_status())},
             {"ipv4", boost::json::value_from(instance.ipv4())},
             {"release", std::move(release)},
+#ifdef AVAILABILITY_ZONES_FEATURE
+            {"zone",
+             {{"name", instance.zone().name()}, {"available", instance.zone().available()}}},
+#endif
         });
     }
 
@@ -305,4 +312,18 @@ std::string mp::JsonFormatter::format(const VersionReply& reply,
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
     return pretty_print(boost::json::value_from(aliases));
+}
+
+std::string mp::JsonFormatter::format(const ZonesReply& reply) const
+{
+    QJsonObject root_object;
+
+    for (const auto& zone : reply.zones())
+    {
+        QJsonObject zone_object;
+        zone_object["available"] = zone.available();
+        root_object[QString::fromStdString(zone.name())] = zone_object;
+    }
+
+    return MP_JSONUTILS.json_to_string(root_object);
 }

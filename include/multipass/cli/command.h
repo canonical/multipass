@@ -77,7 +77,7 @@ protected:
 
         using Arg0Type =
             typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
-        using ReplyType = typename std::remove_reference<Arg0Type>::type;
+        using ReplyType = std::decay_t<Arg0Type>;
         ReplyType reply;
         auto handle_failure = adapt_failure_handler(on_failure, reply);
 
@@ -146,7 +146,7 @@ protected:
     {
         using Arg0Type =
             typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
-        using ReplyType = typename std::remove_reference<Arg0Type>::type;
+        using ReplyType = std::decay_t<Arg0Type>;
         return dispatch(rpc_func,
                         request,
                         on_success,
@@ -177,9 +177,11 @@ private:
             std::remove_reference_t<typename FailureCallableTraits::template arg<0>::type>;
 
         static_assert(
-            std::is_same<typename SuccessCallableTraits::return_type, ReturnCodeVariant>::value);
+            std::is_same_v<std::remove_const_t<typename SuccessCallableTraits::return_type>,
+                           ReturnCodeVariant>);
         static_assert(
-            std::is_same<typename FailureCallableTraits::return_type, ReturnCodeVariant>::value);
+            std::is_same_v<std::remove_const_t<typename FailureCallableTraits::return_type>,
+                           ReturnCodeVariant>);
 
         static_assert(SuccessCallableTraits::num_args == 1);
         static_assert(std::is_base_of_v<google::protobuf::Message, SuccessCallableArg0Type>,
@@ -194,7 +196,7 @@ private:
             static_assert(std::is_same_v<SuccessCallableArg0Type, FailureCallableArg1Type>,
                           "`on_success` and `on_failure` should handle the same reply types");
         }
-        static_assert(std::is_same<FailureCallableArg0Type, grpc::Status>::value);
+        static_assert(std::is_same_v<std::remove_const_t<FailureCallableArg0Type>, grpc::Status>);
     }
 
     template <typename FailureCallable, typename Reply>
