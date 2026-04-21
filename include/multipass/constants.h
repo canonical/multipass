@@ -50,7 +50,10 @@ constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
 constexpr auto distributions_url_env_var = "MULTIPASS_DISTRIBUTIONS_URL";
 
 constexpr auto winterm_profile_guid =
-    "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows
+    "{3918acef-e3d6-55ad-9595-f3d3692a9e59}"; // identifies the primary Multipass profile in Windows
+                                              // Terminal
+constexpr auto winterm_old_profile_guid =
+    "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the *old* Multipass profile in Windows
                                               // Terminal
 
 constexpr auto bridged_network_name = "bridged";

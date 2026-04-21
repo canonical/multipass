@@ -410,9 +410,19 @@ bool mp::FileOps::is_directory(const fs::path& path, std::error_code& err) const
     return fs::is_directory(path, err);
 }
 
+bool mp::FileOps::create_directory(const fs::path& path) const
+{
+    return fs::create_directory(path);
+}
+
 bool mp::FileOps::create_directory(const fs::path& path, std::error_code& err) const
 {
     return fs::create_directory(path, err);
+}
+
+bool mp::FileOps::create_directories(const fs::path& path) const
+{
+    return fs::create_directories(path);
 }
 
 bool mp::FileOps::create_directories(const fs::path& path, std::error_code& err) const
