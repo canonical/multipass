@@ -1,0 +1,12 @@
+#!/bin/bash
+# Regenerates packaging/gui-less/snap/snapcraft.yaml when snap/snapcraft.yaml is staged.
+# Install: ln -s ../../git-hooks/pre-commit .git/hooks/pre-commit
+
+set -euo pipefail
+
+if git diff --cached --name-only | grep -q "^snap/snapcraft\.yaml$"; then
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    echo "snap/snapcraft.yaml staged — regenerating gui-less variant..."
+    python3 "${REPO_ROOT}/packaging/gui-less/generate-snapcraft.py"
+    git add "${REPO_ROOT}/packaging/gui-less/snap/snapcraft.yaml"
+fi
