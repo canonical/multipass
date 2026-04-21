@@ -53,7 +53,7 @@ TEST(Subet, throwsOnInvalidIP)
 
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.XXX.XXX/16"},
                          std::invalid_argument,
-                         mpt::match_what(HasSubstr("invalid IP octet")));
+                         mpt::match_what(HasSubstr("invalid IP address 192.168.XXX.XXX")));
 }
 
 TEST(SubnetTest, throwsOnLargePrefixLength)

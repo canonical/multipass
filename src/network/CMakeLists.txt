@@ -27,3 +27,6 @@ target_link_libraries(network
   utils
   Qt6::Core
   Qt6::Network)
+
+target_link_libraries(ip_address
+  fmt::fmt-header-only)
