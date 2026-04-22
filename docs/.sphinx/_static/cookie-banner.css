@@ -1,58 +1,1448 @@
-/* Cookie policy styling WILL BE REMOVED when implementation of new theme with vanilla is implemented */
-.cookie-policy {
-    overflow: auto;
-    top: 35%;
-    z-index: 50;
-    position: fixed;
+.cookie-policy hr.is-fixed-width {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 78rem;
+    width: calc(100% - 2rem)
 }
 
-dialog.cookie-policy {
-    background-color: var(--color-code-background);
-    color: var(--color-code-foreground);
-    height: auto;
-    max-height: 60vh;
-    max-width: 40rem;
-    padding: 0 1rem 0 1rem;
-    width: auto;
+@media(min-width: 620px) {
+    .cookie-policy hr.is-fixed-width {
+        max-width:77rem;
+        width: calc(100% - 3rem)
+    }
 }
 
-header.p-modal__header {
-    margin-bottom: .5rem;
+.row .cookie-policy hr.is-fixed-width,.cookie-policy .row hr.is-fixed-width,.grid-row .cookie-policy hr.is-fixed-width,.cookie-policy .grid-row hr.is-fixed-width,.u-fixed-width .cookie-policy hr.is-fixed-width,.cookie-policy .u-fixed-width hr.is-fixed-width {
+    width: 100%
 }
 
-header.p-modal__header::after {
-    background-color: #d9d9d9;
-    content: "";
-    height: 1px;
-    left: 0;
-    margin-left: 1rem;
-    margin-right: 1rem;
-    position: absolute;
-    right: 0;
+.cookie-policy .is-accent.p-heading--4,.cookie-policy .is-accent.p-modal__title,.cookie-policy h4.is-accent,.cookie-policy .is-accent.p-heading--3,.cookie-policy h3.is-accent,.cookie-policy .is-accent.p-heading--2,.cookie-policy h2.is-accent,.cookie-policy .is-accent.p-heading--1,.cookie-policy h1.is-accent {
+    color: var(--vf-color-accent)
 }
 
-h2#cookie-policy-title.p-modal__title {
-    align-self: flex-end;
-    font-size: 1.5rem;
+.cookie-policy h6,.cookie-policy h5,.cookie-policy h4,.cookie-policy h3,.cookie-policy h2,.cookie-policy h1,.cookie-policy .p-heading--6,.cookie-policy h6,.cookie-policy .p-heading--5,.cookie-policy h5,.cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4,.cookie-policy .p-heading--3,.cookie-policy h3,.cookie-policy .p-heading--display,.cookie-policy .p-heading--2,.cookie-policy h2,.cookie-policy .p-heading--1,.cookie-policy h1 {
     font-style: normal;
+    margin-top: 0;
+    max-width: 40em
+}
+
+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+h1,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+h1,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+h1,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+h1 {
+    margin-top: -1.5rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--2,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+h2,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+h1,.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+h1,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--1,.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+h1,.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+h1 {
+        margin-top:-1.5rem
+    }
+}
+
+.cookie-policy .p-heading--1,.cookie-policy h1 {
+    font-size: 2rem;
+    font-weight: 550;
+    line-height: 2.5rem;
+    margin-bottom: .95rem;
+    padding-top: .55rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--1,.cookie-policy h1 {
+        font-size:2.5rem;
+        line-height: 3rem;
+        margin-bottom: .95rem;
+        padding-top: .55rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--1,.cookie-policy h1 {
+        padding-top:.55rem
+    }
+}
+
+.cookie-policy .p-heading--2,.cookie-policy h2 {
+    font-size: 2rem;
+    font-weight: 180;
+    line-height: 2.5rem;
+    margin-bottom: .95rem;
+    padding-top: .55rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--2,.cookie-policy h2 {
+        font-size:2.5rem;
+        line-height: 3rem;
+        margin-bottom: .95rem;
+        padding-top: .55rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--2,.cookie-policy h2 {
+        padding-top:.55rem
+    }
+}
+
+.cookie-policy .p-heading--display {
+    font-size: 4rem;
+    font-weight: 100;
+    line-height: 4.5rem;
+    margin-bottom: 1.25rem;
+    padding-top: .25rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--display {
+        font-size:5rem;
+        line-height: 5.5rem;
+        margin-bottom: 1.15rem;
+        padding-top: .35rem
+    }
+}
+
+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+h3 {
+    margin-top: -1.5rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--4,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-modal__title,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+h4,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--3,.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+h3,.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+h3 {
+        margin-top:-1.5rem
+    }
+}
+
+.cookie-policy .p-heading--3,.cookie-policy h3 {
+    font-size: 1.5rem;
+    font-weight: 550;
+    line-height: 2rem;
+    margin-bottom: 1.05rem;
+    padding-top: .45rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--3,.cookie-policy h3 {
+        font-size:1.5rem;
+        line-height: 2rem;
+        margin-bottom: 1.05rem;
+        padding-top: .45rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--3,.cookie-policy h3 {
+        padding-top:.45rem
+    }
+}
+
+.cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4 {
+    font-size: 1.5rem;
     font-weight: 275;
     line-height: 2rem;
-    margin: 0 0 1.05rem 0;
-    padding: 0.45rem 0 0 0;
+    margin-bottom: 1.05rem;
+    padding-top: .45rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4 {
+        font-size:1.5rem;
+        line-height: 2rem;
+        margin-bottom: 1.05rem;
+        padding-top: .45rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4 {
+        padding-top:.45rem
+    }
+}
+
+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+h5,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+h5,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+h5,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+h5 {
+    margin-top: -1.5rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--6,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+h6,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+h5,.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+h5,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.p-heading--5,.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+h5,.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+h5 {
+        margin-top:-1.5rem
+    }
+}
+
+.cookie-policy .p-heading--5,.cookie-policy h5 {
+    font-size: 1rem;
+    font-weight: 550;
+    line-height: 1.5rem;
+    margin-bottom: 1.125rem;
+    padding-top: .375rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--5,.cookie-policy h5 {
+        padding-top:.375rem
+    }
+}
+
+.cookie-policy .p-heading--6,.cookie-policy h6 {
+    font-size: 1rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.5rem;
+    margin-bottom: 1.125rem;
+    padding-top: .375rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--6,.cookie-policy h6 {
+        padding-top:.375rem
+    }
+}
+
+.cookie-policy summary,.cookie-policy p,.cookie-policy dt,.cookie-policy dd,.cookie-policy cite,.cookie-policy p,.cookie-policy dt,.cookie-policy dd,.cookie-policy cite,.cookie-policy .p-text--default,.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    line-height: 1.5rem;
+    margin-top: 0;
+    padding-top: .375rem
+}
+
+.cookie-policy dt,.cookie-policy dd,.cookie-policy cite,.cookie-policy .p-text--default,.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: .125rem
 }
 
 .cookie-policy p {
     font-size: 1rem;
     line-height: 1.5rem;
-    margin-top: 0;
-    padding-top: .4rem;
+    margin-bottom: 1.125rem;
+    padding-top: .375rem
 }
 
-.cookie-policy p a {
-    text-decoration: none;
-    color: var(--color-link);
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+p {
+    margin-top: -0.5rem
 }
+
+.cookie-policy small,.cookie-policy .p-text--small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    margin-bottom: .95rem;
+    padding-top: .05rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy small,.cookie-policy .p-text--small {
+        padding-top:.05rem
+    }
+}
+
+.cookie-policy .p-text--x-small,.cookie-policy thead th,.cookie-policy thead th {
+    font-size: 0.75rem;
+    font-weight: 550;
+    line-height: 1rem;
+    margin-bottom: .75rem;
+    padding-top: .25rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-text--x-small,.cookie-policy thead th,.cookie-policy thead th {
+        padding-top:.25rem
+    }
+}
+
+.cookie-policy .u-text--muted {
+    color: var(--vf-color-text-muted)
+}
+
+.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    font-variant-caps: all-small-caps;
+    font-variant-numeric: oldstyle-nums;
+    letter-spacing: .05em;
+    margin-bottom: .625rem
+}
+
+.cookie-policy .u-align-text--x-small-to-default.p-text--small-caps,.cookie-policy .u-align-text--x-small-to-default.p-text--x-small-capitalised {
+    padding-top: .375rem
+}
+
+.cookie-policy thead th {
+    text-transform: uppercase
+}
+
+.cookie-policy dt,.cookie-policy b,.cookie-policy strong {
+    font-weight: 550
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h1,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--1 {
+    padding-top: 2.05rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h1,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--1 {
+        padding-top:2.05rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h2,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--2 {
+    padding-top: 2.05rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h2,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--2 {
+        padding-top:2.05rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h3,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--3 {
+    padding-top: 1.95rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h3,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--3 {
+        padding-top:1.95rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h4,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--4 {
+    padding-top: 1.95rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h4,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--4 {
+        padding-top:1.95rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h6,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--6 {
+    padding-top: 1.875rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h6,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--6 {
+        padding-top:1.875rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-muted-heading {
+    padding-top: 1.55rem
+}
+
+.cookie-policy .p-modal__dialog {
+    box-shadow: 0 1px 1px 0 rgba(0,0,0,.15),0 2px 2px -1px rgba(0,0,0,.15),0 0 3px 0 rgba(0,0,0,.2)
+}
+
+.cookie-policy fieldset {
+    border: 1.5px solid var(--vf-color-border-default)
+}
+
+.cookie-policy fieldset,.cookie-policy fieldset {
+    background-color: var(--vf-color-background-default);
+    color: var(--vf-color-text-default)
+}
+
+.cookie-policy .p-modal__dialog,.cookie-policy fieldset,.cookie-policy fieldset {
+    overflow: auto;
+    padding: 1rem
+}
+
+.cookie-policy fieldset {
+    margin-bottom: 1.5rem
+}
+
+.cookie-policy .p-accordion__tab,.cookie-policy td,.cookie-policy th {
+    padding-bottom: .5rem;
+    padding-top: calc(.5rem - 1px)
+}
+
+.cookie-policy .p-modal__footer::after,.cookie-policy .p-modal__header::after,.cookie-policy .p-accordion__group+.cookie-policy .p-accordion__group::after {
+    background-color: var(--vf-color-border-default);
+    content: "";
+    height: 1px;
+    left: 0;
+    position: absolute;
+    right: 0
+}
+
+.cookie-policy .p-modal__header {
+    position: relative
+}
+
+.cookie-policy .p-modal__header::after {
+    bottom: 0
+}
+
+.cookie-policy .p-accordion__group+.cookie-policy .p-accordion__group,.cookie-policy .p-modal__footer {
+    position: relative
+}
+
+.cookie-policy .p-accordion__group+.cookie-policy .p-accordion__group::after,.cookie-policy .p-modal__footer::after {
+    top: 0
+}
+
+.cookie-policy hr {
+    background: var(--vf-color-border-default);
+    border: 0;
+    height: 1px;
+    margin-bottom: calc(.5rem - 1px);
+    margin-top: 0;
+    position: relative;
+    width: 100%
+}
+
+.cookie-policy .u-off-screen:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px
+}
+
+.cookie-policy .p-accordion__tab::before {
+    overflow: hidden;
+    text-indent: 110vw;
+    white-space: nowrap
+}
+
+.cookie-policy .u-no-margin--bottom:not(hr):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(p):not(small):not([class*=p-heading]):not([class*=p-button--link]) {
+    margin-bottom: 0 !important
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--1,.cookie-policy h1.u-no-margin--bottom {
+    margin-bottom: -0.55rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--1,.cookie-policy h1.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--1,.cookie-policy h1.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--2,.cookie-policy h2.u-no-margin--bottom {
+    margin-bottom: -0.55rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--2,.cookie-policy h2.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--2,.cookie-policy h2.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--3,.cookie-policy h3.u-no-margin--bottom {
+    margin-bottom: 0.05rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--3,.cookie-policy h3.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--3,.cookie-policy h3.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--4,.cookie-policy .u-no-margin--bottom.p-modal__title,.cookie-policy h4.u-no-margin--bottom {
+    margin-bottom: 0.05rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--4,.cookie-policy .u-no-margin--bottom.p-modal__title,.cookie-policy h4.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--4,.cookie-policy .u-no-margin--bottom.p-modal__title,.cookie-policy h4.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--5,.cookie-policy h5.u-no-margin--bottom {
+    margin-bottom: 0.125rem !important
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--6,.cookie-policy h6.u-no-margin--bottom {
+    margin-bottom: 0.125rem !important
+}
+
+.cookie-policy .p-button--link.u-no-margin--bottom,.cookie-policy .u-no-margin--bottom.p-text--small-caps,.cookie-policy .u-no-margin--bottom.p-text--x-small-capitalised,.cookie-policy p.u-no-margin--bottom {
+    margin-bottom: 0.125rem !important
+}
+
+.cookie-policy .u-no-margin--bottom.p-text--x-small,.cookie-policy thead th.u-no-margin--bottom,.cookie-policy small.u-no-margin--bottom,.cookie-policy .u-no-margin--bottom.p-text--small {
+    margin-bottom: -0.05rem !important
+}
+
+.cookie-policy hr.u-no-margin--bottom {
+    margin-bottom: -1px !important;
+    z-index: 2
+}
+
+.cookie-policy .p-accordion__tab::before {
+    background-size: contain;
+    height: 1rem;
+    width: 1rem;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: inline-block;
+    font-size: inherit;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    vertical-align: calc(.5px + .3465em - .5rem)
+}
+
+.cookie-policy {
+    /*! normalize.css v8.0.0 | MIT License | github.com/necolas/normalize.css */
+    box-sizing: border-box
+}
+
+.cookie-policy html {
+    line-height: 1.15;
+    -webkit-text-size-adjust: 100%
+}
+
+.cookie-policy body {
+    margin: 0
+}
+
+.cookie-policy h1 {
+    font-size: 2em;
+    margin: .67em 0
+}
+
+.cookie-policy hr {
+    box-sizing: content-box;
+    height: 0;
+    overflow: visible
+}
+
+.cookie-policy pre {
+    font-family: monospace,monospace;
+    font-size: 1em
+}
+
+.cookie-policy a {
+    background-color: rgba(0,0,0,0)
+}
+
+.cookie-policy abbr[title] {
+    border-bottom: none;
+    text-decoration: underline;
+    text-decoration: underline dotted
+}
+
+.cookie-policy b,.cookie-policy strong {
+    font-weight: bolder
+}
+
+.cookie-policy code,.cookie-policy kbd,.cookie-policy samp {
+    font-family: monospace,monospace;
+    font-size: 1em
+}
+
+.cookie-policy small {
+    font-size: 80%
+}
+
+.cookie-policy sub,.cookie-policy sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline
+}
+
+.cookie-policy sub {
+    bottom: -0.25em
+}
+
+.cookie-policy sup {
+    top: -0.5em
+}
+
+.cookie-policy img {
+    border-style: none
+}
+
+.cookie-policy button,.cookie-policy input,.cookie-policy optgroup,.cookie-policy select,.cookie-policy textarea {
+    font-family: inherit;
+    font-size: 100%
+}
+
+.cookie-policy button,.cookie-policy input {
+    overflow: visible
+}
+
+.cookie-policy button,.cookie-policy select {
+    text-transform: none
+}
+
+.cookie-policy button,.cookie-policy [type=button],.cookie-policy [type=reset],.cookie-policy [type=submit] {
+    -webkit-appearance: button
+}
+
+.cookie-policy button::-moz-focus-inner,.cookie-policy [type=button]::-moz-focus-inner,.cookie-policy [type=reset]::-moz-focus-inner,.cookie-policy [type=submit]::-moz-focus-inner {
+    border-style: none;
+    padding: 0
+}
+
+.cookie-policy button:-moz-focusring,.cookie-policy [type=button]:-moz-focusring,.cookie-policy [type=reset]:-moz-focusring,.cookie-policy [type=submit]:-moz-focusring {
+    outline: 1px dotted ButtonText
+}
+
+.cookie-policy fieldset {
+    padding: .35em .75em .625em
+}
+
+.cookie-policy legend {
+    box-sizing: border-box;
+    color: inherit;
+    display: table;
+    max-width: 100%;
+    padding: 0;
+    white-space: normal
+}
+
+.cookie-policy progress {
+    vertical-align: baseline
+}
+
+.cookie-policy textarea {
+    overflow: auto
+}
+
+.cookie-policy [type=checkbox],.cookie-policy [type=radio] {
+    box-sizing: border-box;
+    padding: 0
+}
+
+.cookie-policy [type=number]::-webkit-inner-spin-button,.cookie-policy [type=number]::-webkit-outer-spin-button {
+    height: auto
+}
+
+.cookie-policy [type=search] {
+    -webkit-appearance: textfield;
+    outline-offset: -2px
+}
+
+.cookie-policy [type=search]::-webkit-search-decoration {
+    -webkit-appearance: none
+}
+
+.cookie-policy ::-webkit-file-upload-button {
+    -webkit-appearance: button;
+    font: inherit
+}
+
+.cookie-policy details {
+    display: block
+}
+
+.cookie-policy summary {
+    display: list-item
+}
+
+.cookie-policy template {
+    display: none
+}
+
+.cookie-policy [hidden] {
+    display: none
+}
+
+.cookie-policy .is-accent.p-heading--4,.cookie-policy .is-accent.p-modal__title,.cookie-policy h4.is-accent,.cookie-policy .is-accent.p-heading--3,.cookie-policy h3.is-accent,.cookie-policy .is-accent.p-heading--2,.cookie-policy h2.is-accent,.cookie-policy .is-accent.p-heading--1,.cookie-policy h1.is-accent {
+    color: var(--vf-color-accent)
+}
+
+.cookie-policy .p-heading--6,.cookie-policy h6,.cookie-policy .p-heading--5,.cookie-policy h5,.cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4,.cookie-policy .p-heading--3,.cookie-policy h3,.cookie-policy .p-heading--display,.cookie-policy .p-heading--2,.cookie-policy h2,.cookie-policy .p-heading--1,.cookie-policy h1 {
+    font-style: normal;
+    margin-top: 0;
+    max-width: 40em
+}
+
+.p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,.p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,.p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,.p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2 {
+    margin-top: -1.5rem
+}
+
+@media(min-width: 1036px) {
+    .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,.p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1,.p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,.p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2,h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,.p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--2,h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h1:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h2 {
+        margin-top:-1.5rem
+    }
+}
+
+.cookie-policy .p-heading--1,.cookie-policy h1 {
+    font-size: 2rem;
+    font-weight: 550;
+    line-height: 2.5rem;
+    margin-bottom: .95rem;
+    padding-top: .55rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--1,.cookie-policy h1 {
+        font-size:2.5rem;
+        line-height: 3rem;
+        margin-bottom: .95rem;
+        padding-top: .55rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--1,.cookie-policy h1 {
+        padding-top:.55rem
+    }
+}
+
+.cookie-policy .p-heading--2,.cookie-policy h2 {
+    font-size: 2rem;
+    font-weight: 180;
+    line-height: 2.5rem;
+    margin-bottom: .95rem;
+    padding-top: .55rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--2,.cookie-policy h2 {
+        font-size:2.5rem;
+        line-height: 3rem;
+        margin-bottom: .95rem;
+        padding-top: .55rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--2,.cookie-policy h2 {
+        padding-top:.55rem
+    }
+}
+
+.cookie-policy .p-heading--display {
+    font-size: 4rem;
+    font-weight: 100;
+    line-height: 4.5rem;
+    margin-bottom: 1.25rem;
+    padding-top: .25rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--display {
+        font-size:5rem;
+        line-height: 5.5rem;
+        margin-bottom: 1.15rem;
+        padding-top: .35rem
+    }
+}
+
+.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4 {
+    margin-top: -1.5rem
+}
+
+@media(min-width: 1036px) {
+    .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,.p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.cookie-policy .p-heading--4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,.p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--4,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-modal__title,h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h3:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h4 {
+        margin-top:-1.5rem
+    }
+}
+
+.cookie-policy .p-heading--3,.cookie-policy h3 {
+    font-size: 1.5rem;
+    font-weight: 550;
+    line-height: 2rem;
+    margin-bottom: 1.05rem;
+    padding-top: .45rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--3,.cookie-policy h3 {
+        font-size:1.5rem;
+        line-height: 2rem;
+        margin-bottom: 1.05rem;
+        padding-top: .45rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--3,.cookie-policy h3 {
+        padding-top:.45rem
+    }
+}
+
+.cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4 {
+    font-size: 1.5rem;
+    font-weight: 275;
+    line-height: 2rem;
+    margin-bottom: 1.05rem;
+    padding-top: .45rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4 {
+        font-size:1.5rem;
+        line-height: 2rem;
+        margin-bottom: 1.05rem;
+        padding-top: .45rem
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--4,.cookie-policy .p-modal__title,.cookie-policy h4 {
+        padding-top:.45rem
+    }
+}
+
+.p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,.p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,.p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,.p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6 {
+    margin-top: -1.5rem
+}
+
+@media(min-width: 1036px) {
+    .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,.p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5,.p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,.p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6,h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,.p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy .p-heading--6,h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h5:not(.u-no-margin):not(.u-no-margin--bottom)+.cookie-policy h6 {
+        margin-top:-1.5rem
+    }
+}
+
+.cookie-policy .p-heading--5,.cookie-policy h5 {
+    font-size: 1rem;
+    font-weight: 550;
+    line-height: 1.5rem;
+    margin-bottom: 1.125rem;
+    padding-top: .375rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--5,.cookie-policy h5 {
+        padding-top:.375rem
+    }
+}
+
+.cookie-policy .p-heading--6,.cookie-policy h6 {
+    font-size: 1rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.5rem;
+    margin-bottom: 1.125rem;
+    padding-top: .375rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-heading--6,.cookie-policy h6 {
+        padding-top:.375rem
+    }
+}
+
+.cookie-policy summary,.cookie-policy p,.cookie-policy dt,.cookie-policy dd,.cookie-policy cite,.cookie-policy .p-text--default,.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    line-height: 1.5rem;
+    margin-top: 0;
+    padding-top: .375rem
+}
+
+.cookie-policy dt,.cookie-policy dd,.cookie-policy cite,.cookie-policy .p-text--default,.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: .125rem
+}
+
+.cookie-policy p {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    margin-bottom: 1.125rem;
+    padding-top: .375rem
+}
+
+p:not([class*=p-heading--]):not([class*=p-muted-heading])+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.cookie-policy p {
+    margin-top: -0.5rem
+}
+
+.cookie-policy small,.cookie-policy .p-text--small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    margin-bottom: .95rem;
+    padding-top: .05rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy small,.cookie-policy .p-text--small {
+        padding-top:.05rem
+    }
+}
+
+.cookie-policy .p-text--x-small,.cookie-policy thead th {
+    font-size: 0.75rem;
+    font-weight: 550;
+    line-height: 1rem;
+    margin-bottom: .75rem;
+    padding-top: .25rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .p-text--x-small,.cookie-policy thead th {
+        padding-top:.25rem
+    }
+}
+
+.cookie-policy .u-text--muted {
+    color: var(--vf-color-text-muted)
+}
+
+.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    font-variant-caps: all-small-caps;
+    font-variant-numeric: oldstyle-nums;
+    letter-spacing: .05em;
+    margin-bottom: .625rem
+}
+
+.cookie-policy .u-align-text--x-small-to-default.p-text--small-caps,.cookie-policy .u-align-text--x-small-to-default.p-text--x-small-capitalised {
+    padding-top: .375rem
+}
+
+.cookie-policy thead th {
+    text-transform: uppercase
+}
+
+.cookie-policy dt,.cookie-policy b,.cookie-policy strong {
+    font-weight: 550
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h1,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--1 {
+    padding-top: 2.05rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h1,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--1 {
+        padding-top:2.05rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h2,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--2 {
+    padding-top: 2.05rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h2,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--2 {
+        padding-top:2.05rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h3,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--3 {
+    padding-top: 1.95rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h3,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--3 {
+        padding-top:1.95rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h4,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--4 {
+    padding-top: 1.95rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h4,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--4 {
+        padding-top:1.95rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h6,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--6 {
+    padding-top: 1.875rem
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--5,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+h6,.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-heading--6 {
+        padding-top:1.875rem
+    }
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading])+.p-muted-heading {
+    padding-top: 1.55rem
+}
+
+.cookie-policy .p-modal__dialog {
+    box-shadow: 0 1px 1px 0 rgba(0,0,0,.15),0 2px 2px -1px rgba(0,0,0,.15),0 0 3px 0 rgba(0,0,0,.2)
+}
+
+.cookie-policy fieldset {
+    border: 1.5px solid var(--vf-color-border-default)
+}
+
+.cookie-policy fieldset {
+    background-color: var(--vf-color-background-default);
+    color: var(--vf-color-text-default)
+}
+
+.cookie-policy .p-modal__dialog,.cookie-policy fieldset {
+    overflow: auto;
+    padding: 1rem
+}
+
+.cookie-policy fieldset {
+    margin-bottom: 1.5rem
+}
+
+.cookie-policy .p-accordion__tab,.cookie-policy td,.cookie-policy th {
+    padding-bottom: .5rem;
+    padding-top: calc(.5rem - 1px)
+}
+
+.p-accordion__group+.cookie-policy .p-accordion__group+.cookie-policy .p-accordion__group::after,.cookie-policy .p-modal__footer::after,.cookie-policy .p-modal__header::after {
+    background-color: var(--vf-color-border-default);
+    content: "";
+    height: 1px;
+    left: 0;
+    position: absolute;
+    right: 0
+}
+
+.cookie-policy .p-modal__header {
+    position: relative
+}
+
+.cookie-policy .p-modal__header::after {
+    bottom: 0
+}
+
+.p-accordion__group+.cookie-policy .p-accordion__group+.cookie-policy .p-accordion__group,.cookie-policy .p-modal__footer {
+    position: relative
+}
+
+.p-accordion__group+.cookie-policy .p-accordion__group+.cookie-policy .p-accordion__group::after,.cookie-policy .p-modal__footer::after {
+    top: 0
+}
+
+.cookie-policy hr {
+    background: var(--vf-color-border-default);
+    border: 0;
+    height: 1px;
+    margin-bottom: calc(.5rem - 1px);
+    margin-top: 0;
+    position: relative;
+    width: 100%
+}
+
+.cookie-policy .u-off-screen:not(:focus):not(:active) {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px
+}
+
+.cookie-policy .p-accordion__tab::before {
+    overflow: hidden;
+    text-indent: 110vw;
+    white-space: nowrap
+}
+
+.cookie-policy .u-no-margin--bottom:not(hr):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(p):not(small):not([class*=p-heading]):not([class*=p-button--link]) {
+    margin-bottom: 0 !important
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--1,.cookie-policy h1.u-no-margin--bottom {
+    margin-bottom: -0.55rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--1,.cookie-policy h1.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--1,.cookie-policy h1.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--2,.cookie-policy h2.u-no-margin--bottom {
+    margin-bottom: -0.55rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--2,.cookie-policy h2.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--2,.cookie-policy h2.u-no-margin--bottom {
+        margin-bottom:-0.55rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--3,.cookie-policy h3.u-no-margin--bottom {
+    margin-bottom: 0.05rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--3,.cookie-policy h3.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--3,.cookie-policy h3.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--4,.cookie-policy .u-no-margin--bottom.p-modal__title,.cookie-policy h4.u-no-margin--bottom {
+    margin-bottom: 0.05rem !important
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--4,.cookie-policy .u-no-margin--bottom.p-modal__title,.cookie-policy h4.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy .u-no-margin--bottom.p-heading--4,.cookie-policy .u-no-margin--bottom.p-modal__title,.cookie-policy h4.u-no-margin--bottom {
+        margin-bottom:-0.45rem !important
+    }
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--5,.cookie-policy h5.u-no-margin--bottom {
+    margin-bottom: 0.125rem !important
+}
+
+.cookie-policy .u-no-margin--bottom.p-heading--6,.cookie-policy h6.u-no-margin--bottom {
+    margin-bottom: 0.125rem !important
+}
+
+.cookie-policy .p-button--link.u-no-margin--bottom,.cookie-policy p.u-no-margin--bottom,.cookie-policy .u-no-margin--bottom.p-text--small-caps,.cookie-policy .u-no-margin--bottom.p-text--x-small-capitalised {
+    margin-bottom: 0.125rem !important
+}
+
+.cookie-policy small.u-no-margin--bottom,.cookie-policy .u-no-margin--bottom.p-text--small,.cookie-policy .u-no-margin--bottom.p-text--x-small,.cookie-policy thead th.u-no-margin--bottom {
+    margin-bottom: -0.05rem !important
+}
+
+.cookie-policy hr.u-no-margin--bottom {
+    margin-bottom: -1px !important;
+    z-index: 2
+}
+
+.cookie-policy .p-accordion__tab::before {
+    background-size: contain;
+    height: 1rem;
+    width: 1rem;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: inline-block;
+    font-size: inherit;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    vertical-align: calc(.5px + .3465em - .5rem)
+}
+
+:root {
+    --vf-FLAG-ON: initial;
+    --vf-FLAG-OFF:
+}
+
+:root,.is-light {
+    --vf-theme-light: var(--vf-FLAG-ON);
+    --vf-theme-dark: var(--vf-FLAG-OFF);
+    --vf-color-text-default: #000;
+    --vf-color-text-muted: rgba(0, 0, 0, 0.6);
+    --vf-color-text-inactive: rgba(0, 0, 0, 0.75);
+    --vf-color-link-default: #06c;
+    --vf-color-link-visited: #7d42b8;
+    --vf-color-focus: #2e96ff;
+    --vf-color-background-default: #fff;
+    --vf-color-background-alt: #f7f7f7;
+    --vf-color-background-code: rgba(0, 0, 0, 0.03);
+    --vf-color-background-inputs: rgb(244.8, 244.8, 244.8);
+    --vf-color-background-active: rgb(234.6, 234.6, 234.6);
+    --vf-color-background-hover: rgb(242.25, 242.25, 242.25);
+    --vf-color-background-overlay: rgba(17, 17, 17, 0.85);
+    --vf-color-border-default: rgba(0, 0, 0, 0.2);
+    --vf-color-border-high-contrast: #707070;
+    --vf-color-border-low-contrast: rgba(0, 0, 0, 0.1);
+    --vf-color-border-neutral: #707070;
+    --vf-color-border-positive: #0e8420;
+    --vf-color-border-negative: #c7162b;
+    --vf-color-border-information: #24598f;
+    --vf-color-border-caution: #cc7900;
+    --vf-color-background-neutral-default: #f2f2f2;
+    --vf-color-background-neutral-hover: rgb(229.25, 229.25, 229.25);
+    --vf-color-background-neutral-active: rgb(221.6, 221.6, 221.6);
+    --vf-color-background-positive-default: hsla(129, 90%, 39%, 0.1);
+    --vf-color-background-positive-hover: hsla(129, 100%, 39%, 0.15);
+    --vf-color-background-positive-active: hsla(129, 100%, 39%, 0.18);
+    --vf-color-background-caution-default: hsla(27, 100%, 39%, 0.1);
+    --vf-color-background-caution-hover: hsla(27, 100%, 39%, 0.15);
+    --vf-color-background-caution-active: hsla(27, 100%, 39%, 0.18);
+    --vf-color-background-negative-default: hsla(354, 100%, 39%, 0.1);
+    --vf-color-background-negative-hover: hsla(354, 100%, 39%, 0.15);
+    --vf-color-background-negative-active: hsla(354, 100%, 39%, 0.18);
+    --vf-color-background-information-default: hsla(210, 100%, 39%, 0.1);
+    --vf-color-background-information-hover: hsla(210, 100%, 39%, 0.15);
+    --vf-color-background-information-active: hsla(210, 100%, 39%, 0.18);
+    --vf-color-button-positive-default: #0e8420;
+    --vf-color-button-positive-hover: rgb(11.5547945205, 108.9452054795, 26.4109589041);
+    --vf-color-button-positive-active: rgb(10.0876712329, 95.1123287671, 23.0575342466);
+    --vf-color-button-positive-text: hsl(0, 0%, 100%);
+    --vf-color-button-negative-default: #c7162b;
+    --vf-color-button-negative-hover: rgb(176.0384615385, 19.4615384615, 38.0384615385);
+    --vf-color-button-negative-active: rgb(162.2615384615, 17.9384615385, 35.0615384615);
+    --vf-color-button-negative-text: hsl(0, 0%, 100%);
+    --vf-color-accent: #0f95a1
+}
+
+.is-dark {
+    --vf-theme-light: var(--vf-FLAG-OFF);
+    --vf-theme-dark: var(--vf-FLAG-ON);
+    --vf-color-text-default: hsl(0, 0%, 100%);
+    --vf-color-text-muted: rgba(255, 255, 255, 0.6);
+    --vf-color-text-inactive: rgba(255, 255, 255, 0.75);
+    --vf-color-link-default: #69c;
+    --vf-color-link-visited: #a679d2;
+    --vf-color-focus: #9cf;
+    --vf-color-background-default: #262626;
+    --vf-color-background-alt: #202020;
+    --vf-color-background-code: rgba(255, 255, 255, 0.3);
+    --vf-color-background-inputs: #2f2f2f;
+    --vf-color-background-active: #373737;
+    --vf-color-background-hover: #313131;
+    --vf-color-background-overlay: rgba(17, 17, 17, 0.85);
+    --vf-color-border-default: rgba(255, 255, 255, 0.2);
+    --vf-color-border-high-contrast: #939393;
+    --vf-color-border-low-contrast: rgba(255, 255, 255, 0.1);
+    --vf-color-border-neutral: hsl(0, 0%, 65%);
+    --vf-color-border-positive: #62a36c;
+    --vf-color-border-negative: #d17b85;
+    --vf-color-border-information: hsl(210, 80%, 65%);
+    --vf-color-border-caution: #c48831;
+    --vf-color-background-neutral-default: rgba(255, 255, 255, 0.15);
+    --vf-color-background-neutral-hover: rgba(255, 255, 255, 0.2);
+    --vf-color-background-neutral-active: rgba(255, 255, 255, 0.25);
+    --vf-color-background-positive-default: hsla(129, 90%, 39%, 0.2);
+    --vf-color-background-positive-hover: hsla(129, 100%, 39%, 0.3);
+    --vf-color-background-positive-active: hsla(129, 100%, 39%, 0.36);
+    --vf-color-background-caution-default: hsla(27, 100%, 50%, 0.2);
+    --vf-color-background-caution-hover: hsla(27, 100%, 60%, 0.3);
+    --vf-color-background-caution-active: hsla(27, 100%, 50%, 0.36);
+    --vf-color-background-negative-default: hsla(353, 100%, 70%, 0.2);
+    --vf-color-background-negative-hover: hsla(353, 100%, 70%, 0.3);
+    --vf-color-background-negative-active: hsla(353, 100%, 70%, 0.36);
+    --vf-color-background-information-default: hsla(210, 100%, 50%, 0.2);
+    --vf-color-background-information-hover: hsla(210, 100%, 50%, 0.3);
+    --vf-color-background-information-active: hsla(210, 100%, 50%, 0.36);
+    --vf-color-button-positive-default: #008013;
+    --vf-color-button-positive-hover: rgb(0, 102.5, 15.21484375);
+    --vf-color-button-positive-active: rgb(0, 87.2, 12.94375);
+    --vf-color-button-positive-text: hsl(0, 0%, 100%);
+    --vf-color-button-negative-default: #a11223;
+    --vf-color-button-negative-hover: rgb(138.0642458101, 15.4357541899, 30.0139664804);
+    --vf-color-button-negative-active: rgb(124.3027932961, 13.8972067039, 27.0223463687);
+    --vf-color-button-negative-text: hsl(0, 0%, 100%);
+    --vf-color-accent: #70bbc2
+}
+
+.is-paper {
+    --vf-theme-light: var(--vf-FLAG-ON);
+    --vf-theme-dark: var(--vf-FLAG-OFF);
+    --vf-color-text-default: #000;
+    --vf-color-text-muted: rgba(0, 0, 0, 0.6);
+    --vf-color-text-inactive: rgba(0, 0, 0, 0.75);
+    --vf-color-link-default: #06c;
+    --vf-color-link-visited: #7d42b8;
+    --vf-color-focus: #2e96ff;
+    --vf-color-background-default: #fff;
+    --vf-color-background-alt: #f7f7f7;
+    --vf-color-background-code: rgba(0, 0, 0, 0.03);
+    --vf-color-background-inputs: rgb(244.8, 244.8, 244.8);
+    --vf-color-background-active: rgb(234.6, 234.6, 234.6);
+    --vf-color-background-hover: rgb(242.25, 242.25, 242.25);
+    --vf-color-background-overlay: rgba(17, 17, 17, 0.85);
+    --vf-color-border-default: rgba(0, 0, 0, 0.2);
+    --vf-color-border-high-contrast: #707070;
+    --vf-color-border-low-contrast: rgba(0, 0, 0, 0.1);
+    --vf-color-border-neutral: #707070;
+    --vf-color-border-positive: #0e8420;
+    --vf-color-border-negative: #c7162b;
+    --vf-color-border-information: #24598f;
+    --vf-color-border-caution: #cc7900;
+    --vf-color-background-neutral-default: #f2f2f2;
+    --vf-color-background-neutral-hover: rgb(229.25, 229.25, 229.25);
+    --vf-color-background-neutral-active: rgb(221.6, 221.6, 221.6);
+    --vf-color-background-positive-default: hsla(129, 90%, 39%, 0.1);
+    --vf-color-background-positive-hover: hsla(129, 100%, 39%, 0.15);
+    --vf-color-background-positive-active: hsla(129, 100%, 39%, 0.18);
+    --vf-color-background-caution-default: hsla(27, 100%, 39%, 0.1);
+    --vf-color-background-caution-hover: hsla(27, 100%, 39%, 0.15);
+    --vf-color-background-caution-active: hsla(27, 100%, 39%, 0.18);
+    --vf-color-background-negative-default: hsla(354, 100%, 39%, 0.1);
+    --vf-color-background-negative-hover: hsla(354, 100%, 39%, 0.15);
+    --vf-color-background-negative-active: hsla(354, 100%, 39%, 0.18);
+    --vf-color-background-information-default: hsla(210, 100%, 39%, 0.1);
+    --vf-color-background-information-hover: hsla(210, 100%, 39%, 0.15);
+    --vf-color-background-information-active: hsla(210, 100%, 39%, 0.18);
+    --vf-color-button-positive-default: #0e8420;
+    --vf-color-button-positive-hover: rgb(11.5547945205, 108.9452054795, 26.4109589041);
+    --vf-color-button-positive-active: rgb(10.0876712329, 95.1123287671, 23.0575342466);
+    --vf-color-button-positive-text: hsl(0, 0%, 100%);
+    --vf-color-button-negative-default: #c7162b;
+    --vf-color-button-negative-hover: rgb(176.0384615385, 19.4615384615, 38.0384615385);
+    --vf-color-button-negative-active: rgb(162.2615384615, 17.9384615385, 35.0615384615);
+    --vf-color-button-negative-text: hsl(0, 0%, 100%);
+    --vf-color-accent: #0f95a1;
+    --vf-color-background-default: #f3f3f3;
+    --vf-color-background-alt: #ebebeb;
+    --vf-color-background-inputs: #eaeaea;
+    --vf-color-background-active: #e0e0e0;
+    --vf-color-background-hover: #e7e7e7
+}
+
+.cookie-policy body {
+    background: var(--vf-color-background-default);
+    color: var(--vf-color-text-default)
+}
+
+@font-face {
+    font-family: "Ubuntu variable";
+    font-stretch: 100%;
+    font-style: normal;
+    font-weight: 100 800;
+    src: url("https://assets.ubuntu.com/v1/f1ea362b-Ubuntu%5Bwdth,wght%5D-latin-v0.896a.woff2") format("woff2-variations")
+}
+
+@font-face {
+    font-family: "Ubuntu variable";
+    font-stretch: 100%;
+    font-style: italic;
+    font-weight: 100 800;
+    src: url("https://assets.ubuntu.com/v1/90b59210-Ubuntu-Italic%5Bwdth,wght%5D-latin-v0.896a.woff2") format("woff2-variations")
+}
+
+@font-face {
+    font-family: "Ubuntu Mono variable";
+    font-style: normal;
+    font-weight: 100 800;
+    src: url("https://assets.ubuntu.com/v1/d5fc1819-UbuntuMono%5Bwght%5D-latin-v0.869.woff2") format("woff2-variations")
+}
+
+.cookie-policy html {
+    color: #000;
+    font-family: "Ubuntu variable", "Ubuntu", -apple-system, "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    font-weight: 400;
+    line-height: 1.5rem;
+    text-wrap: pretty;
+    font-size: 1rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy html {
+        font-size:1.125rem;
+        line-height: 1.6875rem
+    }
+}
+
+.cookie-policy p {
+    max-width: 40em
+}
+
+.cookie-policy small.dense,.cookie-policy .p-text--small.dense {
+    margin-bottom: 2.2rem
+}
+
+.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    font-weight: 550
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading]):empty {
+    line-height: 0;
+    margin: 0;
+    padding: 0
+}
+
+.cookie-policy sub,.cookie-policy sup {
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline
+}
+
+.cookie-policy abbr[title] {
+    border-bottom: .1em dotted;
+    cursor: help;
+    text-decoration: none
+}
+
+.cookie-policy blockquote {
+    border-left: 2px solid var(--vf-color-border-high-contrast);
+    margin-bottom: 1.5rem;
+    margin-left: 0;
+    margin-top: 0;
+    overflow: auto;
+    padding-bottom: .5rem;
+    padding-left: 1.5rem
+}
+
+.cookie-policy blockquote>:last-child {
+    margin-bottom: .125rem
+}
+
+.cookie-policy blockquote>cite {
+    display: block;
+    font-style: normal
+}
+
+.cookie-policy html {
+    box-sizing: border-box
+}
+
+.cookie-policy *,.cookie-policy *::before,.cookie-policy *::after {
+    box-sizing: inherit
+}
+
 .cookie-policy button {
+    background-color: var(--vf-color-background-default);
+    border-color: var(--vf-color-border-high-contrast);
+    color: var(--vf-color-text-default)
+}
+
+.cookie-policy button:visited {
+    color: var(--vf-color-text-default)
+}
+
+.cookie-policy button:hover {
+    background-color: var(--vf-color-background-hover);
+    border-color: var(--vf-color-border-high-contrast)
+}
+
+.cookie-policy button:active,.cookie-policy button[aria-pressed=true],.cookie-policy button[aria-selected=true],.cookie-policy button[aria-expanded=true] {
+    background-color: var(--vf-color-background-active);
+    border-color: var(--vf-color-border-high-contrast);
+    transition-duration: 0s
+}
+
+.cookie-policy button:disabled:active,.cookie-policy button:disabled[aria-pressed=true],.cookie-policy button:disabled[aria-selected=true],.cookie-policy button:disabled[aria-expanded=true],.cookie-policy button:disabled:hover,.cookie-policy button.is-disabled:active,.cookie-policy button.is-disabled[aria-pressed=true],.cookie-policy button.is-disabled[aria-selected=true],.cookie-policy button.is-disabled[aria-expanded=true],.cookie-policy button.is-disabled:hover {
+    background-color: rgba(0,0,0,0);
+    border-color: var(--vf-color-border-high-contrast)
+}
+
+.cookie-policy .is-dense.p-button--positive,.cookie-policy button.is-dense {
+    padding-bottom: calc(.125rem - 1.5px);
+    padding-top: calc(.125rem - 1.5px)
+}
+
+.cookie-policy .p-button--positive,.cookie-policy button {
+    transition-duration: .1s;
+    transition-property: background-color, border-color;
+    transition-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+    --vf-focus-outline-color: #2e96ff;
     border-style: solid;
     border-width: 1.5px;
     cursor: pointer;
@@ -61,22 +1451,2222 @@ h2#cookie-policy-title.p-modal__title {
     font-weight: 400;
     justify-content: center;
     line-height: 1.5rem;
-    padding: calc(.4rem - 1px) 1rem;
+    margin: 0 1rem 1.25rem 0;
+    padding: calc(.375rem - 1.5px) 1rem;
     text-align: center;
-    text-decoration: none;
-    transition-duration: .1s;
-    transition-property: background-color,border-color;
-    transition-timing-function: cubic-bezier(0.55,0.055,0.675,0.19);
+    text-decoration: none
 }
 
-.cookie-policy button {
-    background-color: #fff;
-    border-color: rgba(0,0,0,0.56);
+.is-dark .cookie-policy .p-button--positive,.is-dark .cookie-policy button {
+    --vf-focus-outline-color: #9cf
+}
+
+.cookie-policy .p-button--positive:focus,.cookie-policy button:focus {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-button--positive:focus-visible,.cookie-policy button:focus-visible {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-button--positive:focus:not(:focus-visible),.cookie-policy button:focus:not(:focus-visible) {
+    outline: 0;
+    outline-offset: 0
+}
+
+.cookie-policy .p-button--positive:active,.cookie-policy button:active,.cookie-policy .p-button--positive:focus,.cookie-policy button:focus,.cookie-policy .p-button--positive:hover,.cookie-policy button:hover {
+    text-decoration: none
+}
+
+.cookie-policy .p-button--positive:disabled,.cookie-policy button:disabled,.cookie-policy .is-disabled.p-button--positive,.cookie-policy button.is-disabled {
+    cursor: not-allowed;
+    opacity: .33
+}
+
+.cookie-policy .p-button--positive:last-child,.cookie-policy button:last-child {
+    margin-right: 0
+}
+
+.cookie-policy .is-dense.p-button--positive,.cookie-policy button.is-dense {
+    margin-bottom: .125rem
+}
+
+.cookie-policy .is-small.p-button--positive,.cookie-policy button.is-small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    margin-bottom: .75rem;
+    padding: calc(.05rem - 1.5px) .5rem
+}
+
+.cookie-policy .is-small.is-dense.p-button--positive,.cookie-policy button.is-small.is-dense {
+    margin-bottom: .125rem;
+    padding-bottom: calc(.125rem - 1.5px);
+    padding-top: calc(.125rem - 1.5px)
+}
+
+p .cookie-policy .p-button--positive,p .cookie-policy button {
+    margin-bottom: .625rem;
+    margin-top: -0.375rem
+}
+
+p+p>.cookie-policy .p-button--positive,p+p>.cookie-policy button {
+    margin-top: .125rem
+}
+
+.cookie-policy .p-button--positive .p-icon--success {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cg fill='none' fill-rule='nonzero'%3E%3Cpath fill='%23fff' d='M8 1a7 7 0 110 14A7 7 0 018 1zm2.83 3.502L6.863 9.884 5.174 8.096l-1.09 1.03 2.92 3.096 5.034-6.83-1.208-.89z'/%3E%3Cpath fill='transparent' d='M10.83 4.502l1.208.89-5.033 6.83-2.922-3.096 1.091-1.03 1.689 1.789z'/%3E%3C/g%3E%3C/svg%3E")
+}
+
+.cookie-policy code,.cookie-policy kbd,.cookie-policy pre,.cookie-policy samp {
+    font-family: "Ubuntu Mono variable", "Ubuntu Mono", Consolas, Monaco, Courier, monospace;
+    font-weight: 400;
+    text-align: left
+}
+
+.cookie-policy code b,.cookie-policy code strong,.cookie-policy kbd b,.cookie-policy kbd strong,.cookie-policy pre b,.cookie-policy pre strong,.cookie-policy samp b,.cookie-policy samp strong {
+    font-weight: 550
+}
+
+.cookie-policy code,.cookie-policy kbd,.cookie-policy samp {
+    background-color: var(--vf-color-background-code);
+    box-decoration-break: slice;
+    color: inherit;
+    line-height: 1.25rem;
+    padding: calc(.25rem - 1.5px) .25rem
+}
+
+.cookie-policy code,.cookie-policy pre {
+    direction: ltr;
+    -webkit-hyphens: none;
+    hyphens: none;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    word-spacing: normal;
+    word-wrap: break-word
+}
+
+.cookie-policy pre code {
+    background: none;
+    box-shadow: none;
+    line-height: 1.5rem;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0
+}
+
+.cookie-policy pre {
+    background-color: var(--vf-color-background-code);
+    color: var(--vf-color-text-default);
+    display: block;
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+    overflow: auto;
+    padding: .5rem 1rem;
+    text-align: left;
+    text-shadow: none;
+    white-space: pre
+}
+
+.cookie-policy details {
+    margin-bottom: 1.5rem;
+    overflow: auto
+}
+
+.cookie-policy summary {
+    --vf-focus-outline-color: #2e96ff;
+    margin-bottom: .375rem;
+    max-width: 40em;
+    padding-bottom: .625rem
+}
+
+.is-dark .cookie-policy summary {
+    --vf-focus-outline-color: #9cf
+}
+
+.cookie-policy summary:focus {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy summary:focus-visible {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy summary:focus:not(:focus-visible) {
+    outline: 0;
+    outline-offset: 0
+}
+
+.cookie-policy input[type=range] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: rgba(0,0,0,0);
+    border-radius: .1875rem;
+    height: .1875rem;
+    margin: .40625rem 0;
+    padding: 0;
+    vertical-align: bottom;
+    width: 100%
+}
+
+.cookie-policy input[type=range]::-webkit-slider-runnable-track {
+    border-radius: .1875rem;
+    height: .1875rem
+}
+
+.cookie-policy input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: var(--vf-color-background-default);
+    border: 1.5px solid var(--vf-color-border-high-contrast);
+    border-radius: 50%;
+    box-shadow: 0 0 .1875rem 1px rgba(0,0,0,.2);
+    height: 1rem;
+    margin-top: -0.40625rem;
+    width: 1rem
+}
+
+.cookie-policy input[type=range]::-webkit-slider-thumb:hover {
+    cursor: pointer
+}
+
+.cookie-policy input[type=range]::-moz-range-track {
+    background: var(--vf-color-border-default);
+    border-radius: .1875rem;
+    height: .1875rem
+}
+
+.cookie-policy input[type=range]::-moz-range-progress {
+    background-color: var(--vf-color-link-default);
+    border-radius: .1875rem;
+    height: .1875rem
+}
+
+.cookie-policy input[type=range]::-moz-range-thumb {
+    background: var(--vf-color-background-default);
+    border: 1.5px solid var(--vf-color-border-high-contrast);
+    border-radius: 50%;
+    box-shadow: 0 0 .1875rem 1px rgba(0,0,0,.2);
+    height: 1rem;
+    width: 1rem
+}
+
+.cookie-policy input[type=range]::-moz-range-thumb:hover {
+    cursor: pointer
+}
+
+.cookie-policy input[type=range]::-moz-focus-outer {
+    border: 0
+}
+
+.cookie-policy input[type=range]:focus {
+    outline: none
+}
+
+.cookie-policy input[type=range]:focus::-webkit-slider-thumb {
+    outline: .1875rem solid var(--vf-color-focus)
+}
+
+.cookie-policy input[type=range]:focus::-moz-range-thumb {
+    outline: .1875rem solid var(--vf-color-focus)
+}
+
+.cookie-policy input[type=range]:disabled {
+    opacity: .5
+}
+
+.cookie-policy [type=file],.cookie-policy textarea,.cookie-policy [type=text],.cookie-policy [type=date],.cookie-policy [type=datetime],.cookie-policy [type=datetime-local],.cookie-policy [type=month],.cookie-policy [type=time],.cookie-policy [type=week],.cookie-policy [type=number],.cookie-policy [type=search],.cookie-policy [type=password],.cookie-policy [type=email],.cookie-policy [type=url],.cookie-policy [type=tel],.cookie-policy select {
+    padding-bottom: calc(.375rem - 1.5px);
+    padding-top: calc(.375rem - 1.5px)
+}
+
+.cookie-policy textarea,.cookie-policy [type=text],.cookie-policy [type=date],.cookie-policy [type=datetime],.cookie-policy [type=datetime-local],.cookie-policy [type=month],.cookie-policy [type=time],.cookie-policy [type=week],.cookie-policy [type=number],.cookie-policy [type=search],.cookie-policy [type=password],.cookie-policy [type=email],.cookie-policy [type=url],.cookie-policy [type=tel],.cookie-policy select {
+    --vf-focus-outline-color: #2e96ff;
+    transition-duration: .165s;
+    transition-property: background-color;
+    transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    background-color: var(--vf-color-background-inputs);
+    border: 0 solid rgba(0,0,0,0);
+    border-bottom: 1.5px solid var(--vf-color-border-high-contrast);
+    border-radius: 0;
+    border-top: 1.5px solid rgba(0,0,0,0);
+    color: var(--vf-color-text-default);
+    font-family: "Ubuntu variable", "Ubuntu", -apple-system, "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5rem;
+    margin-bottom: 1.25rem;
+    min-width: 8em;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    vertical-align: baseline;
+    width: 100%
+}
+
+.is-dark .cookie-policy textarea,.is-dark .cookie-policy [type=text],.is-dark .cookie-policy [type=date],.is-dark .cookie-policy [type=datetime],.is-dark .cookie-policy [type=datetime-local],.is-dark .cookie-policy [type=month],.is-dark .cookie-policy [type=time],.is-dark .cookie-policy [type=week],.is-dark .cookie-policy [type=number],.is-dark .cookie-policy [type=search],.is-dark .cookie-policy [type=password],.is-dark .cookie-policy [type=email],.is-dark .cookie-policy [type=url],.is-dark .cookie-policy [type=tel],.is-dark .cookie-policy select {
+    --vf-focus-outline-color: #9cf
+}
+
+.cookie-policy textarea:focus,.cookie-policy [type=text]:focus,.cookie-policy [type=date]:focus,.cookie-policy [type=datetime]:focus,.cookie-policy [type=datetime-local]:focus,.cookie-policy [type=month]:focus,.cookie-policy [type=time]:focus,.cookie-policy [type=week]:focus,.cookie-policy [type=number]:focus,.cookie-policy [type=search]:focus,.cookie-policy [type=password]:focus,.cookie-policy [type=email]:focus,.cookie-policy [type=url]:focus,.cookie-policy [type=tel]:focus,.cookie-policy select:focus {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy textarea:focus-visible,.cookie-policy [type=text]:focus-visible,.cookie-policy [type=date]:focus-visible,.cookie-policy [type=datetime]:focus-visible,.cookie-policy [type=datetime-local]:focus-visible,.cookie-policy [type=month]:focus-visible,.cookie-policy [type=time]:focus-visible,.cookie-policy [type=week]:focus-visible,.cookie-policy [type=number]:focus-visible,.cookie-policy [type=search]:focus-visible,.cookie-policy [type=password]:focus-visible,.cookie-policy [type=email]:focus-visible,.cookie-policy [type=url]:focus-visible,.cookie-policy [type=tel]:focus-visible,.cookie-policy select:focus-visible {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy textarea:focus:not(:focus-visible),.cookie-policy [type=text]:focus:not(:focus-visible),.cookie-policy [type=date]:focus:not(:focus-visible),.cookie-policy [type=datetime]:focus:not(:focus-visible),.cookie-policy [type=datetime-local]:focus:not(:focus-visible),.cookie-policy [type=month]:focus:not(:focus-visible),.cookie-policy [type=time]:focus:not(:focus-visible),.cookie-policy [type=week]:focus:not(:focus-visible),.cookie-policy [type=number]:focus:not(:focus-visible),.cookie-policy [type=search]:focus:not(:focus-visible),.cookie-policy [type=password]:focus:not(:focus-visible),.cookie-policy [type=email]:focus:not(:focus-visible),.cookie-policy [type=url]:focus:not(:focus-visible),.cookie-policy [type=tel]:focus:not(:focus-visible),.cookie-policy select:focus:not(:focus-visible) {
+    outline: 0;
+    outline-offset: 0
+}
+
+.is-error .cookie-policy textarea:focus,.is-error .cookie-policy [type=text]:focus,.is-error .cookie-policy [type=date]:focus,.is-error .cookie-policy [type=datetime]:focus,.is-error .cookie-policy [type=datetime-local]:focus,.is-error .cookie-policy [type=month]:focus,.is-error .cookie-policy [type=time]:focus,.is-error .cookie-policy [type=week]:focus,.is-error .cookie-policy [type=number]:focus,.is-error .cookie-policy [type=search]:focus,.is-error .cookie-policy [type=password]:focus,.is-error .cookie-policy [type=email]:focus,.is-error .cookie-policy [type=url]:focus,.is-error .cookie-policy [type=tel]:focus,.is-error .cookie-policy select:focus {
+    outline-color: #c7162b
+}
+
+.is-caution .cookie-policy textarea:focus,.is-caution .cookie-policy [type=text]:focus,.is-caution .cookie-policy [type=date]:focus,.is-caution .cookie-policy [type=datetime]:focus,.is-caution .cookie-policy [type=datetime-local]:focus,.is-caution .cookie-policy [type=month]:focus,.is-caution .cookie-policy [type=time]:focus,.is-caution .cookie-policy [type=week]:focus,.is-caution .cookie-policy [type=number]:focus,.is-caution .cookie-policy [type=search]:focus,.is-caution .cookie-policy [type=password]:focus,.is-caution .cookie-policy [type=email]:focus,.is-caution .cookie-policy [type=url]:focus,.is-caution .cookie-policy [type=tel]:focus,.is-caution .cookie-policy select:focus {
+    outline-color: #cc7900
+}
+
+.is-success .cookie-policy textarea:focus,.is-success .cookie-policy [type=text]:focus,.is-success .cookie-policy [type=date]:focus,.is-success .cookie-policy [type=datetime]:focus,.is-success .cookie-policy [type=datetime-local]:focus,.is-success .cookie-policy [type=month]:focus,.is-success .cookie-policy [type=time]:focus,.is-success .cookie-policy [type=week]:focus,.is-success .cookie-policy [type=number]:focus,.is-success .cookie-policy [type=search]:focus,.is-success .cookie-policy [type=password]:focus,.is-success .cookie-policy [type=email]:focus,.is-success .cookie-policy [type=url]:focus,.is-success .cookie-policy [type=tel]:focus,.is-success .cookie-policy select:focus {
+    outline-color: #0e8420
+}
+
+.cookie-policy textarea:hover,.cookie-policy [type=text]:hover,.cookie-policy [type=date]:hover,.cookie-policy [type=datetime]:hover,.cookie-policy [type=datetime-local]:hover,.cookie-policy [type=month]:hover,.cookie-policy [type=time]:hover,.cookie-policy [type=week]:hover,.cookie-policy [type=number]:hover,.cookie-policy [type=search]:hover,.cookie-policy [type=password]:hover,.cookie-policy [type=email]:hover,.cookie-policy [type=url]:hover,.cookie-policy [type=tel]:hover,.cookie-policy select:hover {
+    background-color: var(--vf-color-background-hover)
+}
+
+.cookie-policy textarea:active,.cookie-policy [type=text]:active,.cookie-policy [type=date]:active,.cookie-policy [type=datetime]:active,.cookie-policy [type=datetime-local]:active,.cookie-policy [type=month]:active,.cookie-policy [type=time]:active,.cookie-policy [type=week]:active,.cookie-policy [type=number]:active,.cookie-policy [type=search]:active,.cookie-policy [type=password]:active,.cookie-policy [type=email]:active,.cookie-policy [type=url]:active,.cookie-policy [type=tel]:active,.cookie-policy select:active,.cookie-policy textarea:focus,.cookie-policy [type=text]:focus,.cookie-policy [type=date]:focus,.cookie-policy [type=datetime]:focus,.cookie-policy [type=datetime-local]:focus,.cookie-policy [type=month]:focus,.cookie-policy [type=time]:focus,.cookie-policy [type=week]:focus,.cookie-policy [type=number]:focus,.cookie-policy [type=search]:focus,.cookie-policy [type=password]:focus,.cookie-policy [type=email]:focus,.cookie-policy [type=url]:focus,.cookie-policy [type=tel]:focus,.cookie-policy select:focus {
+    background-color: var(--vf-color-background-active)
+}
+
+.cookie-policy textarea option,.cookie-policy [type=text] option,.cookie-policy [type=date] option,.cookie-policy [type=datetime] option,.cookie-policy [type=datetime-local] option,.cookie-policy [type=month] option,.cookie-policy [type=time] option,.cookie-policy [type=week] option,.cookie-policy [type=number] option,.cookie-policy [type=search] option,.cookie-policy [type=password] option,.cookie-policy [type=email] option,.cookie-policy [type=url] option,.cookie-policy [type=tel] option,.cookie-policy select option,.cookie-policy select option:checked {
+    background-color: var(--vf-color-background-alt);
+    color: var(--vf-color-text-default)
+}
+
+.cookie-policy textarea option:checked:not(:disabled),.cookie-policy [type=text] option:checked:not(:disabled),.cookie-policy [type=date] option:checked:not(:disabled),.cookie-policy [type=datetime] option:checked:not(:disabled),.cookie-policy [type=datetime-local] option:checked:not(:disabled),.cookie-policy [type=month] option:checked:not(:disabled),.cookie-policy [type=time] option:checked:not(:disabled),.cookie-policy [type=week] option:checked:not(:disabled),.cookie-policy [type=number] option:checked:not(:disabled),.cookie-policy [type=search] option:checked:not(:disabled),.cookie-policy [type=password] option:checked:not(:disabled),.cookie-policy [type=email] option:checked:not(:disabled),.cookie-policy [type=url] option:checked:not(:disabled),.cookie-policy [type=tel] option:checked:not(:disabled),.cookie-policy select option:checked:not(:disabled) {
+    background-color: var(--vf-color-background-active)
+}
+
+.cookie-policy textarea::placeholder,.cookie-policy [type=text]::placeholder,.cookie-policy [type=date]::placeholder,.cookie-policy [type=datetime]::placeholder,.cookie-policy [type=datetime-local]::placeholder,.cookie-policy [type=month]::placeholder,.cookie-policy [type=time]::placeholder,.cookie-policy [type=week]::placeholder,.cookie-policy [type=number]::placeholder,.cookie-policy [type=search]::placeholder,.cookie-policy [type=password]::placeholder,.cookie-policy [type=email]::placeholder,.cookie-policy [type=url]::placeholder,.cookie-policy [type=tel]::placeholder,.cookie-policy select::placeholder {
+    color: var(--vf-color-text-muted)
+}
+
+.cookie-policy textarea.is-dense,.cookie-policy .is-dense[type=text],.cookie-policy .is-dense[type=date],.cookie-policy .is-dense[type=datetime],.cookie-policy .is-dense[type=datetime-local],.cookie-policy .is-dense[type=month],.cookie-policy .is-dense[type=time],.cookie-policy .is-dense[type=week],.cookie-policy .is-dense[type=number],.cookie-policy .is-dense[type=search],.cookie-policy .is-dense[type=password],.cookie-policy .is-dense[type=email],.cookie-policy .is-dense[type=url],.cookie-policy .is-dense[type=tel],.cookie-policy select.is-dense,.p-form-validation__select-wrapper.is-dense .cookie-policy textarea,.p-form-validation__select-wrapper.is-dense .cookie-policy [type=text],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=date],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=datetime],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=datetime-local],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=month],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=time],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=week],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=number],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=search],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=password],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=email],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=url],.p-form-validation__select-wrapper.is-dense .cookie-policy [type=tel],.p-form-validation__select-wrapper.is-dense .cookie-policy select {
+    margin: 0 0 .125rem 0;
+    padding-bottom: calc(.125rem - 1.5px);
+    padding-top: calc(.125rem - 1.5px)
+}
+
+.cookie-policy textarea.has-error,.cookie-policy .has-error[type=text],.cookie-policy .has-error[type=date],.cookie-policy .has-error[type=datetime],.cookie-policy .has-error[type=datetime-local],.cookie-policy .has-error[type=month],.cookie-policy .has-error[type=time],.cookie-policy .has-error[type=week],.cookie-policy .has-error[type=number],.cookie-policy .has-error[type=search],.cookie-policy .has-error[type=password],.cookie-policy .has-error[type=email],.cookie-policy .has-error[type=url],.cookie-policy .has-error[type=tel],.cookie-policy select.has-error {
+    border: 1.5px solid #c7162b
+}
+
+.cookie-policy textarea.has-caution,.cookie-policy .has-caution[type=text],.cookie-policy .has-caution[type=date],.cookie-policy .has-caution[type=datetime],.cookie-policy .has-caution[type=datetime-local],.cookie-policy .has-caution[type=month],.cookie-policy .has-caution[type=time],.cookie-policy .has-caution[type=week],.cookie-policy .has-caution[type=number],.cookie-policy .has-caution[type=search],.cookie-policy .has-caution[type=password],.cookie-policy .has-caution[type=email],.cookie-policy .has-caution[type=url],.cookie-policy .has-caution[type=tel],.cookie-policy select.has-caution {
+    border: 1.5px solid #cc7900
+}
+
+.cookie-policy textarea.has-success,.cookie-policy .has-success[type=text],.cookie-policy .has-success[type=date],.cookie-policy .has-success[type=datetime],.cookie-policy .has-success[type=datetime-local],.cookie-policy .has-success[type=month],.cookie-policy .has-success[type=time],.cookie-policy .has-success[type=week],.cookie-policy .has-success[type=number],.cookie-policy .has-success[type=search],.cookie-policy .has-success[type=password],.cookie-policy .has-success[type=email],.cookie-policy .has-success[type=url],.cookie-policy .has-success[type=tel],.cookie-policy select.has-success {
+    border: 1.5px solid #0e8420
+}
+
+.cookie-policy textarea.has-information,.cookie-policy .has-information[type=text],.cookie-policy .has-information[type=date],.cookie-policy .has-information[type=datetime],.cookie-policy .has-information[type=datetime-local],.cookie-policy .has-information[type=month],.cookie-policy .has-information[type=time],.cookie-policy .has-information[type=week],.cookie-policy .has-information[type=number],.cookie-policy .has-information[type=search],.cookie-policy .has-information[type=password],.cookie-policy .has-information[type=email],.cookie-policy .has-information[type=url],.cookie-policy .has-information[type=tel],.cookie-policy select.has-information {
+    border: 1.5px solid #24598f
+}
+
+.cookie-policy .p-switch__input:disabled+.p-switch__slider,.cookie-policy textarea[disabled],.cookie-policy [disabled][type=text],.cookie-policy [disabled][type=date],.cookie-policy [disabled][type=datetime],.cookie-policy [disabled][type=datetime-local],.cookie-policy [disabled][type=month],.cookie-policy [disabled][type=time],.cookie-policy [disabled][type=week],.cookie-policy [disabled][type=number],.cookie-policy [disabled][type=search],.cookie-policy [disabled][type=password],.cookie-policy [disabled][type=email],.cookie-policy [disabled][type=url],.cookie-policy [disabled][type=tel],.cookie-policy select[disabled],.cookie-policy textarea[disabled=disabled],.cookie-policy [disabled=disabled][type=text],.cookie-policy [disabled=disabled][type=date],.cookie-policy [disabled=disabled][type=datetime],.cookie-policy [disabled=disabled][type=datetime-local],.cookie-policy [disabled=disabled][type=month],.cookie-policy [disabled=disabled][type=time],.cookie-policy [disabled=disabled][type=week],.cookie-policy [disabled=disabled][type=number],.cookie-policy [disabled=disabled][type=search],.cookie-policy [disabled=disabled][type=password],.cookie-policy [disabled=disabled][type=email],.cookie-policy [disabled=disabled][type=url],.cookie-policy [disabled=disabled][type=tel],.cookie-policy select[disabled=disabled] {
+    cursor: not-allowed;
+    opacity: .33
+}
+
+.cookie-policy textarea[readonly],.cookie-policy [readonly][type=text],.cookie-policy [readonly][type=date],.cookie-policy [readonly][type=datetime],.cookie-policy [readonly][type=datetime-local],.cookie-policy [readonly][type=month],.cookie-policy [readonly][type=time],.cookie-policy [readonly][type=week],.cookie-policy [readonly][type=number],.cookie-policy [readonly][type=search],.cookie-policy [readonly][type=password],.cookie-policy [readonly][type=email],.cookie-policy [readonly][type=url],.cookie-policy [readonly][type=tel],.cookie-policy select[readonly],.cookie-policy textarea[readonly=readonly],.cookie-policy [readonly=readonly][type=text],.cookie-policy [readonly=readonly][type=date],.cookie-policy [readonly=readonly][type=datetime],.cookie-policy [readonly=readonly][type=datetime-local],.cookie-policy [readonly=readonly][type=month],.cookie-policy [readonly=readonly][type=time],.cookie-policy [readonly=readonly][type=week],.cookie-policy [readonly=readonly][type=number],.cookie-policy [readonly=readonly][type=search],.cookie-policy [readonly=readonly][type=password],.cookie-policy [readonly=readonly][type=email],.cookie-policy [readonly=readonly][type=url],.cookie-policy [readonly=readonly][type=tel],.cookie-policy select[readonly=readonly] {
+    color: var(--vf-color-text-muted);
+    cursor: default
+}
+
+.cookie-policy label {
+    cursor: pointer;
+    display: inline-block;
+    line-height: 1.5rem;
+    margin-bottom: .625rem;
+    margin-top: 0;
+    max-width: 40em;
+    padding-top: .375rem;
+    width: fit-content
+}
+
+.cookie-policy label.is-required::before {
+    content: "* ";
+    position: relative
+}
+
+.cookie-policy label.u-truncate {
+    width: auto
+}
+
+.cookie-policy label.has-error {
+    color: #c7162b
+}
+
+.cookie-policy label.has-caution {
+    color: #cc7900
+}
+
+.cookie-policy label.has-success {
+    color: #0e8420
+}
+
+.cookie-policy label.has-information {
+    color: #24598f
+}
+
+.cookie-policy [type=file] {
+    --vf-focus-outline-color: #2e96ff;
+    margin-bottom: 1.25rem;
+    width: 100%
+}
+
+.is-dark .cookie-policy [type=file] {
+    --vf-focus-outline-color: #9cf
+}
+
+.cookie-policy [type=file]:focus {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy [type=file]:focus-visible {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy [type=file]:focus:not(:focus-visible) {
+    outline: 0;
+    outline-offset: 0
+}
+
+.cookie-policy [type=search] {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0
+}
+
+.cookie-policy [type=search]::-webkit-search-results-decoration {
+    display: none
+}
+
+.cookie-policy input[list]::-webkit-calendar-picker-indicator {
+    opacity: 0
+}
+
+.cookie-policy select {
+    background-image: var(--vf-theme-light, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath fill='%23000' d='M8.187 11.748l6.187-6.187-1.06-1.061-5.127 5.127L3.061 4.5 2 5.561z'/%3E%3C/svg%3E")) var(--vf-theme-dark, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath fill='hsl(0%2C0%%2C100%)' d='M8.187 11.748l6.187-6.187-1.06-1.061-5.127 5.127L3.061 4.5 2 5.561z'/%3E%3C/svg%3E"));
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-position: right .5rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem;
+    box-shadow: none;
+    min-height: 1.5rem;
+    padding-right: 2rem;
+    text-indent: .01px;
+    text-overflow: ""
+}
+
+.cookie-policy select:hover {
+    cursor: pointer
+}
+
+.cookie-policy select[multiple],.cookie-policy select[size] {
+    background-image: none;
+    box-shadow: none;
+    height: auto
+}
+
+.cookie-policy select[multiple] option,.cookie-policy select[size] option {
+    font-weight: 400;
+    line-height: calc(1rem - 2px);
+    padding: .25rem 0
+}
+
+.cookie-policy textarea {
+    margin-bottom: 1.25rem;
+    overflow: auto;
+    vertical-align: top
+}
+
+.cookie-policy fieldset {
+    margin-left: 0;
+    margin-right: 0;
+    padding: calc(1rem - 1.5px)
+}
+
+.cookie-policy legend.is-required::before {
+    content: "* "
+}
+
+.cookie-policy hr.is-muted {
+    background-color: var(--vf-color-border-low-contrast)
+}
+
+.cookie-policy .p-button--link,.cookie-policy a {
+    --vf-focus-outline-color: #2e96ff;
+    color: var(--vf-color-link-default);
+    text-decoration: none
+}
+
+.is-dark .cookie-policy .p-button--link,.is-dark .cookie-policy a {
+    --vf-focus-outline-color: #9cf
+}
+
+.cookie-policy .p-button--link:focus,.cookie-policy a:focus {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-button--link:focus-visible,.cookie-policy a:focus-visible {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-button--link:focus:not(:focus-visible),.cookie-policy a:focus:not(:focus-visible) {
+    outline: 0;
+    outline-offset: 0
+}
+
+.cookie-policy .p-button--link:focus,.cookie-policy a:focus {
+    outline-offset: 0
+}
+
+.cookie-policy .p-button--link:hover,.cookie-policy a:hover {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: .075em
+}
+
+.cookie-policy .p-button--link:visited,.cookie-policy a:visited {
+    color: var(--vf-color-link-visited)
+}
+
+.cookie-policy ol,.cookie-policy ul {
+    margin-bottom: 1.5rem;
+    margin-left: 1rem;
+    margin-top: 0;
+    padding-left: 1rem
+}
+
+nav .cookie-policy ol,nav .cookie-policy ul {
+    list-style: none;
+    list-style-image: none
+}
+
+.cookie-policy li {
+    margin: 0;
+    padding: 0
+}
+
+.cookie-policy li>ul,.cookie-policy li>ol {
+    margin-bottom: 0;
+    padding-top: 0
+}
+
+.cookie-policy li>ul>li:last-of-type,.cookie-policy li>ol>li:last-of-type {
+    padding-bottom: 0
+}
+
+.cookie-policy dl {
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+    padding: 0
+}
+
+.cookie-policy dd {
+    margin-left: 1rem
+}
+
+.cookie-policy img {
+    border: 0;
+    height: auto;
+    max-width: 100%
+}
+
+.cookie-policy figure {
+    margin-bottom: 1.5rem;
+    margin-left: 0;
+    width: 100%
+}
+
+.cookie-policy figure caption,.cookie-policy figure figcaption {
+    display: block;
+    font-style: italic;
+    margin-top: .25rem;
+    width: 100%
+}
+
+.cookie-policy iframe {
+    border: 0
+}
+
+.cookie-policy object,.cookie-policy iframe,.cookie-policy embed,.cookie-policy canvas,.cookie-policy video,.cookie-policy audio {
+    display: block;
+    margin: 0 auto 20px;
+    max-width: 100%
+}
+
+.cookie-policy audio:not([controls]) {
+    display: none;
+    height: 0
+}
+
+.cookie-policy [hidden] {
+    display: none
+}
+
+.cookie-policy table {
+    border: 0;
+    border-collapse: collapse;
+    caption-side: bottom;
+    line-height: 1.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    width: 100%;
+    table-layout: fixed
+}
+
+.cookie-policy td,.cookie-policy th {
+    font-weight: 400;
+    overflow: hidden;
+    padding-left: .5rem;
+    padding-right: .5rem;
+    text-align: left;
+    text-overflow: ellipsis;
+    vertical-align: top
+}
+
+.cookie-policy td.has-overflow,.cookie-policy th.has-overflow {
+    overflow: visible
+}
+
+.cookie-policy thead th {
+    padding-bottom: .75rem;
+    padding-top: .75rem
+}
+
+.cookie-policy thead tr {
+    border-bottom: 1px solid var(--vf-color-border-default);
+    vertical-align: top
+}
+
+.cookie-policy caption {
+    padding-bottom: .5rem;
+    padding-top: .5rem
+}
+
+.cookie-policy tfoot tr,.cookie-policy tbody tr:not(:first-child) {
+    border-top: 1px solid var(--vf-color-border-low-contrast)
+}
+
+.cookie-policy .grid-col-small-1,.cookie-policy .grid-col-small-2,.cookie-policy .grid-col-small-3,.cookie-policy .grid-col-small-4,.cookie-policy .grid-col-8,.cookie-policy .grid-col-7,.cookie-policy .grid-col-6,.cookie-policy .grid-col-5,.cookie-policy .grid-col-4,.cookie-policy .grid-col-3,.cookie-policy .grid-col-2,.cookie-policy .grid-col-1,.cookie-policy .grid-col-medium-4,.cookie-policy .grid-col-medium-3,.cookie-policy .grid-col-medium-2,.cookie-policy .grid-col-medium-1 {
+    display: block
+}
+
+.cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%
+}
+
+.cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+    max-width: 80rem
+}
+
+.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--75-25,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--25-75,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row--50-50,.cookie-policy .grid-row .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row .cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row .cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row .cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row .cookie-policy .grid-row--75-25,.cookie-policy .grid-row .cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row .cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row .cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row .cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row .cookie-policy .grid-row--25-75,.cookie-policy .grid-row .cookie-policy .grid-row--50-50,.cookie-policy .grid-row--25-25-25-25 .cookie-policy .grid-row,.cookie-policy .grid-row--25-25-50 .cookie-policy .grid-row,.cookie-policy .grid-row--75-25-on-large .cookie-policy .grid-row,.cookie-policy .grid-row--75-25-on-medium .cookie-policy .grid-row,.cookie-policy .grid-row--75-25 .cookie-policy .grid-row,.cookie-policy .grid-row--25-75-on-large .cookie-policy .grid-row,.cookie-policy .grid-row--50-50-on-large .cookie-policy .grid-row,.cookie-policy .grid-row--25-75-on-medium .cookie-policy .grid-row,.cookie-policy .grid-row--50-50-on-medium .cookie-policy .grid-row,.cookie-policy .grid-row--25-75 .cookie-policy .grid-row,.cookie-policy .grid-row--50-50 .cookie-policy .grid-row,.cookie-policy .grid-row .cookie-policy .grid-row {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+        display:grid;
+        grid-gap: 0 1.5rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: auto;
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 80rem
+    }
+
+    .cookie-policy .grid-row--25-25-25-25>*,.cookie-policy .grid-row--25-25-50>*,.cookie-policy .grid-row--75-25-on-large>*,.cookie-policy .grid-row--75-25-on-medium>*,.cookie-policy .grid-row--75-25>*,.cookie-policy .grid-row--25-75-on-large>*,.cookie-policy .grid-row--50-50-on-large>*,.cookie-policy .grid-row--25-75-on-medium>*,.cookie-policy .grid-row--50-50-on-medium>*,.cookie-policy .grid-row--25-75>*,.cookie-policy .grid-row--50-50>*,.cookie-policy .grid-row>* {
+        grid-column-end: span 4
+    }
+
+    .cookie-policy .grid-row--25-25-25-25 [class*=grid-col-],.cookie-policy .grid-row--25-25-50 [class*=grid-col-],.cookie-policy .grid-row--75-25-on-large [class*=grid-col-],.cookie-policy .grid-row--75-25-on-medium [class*=grid-col-],.cookie-policy .grid-row--75-25 [class*=grid-col-],.cookie-policy .grid-row--25-75-on-large [class*=grid-col-],.cookie-policy .grid-row--50-50-on-large [class*=grid-col-],.cookie-policy .grid-row--25-75-on-medium [class*=grid-col-],.cookie-policy .grid-row--50-50-on-medium [class*=grid-col-],.cookie-policy .grid-row--25-75 [class*=grid-col-],.cookie-policy .grid-row--50-50 [class*=grid-col-],.cookie-policy .grid-row [class*=grid-col-] {
+        grid-column-start: auto
+    }
+
+    @media(min-width: 620px) {
+        .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+            grid-gap:0 2rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+
+        .cookie-policy .grid-row--25-25-25-25>*,.cookie-policy .grid-row--25-25-50>*,.cookie-policy .grid-row--75-25-on-large>*,.cookie-policy .grid-row--75-25-on-medium>*,.cookie-policy .grid-row--75-25>*,.cookie-policy .grid-row--25-75-on-large>*,.cookie-policy .grid-row--50-50-on-large>*,.cookie-policy .grid-row--25-75-on-medium>*,.cookie-policy .grid-row--50-50-on-medium>*,.cookie-policy .grid-row--25-75>*,.cookie-policy .grid-row--50-50>*,.cookie-policy .grid-row>* {
+            grid-column-end: span 4
+        }
+    }
+
+    @media(min-width: 1036px) {
+        .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+            grid-gap:0 2rem;
+            grid-template-columns: repeat(8, minmax(0, 1fr))
+        }
+
+        .cookie-policy .grid-row--25-25-25-25>*,.cookie-policy .grid-row--25-25-50>*,.cookie-policy .grid-row--75-25-on-large>*,.cookie-policy .grid-row--75-25-on-medium>*,.cookie-policy .grid-row--75-25>*,.cookie-policy .grid-row--25-75-on-large>*,.cookie-policy .grid-row--50-50-on-large>*,.cookie-policy .grid-row--25-75-on-medium>*,.cookie-policy .grid-row--50-50-on-medium>*,.cookie-policy .grid-row--25-75>*,.cookie-policy .grid-row--50-50>*,.cookie-policy .grid-row>* {
+            grid-column-end: span 8
+        }
+    }
+}
+
+.cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+    padding-left: 1rem;
+    padding-right: 1rem
+}
+
+@media(min-width: 620px) {
+    .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+        padding-left:1.5rem;
+        padding-right: 1.5rem
+    }
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .grid-row--25-25-25-25,.cookie-policy .grid-row--25-25-50,.cookie-policy .grid-row--75-25-on-large,.cookie-policy .grid-row--75-25-on-medium,.cookie-policy .grid-row--75-25,.cookie-policy .grid-row--25-75-on-large,.cookie-policy .grid-row--50-50-on-large,.cookie-policy .grid-row--25-75-on-medium,.cookie-policy .grid-row--50-50-on-medium,.cookie-policy .grid-row--25-75,.cookie-policy .grid-row--50-50,.cookie-policy .grid-row {
+        padding-left:1.5rem;
+        padding-right: 1.5rem
+    }
+}
+
+.cookie-policy .token.comment,.cookie-policy .token.prolog,.cookie-policy .token.doctype,.cookie-policy .token.cdata {
+    color: var(--vf-color-text-muted)
+}
+
+.cookie-policy .token.punctuation {
+    color: var(--vf-color-text-default)
+}
+
+.cookie-policy .token.namespace {
+    opacity: .7
+}
+
+.cookie-policy .token.property,.cookie-policy .token.tag,.cookie-policy .token.boolean,.cookie-policy .token.number,.cookie-policy .token.constant,.cookie-policy .token.symbol,.cookie-policy .token.deleted {
+    color: #77216f
+}
+
+.cookie-policy .token.selector,.cookie-policy .token.attr-name,.cookie-policy .token.string,.cookie-policy .token.char,.cookie-policy .token.builtin,.cookie-policy .token.inserted {
+    color: #0e811f
+}
+
+.cookie-policy .token .operator,.cookie-policy .token .entity,.cookie-policy .token .url,.language-css .cookie-policy .token.string,.style .cookie-policy .token.string {
+    color: #a86500
+}
+
+.cookie-policy .token.atrule,.cookie-policy .token.attr-value,.cookie-policy .token.keyword {
+    color: #06c
+}
+
+.cookie-policy .token.function,.cookie-policy .token.class-name {
+    color: #c7162b
+}
+
+.cookie-policy .token.regex,.cookie-policy .token.important,.cookie-policy .token.variable {
+    color: #dc3023
+}
+
+.cookie-policy .token.important,.cookie-policy .token.bold {
+    font-weight: 550
+}
+
+.cookie-policy .token.italic {
+    font-style: italic
+}
+
+.cookie-policy .token.entity {
+    cursor: help
+}
+
+@font-face {
+    font-family: "Ubuntu variable";
+    font-stretch: 100%;
+    font-style: normal;
+    font-weight: 100 800;
+    src: url("https://assets.ubuntu.com/v1/f1ea362b-Ubuntu%5Bwdth,wght%5D-latin-v0.896a.woff2") format("woff2-variations")
+}
+
+@font-face {
+    font-family: "Ubuntu variable";
+    font-stretch: 100%;
+    font-style: italic;
+    font-weight: 100 800;
+    src: url("https://assets.ubuntu.com/v1/90b59210-Ubuntu-Italic%5Bwdth,wght%5D-latin-v0.896a.woff2") format("woff2-variations")
+}
+
+@font-face {
+    font-family: "Ubuntu Mono variable";
+    font-style: normal;
+    font-weight: 100 800;
+    src: url("https://assets.ubuntu.com/v1/d5fc1819-UbuntuMono%5Bwght%5D-latin-v0.869.woff2") format("woff2-variations")
+}
+
+.cookie-policy html {
     color: #000;
+    font-family: "Ubuntu variable", "Ubuntu", -apple-system, "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    font-weight: 400;
+    line-height: 1.5rem;
+    text-wrap: pretty;
+    font-size: 1rem
+}
+
+@media(min-width: 1681px) {
+    .cookie-policy html {
+        font-size:1.125rem;
+        line-height: 1.6875rem
+    }
+}
+
+.cookie-policy p {
+    max-width: 40em
+}
+
+.cookie-policy small.dense,.cookie-policy .p-text--small.dense {
+    margin-bottom: 2.2rem
+}
+
+.cookie-policy .p-text--small-caps,.cookie-policy .p-text--x-small-capitalised {
+    font-weight: 550
+}
+
+.cookie-policy p:not([class*=p-heading--]):not([class*=p-muted-heading]):empty {
+    line-height: 0;
+    margin: 0;
+    padding: 0
+}
+
+.cookie-policy sub,.cookie-policy sup {
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline
+}
+
+.cookie-policy abbr[title] {
+    border-bottom: .1em dotted;
+    cursor: help;
+    text-decoration: none
+}
+
+.cookie-policy hr.is-muted {
+    background-color: var(--vf-color-border-low-contrast)
 }
 
 .cookie-policy .p-button--positive {
-    background-color: #0e8420;
-    border-color: #0e8420;
-    color: #fff;
+    background-color: var(--vf-color-button-positive-default);
+    border-color: var(--vf-color-button-positive-default);
+    color: var(--vf-color-button-positive-text);
+    --vf-focus-outline-color: #003008
 }
+
+.cookie-policy .p-button--positive:visited {
+    color: var(--vf-color-button-positive-text)
+}
+
+.cookie-policy .p-button--positive:hover {
+    background-color: var(--vf-color-button-positive-hover);
+    border-color: var(--vf-color-button-positive-hover)
+}
+
+.cookie-policy .p-button--positive:active,.cookie-policy .p-button--positive[aria-pressed=true],.cookie-policy .p-button--positive[aria-selected=true],.cookie-policy .p-button--positive[aria-expanded=true] {
+    background-color: var(--vf-color-button-positive-active);
+    border-color: var(--vf-color-button-positive-active);
+    transition-duration: 0s
+}
+
+.cookie-policy .p-button--positive:disabled:active,.cookie-policy .p-button--positive:disabled[aria-pressed=true],.cookie-policy .p-button--positive:disabled[aria-selected=true],.cookie-policy .p-button--positive:disabled[aria-expanded=true],.cookie-policy .p-button--positive:disabled:hover,.cookie-policy .p-button--positive.is-disabled:active,.cookie-policy .p-button--positive.is-disabled[aria-pressed=true],.cookie-policy .p-button--positive.is-disabled[aria-selected=true],.cookie-policy .p-button--positive.is-disabled[aria-expanded=true],.cookie-policy .p-button--positive.is-disabled:hover {
+    background-color: var(--vf-color-button-positive-default);
+    border-color: var(--vf-color-button-positive-default)
+}
+
+.is-dark .cookie-policy .p-button--positive {
+    --vf-focus-outline-color: #9cf
+}
+
+.cookie-policy .p-button--positive:focus {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-button--positive:focus-visible {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-button--positive:focus:not(:focus-visible) {
+    outline: 0;
+    outline-offset: 0
+}
+
+.cookie-policy .p-modal {
+    align-items: center;
+    background: var(--vf-color-background-overlay);
+    bottom: 0;
+    display: flex;
+    height: 100dvh;
+    justify-content: center;
+    left: 0;
+    margin: 0;
+    padding: 1rem;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 100%;
+    z-index: 150
+}
+
+.cookie-policy .p-modal__dialog {
+    background-color: var(--vf-color-background-default);
+    color: var(--vf-color-text-default);
+    left: 1.5rem;
+    margin-bottom: 0;
+    max-height: calc(100% - 2rem);
+    max-width: 80rem;
+    overflow: auto;
+    padding-top: 0;
+    position: absolute;
+    right: 1.5rem;
+    width: auto
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .p-modal__dialog {
+        bottom:initial;
+        left: initial;
+        position: relative;
+        right: initial;
+        top: initial
+    }
+}
+
+.cookie-policy .p-modal__header {
+    background: var(--vf-color-background-default);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: .5rem;
+    padding-right: 2rem;
+    padding-top: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10
+}
+
+.cookie-policy .p-modal__title {
+    align-self: flex-end
+}
+
+.cookie-policy .p-modal__close {
+    background-image: var(--vf-theme-light, url("data:image/svg+xml,%3Csvg width='16' height='16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23000' fill-rule='nonzero' d='M13.041 1.898l1.06 1.06L9.062 8l5.04 5.042-1.06 1.06L8 9.062 2.96 14.1l-1.06-1.06L6.938 8 1.9 2.96l1.06-1.06 5.04 5.04z'/%3E%3C/svg%3E")) var(--vf-theme-dark, url("data:image/svg+xml,%3Csvg width='16' height='16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='hsl(0%2C0%%2C100%)' fill-rule='nonzero' d='M13.041 1.898l1.06 1.06L9.062 8l5.04 5.042-1.06 1.06L8 9.062 2.96 14.1l-1.06-1.06L6.938 8 1.9 2.96l1.06-1.06 5.04 5.04z'/%3E%3C/svg%3E"));
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 1rem;
+    border: 0;
+    box-sizing: content-box;
+    height: 1rem;
+    margin: 0;
+    margin-top: 1rem;
+    padding: .5rem;
+    position: absolute;
+    right: 0;
+    text-indent: -999em;
+    top: 0;
+    width: 1rem
+}
+
+.cookie-policy .p-modal__footer {
+    padding-top: 1rem;
+    text-align: right
+}
+
+.cookie-policy .p-switch {
+    align-items: center;
+    display: flex
+}
+
+.cookie-policy .p-switch__input {
+    margin: 0;
+    opacity: 0;
+    position: absolute
+}
+
+.cookie-policy .p-switch__input:checked+.p-switch__slider::before {
+    border: 1.5px solid var(--vf-color-link-default);
+    left: 50%
+}
+
+.cookie-policy .p-switch__input:checked+.p-switch__slider {
+    background: var(--vf-color-link-default)
+}
+
+.cookie-policy .p-switch__input:focus {
+    outline: none
+}
+
+.cookie-policy .p-switch__input:focus+.p-switch__slider {
+    outline: .1875rem solid var(--vf-color-focus)
+}
+
+.cookie-policy .p-switch__slider {
+    background: var(--vf-color-border-high-contrast);
+    border-radius: 1rem;
+    display: inline-block;
+    height: 1rem;
+    margin: 0;
+    position: relative;
+    width: 2rem
+}
+
+.cookie-policy .p-switch__slider::before {
+    transition-duration: .5s;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    background: var(--vf-color-background-default);
+    border: 1.5px solid var(--vf-color-border-high-contrast);
+    border-radius: 50%;
+    content: "";
+    height: 1rem;
+    left: 0;
+    position: absolute;
+    width: 1rem
+}
+
+.cookie-policy .p-switch__label {
+    margin-left: .5rem
+}
+
+.cookie-policy .u-sv3::after,.cookie-policy .u-sv2::after,.cookie-policy .u-sv1::after,.cookie-policy .u-sv-1::after,.cookie-policy .u-sv-2::after,.cookie-policy .u-sv-3::after {
+    content: "";
+    display: block;
+    height: 1px;
+    position: relative
+}
+
+.cookie-policy .u-sv-3::after {
+    margin-top: calc(-1.5rem - 1px)
+}
+
+.cookie-policy .u-sv-2::after {
+    margin-top: calc(-1rem - 1px)
+}
+
+.cookie-policy .u-sv-1::after {
+    margin-top: calc(-0.5rem - 1px)
+}
+
+.cookie-policy .u-sv1::after {
+    margin-top: calc(.5rem - 1px)
+}
+
+.cookie-policy .u-sv2::after {
+    margin-top: calc(1rem - 1px)
+}
+
+.cookie-policy .u-sv3::after {
+    margin-top: calc(1.5rem - 1px)
+}
+
+.cookie-policy .u-no-margin {
+    margin: 0 !important
+}
+
+.cookie-policy .u-no-margin--top {
+    margin-top: 0 !important
+}
+
+.cookie-policy .u-no-margin--right {
+    margin-right: 0 !important
+}
+
+.cookie-policy .u-no-margin--left {
+    margin-left: 0 !important
+}
+
+.cookie-policy .u-table-cell-padding-overlap {
+    margin-bottom: -0.5rem !important;
+    margin-top: calc(-0.5rem - 1px) !important
+}
+
+.cookie-policy .u-float-right {
+    float: right !important
+}
+
+@media(width < 620px) {
+    .cookie-policy .u-float-right--small {
+        float: right !important
+    }
+}
+
+@media(620px <= width < 1036px) {
+    .cookie-policy .u-float-right--medium {
+        float: right !important
+    }
+}
+
+@media(1036px <= width) {
+    .cookie-policy .u-float-right--large {
+        float: right !important
+    }
+}
+
+.cookie-policy .u-float-left {
+    float: left !important
+}
+
+@media(width < 620px) {
+    .cookie-policy .u-float-left--small {
+        float: left !important
+    }
+}
+
+@media(620px <= width < 1036px) {
+    .cookie-policy .u-float-left--medium {
+        float: left !important
+    }
+}
+
+@media(1036px <= width) {
+    .cookie-policy .u-float-left--large {
+        float: left !important
+    }
+}
+
+.cookie-policy .cookie-manager-modal {
+    pointer-events: auto
+}
+
+.cookie-policy .cookie-manager-modal .p-accordion__tab {
+    align-items: center;
+    display: flex
+}
+
+.cookie-policy .cookie-manager-modal .p-accordion__tab .p-accordion__switch {
+    flex-shrink: 1;
+    margin-left: auto
+}
+
+.cookie-policy .cookie-manager-modal .p-accordion__tab::before {
+    flex-shrink: 0
+}
+
+.cookie-policy .cookie-manager-modal .p-modal {
+    height: auto;
+    width: auto
+}
+
+.cookie-policy .cookie-manager-modal .p-modal__dialog {
+    margin-bottom: 0 !important;
+    max-height: 80vh;
+    overflow: auto;
+    padding-bottom: 0
+}
+
+.cookie-policy .cookie-manager-modal .p-modal button {
+    box-sizing: border-box
+}
+
+.cookie-policy .cookie-notification-modal {
+    align-items: end;
+    background: none
+}
+
+.cookie-policy .cookie-notification-modal .p-modal__dialog {
+    background-color: var(--vf-color-background-alt);
+    border: 1px solid var(--vf-color-border-high-contrast);
+    box-shadow: 0 0 2rem 0 rgba(0,0,0,.2);
+    max-width: 100%;
+    overflow: hidden;
+    pointer-events: auto;
+    width: 100%
+}
+
+.cookie-policy .cookie-notification-modal .p-modal__header {
+    background-color: var(--vf-color-background-alt);
+    display: flex;
+    padding-top: 1rem
+}
+
+@media(width < 1036px) {
+    .cookie-policy .cookie-notification-modal .p-modal__dialog {
+        bottom: 0;
+        left: 0;
+        max-width: 100%;
+        right: 0;
+        width: 100%
+    }
+}
+
+@media(width >= 1036px) {
+    .cookie-policy .cookie-notification-modal .cookie-notification-buttons {
+        justify-content: flex-end !important;
+        text-align: right !important
+    }
+}
+
+.cookie-policy .cookie-notification-modal .p-button--link.is-inline {
+    margin-bottom: 1.25rem
+}
+
+@media(width > 320px) {
+    .cookie-policy .cookie-notification-modal .p-button--link.is-inline {
+        margin-left: 0 !important;
+        margin-right: 1rem
+    }
+}
+
+.cookie-policy .cookie-notification-modal .p-modal__header::after {
+    background-color: var(--vf-color-border-low-contrast);
+    height: 1px
+}
+
+.cookie-policy .p-accordion__list {
+    list-style-type: none;
+    margin: 0 0 1.5rem 0;
+    padding: 0
+}
+
+.cookie-policy .p-accordion__tab {
+    --vf-focus-outline-color: #2e96ff;
+    background-color: inherit;
+    border: 0;
+    border-radius: 0;
+    font-size: inherit;
+    justify-content: flex-start;
+    margin-bottom: 0;
+    padding-right: 1rem;
+    position: relative;
+    text-align: left;
+    width: 100%;
+    z-index: 2
+}
+
+.is-dark .cookie-policy .p-accordion__tab {
+    --vf-focus-outline-color: #9cf
+}
+
+.cookie-policy .p-accordion__tab:focus {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-accordion__tab:focus-visible {
+    outline: .1875rem solid var(--vf-focus-outline-color);
+    outline-offset: -0.1875rem
+}
+
+.cookie-policy .p-accordion__tab:focus:not(:focus-visible) {
+    outline: 0;
+    outline-offset: 0
+}
+
+.cookie-policy .p-accordion__tab::before {
+    background-image: var(--vf-theme-light, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath fill='%23000' d='M8.187 11.748l6.187-6.187-1.06-1.061-5.127 5.127L3.061 4.5 2 5.561z'/%3E%3C/svg%3E")) var(--vf-theme-dark, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath fill='hsl(0%2C0%%2C100%)' d='M8.187 11.748l6.187-6.187-1.06-1.061-5.127 5.127L3.061 4.5 2 5.561z'/%3E%3C/svg%3E"));
+    transition-duration: .165s;
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    content: "";
+    margin-right: 1rem
+}
+
+.cookie-policy .p-accordion__tab[aria-expanded=true] {
+    background-color: inherit;
+    transition-duration: .333s;
+    transition-property: background-color, border-color;
+    transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1)
+}
+
+.cookie-policy .p-accordion__tab[aria-expanded=true]:hover {
+    background-color: var(--vf-color-background-hover)
+}
+
+.cookie-policy .p-accordion__tab[aria-expanded=false] {
+    transition-duration: .333s;
+    transition-property: background-color, border-color;
+    transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1)
+}
+
+.cookie-policy .p-accordion__tab[aria-expanded=false]::before {
+    transform: rotate(-90deg)
+}
+
+.cookie-policy .p-accordion__heading {
+    margin-bottom: 0;
+    max-width: none;
+    padding-top: 0
+}
+
+.cookie-policy .p-accordion__heading>.p-accordion__tab {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit
+}
+
+.cookie-policy .p-heading--2>.p-accordion__tab::before,.cookie-policy h2.p-accordion__heading>.p-accordion__tab::before {
+    background-size: contain;
+    height: .517em;
+    width: .517em;
+    vertical-align: 0
+}
+
+.cookie-policy .p-heading--3>.p-accordion__tab::before,.cookie-policy .p-heading--4>.p-accordion__tab::before,.cookie-policy h3.p-accordion__heading>.p-accordion__tab::before,.cookie-policy h4.p-accordion__heading>.p-accordion__tab::before {
+    vertical-align: 0
+}
+
+.cookie-policy .p-accordion__panel {
+    margin: 0;
+    overflow: auto;
+    padding-left: 3rem;
+    transition-duration: .165s;
+    transition-property: transform, opacity;
+    transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1)
+}
+
+.cookie-policy .p-accordion__panel[aria-hidden=true] {
+    height: 0;
+    opacity: 0;
+    transform: translate3d(0, -0.5rem, 0);
+    visibility: hidden
+}
+
+.cookie-policy .p-accordion__panel[aria-hidden=false] {
+    height: auto;
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    visibility: visible
+}
+
+.cookie-policy .p-accordion__panel.has-tick-elements {
+    padding-left: 1em
+}
+
+.cookie-policy .u-no-padding {
+    padding: 0 !important
+}
+
+.cookie-policy .u-no-padding--top {
+    padding-top: 0 !important
+}
+
+.cookie-policy .u-no-padding--right {
+    padding-right: 0 !important
+}
+
+.cookie-policy .u-no-padding--bottom {
+    padding-bottom: 0 !important
+}
+
+.cookie-policy .u-no-padding--left {
+    padding-left: 0 !important
+}
+
+.cookie-policy .grid-demo .grid-col,.cookie-policy .grid-demo [class*=grid-col-] {
+    background: var(--vf-color-background-negative-default);
+    margin-bottom: .5rem
+}
+
+.cookie-policy .grid-col-8,.cookie-policy .grid-col-7,.cookie-policy .grid-col-6,.cookie-policy .grid-col-5,.cookie-policy .grid-col-4,.cookie-policy .grid-col-3,.cookie-policy .grid-col-2,.cookie-policy .grid-col-1,.cookie-policy .grid-col-medium-4,.cookie-policy .grid-col-medium-3,.cookie-policy .grid-col-medium-2,.cookie-policy .grid-col-medium-1 {
+    grid-column: auto/span 4
+}
+
+.cookie-policy .grid-col-small-4 {
+    width: 100%
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-col-small-4 {
+        grid-column-end:span 4
+    }
+
+    .cookie-policy .grid-col-small-4 .grid-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr))
+    }
+}
+
+.cookie-policy .grid-col-small-3 {
+    width: 100%
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-col-small-3 {
+        grid-column-end:span 3
+    }
+
+    .cookie-policy .grid-col-small-3 .grid-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr))
+    }
+}
+
+.cookie-policy .grid-col-small-2 {
+    width: 100%
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-col-small-2 {
+        grid-column-end:span 2
+    }
+
+    .cookie-policy .grid-col-small-2 .grid-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+    }
+}
+
+.cookie-policy .grid-col-small-1 {
+    width: 100%
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-col-small-1 {
+        grid-column-end:span 1
+    }
+}
+
+@media(min-width: 620px) {
+    .cookie-policy .grid-col-8,.cookie-policy .grid-col-7,.cookie-policy .grid-col-6,.cookie-policy .grid-col-5,.cookie-policy .grid-col-4,.cookie-policy .grid-col-3,.cookie-policy .grid-col-2,.cookie-policy .grid-col-1,.cookie-policy .grid-col-small-4,.cookie-policy .grid-col-small-3,.cookie-policy .grid-col-small-2,.cookie-policy .grid-col-small-1 {
+        grid-column:auto/span 4
+    }
+}
+
+@media(min-width: 620px) {
+    .cookie-policy .grid-col-medium-4 {
+        width:100%
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-medium-4 {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-col-medium-4 .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+
+    .cookie-policy .grid-col-medium-3 {
+        width: 100%
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-medium-3 {
+            grid-column-end:span 3
+        }
+
+        .cookie-policy .grid-col-medium-3 .grid-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr))
+        }
+    }
+
+    .cookie-policy .grid-col-medium-2 {
+        width: 100%
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-medium-2 {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-col-medium-2 .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+
+    .cookie-policy .grid-col-medium-1 {
+        width: 100%
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-medium-1 {
+            grid-column-end:span 1
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .grid-col-medium-4,.cookie-policy .grid-col-medium-3,.cookie-policy .grid-col-medium-2,.cookie-policy .grid-col-medium-1,.cookie-policy .grid-col-small-4,.cookie-policy .grid-col-small-3,.cookie-policy .grid-col-small-2,.cookie-policy .grid-col-small-1 {
+        grid-column:auto/span 8
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-col-8 {
+            grid-column-end:span 8
+        }
+
+        .cookie-policy .grid-col-8 .grid-row {
+            grid-template-columns: repeat(8, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-7 {
+            grid-column-end:span 7
+        }
+
+        .cookie-policy .grid-col-7 .grid-row {
+            grid-template-columns: repeat(7, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-6 {
+            grid-column-end:span 6
+        }
+
+        .cookie-policy .grid-col-6 .grid-row {
+            grid-template-columns: repeat(6, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-5 {
+            grid-column-end:span 5
+        }
+
+        .cookie-policy .grid-col-5 .grid-row {
+            grid-template-columns: repeat(5, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-4 {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-col-4 .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-3 {
+            grid-column-end:span 3
+        }
+
+        .cookie-policy .grid-col-3 .grid-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-2 {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-col-2 .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-col-1 {
+            grid-column-end:span 1
+        }
+    }
+}
+
+.cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-1 {
+    grid-column-start: 1
+}
+
+.cookie-policy .grid-col-order-small-1 {
+    order: 1
+}
+
+.cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-2 {
+    grid-column-start: 2
+}
+
+.cookie-policy .grid-col-order-small-2 {
+    order: 2
+}
+
+.cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-3 {
+    grid-column-start: 3
+}
+
+.cookie-policy .grid-col-order-small-3 {
+    order: 3
+}
+
+.cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-4 {
+    grid-column-start: 4
+}
+
+.cookie-policy .grid-col-order-small-4 {
+    order: 4
+}
+
+@media(min-width: 620px) {
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-1 {
+        grid-column-start:initial
+    }
+
+    .cookie-policy .grid-col-order-small-1 {
+        order: initial
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-2 {
+        grid-column-start: initial
+    }
+
+    .cookie-policy .grid-col-order-small-2 {
+        order: initial
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-3 {
+        grid-column-start: initial
+    }
+
+    .cookie-policy .grid-col-order-small-3 {
+        order: initial
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-small-4 {
+        grid-column-start: initial
+    }
+
+    .cookie-policy .grid-col-order-small-4 {
+        order: initial
+    }
+}
+
+@media(min-width: 620px) {
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-1 {
+        grid-column-start:1
+    }
+
+    .cookie-policy .grid-col-order-medium-1 {
+        order: 1
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-2 {
+        grid-column-start: 2
+    }
+
+    .cookie-policy .grid-col-order-medium-2 {
+        order: 2
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-3 {
+        grid-column-start: 3
+    }
+
+    .cookie-policy .grid-col-order-medium-3 {
+        order: 3
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-4 {
+        grid-column-start: 4
+    }
+
+    .cookie-policy .grid-col-order-medium-4 {
+        order: 4
+    }
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-1 {
+        grid-column-start:initial
+    }
+
+    .cookie-policy .grid-col-order-medium-1 {
+        order: initial
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-2 {
+        grid-column-start: initial
+    }
+
+    .cookie-policy .grid-col-order-medium-2 {
+        order: initial
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-3 {
+        grid-column-start: initial
+    }
+
+    .cookie-policy .grid-col-order-medium-3 {
+        order: initial
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-medium-4 {
+        grid-column-start: initial
+    }
+
+    .cookie-policy .grid-col-order-medium-4 {
+        order: initial
+    }
+}
+
+@media(min-width: 1036px) {
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-1 {
+        grid-column-start:1
+    }
+
+    .cookie-policy .grid-col-order-large-1 {
+        order: 1
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-2 {
+        grid-column-start: 2
+    }
+
+    .cookie-policy .grid-col-order-large-2 {
+        order: 2
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-3 {
+        grid-column-start: 3
+    }
+
+    .cookie-policy .grid-col-order-large-3 {
+        order: 3
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-4 {
+        grid-column-start: 4
+    }
+
+    .cookie-policy .grid-col-order-large-4 {
+        order: 4
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-5 {
+        grid-column-start: 5
+    }
+
+    .cookie-policy .grid-col-order-large-5 {
+        order: 5
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-6 {
+        grid-column-start: 6
+    }
+
+    .cookie-policy .grid-col-order-large-6 {
+        order: 6
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-7 {
+        grid-column-start: 7
+    }
+
+    .cookie-policy .grid-col-order-large-7 {
+        order: 7
+    }
+
+    .cookie-policy .grid-row [class*=grid-col-].grid-col-start-large-8 {
+        grid-column-start: 8
+    }
+
+    .cookie-policy .grid-col-order-large-8 {
+        order: 8
+    }
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-row--50-50>.grid-col {
+        grid-column-end:span 4
+    }
+
+    .cookie-policy .grid-row--50-50>.grid-col .grid-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr))
+    }
+}
+
+@media(min-width: 620px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--50-50>.grid-col {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--50-50>.grid-col .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--50-50>.grid-col {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--50-50>.grid-col .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-row--25-75>.grid-col {
+        grid-column-end:span 4
+    }
+
+    .cookie-policy .grid-row--25-75>.grid-col .grid-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr))
+    }
+}
+
+@media(min-width: 620px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75>.grid-col:nth-of-type(1) {
+            grid-column-end:span 1
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75>.grid-col:nth-of-type(2) {
+            grid-column-end:span 3
+        }
+
+        .cookie-policy .grid-row--25-75>.grid-col:nth-of-type(2) .grid-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75>.grid-col:only-of-type {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--25-75>.grid-col:only-of-type .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75>.grid-col:nth-of-type(1) {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--25-75>.grid-col:nth-of-type(1) .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75>.grid-col:nth-of-type(2) {
+            grid-column-end:span 6
+        }
+
+        .cookie-policy .grid-row--25-75>.grid-col:nth-of-type(2) .grid-row {
+            grid-template-columns: repeat(6, minmax(0, 1fr))
+        }
+    }
+
+    .cookie-policy .grid-row--25-75>.grid-col:only-of-type {
+        grid-column-start: 3
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75>.grid-col:only-of-type {
+            grid-column-end:span 6
+        }
+
+        .cookie-policy .grid-row--25-75>.grid-col:only-of-type .grid-row {
+            grid-template-columns: repeat(6, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(620px <= width < 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--50-50-on-medium>.grid-col {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--50-50-on-medium>.grid-col .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(620px <= width < 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75-on-medium>.grid-col:nth-of-type(1) {
+            grid-column-end:span 1
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75-on-medium>.grid-col:nth-of-type(2) {
+            grid-column-end:span 3
+        }
+
+        .cookie-policy .grid-row--25-75-on-medium>.grid-col:nth-of-type(2) .grid-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75-on-medium>.grid-col:only-of-type {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--25-75-on-medium>.grid-col:only-of-type .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--50-50-on-large>.grid-col {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--50-50-on-large>.grid-col .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75-on-large>.grid-col:nth-of-type(1) {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--25-75-on-large>.grid-col:nth-of-type(1) .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75-on-large>.grid-col:nth-of-type(2) {
+            grid-column-end:span 6
+        }
+
+        .cookie-policy .grid-row--25-75-on-large>.grid-col:nth-of-type(2) .grid-row {
+            grid-template-columns: repeat(6, minmax(0, 1fr))
+        }
+    }
+
+    .cookie-policy .grid-row--25-75-on-large>.grid-col:only-of-type {
+        grid-column-start: 3
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-75-on-large>.grid-col:only-of-type {
+            grid-column-end:span 6
+        }
+
+        .cookie-policy .grid-row--25-75-on-large>.grid-col:only-of-type .grid-row {
+            grid-template-columns: repeat(6, minmax(0, 1fr))
+        }
+    }
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-row--75-25>.grid-col {
+        grid-column-end:span 4
+    }
+
+    .cookie-policy .grid-row--75-25>.grid-col .grid-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr))
+    }
+}
+
+@media(min-width: 620px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25>.grid-col:nth-of-type(1) {
+            grid-column-end:span 3
+        }
+
+        .cookie-policy .grid-row--75-25>.grid-col:nth-of-type(1) .grid-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25>.grid-col:nth-of-type(2) {
+            grid-column-end:span 1
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25>.grid-col:only-of-type {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--75-25>.grid-col:only-of-type .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25>.grid-col:nth-of-type(1) {
+            grid-column-end:span 6
+        }
+
+        .cookie-policy .grid-row--75-25>.grid-col:nth-of-type(1) .grid-row {
+            grid-template-columns: repeat(6, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25>.grid-col:nth-of-type(2) {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--75-25>.grid-col:nth-of-type(2) .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(620px <= width < 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25-on-medium>.grid-col:nth-of-type(1) {
+            grid-column-end:span 3
+        }
+
+        .cookie-policy .grid-row--75-25-on-medium>.grid-col:nth-of-type(1) .grid-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25-on-medium>.grid-col:nth-of-type(2) {
+            grid-column-end:span 1
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25-on-medium>.grid-col:only-of-type {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--75-25-on-medium>.grid-col:only-of-type .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25-on-large>.grid-col:nth-of-type(1) {
+            grid-column-end:span 6
+        }
+
+        .cookie-policy .grid-row--75-25-on-large>.grid-col:nth-of-type(1) .grid-row {
+            grid-template-columns: repeat(6, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--75-25-on-large>.grid-col:nth-of-type(2) {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--75-25-on-large>.grid-col:nth-of-type(2) .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-row--25-25-50>.grid-col {
+        grid-column-end:span 4
+    }
+
+    .cookie-policy .grid-row--25-25-50>.grid-col .grid-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr))
+    }
+}
+
+@media(min-width: 620px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(-n + 2) {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(-n + 2) .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(3) {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(3) .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(1),.cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(2) {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(1) .grid-row,.cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(2) .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(3) {
+            grid-column-end:span 4
+        }
+
+        .cookie-policy .grid-row--25-25-50>.grid-col:nth-of-type(3) .grid-row {
+            grid-template-columns: repeat(4, minmax(0, 1fr))
+        }
+    }
+}
+
+@supports(display: grid) {
+    .cookie-policy .grid-row--25-25-25-25>.grid-col {
+        grid-column-end:span 4
+    }
+
+    .cookie-policy .grid-row--25-25-25-25>.grid-col .grid-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr))
+    }
+}
+
+@media(min-width: 620px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-25-25-25>.grid-col {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--25-25-25-25>.grid-col .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+}
+
+@media(min-width: 1036px) {
+    @supports(display: grid) {
+        .cookie-policy .grid-row--25-25-25-25>.grid-col {
+            grid-column-end:span 2
+        }
+
+        .cookie-policy .grid-row--25-25-25-25>.grid-col .grid-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+    }
+}
+
+.cookie-policy .p-button--link {
+    background-color: rgba(0,0,0,0);
+    border: none;
+    border-radius: 0;
+    margin-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0
+}
+
+p .cookie-policy .p-button--link {
+    margin-bottom: 0;
+    padding-top: 0
+}
+
+.cookie-policy .p-button--link:hover {
+    background: rgba(0,0,0,0)
+}
+
+.cookie-policy .u-align--center {
+    justify-content: center !important;
+    text-align: center !important
+}
+
+.cookie-policy .u-align--left {
+    justify-content: flex-start !important;
+    text-align: left !important
+}
+
+.cookie-policy .u-align--right {
+    justify-content: flex-end !important;
+    text-align: right !important
+}
+
+.cookie-policy .u-align--bottom {
+    margin-top: auto !important
+}
+
+.cookie-policy .u-vertical-align--middle {
+    vertical-align: middle !important
+}
+
+.cookie-policy .u-align-text--center {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important
+}
+
+.cookie-policy .u-align-text--left {
+    margin-right: auto !important;
+    text-align: left !important
+}
+
+.cookie-policy .u-align-text--right {
+    margin-left: auto !important;
+    text-align: right !important
+}
+
+.cookie-policy .u-align-text--small-to-default {
+    padding-top: .55rem
+}
+
+.cookie-policy .u-align-text--x-small-to-default {
+    padding-top: .75rem
+}
+
+.cookie-policy .u-vertically-center {
+    align-items: center !important;
+    display: grid !important
+}
+
+.cookie-policy .u-vertically-center>img {
+    align-self: center !important
+}
+
+.cookie-policy .u-no-max-width {
+    max-width: unset !important
+}
+
