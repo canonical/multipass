@@ -12,9 +12,10 @@ This document demonstrates how to configure the location where Multipass stores 
 - When uninstalling Multipass, the uninstaller will not remove data stored in custom locations, so you'll have to delete it manually.
 ```
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
+:sync: Linux
 
 First, stop the Multipass daemon:
 
@@ -22,7 +23,7 @@ First, stop the Multipass daemon:
 sudo snap stop multipass
 ```
 
-Since Multipass is installed using a strictly confined snap, it is limited on what it can do or access on your host. Depending on where the new storage directory is located, you will need to connect the respective interface to the Multipass snap. Because of [snap confinement](https://snapcraft.io/docs/snap-confinement), this directory needs to be located in either `/home` (connected by default) or one of the removable mounts points (`/mnt` or `/media`). To connect the removable mount points, use the command:
+Since Multipass is installed using a strictly confined snap, it is limited on what it can do or access on your host. Depending on where the new storage directory is located, you will need to connect the respective interface to the Multipass snap. Because of [snap confinement](https://snapcraft.io/docs/snap-confinement), this directory needs to be located in either your home directory (`~`, e.g. `/home/username/`, which is connected by default) or one of the removable mounts points (`/mnt` or `/media`). To connect the removable mount points, use the command:
 
   ```{code-block} text
   sudo snap connect multipass:removable-media
@@ -86,7 +87,8 @@ sudo rm -rf /var/snap/multipass/common/cache/multipassd
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
+:sync: macOS
 
 First, become `root`:
 
@@ -124,7 +126,8 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
+:sync: Windows
 
 First, open a PowerShell prompt with administration privileges.
 
@@ -154,7 +157,7 @@ Copy-Item -Path "C:\ProgramData\Multipass\*" -Recurse -Force -Destination "<path
 ```
 
 ```{caution}
-It is important to copy any existing data to the new location. This avoids unauthenticated client issues, permission issues, and in general, to have any previously created instances available.
+It is important to copy any existing data to the new location. This avoids unauthenticated user issues, permission issues, and in general, to have any previously created instances available.
 ```
 
 You also need to edit several settings so that the specified paths point to the new Multipass storage directory, otherwise your instances will fail to start:
@@ -181,9 +184,10 @@ Remove-Item -Path "C:\ProgramData\Multipass\data\vault\*" -Recurse
 
 ## Reverting back to the default location
 
-`````{tabs}
+`````{tab-set}
 
-````{group-tab} Linux
+````{tab-item} Linux
+:sync: Linux
 
 Stop the Multipass daemon:
 
@@ -231,7 +235,8 @@ sudo rm -rf <path>
 
 ````
 
-````{group-tab} macOS
+````{tab-item} macOS
+:sync: macOS
 
 First, become `root`:
 
@@ -265,7 +270,8 @@ launchctl load /Library/LaunchDaemons/com.canonical.multipassd.plist
 
 ````
 
-````{group-tab} Windows
+````{tab-item} Windows
+:sync: Windows
 
 First, open a PowerShell prompt with administrator privileges.
 

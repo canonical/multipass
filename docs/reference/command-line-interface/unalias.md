@@ -1,7 +1,7 @@
 (reference-command-line-interface-unalias)=
 # unalias
 
-> See also: [`alias`](/reference/command-line-interface/alias), [Alias](/explanation/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
+> See also: [`alias`](/reference/command-line-interface/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
 
 The `multipass unalias` command removes a previously defined alias.
 
