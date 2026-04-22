@@ -58,7 +58,7 @@ On the other hand, it's always possible to fetch properties for all instances. U
 ```
 
 ```{note}
-Modifying instance settings is not supported when using the Hyperkit driver, which has been deprecated in favour of QEMU. The QEMU and VirtualBox drivers on Intel-based macOS hosts do support instance modification.
+Modifying instance settings is not supported when using the Hyperkit driver, which has been deprecated in favour of QEMU.
 ```
 
 ## Set the status of an instance to primary
