@@ -22,7 +22,7 @@ Multipass supports availability zones through its `--zone` flag. On a single hos
 
 4. Confirm unit spread, replication roles, and healthy cluster state.
 
-5. Simulate failover by stopping the primary instance and verify automatic recovery.
+5. Simulate failover by disabling the zone that contains the primary MySQL VM and verify automatic recovery.
 
 6. Tear down Juju resources and Multipass instances.
 
@@ -188,7 +188,7 @@ The controller VM runs the Juju API server and database. It requires at least 4 
 
 ``` bash
 
-multipass launch 22.04 --name juju-controller --memory 4G --disk 10G
+multipass launch 22.04 --name juju-controller --zone zone3 --memory 4G --disk 10G
 
 CTRL_IP=$(multipass info juju-controller --format csv | awk -F, 'NR>1 {print $5}')
 echo "Controller IP: $CTRL_IP"
@@ -523,35 +523,13 @@ Below is a representationof this setup:
    :alt: Multipass AZ tutorial: HA Mysql with Juju
 ```
 
-### Failover check: stop the MySQL primary machine
+### Failover check: disable zone1
 
-Find the current primary unit and its machine:
-
-```bash
-
-juju status mysql
-
-```
-
-In the output, note:
-
-- The current primary unit, if shown in the `Message` column.
-
-- The `Machine` value for that unit.
-
-Now map that Juju machine IP to the Multipass instance name:
-
-```bash
-multipass list
-```
-
-Match the IP address from `juju status mysql` to the IP shown in `multipass list`, then use that instance name in the next step (for example, IP `192.168.2.159` maps to instance `juju-1`).
-
-Stop the primary instance:
+Disable `zone1` to simulate the zone containing the primary MySQL VM going offline:
 
 ```bash
 
-multipass stop <primary-instance-name>
+multipass disable-zones zone1
 
 ```
 
@@ -613,6 +591,10 @@ When you are finished testing, remove the resources created by this tutorial.
 For a fast rerun, use this order:
 
 ```bash
+
+# Re-enable any zone you disabled during the failover test so Multipass
+# state is clean before tearing down.
+multipass enable-zones --all
 
 # Remove the workload model and its storage first.
 juju destroy-model az-mysql-lab --no-prompt --destroy-storage --force
