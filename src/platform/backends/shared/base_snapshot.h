@@ -24,10 +24,9 @@
 #include <multipass/memory_size.h>
 #include <multipass/vm_mount.h>
 
-#include <QString>
-
 #include <boost/json.hpp>
 
+#include <filesystem>
 #include <mutex>
 
 namespace multipass
@@ -45,7 +44,7 @@ public:
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  const VirtualMachine& vm);
-    BaseSnapshot(const QString& filename,
+    BaseSnapshot(const std::filesystem::path& filename,
                  VirtualMachine& vm,
                  const VirtualMachineDescription& desc);
 
@@ -78,7 +77,7 @@ public:
     void apply() final;
 
 protected:
-    const QString& get_id() const noexcept;
+    const std::string& get_id() const noexcept;
 
     virtual void capture_impl() = 0;
     virtual void erase_impl() = 0;
@@ -92,8 +91,7 @@ private:
     BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured);
 
     auto erase_helper();
-    QString derive_snapshot_filename() const;
-    QJsonObject serialize() const;
+    std::string derive_snapshot_filename() const;
     void persist() const;
 
 private:
@@ -102,8 +100,8 @@ private:
 
     // This class is non-copyable and having these const simplifies thread safety.
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    const QString id;
-    const QDir storage_dir;
+    const std::string id;
+    const std::filesystem::path storage_dir;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     bool captured;
@@ -252,7 +250,7 @@ inline void multipass::BaseSnapshot::apply()
     // already persist)
 }
 
-inline const QString& multipass::BaseSnapshot::get_id() const noexcept
+inline const std::string& multipass::BaseSnapshot::get_id() const noexcept
 {
     return id;
 }

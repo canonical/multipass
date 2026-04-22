@@ -24,7 +24,8 @@
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
 
-#include <QRegularExpression>
+#include <regex>
+
 #include <QString>
 #include <QStringList>
 
@@ -146,10 +147,10 @@ std::filesystem::path mp::backend::convert_to_raw(const std::filesystem::path& i
 }
 
 bool mp::backend::instance_image_has_snapshot(const std::filesystem::path& image_path,
-                                              QString snapshot_tag)
+                                              const std::string& snapshot_tag)
 {
-    QRegularExpression regex{snapshot_tag.append(R"(\s)")};
-    return QString{snapshot_list_output(image_path)}.contains(regex);
+    std::regex regex{snapshot_tag + R"(\s)"};
+    return std::regex_search(snapshot_list_output(image_path).toStdString(), regex);
 }
 
 QByteArray mp::backend::snapshot_list_output(const std::filesystem::path& image_path)

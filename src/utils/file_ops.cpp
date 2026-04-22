@@ -18,6 +18,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/posix.h>
 
 #include <chrono>
@@ -155,7 +156,7 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
 
 void mp::FileOps::write_transactionally(const fs::path& file_name, std::string_view data) const
 {
-    write_transactionally(QString::fromStdString(file_name.string()), data);
+    write_transactionally(MP_PLATFORM.path_to_qstr(file_name), data);
 }
 
 // LCOV_EXCL_START

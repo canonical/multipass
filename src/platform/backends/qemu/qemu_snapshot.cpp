@@ -32,29 +32,38 @@ namespace mp = multipass;
 
 namespace
 {
-std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag,
+std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const std::string& tag,
                                                           const std::filesystem::path& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(
-        QStringList{"snapshot", "-c", tag, MP_PLATFORM.path_to_qstr(image_path)},
+        QStringList{"snapshot",
+                    "-c",
+                    QString::fromStdString(tag),
+                    MP_PLATFORM.path_to_qstr(image_path)},
         /* src_img = */ "",
         image_path);
 }
 
-std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag,
+std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const std::string& tag,
                                                           const std::filesystem::path& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(
-        QStringList{"snapshot", "-a", tag, MP_PLATFORM.path_to_qstr(image_path)},
+        QStringList{"snapshot",
+                    "-a",
+                    QString::fromStdString(tag),
+                    MP_PLATFORM.path_to_qstr(image_path)},
         /* src_img = */ "",
         image_path);
 }
 
-std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag,
+std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const std::string& tag,
                                                          const std::filesystem::path& image_path)
 {
     return std::make_unique<mp::QemuImgProcessSpec>(
-        QStringList{"snapshot", "-d", tag, MP_PLATFORM.path_to_qstr(image_path)},
+        QStringList{"snapshot",
+                    "-d",
+                    QString::fromStdString(tag),
+                    MP_PLATFORM.path_to_qstr(image_path)},
         /* src_img = */ "",
         image_path);
 }
@@ -73,7 +82,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name,
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QString& filename,
+mp::QemuSnapshot::QemuSnapshot(const std::filesystem::path& filename,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
     : BaseSnapshot{filename, vm, desc}, desc{desc}, image_path{desc.image.image_path}

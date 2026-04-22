@@ -24,6 +24,7 @@
 
 #include <multipass/json_utils.h>
 #include <multipass/memory_size.h>
+#include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <shared/base_snapshot.h>
@@ -95,12 +96,12 @@ struct TestBaseSnapshot : public Test
         json.at("snapshot").as_object()[key] = new_value;
     }
 
-    QString plant_snapshot_json(const boost::json::value& json,
-                                const QString& filename = "snapshot.json") const
+    std::filesystem::path plant_snapshot_json(const boost::json::value& json,
+                                              const QString& filename = "snapshot.json") const
     {
         const auto file_path = vm.tmp_dir->filePath(filename);
         mpt::make_file_with_content(file_path, serialize(json));
-        return file_path;
+        return MP_PLATFORM.qstr_to_path(file_path);
     }
 
     QString derive_persisted_snapshot_file_path(int index)
@@ -115,7 +116,8 @@ struct TestBaseSnapshot : public Test
     NiceMock<mpt::MockVirtualMachine> vm{};
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
-    QString test_json_file_path = mpt::test_data_path_for(test_json_filename);
+    std::filesystem::path test_json_file_path =
+        MP_PLATFORM.qstr_to_path(mpt::test_data_path_for(test_json_filename));
 };
 
 TEST_F(TestBaseSnapshot, adoptsGivenValidName)
@@ -684,22 +686,13 @@ TEST_F(TestBaseSnapshot, throwsIfUnableToOpenFile)
 {
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
 
-    EXPECT_CALL(*mock_file_ops, open(mpt::FileNameMatches(Eq(test_json_file_path)), _))
-        .WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, try_read_file(Eq(test_json_file_path)))
+        .WillOnce(Return(std::nullopt));
 
     MP_EXPECT_THROW_THAT((MockBaseSnapshot{test_json_file_path, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(AllOf(HasSubstr("Could not open"),
-                                               HasSubstr(test_json_file_path.toStdString()))));
-}
-
-TEST_F(TestBaseSnapshot, throwsOnEmptyFile)
-{
-    const auto snapshot_file_path = vm.tmp_dir->filePath("wrong");
-    mpt::make_file_with_content(snapshot_file_path, "");
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("Empty")));
+                                               HasSubstr(test_json_file_path.string()))));
 }
 
 TEST_F(TestBaseSnapshot, throwsOnEmptyJsonObject)
@@ -726,7 +719,7 @@ TEST_F(TestBaseSnapshot, throwsOnBadFormat)
                                 "(Murray): Alright, then. ROLL! I shall ROLL through the gates of "
                                 "hell! Must you take the fun out of everything?");
 
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{snapshot_file_path, vm, desc}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{MP_PLATFORM.qstr_to_path(snapshot_file_path), vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Could not parse snapshot JSON")));
 }

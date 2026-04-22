@@ -25,6 +25,7 @@
 #include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 
+#include <multipass/platform.h>
 #include <multipass/process/process.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
@@ -62,7 +63,10 @@ struct TestQemuSnapshot : public Test
 
     mp::QemuSnapshot loaded_snapshot()
     {
-        return mp::QemuSnapshot{mpt::test_data_path_for("test_snapshot.json"), vm, desc};
+        return mp::QemuSnapshot{
+            MP_PLATFORM.qstr_to_path(mpt::test_data_path_for("test_snapshot.json")),
+            vm,
+            desc};
     }
 
     template <typename T>
@@ -158,7 +162,10 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
     const auto parent = std::make_shared<mpt::MockSnapshot>();
     EXPECT_CALL(vm, get_snapshot(2)).WillOnce(Return(parent));
 
-    const mp::QemuSnapshot snapshot{mpt::test_data_path_for("test_snapshot.json"), vm, desc};
+    const mp::QemuSnapshot snapshot{
+        MP_PLATFORM.qstr_to_path(mpt::test_data_path_for("test_snapshot.json")),
+        vm,
+        desc};
     EXPECT_EQ(snapshot.get_name(), "snapshot3");
     EXPECT_EQ(snapshot.get_comment(), "A comment");
     EXPECT_EQ(snapshot.get_parent(), parent);
