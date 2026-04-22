@@ -6,6 +6,8 @@ import 'package:multipass_gui/catalogue/launch_form.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 
+import 'helpers.dart';
+
 ImageInfo makeImage({
   String os = 'Ubuntu',
   String release = '24.04',
@@ -14,18 +16,20 @@ ImageInfo makeImage({
 }) =>
     ImageInfo(os: os, release: release, codename: codename, aliases: aliases);
 
-Widget buildApp(ImageCard card) => ProviderScope(
-      overrides: [
-        randomNameProvider.overrideWith((ref) => 'test-vm'),
-      ],
-      child: MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: SizedBox(
-            width: 500,
-            height: 600,
-            child: card,
+Widget buildApp(ImageCard card) => withFakeSvgAssetBundle(
+      ProviderScope(
+        overrides: [
+          randomNameProvider.overrideWith((ref) => 'test-vm'),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(
+              width: 500,
+              height: 600,
+              child: card,
+            ),
           ),
         ),
       ),
