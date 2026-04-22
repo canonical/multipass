@@ -175,7 +175,7 @@ struct ImageVault : public testing::Test
                                const mp::ProcessState& produce_result,
                                const QByteArray& produce_output = {})
     {
-        ASSERT_EQ(process->program().toStdString(), "qemu-img");
+        ASSERT_TRUE(process->program().endsWith("qemu-img"));
 
         const auto args = process->arguments();
         ASSERT_EQ(args.size(), 2);

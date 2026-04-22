@@ -68,7 +68,9 @@ TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
 #endif
     const auto expected_uuid = QString::fromStdString(multipass::utils::make_uuid(desc.vm_name));
     EXPECT_EQ(spec.arguments(),
-              QStringList({"--enable-kvm",
+              QStringList({"-L",
+                           spec.firmware_path(),
+                           "--enable-kvm",
                            "-nic",
                            "tap,ifname=tap_device,script=no,downscript=no",
                            "-device",
@@ -180,9 +182,8 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSnapCorrect)
     EXPECT_THAT(spec.apparmor_profile().toStdString(),
                 HasSubstr("signal (receive) peer=snap.multipass.multipassd"));
     EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr(QString("%1/qemu/* r,").arg(snap_dir.path()).toStdString()));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path()).toStdString()));
+                HasSubstr(spec.firmware_path().toStdString()));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(spec.program().toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
@@ -198,9 +199,8 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
     EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr(QString("%1/qemu/* r,").arg(snap_dir.path()).toStdString()));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr(QString("%1/usr/bin/qemu-system-").arg(snap_dir.path()).toStdString()));
+                HasSubstr(spec.firmware_path().toStdString()));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(spec.program().toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
@@ -210,13 +210,11 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
     mpt::UnsetEnvScope e("SNAP");
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
-
     EXPECT_THAT(spec.apparmor_profile().toStdString(),
                 HasSubstr("signal (receive) peer=unconfined"));
     EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr("/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/* r,"));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr(" /usr/bin/qemu-system-")); // space wanted
+                HasSubstr(spec.firmware_path().toStdString()));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(spec.program().toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunInSnap)

@@ -29,6 +29,10 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
 {
     QStringList args;
 
+    // clang-format off
+    // Tell QEMU to where to look for the BIOS files
+    args << "-L"
+         << firmware_path();
     args << platform_args
 #if defined Q_PROCESSOR_ARM
          << "-machine"
@@ -39,6 +43,6 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
 #endif
          << "-nographic"
          << "-dump-vmstate" << file_name;
-
+    // clang-format on
     return args;
 }

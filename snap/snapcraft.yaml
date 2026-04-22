@@ -18,8 +18,6 @@ platforms:
   amd64:
 
 layout:
-  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu:
-    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qemu
   /etc/fonts:
     bind: $SNAP/etc/fonts
   /usr/share/fonts:
@@ -144,7 +142,14 @@ parts:
     - libgtkmm-3.0-dev
     # https://github.com/microsoft/vcpkg/issues/47920
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
+    - autoconf # libxcrypt
+    - autoconf-archive # libxcrypt
+    - automake # libxcrypt
+    - libtool # libxcrypt
     - python3-pip
+    - bison
+
+
     stage-packages:
     - apparmor
     - libpng16-16
@@ -211,6 +216,13 @@ parts:
     override-pull: |
       set -e
 
+      if [ ! -d "$HOME/.cargo" ]; then
+        echo "=== Installing Rust ==="
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+      fi
+      # Set PATH variable for cargo executable
+      . "$HOME/.cargo/env"
+
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
       python3 -m pip install --break-system-packages jinja2
@@ -239,110 +251,6 @@ parts:
 
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -type f \( -name 'LICENSE*' -o -path '*/LICENSE*/*' \) -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
-
-  qemu:
-    build-environment:
-    - PYTHONPATH: ""
-    - LD_LIBRARY_PATH: ""
-    - XDG_DATA_DIRS: /root/stage/usr/share:/usr/share
-    - PKG_CONFIG_PATH: ""
-    - PYTHON: /usr/bin/python3
-    source: https://github.com/canonical/qemu.git
-    source-type: git
-    source-tag: v10.0.3+9p-uid-gid-map
-    source-depth: 1
-    source-submodules: []
-    plugin: autotools
-    autotools-configure-parameters:
-    - --enable-virtfs
-    - --disable-bochs
-    - --disable-cloop
-    - --disable-docs
-    - --disable-guest-agent
-    - --disable-parallels
-    - --disable-qed
-    - --disable-libiscsi
-    - --disable-vnc
-    - --disable-xen
-    - --disable-dmg
-    - --disable-replication
-    - --disable-snappy
-    - --disable-lzo
-    - --disable-vvfat
-    - --disable-curl
-    - --disable-tests
-    - --disable-nettle
-    - --disable-libusb
-    - --disable-bzip2
-    - --disable-gcrypt
-    - --disable-gnutls
-    - --disable-slirp
-    - --disable-user
-    - --disable-libvduse
-    - --disable-vduse-blk-export
-    - --disable-dbus-display
-    - --firmwarepath=/snap/multipass/current/qemu/
-    - --prefix=/usr
-    - --libdir=/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-    - --libexecdir=/usr/lib/qemu
-    - --enable-strip
-    build-packages:
-    - libattr1-dev
-    - libcap-ng-dev
-    - libglib2.0-dev
-    - libpixman-1-dev
-    - libseccomp-dev
-    - python3-venv
-    - gettext
-    - python3-tomli
-    stage-packages:
-    - libpixman-1-0
-    stage:
-    - -usr/include
-    - -usr/lib/*/libssh*
-    - -qemu/efi-*.rom
-    - -qemu/pxe-*.rom
-    organize:
-      usr/lib/qemu/*: usr/bin/
-      usr/share/qemu/*: qemu/
-    override-build: |-
-      set -ex
-      # Mangle the configure a bit
-      QEMUARCH="$(uname -m)"
-      [ "$QEMUARCH" = "ppc64le" ] && QEMUARCH="ppc64"
-      sed -i "s/^unset target_list$/target_list=\"${QEMUARCH}-softmmu\"/" configure
-
-      set +ex
-      craftctl default
-    prime:
-    - usr/bin/qemu-system-*
-    - usr/bin/qemu-img*
-    - usr/bin/virtfs-proxy-helper*
-    - usr/bin/virtiofsd*
-    - usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/*
-    - lib/*/libpixman*so*
-    - qemu/keymaps*
-    - qemu/efi-virtio.rom*
-    - qemu/kvmvapic.bin*
-    - qemu/vgabios-*.bin*
-    - qemu/slof.bin*
-    - qemu/bios-256k.bin*
-    - qemu/s390-ccw.img*
-    - -usr/lib/*/pkgconfig
-
-  qemu-firmware:
-    plugin: nil
-    override-pull: ""
-    stage-packages:
-    - ipxe-qemu
-    - on amd64: [ovmf]
-    - on arm64: [qemu-efi]
-    organize:
-      usr/share/ovmf/*: qemu/
-      usr/lib/ipxe/qemu/*: qemu/
-      usr/share/qemu-efi-aarch64/*: qemu/
-    prime:
-    - qemu/*
 
   kvm-support:
     plugin: nil

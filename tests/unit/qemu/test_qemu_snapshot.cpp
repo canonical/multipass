@@ -33,12 +33,19 @@
 #include <memory>
 #include <unordered_map>
 
+#include <QCoreApplication>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
 {
+
+auto expected_qemu_img_path()
+{
+    return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
+}
 
 struct PublicQemuSnapshot : public mp::QemuSnapshot
 {
@@ -73,7 +80,7 @@ struct TestQemuSnapshot : public Test
 
     static void set_common_expectations_on(mpt::MockProcess* process)
     {
-        EXPECT_EQ(process->program(), "qemu-img");
+        EXPECT_EQ(process->program(), expected_qemu_img_path());
         EXPECT_CALL(*process, execute).WillOnce(Return(success));
     }
 

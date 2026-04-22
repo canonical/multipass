@@ -46,6 +46,23 @@
             "dependencies": [
                 "gtest"
             ]
+        },
+        "qemu": {
+            "description": "Enable vendored QEMU",
+            "$comment": "Windows only needs qemu-img, others need the qemu system emulator too.",
+            "dependencies": [
+                {
+                    "name": "qemu",
+                    "platform": "windows"
+                },
+                {
+                    "name": "qemu",
+                    "features": [
+                        "system"
+                    ],
+                    "platform": "osx | linux"
+                }
+            ]
         }
     }
 }

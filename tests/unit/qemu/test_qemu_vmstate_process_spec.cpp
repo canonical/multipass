@@ -34,16 +34,14 @@ TEST_F(TestQemuVmStateProcessSpec, defaultArgumentsCorrect)
     mp::QemuVmStateProcessSpec spec{file_name};
     QStringList default_arguments;
 
+    default_arguments << "-L" << spec.firmware_path();
 #if defined Q_PROCESSOR_S390
-    default_arguments << "-machine"
-                      << "s390-ccw-virtio";
+    default_arguments << "-machine" << "s390-ccw-virtio";
 #elif defined Q_PROCESSOR_ARM
-    default_arguments << "-machine"
-                      << "virt";
+    default_arguments << "-machine" << "virt";
 #endif
 
-    default_arguments << "-nographic"
-                      << "-dump-vmstate" << file_name;
+    default_arguments << "-nographic" << "-dump-vmstate" << file_name;
 
     EXPECT_EQ(spec.arguments(), default_arguments);
 }

@@ -17,17 +17,21 @@ cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(feature-flags.cmake)
 include(src/cmake/environment-utils.cmake)
-is_running_in_ci(IS_RUNNING_IN_CI)
+include(CMakeDependentOption)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
 
+is_running_in_ci(IS_RUNNING_IN_CI)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
   include(src/cmake/configure-linker.cmake)
   configure_linker()
 endif()
+
+include(src/cmake/populate-supported-backends-list.cmake)
 
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
 cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
@@ -42,8 +46,7 @@ else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
 
-include(CMakeDependentOption)
-cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
+
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
@@ -125,7 +128,12 @@ else()
 endif()
 
 if(MULTIPASS_ENABLE_TESTS)
-  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
+  list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+
+# Windows needs qemu-img
+if("qemu" IN_LIST MULTIPASS_BACKENDS OR WIN32)
+  list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
@@ -216,16 +224,6 @@ if(UNIX)
   if (${HOST_ARCH} STREQUAL "ppc64le")
     set(HOST_ARCH "ppc64")
   endif ()
-
-  if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND ${HOST_ARCH} MATCHES "x86_64"))
-      list(APPEND MULTIPASS_BACKENDS virtualbox)
-  endif()
-
-  list(APPEND MULTIPASS_BACKENDS qemu)
-
-  if(APPLEVZ_ENABLED)
-    list(APPEND MULTIPASS_BACKENDS applevz)
-  endif()
 endif()
 
 # Boost config
@@ -283,7 +281,6 @@ if(MSVC)
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
-  set(MULTIPASS_BACKENDS hyperv virtualbox)
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
@@ -314,6 +311,12 @@ else()
     set(LINUX TRUE)
   endif()
 endif()
+
+if("qemu" IN_LIST MULTIPASS_BACKENDS)
+  include(src/cmake/qemu-system-install-and-copy.cmake)
+endif()
+
+include(src/cmake/qemu-img-install-and-copy.cmake)
 
 if(cmake_build_type_lower MATCHES "coverage")
   find_program(GCOV gcov)

@@ -1,0 +1,25 @@
+From f579beae253ca6d66b9c2053255885ea0cc54d8f Mon Sep 17 00:00:00 2001
+From: Chris Townsend <christopher.townsend@canonical.com>
+Date: Wed, 5 Oct 2022 15:35:34 -0400
+Subject: [PATCH] hw/arm/virt: revert old behaviour of highmem=off
+
+---
+ hw/arm/virt.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index 0e78616aac321..235be61d1cd4a 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -1871,7 +1871,11 @@ static void virt_set_memmap(VirtMachineState *vms, int pa_bits)
+      * irrespective of the underlying capabilities of the HW.
+      */
+     if (!vms->highmem) {
++#ifdef CONFIG_DARWIN
++        pa_bits = 36;
++#else
+         pa_bits = 32;
++#endif
+     }
+ 
+     /*
