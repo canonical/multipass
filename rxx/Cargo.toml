@@ -37,24 +37,9 @@ namegen = { path = "namegen" }
 
 # This is debug
 [profile.dev]
-opt-level = 0
-debug = true
-strip = "none"
-debug-assertions = true
-overflow-checks = true
-lto = true
-panic = 'unwind'
-incremental = true
-codegen-units = 1 #Lower means slow compilation better optimization
-rpath = false
+codegen-units = 1 #Less threads to compete with C++ compilation
+incremental = false #Removing incremental compilation allows lower codegen count
 
 [profile.release]
-lto = true
-debug = false
-strip = "debuginfo"
-opt-level = "s"
-codegen-units = 1 #Lower codegen count improves compiler optimization
-panic = "abort"
-debug-assertions = false
-overflow-checks = false
-incremental = false #Removing incremental compilation allows lower codegen count
+lto = true #Removes unused code sections
+codegen-units = 1 #Less threads to compete with C++ compilation
