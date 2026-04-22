@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 /// A minimal valid SVG returned for any `.svg` asset request
-const _minimalSvg =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
+const _minimalSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" '
+    'preserveAspectRatio="none"/>';
 
 /// An [AssetBundle] that stubs out `.svg` request with [_minimalSvg]
 /// and delegates all other requests to [rootBundle].
