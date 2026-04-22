@@ -75,6 +75,7 @@ jobs:
     env:
       BUILD_DIR: ${{ github.workspace }}/build
       SCCACHE_DIR: ${{ github.workspace }}/.sccache
+      RUST_DIR: ${{ github.workspace }}/rxx
       RUSTC_WRAPPER: "sccache"
 
     steps:
@@ -109,6 +110,9 @@ jobs:
       run: |
         mkdir -p ~/.pip
         echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
 
     - name: Install dependencies from brew
       run: |
@@ -229,16 +233,42 @@ jobs:
     - name: Build
       run: cmake --build ${{ env.BUILD_DIR }}
 
+    - name: Collect rust binary paths
+      working-directory: ${{ env.RUST_DIR }}
+      run: |
+        {
+          echo 'RUST_EXEC_PATHS<<__EOF__'
+          cargo test --workspace --no-run --message-format=json --target-dir ${{ env.BUILD_DIR }}/rxx \
+            | jq -r 'select(.reason == "compiler-artifact" and .executable != null) | .executable' \
+            | while IFS= read -r exe; do
+                [ -n "$exe" ] && echo "$exe"
+              done
+          echo '__EOF__'
+        } >> "$GITHUB_ENV"
+
     - name: Enable core dump generation
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
       run : |
         # Allow core dumps
         sudo sysctl -w kern.coredump=1
+        # Force core dump location/pattern to match the upload step expectations
+        sudo sysctl -w kern.corefile=/cores/core.%P
         # This entitlement is needed for a proc to produce a coredump
         /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" segv.entitlements
         # Code-sign the test executable to grant core dump entitlement
-        codesign -s - -f --entitlements segv.entitlements bin/multipass_tests
+        codesign -s - -f --entitlements segv.entitlements bin/multipass_cpp_tests
+
+        RUST_EXECUTABLES=()
+        while IFS= read -r line; do
+          [[ -n "$line" ]] || continue
+          RUST_EXECUTABLES+=("$line")
+        done <<< "$RUST_EXEC_PATHS"
+        for RUST_EXEC in "${RUST_EXECUTABLES[@]}";
+        do
+          codesign -s - -f --entitlements segv.entitlements "$RUST_EXEC"
+        done
+
         # Ensure destination exists and is writable
         sudo mkdir -p /cores || true
         sudo chmod 1777 /cores
@@ -250,21 +280,31 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        # Catch and save the test executable's exit code
-        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        # Define the trap to catch the exit code AND check for core dumps
+        trap '
+          EXIT_STATUS=$?
+          echo "MULTIPASS_TESTS_EXIT_CODE=$EXIT_STATUS" >> $GITHUB_ENV
+          # Check if any files were generated in /cores/
+          if [ "$(ls -A /cores/ 2>/dev/null)" ]; then
+            echo "CORE_DUMPS_FOUND=true" >> $GITHUB_ENV
+          fi
+        ' EXIT
+        # Clean existing core dumps for coredump detection
+        sudo rm -f /cores/*
         # Set soft limit for the core file size (512MiB)
         ulimit -c 1048576
-        bin/multipass_tests
+        ctest -V
 
     - name: Upload test coredump
       uses: actions/upload-artifact@v7
-      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && env.CORE_DUMPS_FOUND }}
       with:
         name: buildandtest-test-crash-${{ matrix.runs-on }}-${{ matrix.build-type }}
         retention-days: 7
         path: |
           /cores/**
-          ${{ env.BUILD_DIR }}/bin/multipass_tests
+          ${{ env.BUILD_DIR }}/bin/multipass_cpp_tests
+          ${{ env.RUST_EXEC_PATHS }}
 
     - name: Package
       id: cmake-package
