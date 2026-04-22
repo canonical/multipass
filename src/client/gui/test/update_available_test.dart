@@ -1,10 +1,13 @@
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/grpc_client.dart';
+import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/notifications/notifications_provider.dart';
 import 'package:multipass_gui/update_available.dart';
+
+import 'helpers.dart';
 
 void main() {
   group('UpdateNotifier', () {
@@ -84,6 +87,63 @@ void main() {
       final previous = UpdateInfo(version: '1.15.0');
       final next = UpdateInfo(version: '1.15.0');
       expect(notifier().updateShouldNotify(previous, next), isFalse);
+    });
+  });
+
+  group('UpdateAvailable widget', () {
+    Widget buildApp(UpdateInfo info) {
+      return withFakeSvgAssetBundle(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(body: UpdateAvailable(info)),
+        ),
+      );
+    }
+
+    testWidgets('displays the version in the title text', (tester) async {
+      await tester.pumpWidget(buildApp(UpdateInfo(version: '1.15.0')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Multipass 1.15.0 is available'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('displays the upgrade button', (tester) async {
+      await tester.pumpWidget(buildApp(UpdateInfo(version: '1.15.0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Upgrade now'), findsOneWidget);
+    });
+  });
+
+  group('UpdateAvailableNotification widget', () {
+    Widget buildApp(UpdateInfo info) {
+      return withFakeSvgAssetBundle(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: UpdateAvailableNotification(info)),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('displays the version in the notification text',
+        (tester) async {
+      await tester.pumpWidget(buildApp(UpdateInfo(version: '2.0.0')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Multipass 2.0.0 is available'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('displays the upgrade button', (tester) async {
+      await tester.pumpWidget(buildApp(UpdateInfo(version: '2.0.0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Upgrade now'), findsOneWidget);
     });
   });
 }
