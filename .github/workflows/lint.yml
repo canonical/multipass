@@ -50,7 +50,7 @@ jobs:
 
       - name: Install clang-format
         shell: bash
-        run: sudo apt-get install --no-install-recommends --yes clang-format-$SNAP_CLANG_VERSION clang-tools-$SNAP_CLANG_VERSION
+        run: sudo apt-get install --no-install-recommends --yes clang-format-$SNAP_CLANG_VERSION
 
       - name: Run clang-format through the diff
         shell: bash
