@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/catalogue/launch_form.dart';
+import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 
 void main() {
@@ -144,6 +145,28 @@ void main() {
       final l10n = await getL10n(tester);
       final validator = nameValidator([], ['other-vm'], l10n);
       expect(validator('my-vm'), isNull);
+    });
+  });
+
+  group('imageName', () {
+    test('"core20" alias omits codename', () {
+      final info = ImageInfo(
+        os: 'Ubuntu',
+        release: '20.04',
+        codename: 'focal',
+        aliases: ['core20', '20.04'],
+      );
+      expect(imageName(info), equals('Ubuntu 20.04'));
+    });
+
+    test('non-core alias includes codename', () {
+      final info = ImageInfo(
+        os: 'Ubuntu',
+        release: '24.04',
+        codename: 'noble',
+        aliases: ['24.04', 'lts'],
+      );
+      expect(imageName(info), equals('Ubuntu 24.04 noble'));
     });
   });
 }
