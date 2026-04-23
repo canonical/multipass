@@ -268,7 +268,7 @@ _multipass_complete()
             _add_nonrepeating_args "--all --cancel --time"
         ;;
         "find")
-            _add_nonrepeating_args "--show-unsupported --force-update --format"
+            _add_nonrepeating_args "--show-unsupported --force-update --format --only-cached"
         ;;
         "unalias")
             _multipass_aliases
