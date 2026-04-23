@@ -5,7 +5,7 @@ import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/vm_table/header_selection.dart';
 import 'package:multipass_gui/vm_table/vm_table_headers.dart';
 
-import 'helpers.dart';
+import '../helpers.dart';
 
 void main() {
   group('HeaderSelectionTile', () {
