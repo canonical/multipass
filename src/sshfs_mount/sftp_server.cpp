@@ -22,7 +22,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 
 #include <multipass/utils.h>
@@ -284,7 +284,7 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
 }
 } // namespace
 
-mp::SftpServer::SftpServer(SSHSession&& session,
+mp::SftpServer::SftpServer(PlainSSHSession&& session,
                            const std::string& source,
                            const std::string& target,
                            const id_mappings& gid_mappings,

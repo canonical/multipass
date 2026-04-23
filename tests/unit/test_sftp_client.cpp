@@ -26,8 +26,8 @@
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/sftp_client.h>
-#include <multipass/ssh/ssh_session.h>
 
 #include <fmt/std.h>
 
@@ -88,7 +88,7 @@ struct SFTPClient : public testing::Test
 
     mp::SFTPClient make_sftp_client()
     {
-        return {std::make_unique<mp::SSHSession>("b", 43, "ubuntu", key_provider)};
+        return {std::make_unique<mp::PlainSSHSession>("b", 43, "ubuntu", key_provider)};
     }
 
 // this is a macro since REPLACE only applies to the current scope and cannot be moved out.
