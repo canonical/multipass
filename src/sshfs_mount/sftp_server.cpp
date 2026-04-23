@@ -348,14 +348,14 @@ inline int mp::SftpServer::mapped_gid_for(const int gid)
     return mapped_id_for(gid_mappings, gid, default_gid);
 }
 
-inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id) // TODO@ricab
+inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id_)
 {
-    return reverse_id_for(uid_mappings, uid, default_id);
+    return reverse_id_for(uid_mappings, uid, default_id_);
 }
 
-inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id)
+inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id_)
 {
-    return reverse_id_for(gid_mappings, gid, default_id);
+    return reverse_id_for(gid_mappings, gid, default_id_);
 }
 
 inline bool mp::SftpServer::has_uid_mapping_for(const int uid)
