@@ -6,6 +6,20 @@ import 'package:multipass_gui/vm_table/header_selection.dart';
 import 'package:multipass_gui/vm_table/search_box.dart';
 import 'package:multipass_gui/vm_table/vms.dart';
 
+class _MutableVmNamesNotifier extends Notifier<BuiltSet<String>> {
+  @override
+  BuiltSet<String> build() => BuiltSet();
+
+  void setNames(BuiltSet<String> names) {
+    state = names;
+  }
+}
+
+final _mutableVmNamesProvider =
+    NotifierProvider<_MutableVmNamesNotifier, BuiltSet<String>>(
+  _MutableVmNamesNotifier.new,
+);
+
 void main() {
   group('SearchNameNotifier', () {
     late ProviderContainer container;
@@ -109,6 +123,35 @@ void main() {
         container.read(selectedVmsProvider),
         equals(BuiltSet(['vm1', 'vm2'])),
       );
+    });
+
+    test('vm removed from vmNamesProvider is auto-removed from selection', () {
+      final container = ProviderContainer(
+        overrides: [
+          vmNamesProvider.overrideWith(
+            (ref) => ref.watch(_mutableVmNamesProvider),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(_mutableVmNamesProvider.notifier).setNames(
+            BuiltSet(['vm1', 'vm2']),
+          );
+      container.listen(selectedVmsProvider, (_, __) {});
+
+      container.read(selectedVmsProvider.notifier).toggle('vm1', true);
+      container.read(selectedVmsProvider.notifier).toggle('vm2', true);
+      expect(
+        container.read(selectedVmsProvider),
+        equals(BuiltSet(['vm1', 'vm2'])),
+      );
+
+      container.read(_mutableVmNamesProvider.notifier).setNames(
+            BuiltSet(['vm2']),
+          );
+
+      expect(container.read(selectedVmsProvider), equals(BuiltSet(['vm2'])));
     });
 
     test('changing runningOnlyProvider resets selected vms to empty', () {
