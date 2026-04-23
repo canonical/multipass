@@ -7,7 +7,7 @@ import 'package:multipass_gui/catalogue/catalogue.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 
-import 'helpers.dart';
+import '../helpers.dart';
 
 Widget _scope(Widget child) {
   return withFakeSvgAssetBundle(
