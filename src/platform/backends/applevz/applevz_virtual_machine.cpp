@@ -54,10 +54,12 @@ AppleVZVirtualMachine::~AppleVZVirtualMachine()
 
     if (vm_handle)
     {
+        update_shutdown_status = false;
         multipass::top_catch_all(vm_name, [this]() {
             if (state == State::running)
             {
-                suspend();
+                // TODO: Call suspend() once fully implemented
+                shutdown();
             }
             else
             {
@@ -208,6 +210,9 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void AppleVZVirtualMachine::suspend()
 {
+    throw NotImplementedOnThisBackendException{"suspend"};
+
+    // TODO: remove the throw above once suspend-to-disk is implemented
     if (!vm_handle)
     {
         assert(state == State::stopped);
@@ -278,7 +283,8 @@ std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 
 void AppleVZVirtualMachine::handle_state_update()
 {
-    monitor->persist_state_for(vm_name, state);
+    if (update_shutdown_status)
+        monitor->persist_state_for(vm_name, state);
 }
 
 void AppleVZVirtualMachine::update_cpus(int num_cores)
@@ -313,7 +319,9 @@ void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
     case applevz::AppleVMState::running:
     case applevz::AppleVMState::stopping:
         // No `stopping` state in Multipass yet
-        state = State::running;
+        // Let wait_until_ssh_up decide when we are running
+        if (state != State::starting)
+            state = State::running;
         break;
     case applevz::AppleVMState::paused:
         state = State::suspended;
@@ -384,8 +392,6 @@ void AppleVZVirtualMachine::initialize_vm_handle()
         throw std::runtime_error(
             fmt::format("Failed to create VM handle for '{}': {}", vm_name, error));
     }
-
-    set_state(MP_APPLEVZ.get_state(vm_handle));
 
     mpl::trace(log_category, "initialize_vm_handle() -> Created handle for VM '{}'", vm_name);
 }
