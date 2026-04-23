@@ -23,7 +23,7 @@
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/log_location.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
@@ -119,7 +119,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     return sshfs_exec;
 }
 
-auto make_sftp_server(mp::SSHSession&& session,
+auto make_sftp_server(mp::PlainSSHSession&& session,
                       const std::string& source,
                       const std::string& target,
                       const mp::id_mappings& gid_mappings,
@@ -160,7 +160,7 @@ auto make_sftp_server(mp::SSHSession&& session,
 
 } // namespace
 
-mp::SshfsMount::SshfsMount(SSHSession&& session,
+mp::SshfsMount::SshfsMount(PlainSSHSession&& session,
                            const std::string& source,
                            const std::string& target,
                            const mp::id_mappings& gid_mappings,
