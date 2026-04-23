@@ -23,9 +23,9 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/ssh_process.h>
-#include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -238,7 +238,10 @@ catch (const std::exception& e)
 void SmbMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 try
 {
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+    PlainSSHSession session{vm->ssh_hostname(),
+                            vm->ssh_port(),
+                            vm->ssh_username(),
+                            *ssh_key_provider};
 
     const auto username = MP_PLATFORM.get_username();
     const auto user_id = QString::fromStdString(MP_UTILS.make_uuid(username.toStdString()));

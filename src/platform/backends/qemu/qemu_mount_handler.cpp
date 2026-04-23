@@ -18,6 +18,7 @@
 #include "qemu_mount_handler.h"
 
 #include <multipass/logging/log_location.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/utils.h>
 
@@ -113,7 +114,10 @@ catch (const std::exception& e)
 
 void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
 {
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+    PlainSSHSession session{vm->ssh_hostname(),
+                            vm->ssh_port(),
+                            vm->ssh_username(),
+                            *ssh_key_provider};
 
     // Split the path in existing and missing parts
     // We need to create the part of the path which does not still exist, and set then the correct

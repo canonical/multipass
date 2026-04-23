@@ -35,7 +35,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 
 #include <queue>
 
@@ -66,7 +66,7 @@ struct SftpServer : public mp::test::SftpServerTest
         const mp::id_mappings& uid_mappings = {{default_uid, mp::default_id}},
         const mp::id_mappings& gid_mappings = {{default_gid, mp::default_id}})
     {
-        mp::SSHSession session{"a", 42, "ubuntu", key_provider};
+        mp::PlainSSHSession session{"a", 42, "ubuntu", key_provider};
         return {std::move(session),
                 path,
                 path,

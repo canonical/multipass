@@ -20,7 +20,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/id_mappings.h>
 #include <multipass/recursive_dir_iterator.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 
 #include <libssh/sftp.h>
 
@@ -32,13 +32,13 @@
 
 namespace multipass
 {
-class SSHSession;
+class PlainSSHSession;
 class SSHProcess;
 
 class SftpServer
 {
 public:
-    SftpServer(SSHSession&& ssh_session,
+    SftpServer(PlainSSHSession&& ssh_session,
                const std::string& source,
                const std::string& target,
                const id_mappings& gid_mappings,
@@ -90,7 +90,7 @@ private:
     template <typename T>
     T* get_handle(sftp_client_message msg);
 
-    SSHSession ssh_session;
+    PlainSSHSession ssh_session;
     SSHFSProcUptr sshfs_process;
     SftpSessionUptr sftp_server_session;
     const std::string source_path;

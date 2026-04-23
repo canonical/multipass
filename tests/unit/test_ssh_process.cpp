@@ -19,7 +19,7 @@
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 
 #include <algorithm>
 #include <thread>
@@ -35,7 +35,7 @@ struct SSHProcess : public Test
 {
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mp::SSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
+    mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
 };
 } // namespace
 
