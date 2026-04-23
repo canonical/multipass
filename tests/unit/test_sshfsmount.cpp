@@ -47,8 +47,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 {
     mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
-        mp::PlainSSHSession session{"a", 42, "ubuntu", key_provider};
-        return {std::move(session),
+        return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
                 default_source,
                 target.value_or(default_target),
                 default_mappings,
