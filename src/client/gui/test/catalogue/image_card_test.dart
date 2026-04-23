@@ -6,7 +6,7 @@ import 'package:multipass_gui/catalogue/launch_form.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 
-import 'helpers.dart';
+import '../helpers.dart';
 
 ImageInfo makeImage({
   String os = 'Ubuntu',
