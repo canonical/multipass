@@ -339,17 +339,6 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
       set(LCOV_IGNORE_ERRORS --ignore-errors mismatch --ignore-errors negative)
     endif()
 
-    if(MULTIPASS_ENABLE_FLUTTER_GUI)
-      set(FLUTTER_COVERAGE_COMMANDS
-        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
-                ${FLUTTER_EXECUTABLE} test --coverage
-        COMMAND ${LCOV}
-          --add-tracefile coverage.cleaned
-          --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
-          --output-file coverage.cleaned
-      )
-    endif()
-
     add_custom_target(covreport
       DEPENDS multipass_cpp_tests multipass_integration_tests rust_coverage_tarpaulin
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
@@ -365,9 +354,13 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
         ${CMAKE_BINARY_DIR}'/*'
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-      COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-      COMMAND ${LCOV} -a coverage.cleaned -a lcov.info -o total_coverage.info
-      ${FLUTTER_COVERAGE_COMMANDS}
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
+              ${FLUTTER_EXECUTABLE} test --coverage
+      COMMAND ${LCOV}
+        --add-tracefile coverage.cleaned
+        --add-tracefile lcov.info
+        --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+        --output-file total_coverage.info
       COMMAND ${GENHTML} --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui -o coverage total_coverage.info
     )
   endif()
