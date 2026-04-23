@@ -1,5 +1,5 @@
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
@@ -150,6 +150,47 @@ void main() {
 
       final notification = state().first as OperationNotification;
       expect(notification.text, equals(loadingText));
+    });
+  });
+
+  group('ErrorNotificationWidgetRefExtension.notifyError', () {
+    testWidgets('adds an ErrorNotification when called with a plain error',
+        (tester) async {
+      late WidgetRef capturedRef;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (_, ref, __) {
+                  capturedRef = ref;
+                  ref.watch(notificationsProvider);
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final handler = capturedRef.notifyError((e) => 'Formatted: $e');
+      handler('something went wrong', StackTrace.empty);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(Consumer)),
+      );
+      expect(container.read(notificationsProvider), hasLength(1));
+      expect(
+        container.read(notificationsProvider).first,
+        isA<ErrorNotification>(),
+      );
+
+      final notification =
+          container.read(notificationsProvider).first as ErrorNotification;
+
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: notification)));
+      expect(find.text('Formatted: something went wrong'), findsOneWidget);
     });
   });
 }
