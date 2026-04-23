@@ -24,12 +24,12 @@
 
 namespace multipass
 {
-class PlainSSHSession;
+class SSHSession;
 class SftpServer;
 class SshfsMount
 {
 public:
-    SshfsMount(PlainSSHSession&& session,
+    SshfsMount(std::unique_ptr<SSHSession>&& session,
                const std::string& source,
                const std::string& target,
                const id_mappings& gid_mappings,
