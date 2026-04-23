@@ -69,8 +69,7 @@ struct SftpServer : public mp::test::SftpServerTest
         const mp::id_mappings& gid_mappings = {{default_gid, mp::default_id}},
         const std::string& target = {})
     {
-        mp::PlainSSHSession session{"a", 42, "ubuntu", key_provider};
-        return {std::move(session),
+        return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
                 path,
                 target.empty() ? path : target,
                 gid_mappings,

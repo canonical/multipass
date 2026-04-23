@@ -22,7 +22,8 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/plain_ssh_process.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 
 #include <multipass/utils.h>
@@ -300,7 +301,7 @@ constexpr bool follows_symlinks(uint8_t type)
 }
 } // namespace
 
-mp::SftpServer::SftpServer(PlainSSHSession&& session,
+mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            const std::string& source,
                            const std::string& target,
                            const id_mappings& gid_mappings,
@@ -309,9 +310,9 @@ mp::SftpServer::SftpServer(PlainSSHSession&& session,
                            int default_gid,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
-      sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
+      sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
       sftp_server_session{make_sftp_session( // TODO@rewiressh
-          ssh_session,
+          *ssh_session,
           static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel())},
       source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{fs::path(target).lexically_normal()},
@@ -363,7 +364,7 @@ inline int mp::SftpServer::mapped_gid_for(const int gid)
     return mapped_id_for(gid_mappings, gid, default_gid);
 }
 
-inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id)
+inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id) // TODO@ricab
 {
     return reverse_id_for(uid_mappings, uid, default_id);
 }
@@ -597,22 +598,22 @@ void mp::SftpServer::run()
                            "recover.");
 
                 std::string mount_path = [this] {
-                    auto proc = ssh_session.exec(
+                    auto proc = ssh_session->exec(
                         fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
                     return proc->read_std_output();
                 }();
 
                 if (!mount_path.empty())
                 {
-                    ssh_session.exec(fmt::format("sudo umount {}", mount_path));
+                    ssh_session->exec(fmt::format("sudo umount {}", mount_path));
                 }
 
-                sshfs_process = create_sshfs_process(ssh_session,
+                sshfs_process = create_sshfs_process(*ssh_session,
                                                      sshfs_exec_line,
                                                      source_path.string(),
                                                      target_path.generic_string());
                 sftp_server_session = make_sftp_session( // TODO@rewiressh
-                    ssh_session,
+                    *ssh_session,
                     static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel());
 
                 continue;
@@ -630,7 +631,7 @@ void mp::SftpServer::run()
 void mp::SftpServer::stop()
 {
     stop_invoked = true;
-    ssh_session.force_shutdown();
+    ssh_session->force_shutdown();
 }
 
 int mp::SftpServer::handle_close(sftp_client_message msg)
