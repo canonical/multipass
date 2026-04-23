@@ -18,8 +18,8 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
-#include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
 
@@ -30,10 +30,10 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-mp::SSHSession::SSHSession(const std::string& host,
-                           int port,
-                           const std::string& username,
-                           const SSHKeyProvider& key_provider)
+mp::PlainSSHSession::PlainSSHSession(const std::string& host,
+                                     int port,
+                                     const std::string& username,
+                                     const SSHKeyProvider& key_provider)
     : session{ssh_new(), ssh_free}, mut{}
 {
     if (session == nullptr)
@@ -74,17 +74,19 @@ mp::SSHSession::SSHSession(const std::string& host,
                         key_provider.private_key());
 }
 
-multipass::SSHSession::SSHSession(multipass::SSHSession&& other)
-    : SSHSession(std::move(other), std::unique_lock{other.mut})
+multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other)
+    : PlainSSHSession(std::move(other), std::unique_lock{other.mut})
 {
 }
 
-multipass::SSHSession::SSHSession(multipass::SSHSession&& other, std::unique_lock<std::mutex>)
+multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other,
+                                            std::unique_lock<std::mutex>)
     : session{std::move(other.session)}, mut{}
 {
 }
 
-multipass::SSHSession& multipass::SSHSession::operator=(multipass::SSHSession&& other)
+multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
+    multipass::PlainSSHSession&& other)
 {
     if (this != &other)
     {
@@ -95,14 +97,14 @@ multipass::SSHSession& multipass::SSHSession::operator=(multipass::SSHSession&& 
     return *this;
 }
 
-multipass::SSHSession::~SSHSession()
+multipass::PlainSSHSession::~PlainSSHSession()
 {
     std::unique_lock lock{mut};
     ssh_disconnect(session.get());
     force_shutdown(); // do we really need this?
 }
 
-std::unique_ptr<mp::SSHProcess> mp::SSHSession::exec(const std::string& cmd, bool whisper)
+std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
 {
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
     mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
@@ -110,7 +112,7 @@ std::unique_ptr<mp::SSHProcess> mp::SSHSession::exec(const std::string& cmd, boo
     return make_unique<PlainSSHProcess>(session.get(), cmd, std::unique_lock{mut});
 }
 
-void mp::SSHSession::force_shutdown()
+void mp::PlainSSHSession::force_shutdown()
 {
     auto socket = ssh_get_fd(session.get());
 
@@ -118,7 +120,7 @@ void mp::SSHSession::force_shutdown()
     shutdown(socket, shutdown_read_and_writes);
 }
 
-mp::SSHSession::operator ssh_session()
+mp::PlainSSHSession::operator ssh_session()
 {
     return session.get();
 }
@@ -174,7 +176,7 @@ std::string as_string(ssh_options_e type, const void* value)
 
 } // namespace
 
-void mp::SSHSession::set_option(ssh_options_e type, const void* data)
+void mp::PlainSSHSession::set_option(ssh_options_e type, const void* data)
 {
     const auto ret = ssh_options_set(session.get(), type, data);
     if (ret != SSH_OK)
@@ -186,7 +188,7 @@ void mp::SSHSession::set_option(ssh_options_e type, const void* data)
     }
 }
 
-bool multipass::SSHSession::is_connected() const
+bool multipass::PlainSSHSession::is_connected() const
 {
     std::unique_lock lock{mut};
     return static_cast<bool>(ssh_is_connected(session.get()));

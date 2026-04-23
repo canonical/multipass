@@ -19,85 +19,85 @@
 #include "mock_ssh.h"
 #include "stub_ssh_key_provider.h"
 
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 
 namespace mp = multipass;
 using namespace testing;
 
 namespace
 {
-struct SSHSession : public Test
+struct TestPlainSSHSession : public Test
 {
-    mp::SSHSession make_ssh_session()
+    mp::PlainSSHSession make_ssh_session()
     {
-        return mp::SSHSession("theanswertoeverything", 42, "ubuntu", key_provider);
+        return mp::PlainSSHSession("theanswertoeverything", 42, "ubuntu", key_provider);
     }
 
     mp::test::StubSSHKeyProvider key_provider;
 };
 } // namespace
 
-TEST_F(SSHSession, throwsWhenUnableToAllocateSession)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToAllocateSession)
 {
     REPLACE(ssh_new, []() { return nullptr; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, throwsWhenUnableToSetOption)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToSetOption)
 {
     REPLACE(ssh_options_set, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, throwsWhenUnableToConnect)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToConnect)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, throwsWhenUnableToAuth)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToAuth)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
-TEST_F(SSHSession, execThrowsOnADeadSession)
+TEST_F(TestPlainSSHSession, execThrowsOnADeadSession)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::SSHSession session = make_ssh_session();
+    mp::PlainSSHSession session = make_ssh_session();
 
     REPLACE(ssh_is_connected, [](auto...) { return false; });
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, execThrowsIfSshIsDead)
+TEST_F(TestPlainSSHSession, execThrowsIfSshIsDead)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::SSHSession session = make_ssh_session();
+    mp::PlainSSHSession session = make_ssh_session();
 
     REPLACE(ssh_is_connected, [](auto...) { return false; });
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, execThrowsWhenUnableToOpenAChannelSession)
+TEST_F(TestPlainSSHSession, execThrowsWhenUnableToOpenAChannelSession)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::SSHSession session = make_ssh_session();
+    mp::PlainSSHSession session = make_ssh_session();
 
     REPLACE(ssh_is_connected, [](auto...) { return true; });
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, execThrowsWhenUnableToRequestChannelExec)
+TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::SSHSession session = make_ssh_session();
+    mp::PlainSSHSession session = make_ssh_session();
 
     REPLACE(ssh_is_connected, [](auto...) { return true; });
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
@@ -105,11 +105,11 @@ TEST_F(SSHSession, execThrowsWhenUnableToRequestChannelExec)
     EXPECT_THROW(session.exec("dummy"), std::runtime_error);
 }
 
-TEST_F(SSHSession, execSucceeds)
+TEST_F(TestPlainSSHSession, execSucceeds)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::SSHSession session = make_ssh_session();
+    mp::PlainSSHSession session = make_ssh_session();
 
     REPLACE(ssh_is_connected, [](auto...) { return true; });
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
@@ -118,12 +118,12 @@ TEST_F(SSHSession, execSucceeds)
     EXPECT_NO_THROW(session.exec("dummy"));
 }
 
-TEST_F(SSHSession, moveAssigns)
+TEST_F(TestPlainSSHSession, moveAssigns)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::SSHSession session1 = make_ssh_session();
-    mp::SSHSession session2 = make_ssh_session();
+    mp::PlainSSHSession session1 = make_ssh_session();
+    mp::PlainSSHSession session2 = make_ssh_session();
     ssh_session ssh_session2 = session2;
 
     session1 = std::move(session2);

@@ -22,6 +22,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -32,7 +33,6 @@
 
 namespace multipass
 {
-class SSHSession;
 class SSHKeyProvider;
 
 class BaseVirtualMachine : public VirtualMachine
@@ -106,7 +106,7 @@ protected:
 
     virtual void drop_ssh_session(); // virtual to allow mocking
 
-    // TODO@rewiressh make SSHSession mockable instead and use it in tests t
+    // TODO@rewiressh make SSHSession mockable instead and use it in tests
     // TODO@rewiressh then, replace premock for SSH tests that become achievable with gmock
     virtual std::unique_ptr<SSHProcess> make_ssh_process(const std::string& cmd, bool whisper);
 

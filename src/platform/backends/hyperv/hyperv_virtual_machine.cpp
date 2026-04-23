@@ -24,7 +24,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -58,7 +58,7 @@ std::optional<mp::IPAddress> remote_ip(const std::string& host,
                                        const mp::SSHKeyProvider& key_provider)
 try
 {
-    mp::SSHSession session{host, port, username, key_provider};
+    mp::PlainSSHSession session{host, port, username, key_provider};
 
     sockaddr_in addr{};
     int size = sizeof(addr);
