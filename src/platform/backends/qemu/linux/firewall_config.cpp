@@ -125,9 +125,7 @@ void add_firewall_rule(const QString& firewall,
         QStringList() << wait << dash_t << table << (append ? append_rule : insert_rule) << chain
                       << rule);
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
         throw FirewallException("Failed to set firewall rule",
                                 table,
                                 exit_state.failure_message(),
@@ -145,9 +143,7 @@ void delete_firewall_rule(const QString& firewall,
         MP_PROCFACTORY.create_process(QStringLiteral("sh"),
                                       QStringList() << QStringLiteral("-c") << args.join(" "));
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
         throw FirewallException("Failed to delete firewall rule",
                                 table,
                                 exit_state.failure_message(),
@@ -161,9 +157,7 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
     auto process =
         MP_PROCFACTORY.create_process(firewall, QStringList{wait, dash_t, table, list_rules});
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
         throw FirewallException("Failed to get firewall list",
                                 table,
                                 exit_state.failure_message(),
