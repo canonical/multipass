@@ -355,13 +355,22 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
         ${CMAKE_BINARY_DIR}'/*'
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
+
+      # Merge Flutter test coverage with C++ coverage
       COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
               ${FLUTTER_EXECUTABLE} test --coverage
+      COMMAND ${LCOV}
+        --remove ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+        --ignore-errors unused
+        '*/lib/generated/*'
+        '*/lib/l10n/*'
+        --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
       COMMAND ${LCOV}
         --add-tracefile coverage.cleaned
         --add-tracefile lcov.info
         --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
         --output-file total_coverage.info
+
       COMMAND ${GENHTML} --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui -o coverage total_coverage.info
     )
   endif()
