@@ -629,6 +629,13 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             }
         }
 
+        if (error_details.empty() && status.error_message().find("timed out") != std::string::npos)
+        {
+            error_details =
+                "For troubleshooting, see "
+                "https://documentation.ubuntu.com/multipass/stable/how-to-guides/troubleshoot/";
+        }
+
         return standard_failure_handler_for(name(), cerr, status, error_details);
     };
 
