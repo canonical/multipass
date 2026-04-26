@@ -15,6 +15,7 @@
 set(CMAKE_AUTOMOC ON)
 
 add_library(network STATIC
+            subnet.cpp
             url_downloader.cpp)
 
 add_library(ip_address STATIC
@@ -26,3 +27,6 @@ target_link_libraries(network
   utils
   Qt6::Core
   Qt6::Network)
+
+target_link_libraries(ip_address
+  fmt::fmt-header-only)

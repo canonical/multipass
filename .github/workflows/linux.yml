@@ -23,7 +23,7 @@ jobs:
     steps:
     - name: Determine job matrix
       id: set-matrix
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const matrix = { include: [] };
@@ -272,7 +272,7 @@ jobs:
 
     - name: Upload coverage
       if: ${{ matrix.build-type == 'Coverage' }}
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         directory: ${{ steps.coverage-setup.outputs.build }}
       env:

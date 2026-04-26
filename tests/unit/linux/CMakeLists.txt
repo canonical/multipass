@@ -18,7 +18,7 @@ if(TARGET logger_linux_syslog)
 endif()
 
 target_compile_definitions(shared_linux_test PRIVATE
-  -Daa_is_enabled=ut_aa_is_enabled)
+  -Daa_is_enabled=ut_premock_aa_is_enabled)
 
 target_link_libraries(multipass_tests
   shared_linux_test)

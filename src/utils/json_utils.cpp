@@ -17,6 +17,8 @@
  *
  */
 
+#include <multipass/exceptions/formatted_exception_base.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
 #include <multipass/utils.h>

@@ -30,9 +30,11 @@ namespace mp = multipass;
 namespace mpu = multipass::utils;
 
 const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
+const std::unordered_set<std::string> cloneable_files{".iso", ".img", ".qcow2", ".raw", ".asif"};
 
-mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir)
-    : instances_dir{instances_dir} {};
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir,
+                                                         AvailabilityZoneManager& az_manager)
+    : az_manager{az_manager}, instances_dir{instances_dir} {};
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
@@ -114,6 +116,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                dest_spec.mem_size,
                                                dest_spec.disk_space,
                                                dest_name,
+                                               dest_spec.zone,
                                                dest_spec.default_mac_address,
                                                dest_spec.extra_interfaces,
                                                dest_spec.ssh_username,
@@ -124,10 +127,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance =
-        clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
-
-    return cloned_instance;
+    return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 }
 
 void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
@@ -139,11 +139,9 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
     fs::create_directory(dest_instance_dir_path);
     for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
-        // snapshot files are intentionally skipped;
-        if (entry.path().extension().string() == ".iso" ||
-            entry.path().extension().string() == ".img" ||
-            entry.path().extension().string() == ".qcow2" ||
-            entry.path().extension().string() == ".raw")
+        const auto ext = entry.path().extension().string();
+        // snapshot files are intentionally skipped; .raw is skipped when an .asif image exists
+        if (cloneable_files.contains(ext))
         {
             const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
             fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);

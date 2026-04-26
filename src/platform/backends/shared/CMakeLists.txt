@@ -21,6 +21,15 @@ add_library(shared STATIC
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 
+if(AVAILABILITY_ZONES_ENABLED)
+  target_sources(shared PRIVATE
+    base_availability_zone.cpp
+    base_availability_zone_manager.cpp)
+else()
+  target_sources(shared PRIVATE
+    single_availability_zone_manager.cpp)
+endif()
+
 target_link_libraries(shared
   iso
   process

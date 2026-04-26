@@ -3,12 +3,14 @@
     "dependencies": [
         "boost-algorithm",
         "boost-json",
+        "boost-uuid",
         "grpc",
         "fmt",
         "scope-guard",
         "yaml-cpp",
         "neargye-semver",
         "openssl",
+        "xz-embedded",
         {
             "name": "qtbase",
             "default-features": false,
@@ -19,12 +21,23 @@
                 "dbus"
             ]
         },
-        "xz-embedded"
+        {
+            "name": "libssh",
+            "default-features": false,
+            "features": [
+                "server"
+            ]
+        },
+        "premock"
     ],
     "overrides": [
         {
             "name": "fmt",
             "version": "11.2.0"
+        },
+        {
+            "name": "libssh",
+            "version": "0.11.3"
         }
     ],
     "features": {

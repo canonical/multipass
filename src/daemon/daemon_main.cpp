@@ -26,6 +26,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform_unix.h>
 #include <multipass/signal.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -124,6 +125,8 @@ int main(int argc, char* argv[])
     // Verify that the version of the library that we linked against is
     // compatible with the version of the headers we compiled against.
     GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+    multipass::LibsshScopeGuard libssh_guard;
 
     mp::Signal app_ready_signal{};
     //

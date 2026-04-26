@@ -18,6 +18,7 @@
 #include <tests/unit/common.h>
 #include <tests/unit/mock_environment_helpers.h>
 #include <tests/unit/mock_platform.h>
+#include <tests/unit/mock_utils.h>
 #include <tests/unit/temp_file.h>
 
 #include "mock_libc_functions.h"
@@ -293,11 +294,20 @@ TEST_F(TestPlatformUnix, quitWatchdogQuitsOnSignal)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
+    std::atomic<bool> signaled = false;
+    auto signal_killed = [&signaled]() {
+        signaled = true;
+        signaled.notify_all();
+    };
+    auto wait_for_killed = [&signaled]() { signaled.wait(false); };
+
     EXPECT_CALL(*mock_signals, pthread_sigmask(SIG_BLOCK, _, _));
+    EXPECT_CALL(*mock_signals, pthread_kill(pthread_self(), SIGUSR2))
+        .Times(Between(1, 2))
+        .WillRepeatedly(DoAll(signal_killed, Return(0)));
     EXPECT_CALL(*mock_signals, sigwait(_, _))
-        .WillOnce(DoAll(SetArgReferee<1>(SIGUSR2), Return(0)))
+        .WillOnce(DoAll(wait_for_killed, SetArgReferee<1>(SIGUSR2), Return(0)))
         .WillOnce(DoAll(SetArgReferee<1>(SIGTERM), Return(0)));
-    ON_CALL(*mock_signals, pthread_kill(pthread_self(), SIGUSR2)).WillByDefault(Return(0));
 
     auto watchdog = mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
     EXPECT_EQ(watchdog([] { return true; }), SIGTERM);

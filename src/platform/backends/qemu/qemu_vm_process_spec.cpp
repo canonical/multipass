@@ -68,7 +68,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     else
     {
         // The UUID needs to be unique per VM and must be consistent across boots.
-        const auto vm_uuid = utils::make_uuid(desc.vm_name);
+        const auto vm_uuid = QString::fromStdString(utils::make_uuid(desc.vm_name));
         auto mem_size =
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */

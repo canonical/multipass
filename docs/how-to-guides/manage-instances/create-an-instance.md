@@ -109,7 +109,7 @@ multipass launch kinetic --name primary
 For more information, see [How to use the primary instance](how-to-guides-manage-instances-use-the-primary-instance).
 
 (create-an-instance-with-multiple-network-interfaces)=
-## Create an instance with multiple network interfaces
+## Create an instance with a bridged or custom network
 
 > See also: [`launch --network`](reference-command-line-interface-launch)
 
@@ -208,8 +208,15 @@ This will temporarily disrupt connectivity on that interface.
 
 Do you want to continue (yes/no)?
 ```
+Multipass requires [NetworkManager](https://www.networkmanager.dev/) to achieve this. You can also
+use NetworkManager's command-line interface to remove the bridge:
+`nmcli connection delete br-eth0 br-eth0-child`.
+Use `nmcli connection show` to obtain the actual connection names.
 
-However, Multipass requires `NetworkManager` to achieve this. On installations that do not have `NetworkManager` installed (e.g. Ubuntu Server), the user can still create a bridge by other means and pass that to Multipass. For instance, this configuration snippet achieves that with Netplan:
+On installations that do not have `NetworkManager` installed (for example, Ubuntu Server), the user
+can
+still create a bridge by other means and pass that to Multipass. For instance, this configuration
+snippet achieves that with Netplan:
 
 ```{code-block} yaml
 network:

@@ -21,6 +21,7 @@
 import pytest
 
 from cli.multipass import multipass, state, launch, random_vm_name, get_boot_id
+from cli.config import cfg
 
 
 @pytest.mark.lifecycle
@@ -58,6 +59,7 @@ class TestVmLifecycle:
         assert state(f"{instance}") == "Running"
         assert boot_id_before != get_boot_id(instance)
 
+    @pytest.mark.suspend
     def test_suspend_resume(self, instance):
         assert state(f"{instance}") == "Running"
         boot_id_before = get_boot_id(instance)
@@ -127,8 +129,9 @@ class TestVmLifecycle:
             assert multipass("start", name1, name2)
             assert state(name1) == "Running" and state(name2) == "Running"
 
-            assert multipass("suspend", name1, name2)
-            assert state(name1) == "Suspended" and state(name2) == "Suspended"
+            if cfg.driver != "applevz":
+                assert multipass("suspend", name1, name2)
+                assert state(name1) == "Suspended" and state(name2) == "Suspended"
 
             assert multipass("start", name1, name2)
             assert state(name1) == "Running" and state(name2) == "Running"

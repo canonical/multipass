@@ -137,8 +137,8 @@ struct SmbMountHandlerTest : public ::Test
 
     NiceMock<mpt::MockVirtualMachine> vm{};
     std::string source{"source"}, target{"target"};
-    QString target_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
-    QString vm_name_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
+    std::string target_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
+    std::string vm_name_uuid{"d02a0ba3-2170-46ac-9445-1943a0fe82e6"};
     mp::id_mappings gid_mappings{{1, 2}}, uid_mappings{{5, 6}};
     mp::VMMount mount{source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
 
@@ -158,13 +158,12 @@ struct SmbMountHandlerTest : public ::Test
     MockSmbManager smb_manager{};
 
     QString username{"username"};
-    QString username_uuid{"531b4c6f-6090-4b4c-b585-760d18db05e0"};
+    std::string username_uuid{"531b4c6f-6090-4b4c-b585-760d18db05e0"};
     std::string password{"password"};
     QString local_cred_dir{"/some/path"};
     std::string remote_cred_file{"/tmp/.smb_credentials"};
     std::string enc_key{"key"};
-    std::string smb_share_name =
-        fmt::format("{}-{}", vm_name_uuid.toStdString(), target_uuid.toStdString());
+    std::string smb_share_name = fmt::format("{}-{}", vm_name_uuid, target_uuid);
     std::string dpkg_command{"dpkg-query --show --showformat='${db:Status-Status}' cifs-utils"};
     std::string install_cifs_command{"sudo apt-get update && sudo apt-get install -y cifs-utils"};
     std::string mkdir_command{"mkdir -p " + target};

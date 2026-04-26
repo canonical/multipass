@@ -44,6 +44,8 @@
 #include <QThread>
 #include <QUrl>
 
+#include <future>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -128,6 +130,32 @@ struct RunningURLDownloader : public mp::URLDownloader
     }
 };
 
+struct BlockingURLDownloader : public mp::URLDownloader
+{
+    BlockingURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
+    {
+    }
+
+    void download_to(const QUrl&,
+                     const QString& file_name,
+                     int64_t,
+                     const int,
+                     const mp::ProgressMonitor&) override
+    {
+        started.set_value();
+        proceed.get_future().wait();
+        mpt::make_file_with_content(file_name, "");
+    }
+
+    QByteArray download(const QUrl&) override
+    {
+        return {};
+    }
+
+    std::promise<void> started;
+    std::promise<void> proceed;
+};
+
 struct ImageVault : public testing::Test
 {
     void SetUp()
@@ -137,10 +165,8 @@ struct ImageVault : public testing::Test
 
     QByteArray fake_img_info(const mp::MemorySize& size)
     {
-        return QByteArray::fromStdString(fmt::format(
-            "some\nother\ninfo\nfirst\nvirtual size: {} ({} bytes)\nmore\ninfo\nafter\n",
-            size.in_gigabytes(),
-            size.in_bytes()));
+        return QByteArray::fromStdString(
+            fmt::format(R"({{"format": "qcow2", "virtual-size": {}}})", size.in_bytes()));
     }
 
     void simulate_qemuimg_info(const mpt::MockProcess* process,
@@ -150,8 +176,9 @@ struct ImageVault : public testing::Test
         ASSERT_EQ(process->program().toStdString(), "qemu-img");
 
         const auto args = process->arguments();
-        ASSERT_EQ(args.size(), 2);
-        EXPECT_EQ(args.constFirst(), "info");
+        ASSERT_EQ(args.size(), 3);
+        EXPECT_EQ(args.at(0), "info");
+        EXPECT_EQ(args.at(1), "--output=json");
 
         EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
         if (produce_result.completed_successfully())
@@ -187,7 +214,7 @@ struct ImageVault : public testing::Test
     mpt::TempDir data_dir;
     mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
-    QString instance_dir = save_dir.filePath(QString::fromStdString(instance_name));
+    QString instance_dir = save_dir.filePath("instances/" + QString::fromStdString(instance_name));
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
 } // namespace
@@ -287,6 +314,27 @@ TEST_F(ImageVault, invalidFileURLThrows)
         std::runtime_error,
         mpt::match_what(
             StrEq(fmt::format("Invalid file URL `{}`; did you forget a slash?", invalid_url))));
+}
+
+TEST_F(ImageVault, imageCloneWithInvalidInstanceDirThrows)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      default_query,
+                      stub_prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      this->save_dir.path()); // no "/instances" in save dir
+
+    const std::string dest_name = instance_name + "clone";
+    MP_EXPECT_THROW_THAT(vault.clone(instance_name, dest_name),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Path replace for the cloned image failed!")));
+    EXPECT_FALSE(vault.has_record_for(dest_name));
 }
 
 TEST_F(ImageVault, nonexistentLocalFileImageThrows)
@@ -466,6 +514,86 @@ TEST_F(ImageVault, cachesPreparedImages)
     EXPECT_THAT(vm_image1.id, Eq(vm_image2.id));
 }
 
+TEST_F(ImageVault, emptyAndReleaseRemoteNamesShareCache)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    int prepare_called_count{0};
+    auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
+        ++prepare_called_count;
+        return source_image;
+    };
+
+    auto cli_query = default_query;
+    cli_query.remote_name = "";
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      cli_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      instance_dir);
+
+    auto gui_query = default_query;
+    gui_query.name = "valley-pied-piper-gui";
+    gui_query.remote_name = mpt::release_remote;
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      gui_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      save_dir.filePath(QString::fromStdString(gui_query.name)));
+
+    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    EXPECT_THAT(prepare_called_count, Eq(1));
+}
+
+TEST_F(ImageVault, sameImageIdFromDifferentRemotesSharesCache)
+{
+    NiceMock<mpt::MockImageHost> daily_host;
+    ON_CALL(daily_host, supported_remotes())
+        .WillByDefault(Return(std::vector<std::string>{"daily"}));
+    ON_CALL(daily_host, info_for(_)).WillByDefault([this](const auto&) {
+        return host.mock_bionic_image_info;
+    });
+    hosts.push_back(&daily_host);
+
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    int prepare_called_count{0};
+    auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
+        ++prepare_called_count;
+        return source_image;
+    };
+
+    auto release_query = default_query;
+    release_query.remote_name = mpt::release_remote;
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      release_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      instance_dir);
+
+    auto daily_query = default_query;
+    daily_query.name = "valley-pied-piper-daily";
+    daily_query.remote_name = "daily";
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      daily_query,
+                      prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      save_dir.filePath(QString::fromStdString(daily_query.name)));
+
+    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    EXPECT_THAT(prepare_called_count, Eq(1));
+}
+
 TEST_F(ImageVault, remembersInstanceImages)
 {
     int prepare_called_count{0};
@@ -629,6 +757,41 @@ TEST_F(ImageVault, imageExistsNotExpired)
     vault.prune_expired_images();
 
     EXPECT_TRUE(QFileInfo::exists(file_name));
+}
+
+TEST_F(ImageVault, inProgressDownloadDirectoryNotPrunedDuringFetch)
+{
+    BlockingURLDownloader blocking_downloader;
+    mp::DefaultVMImageVault vault{hosts,
+                                  &blocking_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    auto fetch_future = std::async(std::launch::async, [&] {
+        vault.fetch_image(mp::FetchType::ImageOnly,
+                          default_query,
+                          stub_prepare,
+                          stub_monitor,
+                          std::nullopt,
+                          instance_dir);
+    });
+
+    // Wait for download to start
+    blocking_downloader.started.get_future().wait();
+
+    QDir images_dir{MP_UTILS.make_dir(cache_dir.path(), "vault/images")};
+    const auto entries = images_dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
+    ASSERT_EQ(entries.size(), 1);
+    const auto image_dir_path = entries.first().absoluteFilePath();
+
+    vault.prune_expired_images();
+
+    EXPECT_TRUE(QFileInfo::exists(image_dir_path));
+
+    // Release the downloader
+    blocking_downloader.proceed.set_value();
+    fetch_future.wait();
 }
 
 TEST_F(ImageVault, invalidImageDirIsRemoved)
@@ -1025,7 +1188,7 @@ TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoCannotFindTheImage)
 TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoDoesNotUnderstandTheImageSize)
 {
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
-    const QByteArray qemuimg_output("virtual size: an unintelligible string");
+    const QByteArray qemuimg_output(R"({"format": "qcow2"})"); // Missing virtual-size field
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
     mp::DefaultVMImageVault vault{hosts,
@@ -1042,7 +1205,7 @@ TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoDoesNotUnderstandTheImag
 
     MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id),
                          std::runtime_error,
-                         mpt::match_what(HasSubstr("Could not obtain image's virtual size")));
+                         mpt::match_what(HasSubstr("is not a valid memory size")));
 }
 
 TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)

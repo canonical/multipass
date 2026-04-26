@@ -37,6 +37,7 @@ struct TestQemuVMProcessSpec : public Test
                                              mp::MemorySize{"3G"} /*mem_size*/,
                                              mp::MemorySize{"4G"} /*disk_space*/,
                                              "vm_name",
+                                             "zone1",
                                              "00:11:22:33:44:55",
                                              {},
                                              "ssh_username",
@@ -65,7 +66,7 @@ TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
 #else
     const auto storage_interface = "virtio-scsi-pci";
 #endif
-    const auto expected_uuid = multipass::utils::make_uuid(desc.vm_name);
+    const auto expected_uuid = QString::fromStdString(multipass::utils::make_uuid(desc.vm_name));
     EXPECT_EQ(spec.arguments(),
               QStringList({"--enable-kvm",
                            "-nic",
