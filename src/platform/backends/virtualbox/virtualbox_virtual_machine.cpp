@@ -450,7 +450,7 @@ mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
     auto present_state = instance_state_for(name);
     if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
         return state;
-        
+
     state = present_state;
     if (state == State::suspended || state == State::suspending)
         drop_ssh_session();

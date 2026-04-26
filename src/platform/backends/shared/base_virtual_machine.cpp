@@ -249,7 +249,8 @@ void mp::BaseVirtualMachine::detect_aborted_start()
     {
         shutdown_while_starting = true;
         state_wait.notify_all();
-
+         if (expected_shutdown)
+            throw IntentionalShutdownException(vm_name);
         std::string msg{"Instance shutdown during start"};
         if (!saved_error_msg.empty())
             msg += ": " + saved_error_msg;
@@ -291,7 +292,7 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
 {
     auto action = [this]() -> mpu::TimeoutAction {
         detect_aborted_start();
-        
+
         auto vm_state = current_state();
         if(vm_state == State::stopped || vm_state == State::off)
         {
@@ -316,8 +317,8 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
             try_to_ssh();
             return mpu::TimeoutAction::retry;
         }
-        catch (const SSHExecFailure& e)                          
-        {                                
+        catch (const SSHExecFailure& e)
+        {
             return mpu::TimeoutAction::retry;
         }
         catch (const std::exception& e) // transitioning away from catching generic runtime errors

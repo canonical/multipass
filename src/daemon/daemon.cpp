@@ -677,7 +677,7 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer,fmt::format_string<Ts...> fmt, Ts&&... fmt_params) 
+auto add_fmt_to(fmt::memory_buffer& buffer,fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
     -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
@@ -3578,7 +3578,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             else
             {
                 throw StartException(name, "Unexpected shutdown during start");
-            }    
+            }
         }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
