@@ -1,0 +1,46 @@
+name: Assign PR Reviewer
+
+on:
+  pull_request:
+    types: [review_requested]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  assign-reviewer:
+    # Skip draft PRs
+    if: github.event.requested_team != null
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests python-dateutil
+
+      - name: Run reviewer assignment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          # Tunable parameters — override via repo variables if desired
+          HALF_LIFE_DAYS: ${{ vars.REVIEWER_HALF_LIFE_DAYS }}
+          LOC_ALPHA: ${{ vars.REVIEWER_LOC_ALPHA }}
+          # Residual cutoff: drop events where e^{-λt} < this fraction
+          RESIDUAL_CUTOFF: ${{ vars.REVIEWER_RESIDUAL_CUTOFF }}
+          # Comma-separated logins to include as candidate reviewers.
+          # If empty, uses all PR authors/reviewers found in history.
+          TEAM_MEMBERS: ${{ vars.REVIEWER_TEAM_MEMBERS }}
+          # Weight split between assignment and completed review (must sum to 1).
+          # 1.0 means only assignment counts; 0.0 means only completed review counts.
+          ASSIGN_WEIGHT: ${{ vars.REVIEWER_ASSIGN_WEIGHT }}
+        run: python .github/scripts/assign_reviewer.py
