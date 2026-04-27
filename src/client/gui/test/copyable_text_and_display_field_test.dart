@@ -5,6 +5,7 @@ import 'package:multipass_gui/display_field.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 
 Widget buildApp(Widget child) => MaterialApp(
+      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: child),
