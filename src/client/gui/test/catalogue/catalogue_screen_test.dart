@@ -12,6 +12,7 @@ import '../helpers.dart';
 Widget _scope(Widget child) {
   return withFakeSvgAssetBundle(
     MaterialApp(
+      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: child,
