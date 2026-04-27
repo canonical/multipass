@@ -55,7 +55,7 @@ mp::ReturnCodeVariant cmd::Start::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    AnimatedSpinner spinner{cout};
+    AnimatedSpinner spinner{cout, term->cout_is_live()};
 
     auto on_success = [&spinner, this](mp::StartReply& reply) -> ReturnCodeVariant {
         spinner.stop();
