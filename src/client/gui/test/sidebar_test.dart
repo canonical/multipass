@@ -191,6 +191,7 @@ void main() {
               runningShellsProvider(name).overrideWithBuild((ref, _) => 0),
           ],
           child: MaterialApp(
+            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(body: SideBar()),

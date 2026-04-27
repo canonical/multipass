@@ -94,6 +94,7 @@ void main() {
     Widget buildApp(UpdateInfo info) {
       return withFakeSvgAssetBundle(
         MaterialApp(
+          locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: UpdateAvailable(info)),
@@ -122,6 +123,7 @@ void main() {
       return withFakeSvgAssetBundle(
         ProviderScope(
           child: MaterialApp(
+            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(body: UpdateAvailableNotification(info)),
