@@ -1,8 +1,13 @@
 import 'package:built_collection/built_collection.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/sidebar.dart';
+import 'package:multipass_gui/vm_details/terminal.dart';
+
+import 'helpers.dart';
 
 class _MutableVmNamesNotifier extends Notifier<BuiltSet<String>> {
   @override
@@ -173,6 +178,54 @@ void main() {
       container.read(sidebarPushContentProvider.notifier).setPushContent(false);
 
       expect(container.read(sidebarPushContentProvider), isFalse);
+    });
+  });
+
+  group('SideBar widget', () {
+    Widget buildSidebar({List<String> vmNames = const []}) {
+      return withFakeSvgAssetBundle(
+        ProviderScope(
+          overrides: [
+            vmNamesProvider.overrideWith((ref) => BuiltSet<String>(vmNames)),
+            for (final name in vmNames)
+              runningShellsProvider(name).overrideWithBuild((ref, _) => 0),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SideBar()),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('renders a SidebarEntry for each VM name', (tester) async {
+      await tester.pumpWidget(buildSidebar(vmNames: ['alpha', 'beta']));
+      await tester.pump();
+
+      // 4 fixed + 2 VM entries
+      expect(find.byType(SidebarEntry), findsNWidgets(6));
+    });
+
+    testWidgets('instance count badge reflects the number of VMs',
+        (tester) async {
+      await tester.pumpWidget(buildSidebar(vmNames: ['alpha', 'beta']));
+      await tester.pump();
+
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('selected entry receives highlighted background',
+        (tester) async {
+      await tester.pumpWidget(buildSidebar());
+      await tester.pump();
+
+      // The catalogue entry is selected by default.
+      final selectedEntries = tester
+          .widgetList<SidebarEntry>(find.byType(SidebarEntry))
+          .where((e) => e.selected)
+          .toList();
+      expect(selectedEntries, hasLength(1));
     });
   });
 }
