@@ -15,6 +15,7 @@ Widget buildWidget() {
         vmNamesProvider.overrideWith((ref) => BuiltSet<String>()),
       ],
       child: const MaterialApp(
+        locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(body: NoVms()),

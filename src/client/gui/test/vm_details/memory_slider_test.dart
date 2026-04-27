@@ -13,6 +13,7 @@ Widget _buildApp({
   void Function(int?)? onSaved,
 }) {
   return MaterialApp(
+    locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(

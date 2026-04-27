@@ -12,6 +12,7 @@ Widget _buildSlider(
       daemonInfoProvider.overrideWith((_) async => DaemonInfoReply(cpus: cpus)),
     ],
     child: MaterialApp(
+      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -80,6 +81,7 @@ void main() {
             ),
           ],
           child: MaterialApp(
+            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
