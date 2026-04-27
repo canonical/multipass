@@ -546,7 +546,7 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
                                             instance_id,
                                             specs,
                                             std::move(parent),
-                                            name,
+                                            name.toStdString(),
                                             *this,
                                             *power_shell);
 }
