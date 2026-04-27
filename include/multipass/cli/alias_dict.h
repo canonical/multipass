@@ -28,8 +28,6 @@
 
 #include <boost/json.hpp>
 
-class QJsonObject;
-
 namespace multipass
 {
 static constexpr auto default_context_name = "default";

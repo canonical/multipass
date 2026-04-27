@@ -316,14 +316,10 @@ std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 
 std::string mp::JsonFormatter::format(const ZonesReply& reply) const
 {
-    QJsonObject root_object;
+    boost::json::object root_object;
 
     for (const auto& zone : reply.zones())
-    {
-        QJsonObject zone_object;
-        zone_object["available"] = zone.available();
-        root_object[QString::fromStdString(zone.name())] = zone_object;
-    }
+        root_object[zone.name()] = {{"available", zone.available()}};
 
-    return MP_JSONUTILS.json_to_string(root_object);
+    return pretty_print(root_object);
 }
