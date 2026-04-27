@@ -5,6 +5,7 @@ import 'package:multipass_gui/settings/usage_settings.dart';
 
 Widget _buildApp(Widget child) {
   return MaterialApp(
+    locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: child),
@@ -50,13 +51,10 @@ void main() {
       await tester.enterText(find.byType(TextFormField), '1abc');
       await tester.pump();
 
-      // Trigger validation by finding the check button and tapping it
-      // The field shows save/discard buttons when changed
       expect(find.byIcon(Icons.check), findsOneWidget);
       await tester.tap(find.byIcon(Icons.check));
       await tester.pump();
 
-      // Error text should appear
       final l10n = tester.element(find.byType(TextFormField)).l10n;
       expect(find.text(l10n.usagePrimaryNameErrorStartLetter), findsOneWidget);
     });

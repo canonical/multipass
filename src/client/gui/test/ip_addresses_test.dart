@@ -6,6 +6,7 @@ import 'package:multipass_gui/vm_details/ip_addresses.dart';
 void main() {
   Widget buildWidget(List<String> ips) {
     return MaterialApp(
+      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
