@@ -9,6 +9,7 @@ final _l10n = AppLocalizationsEn();
 
 Widget buildWidget({required VoidCallback onDelete, int count = 1}) {
   return MaterialApp(
+    locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
