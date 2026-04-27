@@ -6,6 +6,7 @@ import 'package:multipass_gui/l10n/app_localizations.dart';
 
 Widget buildLocalized(Widget widget) {
   return MaterialApp(
+    locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: Dialog(child: widget)),
