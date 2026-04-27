@@ -351,7 +351,22 @@ if(cmake_build_type_lower MATCHES "coverage")
         ${CMAKE_BINARY_DIR}'/*'
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-      COMMAND ${GENHTML} -o coverage coverage.cleaned
+
+      # Merge Flutter test coverage with C++ coverage
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
+              ${FLUTTER_EXECUTABLE} test --coverage
+      COMMAND ${LCOV}
+        --remove ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+        --ignore-errors unused
+        '*/lib/generated/*'
+        '*/lib/l10n/*'
+        --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+      COMMAND ${LCOV}
+        --add-tracefile coverage.cleaned
+        --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+        --output-file coverage.cleaned
+
+      COMMAND ${GENHTML} --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui -o coverage coverage.cleaned
     )
   endif()
 endif()
@@ -369,6 +384,14 @@ add_subdirectory(src)
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
+
+  if(MULTIPASS_ENABLE_FLUTTER_GUI)
+    add_test(
+      NAME multipass_gui_tests
+      COMMAND ${FLUTTER_EXECUTABLE} test
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/client/gui
+    )
+  endif()
 endif()
 
 include(packaging/cpack.cmake OPTIONAL)

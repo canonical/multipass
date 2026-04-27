@@ -235,7 +235,7 @@ jobs:
            ulimit -c unlimited &&        \
            env CTEST_OUTPUT_ON_FAILURE=1 \
            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-           /root/parts/multipass/build/bin/multipass_tests"
+           ctest -V"
 
     - name: Measure coverage
       id: measure-coverage
