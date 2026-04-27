@@ -619,7 +619,7 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::stri
                                                 comment,
                                                 instance_id,
                                                 std::move(parent),
-                                                name,
+                                                name.toStdString(),
                                                 specs,
                                                 *this);
 }

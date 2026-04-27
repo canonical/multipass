@@ -31,7 +31,7 @@ public:
                        const std::string& comment,
                        const std::string& cloud_init_instance_id,
                        std::shared_ptr<Snapshot> parent,
-                       const QString& vm_name,
+                       const std::string& vm_name,
                        const VMSpecs& specs,
                        VirtualBoxVirtualMachine& vm);
     VirtualBoxSnapshot(const std::filesystem::path& filename,
@@ -44,7 +44,7 @@ protected:
     void apply_impl() override;
 
 private:
-    const QString vm_name;
+    const std::string vm_name;
 };
 
 } // namespace multipass
