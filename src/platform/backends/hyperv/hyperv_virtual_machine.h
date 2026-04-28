@@ -64,7 +64,7 @@ public:
     void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
+    Qualified<void> resize_disk(const MemorySize& new_size) override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -92,7 +92,6 @@ private:
     void update_network_interfaces(const VMSpecs& src_specs);
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc; // TODO we should probably keep this in the base class instead
     const QString name;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;

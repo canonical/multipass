@@ -61,7 +61,7 @@ public:
     void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
+    Qualified<void> resize_disk(const MemorySize& new_size) override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -83,8 +83,6 @@ private:
                              bool is_internal);
     void remove_snapshots_from_backend() const;
 
-    // TODO we should probably keep the VMDescription in the base VM class instead
-    VirtualMachineDescription desc;
     const QString name;
     std::optional<int> port;
     VMStatusMonitor* monitor;
