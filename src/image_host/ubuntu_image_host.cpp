@@ -66,9 +66,9 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(
 {
 }
 
-std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& query)
+std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query& query) const
 {
-    auto images = all_info_for(query);
+    auto images = all_info_for_impl(query);
 
     if (images.size() == 0)
         return std::nullopt;
@@ -84,8 +84,8 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& quer
     return images.front().second;
 }
 
-std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for(
-    const Query& query)
+std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for_impl(
+    const Query& query) const
 {
     auto key = key_from(query.release);
 
@@ -104,9 +104,9 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
     for (const auto& remote_name : remotes_to_search)
     {
-        auto* manifest = manifest_from(remote_name);
+        const auto& manifest = manifest_from(remote_name);
 
-        if (const auto* info = match_alias(key, *manifest); info)
+        if (const auto* info = match_alias(key, manifest); info)
         {
             if (!info->supported && !query.allow_unsupported)
                 throw mp::UnsupportedImageException(query.release);
@@ -117,7 +117,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
         {
             std::unordered_set<std::string> found_hashes;
 
-            for (const auto& entry : manifest->products)
+            for (const auto& entry : manifest.products)
             {
                 if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
                     found_hashes.find(entry.id.toStdString()) == found_hashes.end())
@@ -132,7 +132,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
     return images;
 }
 
-mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string& full_hash)
+mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string& full_hash) const
 {
     for (const auto& manifest : manifests)
     {
@@ -148,13 +148,14 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     throw mp::ImageNotFoundException(full_hash);
 }
 
-std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::string& remote_name,
-                                                                   const bool allow_unsupported)
+std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for_impl(
+    const std::string& remote_name,
+    const bool allow_unsupported) const
 {
     std::vector<mp::VMImageInfo> images;
-    auto manifest = manifest_from(remote_name);
+    const auto& manifest = manifest_from(remote_name);
 
-    for (const auto& entry : manifest->products)
+    for (const auto& entry : manifest.products)
     {
         if (entry.supported || allow_unsupported)
         {
@@ -169,7 +170,7 @@ std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for(const std::st
     return images;
 }
 
-void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
+void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action) const
 {
     for (const auto& [remote_name, manifest] : manifests)
     {
@@ -180,7 +181,7 @@ void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action)
     }
 }
 
-std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes()
+std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes() const
 {
     std::vector<std::string> supported_remotes;
 
@@ -251,7 +252,8 @@ void mp::UbuntuVMImageHost::clear()
     manifests.clear();
 }
 
-mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::string& remote)
+const mp::SimpleStreamsManifest& mp::UbuntuVMImageHost::manifest_from(
+    const std::string& remote) const
 {
     const auto it = std::find_if(
         manifests.cbegin(),
@@ -265,7 +267,7 @@ mp::SimpleStreamsManifest* mp::UbuntuVMImageHost::manifest_from(const std::strin
                                              "mirror is enabled, please confirm it is valid.",
                                              remote));
 
-    return it->second.get();
+    return *it->second;
 }
 
 const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
