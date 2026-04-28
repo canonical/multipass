@@ -19,10 +19,14 @@
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_openssl_syscalls.h"
+#include "mock_ssh_test_fixture.h"
+#include "mock_utils.h"
+#include "stub_ssh_key_provider.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
 #include <multipass/format.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
 
@@ -426,6 +430,113 @@ TEST(Utils, escapeForShellQuotesEmptyString)
     std::string s{""};
     auto res = mp::utils::escape_for_shell(s);
     EXPECT_THAT(res, ::testing::StrEq("''"));
+}
+
+TEST(Utils, escapeForShellEscapesDollarSign)
+{
+    EXPECT_THAT(mp::utils::escape_for_shell("with$USER"),
+                ::testing::StrEq("with\\$USER"));
+}
+
+TEST(Utils, escapeForShellEscapesBackticks)
+{
+    EXPECT_THAT(mp::utils::escape_for_shell("a`pwd`b"),
+                ::testing::StrEq("a\\`pwd\\`b"));
+}
+
+TEST(Utils, escapeForShellEscapesGlobChars)
+{
+    EXPECT_THAT(mp::utils::escape_for_shell("*?[]"),
+                ::testing::StrEq("\\*\\?\\[\\]"));
+}
+
+TEST(Utils, escapeForShellEscapesCommandSeparators)
+{
+    EXPECT_THAT(mp::utils::escape_for_shell("a;b|c&d"),
+                ::testing::StrEq("a\\;b\\|c\\&d"));
+}
+
+namespace
+{
+struct MountPathHelpers : public ::testing::Test
+{
+    // Build a real SSHSession (libssh calls are mocked by ssh_fixture below) so we can
+    // pass it to the helpers under test. The helpers call `MP_UTILS.run_in_ssh_session`
+    // which we replace with a mock that captures the formatted command string.
+    mpt::MockSSHTestFixture ssh_fixture;
+    mpt::StubSSHKeyProvider key_provider;
+    mp::SSHSession session{"host", 42, "ubuntu", key_provider};
+
+    std::string capture_command(auto&& invoke_helper)
+    {
+        auto [mock_utils, guard] = mpt::MockUtils::inject<::testing::NiceMock>();
+
+        std::string captured;
+        EXPECT_CALL(*mock_utils, run_in_ssh_session(::testing::_, ::testing::_, ::testing::_))
+            .WillOnce(::testing::DoAll(::testing::SaveArg<1>(&captured), ::testing::Return("")));
+
+        invoke_helper();
+        return captured;
+    }
+};
+} // namespace
+
+// $ inside an argument must be sent to the remote shell escaped, otherwise the
+// remote shell expands `$USER` (or any other variable) before mkdir runs and
+// the wrong directory is created. See issue #1495. The command is double-escaped
+// (once for `bash -c`, once for the outer login shell), so the literal `$USER`
+// substring must appear escaped twice (`\\$USER`) in the produced command.
+TEST_F(MountPathHelpers, makeTargetDirEscapesDollarSign)
+{
+    const auto cmd = capture_command(
+        [&] { mp::utils::make_target_dir(session, "/home/ubuntu/", "with$USER"); });
+
+    EXPECT_THAT(cmd, ::testing::HasSubstr("with\\\\\\$USER"));
+    EXPECT_THAT(cmd, ::testing::Not(::testing::HasSubstr("\"with$USER\"")));
+    EXPECT_THAT(cmd, ::testing::Not(::testing::HasSubstr(" with$USER")));
+}
+
+TEST_F(MountPathHelpers, makeTargetDirEscapesBackticks)
+{
+    const auto cmd = capture_command(
+        [&] { mp::utils::make_target_dir(session, "/home/ubuntu/", "a`pwd`b"); });
+
+    EXPECT_THAT(cmd, ::testing::HasSubstr("a\\\\\\`pwd\\\\\\`b"));
+    EXPECT_THAT(cmd, ::testing::Not(::testing::HasSubstr(" a`pwd`b")));
+}
+
+TEST_F(MountPathHelpers, setOwnerForEscapesDollarSign)
+{
+    const auto cmd = capture_command(
+        [&] { mp::utils::set_owner_for(session, "/home/ubuntu/", "with$USER", 1000, 1000); });
+
+    EXPECT_THAT(cmd, ::testing::HasSubstr("with\\\\\\$USER"));
+    EXPECT_THAT(cmd, ::testing::Not(::testing::HasSubstr("\"with$USER\"")));
+    EXPECT_THAT(cmd, ::testing::Not(::testing::HasSubstr(" with$USER")));
+}
+
+// get_path_split asks the remote shell to walk up the path until an existing
+// parent is found. The user-controlled `target` was being interpolated with
+// fmt's "{:?}" specifier (a C-string literal, not a shell-safe escape), so any
+// `$VAR` in the path was expanded by bash before the walk happened.
+TEST_F(MountPathHelpers, getPathSplitEscapesDollarSign)
+{
+    auto [mock_utils, guard] = mpt::MockUtils::inject<::testing::NiceMock>();
+
+    std::vector<std::string> captured_cmds;
+    EXPECT_CALL(*mock_utils, run_in_ssh_session(::testing::_, ::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::DoAll(
+            [&captured_cmds](auto&, const std::string& cmd, auto) { captured_cmds.push_back(cmd); },
+            ::testing::Return("/home/ubuntu/\n")));
+
+    mp::utils::get_path_split(session, "/home/ubuntu/with$USER");
+
+    ASSERT_FALSE(captured_cmds.empty());
+    const auto& path_walk_cmd = captured_cmds.back();
+    EXPECT_THAT(path_walk_cmd, ::testing::HasSubstr("with\\\\\\$USER"));
+    EXPECT_THAT(path_walk_cmd,
+                ::testing::Not(::testing::HasSubstr("\"/home/ubuntu/with$USER\"")));
+    EXPECT_THAT(path_walk_cmd, ::testing::Not(::testing::HasSubstr("=/home/ubuntu/with$USER")));
 }
 
 TEST(Utils, checkIstartswithComparesCaseInsensitively)
