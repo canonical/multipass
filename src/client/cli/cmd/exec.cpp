@@ -181,9 +181,20 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
             if (args[0] == "sudo")
             {
                 // Use sudo to access the directory, but run the command as the default user,
-                // This preserves the correct SUDO_ environment variables
-                const auto sh_args =
-                    fmt::format("cd {} && sudo -u {} {}", *dir, username, fmt::join(args, " "));
+                // This preserves the correct SUDO_ environment variables.
+                //
+                // The composed string is handed to `sh -c`, which performs an extra layer
+                // of shell parsing on top of the outer SSH login shell. Each user-supplied
+                // component (working directory, the args following `sudo`) must therefore
+                // be escaped before it is interpolated, otherwise shell metacharacters
+                // (e.g. `$VAR`, backticks, globs) are interpreted by `sh` and the wrong
+                // command is run; see issue #1495. `username` comes from `ssh_info` and
+                // is not user-supplied at this site, but is escaped for symmetry.
+                std::vector<std::string> sudo_args(std::next(args.begin()), args.end());
+                const auto sh_args = fmt::format("cd {} && sudo -u {} sudo {}",
+                                                 mpu::escape_for_shell(*dir),
+                                                 mpu::escape_for_shell(username),
+                                                 mpu::to_cmd(sudo_args, mpu::QuoteType::quote_every_arg));
 
                 all_args = {{"sudo", "sh", "-c", sh_args}};
             }

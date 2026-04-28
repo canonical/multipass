@@ -1921,21 +1921,20 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
     std::string dir{"/root/"};
     std::vector<std::string> cmds{"sudo", "pwd"};
 
-    std::string cmds_string{cmds[0]};
-    for (size_t i = 1; i < cmds.size(); ++i)
-        cmds_string += " " + cmds[i];
-
     REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
         *val = 0;
         return SSH_OK;
     });
-    REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string](ssh_channel, const char* raw_cmd) {
-                // The test expects this exact command format
-                // The issue is that when using sudo -u user, the AppArmor context is not preserved
-                // But we need to match the actual implementation in exec.cpp
-                EXPECT_EQ(raw_cmd,
-                          "sudo sh -c cd\\ " + dir + "\\ \\&\\&\\ sudo\\ -u\\ user\\ " +
-                              mpu::escape_for_shell(cmds_string));
+    REPLACE(ssh_channel_request_exec, ([&dir](ssh_channel, const char* raw_cmd) {
+                // Each user-supplied component (working dir and args following `sudo`) is
+                // escaped once for the inner `sh -c`, then `to_cmd` escapes the whole
+                // `sh_args` string a second time for the outer SSH login shell.
+                const auto inner =
+                    "cd " + mpu::escape_for_shell(dir) + " && sudo -u user sudo " +
+                    mpu::escape_for_shell("pwd");
+                const auto expected =
+                    "sudo sh -c " + mpu::escape_for_shell(inner);
+                EXPECT_EQ(raw_cmd, expected);
 
                 return SSH_OK;
             }));
@@ -1956,6 +1955,46 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
         full_cmdline.push_back(c);
 
     EXPECT_EQ(send_command(full_cmdline), mp::ReturnCode::Ok);
+}
+
+// Regression test for issue #1495: a working directory with shell metacharacters
+// must be escaped before reaching `sh -c`, otherwise the inner shell expands
+// `$VAR` and `cd` operates on a different path than the user requested.
+TEST_F(Client, execCmdWithDirAndSudoEscapesDollarSignInDir)
+{
+    std::string dir{"/home/ubuntu/with$USER"};
+
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
+        *val = 0;
+        return SSH_OK;
+    });
+    REPLACE(ssh_channel_request_exec, ([&dir](ssh_channel, const char* raw_cmd) {
+                // The `$USER` substring must remain escaped end-to-end; it must not
+                // appear unescaped (which would let either the SSH login shell or the
+                // inner `sh -c` expand it).
+                std::string raw{raw_cmd};
+                EXPECT_THAT(raw, ::testing::Not(::testing::HasSubstr("cd /home/ubuntu/with$USER")));
+                EXPECT_THAT(raw, ::testing::Not(::testing::HasSubstr("cd \"/home/ubuntu/with$USER\"")));
+                // The dollar sign is double-escaped: outer SSH shell removes one level,
+                // inner `sh -c` removes the second, leaving a literal `$USER` for `cd`.
+                EXPECT_THAT(raw, ::testing::HasSubstr("with\\\\\\$USER"));
+
+                return SSH_OK;
+            }));
+
+    std::string instance_name{"instance"};
+    mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
+
+    EXPECT_CALL(mock_daemon, ssh_info(_, _))
+        .WillOnce(
+            [&response](grpc::ServerContext* context,
+                        grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
+                server->Write(response);
+                return grpc::Status{};
+            });
+
+    EXPECT_EQ(send_command({"exec", instance_name, "--working-directory", dir, "--", "sudo", "pwd"}),
+              mp::ReturnCode::Ok);
 }
 
 TEST_F(Client, execCmdFailsIfSshExecThrows)
