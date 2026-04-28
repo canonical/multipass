@@ -1,30 +1,30 @@
 import 'package:flutter/material.dart';
 
 import 'confirmation_dialog.dart';
+import 'l10n/app_localizations.dart';
 
 class DeleteInstanceDialog extends StatelessWidget {
   final VoidCallback onDelete;
-  final bool multiple;
+  final int count;
 
   const DeleteInstanceDialog({
     super.key,
     required this.onDelete,
-    required this.multiple,
+    this.count = 1,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ConfirmationDialog(
-      title: 'Delete instance${multiple ? 's' : ''}',
-      body: Text(
-        "You won't be able to recover ${multiple ? 'these instances' : 'this instance'}.",
-      ),
-      actionText: 'Delete',
+      title: l10n.deleteInstanceTitle(count),
+      body: Text(l10n.deleteInstanceBody(count)),
+      actionText: l10n.dialogDelete,
       onAction: () {
         onDelete();
         Navigator.pop(context);
       },
-      inactionText: 'Cancel',
+      inactionText: l10n.dialogCancel,
       onInaction: () => Navigator.pop(context),
     );
   }

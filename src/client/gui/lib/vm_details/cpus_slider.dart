@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 
 class CpusSlider extends ConsumerStatefulWidget {
@@ -53,6 +54,7 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final daemonInfo = ref.watch(daemonInfoProvider);
     final cores = daemonInfo.when(
       data: (data) => data.cpus,
@@ -96,13 +98,13 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
             Row(children: [Text('$min'), Spacer(), Text('$max')]),
             if ((field.value ?? min) > cores) ...[
               const SizedBox(height: 25),
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
-                  SizedBox(width: 5),
+                  const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+                  const SizedBox(width: 5),
                   Text(
-                    'Over-provisioning of cores',
-                    style: TextStyle(fontSize: 16),
+                    l10n.cpusSliderOverProvisioning,
+                    style: const TextStyle(fontSize: 16),
                   ),
                 ],
               ),
@@ -116,7 +118,7 @@ class _CpusSliderState extends ConsumerState<CpusSlider> {
       children: [
         Row(
           children: [
-            Text('CPUs', style: TextStyle(fontSize: 16)),
+            Text(l10n.cpusSliderLabel, style: const TextStyle(fontSize: 16)),
             const Spacer(),
             SizedBox(width: 65, child: textField),
           ],

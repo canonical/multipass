@@ -1,0 +1,952 @@
+{
+    "@@locale": "en",
+    "vmActionLabel": "{action, select, start{Start} stop{Stop} suspend{Suspend} restart{Restart} delete{Delete} recover{Recover} purge{Purge} edit{Edit} other{}}",
+    "@vmActionLabel": {
+        "description": "Button label for a VM action. The 'action' parameter is the lowercase enum name (start, stop, suspend, restart, delete, recover, purge, edit).",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            }
+        }
+    },
+    "vmStatusLabel": "{status, select, running{Running} stopped{Stopped} suspended{Suspended} restarting{Restarting} starting{Starting} suspending{Suspending} deleted{Deleted} delayed_shutdown{Delayed shutdown} launching{Launching} other{}}",
+    "@vmStatusLabel": {
+        "description": "Display label for a VM status. The 'status' parameter is the lowercase protobuf enum name (running, stopped, suspended, restarting, starting, suspending, deleted, delayed_shutdown) or 'launching'.",
+        "placeholders": {
+            "status": {
+                "type": "String"
+            }
+        }
+    },
+    "vmActionPastTense": "{action, select, start{Started} stop{Stopped} suspend{Suspended} restart{Restarted} delete{Deleted} recover{Recovered} purge{Purged} edit{Edited} other{}}",
+    "@vmActionPastTense": {
+        "description": "Past-tense form of a VM action, used in success notifications. The 'action' parameter is the lowercase enum name.",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            }
+        }
+    },
+    "vmActionContinuousTense": "{action, select, start{Starting} stop{Stopping} suspend{Suspending} restart{Restarting} delete{Deleting} recover{Recovering} purge{Purging} edit{Editing} other{}}",
+    "@vmActionContinuousTense": {
+        "description": "Continuous-tense form of a VM action, used in progress notifications. The 'action' parameter is the lowercase enum name.",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            }
+        }
+    },
+    "beforeQuitTitle": "Stop running instances?",
+    "@beforeQuitTitle": {
+        "description": "Title of the dialog asking the user whether to stop running VMs on quit"
+    },
+    "beforeQuitMessage": "{count, plural, =1{There is 1 running instance. Do you want to stop it?} other{There are {count} running instances. Do you want to stop them?}}",
+    "@beforeQuitMessage": {
+        "description": "Body of the dialog asking the user whether to stop running VMs on quit",
+        "placeholders": {
+            "count": {
+                "type": "int",
+                "description": "Number of running VM instances"
+            }
+        }
+    },
+    "dialogDoNotAskAgain": "Do not ask me again",
+    "@dialogDoNotAskAgain": {
+        "description": "Checkbox label to suppress a recurring confirmation dialog"
+    },
+    "beforeQuitStopAction": "Stop instances",
+    "@beforeQuitStopAction": {
+        "description": "Confirm button label to stop running instances on quit"
+    },
+    "beforeQuitKeepAction": "Leave instances running",
+    "@beforeQuitKeepAction": {
+        "description": "Cancel button label to leave instances running on quit"
+    },
+    "bulkActionInstanceCount": "{count, plural, =1{1 instance} other{{count} instances}}",
+    "@bulkActionInstanceCount": {
+        "description": "Refers to a number of VM instances in bulk action notifications",
+        "placeholders": {
+            "count": {
+                "type": "int",
+                "description": "Number of selected VM instances"
+            }
+        }
+    },
+    "bulkActionMessage": "{verb} {object}",
+    "@bulkActionMessage": {
+        "description": "Notification for a bulk action; verb is in continuous tense (e.g. Starting) or past tense (e.g. Started) depending on context",
+        "placeholders": {
+            "verb": {
+                "type": "String",
+                "description": "The action verb, e.g. Starting or Started"
+            },
+            "object": {
+                "type": "String",
+                "description": "The instance name or count, e.g. primary or 3 instances"
+            }
+        }
+    },
+    "bulkActionError": "Failed to {verb} {object}: {error}",
+    "@bulkActionError": {
+        "description": "Notification shown when a bulk action fails",
+        "placeholders": {
+            "verb": {
+                "type": "String",
+                "description": "The action label in lowercase, e.g. start"
+            },
+            "object": {
+                "type": "String",
+                "description": "The instance name or count"
+            },
+            "error": {
+                "type": "String",
+                "description": "The error message"
+            }
+        }
+    },
+    "noVmsTitle": "Zero Instances",
+    "@noVmsTitle": {
+        "description": "Heading shown when the user has no VM instances"
+    },
+    "noVmsMessageBefore": "Return to the ",
+    "@noVmsMessageBefore": {
+        "description": "Text before the Catalogue link in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
+    },
+    "noVmsMessageAfter": " to choose your instance or get started with the primary Ubuntu Image",
+    "@noVmsMessageAfter": {
+        "description": "Text after the Catalogue link in the empty-state message. Forms the sentence: 'Return to the [Catalogue] to choose your instance or get started with the primary Ubuntu Image'"
+    },
+    "searchBoxHint": "Search instances...",
+    "@searchBoxHint": {
+        "description": "Placeholder text in the instance search box"
+    },
+    "helpBody": "View tutorials, how-to guides, and references in our extensive Multipass Documentation site.",
+    "@helpBody": {
+        "description": "Introductory text on the Help screen"
+    },
+    "helpViewDocs": "View documentation",
+    "@helpViewDocs": {
+        "description": "Button label that opens the Multipass documentation URL"
+    },
+    "catalogueLabel": "Catalogue",
+    "@catalogueLabel": {
+        "description": "The word 'Catalogue' used as a navigation label, page heading, and link text"
+    },
+    "sidebarInstances": "Instances",
+    "@sidebarInstances": {
+        "description": "Sidebar navigation label for the Instances screen"
+    },
+    "helpLabel": "Help",
+    "@helpLabel": {
+        "description": "The word 'Help' used as a navigation label and page heading"
+    },
+    "settingsLabel": "Settings",
+    "@settingsLabel": {
+        "description": "The word 'Settings' used as a navigation label and page heading"
+    },
+    "deleteInstanceTitle": "{count, plural, =1{Delete instance} other{Delete instances}}",
+    "@deleteInstanceTitle": {
+        "description": "Title of the delete instance confirmation dialog",
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "deleteInstanceBody": "{count, plural, =1{You won't be able to recover this instance.} other{You won't be able to recover these instances.}}",
+    "@deleteInstanceBody": {
+        "description": "Body text of the delete instance confirmation dialog",
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "dialogDelete": "Delete",
+    "@dialogDelete": {
+        "description": "Generic Delete confirm button label used across delete confirmation dialogs"
+    },
+    "dialogCancel": "Cancel",
+    "@dialogCancel": {
+        "description": "Generic cancel button label for dialogs"
+    },
+    "closeTerminalTitle": "Close tab?",
+    "@closeTerminalTitle": {
+        "description": "Title of the dialog asking the user to confirm closing a terminal tab"
+    },
+    "closeTerminalBody": "Are you sure you want to close this tab? Its current state will be lost.",
+    "@closeTerminalBody": {
+        "description": "Body text of the close terminal tab confirmation dialog"
+    },
+    "closeTerminalConfirm": "Close tab",
+    "@closeTerminalConfirm": {
+        "description": "Confirm button label on the close terminal tab dialog"
+    },
+    "launchSuccessTitle": "{name} is up and running\n",
+    "@launchSuccessTitle": {
+        "description": "Bold heading in the launch success notification",
+        "placeholders": {
+            "name": {
+                "type": "String",
+                "description": "The VM instance name"
+            }
+        }
+    },
+    "launchSuccessBody": "You can start using it now",
+    "@launchSuccessBody": {
+        "description": "Subtitle in the launch success notification"
+    },
+    "launchGoToInstance": "Go to instance",
+    "@launchGoToInstance": {
+        "description": "Button label in the launch success notification that navigates to the VM"
+    },
+    "launchVerifyingImage": "Verifying image",
+    "@launchVerifyingImage": {
+        "description": "Progress message shown while verifying a VM image during launch"
+    },
+    "launchDownloadingImage": "Downloading image {percent}%",
+    "@launchDownloadingImage": {
+        "description": "Progress message shown while downloading a VM image during launch",
+        "placeholders": {
+            "percent": {
+                "type": "String",
+                "description": "Download completion percentage"
+            }
+        }
+    },
+    "launchInProgress": "Launching {name}\n",
+    "@launchInProgress": {
+        "description": "Bold heading in the in-progress launch notification",
+        "placeholders": {
+            "name": {
+                "type": "String",
+                "description": "The VM instance name"
+            }
+        }
+    },
+    "aboutTitle": "About",
+    "@aboutTitle": {
+        "description": "Section heading on the About settings page"
+    },
+    "aboutVersionLabel": "Multipass version",
+    "@aboutVersionLabel": {
+        "description": "Label for the Multipass client version field on the About page"
+    },
+    "aboutDaemonVersionLabel": "Multipass daemon version",
+    "@aboutDaemonVersionLabel": {
+        "description": "Label for the Multipass daemon version field on the About page"
+    },
+    "generalTitle": "General",
+    "@generalTitle": {
+        "description": "Section heading on the General settings page"
+    },
+    "generalAutostartLabel": "Open the Multipass GUI on startup",
+    "@generalAutostartLabel": {
+        "description": "Toggle label for the autostart setting"
+    },
+    "generalAutostartError": "Failed to set autostart: {error}",
+    "@generalAutostartError": {
+        "description": "Error notification when the autostart setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "generalOnCloseLabel": "When closing Multipass",
+    "@generalOnCloseLabel": {
+        "description": "Label for the dropdown that controls what happens when Multipass is closed"
+    },
+    "generalOnCloseAsk": "Ask about running instances",
+    "@generalOnCloseAsk": {
+        "description": "Dropdown option: ask the user what to do with running instances on close"
+    },
+    "generalOnCloseStop": "Stop running instances",
+    "@generalOnCloseStop": {
+        "description": "Dropdown option: automatically stop running instances on close"
+    },
+    "generalOnCloseNothing": "Do not stop running instances",
+    "@generalOnCloseNothing": {
+        "description": "Dropdown option: leave running instances running on close"
+    },
+    "usageTitle": "Usage",
+    "@usageTitle": {
+        "description": "Section heading on the Usage settings page"
+    },
+    "usagePrivilegedMountsLabel": "Allow privileged mounts",
+    "@usagePrivilegedMountsLabel": {
+        "description": "Toggle label for the privileged mounts setting"
+    },
+    "usagePrivilegedMountsError": "Failed to set privileged mounts: {error}",
+    "@usagePrivilegedMountsError": {
+        "description": "Error notification when the privileged mounts setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "usageAskTerminalCloseLabel": "Ask before closing terminal",
+    "@usageAskTerminalCloseLabel": {
+        "description": "Toggle label for the ask-before-closing-terminal setting"
+    },
+    "usagePrimaryNameLabel": "Primary instance name",
+    "@usagePrimaryNameLabel": {
+        "description": "Label for the primary instance name field in Usage settings"
+    },
+    "usagePrimaryNameErrorStartLetter": "Name must start with a letter",
+    "@usagePrimaryNameErrorStartLetter": {
+        "description": "Validation error when the primary instance name does not start with a letter"
+    },
+    "usagePrimaryNameErrorTooShort": "Name must be at least 2 characters",
+    "@usagePrimaryNameErrorTooShort": {
+        "description": "Validation error when the primary instance name is too short"
+    },
+    "usagePrimaryNameErrorEndChar": "Name must end in digit or letter",
+    "@usagePrimaryNameErrorEndChar": {
+        "description": "Validation error when the primary instance name ends with a hyphen"
+    },
+    "usageHotkeyLabel": "Primary instance hotkey",
+    "@usageHotkeyLabel": {
+        "description": "Label for the primary instance hotkey field in Usage settings"
+    },
+    "usagePassphraseLabel": "Authentication passphrase",
+    "@usagePassphraseLabel": {
+        "description": "Label for the authentication passphrase field in Usage settings"
+    },
+    "usagePassphraseError": "Failed to set passphrase: {error}",
+    "@usagePassphraseError": {
+        "description": "Error notification when the passphrase cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "virtualizationTitle": "Virtualization",
+    "@virtualizationTitle": {
+        "description": "Section heading on the Virtualization settings page"
+    },
+    "virtualizationDriverLabel": "Driver",
+    "@virtualizationDriverLabel": {
+        "description": "Label for the hypervisor driver dropdown"
+    },
+    "virtualizationDriverError": "Failed to set driver: {error}",
+    "@virtualizationDriverError": {
+        "description": "Error notification when the driver setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "virtualizationBridgedNetworkNone": "None",
+    "@virtualizationBridgedNetworkNone": {
+        "description": "Dropdown option representing no bridged network selected"
+    },
+    "hotkeyUnknownKey": "...",
+    "@hotkeyUnknownKey": {
+        "description": "Placeholder shown for the key portion of a hotkey when no key has been recorded yet"
+    },
+    "hotkeyCtrl": "Ctrl",
+    "@hotkeyCtrl": {
+        "description": "Display name for the Control modifier key in a hotkey combination"
+    },
+    "hotkeyShift": "Shift",
+    "@hotkeyShift": {
+        "description": "Display name for the Shift modifier key in a hotkey combination"
+    },
+    "hotkeyInputPrompt": "Input...",
+    "@hotkeyInputPrompt": {
+        "description": "Placeholder shown in the hotkey recorder when it has focus and is waiting for input"
+    },
+    "dialogSave": "Save",
+    "@dialogSave": {
+        "description": "Generic Save button label used across multiple dialogs and edit forms"
+    },
+    "dialogConfigure": "Configure",
+    "@dialogConfigure": {
+        "description": "Generic Configure button label used to enter edit mode"
+    },
+    "vmStatCpuUsage": "CPU USAGE",
+    "@vmStatCpuUsage": {
+        "description": "Column header label for the CPU usage stat"
+    },
+    "vmStatMemoryUsage": "MEMORY USAGE",
+    "@vmStatMemoryUsage": {
+        "description": "Column header label for the memory usage stat"
+    },
+    "vmStatDiskUsage": "DISK USAGE",
+    "@vmStatDiskUsage": {
+        "description": "Column header label for the disk usage stat"
+    },
+    "vmStatState": "STATE",
+    "@vmStatState": {
+        "description": "Column header label for the VM state stat"
+    },
+    "vmStatImage": "IMAGE",
+    "@vmStatImage": {
+        "description": "Column header label for the image stat"
+    },
+    "vmStatPrivateIp": "PRIVATE IP",
+    "@vmStatPrivateIp": {
+        "description": "Column header label for the private IP address stat"
+    },
+    "vmStatPublicIp": "PUBLIC IP",
+    "@vmStatPublicIp": {
+        "description": "Column header label for the public IP address stat"
+    },
+    "vmStatCreated": "CREATED",
+    "@vmStatCreated": {
+        "description": "Column header label for the creation timestamp stat"
+    },
+    "vmStatUptime": "UPTIME",
+    "@vmStatUptime": {
+        "description": "Column header label for the uptime stat"
+    },
+    "ipAddressesOtherTitle": "Other IP addresses",
+    "@ipAddressesOtherTitle": {
+        "description": "Tooltip and popup header for the secondary IP addresses list"
+    },
+    "mountHostDirLabel": "HOST DIRECTORY",
+    "@mountHostDirLabel": {
+        "description": "Column header for the host (source) directory in a mount point row"
+    },
+    "mountHostDirTooltip": "A directory on your local machine that will be shared with the instance",
+    "@mountHostDirTooltip": {
+        "description": "Tooltip explaining the host directory field"
+    },
+    "mountGuestDirLabel": "GUEST DIRECTORY",
+    "@mountGuestDirLabel": {
+        "description": "Column header for the guest (target) directory in a mount point row"
+    },
+    "mountGuestDirTooltip": "A destination inside the instance for the shared directory.\nIf the destination directory already exists, its contents will not be visible until unmounting.",
+    "@mountGuestDirTooltip": {
+        "description": "Tooltip explaining the guest directory field"
+    },
+    "mountSourceEmpty": "Source cannot be empty",
+    "@mountSourceEmpty": {
+        "description": "Validation error when the mount source path is blank"
+    },
+    "mountSelectButton": "Select",
+    "@mountSelectButton": {
+        "description": "Button label and file picker confirm label for selecting a host directory"
+    },
+    "mountDuplicatePath": "This path is used by another mount",
+    "@mountDuplicatePath": {
+        "description": "Validation error when the mount target path conflicts with an existing mount"
+    },
+    "mountsTitle": "Mounts",
+    "@mountsTitle": {
+        "description": "Section heading on the Mounts details tab"
+    },
+    "mountsAddMount": "Add mount",
+    "@mountsAddMount": {
+        "description": "Button label to open the add-mount form"
+    },
+    "mountDeleteTitle": "Delete mount",
+    "@mountDeleteTitle": {
+        "description": "Title of the confirmation dialog for removing a mount"
+    },
+    "mountDeleteBodyPrefix": "Are you sure you want to remove the mount\n",
+    "@mountDeleteBodyPrefix": {
+        "description": "First part of the delete-mount confirmation body (followed by the mount path on a new line)"
+    },
+    "mountDeleteBodySuffix": " from {instanceName}?",
+    "@mountDeleteBodySuffix": {
+        "description": "Last part of the delete-mount confirmation body",
+        "placeholders": {
+            "instanceName": {
+                "type": "String"
+            }
+        }
+    },
+    "mountNotificationLoading": "Mounting {description}",
+    "@mountNotificationLoading": {
+        "description": "Loading notification while a mount operation is in progress",
+        "placeholders": {
+            "description": {
+                "type": "String"
+            }
+        }
+    },
+    "mountNotificationSuccess": "Mounted {description}",
+    "@mountNotificationSuccess": {
+        "description": "Success notification after a mount operation completes",
+        "placeholders": {
+            "description": {
+                "type": "String"
+            }
+        }
+    },
+    "mountNotificationError": "Failed to mount {description}: {error}",
+    "@mountNotificationError": {
+        "description": "Error notification when a mount operation fails",
+        "placeholders": {
+            "description": {
+                "type": "String"
+            },
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "unmountNotificationLoading": "Unmounting ''{target}'' from {instanceName}",
+    "@unmountNotificationLoading": {
+        "description": "Loading notification while an unmount operation is in progress",
+        "placeholders": {
+            "target": {
+                "type": "String"
+            },
+            "instanceName": {
+                "type": "String"
+            }
+        }
+    },
+    "unmountNotificationSuccess": "Unmounted ''{target}'' from {instanceName}",
+    "@unmountNotificationSuccess": {
+        "description": "Success notification after an unmount operation completes",
+        "placeholders": {
+            "target": {
+                "type": "String"
+            },
+            "instanceName": {
+                "type": "String"
+            }
+        }
+    },
+    "unmountNotificationError": "Failed to unmount ''{target}'' from {instanceName}: {error}",
+    "@unmountNotificationError": {
+        "description": "Error notification when an unmount operation fails",
+        "placeholders": {
+            "target": {
+                "type": "String"
+            },
+            "instanceName": {
+                "type": "String"
+            },
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "bridgeTitle": "Bridged network",
+    "@bridgeTitle": {
+        "description": "Section heading on the Bridged Network details tab"
+    },
+    "bridgeConnect": "Connect to bridged network.",
+    "@bridgeConnect": {
+        "description": "Checkbox label to enable bridged network connection"
+    },
+    "bridgeNoNetworks": "No networks found.",
+    "@bridgeNoNetworks": {
+        "description": "Status message when no host networks are available for bridging"
+    },
+    "bridgeNoValidNetwork": "No valid bridged network is set.",
+    "@bridgeNoValidNetwork": {
+        "description": "Status message when a bridged network is not configured"
+    },
+    "bridgeEstablishedWarning": "Once established, you won't be able to unset the connection.",
+    "@bridgeEstablishedWarning": {
+        "description": "Warning shown when the bridged network checkbox is available"
+    },
+    "bridgeStatusConnected": "Status: connected",
+    "@bridgeStatusConnected": {
+        "description": "Status line shown when the instance is connected to the bridged network"
+    },
+    "bridgeStatusNotConnected": "Status: not connected",
+    "@bridgeStatusNotConnected": {
+        "description": "Status line shown when the instance is not connected to the bridged network"
+    },
+    "bridgeFailedNetwork": "Failed to set bridged network: {error}",
+    "@bridgeFailedNetwork": {
+        "description": "Error notification when the bridged network setting cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "vmDetailsStopToConfigure": "Stop instance to configure",
+    "@vmDetailsStopToConfigure": {
+        "description": "Tooltip shown on the Configure button when the instance is running"
+    },
+    "resourcesTitle": "Resources",
+    "@resourcesTitle": {
+        "description": "Section heading on the Resources details tab"
+    },
+    "resourcesCpusDisplay": "CPUs {value}",
+    "@resourcesCpusDisplay": {
+        "description": "Read-only display of the CPU count",
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesMemoryDisplay": "Memory {value}",
+    "@resourcesMemoryDisplay": {
+        "description": "Read-only display of the memory size",
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesDiskDisplay": "Disk {value}",
+    "@resourcesDiskDisplay": {
+        "description": "Read-only display of the disk size",
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesSaveChanges": "Save changes",
+    "@resourcesSaveChanges": {
+        "description": "Save button label on the Resources edit form"
+    },
+    "resourcesFailedCpus": "Failed to set CPUs: {error}",
+    "@resourcesFailedCpus": {
+        "description": "Error notification when the CPU count cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesFailedMemory": "Failed to set memory size: {error}",
+    "@resourcesFailedMemory": {
+        "description": "Error notification when the memory size cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "resourcesFailedDisk": "Failed to set disk size: {error}",
+    "@resourcesFailedDisk": {
+        "description": "Error notification when the disk size cannot be changed",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "cpusSliderLabel": "CPUs",
+    "@cpusSliderLabel": {
+        "description": "Label for the CPU count field in the sliders form"
+    },
+    "cpusSliderOverProvisioning": "Over-provisioning of cores",
+    "@cpusSliderOverProvisioning": {
+        "description": "Warning shown when the requested CPU count exceeds the host CPU count"
+    },
+    "memorySliderOverProvisioning": "Over-provisioning of {label}",
+    "@memorySliderOverProvisioning": {
+        "description": "Warning shown when the requested memory/disk size exceeds the host available amount",
+        "placeholders": {
+            "label": {
+                "type": "String"
+            }
+        }
+    },
+    "ramSliderLabel": "Memory",
+    "@ramSliderLabel": {
+        "description": "Label for the RAM slider widget"
+    },
+    "diskSliderLabel": "Disk",
+    "@diskSliderLabel": {
+        "description": "Label for the disk size slider widget"
+    },
+    "diskSizeCannotDecrease": "Disk size cannot be decreased",
+    "@diskSizeCannotDecrease": {
+        "description": "Tooltip shown on the disk slider when the disk size cannot be reduced"
+    },
+    "terminalSshFailed": "Failed to get SSH information: {error}",
+    "@terminalSshFailed": {
+        "description": "Error notification when SSH connection info cannot be retrieved",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "terminalContextCopy": "Copy",
+    "@terminalContextCopy": {
+        "description": "Context menu item to copy selected terminal text"
+    },
+    "terminalContextPaste": "Paste",
+    "@terminalContextPaste": {
+        "description": "Context menu item to paste text into the terminal"
+    },
+    "terminalContextSelectAll": "Select All",
+    "@terminalContextSelectAll": {
+        "description": "Context menu item to select all terminal text"
+    },
+    "terminalOpenShell": "Open shell",
+    "@terminalOpenShell": {
+        "description": "Button label to open a new shell in the terminal view"
+    },
+    "vmActionNotification": "{action} {instance}",
+    "@vmActionNotification": {
+        "description": "Notification for a VM action; action is the verb in continuous tense (e.g. 'Starting vm1') or past tense (e.g. 'Started vm1') depending on context",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            },
+            "instance": {
+                "type": "String"
+            }
+        }
+    },
+    "vmActionNotificationError": "Failed to {action} {instance}: {error}",
+    "@vmActionNotificationError": {
+        "description": "Error notification when a VM action fails",
+        "placeholders": {
+            "action": {
+                "type": "String"
+            },
+            "instance": {
+                "type": "String"
+            },
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "vmActionsMenuTooltip": "Show actions",
+    "@vmActionsMenuTooltip": {
+        "description": "Tooltip on the actions popup-menu button"
+    },
+    "vmActionsMenuTitle": "Actions",
+    "@vmActionsMenuTitle": {
+        "description": "Title label displayed inside the VM actions popup menu"
+    },
+    "terminalTabTitle": "Shell {id}",
+    "@terminalTabTitle": {
+        "description": "Title for a terminal tab, where id is the shell number",
+        "placeholders": {
+            "id": {
+                "type": "int"
+            }
+        }
+    },
+    "vmTableColumnName": "NAME",
+    "@vmTableColumnName": {
+        "description": "Column header label for the instance name column in the VM table"
+    },
+    "vmTableColumnsButton": "Columns",
+    "@vmTableColumnsButton": {
+        "description": "Label on the button that opens the column show/hide menu"
+    },
+    "vmTableAllInstances": "All Instances",
+    "@vmTableAllInstances": {
+        "description": "Page heading above the VM table"
+    },
+    "vmTableLaunch": "Launch",
+    "@vmTableLaunch": {
+        "description": "Button label that opens the catalogue to launch a new instance"
+    },
+    "vmTableShowRunningOnly": "Show running instances only",
+    "@vmTableShowRunningOnly": {
+        "description": "Toggle label that filters the VM table to running instances"
+    },
+    "vmTableTotal": "Total",
+    "@vmTableTotal": {
+        "description": "Label for the totals row at the bottom of the VM table"
+    },
+    "copyableTextClickToCopy": "Click to copy",
+    "@copyableTextClickToCopy": {
+        "description": "Tooltip shown on a copyable text widget before the user clicks"
+    },
+    "copyableTextCopied": "Copied",
+    "@copyableTextCopied": {
+        "description": "Tooltip shown on a copyable text widget after the user clicks"
+    },
+    "daemonCopyErrorTooltip": "Copy error message",
+    "@daemonCopyErrorTooltip": {
+        "description": "Tooltip on the copy-icon button in the fatal error overlay (before copying)"
+    },
+    "daemonCopied": "Copied!",
+    "@daemonCopied": {
+        "description": "Tooltip on the copy-icon button in the fatal error overlay (after copying)"
+    },
+    "daemonFatalError": "Fatal Error",
+    "@daemonFatalError": {
+        "description": "Heading in the fatal FFI error overlay"
+    },
+    "daemonExitButton": "Exit Application",
+    "@daemonExitButton": {
+        "description": "Button label to exit the app from the fatal error overlay"
+    },
+    "daemonWaiting": "Waiting for daemon...",
+    "@daemonWaiting": {
+        "description": "Status message shown while waiting for the Multipass daemon to become available"
+    },
+    "updateAvailableTitle": "Multipass {version} is available",
+    "@updateAvailableTitle": {
+        "description": "In-app banner and notification text announcing a new Multipass version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "updateAvailableUpgrade": "Upgrade now",
+    "@updateAvailableUpgrade": {
+        "description": "Button label to start the upgrade process"
+    },
+    "localNotificationUpdateTitle": "Multipass Update Available",
+    "@localNotificationUpdateTitle": {
+        "description": "Title of the system notification announcing a new Multipass version"
+    },
+    "localNotificationUpdateBody": "Version {version} is available. Click to upgrade now.",
+    "@localNotificationUpdateBody": {
+        "description": "Body text of the system notification announcing a new Multipass version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "catalogueLoadError": "Failed to retrieve images: {error}",
+    "@catalogueLoadError": {
+        "description": "Error message shown when image retrieval fails",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "catalogueRefresh": "Refresh",
+    "@catalogueRefresh": {
+        "description": "Button label to refresh the image catalogue"
+    },
+    "catalogueWelcomeTitle": "Welcome to Multipass",
+    "@catalogueWelcomeTitle": {
+        "description": "Welcome screen heading in the image catalogue"
+    },
+    "catalogueWelcomeBody": "Get an instant VM in seconds. Multipass can launch and run virtual machines and configure them like a public cloud.",
+    "@catalogueWelcomeBody": {
+        "description": "Welcome screen body text in the image catalogue"
+    },
+    "imageCardTitleUbuntuCore": "Ubuntu Core",
+    "@imageCardTitleUbuntuCore": {
+        "description": "Display title for Ubuntu Core image"
+    },
+    "imageCardTitleUbuntuServer": "Ubuntu Server",
+    "@imageCardTitleUbuntuServer": {
+        "description": "Display title for Ubuntu Server image"
+    },
+    "imageCardTitleDebian": "Debian",
+    "@imageCardTitleDebian": {
+        "description": "Display title for Debian image"
+    },
+    "imageCardTitleFedora": "Fedora",
+    "@imageCardTitleFedora": {
+        "description": "Display title for Fedora image"
+    },
+    "imageCardDescUbuntuCore": "Ubuntu operating system optimised for IoT and Edge",
+    "@imageCardDescUbuntuCore": {
+        "description": "Description for Ubuntu Core image"
+    },
+    "imageCardDescUbuntuServer": "Ubuntu operating system designed as a backbone for the internet",
+    "@imageCardDescUbuntuServer": {
+        "description": "Description for Ubuntu Server image"
+    },
+    "imageCardDescDebian": "Debian official cloud image",
+    "@imageCardDescDebian": {
+        "description": "Description for Debian image"
+    },
+    "imageCardDescFedora": "Fedora Cloud Edition",
+    "@imageCardDescFedora": {
+        "description": "Description for Fedora image"
+    },
+    "imageCardLogoSemantics": "{os} logo",
+    "@imageCardLogoSemantics": {
+        "description": "Accessibility label for an OS logo image",
+        "placeholders": {
+            "os": {
+                "type": "String"
+            }
+        }
+    },
+    "launchFormTitle": "Configure instance",
+    "@launchFormTitle": {
+        "description": "Title of the launch/configure instance form"
+    },
+    "launchFormImageLabel": "Image",
+    "@launchFormImageLabel": {
+        "description": "Section label for the image selection in the launch form"
+    },
+    "launchFormNameLabel": "Name",
+    "@launchFormNameLabel": {
+        "description": "Label for the instance name input in the launch form"
+    },
+    "launchFormNameHelper": "Names cannot be changed once an instance is created",
+    "@launchFormNameHelper": {
+        "description": "Helper text for the instance name input in the launch form"
+    },
+    "launchFormBridgeConnect": "Connect to the bridged network.\nOnce established, you won't be able to unset the connection.",
+    "@launchFormBridgeConnect": {
+        "description": "Label on the bridged network switch when a valid bridged network is configured"
+    },
+    "launchFormBridgeNoValidNetwork": "No valid bridged network is set.\nYou can set one in the Settings page.",
+    "@launchFormBridgeNoValidNetwork": {
+        "description": "Message on the bridged network switch when no valid bridged network is configured"
+    },
+    "launchFormLaunchAndConfigureNext": "Launch & Configure next",
+    "@launchFormLaunchAndConfigureNext": {
+        "description": "Button label to launch and then configure the next instance"
+    },
+    "launchFormNameErrorInvalidChars": "Name must contain only letters, numbers and dashes",
+    "@launchFormNameErrorInvalidChars": {
+        "description": "Validation error when instance name contains invalid characters"
+    },
+    "launchFormNameErrorInUse": "Name is already in use",
+    "@launchFormNameErrorInUse": {
+        "description": "Validation error when instance name is already taken"
+    },
+    "launchFormNameErrorDeletedInUse": "Name is already in use by a deleted instance",
+    "@launchFormNameErrorDeletedInUse": {
+        "description": "Validation error when instance name belongs to a deleted instance"
+    },
+    "trayToggleWindow": "Toggle window",
+    "@trayToggleWindow": {
+        "description": "Tray menu item label to show or hide the main window"
+    },
+    "trayMultipassVersion": "multipass version: {version}",
+    "@trayMultipassVersion": {
+        "description": "Tray menu item showing the Multipass client version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "trayCopyright": "Copyright (C) Canonical, Ltd.",
+    "@trayCopyright": {
+        "description": "Tray menu copyright notice"
+    },
+    "trayMultipassdVersion": "multipassd version: {version}",
+    "@trayMultipassdVersion": {
+        "description": "Tray menu item showing the Multipass daemon version",
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "trayQuit": "Quit",
+    "@trayQuit": {
+        "description": "Tray menu item label to quit the application"
+    },
+    "trayErrorInstanceData": "Failed retrieving instance data",
+    "@trayErrorInstanceData": {
+        "description": "Tray menu error message shown when instance data cannot be retrieved"
+    },
+    "trayOpenInMultipass": "Open in Multipass",
+    "@trayOpenInMultipass": {
+        "description": "Tray menu item label to open the instance in the Multipass window"
+    }
+}

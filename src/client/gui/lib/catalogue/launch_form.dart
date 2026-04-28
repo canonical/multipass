@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch, ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../ffi.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
@@ -75,6 +75,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final imageInfo = ref.watch(launchingImageProvider);
     final randomName = ref.watch(randomNameProvider);
     final vmNames = ref.watch(vmNamesProvider);
@@ -97,11 +98,11 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     final nameInput = SpecInput(
-      label: 'Name',
+      label: l10n.launchFormNameLabel,
       autofocus: true,
-      helper: 'Names cannot be changed once an instance is created',
+      helper: l10n.launchFormNameHelper,
       hint: randomName,
-      validator: nameValidator(vmNames, deletedVms),
+      validator: nameValidator(vmNames, deletedVms, l10n),
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
@@ -148,10 +149,10 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       },
       builder: (field) {
         final message = networks.isEmpty
-            ? 'No networks found.'
+            ? l10n.bridgeNoNetworks
             : validBridgedNetwork
-                ? "Connect to the bridged network.\nOnce established, you won't be able to unset the connection."
-                : 'No valid bridged network is set.\nYou can set one in the Settings page.';
+                ? l10n.launchFormBridgeConnect
+                : l10n.launchFormBridgeNoValidNetwork;
 
         return Switch(
           label: message,
@@ -190,7 +191,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           );
         });
       }),
-      child: const Text('Add mount'),
+      child: Text(l10n.mountsAddMount),
     );
 
     final saveMountButton = TextButton(
@@ -200,12 +201,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         if (!mountFormState.validate()) return;
         mountFormState.save();
       },
-      child: const Text('Save'),
+      child: Text(l10n.dialogSave),
     );
 
     final cancelMountButton = OutlinedButton(
       onPressed: () => setState(() => addingMount = false),
-      child: const Text('Cancel'),
+      child: Text(l10n.dialogCancel),
     );
 
     final editableMountPoint = EditableMountPoint(
@@ -242,13 +243,13 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       children: [
         Row(
           children: [
-            const Text('Configure instance', style: TextStyle(fontSize: 24)),
+            Text(l10n.launchFormTitle, style: const TextStyle(fontSize: 24)),
             const Spacer(),
             closeButton,
           ],
         ),
         const SizedBox(height: 20),
-        const Text('Image', style: TextStyle(fontSize: 18)),
+        Text(l10n.launchFormImageLabel, style: const TextStyle(fontSize: 18)),
         const SizedBox(height: 4),
         chosenImageName,
         const SizedBox(height: 16),
@@ -257,9 +258,10 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           children: [nameInput, const Spacer()],
         ),
         const Divider(height: 60),
-        const SizedBox(
+        SizedBox(
           height: 50,
-          child: Text('Resources', style: TextStyle(fontSize: 24)),
+          child:
+              Text(l10n.resourcesTitle, style: const TextStyle(fontSize: 24)),
         ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,15 +274,15 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           ],
         ),
         const Divider(height: 60),
-        const SizedBox(
+        SizedBox(
           height: 50,
-          child: Text('Bridged network', style: TextStyle(fontSize: 24)),
+          child: Text(l10n.bridgeTitle, style: const TextStyle(fontSize: 24)),
         ),
         bridgedSwitch,
         const Divider(height: 60),
-        const SizedBox(
+        SizedBox(
           height: 50,
-          child: Text('Mounts', style: TextStyle(fontSize: 24)),
+          child: Text(l10n.mountsTitle, style: const TextStyle(fontSize: 24)),
         ),
         mountPointsView,
         if (mountRequests.isNotEmpty) const SizedBox(height: 20),
@@ -290,17 +292,17 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     final launchButton = TextButton(
       onPressed: () => launch(imageInfo),
-      child: const Text('Launch'),
+      child: Text(l10n.vmTableLaunch),
     );
 
     final launchAndConfigureNextButton = OutlinedButton(
       onPressed: () => launch(imageInfo, configureNext: true),
-      child: const Text('Launch & Configure next'),
+      child: Text(l10n.launchFormLaunchAndConfigureNext),
     );
 
     final cancelButton = OutlinedButton(
       onPressed: () => Scaffold.of(context).closeEndDrawer(),
-      child: const Text('Cancel'),
+      child: Text(l10n.dialogCancel),
     );
 
     return Stack(
@@ -416,28 +418,29 @@ void initiateLaunchFlow(
 FormFieldValidator<String> nameValidator(
   Iterable<String> existingNames,
   Iterable<String> deletedNames,
+  AppLocalizations l10n,
 ) {
   return (String? value) {
     if (value!.isEmpty) {
       return null;
     }
     if (value.length < 2) {
-      return 'Name must be at least 2 characters';
+      return l10n.usagePrimaryNameErrorTooShort;
     }
     if (RegExp(r'[^A-Za-z0-9\-]').hasMatch(value)) {
-      return 'Name must contain only letters, numbers and dashes';
+      return l10n.launchFormNameErrorInvalidChars;
     }
     if (RegExp(r'^[^A-Za-z]').hasMatch(value)) {
-      return 'Name must start with a letter';
+      return l10n.usagePrimaryNameErrorStartLetter;
     }
     if (RegExp(r'[^A-Za-z0-9]$').hasMatch(value)) {
-      return 'Name must end in digit or letter';
+      return l10n.usagePrimaryNameErrorEndChar;
     }
     if (existingNames.contains(value)) {
-      return 'Name is already in use';
+      return l10n.launchFormNameErrorInUse;
     }
     if (deletedNames.contains(value)) {
-      return 'Name is already in use by a deleted instance';
+      return l10n.launchFormNameErrorDeletedInUse;
     }
     return null;
   };

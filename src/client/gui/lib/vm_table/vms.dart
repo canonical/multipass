@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' hide Table, Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../catalogue/catalogue.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
@@ -69,21 +70,22 @@ class Vms extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     goToCatalogue() {
       ref.read(sidebarKeyProvider.notifier).set(CatalogueScreen.sidebarKey);
     }
 
     final heading = Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
-            'All Instances',
-            style: TextStyle(fontSize: 37, fontWeight: FontWeight.w300),
+            l10n.vmTableAllInstances,
+            style: const TextStyle(fontSize: 37, fontWeight: FontWeight.w300),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        TextButton(onPressed: goToCatalogue, child: const Text('Launch')),
+        TextButton(onPressed: goToCatalogue, child: Text(l10n.vmTableLaunch)),
       ],
     );
 
@@ -92,7 +94,7 @@ class Vms extends ConsumerWidget {
     final vmFilters = Row(
       children: [
         Switch(
-          label: 'Show running instances only',
+          label: l10n.vmTableShowRunningOnly,
           value: runningOnly,
           onChanged: (v) => ref.read(runningOnlyProvider.notifier).set(v),
         ),
@@ -123,9 +125,9 @@ class Vms extends ConsumerWidget {
       Container(
         margin: const EdgeInsets.all(10),
         alignment: Alignment.centerLeft,
-        child: const Text(
-          "Total",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        child: Text(
+          l10n.vmTableTotal,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       for (final name in enabledHeaderNames.whereValue((e) => e).keys.skip(2))

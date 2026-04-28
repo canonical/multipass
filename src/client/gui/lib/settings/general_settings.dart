@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../switch.dart';
@@ -16,6 +17,7 @@ class GeneralSettings extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final update = ref.watch(updateProvider);
     final autostart = ref.watch(autostartProvider).when(
           data: (data) => data,
@@ -27,9 +29,9 @@ class GeneralSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'General',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Text(
+          l10n.generalTitle,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
         if (update.version.isNotBlank) ...[
@@ -37,28 +39,26 @@ class GeneralSettings extends ConsumerWidget {
           const SizedBox(height: 20),
         ],
         Switch(
-          label: 'Open the Multipass GUI on startup',
+          label: l10n.generalAutostartLabel,
           value: autostart,
           trailingSwitch: true,
           size: 30,
           onChanged: (value) {
-            ref
-                .read(autostartProvider.notifier)
-                .set(value)
-                .onError(ref.notifyError((e) => 'Failed to set autostart: $e'));
+            ref.read(autostartProvider.notifier).set(value).onError(
+                ref.notifyError((e) => l10n.generalAutostartError('$e')));
           },
         ),
         const SizedBox(height: 20),
         Dropdown(
-          label: 'When closing Multipass',
+          label: l10n.generalOnCloseLabel,
           width: 260,
           value: onAppClose ?? 'ask',
           onChanged: (value) =>
               ref.read(onAppCloseProvider.notifier).set(value!),
-          items: const {
-            'ask': 'Ask about running instances',
-            'stop': 'Stop running instances',
-            'nothing': 'Do not stop running instances',
+          items: {
+            'ask': l10n.generalOnCloseAsk,
+            'stop': l10n.generalOnCloseStop,
+            'nothing': l10n.generalOnCloseNothing,
           },
         ),
       ],
