@@ -25,8 +25,6 @@
 
 #include <scope_guard.hpp>
 
-#include <QJsonDocument>
-
 namespace mpl = multipass::logging;
 
 namespace
