@@ -22,6 +22,9 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/vm_status_monitor.h>
+#include <multipass/utils.h>
+
+#include <qemu/qemu_img_utils.h>
 #include <shared/macos/backend_utils.h>
 
 namespace mp = multipass;
@@ -43,6 +46,8 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
       desc{desc},
       monitor{&monitor}
 {
+
+    expected_shutdown = utils::expects_shutdown_from_cloud_init(desc.user_data_config);
     initialize_vm_handle();
 }
 
