@@ -247,8 +247,14 @@ auto create_sshfs_process(mp::SSHSession& session,
                           const std::string& source,
                           const std::string& target)
 {
-    auto sshfs_process =
-        session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
+    // The remote target path is user-controlled and reaches the SSH login shell, so
+    // it must be escaped before interpolation. Otherwise shell metacharacters (e.g.
+    // `$VAR`, backticks, globs) are interpreted by the remote shell and the wrong
+    // path is mounted; see issue #1495. Source is escaped for symmetry/safety.
+    auto sshfs_process = session.exec(fmt::format("sudo {} :{} {}",
+                                                  sshfs_exec_line,
+                                                  mp::utils::escape_for_shell(source),
+                                                  mp::utils::escape_for_shell(target)));
 
     check_sshfs_status(session, sshfs_process);
 

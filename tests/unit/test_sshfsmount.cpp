@@ -50,9 +50,8 @@ namespace
 // (issue #1495).
 std::string get_existing_parent_cmd(const std::string& path)
 {
-    auto inner =
-        fmt::format("P={}; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/",
-                    mp::utils::escape_for_shell(path));
+    auto inner = fmt::format("P={}; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/",
+                             mp::utils::escape_for_shell(path));
     return fmt::format("sudo /bin/bash -c {}", mp::utils::escape_for_shell(inner));
 }
 
@@ -76,6 +75,16 @@ std::string set_owner_for_cmd(const std::string& root,
                              gid,
                              mp::utils::escape_for_shell(top));
     return fmt::format("sudo /bin/bash -c {}", mp::utils::escape_for_shell(inner));
+}
+
+std::string sshfs_exec_cmd(const std::string& sshfs_exec_line,
+                           const std::string& source,
+                           const std::string& target)
+{
+    return fmt::format("sudo {} :{} {}",
+                       sshfs_exec_line,
+                       mp::utils::escape_for_shell(source),
+                       mp::utils::escape_for_shell(target));
 }
 
 struct SshfsMount : public mp::test::SftpServerTest
@@ -264,10 +273,11 @@ struct SshfsMount : public mp::test::SftpServerTest
         {get_existing_parent_cmd("/home/ubuntu/target"), "/home/ubuntu/\n"},
         {"id -u", "1000\n"},
         {"id -g", "1000\n"},
-        {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-         "allow_other -o "
-         "Compression=no -o dcache_timeout=3 :\"source\" "
-         "\"target\"",
+        {sshfs_exec_cmd(
+             "env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks "
+             "-o allow_other -o Compression=no -o dcache_timeout=3",
+             "source",
+             "target"),
          "don't care\n"}};
 };
 
@@ -368,51 +378,63 @@ INSTANTIATE_TEST_SUITE_P(SshfsMountThrowWhenError,
 // Commands to check that a version of FUSE smaller that 3 gives a correct answer.
 CommandVector old_fuse_cmds = {
     {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 2.9.0\n"},
-    {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-     "allow_other -o Compression=no -o nonempty -o cache=no :\"source\" \"/home/ubuntu/target\"",
+    {sshfs_exec_cmd("env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks "
+                    "-o allow_other -o Compression=no -o nonempty -o cache=no",
+                    "source",
+                    "/home/ubuntu/target"),
      "don't care\n"}};
 
 // Commands to check that a version of FUSE at least 3.0.0 gives a correct answer.
 CommandVector new_fuse_cmds = {
     {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0\n"},
-    {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-     "allow_other -o Compression=no -o dir_cache=no :\"source\" \"/home/ubuntu/target\"",
+    {sshfs_exec_cmd("env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks "
+                    "-o allow_other -o Compression=no -o dir_cache=no",
+                    "source",
+                    "/home/ubuntu/target"),
      "don't care\n"}};
 
 // Commands to check that an unknown version of FUSE gives a correct answer.
 CommandVector unk_fuse_cmds = {
     {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "weird fuse version\n"},
-    {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks -o "
-     "allow_other -o Compression=no :\"source\" \"/home/ubuntu/target\"",
+    {sshfs_exec_cmd("env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o transform_symlinks "
+                    "-o allow_other -o Compression=no",
+                    "source",
+                    "/home/ubuntu/target"),
      "don't care\n"}};
 
 // Commands to check that the server correctly creates the mount target.
-CommandVector exec_cmds = {
-    {get_existing_parent_cmd("/home/ubuntu/target"), "/home/ubuntu/\n"},
-    {make_target_dir_cmd("/home/ubuntu/", "target"), "\n"},
-    {set_owner_for_cmd("/home/ubuntu/", "target", 1000, 1000), "\n"}};
+CommandVector exec_cmds = {{get_existing_parent_cmd("/home/ubuntu/target"), "/home/ubuntu/\n"},
+                           {make_target_dir_cmd("/home/ubuntu/", "target"), "\n"},
+                           {set_owner_for_cmd("/home/ubuntu/", "target", 1000, 1000), "\n"}};
 
 // Commands to check that it works with a path containing a space.
-CommandVector space_cmds = {{"echo $PWD/space\\ odyssey", "/home/ubuntu/space odyssey\n"},
-                            {get_existing_parent_cmd("/home/ubuntu/space odyssey"),
-                             "/home/ubuntu/\n"}};
+CommandVector space_cmds = {
+    {"echo $PWD/space\\ odyssey", "/home/ubuntu/space odyssey\n"},
+    {get_existing_parent_cmd("/home/ubuntu/space odyssey"), "/home/ubuntu/\n"}};
 
 // Commands to check that the ~ expansion works.
 CommandVector tilde1_cmds = {{"echo ~/target", "/home/ubuntu/target\n"},
-                             {get_existing_parent_cmd("/home/ubuntu/target"),
-                              "/home/ubuntu/\n"}};
+                             {get_existing_parent_cmd("/home/ubuntu/target"), "/home/ubuntu/\n"}};
 
 // Commands to check that the ~user expansion works (assuming that user exists).
 CommandVector tilde2_cmds = {{"echo ~ubuntu/target", "/home/ubuntu/target\n"},
-                             {get_existing_parent_cmd("/home/ubuntu/target"),
-                              "/home/ubuntu/\n"}};
+                             {get_existing_parent_cmd("/home/ubuntu/target"), "/home/ubuntu/\n"}};
 
 // Commands to check that the server works if an absolute path is given.
-CommandVector absolute_cmds = {{get_existing_parent_cmd("/home/ubuntu/target"),
-                                "/home/ubuntu/\n"}};
+CommandVector absolute_cmds = {{get_existing_parent_cmd("/home/ubuntu/target"), "/home/ubuntu/\n"}};
 
 // Commands to check that it works for a nonexisting path.
 CommandVector nonexisting_path_cmds = {{get_existing_parent_cmd("/nonexisting/path"), "/\n"}};
+
+// Regression test for issue #1495: paths with shell metacharacters (here `$`)
+// must be escaped end-to-end, otherwise the remote shell expands `$USER` to
+// the SSH user's name and the wrong directory is created/mounted.
+CommandVector dollar_in_target_cmds = {
+    {fmt::format("echo $PWD/{}", mp::utils::escape_for_shell("with$USER")),
+     "/home/ubuntu/with$USER\n"},
+    {get_existing_parent_cmd("/home/ubuntu/with$USER"), "/home/ubuntu/\n"},
+    {make_target_dir_cmd("/home/ubuntu/", "with$USER"), "\n"},
+    {set_owner_for_cmd("/home/ubuntu/", "with$USER", 1000, 1000), "\n"}};
 
 // Check the execution of the CommandVector's above.
 INSTANTIATE_TEST_SUITE_P(SshfsMountSuccess,
@@ -425,12 +447,12 @@ INSTANTIATE_TEST_SUITE_P(SshfsMountSuccess,
                                          std::make_pair("~/target", tilde1_cmds),
                                          std::make_pair("~ubuntu/target", tilde2_cmds),
                                          std::make_pair("/home/ubuntu/target", absolute_cmds),
-                                         std::make_pair("/nonexisting/path",
-                                                        nonexisting_path_cmds)));
+                                         std::make_pair("/nonexisting/path", nonexisting_path_cmds),
+                                         std::make_pair("with$USER", dollar_in_target_cmds)));
 
 // Commands to test that when a mount path already exists, no mkdir nor chown is ran.
-CommandVector execute_no_mkdir_cmds = {{get_existing_parent_cmd("/home/ubuntu/target"),
-                                        "/home/ubuntu/target/\n"}};
+CommandVector execute_no_mkdir_cmds = {
+    {get_existing_parent_cmd("/home/ubuntu/target"), "/home/ubuntu/target/\n"}};
 
 INSTANTIATE_TEST_SUITE_P(
     SshfsMountSuccessAndAvoidCommands,
