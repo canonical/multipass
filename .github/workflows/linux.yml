@@ -123,6 +123,7 @@ jobs:
 
         # Add CI=true environment variable to all parts' build-environment
         yq -i '.parts |= with_entries(.value.build-environment += [{"CI": "true"}])' snap/snapcraft.yaml
+        yq -i 'explode(.)' snap/snapcraft.yaml
 
     - name: Set up vcpkg
       id: setup-vcpkg
