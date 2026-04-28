@@ -16,6 +16,7 @@
  */
 
 #include <applevz/applevz_bridge.h>
+#include <applevz/applevz_vmnet.h>
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <Foundation/Foundation.h>
@@ -29,13 +30,16 @@
 #include <QString>
 #include <QUrl>
 
+#include <cassert>
+
 namespace multipass::applevz
 {
 struct VirtualMachineHandle
 {
-    std::shared_ptr<void> vm; // Ownership transfer of VZVirtualMachine*
-    dispatch_queue_t queue;   // Dispatch queue for VM operations
-    uint64_t id;              // Unique VM ID
+    std::shared_ptr<void> vm;             // Ownership transfer of VZVirtualMachine*
+    dispatch_queue_t queue;               // Dispatch queue for VM operations
+    uint64_t id;                          // Unique VM ID
+    std::vector<VmnetRelayHandle> relays; // vmnet relay lifetime handles
 };
 } // namespace multipass::applevz
 
@@ -172,18 +176,40 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
             [[VZVirtioEntropyDeviceConfiguration alloc] init];
         config.entropyDevices = @[ entropy ];
 
-        // Network device
+        // Network devices
+        // Primary NAT interface
+        NSMutableArray<VZNetworkDeviceConfiguration*>* networkDevices = [NSMutableArray array];
+
         VZVirtioNetworkDeviceConfiguration* netDevice =
             [[VZVirtioNetworkDeviceConfiguration alloc] init];
-
         VZNATNetworkDeviceAttachment* natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
         netDevice.attachment = natAttachment;
 
         VZMACAddress* mac =
             [[VZMACAddress alloc] initWithString:nsstring_from_stdstring(desc.default_mac_address)];
         [netDevice setMACAddress:mac];
+        [networkDevices addObject:netDevice];
 
-        config.networkDevices = @[ netDevice ];
+        // Extra bridged interfaces
+        std::vector<VmnetRelayHandle> relays;
+        for (const auto& extra : desc.extra_interfaces)
+        {
+            VmnetBridge bridge = create_vmnet_bridge(extra.id);
+
+            VZVirtioNetworkDeviceConfiguration* bridgedDevice =
+                [[VZVirtioNetworkDeviceConfiguration alloc] init];
+            bridgedDevice.attachment = bridge.attachment;
+            VZMACAddress* bridgedMac = [[VZMACAddress alloc]
+                initWithString:[NSString stringWithCString:extra.mac_address.c_str()
+                                                  encoding:NSUTF8StringEncoding]];
+            [bridgedDevice setMACAddress:bridgedMac];
+
+            [networkDevices addObject:bridgedDevice];
+
+            relays.push_back(std::move(bridge.relay));
+        }
+
+        config.networkDevices = networkDevices;
 
         // Memory balloon device
         VZVirtioTraditionalMemoryBalloonDeviceConfiguration* balloon =
@@ -197,7 +223,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         }
 
         out_handle = std::make_shared<VirtualMachineHandle>();
-
+        out_handle->relays = std::move(relays);
         out_handle->id = vmIDCounter.fetch_add(1, std::memory_order_relaxed);
 
         // Create dispatch queue
@@ -305,5 +331,21 @@ bool can_request_stop(const VMHandle& vm_handle)
 bool is_supported()
 {
     return [VZVirtualMachine isSupported];
+}
+
+std::vector<NetworkInterfaceInfo> bridged_network_interfaces()
+{
+    std::vector<NetworkInterfaceInfo> result;
+
+    for (VZBridgedNetworkInterface* iface in [VZBridgedNetworkInterface networkInterfaces])
+    {
+        result.emplace_back(/* id = */ iface.identifier.UTF8String,
+                            /* type = */ "N/A",
+                            /* description = */ iface.localizedDisplayName
+                                ? std::string(iface.localizedDisplayName.UTF8String)
+                                : iface.identifier.UTF8String);
+    }
+
+    return result;
 }
 } // namespace multipass::applevz

@@ -85,4 +85,9 @@ bool AppleVZ::is_supported() const
 {
     return multipass::applevz::is_supported();
 }
+
+std::vector<NetworkInterfaceInfo> AppleVZ::bridged_network_interfaces() const
+{
+    return multipass::applevz::bridged_network_interfaces();
+}
 } // namespace multipass::applevz
