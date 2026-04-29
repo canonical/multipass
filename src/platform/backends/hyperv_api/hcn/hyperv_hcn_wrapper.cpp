@@ -344,6 +344,7 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
                            "Could not process network info for `{}`: `{}`, skipping!",
                            network_guid,
                            ex.what());
+                return {E_UNEXPECTED, {L"Failed to process JSON returned from the API"}};
             }
         }
         return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
