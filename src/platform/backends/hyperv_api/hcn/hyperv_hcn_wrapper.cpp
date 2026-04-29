@@ -313,12 +313,12 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
                                                             out_ptr(result_msgbuf));
         if (query_result)
         {
-            const auto json_as_str = wchar_to_utf8(query_result.get());
-            std::error_code ec;
-            const auto as_json = boost::json::parse(json_as_str, ec);
-            mpl::trace(log_category, "query_network result: {}", json_as_str);
-            if (!ec)
+            try
             {
+                const auto json_as_str = wchar_to_utf8(query_result.get());
+                mpl::trace(log_category, "query_network result: {}", json_as_str);
+                const auto as_json = boost::json::parse(json_as_str);
+
                 const auto& obj = as_json.as_object();
                 out_info.guid = network_guid;
                 out_info.name = obj.at("Name").as_string();
@@ -332,10 +332,18 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
                 {
                     // Quoting hcsshim:
                     // "If HNS sets the network type to NAT (i.e. '0' in
-                    // HNS.Schema.Network.NetworkMode),the value will be omitted from the JSON blob.
-                    // We therefore need to initializeNAT here before unmarshaling the JSON blob."
+                    // HNS.Schema.Network.NetworkMode),the value will be omitted from the JSON
+                    // blob. We therefore need to initializeNAT here before unmarshaling the
+                    // JSON blob."
                     out_info.type = "NAT";
                 }
+            }
+            catch (const std::exception& ex)
+            {
+                mpl::error(log_category,
+                           "Could not process network info for `{}`: `{}`, skipping!",
+                           network_guid,
+                           ex.what());
             }
         }
         return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
