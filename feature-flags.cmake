@@ -19,3 +19,8 @@ feature_flag(APPLEVZ_ENABLED "AppleVZ backend" APPLE)
 
 # The new Windows backend based on Hyper-V Host Compute System / Host Compute Networking APIs
 feature_flag(HYPERV_HCS_ENABLED "Hyper-V HCS backend" WIN32)
+
+feature_flag(AVAILABILITY_ZONES_ENABLED "Availability zone support")
+if(AVAILABILITY_ZONES_ENABLED)
+  add_compile_definitions(AVAILABILITY_ZONES_FEATURE)
+endif()

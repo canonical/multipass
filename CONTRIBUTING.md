@@ -230,6 +230,9 @@ code injection (now or in the future).
     * `git config --local commit.template .gitmessage`
 - Consider adding the `commit-msg` file in the repository root as a git hook (in `.git/hooks`)
     * `ln -s ../../git-hooks/commit-msg.py .git/hooks/commit-msg`
+- Consider adding the `pre-commit` hook to automatically regenerate
+`packaging/gui-less/snap/snapcraft.yaml` when `snap/snapcraft.yaml` changes
+    * `ln -s ../../git-hooks/pre-commit .git/hooks/pre-commit`
 
 ### Dependencies (DEP)
 

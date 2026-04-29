@@ -20,6 +20,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 namespace mp = multipass;
 
 namespace
@@ -29,10 +31,9 @@ uint8_t as_octet(uint32_t value)
     return static_cast<uint8_t>(value);
 }
 
-void check_range(int value)
+bool is_valid_octet(int value)
 {
-    if (value < 0 || value > 255)
-        throw std::invalid_argument("invalid IP octet");
+    return value >= 0 && value < 256;
 }
 
 std::array<uint8_t, 4> parse(const std::string& ip)
@@ -45,10 +46,8 @@ std::array<uint8_t, 4> parse(const std::string& ip)
     std::stringstream s(ip);
     s >> a >> ch >> b >> ch >> c >> ch >> d;
 
-    check_range(a);
-    check_range(b);
-    check_range(c);
-    check_range(d);
+    if (!is_valid_octet(a) || !is_valid_octet(b) || !is_valid_octet(c) || !is_valid_octet(d))
+        throw std::invalid_argument(fmt::format("invalid IP address {}", ip));
 
     return {{as_octet(a), as_octet(b), as_octet(c), as_octet(d)}};
 }
@@ -89,34 +88,10 @@ uint32_t mp::IPAddress::as_uint32() const
     return value;
 }
 
-bool mp::IPAddress::operator==(const IPAddress& other) const
+// uint8_t is not required to support <=> by the standard. Appease Apple clang.
+std::strong_ordering mp::IPAddress::operator<=>(const IPAddress& other) const
 {
-    return octets == other.octets;
-}
-
-bool mp::IPAddress::operator!=(const IPAddress& other) const
-{
-    return octets != other.octets;
-}
-
-bool mp::IPAddress::operator<(const IPAddress& other) const
-{
-    return as_uint32() < other.as_uint32();
-}
-
-bool mp::IPAddress::operator<=(const IPAddress& other) const
-{
-    return as_uint32() <= other.as_uint32();
-}
-
-bool mp::IPAddress::operator>(const IPAddress& other) const
-{
-    return as_uint32() > other.as_uint32();
-}
-
-bool mp::IPAddress::operator>=(const IPAddress& other) const
-{
-    return as_uint32() >= other.as_uint32();
+    return as_uint32() <=> other.as_uint32();
 }
 
 mp::IPAddress mp::IPAddress::operator+(int value) const

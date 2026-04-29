@@ -76,6 +76,19 @@ ogp_site_url = html_baseurl
 
 sitemap_url_scheme = "{link}"
 
+# Include `lastmod` dates in the sitemap:
+
+sitemap_show_lastmod = True
+
+# Exclude generated pages from the sitemap:
+
+sitemap_excludes = [
+    '404/',
+    'genindex/',
+    'search/',
+]
+
+
 # Preview name of the documentation website
 #
 # TODO: To use a different name for the project in previews, update as needed.
@@ -276,7 +289,7 @@ html_css_files = [
 # Adds custom JavaScript files, located under 'html_static_path'
 
 html_js_files = [
-    "js/bundle.js",
+    "bundle.js",
 ]
 
 

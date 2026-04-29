@@ -29,6 +29,7 @@
 
 #include <boost/json.hpp>
 
+#include <filesystem>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -166,7 +167,9 @@ inline void tag_invoke(const boost::json::value_from_tag&,
 
 inline QString tag_invoke(const boost::json::value_to_tag<QString>&, const boost::json::value& json)
 {
-    return QString::fromStdString(value_to<std::string>(json));
+    if (json.is_string())
+        return QString::fromStdString(value_to<std::string>(json));
+    return QString::fromStdString(boost::json::serialize(json));
 }
 
 void tag_invoke(const boost::json::value_from_tag&,

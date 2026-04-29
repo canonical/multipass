@@ -1,0 +1,460 @@
+name: MacOS
+
+on:
+  workflow_call:
+  schedule:
+  # Daily at 00:34 UTC
+    - cron: 34 0 * * *
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+  S3_BUCKET: multipass-ci
+  USERNAME: ${{ github.repository_owner }}
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
+
+jobs:
+  GetMatrix:
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - name: Determine build matrix
+      id: set-matrix
+      uses: actions/github-script@v9
+      with:
+        script: |
+          const matrix = { include: [] };
+
+          matrix.include.push({
+            "name": "macOS Latest (Apple Silicon)",
+            "runs-on": "macos-latest"
+          },{
+            "name": "macOS 15 Sequoia (Intel Silicon)",
+            "runs-on": "macos-15-intel",
+          })
+
+          core.setOutput('matrix', JSON.stringify(matrix));
+
+  BuildAndTest:
+    needs: GetMatrix
+
+    permissions:
+      contents: read
+      packages: write
+
+    if: ${{ !cancelled() }}
+
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+      fail-fast: ${{ github.event_name == 'merge_group' }}
+
+    outputs:
+      build-label: ${{ steps.build-params.outputs.label }}
+      # Use artifacts from macos-15-intel and macos-latest in official package
+      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
+      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
+
+    name: Build and Test (${{ matrix.name }})
+    runs-on: ${{ matrix.runs-on }}
+
+    env:
+      BUILD_DIR: ${{ github.workspace }}/build
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
+      RUSTC_WRAPPER: "sccache"
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0 # Need full history to derive version
+        submodules: 'recursive'
+
+    # Use specific xcode version in macos-15. The reason is that protobuf 29 is not
+    # happy with the AppleClang-17, which is shipped with Xcode >= 16.3.
+    #
+    # https://github.com/protocolbuffers/protobuf/issues/21447
+    - uses: maxim-lobanov/setup-xcode@v1
+      if: ${{ contains(matrix.runs-on, 'macos-latest') }}
+      with:
+        xcode-version: '16.2'
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
+    - name: Set preferred tar
+      id: preferred-tar
+      run: |
+        # Prepend gnu-tar's (future) location to the path, to prioritize it over system tar
+        # Needed for cache: https://github.com/actions/cache?tab=readme-ov-file#pre-requisites
+        echo "$( brew --prefix gnu-tar )/libexec/gnubin" >> ${GITHUB_PATH}
+
+      # TODO: find a friendlier approach for installing pip packages on GitHub runners
+    - name: Force pip to allow break-system-packages via pip.conf
+      run: |
+        mkdir -p ~/.pip
+        echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
+
+    - name: Install dependencies from brew
+      run: |
+        # Avoid reinstalling cmake
+        brew list cmake > /dev/null || brew install cmake
+
+        brew install \
+          coreutils \
+          dylibbundler \
+          git \
+          glib \
+          gnu-tar \
+          libev \
+          libffi \
+          ninja \
+          pixman \
+          pkg-config \
+          python \
+          wget
+
+        # vcpkg-libb2: libb2 currently requires the following programs:
+        brew install autoconf autoconf-archive automake libtool
+
+        # Force brew nuget & mono
+        brew install nuget || true
+        brew install mono || true
+        brew link --overwrite mono
+        brew link --overwrite nuget
+
+    - name: Install dependencies from pip
+      run: |
+        python3 -m pip install --user --upgrade distlib
+
+    - name: Set up vcpkg
+      id: setup-vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+
+    - name: Configure NuGet Source
+      id: setup_nuget
+      continue-on-error: true
+      shell: 'bash'
+      run: |
+        echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
+
+        # Retrieve vcpkg's nuget.
+        NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        MONO_WRAPPER=""
+
+
+        # Check if we actually need to call NuGet through mono.
+        # That would be the case if NuGet is the real PE32 executable
+        # instead of a shim.
+        if file "$NUGET_PATH" | grep -q "PE32"; then
+            MONO_WRAPPER="mono"
+        fi
+
+        $MONO_WRAPPER "$NUGET_PATH" \
+          sources add \
+          -source "${{ env.FEED_URL }}" \
+          -storepasswordincleartext \
+          -name "GitHubPackages" \
+          -username "${{ env.USERNAME }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+
+        $MONO_WRAPPER "$NUGET_PATH" \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "${{ env.FEED_URL }}"
+
+    - name: Overwrite Homebrew nuget shim with nuget DLL
+      continue-on-error: true
+      if: ${{ steps.setup_nuget.outcome == 'success' && runner.os == 'macOS' }}
+      run: |
+        # Locate the real NuGet.exe in Homebrew’s Cellar
+        NUGET_EXE="$(brew --prefix nuget)/libexec/NuGet.exe"
+        if file "/opt/homebrew/bin/nuget" | grep -q "text"; then
+          # Remove the old shim and replace it with a symlink
+          echo "/opt/homebrew/bin/nuget is a shim, replacing it with $NUGET_EXE"
+          sudo rm -f /opt/homebrew/bin/nuget
+          sudo ln -s "$NUGET_EXE" /opt/homebrew/bin/nuget
+          sudo chmod +x /opt/homebrew/bin/nuget
+        fi
+
+    - name: Determine cache key
+      id: cache-key
+      shell: bash
+      run: |
+        # Find common base between main and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
+        echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+
+    - name: Restore sccache
+      uses: actions/cache/restore@v5
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+        restore-keys: sccache-${{ matrix.runs-on }}
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.9
+      continue-on-error: true
+      with:
+        version: "v0.12.0"
+
+    - name: Configure
+      run: >
+        cmake
+        -B${{ env.BUILD_DIR }}
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -GNinja
+        -DMULTIPASS_UPSTREAM=origin
+        -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+        ${{ github.event_name == 'schedule' && '-DMP_ALLOW_OPTIONAL_FEATURES=OFF' || '' }}
+        ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ${{ env.BUILD_DIR }}
+
+    - name: Enable core dump generation
+      working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
+      run : |
+        # Allow core dumps
+        sudo sysctl -w kern.coredump=1
+        # This entitlement is needed for a proc to produce a coredump
+        /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" segv.entitlements
+        # Code-sign the test executable to grant core dump entitlement
+        codesign -s - -f --entitlements segv.entitlements bin/multipass_tests
+        # Ensure destination exists and is writable
+        sudo mkdir -p /cores || true
+        sudo chmod 1777 /cores
+        # Print syctl coredump parameters
+        sysctl kern.coredump kern.corefile
+        ulimit -a
+        ulimit -Hc
+
+    - name: Run unit tests
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        # Catch and save the test executable's exit code
+        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
+        # Set soft limit for the core file size (512MiB)
+        ulimit -c 1048576
+        bin/multipass_tests
+
+    - name: Run integration tests
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        bin/multipass_integration_tests
+
+    - name: Upload test coredump
+      uses: actions/upload-artifact@v7
+      if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' }}
+      with:
+        name: buildandtest-test-crash-${{ matrix.runs-on }}-${{ matrix.build-type }}
+        retention-days: 7
+        path: |
+          /cores/**
+          ${{ env.BUILD_DIR }}/bin/multipass_tests
+
+    - name: Package
+      id: cmake-package
+      working-directory: ${{ env.BUILD_DIR }}
+      run: >
+        cmake --build . --target package
+
+        echo "name=$( basename *.pkg )" >> $GITHUB_OUTPUT
+
+        echo "path=$( greadlink -f *.pkg )" >> $GITHUB_OUTPUT
+
+    - name: Get package logs
+      if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
+      run: cat ${{ env.BUILD_DIR }}/_CPack_Packages/Darwin/productbuild/InstallOutput.log
+
+    - name: Upload package
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
+        path: ${{ steps.cmake-package.outputs.path }}
+        if-no-files-found: error
+        retention-days: 7
+
+    # Put the package on S3 for public consumption
+    - name: Publish package on S3
+      id: s3-upload
+      uses: canonical/actions/s3-upload@release
+      if: ${{ env.AWS_ACCESS_KEY_ID }}
+      with:
+        path: ${{ steps.cmake-package.outputs.path }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ steps.build-params.outputs.label }}
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    # This shows up on this run's page
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
+    - name: Store publishing outputs
+      if: always()
+      id: publish-data
+      shell: bash
+      run: |
+        NAME="${{ steps.cmake-package.outputs.name }}"
+        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
+        FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
+
+        echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+        echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
+
+        echo "${{ matrix.runs-on }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
+
+    - name: Save sccache
+      uses: actions/cache/save@v5
+      if: ${{ github.ref == 'refs/heads/main' }}
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+
+  CombineAndPublishMacOSPackage:
+    # Want to run even if one of the builds above failed
+    if: ${{ !cancelled() && always() }}
+
+    needs: [BuildAndTest]
+
+    runs-on: macos-latest
+
+    outputs:
+      macos-pkg-url: ${{ steps.s3-upload.outputs.url }}
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+
+      # TODO: find a friendlier approach for installing pip packages on GitHub runners
+    - name: Force pip to allow break-system-packages via pip.conf
+      run: |
+        mkdir -p ~/.pip
+        echo -e "[install]\nbreak-system-packages = true" > ~/.pip/pip.conf
+
+    - name: Retrieve the macOS x86 package
+      id: retrieve-x86
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
+
+    - name: Retrieve the macOS ARM package
+      id: retrieve-arm
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+
+    - name: Combine the macOS package
+      id: combine-package
+      if: ${{ steps.retrieve-x86.outputs.download-path && steps.retrieve-arm.outputs.download-path }}
+      run: |
+        brew install python
+        brew install coreutils
+        python3 -m pip install --user --upgrade lxml
+
+        PKG=${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }}
+        PKG=${PKG/.x86_64/}
+        packaging/macos/merge_pkgs.py \
+          ${{ needs.BuildAndTest.outputs.mac-x86-package-file-name }} \
+          ${{ needs.BuildAndTest.outputs.mac-arm-package-file-name }} \
+          ${PKG}
+
+        packaging/macos/sign-and-notarize.sh \
+          --app-signer - \
+          ${PKG}
+
+        echo "name=${PKG}" >> $GITHUB_OUTPUT
+        echo "path=$( greadlink -f ${PKG} )" >> $GITHUB_OUTPUT
+
+    - name: Upload combined macOS package
+      if: ${{ steps.combine-package.outputs.path }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.combine-package.outputs.name }}
+        path: ${{ steps.combine-package.outputs.path }}
+        if-no-files-found: error
+        retention-days: 7
+
+    - name: Publish combined macOS package on S3
+      if: ${{ steps.combine-package.outputs.path && env.AWS_ACCESS_KEY_ID }}
+      id: s3-upload
+      uses: canonical/actions/s3-upload@release
+      with:
+        path: ${{ steps.combine-package.outputs.path }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ needs.BuildAndTest.outputs.build-label }}
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
+  DispatchCLITestsWorkflow:
+    name: "Dispatch CLI Tests (macOS)"
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - CombineAndPublishMacOSPackage
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      macos-pkg-url: ${{ needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url }}
+
+  DeleteSeparateMacPackages:
+    if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
+
+    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Delete unused artifacts from github
+      uses: geekyeggo/delete-artifact@v6
+      with:
+        name: |
+          ${{ needs.BuildAndTest.outputs.mac-x86-package-artifact-name }}
+          ${{ needs.BuildAndTest.outputs.mac-arm-package-artifact-name }}
+        failOnError: false
+
+  Report-Workflow-Failure:
+    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
+    if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report workflow failure
+      uses: mattermost/action-mattermost-notify@master
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: multipass
+        TEXT: |
+          :red_circle: @mp
+          Scheduled [MacOS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

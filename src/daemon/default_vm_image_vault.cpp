@@ -31,6 +31,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/vm_image.h>
 
 #include <QUrl>
@@ -85,37 +86,7 @@ void delete_image_dir(const mp::Path& image_path)
 
 mp::MemorySize get_image_size(const std::filesystem::path& image_path)
 {
-    QStringList qemuimg_parameters{{"info", MP_PLATFORM.path_to_qstr(image_path)}};
-    auto qemuimg_process = mp::platform::make_process(
-        std::make_unique<mp::QemuImgProcessSpec>(qemuimg_parameters, image_path));
-    auto process_state = qemuimg_process->execute();
-
-    if (!process_state.completed_successfully())
-    {
-        throw std::runtime_error(
-            fmt::format("Cannot get image info: qemu-img failed ({}) with output:\n{}",
-                        process_state.failure_message(),
-                        qemuimg_process->read_all_standard_error()));
-    }
-
-    const auto img_info = QString{qemuimg_process->read_all_standard_output()};
-    const auto pattern = QStringLiteral("^virtual size: .+ \\((?<size>\\d+) bytes\\)\r?$");
-    const auto re = QRegularExpression{pattern, QRegularExpression::MultilineOption};
-
-    mp::MemorySize image_size{};
-
-    const auto match = re.match(img_info);
-
-    if (match.hasMatch())
-    {
-        image_size = mp::MemorySize(match.captured("size").toStdString());
-    }
-    else
-    {
-        throw std::runtime_error{"Could not obtain image's virtual size"};
-    }
-
-    return image_size;
+    return mp::MemorySize(mp::backend::get_image_info(image_path, "virtual-size").toStdString());
 }
 
 void persist_records(const std::unordered_map<std::string, mp::VaultRecord>& records,
@@ -550,18 +521,22 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
                                  " already exists in the image records");
     }
 
-    auto& dest_vault_record = instance_image_records[destination_instance_name] =
-        instance_image_records[source_instance_name];
+    auto dest_vault_record = instance_image_records[source_instance_name];
 
     // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
     // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
     // metadata.
-    auto image_path = dest_vault_record.image.image_path.string();
-    boost::replace_all(image_path,
-                       "instances/" + source_instance_name,
-                       "instances/" + destination_instance_name);
-    dest_vault_record.image.image_path = image_path;
+    // The path might have mixed slashes \\ / in Windows. Normalize it before replace.
+    auto image_path = dest_vault_record.image.image_path.generic_string();
+    dest_vault_record.image.image_path =
+        boost::replace_all_copy(image_path,
+                                "instances/" + source_instance_name,
+                                "instances/" + destination_instance_name);
 
+    if (dest_vault_record.image.image_path.generic_string() == image_path)
+        throw std::runtime_error{"Path replace for the cloned image failed!"};
+
+    instance_image_records[destination_instance_name] = dest_vault_record;
     persist_instance_records();
 }
 

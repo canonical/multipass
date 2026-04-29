@@ -125,9 +125,7 @@ void add_firewall_rule(const QString& firewall,
         QStringList() << wait << dash_t << table << (append ? append_rule : insert_rule) << chain
                       << rule);
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
         throw FirewallException("Failed to set firewall rule",
                                 table,
                                 exit_state.failure_message(),
@@ -145,9 +143,7 @@ void delete_firewall_rule(const QString& firewall,
         MP_PROCFACTORY.create_process(QStringLiteral("sh"),
                                       QStringList() << QStringLiteral("-c") << args.join(" "));
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
         throw FirewallException("Failed to delete firewall rule",
                                 table,
                                 exit_state.failure_message(),
@@ -161,9 +157,7 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
     auto process =
         MP_PROCFACTORY.create_process(firewall, QStringList{wait, dash_t, table, list_rules});
 
-    auto exit_state = process->execute();
-
-    if (!exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); !exit_state.completed_successfully())
         throw FirewallException("Failed to get firewall list",
                                 table,
                                 exit_state.failure_message(),
@@ -174,9 +168,11 @@ auto get_firewall_rules(const QString& firewall, const QString& table)
 
 void set_firewall_rules(const QString& firewall,
                         const QString& bridge_name,
-                        const QString& cidr,
+                        const mp::Subnet& cidr,
                         const QString& comment)
 {
+    const QString cidr_str = QString::fromStdString(cidr.to_cidr());
+
     const QStringList comment_option{match,
                                      QStringLiteral("comment"),
                                      QStringLiteral("--comment"),
@@ -231,51 +227,51 @@ void set_firewall_rules(const QString& firewall,
                       nat,
                       POSTROUTING,
                       QStringList()
-                          << source << cidr << destination << QStringLiteral("224.0.0.0/24") << jump
-                          << RETURN << comment_option);
+                          << source << cidr_str << destination << QStringLiteral("224.0.0.0/24")
+                          << jump << RETURN << comment_option);
 
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
-                      QStringList()
-                          << source << cidr << destination << QStringLiteral("255.255.255.255/32")
-                          << jump << RETURN << comment_option);
+                      QStringList() << source << cidr_str << destination
+                                    << QStringLiteral("255.255.255.255/32") << jump << RETURN
+                                    << comment_option);
 
     // Masquerade all packets going from VMs to the LAN/Internet
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
                       QStringList()
-                          << source << cidr << negate << destination << cidr << protocol << tcp
-                          << jump << MASQUERADE << to_ports << port_range << comment_option);
+                          << source << cidr_str << negate << destination << cidr_str << protocol
+                          << tcp << jump << MASQUERADE << to_ports << port_range << comment_option);
 
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
                       QStringList()
-                          << source << cidr << negate << destination << cidr << protocol << udp
-                          << jump << MASQUERADE << to_ports << port_range << comment_option);
+                          << source << cidr_str << negate << destination << cidr_str << protocol
+                          << udp << jump << MASQUERADE << to_ports << port_range << comment_option);
 
     add_firewall_rule(firewall,
                       nat,
                       POSTROUTING,
-                      QStringList() << source << cidr << negate << destination << cidr << jump
-                                    << MASQUERADE << comment_option);
+                      QStringList() << source << cidr_str << negate << destination << cidr_str
+                                    << jump << MASQUERADE << comment_option);
 
     // Allow established traffic to the private subnet
-    add_firewall_rule(firewall,
-                      filter,
-                      FORWARD,
-                      QStringList() << destination << cidr << out_interface << bridge_name << match
-                                    << QStringLiteral("conntrack") << QStringLiteral("--ctstate")
-                                    << QStringLiteral("RELATED,ESTABLISHED") << jump << ACCEPT
-                                    << comment_option);
+    add_firewall_rule(
+        firewall,
+        filter,
+        FORWARD,
+        QStringList() << destination << cidr_str << out_interface << bridge_name << match
+                      << QStringLiteral("conntrack") << QStringLiteral("--ctstate")
+                      << QStringLiteral("RELATED,ESTABLISHED") << jump << ACCEPT << comment_option);
 
     // Allow outbound traffic from the private subnet
     add_firewall_rule(firewall,
                       filter,
                       FORWARD,
-                      QStringList() << source << cidr << in_interface << bridge_name << jump
+                      QStringList() << source << cidr_str << in_interface << bridge_name << jump
                                     << ACCEPT << comment_option);
 
     // Allow traffic between virtual machines
@@ -304,14 +300,15 @@ void set_firewall_rules(const QString& firewall,
 void clear_firewall_rules_for(const QString& firewall,
                               const QString& table,
                               const QString& bridge_name,
-                              const QString& cidr,
+                              const mp::Subnet& cidr,
                               const QString& comment)
 {
+    const QString cidr_str = QString::fromStdString(cidr.to_cidr());
     auto rules = QString::fromUtf8(get_firewall_rules(firewall, table));
 
     for (auto& rule : rules.split('\n'))
     {
-        if (rule.contains(comment) || rule.contains(bridge_name) || rule.contains(cidr))
+        if (rule.contains(comment) || rule.contains(bridge_name) || rule.contains(cidr_str))
         {
             // Remove the policy type since delete doesn't use that
             rule.remove(0, 3);
@@ -392,10 +389,10 @@ QString detect_firewall()
 }
 } // namespace
 
-mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string& subnet)
+mp::BasicFirewallConfig::BasicFirewallConfig(const QString& bridge_name, const mp::Subnet& subnet)
     : firewall{detect_firewall()},
       bridge_name{bridge_name},
-      cidr{QString("%1.0/24").arg(QString::fromStdString(subnet))},
+      cidr{subnet.canonical()},
       comment{multipass_firewall_comment(bridge_name)}
 {
     try
@@ -411,7 +408,7 @@ mp::FirewallConfig::FirewallConfig(const QString& bridge_name, const std::string
     }
 }
 
-mp::FirewallConfig::~FirewallConfig()
+mp::BasicFirewallConfig::~BasicFirewallConfig()
 {
     if (!firewall.isEmpty())
     {
@@ -419,7 +416,7 @@ mp::FirewallConfig::~FirewallConfig()
     }
 }
 
-void mp::FirewallConfig::verify_firewall_rules()
+void mp::BasicFirewallConfig::verify_firewall_rules()
 {
     if (firewall_error)
     {
@@ -427,7 +424,7 @@ void mp::FirewallConfig::verify_firewall_rules()
     }
 }
 
-void mp::FirewallConfig::clear_all_firewall_rules()
+void mp::BasicFirewallConfig::clear_all_firewall_rules()
 {
     for (const auto& table : firewall_tables)
     {
@@ -437,7 +434,7 @@ void mp::FirewallConfig::clear_all_firewall_rules()
 
 mp::FirewallConfig::UPtr mp::FirewallConfigFactory::make_firewall_config(
     const QString& bridge_name,
-    const std::string& subnet) const
+    const mp::Subnet& subnet) const
 {
-    return std::make_unique<mp::FirewallConfig>(bridge_name, subnet);
+    return std::make_unique<mp::BasicFirewallConfig>(bridge_name, subnet);
 }

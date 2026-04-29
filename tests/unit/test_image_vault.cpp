@@ -165,10 +165,8 @@ struct ImageVault : public testing::Test
 
     QByteArray fake_img_info(const mp::MemorySize& size)
     {
-        return QByteArray::fromStdString(fmt::format(
-            "some\nother\ninfo\nfirst\nvirtual size: {} ({} bytes)\nmore\ninfo\nafter\n",
-            size.in_gigabytes(),
-            size.in_bytes()));
+        return QByteArray::fromStdString(
+            fmt::format(R"({{"format": "qcow2", "virtual-size": {}}})", size.in_bytes()));
     }
 
     void simulate_qemuimg_info(const mpt::MockProcess* process,
@@ -178,8 +176,9 @@ struct ImageVault : public testing::Test
         ASSERT_EQ(process->program().toStdString(), "qemu-img");
 
         const auto args = process->arguments();
-        ASSERT_EQ(args.size(), 2);
-        EXPECT_EQ(args.constFirst(), "info");
+        ASSERT_EQ(args.size(), 3);
+        EXPECT_EQ(args.at(0), "info");
+        EXPECT_EQ(args.at(1), "--output=json");
 
         EXPECT_CALL(*process, execute).WillOnce(Return(produce_result));
         if (produce_result.completed_successfully())
@@ -215,7 +214,7 @@ struct ImageVault : public testing::Test
     mpt::TempDir data_dir;
     mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
-    QString instance_dir = save_dir.filePath(QString::fromStdString(instance_name));
+    QString instance_dir = save_dir.filePath("instances/" + QString::fromStdString(instance_name));
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
 } // namespace
@@ -315,6 +314,27 @@ TEST_F(ImageVault, invalidFileURLThrows)
         std::runtime_error,
         mpt::match_what(
             StrEq(fmt::format("Invalid file URL `{}`; did you forget a slash?", invalid_url))));
+}
+
+TEST_F(ImageVault, imageCloneWithInvalidInstanceDirThrows)
+{
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    vault.fetch_image(mp::FetchType::ImageOnly,
+                      default_query,
+                      stub_prepare,
+                      stub_monitor,
+                      std::nullopt,
+                      this->save_dir.path()); // no "/instances" in save dir
+
+    const std::string dest_name = instance_name + "clone";
+    MP_EXPECT_THROW_THAT(vault.clone(instance_name, dest_name),
+                         std::runtime_error,
+                         mpt::match_what(StrEq("Path replace for the cloned image failed!")));
+    EXPECT_FALSE(vault.has_record_for(dest_name));
 }
 
 TEST_F(ImageVault, nonexistentLocalFileImageThrows)
@@ -1168,7 +1188,7 @@ TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoCannotFindTheImage)
 TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoDoesNotUnderstandTheImageSize)
 {
     const mp::ProcessState qemuimg_exit_status{0, std::nullopt};
-    const QByteArray qemuimg_output("virtual size: an unintelligible string");
+    const QByteArray qemuimg_output(R"({"format": "qcow2"})"); // Missing virtual-size field
     auto mock_factory_scope = inject_fake_qemuimg_callback(qemuimg_exit_status, qemuimg_output);
 
     mp::DefaultVMImageVault vault{hosts,
@@ -1185,7 +1205,7 @@ TEST_F(ImageVault, minimumImageSizeThrowsWhenQemuimgInfoDoesNotUnderstandTheImag
 
     MP_EXPECT_THROW_THAT(vault.minimum_image_size_for(vm_image.id),
                          std::runtime_error,
-                         mpt::match_what(HasSubstr("Could not obtain image's virtual size")));
+                         mpt::match_what(HasSubstr("is not a valid memory size")));
 }
 
 TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)

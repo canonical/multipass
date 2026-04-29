@@ -91,3 +91,9 @@ jobs:
             echo "Run '3rd-party/flutter/bin/dart format' to fix formatting."
             exit 1
           fi
+
+      - name: Check gui-less snapcraft.yaml is up to date
+        shell: bash
+        run: |
+          pip install --quiet -r git-hooks/requirements.txt
+          packaging/gui-less/generate-snapcraft.py --check

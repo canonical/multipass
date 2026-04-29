@@ -1,5 +1,6 @@
 Name:           foo
 State:          Running
+Zone:           zone1(a)
 Snapshots:      0
 IPv4:           10.168.32.2
                 200.3.123.29

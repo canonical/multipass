@@ -82,6 +82,7 @@ add_executable(multipass_tests
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
   test_daemon_wait_ready.cpp
+  test_daemon_zones.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
   test_exception.cpp
@@ -105,6 +106,7 @@ add_executable(multipass_tests
   test_persistent_settings_handler.cpp
   test_petname.cpp
   test_private_pass_provider.cpp
+  test_qemu_img_utils.cpp
   test_qemuimg_process_spec.cpp
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
@@ -127,6 +129,7 @@ add_executable(multipass_tests
   test_sshfsmount.cpp
   test_ssl_cert_provider.cpp
   test_standard_logger.cpp
+  test_subnet.cpp
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
@@ -137,6 +140,12 @@ add_executable(multipass_tests
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
+
+if(AVAILABILITY_ZONES_ENABLED)
+  target_sources(multipass_tests PRIVATE
+    test_base_availability_zone.cpp
+    test_base_availability_zone_manager.cpp)
+endif()
 
 target_include_directories(multipass_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
@@ -260,6 +269,17 @@ set_target_properties(mock_process
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
 add_dependencies(multipass_tests mock_process)
+
+add_executable(qemu-img
+  qemu/mock_qemuimg.cpp)
+
+set_target_properties(qemu-img
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
+
+add_dependencies(multipass_tests qemu-img)
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)

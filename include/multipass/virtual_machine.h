@@ -34,6 +34,7 @@
 
 namespace multipass
 {
+class AvailabilityZone;
 struct IPAddress;
 class MemorySize;
 class VMMount;
@@ -55,7 +56,8 @@ public:
         delayed_shutdown,
         suspending,
         suspended,
-        unknown
+        unknown,
+        unavailable,
     };
 
     enum class ShutdownPolicy
@@ -73,6 +75,7 @@ public:
     virtual void start() = 0;
     virtual void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) = 0;
     virtual void suspend() = 0;
+    virtual void set_available(bool available) = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
     virtual std::string ssh_hostname()
@@ -124,6 +127,7 @@ public:
 
     virtual QDir instance_directory() const = 0;
     virtual const std::string& get_name() const = 0;
+    virtual const AvailabilityZone& get_zone() const = 0;
 
     VirtualMachine::State state;
     std::condition_variable state_wait;
@@ -171,6 +175,9 @@ struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<s
             break;
         case multipass::VirtualMachine::State::unknown:
             v = "unknown";
+            break;
+        case multipass::VirtualMachine::State::unavailable:
+            v = "unavailable";
             break;
         default:
             assert(0 && "unhandled VM state");

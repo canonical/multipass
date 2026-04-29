@@ -7,13 +7,11 @@ For detailed release information, see the [Multipass releases page](https://gith
 
 ## Recent releases
 
-```{admonition} Support for Multipass releases
-:class: note
 Only the most recent release of Multipass is actively supported. Users are encouraged to [upgrade](how-to-guides-install-multipass-upgrade) to the latest version to receive new features, security updates and bug fixes.
-```
 
 | Release date   |  Release notes  |
 |----|----|
+| May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
 | August 27, 2025 | [Multipass 1.16.1](./1.16.1) |
 | July 10, 2025 | [Multipass 1.16.0](./1.16.0) |
 
@@ -27,6 +25,7 @@ Along with bug fixes and general improvements, Multipass 1.16.x includes:
 * Performance optimizations
 * Updated cloud-init support
 * Bug fixes and stability improvements
+* Added LXD 6 API support
 
 
 ## Release and support policy

@@ -79,4 +79,5 @@ constexpr auto home_in_instance = "/home/ubuntu";
 constexpr std::chrono::milliseconds vm_shutdown_timeout =
     300000ms; // unit: ms, 5 minute timeout for shutdown/suspend
 constexpr auto default_ssh_port = 22;
+constexpr auto default_zone_names = {"zone1", "zone2", "zone3"};
 } // namespace multipass
