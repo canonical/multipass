@@ -244,6 +244,7 @@ jobs:
         key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
 
   DispatchCLITestsWorkflow:
+    name: "Dispatch CLI Tests (Windows)"
     permissions:
       contents: read
       actions: read
@@ -254,6 +255,7 @@ jobs:
     uses: ./.github/workflows/cli-tests.yml
     with:
       windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
+      backend-driver: hyperv_api
 
   Report-Workflow-Failure:
     needs: [BuildAndTest]

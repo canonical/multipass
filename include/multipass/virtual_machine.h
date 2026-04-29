@@ -21,15 +21,16 @@
 #include "network_interface.h"
 
 #include <QDir>
+#include <fmt/format.h>
 
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
-
-#include <fmt/format.h>
 
 namespace multipass
 {
@@ -44,6 +45,7 @@ class Snapshot;
 class VirtualMachine : private DisabledCopyMove
 {
 public:
+    // TODO: Get rid of the VirtualMachine::State in favor of InstanceStatus
     enum class State
     {
         off,
@@ -102,7 +104,8 @@ public:
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
                                                                         // confusion with C++ views
-    virtual SnapshotVista view_snapshots() const = 0;
+    using SnapshotPredicate = std::function<bool(const Snapshot&)>;
+    virtual SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const = 0;
     virtual int get_num_snapshots() const = 0;
 
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
@@ -175,6 +178,9 @@ struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<s
             break;
         case multipass::VirtualMachine::State::unavailable:
             v = "unavailable";
+            break;
+        default:
+            assert(0 && "unhandled VM state");
             break;
         }
 

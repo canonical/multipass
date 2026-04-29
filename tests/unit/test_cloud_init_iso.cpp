@@ -154,7 +154,7 @@ TEST_F(CloudInitIso, readsIsoFileFailedToOpenFile)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(false));
     mp::CloudInitIso new_iso;
     MP_EXPECT_THROW_THAT(new_iso.read_from(iso_path),
                          std::runtime_error,
@@ -167,7 +167,7 @@ TEST_F(CloudInitIso, readsIsoFileFailedToReadSingleBytes)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(true));
 
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(read_returns_failed_ifstream);
@@ -186,7 +186,7 @@ TEST_F(CloudInitIso, readsIsoFileFailedToCheckItHasJolietVolumeDescriptor)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(true));
 
     // value 2_u8 is for Joliet volume descriptor
     auto read_returns_one_byte_value_one =
@@ -210,7 +210,7 @@ TEST_F(CloudInitIso, readsIsoFileJolietVolumeDescriptorMalformed)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(true));
 
     const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
@@ -247,7 +247,7 @@ TEST_F(CloudInitIso, readsIsoFileFailedToReadArray)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(true));
 
     const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
@@ -268,7 +268,7 @@ TEST_F(CloudInitIso, readsIsoFileFailedToCheckRootDirRecordData)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(true));
 
     const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
@@ -297,7 +297,7 @@ TEST_F(CloudInitIso, readsIsoFileFailedToReadVec)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(true));
 
     // The first read_bytes_to_vec call invoke the 7th call of MP_FILEOPS.read
     const InSequence seq;
@@ -322,7 +322,7 @@ TEST_F(CloudInitIso, readsIsoFileEncodedFileNameIsNotEvenLength)
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, is_open(An<const std::ifstream&>())).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_open(A<const std::ifstream&>())).WillOnce(Return(true));
 
     const InSequence seq;
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
