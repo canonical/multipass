@@ -103,9 +103,8 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
             return;
         }
         // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
-        // the VM is stopped. The base class will take care of the nuking the VM folder.
-        const auto terminate_result = HCS().terminate_compute_system(handle);
-        if (terminate_result)
+        // the VM is terminated. The base class will take care of the nuking the VM folder.
+        if (HCS().terminate_compute_system(handle))
         {
             mpl::warn(log_category,
                       "remove_resources_for_impl() -> Host compute system {} was still alive.",
