@@ -76,6 +76,14 @@ private:
  */
 struct CreateVirtualDiskParameters
 {
+    // Corresponds to Version1.MaximumSize in the CREATE_VIRTUAL_DISK_PARAMETERS
+    // struct. Must be a multiple of 512.
+    //
+    // If (predecessor == ParentPathParameters), this value must be zero.
+    //
+    // If (predecessor == SourcePathParameters), this value can be zero to specify the size of the
+    // source virtual disk to be used, otherwise the size specified must be greater than or equal to
+    // the size of the source disk.
     std::uint64_t size_in_bytes{};
     std::filesystem::path path{};
     /**
