@@ -107,6 +107,17 @@ auto net_digest(const QString& options)
 
     return net;
 }
+
+std::string launch_timeout_message(bool has_mounts)
+{
+    auto message = std::string{"Timed out waiting for instance launch."};
+
+    if (has_mounts)
+        message +=
+            " Requested mounts were not attempted because launch timed out before mount setup.";
+
+    return message;
+}
 } // namespace
 
 mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
@@ -500,7 +511,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         timer = cmd::make_timer(parser->value("timeout").toInt(),
                                 spinner.get(),
                                 cerr,
-                                "Timed out waiting for instance launch.");
+                                launch_timeout_message(!mount_routes.empty()));
         timer->start();
     }
 

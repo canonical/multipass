@@ -1478,6 +1478,34 @@ TEST_F(Client, launchCmdMountOption)
               mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, launchCmdWarnsWhenMountsAreNotAttemptedOnTimeout)
+{
+    const QTemporaryDir fake_directory{};
+    const auto fake_source = fake_directory.path().toStdString();
+    const auto instance_name = "some_instance";
+
+    ON_CALL(mock_daemon, launch)
+        .WillByDefault([](grpc::ServerContext*,
+                          grpc::ServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>*) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            return grpc::Status::OK;
+        });
+
+    EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, mount).Times(AnyNumber());
+    EXPECT_CALL(*mock_utils, exit(mp::timeout_exit_code));
+
+    std::stringstream cerr_stream;
+    send_command({"launch", "--name", instance_name, "--timeout", "1", "--mount", fake_source},
+                 trash_stream,
+                 cerr_stream);
+
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Timed out waiting for instance launch."));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr("Requested mounts were not attempted because launch timed out before "
+                           "mount setup."));
+}
+
 TEST_F(Client, launchCmdMountOptionFailsOnInvalidDir)
 {
     auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
