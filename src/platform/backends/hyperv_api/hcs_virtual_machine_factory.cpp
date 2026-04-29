@@ -254,9 +254,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
         .path = desc.image.image_path,
         .predecessor = virtdisk::SourcePathParameters{src_vm_vhdx}};
 
-    const auto create_vd_result = VirtDisk().create_virtual_disk(clone_vhdx_params);
-
-    if (!create_vd_result)
+    if (!VirtDisk().create_virtual_disk(clone_vhdx_params))
     {
         throw std::runtime_error{"VHDX clone failed."};
     }
@@ -284,40 +282,32 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_hyperv_vswitches
 {
     std::vector<NetworkInterfaceInfo> result;
     std::vector<std::string> hyperv_network_guids;
-    std::vector<hyperv::hcn::HcnNetworkInfo> hyperv_network_infos;
 
     if (const auto enumerate_result = HCN().enumerate_networks(hyperv_network_guids))
     {
         for (const auto& network_guid : hyperv_network_guids)
         {
-            if (const auto result =
-                    HCN().query_network(network_guid, hyperv_network_infos.emplace_back());
-                !result)
+            hcn::HcnNetworkInfo hcn_info{};
+            if (const auto query_result = HCN().query_network(network_guid, hcn_info))
             {
+                result.emplace_back(NetworkInterfaceInfo{
+                    .id = hcn_info.name,
+                    .type = MP_PLATFORM.bridge_nomenclature(),
+                    .description = fmt::format("Hyper-V vSwitch({})", hcn_info.type),
+                    .links = hcn_info.network_adapter_name.has_value()
+                                 ? std::vector<std::string>{hcn_info.network_adapter_name.value()}
+                                 : std::vector<std::string>{},
+                    .needs_authorization = false});
+            }
+            else
                 mpl::warn(log_category,
                           "Could not retrieve network information for {}, result: {}",
                           network_guid,
-                          result);
-                hyperv_network_infos.pop_back();
-            }
-        }
-
-        for (const auto& network_info : hyperv_network_infos)
-        {
-            result.emplace_back(NetworkInterfaceInfo{
-                .id = network_info.name,
-                .type = MP_PLATFORM.bridge_nomenclature(),
-                .description = fmt::format("Hyper-V vSwitch({})", network_info.type),
-                .links = network_info.network_adapter_name.has_value()
-                             ? std::vector<std::string>{network_info.network_adapter_name.value()}
-                             : std::vector<std::string>{},
-                .needs_authorization = false});
+                          query_result);
         }
     }
     else
-    {
         mpl::warn(log_category, "Network enumeration failed, result: {}", enumerate_result);
-    }
 
     return result;
 }
