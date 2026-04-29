@@ -102,8 +102,7 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
                       name);
             return;
         }
-        // Everything for the VM is neatly packed into the VM folder, so it's enough to ensure that
-        // the VM is terminated. The base class will take care of the nuking the VM folder.
+
         if (HCS().terminate_compute_system(handle))
         {
             mpl::warn(log_category,
