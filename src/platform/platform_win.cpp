@@ -150,10 +150,13 @@ QString locate_profiles_path()
         "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
 }
 
-struct WintermSyncException : public std::runtime_error
+struct WintermSyncException : public multipass::FormattedExceptionBase<>
 {
     WintermSyncException(const std::string& msg, const QString& path, const std::string& reason)
-        : std::runtime_error{fmt::format("{}; location: \"{}\"; reason: {}.", msg, path, reason)}
+        : multipass::FormattedExceptionBase<>("{}; location: \"{}\"; reason: {}.",
+                                              msg,
+                                              path,
+                                              reason)
     {
     }
 
@@ -600,10 +603,10 @@ static const auto& ip_utils()
             const auto ip_hbo = ntohl(v4.S_un.S_addr);
             if (prefix_length > max_prefix_length)
             {
-                throw std::runtime_error{
-                    fmt::format("Given prefix length `{}` is larger than `{}`!",
-                                prefix_length,
-                                max_prefix_length)};
+                throw multipass::FormattedRuntimeError{
+                    "Given prefix length `{}` is larger than `{}`!",
+                    prefix_length,
+                    max_prefix_length};
             }
             const auto mask = (prefix_length == 0) ? 0
                                                    : std::numeric_limits<std::uint32_t>::max()
@@ -626,7 +629,10 @@ static const auto& ip_utils()
             constexpr static auto max_prefix_length = 128;
             if (prefix_length > max_prefix_length)
             {
-                throw std::runtime_error{"Given prefix length `{}` is larger than `{}`!"};
+                throw multipass::FormattedRuntimeError{
+                    "Given prefix length `{}` is larger than `{}`!",
+                    prefix_length,
+                    max_prefix_length};
             }
             in6_addr masked = v6;
 
@@ -1164,7 +1170,7 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
     aliases_folder = QDir{location};
 
     if (!aliases_folder.mkpath(aliases_folder.path()))
-        throw std::runtime_error(fmt::format("error creating \"{}\"\n", aliases_folder.path()));
+        throw FormattedRuntimeError("error creating \"{}\"\n", aliases_folder.path());
 
     return aliases_folder;
 }
@@ -1295,10 +1301,10 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
         auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts);
         if (output_lines.size() != 1)
         {
-            throw std::runtime_error{fmt::format("Could not obtain adapter description from name "
-                                                 "\"{}\" - unexpected powershell output: {}",
-                                                 ux_id,
-                                                 ps_output)};
+            throw FormattedRuntimeError{"Could not obtain adapter description from name "
+                                        "\"{}\" - unexpected powershell output: {}",
+                                        ux_id,
+                                        ps_output};
         }
 
         return output_lines.first().toStdString();
