@@ -1158,7 +1158,7 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, remove(An<QFile&>())).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, remove(A<QFile&>())).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
         return file.ownerId();
     });
