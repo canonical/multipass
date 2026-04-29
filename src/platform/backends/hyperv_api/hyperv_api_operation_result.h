@@ -28,8 +28,7 @@ namespace multipass::hyperv
 {
 
 /**
- * A simple HRESULT wrapper which is boolable for
- * convenience.
+ * A simple HRESULT wrapper for convenience.
  */
 struct ResultCode
 {
@@ -77,8 +76,7 @@ struct OperationResult
 {
 
     /**
-     * Status code of the operation. Equal to
-     * S_OK on success.
+     * Status code of the operation. Equal to S_OK on success.
      */
     ResultCode code;
 

@@ -22,6 +22,7 @@
 namespace multipass
 {
 
+// Windows Socket API initialization exception
 struct WSAInitException : FormattedExceptionBase<>
 {
     using FormattedExceptionBase::FormattedExceptionBase;
