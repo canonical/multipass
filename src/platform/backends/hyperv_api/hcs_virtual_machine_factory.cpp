@@ -173,7 +173,7 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
             qemu_img_process.readAllStandardError().toStdString()};
     }
 
-    if (!std::filesystem::exists(target_file))
+    if (!MP_FILEOPS.exists(target_file))
     {
         throw ImageConversionException{"Converted VHDX `{}` does not exist!", target_file};
     }
