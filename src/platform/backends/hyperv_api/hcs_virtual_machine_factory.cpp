@@ -179,7 +179,7 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
     }
 
     VMImage result{source_image};
-    result.image_path = target_file.generic_wstring();
+    result.image_path = target_file;
     return result;
 }
 
