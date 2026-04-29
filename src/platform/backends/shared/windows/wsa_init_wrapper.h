@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <memory>
 
 /**
@@ -26,11 +27,13 @@ struct WSAData;
 
 namespace multipass
 {
-struct wsa_init_wrapper
+class wsa_init_wrapper
 {
+public:
     wsa_init_wrapper();
     ~wsa_init_wrapper();
 
+private:
     /**
      * Check whether WSA initialization has succeeded.
      *
@@ -39,10 +42,10 @@ struct wsa_init_wrapper
      */
     operator bool() const noexcept
     {
+        assert(!wsa_init_result != !wsa_data);
         return wsa_init_result == 0;
     }
 
-private:
     std::unique_ptr<WSAData> wsa_data{nullptr};
     const int wsa_init_result{-1};
 };
