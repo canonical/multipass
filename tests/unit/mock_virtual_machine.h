@@ -19,6 +19,7 @@
 
 #include "common.h"
 #include "mock_ssh_process.h"
+#include "mock_ssh_session.h"
 #include "temp_dir.h"
 
 #include <multipass/ip_address.h>
@@ -73,6 +74,7 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, get_all_ipv4).WillByDefault(Return(std::vector{IPAddress{"192.168.2.123"}}));
         ON_CALL(*this, instance_directory).WillByDefault(Return(this->tmp_dir->path()));
         ON_CALL(*this, ssh_exec_process).WillByDefault(std::make_unique<NiceMock<MockSSHProcess>>);
+        ON_CALL(*this, new_ssh_session).WillByDefault(std::make_unique<NiceMock<MockSSHSession>>);
     }
 
     MOCK_METHOD(void, start, (), (override));
