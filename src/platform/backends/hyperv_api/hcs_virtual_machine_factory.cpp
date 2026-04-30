@@ -66,11 +66,13 @@ constexpr auto extra_interface_vswitch_name_fmtstr = "Multipass vSwitch ({})";
  */
 constexpr auto extra_interface_vswitch_name_regex = R"(Multipass vSwitch \((.*)\))";
 
-HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir)
+HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
+                                                   AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir,
                                         HCSVirtualMachineFactory::get_backend_directory_name(),
-                                        instances_subdir))
+                                        instances_subdir),
+          az_manager)
 {
 }
 
@@ -83,6 +85,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
                                                desc,
                                                monitor,
                                                key_provider,
+                                               az_manager.get_zone(desc.zone),
                                                get_instance_directory(desc.vm_name));
 }
 

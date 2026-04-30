@@ -929,7 +929,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 #if defined(HYPERV_HCS_ENABLED)
     else if (driver == "hyperv_api")
     {
-        return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir);
+        return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir, az_manager);
     }
 #endif
 
