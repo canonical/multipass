@@ -101,7 +101,7 @@ jobs:
         installTics: true
 
     - name: Report workflow failure
-      if: ${{ !success() }}
+      if: ${{ !success() && github.ref_name == 'main' }}
       uses: mattermost/action-mattermost-notify@master
       with:
         MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
