@@ -66,20 +66,20 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     const std::string dummy_vm_name{"lord-of-the-pings"};
     mpt::StubAvailabilityZone dummy_zone{};
 
-        mp::VirtualMachineDescription desc{2,
-                                           mp::MemorySize{"3M"},
-                                           mp::MemorySize{}, // not used
-                                           dummy_vm_name,
-                                           dummy_zone.get_name(),
-                                           "aa:bb:cc:dd:ee:ff",
-                                           {},
-                                           "",
-                                           {dummy_image.name().toStdString(), "", "", "", {}, {}},
-                                           dummy_cloud_init_iso.name(),
-                                           {},
-                                           {},
-                                           {},
-                                           {}};
+    mp::VirtualMachineDescription desc{2,
+                                       mp::MemorySize{"3M"},
+                                       mp::MemorySize{}, // not used
+                                       dummy_vm_name,
+                                       dummy_zone.get_name(),
+                                       "aa:bb:cc:dd:ee:ff",
+                                       {},
+                                       "",
+                                       {dummy_image.name().toStdString(), "", "", "", {}, {}},
+                                       dummy_cloud_init_iso.name(),
+                                       {},
+                                       {},
+                                       {},
+                                       {}};
 
     mpt::StubSSHKeyProvider stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
