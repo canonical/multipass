@@ -341,6 +341,7 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
 
     add_custom_target(covreport
       DEPENDS multipass_cpp_tests multipass_integration_tests rust_coverage_tarpaulin
+        $<$<BOOL:${MULTIPASS_ENABLE_FLUTTER_GUI}>:multipass_gui>
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
