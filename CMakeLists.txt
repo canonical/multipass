@@ -337,7 +337,7 @@ if(cmake_build_type_lower MATCHES "coverage")
     endif()
 
     add_custom_target(covreport
-      DEPENDS multipass_tests
+      DEPENDS multipass_tests $<$<BOOL:${MULTIPASS_ENABLE_FLUTTER_GUI}>:multipass_gui>
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
