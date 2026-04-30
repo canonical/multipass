@@ -68,6 +68,7 @@ private:
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
     bool has_id_mappings_for(const QFileInfo& file_info);
+    bool validate_path(const std::string& current_path);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
@@ -94,6 +95,7 @@ private:
     SSHFSProcUptr sshfs_process;
     SftpSessionUptr sftp_server_session;
     const std::string source_path;
+    const std::filesystem::path canonical_source;
     const std::string target_path;
     std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;
     std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;

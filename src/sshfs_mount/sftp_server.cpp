@@ -39,6 +39,7 @@ int sftp_reply_version(sftp_client_message msg);
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+namespace fs = std::filesystem;
 
 namespace
 {
@@ -223,14 +224,6 @@ auto to_unix_permissions(QFile::Permissions perms)
     return out;
 }
 
-auto validate_path(const std::string& source_path, const std::string& current_path)
-{
-    if (source_path.empty())
-        return false;
-
-    return current_path.compare(0, source_path.length(), source_path) == 0;
-}
-
 void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
 {
     if (sshfs_process.exit_recognized(250ms))
@@ -296,6 +289,7 @@ mp::SftpServer::SftpServer(SSHSession&& session,
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{source},
+      canonical_source{source},
       target_path{target},
       gid_mappings{gid_mappings},
       uid_mappings{uid_mappings},
@@ -387,6 +381,23 @@ bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
 {
     return has_uid_mapping_for(MP_FILEOPS.ownerId(file_info)) &&
            has_gid_mapping_for(MP_FILEOPS.groupId(file_info));
+}
+
+bool mp::SftpServer::validate_path(const std::string& current_path)
+{
+    if (canonical_source.empty())
+        return false;
+
+    std::error_code ec;
+    auto normalized_current_path = fs::weakly_canonical(current_path, ec);
+
+    if (ec)
+        return false;
+    auto [source_it, current_it] = std::mismatch(canonical_source.begin(),
+                                                 canonical_source.end(),
+                                                 normalized_current_path.begin(),
+                                                 normalized_current_path.end());
+    return source_it == canonical_source.end();
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
@@ -558,7 +569,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 {
     const auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path '{}' against source '{}'",
@@ -614,7 +625,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 int mp::SftpServer::handle_rmdir(sftp_client_message msg)
 {
     const auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path '{}' against source '{}'",
@@ -654,7 +665,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
 int mp::SftpServer::handle_open(sftp_client_message msg)
 {
     const auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path '{}' against source '{}'",
@@ -752,7 +763,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 int mp::SftpServer::handle_opendir(sftp_client_message msg)
 {
     const auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path '{}' against source '{}'",
@@ -880,7 +891,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
 int mp::SftpServer::handle_readlink(sftp_client_message msg)
 {
     auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
@@ -915,7 +926,7 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
 int mp::SftpServer::handle_realpath(sftp_client_message msg)
 {
     auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
@@ -942,7 +953,7 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
 int mp::SftpServer::handle_remove(sftp_client_message msg)
 {
     const auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path '{}' against source '{}'",
@@ -978,7 +989,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
 int mp::SftpServer::handle_rename(sftp_client_message msg)
 {
     const auto source = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, source))
+    if (!validate_path(source))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
@@ -1005,7 +1016,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     }
 
     const auto target = sftp_client_message_get_data(msg);
-    if (!validate_path(source_path, target))
+    if (!validate_path(target))
     {
         mpl::trace(category,
                    "{}: cannot validate target path \'{}\' against source \'{}\'",
@@ -1064,7 +1075,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     else
     {
         filename = sftp_client_message_get_filename(msg);
-        if (!validate_path(source_path, filename.string()))
+        if (!validate_path(filename.string()))
         {
             mpl::trace(category,
                        "{}: cannot validate path '{}' against source '{}'",
@@ -1159,7 +1170,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 {
     auto filename = sftp_client_message_get_filename(msg);
-    if (!validate_path(source_path, filename))
+    if (!validate_path(filename))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
@@ -1200,7 +1211,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
     const auto old_name = sftp_client_message_get_filename(msg);
     const auto new_name = sftp_client_message_get_data(msg);
 
-    if (!validate_path(source_path, new_name))
+    if (!validate_path(new_name))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
@@ -1292,7 +1303,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
         const auto old_name = sftp_client_message_get_filename(msg);
         const auto new_name = sftp_client_message_get_data(msg);
 
-        if (!validate_path(source_path, new_name))
+        if (!validate_path(new_name))
         {
             mpl::trace(category,
                        "{}: cannot validate path \'{}\' against source \'{}\'",
