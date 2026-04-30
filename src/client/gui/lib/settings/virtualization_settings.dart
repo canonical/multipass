@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
@@ -14,6 +15,7 @@ class VirtualizationSettings extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final driver = ref.watch(driverProvider).when(
           data: (data) => data,
           loading: () => null,
@@ -33,34 +35,35 @@ class VirtualizationSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Virtualization',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Text(
+          l10n.virtualizationTitle,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
         Dropdown(
-          label: 'Driver',
+          label: l10n.virtualizationDriverLabel,
           width: 260,
           value: driver,
           items: {if (driver != null) driver: driver, ...mpPlatform.drivers},
           onChanged: (value) {
             if (value == driver) return;
-            ref
-                .read(driverProvider.notifier)
-                .set(value as String)
-                .onError(ref.notifyError((e) => 'Failed to set driver: $e'));
+            ref.read(driverProvider.notifier).set(value as String).onError(
+                ref.notifyError((e) => l10n.virtualizationDriverError('$e')));
           },
         ),
         const SizedBox(height: 20),
         if (networks.isNotEmpty)
           Dropdown<String>(
-            label: 'Bridged network',
+            label: l10n.bridgeTitle,
             width: 260,
             value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
-            items: {'': 'None', ...Map.fromIterable(networks)},
+            items: {
+              '': l10n.virtualizationBridgedNetworkNone,
+              ...Map.fromIterable(networks)
+            },
             onChanged: (value) {
               ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
-                    ref.notifyError((e) => 'Failed to set bridged network: $e'),
+                    ref.notifyError((e) => l10n.bridgeFailedNetwork('$e')),
                   );
             },
           ),

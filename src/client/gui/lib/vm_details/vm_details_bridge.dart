@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../notifications.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../tooltip.dart';
 import 'vm_details.dart';
@@ -28,6 +29,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final networks = ref.watch(networksProvider).when(
           data: (data) => data,
           loading: () => const <String>{},
@@ -61,24 +63,23 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       onSaved: (value) {
         if (value!) {
           ref.read(bridgedProvider.notifier).set(value.toString()).onError(
-                ref.notifyError((e) => 'Failed to set bridged network: $e'),
+                ref.notifyError((e) => l10n.bridgeFailedNetwork('$e')),
               );
         }
       },
       builder: (field) {
         final validBridgedNetwork = networks.contains(bridgedNetworkSetting);
         final message = networks.isEmpty
-            ? 'No networks found.'
+            ? l10n.bridgeNoNetworks
             : validBridgedNetwork
-                ? "Once established, you won't be able to unset the connection."
-                : 'No valid bridged network is set.';
-
+                ? l10n.bridgeEstablishedWarning
+                : l10n.bridgeNoValidNetwork;
         return CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           enabled: validBridgedNetwork,
           onChanged: field.didChange,
-          title: const Text('Connect to bridged network.'),
+          title: Text(l10n.bridgeConnect),
           value: field.value!,
           visualDensity: VisualDensity.standard,
           subtitle: Text(message),
@@ -91,7 +92,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         formKey.currentState?.save();
         setState(() => editing = false);
       },
-      child: const Text('Save'),
+      child: Text(l10n.dialogSave),
     );
 
     void configure() {
@@ -103,10 +104,10 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
 
     final configureButton = Tooltip(
       visible: !stopped,
-      message: 'Stop instance to configure',
+      message: l10n.vmDetailsStopToConfigure,
       child: OutlinedButton(
         onPressed: stopped ? configure : null,
-        child: const Text('Configure'),
+        child: Text(l10n.dialogConfigure),
       ),
     );
 
@@ -116,7 +117,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         setState(() => editing = false);
         ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
-      child: const Text('Cancel'),
+      child: Text(l10n.dialogCancel),
     );
 
     return Form(
@@ -127,9 +128,10 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         children: [
           Row(
             children: [
-              const SizedBox(
+              SizedBox(
                 height: 50,
-                child: Text('Bridged network', style: TextStyle(fontSize: 24)),
+                child: Text(l10n.bridgeTitle,
+                    style: const TextStyle(fontSize: 24)),
               ),
               const Spacer(),
               if (editing)
@@ -141,7 +143,9 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
           editing
               ? SizedBox(width: 300, child: bridgedCheckbox)
               : Text(
-                  'Status: ${bridged ?? false ? '' : 'not'} connected',
+                  bridged ?? false
+                      ? l10n.bridgeStatusConnected
+                      : l10n.bridgeStatusNotConnected,
                   style: const TextStyle(fontSize: 16),
                 ),
           if (editing)

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import 'package:intersperse/intersperse.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'image_card.dart';
 import 'launch_form.dart';
@@ -154,23 +155,26 @@ class CatalogueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final content = ref.watch(imagesProvider).when(
           skipLoadingOnRefresh: false,
           data: _buildCatalogue,
           error: (error, _) {
-            final errorMessage = error is GrpcError ? error.message : error;
+            final errorMessage = error is GrpcError
+                ? (error.message ?? error.toString())
+                : error.toString();
             return Center(
               child: Column(
                 children: [
                   const SizedBox(height: 32),
                   Text(
-                    'Failed to retrieve images: $errorMessage',
+                    l10n.catalogueLoadError(errorMessage),
                     style: const TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => ref.invalidate(imagesProvider),
-                    child: const Text('Refresh'),
+                    child: Text(l10n.catalogueRefresh),
                   ),
                 ],
               ),
@@ -181,15 +185,16 @@ class CatalogueScreen extends ConsumerWidget {
 
     final welcomeText = Container(
       constraints: const BoxConstraints(maxWidth: 500),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Welcome to Multipass', style: TextStyle(fontSize: 37)),
+          Text(l10n.catalogueWelcomeTitle,
+              style: const TextStyle(fontSize: 37)),
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
-              'Get an instant VM in seconds. Multipass can launch and run virtual machines and configure them like a public cloud.',
-              style: TextStyle(fontSize: 16),
+              l10n.catalogueWelcomeBody,
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ],

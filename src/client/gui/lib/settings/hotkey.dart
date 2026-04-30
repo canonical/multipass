@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../l10n/app_localizations.dart';
 
 final hotkeySettingProvider = guiSettingProvider(hotkeyKey);
 
@@ -164,17 +165,18 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
 
   @override
   Widget build(BuildContext context) {
-    final keyLabel = key?.keyLabel ?? '...';
+    final l10n = AppLocalizations.of(context)!;
+    final keyLabel = key?.keyLabel ?? l10n.hotkeyUnknownKey;
     final modifiers = [
-      if (control) 'Ctrl',
+      if (control) l10n.hotkeyCtrl,
       if (alt) mpPlatform.altKey,
-      if (shift) 'Shift',
+      if (shift) l10n.hotkeyShift,
       if (meta) mpPlatform.metaKey,
     ].join('+');
     final keyCombination = modifiers.isNotEmpty
         ? '$modifiers+$keyLabel'
         : hasFocus
-            ? 'Input...'
+            ? l10n.hotkeyInputPrompt
             : '';
 
     return Focus(

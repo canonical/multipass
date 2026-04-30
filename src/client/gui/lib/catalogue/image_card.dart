@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'catalogue.dart';
 import 'launch_form.dart';
@@ -28,25 +29,24 @@ class ImageCard extends ConsumerWidget {
     };
   }
 
-  String _getDisplayTitle(ImageInfo parentImage) {
+  String _getDisplayTitle(ImageInfo parentImage, AppLocalizations l10n) {
     return switch (parentImage.os.toLowerCase()) {
       'ubuntu' when parentImage.aliases.any((a) => a.contains('core')) =>
-        'Ubuntu Core',
-      'ubuntu' => 'Ubuntu Server',
-      'debian' => 'Debian',
-      'fedora' => 'Fedora',
+        l10n.imageCardTitleUbuntuCore,
+      'ubuntu' => l10n.imageCardTitleUbuntuServer,
+      'debian' => l10n.imageCardTitleDebian,
+      'fedora' => l10n.imageCardTitleFedora,
       _ => parentImage.os, // Default case: return the OS name as-is
     };
   }
 
-  String _getDescription(ImageInfo parentImage) {
+  String _getDescription(ImageInfo parentImage, AppLocalizations l10n) {
     return switch (parentImage.os.toLowerCase()) {
       'ubuntu' when parentImage.aliases.any((a) => a.contains('core')) =>
-        'Ubuntu operating system optimised for IoT and Edge',
-      'ubuntu' =>
-        'Ubuntu operating system designed as a backbone for the internet',
-      'debian' => 'Debian official cloud image',
-      'fedora' => 'Fedora Cloud Edition',
+        l10n.imageCardDescUbuntuCore,
+      'ubuntu' => l10n.imageCardDescUbuntuServer,
+      'debian' => l10n.imageCardDescDebian,
+      'fedora' => l10n.imageCardDescFedora,
       _ => '',
     };
   }
@@ -59,6 +59,7 @@ class ImageCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final selectedImage =
         ref.watch(selectedImageProvider(imageKey)) ?? parentImage;
 
@@ -90,11 +91,11 @@ class ImageCard extends ConsumerWidget {
                   _getParentImageLogo(parentImage.os),
                   height: 24,
                   fit: BoxFit.contain,
-                  semanticsLabel: '${parentImage.os} logo',
+                  semanticsLabel: l10n.imageCardLogoSemantics(parentImage.os),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _getDisplayTitle(parentImage),
+                  _getDisplayTitle(parentImage, l10n),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
@@ -103,7 +104,7 @@ class ImageCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(_getDescription(parentImage),
+            Text(_getDescription(parentImage, l10n),
                 style: const TextStyle(fontWeight: FontWeight.w300)),
             const SizedBox(height: 16),
             const Spacer(),
@@ -166,7 +167,7 @@ class ImageCard extends ConsumerWidget {
 
                   initiateLaunchFlow(ref, launchRequest);
                 },
-                child: const Text('Launch'),
+                child: Text(l10n.vmTableLaunch),
               ),
               const SizedBox(width: 8),
               OutlinedButton(
@@ -175,7 +176,7 @@ class ImageCard extends ConsumerWidget {
                       selectedImage;
                   Scaffold.of(context).openEndDrawer();
                 },
-                child: const Text('Configure'),
+                child: Text(l10n.dialogConfigure),
               ),
             ]),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'confirmation_dialog.dart';
+import 'l10n/app_localizations.dart';
 
 class BeforeQuitDialog extends StatefulWidget {
   final int runningCount;
@@ -23,22 +24,15 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
 
   @override
   Widget build(BuildContext context) {
-    String getMessage() {
-      if (widget.runningCount == 1) {
-        return 'There is 1 running instance. Do you want to stop it?';
-      } else {
-        return 'There are ${widget.runningCount} running instances. Do you want to stop them?';
-      }
-    }
-
+    final l10n = AppLocalizations.of(context)!;
     return ConfirmationDialog(
-      title: 'Stop running instances?',
+      title: l10n.beforeQuitTitle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 8),
-            child: Text(getMessage()),
+            child: Text(l10n.beforeQuitMessage(widget.runningCount)),
           ),
           const SizedBox(height: 24),
           Row(
@@ -48,14 +42,14 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
                 onChanged: (value) => setState(() => remember = value!),
               ),
               const SizedBox(width: 8),
-              const Text('Do not ask me again'),
+              Text(l10n.dialogDoNotAskAgain),
             ],
           ),
         ],
       ),
-      actionText: 'Stop instances',
+      actionText: l10n.beforeQuitStopAction,
       onAction: () => widget.onStop(remember),
-      inactionText: 'Leave instances running',
+      inactionText: l10n.beforeQuitKeepAction,
       onInaction: () => widget.onKeep(remember),
     );
   }
