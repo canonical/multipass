@@ -18,7 +18,6 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/utils.h>
 
@@ -142,11 +141,8 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
 
 void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
-    PlainSSHSession session{vm->ssh_hostname(),
-                            vm->ssh_port(),
-                            vm->ssh_username(),
-                            *ssh_key_provider};
-    if (!has_sshfs(vm->get_name(), session))
+    auto session = vm->new_ssh_session();
+    if (!has_sshfs(vm->get_name(), *session))
     {
         auto visitor = [](auto server) {
             if (server)
@@ -157,7 +153,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
             }
         };
         std::visit(visitor, server);
-        install_sshfs_for(vm->get_name(), session, timeout);
+        install_sshfs_for(vm->get_name(), *session, timeout);
     }
 
     // Can't obtain hostname/IP address until instance is running
