@@ -25,7 +25,7 @@ namespace test
 {
 // This sets up all default values for any libssh API calls.
 // Use REPLACE() *after* instantiating this in the test unit to override the default.
-struct MockSSHTestFixture
+struct MockSSHTestFixture // TODO@rewiressh remove
 {
     MockSSHTestFixture()
     {

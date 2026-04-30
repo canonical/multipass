@@ -23,7 +23,7 @@
 
 namespace multipass::test
 {
-class ExitStatusMock
+class ExitStatusMock // TODO@rewiressh remove (and can we can rid of premock entirely?)
 {
 public:
     ExitStatusMock()
