@@ -18,7 +18,6 @@
 #include "qemu_mount_handler.h"
 
 #include <multipass/logging/log_location.h>
-#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/utils.h>
 
@@ -114,27 +113,24 @@ catch (const std::exception& e)
 
 void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
 {
-    PlainSSHSession session{vm->ssh_hostname(),
-                            vm->ssh_port(),
-                            vm->ssh_username(),
-                            *ssh_key_provider};
+    auto session = vm->new_ssh_session();
 
     // Split the path in existing and missing parts
     // We need to create the part of the path which does not still exist, and set then the correct
     // ownership.
-    if (const auto& [leading, missing] = mpu::get_path_split(session, target); missing != ".")
+    if (const auto& [leading, missing] = mpu::get_path_split(*session, target); missing != ".")
     {
-        const auto default_uid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -u"));
+        const auto default_uid = std::stoi(MP_UTILS.run_in_ssh_session(*session, "id -u"));
         mpl::debug_location(category, "`id -u` = {}", default_uid);
-        const auto default_gid = std::stoi(MP_UTILS.run_in_ssh_session(session, "id -g"));
+        const auto default_gid = std::stoi(MP_UTILS.run_in_ssh_session(*session, "id -g"));
         mpl::debug_location(category, "`id -g` = {}", default_gid);
 
-        mpu::make_target_dir(session, leading, missing);
-        mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
+        mpu::make_target_dir(*session, leading, missing);
+        mpu::set_owner_for(*session, leading, missing, default_uid, default_gid);
     }
 
     MP_UTILS.run_in_ssh_session(
-        session,
+        *session,
         fmt::format("sudo mount -t 9p {} {} -o trans=virtio,version=9p2000.L,msize=536870912",
                     tag,
                     target));
