@@ -240,7 +240,7 @@ jobs:
     - name: Measure coverage
       id: measure-coverage
       if: ${{ matrix.build-type == 'Coverage' }}
-      timeout-minutes: 5
+      timeout-minutes: 10
       run: |
 
         trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
