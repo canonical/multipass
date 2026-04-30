@@ -43,6 +43,7 @@ namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 namespace mcp = multipass::cli::platform;
+namespace fs = std::filesystem;
 
 using namespace testing;
 
@@ -454,7 +455,7 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
 
 TEST_F(SftpServer, handlesOpendir)
 {
-    auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
+    auto dir_name = name_as_char_array(fs ::weakly_canonical(mpt::test_data_path().toStdString()));
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -465,13 +466,13 @@ TEST_F(SftpServer, handlesOpendir)
     REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
+    auto sftp = make_sftpserver(fs ::weakly_canonical(mpt::test_data_path().toStdString()));
     sftp.run();
 }
 
 TEST_F(SftpServer, opendirNotExistingFails)
 {
-    auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
+    auto dir_name = name_as_char_array(fs ::weakly_canonical(mpt::test_data_path().toStdString()));
     auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -487,7 +488,7 @@ TEST_F(SftpServer, opendirNotExistingFails)
     REPLACE(sftp_reply_status,
             make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, no_such_file_calls));
 
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
+    auto sftp = make_sftpserver(fs ::weakly_canonical(mpt::test_data_path().toStdString()));
     sftp.run();
 
     EXPECT_EQ(no_such_file_calls, 1);
@@ -495,7 +496,7 @@ TEST_F(SftpServer, opendirNotExistingFails)
 
 TEST_F(SftpServer, opendirNotReadableFails)
 {
-    auto dir_name = name_as_char_array(mpt::test_data_path().toStdString());
+    auto dir_name = name_as_char_array(fs ::weakly_canonical(mpt::test_data_path().toStdString()));
     auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -507,7 +508,7 @@ TEST_F(SftpServer, opendirNotReadableFails)
     });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
+    auto sftp = make_sftpserver(fs ::weakly_canonical(mpt::test_data_path().toStdString()));
 
     int perm_denied_num_calls{0};
     REPLACE(sftp_reply_status,
@@ -518,7 +519,7 @@ TEST_F(SftpServer, opendirNotReadableFails)
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
                     AllOf(HasSubstr("Cannot read directory"),
-                          HasSubstr(mpt::test_data_path().toStdString()))));
+                          HasSubstr(fs ::weakly_canonical(mpt::test_data_path().toStdString())))));
 
     sftp.run();
 
@@ -546,7 +547,7 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
 
     REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
-    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
+    auto sftp = make_sftpserver(fs ::weakly_canonical(mpt::test_data_path().toStdString()));
     int failure_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
@@ -2872,7 +2873,8 @@ TEST_P(WhenInvalidMessageReceived, repliesFailure)
 
     auto params = GetParam();
 
-    auto file_name = name_as_char_array(temp_dir.path().toStdString() + "this.does.not.exist");
+    auto file_name = name_as_char_array(temp_dir.path().toStdString() +
+                                        QDir::separator().toLatin1() + "this.does.not.exist");
     EXPECT_FALSE(QFile::exists(file_name.data()));
 
     auto init_msg = make_msg(SSH_FXP_INIT);
