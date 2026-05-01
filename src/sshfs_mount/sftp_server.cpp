@@ -22,6 +22,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
 
@@ -250,9 +251,9 @@ auto create_sshfs_process(mp::SSHSession& session,
     auto sshfs_process =
         session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
 
-    check_sshfs_status(session, sshfs_process);
+    check_sshfs_status(session, *sshfs_process);
 
-    return std::make_unique<mp::SSHProcess>(std::move(sshfs_process));
+    return sshfs_process;
 }
 
 int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
@@ -284,7 +285,7 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
 }
 } // namespace
 
-mp::SftpServer::SftpServer(SSHSession&& session,
+mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            const std::string& source,
                            const std::string& target,
                            const id_mappings& gid_mappings,
@@ -293,8 +294,10 @@ mp::SftpServer::SftpServer(SSHSession&& session,
                            int default_gid,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
-      sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
-      sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
+      sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
+      sftp_server_session{make_sftp_session( // TODO@rewiressh
+          *ssh_session,
+          static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel())},
       source_path{source},
       target_path{target},
       gid_mappings{gid_mappings},
@@ -345,14 +348,14 @@ inline int mp::SftpServer::mapped_gid_for(const int gid)
     return mapped_id_for(gid_mappings, gid, default_gid);
 }
 
-inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id)
+inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id_)
 {
-    return reverse_id_for(uid_mappings, uid, default_id);
+    return reverse_id_for(uid_mappings, uid, default_id_);
 }
 
-inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id)
+inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id_)
 {
-    return reverse_id_for(gid_mappings, gid, default_id);
+    return reverse_id_for(gid_mappings, gid, default_id_);
 }
 
 inline bool mp::SftpServer::has_uid_mapping_for(const int uid)
@@ -489,20 +492,21 @@ void mp::SftpServer::run()
                            "recover.");
 
                 std::string mount_path = [this] {
-                    auto proc = ssh_session.exec(
+                    auto proc = ssh_session->exec(
                         fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
-                    return proc.read_std_output();
+                    return proc->read_std_output();
                 }();
 
                 if (!mount_path.empty())
                 {
-                    ssh_session.exec(fmt::format("sudo umount {}", mount_path));
+                    ssh_session->exec(fmt::format("sudo umount {}", mount_path));
                 }
 
                 sshfs_process =
-                    create_sshfs_process(ssh_session, sshfs_exec_line, source_path, target_path);
-                sftp_server_session =
-                    make_sftp_session(ssh_session, sshfs_process->release_channel());
+                    create_sshfs_process(*ssh_session, sshfs_exec_line, source_path, target_path);
+                sftp_server_session = make_sftp_session( // TODO@rewiressh
+                    *ssh_session,
+                    static_cast<PlainSSHProcess*>(sshfs_process.get())->release_channel());
 
                 continue;
             }
@@ -519,7 +523,7 @@ void mp::SftpServer::run()
 void mp::SftpServer::stop()
 {
     stop_invoked = true;
-    ssh_session.force_shutdown();
+    ssh_session->force_shutdown();
 }
 
 int mp::SftpServer::handle_close(sftp_client_message msg)

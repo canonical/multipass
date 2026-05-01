@@ -19,7 +19,7 @@
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 
 #include <algorithm>
 #include <thread>
@@ -35,7 +35,7 @@ struct SSHProcess : public Test
 {
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mp::SSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
+    mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
 };
 } // namespace
 
@@ -60,7 +60,7 @@ TEST_F(SSHProcess, canRetrieveExitStatus)
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
     auto proc = session.exec("something");
-    EXPECT_THAT(proc.exit_code(), Eq(expected_status));
+    EXPECT_THAT(proc->exit_code(), Eq(expected_status));
 }
 
 TEST_F(SSHProcess, exitCodeTimesOut)
@@ -70,7 +70,7 @@ TEST_F(SSHProcess, exitCodeTimesOut)
         return SSH_OK;
     });
     auto proc = session.exec("something");
-    EXPECT_THROW(proc.exit_code(std::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_THROW(proc->exit_code(std::chrono::milliseconds(1)), std::runtime_error);
 }
 
 TEST_F(SSHProcess, specifiesStderrCorrectly)
@@ -83,10 +83,10 @@ TEST_F(SSHProcess, specifiesStderrCorrectly)
     REPLACE(ssh_channel_read_timeout, channel_read);
 
     auto proc = session.exec("something");
-    proc.read_std_output();
+    proc->read_std_output();
 
     expected_is_stderr = 1;
-    proc.read_std_error();
+    proc->read_std_error();
 }
 
 TEST_F(SSHProcess, readingOutputReturnsEmptyIfChannelClosed)
@@ -94,7 +94,7 @@ TEST_F(SSHProcess, readingOutputReturnsEmptyIfChannelClosed)
     REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
 
     auto proc = session.exec("something");
-    auto output = proc.read_std_output();
+    auto output = proc->read_std_output();
     EXPECT_TRUE(output.empty());
 }
 
@@ -108,7 +108,7 @@ TEST_F(SSHProcess, readingFailureReturnsEmptyIfChannelClosed)
     REPLACE(ssh_channel_is_closed, [&channel_closed](auto...) { return channel_closed; });
 
     auto proc = session.exec("something");
-    auto output = proc.read_std_output();
+    auto output = proc->read_std_output();
     EXPECT_TRUE(output.empty());
 }
 
@@ -117,7 +117,7 @@ TEST_F(SSHProcess, throwsOnReadErrors)
     REPLACE(ssh_channel_read_timeout, [](auto...) { return -1; });
 
     auto proc = session.exec("something");
-    EXPECT_THROW(proc.read_std_output(), std::runtime_error);
+    EXPECT_THROW(proc->read_std_output(), std::runtime_error);
 }
 
 TEST_F(SSHProcess, readStdOutputReturnsEmptyStringOnEof)
@@ -125,7 +125,7 @@ TEST_F(SSHProcess, readStdOutputReturnsEmptyStringOnEof)
     REPLACE(ssh_channel_read_timeout, [](auto...) { return 0; });
 
     auto proc = session.exec("something");
-    auto output = proc.read_std_output();
+    auto output = proc->read_std_output();
 
     EXPECT_TRUE(output.empty());
 }
@@ -145,7 +145,7 @@ TEST_F(SSHProcess, canReadOutput)
     REPLACE(ssh_channel_read_timeout, channel_read);
 
     auto proc = session.exec("something");
-    auto output = proc.read_std_output();
+    auto output = proc->read_std_output();
 
     EXPECT_THAT(output, StrEq(expected_output));
 }

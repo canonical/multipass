@@ -29,8 +29,9 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
+#include <multipass/ssh/plain_ssh_process.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
-#include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
@@ -187,6 +188,13 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
+    auto proc = ssh_exec_process(cmd, whisper);
+    return MP_UTILS.reap_ssh_process(*proc);
+}
+
+std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const std::string& cmd,
+                                                                         bool whisper)
+{
     std::unique_lock lock{state_mutex};
 
     std::optional<std::string> log_details = std::nullopt;
@@ -208,7 +216,7 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
 
         try
         {
-            return MP_UTILS.run_in_ssh_session(*ssh_session, cmd, whisper);
+            return make_ssh_process(cmd, whisper);
         }
         catch (const SSHException& e)
         {
@@ -224,7 +232,19 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
     assert(false && "we should never reach here");
 }
 
+std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const std::string& cmd,
+                                                                         bool whisper)
+{
+    return ssh_session->exec(cmd, whisper);
+}
+
 void mp::BaseVirtualMachine::renew_ssh_session()
+{
+    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
+    ssh_session = new_ssh_session();
+}
+
+std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_session()
 {
     {
         const std::unique_lock lock{state_mutex};
@@ -233,8 +253,12 @@ void mp::BaseVirtualMachine::renew_ssh_session()
     }
 
     mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
-    ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    return std::make_unique<PlainSSHSession>(ssh_hostname(),
+                                             ssh_port(),
+                                             ssh_username(),
+                                             key_provider);
 }
+
 bool multipass::BaseVirtualMachine::unplugged()
 {
     auto st = current_state();
@@ -849,7 +873,10 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
     static constexpr auto wait_step = 1s;
-    ssh_session.emplace(ssh_hostname(wait_step), ssh_port(), ssh_username(), key_provider);
+    ssh_session = std::make_unique<PlainSSHSession>(ssh_hostname(wait_step),
+                                                    ssh_port(),
+                                                    ssh_username(),
+                                                    key_provider);
 
     std::lock_guard lock{state_mutex};
     state = State::running;

@@ -24,8 +24,8 @@
 #include "stub_console.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_client.h>
-#include <multipass/ssh/ssh_session.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -37,7 +37,8 @@ struct SSHClient : public testing::Test
 {
     mp::SSHClient make_ssh_client()
     {
-        return {std::make_unique<mp::SSHSession>("a", 42, "ubuntu", key_provider), console_creator};
+        return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+                console_creator};
     }
 
     const mpt::StubSSHKeyProvider key_provider;

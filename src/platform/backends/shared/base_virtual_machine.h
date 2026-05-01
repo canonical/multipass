@@ -21,6 +21,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -31,7 +32,6 @@
 
 namespace multipass
 {
-class SSHSession;
 class SSHKeyProvider;
 
 class BaseVirtualMachine : public VirtualMachine
@@ -45,7 +45,10 @@ public:
                        const SSHKeyProvider& key_provider,
                        const Path& instance_dir);
 
-    virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+    std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
+                                                 bool whisper = false) override;
+    [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override;
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
@@ -95,6 +98,11 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
 
     virtual void drop_ssh_session(); // virtual to allow mocking
+
+    // TODO@rewiressh make SSHSession mockable instead and use it in tests
+    // TODO@rewiressh then, replace premock for SSH tests that become achievable with gmock
+    virtual std::unique_ptr<SSHProcess> make_ssh_process(const std::string& cmd, bool whisper);
+
     virtual bool unplugged();
 
     /**
@@ -181,7 +189,7 @@ protected:
 
 private:
     std::string saved_error_msg = "";
-    std::optional<SSHSession> ssh_session = std::nullopt;
+    std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)

@@ -29,7 +29,7 @@ class SftpServer;
 class SshfsMount
 {
 public:
-    SshfsMount(SSHSession&& session,
+    SshfsMount(std::unique_ptr<SSHSession>&& session,
                const std::string& source,
                const std::string& target,
                const id_mappings& gid_mappings,

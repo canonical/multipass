@@ -23,7 +23,7 @@
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/log_location.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
@@ -119,7 +119,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     return sshfs_exec;
 }
 
-auto make_sftp_server(mp::SSHSession&& session,
+auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
                       const std::string& source,
                       const std::string& target,
                       const mp::id_mappings& gid_mappings,
@@ -127,16 +127,16 @@ auto make_sftp_server(mp::SSHSession&& session,
 {
     mpl::debug_location(category, "source = {}, target = {}, …", source, target);
 
-    auto sshfs_exec_line = get_sshfs_exec_and_options(session);
+    auto sshfs_exec_line = get_sshfs_exec_and_options(*session);
 
     // Split the path in existing and missing parts.
-    const auto& [leading, missing] = mpu::get_path_split(session, target);
+    const auto& [leading, missing] = mpu::get_path_split(*session, target);
 
-    auto output = MP_UTILS.run_in_ssh_session(session, "id -u");
+    auto output = MP_UTILS.run_in_ssh_session(*session, "id -u");
     mpl::debug_location(category, "`id -u` = {}", output);
     auto default_uid = std::stoi(output);
 
-    output = MP_UTILS.run_in_ssh_session(session, "id -g");
+    output = MP_UTILS.run_in_ssh_session(*session, "id -g");
     mpl::debug_location(category, "`id -g` = {}", output);
     auto default_gid = std::stoi(output);
 
@@ -144,8 +144,8 @@ auto make_sftp_server(mp::SSHSession&& session,
     // and set then the correct ownership.
     if (missing != ".")
     {
-        mpu::make_target_dir(session, leading, missing);
-        mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
+        mpu::make_target_dir(*session, leading, missing);
+        mpu::set_owner_for(*session, leading, missing, default_uid, default_gid);
     }
 
     return std::make_unique<mp::SftpServer>(std::move(session),
@@ -160,7 +160,7 @@ auto make_sftp_server(mp::SSHSession&& session,
 
 } // namespace
 
-mp::SshfsMount::SshfsMount(SSHSession&& session,
+mp::SshfsMount::SshfsMount(std::unique_ptr<SSHSession>&& session,
                            const std::string& source,
                            const std::string& target,
                            const mp::id_mappings& gid_mappings,

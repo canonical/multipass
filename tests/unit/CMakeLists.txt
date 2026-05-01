@@ -89,6 +89,7 @@ add_executable(multipass_tests
   test_permission_utils.cpp
   test_persistent_settings_handler.cpp
   test_petname.cpp
+  test_plain_ssh_session.cpp
   test_private_pass_provider.cpp
   test_qemuimg_process_spec.cpp
   test_recursive_dir_iter.cpp
@@ -106,7 +107,6 @@ add_executable(multipass_tests
   test_ssh_exec_failure.cpp
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
-  test_ssh_session.cpp
   test_sshfs_mount_handler.cpp
   test_sshfs_server_process_spec.cpp
   test_sshfsmount.cpp

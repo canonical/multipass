@@ -15,24 +15,20 @@
  *
  */
 
-#include "mock_ssh_test_fixture.h"
-
 #include "common.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_process_factory.h"
 #include "mock_server_reader_writer.h"
-#include "mock_ssh_process_exit_status.h"
+#include "mock_ssh_session.h"
 #include "mock_virtual_machine.h"
 #include "stub_ssh_key_provider.h"
-#include "stub_virtual_machine.h"
 
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/vm_mount.h>
-
-#include <thread>
 
 #include <QCoreApplication>
 #include <QTimer>
@@ -43,6 +39,8 @@ namespace mpt = multipass::test;
 
 using namespace testing;
 
+namespace
+{
 const multipass::logging::Level default_log_level = multipass::logging::Level::debug;
 
 auto sshfs_server_callback(mpt::MockProcessFactory::Callback callback)
@@ -74,23 +72,13 @@ struct SSHFSMountHandlerTest : public ::Test
         qApp->processEvents(QEventLoop::AllEvents);
     }
 
-    auto make_exec_that_fails_for(const std::vector<std::string>& expected_cmds, bool& invoked)
+    void expect_and_fail_ssh_command(mpt::MockSSHSession& session, const std::string& cmd)
     {
-        return [this, expected_cmds, &invoked](ssh_channel, const char* raw_cmd) {
-            std::string cmd{raw_cmd};
-            exit_status_mock.set_exit_status(exit_status_mock.success_status);
-
-            for (const auto& expected_cmd : expected_cmds)
-            {
-                if (cmd.find(expected_cmd) != std::string::npos)
-                {
-                    invoked = true;
-                    exit_status_mock.set_exit_status(exit_status_mock.failure_status);
-                    break;
-                }
-            }
-            return SSH_OK;
-        };
+        EXPECT_CALL(session, exec(HasSubstr(cmd), _)).WillOnce([] {
+            auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+            EXPECT_CALL(*proc, exit_code).WillOnce(Return(1));
+            return proc;
+        });
     }
 
     mpt::StubSSHKeyProvider key_provider;
@@ -103,9 +91,7 @@ struct SSHFSMountHandlerTest : public ::Test
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(default_log_level);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
-    mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mpt::ExitStatusMock exit_status_mock;
-    mpt::StubVirtualMachine vm;
+    NiceMock<mpt::MockVirtualMachine> vm;
     std::unique_ptr<mpt::MockProcessFactory::Scope> factory = mpt::MockProcessFactory::Inject();
 
     mpt::MockProcessFactory::Callback sshfs_prints_connected = [](mpt::MockProcess* process) {
@@ -122,9 +108,10 @@ TEST_F(SSHFSMountHandlerTest, mountCreatesSshfsProcess)
     factory->register_callback(sshfs_server_callback(sshfs_prints_connected));
 
     mpt::MockVirtualMachine mock_vm{};
-    EXPECT_CALL(mock_vm, ssh_port()).Times(2);
-    EXPECT_CALL(mock_vm, ssh_hostname()).Times(2);
-    EXPECT_CALL(mock_vm, ssh_username()).Times(2);
+    EXPECT_CALL(mock_vm, ssh_port()).Times(1);
+    EXPECT_CALL(mock_vm, ssh_hostname()).Times(1);
+    EXPECT_CALL(mock_vm, ssh_username()).Times(1);
+    EXPECT_CALL(mock_vm, new_ssh_session());
 
     mp::SSHFSMountHandler sshfs_mount_handler{&mock_vm, &key_provider, target_path, mount};
     sshfs_mount_handler.activate(&server);
@@ -201,84 +188,63 @@ TEST_F(SSHFSMountHandlerTest, stopTerminatesSshfsProcess)
 
 TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsWhichSnapFails)
 {
-    auto invoked = false;
-    REPLACE(ssh_channel_request_exec, make_exec_that_fails_for({"which snap"}, invoked));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_and_fail_ssh_command(*session, "which snap");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), std::runtime_error);
-    EXPECT_TRUE(invoked);
 }
 
 TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsNoSnapDirFails)
 {
-    auto invoked = false;
-    REPLACE(ssh_channel_request_exec,
-            make_exec_that_fails_for({"[ -e /snap ]", "sudo snap list multipass-sshfs"}, invoked));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    EXPECT_CALL(*session, exec(HasSubstr("which snap"), _));
+    expect_and_fail_ssh_command(*session, "snap list multipass-sshfs");
+    expect_and_fail_ssh_command(*session, "[ -e /snap ]");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), std::runtime_error);
-    EXPECT_TRUE(invoked);
 }
 
 TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsSnapInstallFails)
 {
-    auto invoked = false;
-    REPLACE(ssh_channel_request_exec,
-            make_exec_that_fails_for(
-                {"sudo snap list multipass-sshfs", "sudo snap install multipass-sshfs"},
-                invoked));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    EXPECT_CALL(*session, exec(HasSubstr("which snap"), _));
+    expect_and_fail_ssh_command(*session, "snap list multipass-sshfs");
+    EXPECT_CALL(*session, exec(HasSubstr("[ -e /snap ]"), _));
+    expect_and_fail_ssh_command(*session, "snap install multipass-sshfs");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), mp::SSHFSMissingError);
-    EXPECT_TRUE(invoked);
 }
 
 TEST_F(SSHFSMountHandlerTest, installSshfsTimeoutLogsInfo)
 {
-    ssh_channel_callbacks callbacks{nullptr};
-    auto sleep = false;
-    int exit_code;
-
-    auto mocked_ssh_channel_request_exec = [&sleep, &exit_code](ssh_channel, const char* raw_cmd) {
-        std::string cmd{raw_cmd};
-        exit_code = SSH_OK;
-        if (cmd == "sudo snap install multipass-sshfs")
-            sleep = true;
-        else if (cmd == "sudo snap list multipass-sshfs")
-            exit_code = SSH_ERROR;
-
-        return SSH_OK;
-    };
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec);
-    REPLACE(ssh_add_channel_callbacks, [&callbacks](ssh_channel, ssh_channel_callbacks cb) mutable {
-        callbacks = cb;
-        return SSH_OK;
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    EXPECT_CALL(*session, exec(HasSubstr("which snap"), _));
+    expect_and_fail_ssh_command(*session, "snap list multipass-sshfs");
+    EXPECT_CALL(*session, exec(HasSubstr("[ -e /snap ]"), _));
+    EXPECT_CALL(*session, exec(HasSubstr("snap install multipass-sshfs"), _)).WillOnce([] {
+        auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+        EXPECT_CALL(*proc, exit_code).WillOnce([](std::chrono::milliseconds timeout) -> int {
+            throw mp::SSHProcessTimeoutException{"sudo snap install multipass-sshfs", timeout};
+        });
+        return proc;
     });
-
-    auto mocked_ssh_event_dopoll = [&callbacks, &sleep, &exit_code](ssh_event, int timeout) {
-        if (!callbacks)
-            return SSH_ERROR;
-
-        if (sleep)
-            std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
-        else
-            callbacks->channel_exit_status_function(nullptr,
-                                                    nullptr,
-                                                    exit_code,
-                                                    callbacks->userdata);
-
-        return SSH_OK;
-    };
-    REPLACE(ssh_event_dopoll, mocked_ssh_event_dopoll);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::error,
-                    StrEq("sshfs-mount-handler"),
-                    AllOf(HasSubstr("Could not install 'multipass-sshfs' in 'stub'"),
-                          HasSubstr("timed out"))));
+    EXPECT_CALL(
+        *logger_scope.mock_logger,
+        log(mpl::Level::error,
+            StrEq("sshfs-mount-handler"),
+            AllOf(HasSubstr("Could not install 'multipass-sshfs'"), HasSubstr("timed out"))));
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server, std::chrono::milliseconds(1)),
                  mp::SSHFSMissingError);
 }
+} // namespace

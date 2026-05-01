@@ -21,7 +21,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/ssh_session.h> // TODO@rewiressh should be fine with fwd decl?
 #include <multipass/virtual_machine.h>
 
 #include <fmt/base.h>
@@ -261,6 +261,7 @@ public:
     virtual std::string run_in_ssh_session(SSHSession& session,
                                            const std::string& cmd,
                                            bool whisper = false) const;
+    virtual std::string reap_ssh_process(SSHProcess& proc) const;
 
     // various
     virtual std::vector<uint8_t> random_bytes(size_t len);

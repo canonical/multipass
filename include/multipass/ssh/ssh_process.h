@@ -17,72 +17,45 @@
 
 #pragma once
 
-#include <libssh/libssh.h>
-
 #include <chrono>
-#include <exception>
-#include <memory>
-#include <mutex>
 #include <string>
-#include <variant>
 
 namespace multipass
 {
 class SSHProcess
 {
 public:
-    using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
+    virtual ~SSHProcess() = default;
 
-    SSHProcess(ssh_session ssh_session,
-               const std::string& cmd,
-               std::unique_lock<std::mutex> session_lock);
+    /**
+     * Check whether the process has finished within the given timeout.
+     * @param timeout Maximum time to wait for completion.
+     * @return @c true if the process finished and its exit code is available; @c false otherwise.
+     * @note A @c false return does not guarantee the process is still running — it may simply mean
+     *       the exit code was not made available in time.
+     */
+    virtual bool exit_recognized(
+        std::chrono::milliseconds timeout = std::chrono::milliseconds(10)) = 0;
 
-    // just being explicit (unique_ptr member already caused these to be deleted)
+    /**
+     * Obtain the exit code of the process, blocking up to the given timeout.
+     * @param timeout Maximum time to wait for the exit code.
+     * @return The process exit code.
+     * @throws ExitlessSSHProcessException if the exit code cannot be obtained within the timeout.
+     */
+    virtual int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5)) = 0;
+
+    virtual std::string read_std_output() = 0;
+    virtual std::string read_std_error() = 0;
+    virtual const std::string& get_cmd() const = 0;
+
+protected:
+    SSHProcess() = default;
+
+    // movable but not copyable
     SSHProcess(const SSHProcess&) = delete;
     SSHProcess& operator=(const SSHProcess&) = delete;
-
-    // we should be able to move just fine though
     SSHProcess(SSHProcess&&) = default;
     SSHProcess& operator=(SSHProcess&&) = default;
-
-    ~SSHProcess() = default; // releases session lock
-
-    // Attempt to verify process completion within the given timeout. For this to return true, two
-    // conditions are necessary:
-    //     a) the process did indeed finish;
-    //     b) its exit code is read over ssh within the timeout.
-    //
-    // Note, in particular, that a false return does not guarantee that the process is still
-    // running. It may be just that the exit code was not made available to us in a timely manner.
-    //
-    // This method caches the exit code if we find it, but it keeps the SSHSession locked.
-    bool exit_recognized(
-        std::chrono::milliseconds timeout = std::chrono::milliseconds(10)); // keeps session lock
-    int exit_code(
-        std::chrono::milliseconds timeout = std::chrono::seconds(5)); // releases session lock
-
-    std::string read_std_output();
-    std::string read_std_error();
-
-private:
-    enum class StreamType
-    {
-        out,
-        err
-    };
-
-    void rethrow_if_saved() const;
-    void read_exit_code(std::chrono::milliseconds timeout, bool save_exception);
-    std::string read_stream(StreamType type, int timeout = -1);
-    ssh_channel release_channel(); // releases the lock on the session; callers are on their own to
-                                   // ensure thread safety
-
-    std::unique_lock<std::mutex> session_lock; // do not attempt to re-lock, as this is moved from
-    ssh_session session;
-    std::string cmd;
-    ChannelUPtr channel;
-    std::variant<std::monostate, int, std::exception_ptr> exit_result;
-
-    friend class SftpServer;
 };
 } // namespace multipass

@@ -22,44 +22,28 @@
 #include <libssh/libssh.h>
 
 #include <memory>
-#include <mutex>
 #include <string>
 
 namespace multipass
 {
-class SSHKeyProvider;
 class SSHSession
 {
 public:
-    SSHSession(const std::string& host,
-               int port,
-               const std::string& ssh_username,
-               const SSHKeyProvider& key_provider);
+    virtual ~SSHSession() = default;
 
-    // just being explicit (unique_ptr member already caused these to be deleted)
+    // locks the session until the process is destroyed or exit_code is called!
+    virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd, bool whisper = false) = 0;
+    [[nodiscard]] virtual bool is_connected() const = 0;
+
+    virtual operator ssh_session() = 0; // careful, not thread safe // TODO@rewiressh drop this?
+    virtual void force_shutdown() = 0;  // careful, not thread safe
+
+protected:
+    SSHSession() = default;
+
     SSHSession(const SSHSession&) = delete;
     SSHSession& operator=(const SSHSession&) = delete;
-
-    // we should be able to move just fine though, but we need to lock
-    SSHSession(SSHSession&&);
-    SSHSession& operator=(SSHSession&&);
-
-    ~SSHSession();
-
-    SSHProcess exec(const std::string& cmd,
-                    bool whisper = false); /* locks the session until the process is destroyed
-                                              or exit_code is called! */
-    [[nodiscard]] bool is_connected() const;
-
-    operator ssh_session(); // careful, not thread safe
-    void force_shutdown();  // careful, not thread safe
-
-private:
-    SSHSession(SSHSession&&, std::unique_lock<std::mutex> lock);
-
-    void set_option(ssh_options_e type, const void* value);
-
-    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
-    mutable std::mutex mut;
+    SSHSession(SSHSession&&) = default;
+    SSHSession& operator=(SSHSession&&) = default;
 };
 } // namespace multipass

@@ -19,13 +19,14 @@
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_server_reader_writer.h"
-#include "tests/unit/mock_ssh_process_exit_status.h"
-#include "tests/unit/mock_ssh_test_fixture.h"
+#include "tests/unit/mock_ssh_process.h"
+#include "tests/unit/mock_ssh_session.h"
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 
 #include "qemu_mount_handler.h"
 
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 
@@ -97,11 +98,6 @@ std::string command_chown(const std::string& parent, const std::string& missing,
                        missing.substr(0, missing.find_first_of('/')));
 }
 
-std::string command_findmnt(const std::string& target)
-{
-    return fmt::format("findmnt --type 9p | grep '{} {}'", target, tag_from_target(target));
-}
-
 struct QemuMountHandlerTest : public ::Test
 {
     QemuMountHandlerTest()
@@ -112,33 +108,35 @@ struct QemuMountHandlerTest : public ::Test
         EXPECT_CALL(vm, modifiable_mount_args).WillOnce(ReturnRef(mount_args));
     }
 
-    // the returned lambda will modify `output` so that it can be used to mock
-    // ssh_channel_read_timeout
-    auto mocked_ssh_channel_request_exec(std::string& output)
+    template <bool Success>
+    static void expect_ssh_aux(mpt::MockSSHSession& session,
+                               const std::string& cmd,
+                               std::string output)
     {
-        return [&](ssh_channel, const char* command) {
-            if (const auto it = command_outputs.find(command); it != command_outputs.end())
-            {
-                output = it->second.output;
-                exit_status_mock.set_exit_status(it->second.exit_code);
-            }
-            else
-            {
-                ADD_FAILURE() << "unexpected command: " << command;
-            }
+        auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
 
-            return SSH_OK;
-        };
+        EXPECT_CALL(*proc, get_cmd).WillRepeatedly(ReturnRef(cmd));
+        EXPECT_CALL(*proc, exit_code).WillRepeatedly(Return(Success ? 0 : 1));
+
+        auto& out_err_expectation = Success ? EXPECT_CALL(*proc, read_std_output)
+                                            : EXPECT_CALL(*proc, read_std_error);
+        out_err_expectation.WillOnce(Return(std::move(output)));
+
+        EXPECT_CALL(session, exec(HasSubstr(cmd), _)).WillOnce(Return(std::move(proc)));
     }
 
-    static auto mocked_ssh_channel_read_timeout(const std::string& output)
+    static void expect_ssh_success(mpt::MockSSHSession& session,
+                                   const std::string& cmd,
+                                   std::string output = "")
     {
-        return [&, copied = 0u](auto, void* dest, uint32_t count, auto...) mutable {
-            auto n = std::min(static_cast<std::string::size_type>(count), output.size() - copied);
-            std::copy_n(output.begin() + copied, n, static_cast<char*>(dest));
-            n ? copied += n : copied = 0;
-            return n;
-        };
+        expect_ssh_aux<true>(session, cmd, std::move(output));
+    }
+
+    static void expect_ssh_fail(mpt::MockSSHSession& session,
+                                const std::string& cmd,
+                                std::string output = "")
+    {
+        expect_ssh_aux<false>(session, cmd, std::move(output));
     }
 
     mpt::StubSSHKeyProvider key_provider;
@@ -149,19 +147,8 @@ struct QemuMountHandlerTest : public ::Test
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
-    mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mpt::ExitStatusMock exit_status_mock;
     NiceMock<MockQemuVirtualMachine> vm{"my_instance"};
     mp::QemuVirtualMachine::MountArgs mount_args;
-    CommandOutputs command_outputs{
-        {"echo $PWD/target", {"/home/ubuntu/target"}},
-        {command_get_existing_parent("/home/ubuntu/target"), {"/home/ubuntu/target"}},
-        {"id -u", {"1000"}},
-        {"id -g", {"1000"}},
-        {command_mount(default_target), {""}},
-        {command_umount(default_target), {""}},
-        {command_findmnt(default_target), {""}},
-    };
 };
 
 struct QemuMountHandlerFailCommand : public QemuMountHandlerTest,
@@ -169,13 +156,6 @@ struct QemuMountHandlerFailCommand : public QemuMountHandlerTest,
 {
     const std::string parent = "/home/ubuntu";
     const std::string missing = "target";
-
-    QemuMountHandlerFailCommand()
-    {
-        command_outputs.at(command_get_existing_parent("/home/ubuntu/target")) = parent;
-        command_outputs.insert({command_mkdir(parent, missing), {""}});
-        command_outputs.insert({command_chown(parent, missing, 1000, 1000), {""}});
-    }
 };
 } // namespace
 
@@ -249,9 +229,15 @@ TEST_F(QemuMountHandlerTest, recoverFromSuspended)
 
 TEST_F(QemuMountHandlerTest, startSuccessStopSuccess)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+
+    expect_ssh_success(*session, "echo $PWD/target", "/home/ubuntu/target");
+    expect_ssh_success(*session,
+                       "P=\"/home/ubuntu/target\"",
+                       "/home/ubuntu/target"); // Simulate existing path
+    expect_ssh_success(*session, "mount -t 9p", "");
+
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
@@ -261,27 +247,39 @@ TEST_F(QemuMountHandlerTest, startSuccessStopSuccess)
 TEST_F(QemuMountHandlerTest, stopFailNonforceThrows)
 {
     auto error = "device is busy";
-    command_outputs.at(command_umount(default_target)) = {error, 1};
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
 
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    expect_ssh_success(*session, "echo $PWD/target", "/home/ubuntu/target");
+    expect_ssh_success(*session, "P=\"/home/ubuntu/target\"", "/home/ubuntu/target");
+    expect_ssh_success(*session, "mount -t 9p", "");
+
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
+
+    EXPECT_CALL(vm, ssh_exec(command_umount(default_target), false))
+        .WillOnce(Throw(mp::SSHExecFailure(error, 1))) // direct deactivate call
+        .WillRepeatedly(Return(""));                   // d'tor
     MP_EXPECT_THROW_THAT(handler.deactivate(), std::runtime_error, mpt::match_what(StrEq(error)));
 }
 
 TEST_F(QemuMountHandlerTest, stopFailForceLogs)
 {
     auto error = "device is busy";
-    command_outputs.at(command_umount(default_target)) = {error, 1};
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+
+    expect_ssh_success(*session, "echo $PWD/target", "/home/ubuntu/target");
+    expect_ssh_success(*session, "P=\"/home/ubuntu/target\"", "/home/ubuntu/target");
+    expect_ssh_success(*session, "mount -t 9p", "");
+
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
+
+    EXPECT_CALL(vm, ssh_exec(command_umount(default_target), false))
+        .WillOnce(Throw(mp::SSHExecFailure(error, 1)));
     EXPECT_CALL(*logger_scope.mock_logger, log).WillRepeatedly(Return());
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
@@ -289,6 +287,8 @@ TEST_F(QemuMountHandlerTest, stopFailForceLogs)
                     default_target,
                     vm.get_name(),
                     error));
+
+    EXPECT_NO_THROW(handler.deactivate(/*force=*/true));
 }
 
 TEST_F(QemuMountHandlerTest, targetDirectoryMissing)
@@ -296,13 +296,18 @@ TEST_F(QemuMountHandlerTest, targetDirectoryMissing)
     const std::string parent = "/home/ubuntu";
     const std::string missing = "target";
 
-    command_outputs.at(command_get_existing_parent("/home/ubuntu/target")) = parent;
-    command_outputs.insert({command_mkdir(parent, missing), {""}});
-    command_outputs.insert({command_chown(parent, missing, 1000, 1000), {""}});
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
 
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    expect_ssh_success(*session, "echo $PWD/target", "/home/ubuntu/target");
+    expect_ssh_success(*session, "P=\"/home/ubuntu/target\"",
+                       parent); // Only parent exists
+    expect_ssh_success(*session, "id -u", "1000");
+    expect_ssh_success(*session, "id -g", "1000");
+    expect_ssh_success(*session, "mkdir", "");
+    expect_ssh_success(*session, "chown", "");
+    expect_ssh_success(*session, "mount -t 9p", "");
+
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
@@ -321,11 +326,38 @@ TEST_P(QemuMountHandlerFailCommand, throwOnFail)
 {
     const auto cmd = GetParam();
     const auto error = "failed: " + cmd;
-    command_outputs.at(cmd) = {error, 1};
 
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+
+    // get_resolved_target
+    expect_ssh_success(*session, "echo $PWD/target", "/home/ubuntu/target");
+
+    struct Step
+    {
+        std::string full_cmd;
+        std::string pattern;
+        std::string ok_output;
+    };
+    const std::vector<Step> sequence = {
+        {command_get_existing_parent("/home/ubuntu/target"), "P=\"/home/ubuntu/target\"", parent},
+        {"id -u", "id -u", "1000"},
+        {"id -g", "id -g", "1000"},
+        {command_mkdir(parent, missing), "mkdir", ""},
+        {command_chown(parent, missing, 1000, 1000), "chown", ""},
+        {command_mount("target"), "mount -t 9p", ""},
+    };
+
+    for (const auto& [full_cmd, pattern, ok_output] : sequence)
+    {
+        if (cmd == full_cmd)
+        {
+            expect_ssh_fail(*session, pattern, error);
+            break;
+        }
+        expect_ssh_success(*session, pattern, ok_output);
+    }
+
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     MP_EXPECT_THROW_THAT(handler.activate(&server),
