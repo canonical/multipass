@@ -84,6 +84,12 @@ jobs:
               --gcov-ignore-parse-errors \
               --merge-mode-functions=separate
 
+    - name: Process Dart coverage
+      run: |
+        sed 's|lib/|'"$GITHUB_WORKSPACE"'/src/client/gui/lib/|g' \
+            src/client/gui/coverage/lcov.info \
+            > ${{ env.COVERAGE_DIR }}/dart.info
+
     - name: Detach TICS QServer to prevent "project already connected" issue
       env:
         TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
