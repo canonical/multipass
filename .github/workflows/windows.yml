@@ -98,7 +98,7 @@ jobs:
 
     - name: Set up vcpkg
       id: setup-vcpkg
-      uses: lukka/run-vcpkg@v11
+      uses: lukka/run-vcpkg@v11.6
       with:
         vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
 
