@@ -136,6 +136,8 @@ try
         const auto supported = lookup_or<bool>(product, "supported", false) ||
                                product_aliases.contains("devel") ||
                                (os == "ubuntu-core" && image_type == "stable");
+        if (!supported)
+            continue;
 
         const auto* versions = if_contains_object(product, "versions");
         if (!versions || versions->empty())
