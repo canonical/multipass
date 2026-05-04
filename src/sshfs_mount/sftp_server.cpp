@@ -421,7 +421,12 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
         }
         else
         {
-            auto resolved_parent = MP_FILEOPS.weakly_canonical(current_path.parent_path());
+            auto parent = current_path.parent_path();
+            if (parent.empty())
+            {
+                parent = ".";
+            }
+            auto resolved_parent = MP_FILEOPS.weakly_canonical(parent);
 
             final_path = (resolved_parent / current_path.filename()).lexically_normal();
         }
@@ -1055,7 +1060,8 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     }
 
     const auto target = get_absolute_path(sftp_client_message_get_data(msg));
-    if (!validate_path(target, follows_symlinks(sftp_client_message_get_type(msg))))
+    // Hardcode false: Renaming overwrites a target link, it does not follow it!
+    if (!validate_path(target, false))
     {
         mpl::trace(category,
                    "{}: cannot validate target path \'{}\' against source \'{}\'",
@@ -1241,7 +1247,8 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
     const auto new_name = get_absolute_path(sftp_client_message_get_data(msg));
 
-    if (!validate_path(new_name, follows_symlinks(sftp_client_message_get_type(msg))))
+    // Hardcode false: We are CREATING a link, so we must never follow it!
+    if (!validate_path(new_name, false))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
