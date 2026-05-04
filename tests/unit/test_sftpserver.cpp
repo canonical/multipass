@@ -2920,6 +2920,31 @@ INSTANTIATE_TEST_SUITE_P(SftpServer,
                                            MessageAndReply{SFTP_EXTENDED, SSH_FX_FAILURE}),
                          string_for_param);
 
+TEST_F(SftpServer, AllowsPathWithinMount)
+{
+    mpt::TempDir temp_dir; // e.g., creates /tmp/multipass_test_XYZ
+
+    std::string sibling_path = temp_dir.path().toStdString() + "/non_existent_file.txt";
+    auto file_name = name_as_char_array(sibling_path);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SSH_FXP_OPENDIR);
+    msg->filename = file_name.data();
+
+    auto data = name_as_char_array("");
+    REPLACE(sftp_client_message_get_data, [&data](auto...) { return data.data(); });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    EXPECT_THAT(num_calls, Eq(1));
+}
+
 TEST_F(SftpServer, BlocksSiblingDirectoryBypass)
 {
     mpt::TempDir temp_dir; // e.g., creates /tmp/multipass_test_XYZ
