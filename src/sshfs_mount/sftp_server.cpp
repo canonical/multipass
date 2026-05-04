@@ -653,7 +653,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    QFileInfo file_info(QString::fromStdString(path.string()));
+    QFileInfo file_info(path);
 
     if (file_info.isSymLink())
         file_info = QFileInfo(file_info.symLinkTarget());
@@ -668,8 +668,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QDir dir(filename->c_str());
-    QFileInfo current_dir(filename->c_str());
+    QDir dir(*filename);
+    QFileInfo current_dir(*filename);
     QFileInfo parent_dir(current_dir.path());
 
     if (!has_id_mappings_for(parent_dir))
@@ -683,14 +683,13 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    if (!dir.mkdir(filename->c_str()))
+    if (!dir.mkdir(QString::fromStdString(filename->string())))
     {
         mpl::trace(category, "{}: mkdir failed for '{}'", __FUNCTION__, filename);
         return reply_failure(msg);
     }
 
-    if (!MP_PLATFORM.set_permissions(filename->c_str(),
-                                     static_cast<fs::perms>(msg->attr->permissions)))
+    if (!MP_PLATFORM.set_permissions(*filename, static_cast<fs::perms>(msg->attr->permissions)))
     {
         mpl::trace(category, "{}: set permissions failed for '{}'", __FUNCTION__, filename);
         return reply_failure(msg);
@@ -699,7 +698,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     int rev_uid = reverse_uid_for(parent_dir.ownerId(), parent_dir.ownerId());
     int rev_gid = reverse_gid_for(parent_dir.groupId(), parent_dir.groupId());
 
-    if (MP_PLATFORM.chown(filename->c_str(), rev_uid, rev_gid) < 0)
+    if (MP_PLATFORM.chown(filename->string().c_str(), rev_uid, rev_gid) < 0)
     {
         mpl::trace(category,
                    "failed to chown '{}' to owner:{} and group:{}",
@@ -718,7 +717,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo current_dir(filename->c_str());
+    QFileInfo current_dir(*filename);
     if (MP_FILEOPS.exists(current_dir) && !has_id_mappings_for(current_dir))
     {
         mpl::trace(category,
@@ -760,7 +759,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     }
     const auto exists = fs::is_symlink(status) || fs::is_regular_file(status);
 
-    QFileInfo file_info(filename->c_str());
+    QFileInfo file_info(*filename);
     QFileInfo current_dir(file_info.path());
     if ((exists && !has_id_mappings_for(file_info)) ||
         (!exists && !has_id_mappings_for(current_dir)))
@@ -813,7 +812,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         auto new_uid = reverse_uid_for(current_dir.ownerId(), current_dir.ownerId());
         auto new_gid = reverse_gid_for(current_dir.groupId(), current_dir.groupId());
 
-        if (MP_PLATFORM.chown(filename->c_str(), new_uid, new_gid) < 0)
+        if (MP_PLATFORM.chown(filename->string().c_str(), new_uid, new_gid) < 0)
         {
             mpl::trace(category,
                        "failed to chown '{}' to owner:{} and group:{}",
@@ -859,7 +858,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    QFileInfo file_info{filename->c_str()};
+    QFileInfo file_info{*filename};
     if (!has_id_mappings_for(file_info))
     {
         mpl::trace(category,
@@ -938,7 +937,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
     for (int i = 0; i < max_num_entries_per_packet && dir_iterator.hasNext(); i++)
     {
         const auto& entry = dir_iterator.next();
-        QFileInfo file_info{entry.path().string().c_str()};
+        QFileInfo file_info(entry.path());
         sftp_attributes_struct attr{};
         if (entry.is_symlink())
         {
@@ -964,14 +963,14 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    auto link = QFile::symLinkTarget(filename->c_str());
+    auto link = QFile::symLinkTarget(QString::fromStdString(filename->string()));
     if (link.isEmpty())
     {
         mpl::trace(category, "{}: invalid link for \'{}\'", __FUNCTION__, filename);
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
     }
 
-    QFileInfo file_info{filename->c_str()};
+    QFileInfo file_info{*filename};
     if (!has_id_mappings_for(file_info))
     {
         mpl::trace(category,
@@ -993,7 +992,7 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo file_info{filename->c_str()};
+    QFileInfo file_info{*filename};
     if (!has_id_mappings_for(file_info))
     {
         mpl::trace(category,
@@ -1014,7 +1013,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo file_info{filename->c_str()};
+    QFileInfo file_info{*filename};
     if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
         mpl::trace(category,
@@ -1043,7 +1042,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     if (!source.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo source_info{source->c_str()};
+    QFileInfo source_info{*source};
     if (!source_info.isSymLink() && !MP_FILEOPS.exists(source_info))
     {
         mpl::trace(category, "{}: cannot rename \'{}\': no such file", __FUNCTION__, source);
@@ -1091,8 +1090,8 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         }
     }
 
-    QFile source_file{source->c_str()};
-    if (!MP_FILEOPS.rename(source_file, target.c_str()))
+    QFile source_file{*source};
+    if (!MP_FILEOPS.rename(source_file, target.string().c_str()))
     {
         mpl::trace(category, "{}: failed renaming \'{}\' to \'{}\'", __FUNCTION__, source, target);
         return reply_failure(msg);
@@ -1125,7 +1124,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
         filename = *validated_filename;
 
-        QFileInfo file_info{QString::fromStdString(filename.string())};
+        QFileInfo file_info{filename};
         if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
         {
             mpl::trace(category,
@@ -1136,7 +1135,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    QFileInfo file_info{QString::fromStdString(filename.string())};
+    QFileInfo file_info{filename};
     if (!has_id_mappings_for(file_info))
     {
         mpl::trace(category,
@@ -1148,7 +1147,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
-        QFile file{QString::fromStdString(filename.string())};
+        QFile file{filename};
         if (!MP_FILEOPS.resize(file, msg->attr->size))
         {
             mpl::trace(category, "{}: cannot resize '{}'", __FUNCTION__, filename.string());
@@ -1213,7 +1212,7 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo file_info(filename->c_str());
+    QFileInfo file_info(*filename);
     if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
     {
         mpl::trace(category, "{}: cannot stat \'{}\': no such file", __FUNCTION__, filename);
@@ -1224,7 +1223,7 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 
     if (!follow && file_info.isSymLink())
     {
-        mp::platform::symlink_attr_from(filename->c_str(), &attr);
+        mp::platform::symlink_attr_from(filename->string().c_str(), &attr);
         attr.uid = mapped_uid_for(attr.uid);
         attr.gid = mapped_gid_for(attr.gid);
     }
@@ -1258,7 +1257,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    QFileInfo file_info{old_name->c_str()};
+    QFileInfo file_info{*old_name};
     if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
         mpl::trace(category,
@@ -1268,9 +1267,9 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    if (!MP_PLATFORM.symlink(old_name->c_str(),
-                             new_name.c_str(),
-                             QFileInfo(old_name->c_str()).isDir()))
+    if (!MP_PLATFORM.symlink(old_name->string().c_str(),
+                             new_name.string().c_str(),
+                             QFileInfo(*old_name).isDir()))
     {
         mpl::trace(category,
                    "{}: failure creating symlink from \'{}\' to \'{}\'",
@@ -1354,7 +1353,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        QFileInfo file_info{old_name->c_str()};
+        QFileInfo file_info{*old_name};
         if (!has_id_mappings_for(file_info))
         {
             mpl::trace(category,
@@ -1364,7 +1363,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (!MP_PLATFORM.link(old_name->c_str(), new_name.c_str()))
+        if (!MP_PLATFORM.link(old_name->string().c_str(), new_name.string().c_str()))
         {
             mpl::trace(category,
                        "{}: failed creating link from \'{}\' to \'{}\'",
