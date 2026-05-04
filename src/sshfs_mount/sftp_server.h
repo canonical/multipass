@@ -58,6 +58,8 @@ public:
 
 private:
     void process_message(sftp_client_message msg);
+    fs::path get_absolute_path(const char* path);
+    std::optional<fs::path> get_validated_path(sftp_client_message msg);
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
     int mapped_uid_for(const int uid);
     int mapped_gid_for(const int gid);
@@ -68,7 +70,7 @@ private:
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
     bool has_id_mappings_for(const QFileInfo& file_info);
-    bool validate_path(const std::string& current_path);
+    bool validate_path(const fs::path& current_path, bool is_target);
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
