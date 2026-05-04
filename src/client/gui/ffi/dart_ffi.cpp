@@ -32,7 +32,7 @@ char* generate_petname()
     static constexpr auto error = "failed generating petname";
     try
     {
-        static mp::NameGenerator::UPtr generator = mp::make_default_name_generator();
+        static mp::NameGenerator::UPtr generator = mp::petname::make_petname_provider();
         const auto name = generator->make_name();
         return strdup(name.c_str());
     }
@@ -76,9 +76,7 @@ struct KeyCertificatePair get_cert_pair()
         const auto provider = mpc::get_cert_provider();
         const auto cert = provider->PEM_certificate();
         const auto key = provider->PEM_signing_key();
-        struct KeyCertificatePair pair
-        {
-        };
+        struct KeyCertificatePair pair{};
         pair.pem_cert = strdup(cert.c_str());
         pair.pem_priv_key = strdup(key.c_str());
         return pair;

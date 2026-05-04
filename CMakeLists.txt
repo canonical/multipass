@@ -174,25 +174,25 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
   set(DART_PROTOC_PLUGIN ${CMAKE_SOURCE_DIR}/3rd-party/protobuf.dart/protoc_plugin/bin/protoc_plugin.exe)
 endif(MULTIPASS_ENABLE_FLUTTER_GUI)
 
-string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_lower)
+string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   add_definitions(-DMULTIPASS_COMPILER_CLANG)
 
-  if(cmake_build_type_lower MATCHES "asan")
+  if(CMAKE_BUILD_TYPE_LOWER MATCHES "asan")
     add_compile_options(-fno-omit-frame-pointer -fsanitize=address)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-  elseif(cmake_build_type_lower MATCHES "ubsan")
+  elseif(CMAKE_BUILD_TYPE_LOWER MATCHES "ubsan")
     add_compile_options(-fno-omit-frame-pointer -fsanitize=undefined)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined")
-  elseif(cmake_build_type_lower MATCHES "tsan")
+  elseif(CMAKE_BUILD_TYPE_LOWER MATCHES "tsan")
     add_compile_options(-fno-omit-frame-pointer -fsanitize=thread)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=thread")
   endif()
 endif()
 
 # these we want to apply even to 3rd-party
-if(cmake_build_type_lower MATCHES "coverage")
+if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(--coverage)
     if(COMMAND add_link_options)
@@ -315,7 +315,7 @@ else()
   endif()
 endif()
 
-if(cmake_build_type_lower MATCHES "coverage")
+if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
   find_program(GCOV gcov)
   find_program(LCOV lcov)
   find_program(GENHTML genhtml)
@@ -337,7 +337,7 @@ if(cmake_build_type_lower MATCHES "coverage")
     endif()
 
     add_custom_target(covreport
-      DEPENDS multipass_tests
+      DEPENDS multipass_cpp_tests rust_coverage_tarpaulin
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
@@ -351,7 +351,9 @@ if(cmake_build_type_lower MATCHES "coverage")
         ${CMAKE_BINARY_DIR}'/*'
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-      COMMAND ${GENHTML} -o coverage coverage.cleaned
+      COMMAND ${CMAKE_COMMAND} -E remove coverage.info
+      COMMAND ${LCOV} -a coverage.cleaned -a lcov.info -o total_coverage.info
+      COMMAND ${GENHTML} -o coverage total_coverage.info
     )
   endif()
 endif()
@@ -370,6 +372,9 @@ if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
 endif()
+
+#Added later to be compatible with enable_testing() above
+add_subdirectory(rxx)
 
 include(packaging/cpack.cmake OPTIONAL)
 

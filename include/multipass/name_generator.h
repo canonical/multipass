@@ -37,5 +37,37 @@ protected:
     NameGenerator() = default;
 };
 
-NameGenerator::UPtr make_default_name_generator();
+namespace petname
+{
+enum NumWords
+{
+    One,
+    Two,
+    Three,
+};
+template <char S>
+concept IsValidSeparator = (S == '-' || S == '_');
+
+namespace detail
+{
+NameGenerator::UPtr make_petname_provider_impl(NumWords num_words, char separator);
+} // namespace detail
+
+// Templated functions to avoid exposing the PetnameProvider type in the interface header with
+// the default arguments. The templates ensure the argument checks are done at compile-time.
+template <NumWords NW = NumWords::Two, char S = '-'>
+    requires IsValidSeparator<S>
+NameGenerator::UPtr make_petname_provider()
+{
+    return detail::make_petname_provider_impl(NW, S);
+};
+
+template <char S>
+    requires IsValidSeparator<S>
+NameGenerator::UPtr make_petname_provider()
+{
+    return detail::make_petname_provider_impl(NumWords::Two, S);
+}
+} // namespace petname
+
 } // namespace multipass

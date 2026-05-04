@@ -45,7 +45,7 @@ TEST_P(TestVerbosity, testVariousVs)
     std::ostringstream oss;
     const auto cmds = std::vector<mp::cmd::Command::UPtr>{};
     const auto v = GetParam();
-    auto args = QStringList{"multipass_tests"};
+    auto args = QStringList{"multipass_cpp_tests"};
 
     if (v)
     {
