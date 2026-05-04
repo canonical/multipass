@@ -235,12 +235,12 @@ jobs:
            ulimit -c unlimited &&        \
            env CTEST_OUTPUT_ON_FAILURE=1 \
            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
-           /root/parts/multipass/build/bin/multipass_tests"
+           ctest -V"
 
     - name: Measure coverage
       id: measure-coverage
       if: ${{ matrix.build-type == 'Coverage' }}
-      timeout-minutes: 5
+      timeout-minutes: 10
       run: |
 
         trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT

@@ -33,7 +33,10 @@ jobs:
       run: |
         sudo apt-get update
         sudo --preserve-env apt-get install --yes \
+          clang \
           clang-tidy \
+          lld \
+          llvm \
           devscripts \
           equivs \
           flake8 \
@@ -81,6 +84,12 @@ jobs:
               --gcov-ignore-parse-errors \
               --merge-mode-functions=separate
 
+    - name: Process Dart coverage
+      run: |
+        sed 's|lib/|'"$GITHUB_WORKSPACE"'/src/client/gui/lib/|g' \
+            src/client/gui/coverage/lcov.info \
+            > ${{ env.COVERAGE_DIR }}/dart.info
+
     - name: Detach TICS QServer to prevent "project already connected" issue
       env:
         TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
@@ -101,7 +110,7 @@ jobs:
         installTics: true
 
     - name: Report workflow failure
-      if: ${{ !success() }}
+      if: ${{ !success() && github.ref_name == 'main' }}
       uses: mattermost/action-mattermost-notify@master
       with:
         MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}

@@ -176,7 +176,7 @@ jobs:
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        bin/multipass_tests
+        ctest -V
 
     - name: Package
       id: cmake-package
