@@ -464,6 +464,23 @@ std::optional<fs::path> mp::SftpServer::get_validated_path(sftp_client_message m
     return path;
 }
 
+std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
+{
+    std::error_code ec;
+    // Get the relative difference between the host path and the mount root
+    auto relative = fs::relative(host_path, canonical_source, ec);
+
+    if (ec || relative.empty() || relative == "." || relative.begin()->string() == ".." ||
+        relative.is_absolute() || relative.has_root_name())
+    {
+        // If the path is outside the mount or invalid, return the mount path
+        return target_path;
+    }
+
+    // Return it as an absolute path from the perspective of the guest
+    return (target_path / relative).generic_string();
+}
+
 void mp::SftpServer::process_message(sftp_client_message msg)
 {
     int ret = 0;
@@ -959,8 +976,9 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
+    auto guest_link = host_to_guest_path(link.toStdString());
     sftp_attributes_struct attr{};
-    sftp_reply_names_add(msg, link.toStdString().c_str(), link.toStdString().c_str(), &attr);
+    sftp_reply_names_add(msg, guest_link.c_str(), guest_link.c_str(), &attr);
     return sftp_reply_names(msg);
 }
 
@@ -980,8 +998,9 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    auto realpath = QFileInfo(filename->c_str()).absoluteFilePath();
-    return sftp_reply_name(msg, realpath.toStdString().c_str(), nullptr);
+    // Path is already absolute from get_validated_path
+    auto guest_path = host_to_guest_path(*filename);
+    return sftp_reply_name(msg, guest_path.c_str(), nullptr);
 }
 
 int mp::SftpServer::handle_remove(sftp_client_message msg)
