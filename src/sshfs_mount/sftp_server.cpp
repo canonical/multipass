@@ -621,6 +621,16 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 
     const auto& [path, _] = *handle;
 
+    if (!validate_path(path, follows_symlinks(sftp_client_message_get_type(msg))))
+    {
+        mpl::trace(category,
+                   "{}: cannot validate target path \'{}\' against source \'{}\'",
+                   __FUNCTION__,
+                   path,
+                   source_path);
+        return reply_perm_denied(msg);
+    }
+
     QFileInfo file_info(QString::fromStdString(path.string()));
 
     if (file_info.isSymLink())
