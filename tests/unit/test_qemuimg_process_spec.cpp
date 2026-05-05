@@ -21,8 +21,14 @@
 
 #include <multipass/process/qemuimg_process_spec.h>
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QTemporaryDir>
+
+auto expected_qemu_img_path()
+{
+    return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
+}
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -32,7 +38,7 @@ TEST(TestQemuImgProcessSpec, programCorrect)
 {
     mp::QemuImgProcessSpec spec({}, "");
 
-    EXPECT_TRUE(spec.program().endsWith("qemu-img"));
+    EXPECT_EQ(spec.program(), expected_qemu_img_path());
 }
 
 TEST(TestQemuImgProcessSpec, defaultArgumentsCorrect)
