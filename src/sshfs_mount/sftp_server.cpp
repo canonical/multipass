@@ -405,7 +405,7 @@ bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
            has_gid_mapping_for(MP_FILEOPS.groupId(file_info));
 }
 
-bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlinks)
+bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlinks) const
 {
     if (source_path.empty() || current_path.empty())
         return false;
@@ -440,7 +440,7 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
     return source_it == source_path.end();
 }
 
-fs::path mp::SftpServer::get_absolute_path(const char* path)
+fs::path mp::SftpServer::get_absolute_path(const char* path) const
 {
     fs::path raw = path != nullptr ? fs::path(path) : fs::path();
     if (raw.is_relative() && !raw.empty())
@@ -450,7 +450,7 @@ fs::path mp::SftpServer::get_absolute_path(const char* path)
     return raw;
 }
 
-std::optional<fs::path> mp::SftpServer::get_validated_path(sftp_client_message msg)
+std::optional<fs::path> mp::SftpServer::get_validated_path(sftp_client_message msg) const
 {
     bool follows{follows_symlinks(sftp_client_message_get_type(msg))};
     const auto path = get_absolute_path(sftp_client_message_get_filename(msg));
@@ -958,7 +958,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
 
 int mp::SftpServer::handle_readlink(sftp_client_message msg)
 {
-    auto filename = get_validated_path(msg);
+    const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
@@ -987,7 +987,7 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
 
 int mp::SftpServer::handle_realpath(sftp_client_message msg)
 {
-    auto filename = get_validated_path(msg);
+    const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
@@ -1002,7 +1002,7 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
     }
 
     // Path is already absolute from get_validated_path
-    auto guest_path = host_to_guest_path(*filename);
+    const auto guest_path = host_to_guest_path(*filename);
     return sftp_reply_name(msg, guest_path.c_str(), nullptr);
 }
 
@@ -1207,7 +1207,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
 int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 {
-    auto filename = get_validated_path(msg);
+    const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
