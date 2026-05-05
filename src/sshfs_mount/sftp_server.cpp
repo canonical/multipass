@@ -442,7 +442,7 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
 
 fs::path mp::SftpServer::get_absolute_path(const char* path)
 {
-    fs::path raw(path);
+    fs::path raw = path != nullptr ? fs::path(path) : fs::path();
     if (raw.is_relative() && !raw.empty())
     {
         return source_path / raw;
