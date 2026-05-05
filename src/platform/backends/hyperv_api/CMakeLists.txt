@@ -34,9 +34,9 @@ if(WIN32)
   if(NOT (HAS_COMPUTECORE AND HAS_COMPUTENETWORK AND HAS_VIRTDISK))
     message(FATAL_ERROR
       "[hyperv_api] One or more required libraries are missing:\n"
-      "  HAS_COMPUTECORE_LIB=${HAS_COMPUTECORE_LIB}\n"
-      "  HAS_COMPUTENETWORK_LIB=${HAS_COMPUTENETWORK_LIB}\n"
-      "  HAS_VIRTDISK_LIB=${HAS_VIRTDISK_LIB}\n"
+      "  HAS_COMPUTECORE=${HAS_COMPUTECORE}\n"
+      "  HAS_COMPUTENETWORK=${HAS_COMPUTENETWORK}\n"
+      "  HAS_VIRTDISK=${HAS_VIRTDISK}\n"
     )
   endif()
 
