@@ -463,14 +463,14 @@ TEST_F(SftpServer, handlesOpendir)
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, dir_iterator).WillOnce(Return(std::make_unique<mpt::MockDirIterator>()));
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
     REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    auto sftp = make_sftpserver(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     sftp.run();
 }
 
@@ -487,7 +487,7 @@ TEST_F(SftpServer, opendirNotExistingFails)
         err = std::make_error_code(std::errc::no_such_file_or_directory);
         return std::make_unique<mpt::MockDirIterator>();
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
@@ -496,7 +496,7 @@ TEST_F(SftpServer, opendirNotExistingFails)
     REPLACE(sftp_reply_status,
             make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, no_such_file_calls));
 
-    auto sftp = make_sftpserver(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     sftp.run();
 
     EXPECT_EQ(no_such_file_calls, 1);
@@ -515,12 +515,12 @@ TEST_F(SftpServer, opendirNotReadableFails)
         err = std::make_error_code(std::errc::permission_denied);
         return std::make_unique<mpt::MockDirIterator>();
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
-    auto sftp = make_sftpserver(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
 
     int perm_denied_num_calls{0};
     REPLACE(sftp_reply_status,
@@ -557,13 +557,13 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
     EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
         return file.groupId();
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
     REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
-    auto sftp = make_sftpserver(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     int failure_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
@@ -624,7 +624,7 @@ TEST_F(SftpServer, handlesMkdir)
     EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
         return file.groupId();
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
@@ -690,7 +690,7 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
     EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
         return file.groupId();
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
@@ -844,7 +844,7 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
@@ -1559,7 +1559,7 @@ TEST_F(SftpServer, openUnableToOpenFails)
     EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
         return file.groupId();
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
@@ -1602,7 +1602,7 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
         err = std::make_error_code(std::errc::permission_denied);
         return mp::fs::file_status{mp::fs::file_type::unknown};
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
@@ -2102,7 +2102,7 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     });
     EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
         .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
-    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
@@ -2156,7 +2156,7 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
     EXPECT_CALL(*file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
         return file.exists();
     });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillOnce([](const fs::path& path) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
 
