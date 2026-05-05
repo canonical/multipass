@@ -243,19 +243,27 @@ jobs:
         path: ${{ env.SCCACHE_DIR }}
         key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
 
-  DispatchCLITestsWorkflow:
-    name: "Dispatch CLI Tests (Windows)"
-    permissions:
-      contents: read
-      actions: read
-      checks:  write
-    secrets: inherit
-    needs:
-      - BuildAndTest
-    uses: ./.github/workflows/cli-tests.yml
-    with:
-      windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
-      backend-driver: hyperv_api
+  # Disabled for now -- the runner fails with this message intermittently:
+  #
+  # > The hosted runner lost communication with the server.
+  # > Anything in your workflow that terminates the runner process,
+  # > starves it for CPU/Memory, or blocks its network access can cause this error.
+  #
+  # The tests are either leaking resources, or not outputting anything for a large duration
+  # of time.
+  # DispatchCLITestsWorkflow:
+  #   name: "Dispatch CLI Tests (Windows)"
+  #   permissions:
+  #     contents: read
+  #     actions: read
+  #     checks:  write
+  #   secrets: inherit
+  #   needs:
+  #     - BuildAndTest
+  #   uses: ./.github/workflows/cli-tests.yml
+  #   with:
+  #     windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
+  #     backend-driver: hyperv_api
 
   Report-Workflow-Failure:
     needs: [BuildAndTest]
