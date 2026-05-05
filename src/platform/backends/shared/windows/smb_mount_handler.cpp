@@ -110,7 +110,7 @@ sid_buffer get_user_sid(const std::wstring& user_name)
  *
  * @return true if user @p user_sid has full control, false otherwise.
  */
-bool has_full_control(const std::filesystem::path& path, sid_buffer& user_sid)
+bool has_full_control(const std::filesystem::path& path, const sid_buffer& user_sid)
 {
     std::unique_ptr<SECURITY_DESCRIPTOR, decltype(&LocalFree)> pSD{nullptr, LocalFree};
     PACL pDACL = nullptr;
@@ -138,7 +138,7 @@ bool has_full_control(const std::filesystem::path& path, sid_buffer& user_sid)
             continue;
 
         if (!EqualSid(reinterpret_cast<PSID>(&ace->SidStart),
-                      reinterpret_cast<PSID>(user_sid.data())))
+                      const_cast<PSID>(reinterpret_cast<const void*>(user_sid.data()))))
             continue;
 
         if ((ace->Mask & FILE_ALL_ACCESS) == FILE_ALL_ACCESS)
