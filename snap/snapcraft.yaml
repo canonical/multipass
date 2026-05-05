@@ -147,8 +147,7 @@ parts:
     - automake # libxcrypt
     - libtool # libxcrypt
     - python3-pip
-    - bison
-
+    - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
 
     stage-packages:
     - apparmor
