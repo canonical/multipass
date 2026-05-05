@@ -340,6 +340,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
 {
+    expected_shutdown = mp::utils::expects_shutdown_from_cloud_init(desc.user_data_config);
 }
 
 mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
@@ -450,9 +451,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
 mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(name);
-
-    if ((state == State::delayed_shutdown && present_state == State::running) ||
-        state == State::starting)
+    if ((state == State::delayed_shutdown && present_state == State::running) || state == State::starting)
         return state;
 
     state = present_state;

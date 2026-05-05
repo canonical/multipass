@@ -246,6 +246,8 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
     {
         remove_snapshots_from_backend();
     }
+
+    expected_shutdown = mp::utils::expects_shutdown_from_cloud_init(desc.user_data_config);
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
