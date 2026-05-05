@@ -127,6 +127,15 @@ bool has_full_control(const std::filesystem::path& path, const sid_buffer& user_
     if (result != ERROR_SUCCESS)
         throw std::runtime_error("Failed to get security info");
 
+    // "If a Windows object does not have a discretionary access control list (DACL), the system
+    // allows everyone full access to it. If an object has a DACL, the system allows only the access
+    // that is explicitly allowed by the access control entries (ACEs) in the DACL."
+    //
+    // @see https://learn.microsoft.com/en-us/windows/win32/secauthz/null-dacls-and-empty-dacls
+    // @see https://learn.microsoft.com/en-us/windows/win32/secauthz/dacls-and-aces
+    if (nullptr == pDACL)
+        return true;
+
     for (DWORD i = 0; i < pDACL->AceCount; ++i)
     {
         LPVOID pAce = nullptr;
