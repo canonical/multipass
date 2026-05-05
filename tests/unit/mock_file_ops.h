@@ -158,6 +158,10 @@ public:
                 (const fs::path& path, std::error_code& err),
                 (override, const));
     MOCK_METHOD(fs::path, weakly_canonical, (const fs::path& path), (override, const));
+    MOCK_METHOD(fs::path,
+                relative,
+                (const fs::path& path, const fs::path& base, std::error_code& ec),
+                (override, const));
     MOCK_METHOD(fs::perms, get_permissions, (const fs::path&), (const, override));
 
     MOCK_METHOD(fs::path, remove_extension, (const fs::path& path), (const, override));

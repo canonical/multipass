@@ -452,6 +452,13 @@ fs::path mp::FileOps::weakly_canonical(const fs::path& path) const
     return fs::weakly_canonical(path);
 }
 
+fs::path mp::FileOps::relative(const fs::path& path,
+                               const fs::path& base,
+                               std::error_code& ec) const
+{
+    return fs::relative(path, base, ec);
+}
+
 fs::path mp::FileOps::remove_extension(const fs::path& path) const
 {
     return path.parent_path() / path.stem();
