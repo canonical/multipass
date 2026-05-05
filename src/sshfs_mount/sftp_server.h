@@ -68,10 +68,10 @@ private:
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
     bool has_id_mappings_for(const QFileInfo& file_info);
-    bool validate_path(const fs::path& current_path, bool is_target);
+    bool validate_path(const fs::path& current_path, bool follows_symlinks) const;
     std::string host_to_guest_path(const fs::path& host_path) const;
-    fs::path get_absolute_path(const char* path);
-    std::optional<fs::path> get_validated_path(sftp_client_message msg);
+    fs::path get_absolute_path(const char* path) const;
+    std::optional<fs::path> get_validated_path(sftp_client_message msg) const;
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
