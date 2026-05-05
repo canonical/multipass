@@ -231,6 +231,9 @@ endif()
 # Boost config
 find_package(Boost CONFIG REQUIRED COMPONENTS json uuid)
 
+# Dependencies satisfied by CMake
+include(src/cmake/cmake-deps.cmake)
+
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 
@@ -283,7 +286,12 @@ if(MSVC)
   add_definitions(-DMULTIPASS_PLATFORM_WINDOWS)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
+  add_definitions(-DSECURITY_WIN32)
   set(MULTIPASS_BACKENDS hyperv virtualbox)
+  if(HYPERV_HCS_ENABLED)
+    add_definitions(-DHYPERV_HCS_ENABLED=1)
+    list(APPEND MULTIPASS_BACKENDS hyperv_api)
+  endif()
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)

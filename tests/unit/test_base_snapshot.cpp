@@ -625,7 +625,8 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
     snapshot.capture();
 
     EXPECT_CALL(*mock_file_ops,
-                rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+                rename(MatcherCast<QFile&>(Property(&QFile::fileName, Eq(expected_file_path))),
+                       Ne(expected_file_path)))
         .WillOnce(Return(true));
 
     snapshot.erase();
@@ -643,7 +644,8 @@ TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
-    EXPECT_CALL(*mock_file_ops, rename(Property(&QFile::fileName, Eq(expected_file_path)), _))
+    EXPECT_CALL(*mock_file_ops,
+                rename(MatcherCast<QFile&>(Property(&QFile::fileName, Eq(expected_file_path))), _))
         .WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops,
                 exists(Matcher<const QFile&>(Property(&QFile::fileName, Eq(expected_file_path)))))
@@ -670,10 +672,12 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
     snapshot.capture();
 
     EXPECT_CALL(*mock_file_ops,
-                rename(Property(&QFile::fileName, Eq(expected_file_path)), Ne(expected_file_path)))
+                rename(MatcherCast<QFile&>(Property(&QFile::fileName, Eq(expected_file_path))),
+                       Ne(expected_file_path)))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops,
-                rename(Property(&QFile::fileName, Ne(expected_file_path)), Eq(expected_file_path)));
+                rename(MatcherCast<QFile&>(Property(&QFile::fileName, Ne(expected_file_path))),
+                       Eq(expected_file_path)));
 
     EXPECT_CALL(snapshot, erase_impl).WillOnce([]() { throw std::runtime_error{"test"}; });
 

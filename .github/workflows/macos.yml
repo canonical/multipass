@@ -247,7 +247,7 @@ jobs:
         ulimit -a
         ulimit -Hc
 
-    - name: Test
+    - name: Run unit tests
       working-directory: ${{ env.BUILD_DIR }}
       run: |
         # Catch and save the test executable's exit code
@@ -255,6 +255,11 @@ jobs:
         # Set soft limit for the core file size (512MiB)
         ulimit -c 1048576
         bin/multipass_tests
+
+    - name: Run integration tests
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        bin/multipass_integration_tests
 
     - name: Upload test coredump
       uses: actions/upload-artifact@v7
@@ -408,12 +413,14 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
 
   DispatchCLITestsWorkflow:
+    name: "Dispatch CLI Tests (macOS)"
     permissions:
       contents: read
       actions: read
       checks:  write
     secrets: inherit
-    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
+    needs:
+      - CombineAndPublishMacOSPackage
     uses: ./.github/workflows/cli-tests.yml
     with:
       macos-pkg-url: ${{ needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url }}
