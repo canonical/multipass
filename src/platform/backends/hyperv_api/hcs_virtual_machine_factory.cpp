@@ -298,8 +298,8 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::get_hyperv_vswitches
                     .type = MP_PLATFORM.bridge_nomenclature(),
                     .description = fmt::format("Hyper-V vSwitch({})", hcn_info.type),
                     .links = hcn_info.network_adapter_name.has_value()
-                                 ? std::vector<std::string>{hcn_info.network_adapter_name.value()}
-                                 : std::vector<std::string>{},
+                               ? std::vector<std::string>{hcn_info.network_adapter_name.value()}
+                               : std::vector<std::string>{},
                     .needs_authorization = false});
             }
             else

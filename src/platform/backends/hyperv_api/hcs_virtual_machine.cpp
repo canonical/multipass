@@ -399,8 +399,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         .guest_state = {.guest_state_file_path = get_guest_state_file_path(),
                         .runtime_state_file_path = get_runtime_state_file_path(),
                         .save_state_file_path = has_saved_state_file()
-                                                    ? std::optional(get_saved_state_file_path())
-                                                    : std::nullopt}};
+                                                  ? std::optional(get_saved_state_file_path())
+                                                  : std::nullopt}};
 
     if (const auto create_result =
             HCS().create_compute_system(create_compute_system_params, hcs_system);

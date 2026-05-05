@@ -259,8 +259,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         params.ipams = {};
-        params.flags =
-            hcn::HcnNetworkFlags::enable_dhcp_server | hcn::HcnNetworkFlags::enable_non_persistent;
+        params.flags = hcn::HcnNetworkFlags::enable_dhcp_server |
+                       hcn::HcnNetworkFlags::enable_non_persistent;
         hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
                                      hcn::HcnNetworkPolicyNetAdapterName{"test adapter"}};
         params.policies.push_back(policy);

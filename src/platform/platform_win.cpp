@@ -193,10 +193,10 @@ Json::Value& edit_profiles(const QString& path, Json::Value& json_root)
     auto& profiles =
         json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
     return profiles.isArray() || !profiles.isMember("list")
-               ? profiles
-               : profiles["list"]; /* Notes:
-            1) don't index into "list" unless it already exists
-            2) can't look for named member on array values */
+             ? profiles
+             : profiles["list"]; /* Notes:
+          1) don't index into "list" unless it already exists
+          2) can't look for named member on array values */
 }
 
 Json::Value read_winterm_settings(const QString& path)
@@ -608,9 +608,9 @@ static const auto& ip_utils()
                     prefix_length,
                     max_prefix_length};
             }
-            const auto mask = (prefix_length == 0) ? 0
-                                                   : std::numeric_limits<std::uint32_t>::max()
-                                                         << (32 - prefix_length);
+            const auto mask = (prefix_length == 0)
+                                ? 0
+                                : std::numeric_limits<std::uint32_t>::max() << (32 - prefix_length);
             const auto network_hbo = htonl(ip_hbo & mask);
 
             return fmt::format("{}/{}", to_string(network_hbo), prefix_length);
@@ -1124,8 +1124,8 @@ void mp::platform::Platform::setup_permission_inheritance(bool) const
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
-    DWORD flags =
-        is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY
+                         : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     return CreateSymbolicLink(link, target, flags);
 }
 
