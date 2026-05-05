@@ -432,6 +432,7 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
     }
     catch (const fs::filesystem_error& e)
     {
+        mpl::trace(category, "Could not resolve path {} : {}", current_path.string(), e.what());
         return false;
     }
 
@@ -470,7 +471,7 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
 {
     std::error_code ec;
     // Get the relative difference between the host path and the mount root
-    auto relative = fs::relative(host_path, source_path, ec);
+    auto relative = MP_FILEOPS.relative(host_path, source_path, ec);
 
     if (ec || relative.empty() || relative == "." || relative.begin()->string() == ".." ||
         relative.is_absolute() || relative.has_root_name())
