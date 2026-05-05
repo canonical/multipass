@@ -97,8 +97,7 @@ private:
     SSHSession ssh_session;
     SSHFSProcUptr sshfs_process;
     SftpSessionUptr sftp_server_session;
-    const std::string source_path;
-    const std::filesystem::path canonical_source;
+    const std::filesystem::path source_path;
     const std::string target_path;
     std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;
     std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;

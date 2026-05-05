@@ -272,8 +272,8 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
         });
 
     return found == id_maps.cend()
-               ? (default_found == id_maps.cend() ? default_id : default_found->first)
-               : found->first;
+             ? (default_found == id_maps.cend() ? default_id : default_found->first)
+             : found->first;
 }
 
 constexpr bool follows_symlinks(uint8_t type)
@@ -311,8 +311,7 @@ mp::SftpServer::SftpServer(SSHSession&& session,
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
-      source_path{source},
-      canonical_source{source},
+      source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{target},
       gid_mappings{gid_mappings},
       uid_mappings{uid_mappings},
@@ -408,7 +407,7 @@ bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
 
 bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlinks)
 {
-    if (canonical_source.empty() || current_path.empty())
+    if (source_path.empty() || current_path.empty())
         return false;
 
     fs::path final_path;
@@ -436,11 +435,9 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
         return false;
     }
 
-    auto [source_it, current_it] = std::mismatch(canonical_source.begin(),
-                                                 canonical_source.end(),
-                                                 final_path.begin(),
-                                                 final_path.end());
-    return source_it == canonical_source.end();
+    auto [source_it, current_it] =
+        std::mismatch(source_path.begin(), source_path.end(), final_path.begin(), final_path.end());
+    return source_it == source_path.end();
 }
 
 fs::path mp::SftpServer::get_absolute_path(const char* path)
@@ -448,7 +445,7 @@ fs::path mp::SftpServer::get_absolute_path(const char* path)
     fs::path raw(path);
     if (raw.is_relative() && !raw.empty())
     {
-        return canonical_source / raw;
+        return source_path / raw;
     }
     return raw;
 }
@@ -473,7 +470,7 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
 {
     std::error_code ec;
     // Get the relative difference between the host path and the mount root
-    auto relative = fs::relative(host_path, canonical_source, ec);
+    auto relative = fs::relative(host_path, source_path, ec);
 
     if (ec || relative.empty() || relative == "." || relative.begin()->string() == ".." ||
         relative.is_absolute() || relative.has_root_name())
@@ -596,8 +593,10 @@ void mp::SftpServer::run()
                     ssh_session.exec(fmt::format("sudo umount {}", mount_path));
                 }
 
-                sshfs_process =
-                    create_sshfs_process(ssh_session, sshfs_exec_line, source_path, target_path);
+                sshfs_process = create_sshfs_process(ssh_session,
+                                                     sshfs_exec_line,
+                                                     source_path.string(),
+                                                     target_path);
                 sftp_server_session =
                     make_sftp_session(ssh_session, sshfs_process->release_channel());
 
