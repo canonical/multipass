@@ -168,7 +168,7 @@ void SmbManager::create_share(const QString& share_name,
         return;
 
     auto user_sid = get_user_sid(user.toStdWString());
-    if (!has_full_control(source.toStdString(), user_sid))
+    if (!has_full_control(source.toStdWString(), user_sid))
         throw std::runtime_error{fmt::format("cannot access \"{}\"", source)};
 
     std::wstring remark = L"Multipass mount share";
