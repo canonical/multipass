@@ -702,7 +702,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     {
         mpl::trace(category,
                    "failed to chown '{}' to owner:{} and group:{}",
-                   filename,
+                   filename->string(),
                    rev_uid,
                    rev_gid);
         return reply_failure(msg);
@@ -736,7 +736,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
         mpl::trace(category,
                    "{}: rmdir failed for '{}': {}",
                    __FUNCTION__,
-                   filename,
+                   filename->string(),
                    err.message());
         return reply_failure(msg);
     }
@@ -754,7 +754,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     const auto status = MP_FILEOPS.symlink_status(filename->c_str(), err);
     if (err && status.type() != fs::file_type::not_found)
     {
-        mpl::trace(category, "Cannot get status of '{}': {}", filename, err.message());
+        mpl::trace(category, "Cannot get status of '{}': {}", filename->string(), err.message());
         return reply_perm_denied(msg);
     }
     const auto exists = fs::is_symlink(status) || fs::is_regular_file(status);
@@ -803,7 +803,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         MP_FILEOPS.open_fd(filename->c_str(), mode, msg->attr ? msg->attr->permissions : 0);
     if (named_fd->fd == -1)
     {
-        mpl::trace(category, "Cannot open '{}': {}", filename, std::strerror(errno));
+        mpl::trace(category, "Cannot open '{}': {}", filename->string(), std::strerror(errno));
         return reply_failure(msg);
     }
 
@@ -816,7 +816,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         {
             mpl::trace(category,
                        "failed to chown '{}' to owner:{} and group:{}",
-                       filename,
+                       filename->string(),
                        new_uid,
                        new_gid);
             return reply_failure(msg);
@@ -848,13 +848,13 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
     if (err.value() == int(std::errc::no_such_file_or_directory) ||
         err.value() == int(std::errc::no_such_process))
     {
-        mpl::trace(category, "Cannot open directory '{}': {}", filename, err.message());
+        mpl::trace(category, "Cannot open directory '{}': {}", filename->string(), err.message());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
     }
 
     if (err.value() == int(std::errc::permission_denied))
     {
-        mpl::trace(category, "Cannot read directory '{}': {}", filename, err.message());
+        mpl::trace(category, "Cannot read directory '{}': {}", filename->string(), err.message());
         return reply_perm_denied(msg);
     }
 
@@ -1029,7 +1029,11 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
 
     if (err)
     {
-        mpl::trace(category, "{}: cannot remove '{}': {}", __FUNCTION__, filename, err.message());
+        mpl::trace(category,
+                   "{}: cannot remove '{}': {}",
+                   __FUNCTION__,
+                   filename->string(),
+                   err.message());
         return reply_failure(msg);
     }
 
