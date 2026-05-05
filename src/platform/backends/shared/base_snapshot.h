@@ -93,7 +93,6 @@ private:
 
     auto erase_helper();
     QString derive_snapshot_filename() const;
-    QJsonObject serialize() const;
     void persist() const;
 
 private:

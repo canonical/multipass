@@ -38,6 +38,7 @@
 
 #include <QFile>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QString>
 #include <QTemporaryFile>
 
