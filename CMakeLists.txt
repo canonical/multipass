@@ -131,10 +131,8 @@ if(MULTIPASS_ENABLE_TESTS)
   list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
 
-# Windows needs qemu-img
-if("qemu" IN_LIST MULTIPASS_BACKENDS OR WIN32)
-  list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
-endif()
+# All the current backends depend on QEMU one way or the other.
+list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
