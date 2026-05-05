@@ -21,11 +21,13 @@ add_library(applevz_backend STATIC
   applevz_bridge.mm
   applevz_wrapper.cpp
   applevz_utils.mm
+  applevz_vmnet.mm
 )
 
 set_source_files_properties(
   applevz_bridge.mm
   applevz_utils.mm
+  applevz_vmnet.mm
   PROPERTIES
   LANGUAGE OBJCXX
   COMPILE_FLAGS "-fobjc-arc"
@@ -33,6 +35,7 @@ set_source_files_properties(
 
 find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 find_library(VIRTUALIZATION_FRAMEWORK Virtualization REQUIRED)
+find_library(VMNET_FRAMEWORK vmnet REQUIRED)
 
 target_link_libraries(applevz_backend
   PUBLIC
@@ -43,4 +46,5 @@ target_link_libraries(applevz_backend
     daemon
     ${FOUNDATION_FRAMEWORK}
     ${VIRTUALIZATION_FRAMEWORK}
+    ${VMNET_FRAMEWORK}
     Qt6::Core)

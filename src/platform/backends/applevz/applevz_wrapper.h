@@ -21,7 +21,6 @@
 #include <applevz/cf_error.h>
 
 #include <multipass/singleton.h>
-#include <multipass/virtual_machine_description.h>
 
 #define MP_APPLEVZ multipass::applevz::AppleVZ::instance()
 
@@ -51,5 +50,8 @@ public:
     virtual bool can_request_stop(const VMHandle& vm_handle) const;
 
     virtual bool is_supported() const;
+
+    // Networking
+    virtual std::vector<NetworkInterfaceInfo> bridged_network_interfaces() const;
 };
 } // namespace multipass::applevz

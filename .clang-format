@@ -13,6 +13,9 @@ AllowShortIfStatementsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: true
 BinPackArguments: false
 BinPackParameters: false
+BreakBeforeTernaryOperators: true
+AlignOperands: AlignAfterOperator
+PenaltyBreakAssignment: 10
 BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true

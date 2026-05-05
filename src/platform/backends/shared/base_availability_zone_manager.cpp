@@ -24,8 +24,6 @@
 
 #include <fmt/format.h>
 
-#include <QJsonDocument>
-
 namespace mpl = multipass::logging;
 
 namespace

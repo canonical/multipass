@@ -210,7 +210,7 @@ jobs:
         restore-keys: sccache-${{ matrix.runs-on }}
 
     - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.9
+      uses: mozilla-actions/sccache-action@v0.0.10
       continue-on-error: true
       with:
         version: "v0.12.0"

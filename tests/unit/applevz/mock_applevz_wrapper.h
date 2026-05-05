@@ -21,6 +21,7 @@
 #include "tests/unit/mock_singleton_helpers.h"
 
 #include <applevz/applevz_wrapper.h>
+#include <multipass/network_interface_info.h>
 
 namespace multipass::test
 {
@@ -71,6 +72,10 @@ public:
                 (const multipass::applevz::VMHandle& vm_handle),
                 (const, override));
     MOCK_METHOD(bool, is_supported, (), (const, override));
+    MOCK_METHOD(std::vector<multipass::NetworkInterfaceInfo>,
+                bridged_network_interfaces,
+                (),
+                (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockAppleVZWrapper, AppleVZ);
 };
