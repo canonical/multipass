@@ -20,7 +20,6 @@
 #include <multipass/singleton.h>
 
 #include <windows.h>
-#include <initguid.h>
 #include <Virtdisk.h>
 
 #include <fmt/format.h>
