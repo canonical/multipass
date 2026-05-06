@@ -2,7 +2,7 @@
 canonical-sphinx>=0.5.1
 
 # Extensions previously auto-loaded by canonical-sphinx
-myst-parser~=4.0    # v5.0.0 causes version conflicts
+myst-parser~=5.0    # v5.0.0 causes version conflicts
 sphinx-autobuild
 sphinx-design
 sphinx-notfound-page
