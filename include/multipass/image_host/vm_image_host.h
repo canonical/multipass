@@ -36,13 +36,14 @@ public:
     using Action = std::function<void(const std::string&, const VMImageInfo&)>;
 
     virtual ~VMImageHost() = default;
-    virtual std::optional<VMImageInfo> info_for(const Query& query) = 0;
-    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) = 0;
-    virtual VMImageInfo info_for_full_hash(const std::string& full_hash) = 0;
+    virtual std::optional<VMImageInfo> info_for(const Query& query) const = 0;
+    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(
+        const Query& query) const = 0;
+    virtual VMImageInfo info_for_full_hash(const std::string& full_hash) const = 0;
     virtual std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
-                                                    const bool allow_unsupported) = 0;
-    virtual void for_each_entry_do(const Action& action) = 0;
-    virtual std::vector<std::string> supported_remotes() = 0;
+                                                    const bool allow_unsupported) const = 0;
+    virtual void for_each_entry_do(const Action& action) const = 0;
+    virtual std::vector<std::string> supported_remotes() const = 0;
     virtual void update_manifests(const bool force_update) = 0;
 
 protected:
