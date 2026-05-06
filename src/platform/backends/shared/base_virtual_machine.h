@@ -249,9 +249,10 @@ inline bool multipass::BaseVirtualMachine::is_core() const
 inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message() const
 {
     return std::string("Disk resized. To make the new space available on this Ubuntu Core "
-                       "instance, run the following commands:\n\n"
-                       "        multipass exec <instance> -- sudo growpart /dev/sda 5\n"
-                       "        multipass exec <instance> -- sudo resize2fs /dev/sda5\n\n"
+                       "instance, use lsblk to find the /writable partition and run the "
+                       "following commands:\n\n"
+                       "        multipass exec <instance> -- sudo growpart /dev/<name> <num>\n"
+                       "        multipass exec <instance> -- sudo resize2fs /dev/<name+num>\n\n"
                        "Check the resize status with the command below:\n\n"
                        "         multipass info <instance>\n");
 }
