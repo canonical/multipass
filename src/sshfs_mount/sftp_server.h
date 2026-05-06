@@ -68,6 +68,10 @@ private:
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
     bool has_id_mappings_for(const QFileInfo& file_info);
+    bool validate_path(const fs::path& current_path, bool follows_symlinks) const;
+    std::string host_to_guest_path(const fs::path& host_path) const;
+    fs::path get_absolute_path(const char* path) const;
+    std::optional<fs::path> get_validated_path(sftp_client_message msg) const;
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
@@ -93,8 +97,8 @@ private:
     SSHSession ssh_session;
     SSHFSProcUptr sshfs_process;
     SftpSessionUptr sftp_server_session;
-    const std::string source_path;
-    const std::string target_path;
+    const std::filesystem::path source_path;
+    const std::filesystem::path target_path;
     std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;
     std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;
     const id_mappings gid_mappings;
