@@ -66,9 +66,10 @@ typedef std::unordered_map<std::string, CommandOutput> CommandOutputs;
 
 std::string command_get_existing_parent(const std::string& path)
 {
-    return fmt::format(
-        R"(sudo /bin/bash -c 'P="{}"; while [ ! -d "$P/" ]; do P="${{P%/*}}"; done; echo $P/')",
-        path);
+    auto inner = fmt::format(
+        "P={}; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/",
+        multipass::utils::escape_for_shell(path));
+    return fmt::format("sudo /bin/bash -c {}", multipass::utils::escape_for_shell(inner));
 }
 
 std::string tag_from_target(const std::string& target)
@@ -90,16 +91,21 @@ std::string command_umount(const std::string& target)
 
 std::string command_mkdir(const std::string& parent, const std::string& missing)
 {
-    return fmt::format("sudo /bin/bash -c 'cd \"{}\" && mkdir -p \"{}\"'", parent, missing);
+    auto inner = fmt::format("cd {} && mkdir -p {}",
+                             multipass::utils::escape_for_shell(parent),
+                             multipass::utils::escape_for_shell(missing));
+    return fmt::format("sudo /bin/bash -c {}", multipass::utils::escape_for_shell(inner));
 }
 
 std::string command_chown(const std::string& parent, const std::string& missing, int uid, int gid)
 {
-    return fmt::format("sudo /bin/bash -c 'cd \"{}\" && chown -R {}:{} \"{}\"'",
-                       parent,
-                       uid,
-                       gid,
-                       missing.substr(0, missing.find_first_of('/')));
+    auto top = missing.substr(0, missing.find_first_of('/'));
+    auto inner = fmt::format("cd {} && chown -R {}:{} {}",
+                             multipass::utils::escape_for_shell(parent),
+                             uid,
+                             gid,
+                             multipass::utils::escape_for_shell(top));
+    return fmt::format("sudo /bin/bash -c {}", multipass::utils::escape_for_shell(inner));
 }
 
 std::string command_findmnt(const std::string& target)
