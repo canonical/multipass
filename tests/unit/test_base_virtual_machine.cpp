@@ -24,6 +24,7 @@
 #include "mock_ssh_test_fixture.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
+#include "multipass/virtual_machine_description.h"
 #include "stub_availability_zone.h"
 #include "temp_dir.h"
 
@@ -135,8 +136,11 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    StubBaseVirtualMachine(St s, mp::AvailabilityZone& zone, std::unique_ptr<mpt::TempDir> tmp_dir)
-        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
+    StubBaseVirtualMachine(St s,
+                           mp::AvailabilityZone& zone,
+                           std::unique_ptr<mpt::TempDir> tmp_dir,
+                           const mp::VirtualMachineDescription& desc = {})
+        : mp::BaseVirtualMachine{s, "stub", desc, mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -197,11 +201,16 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    void resize_disk(const mp::MemorySize&) override
+    mp::Qualified<void> resize_disk(const mp::MemorySize&) override
     {
+        if (is_core())
+            return {core_image_disk_resize_message()};
+        else
+            return {};
     }
 
     std::unique_ptr<mpt::TempDir> tmp_dir;
+    using mp::BaseVirtualMachine::core_image_disk_resize_message;
 };
 
 struct BaseVM : public Test
@@ -254,7 +263,10 @@ struct BaseVM : public Test
     mpt::StubAvailabilityZone zone{};
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
-    NiceMock<MockBaseVirtualMachine> vm{"mock-vm", key_provider, zone};
+    NiceMock<MockBaseVirtualMachine> vm{"mock-vm",
+                                        mp::VirtualMachineDescription{},
+                                        key_provider,
+                                        zone};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
@@ -1534,6 +1546,21 @@ TEST_F(BaseVM, setAvailableKeepsOffOff)
 
     base_vm.set_available(true);
     EXPECT_EQ(base_vm.current_state(), St::off);
+}
+
+TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
+{
+    multipass::VirtualMachineDescription desc{};
+    desc.image.original_release = "Ubuntu Core 24";
+
+    StubBaseVirtualMachine vm{St::off, zone, std::make_unique<mpt::TempDir>(), desc};
+    auto qualified_return = vm.resize_disk(mp::MemorySize{});
+    auto expected_return = mp::Qualified<void>{};
+    expected_return.add_message(vm.core_image_disk_resize_message());
+    EXPECT_TRUE(std::equal(qualified_return.get_messages().begin(),
+                           qualified_return.get_messages().end(),
+                           expected_return.get_messages().begin(),
+                           expected_return.get_messages().end()));
 }
 
 } // namespace

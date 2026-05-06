@@ -154,7 +154,7 @@ TEST_F(TestPersistentSettingsHandler, setThrowsOnUnreadableFile)
     mock_unreadable_settings_file();
     inject_mock_qsettings();
 
-    MP_EXPECT_THROW_THAT(handler.set(key, val),
+    MP_EXPECT_THROW_THAT((void)handler.set(key, val),
                          mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("read"), HasSubstr("access"))));
 }
@@ -194,7 +194,7 @@ TEST_P(TestPersistentSettingsReadWriteError, setThrowsOnFileWriteError)
 
     inject_mock_qsettings();
 
-    MP_EXPECT_THROW_THAT(handler.set(key, "bleh"),
+    MP_EXPECT_THROW_THAT((void)handler.set(key, "bleh"),
                          mp::PersistentSettingsException,
                          mpt::match_what(AllOf(HasSubstr("write"), HasSubstr(desc))));
 }
@@ -268,7 +268,7 @@ TEST_F(TestPersistentSettingsHandler, setThrowsOnUnknownKey)
     auto handler = make_handler();
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
-    MP_EXPECT_THROW_THAT(handler.set(key, "asdf"),
+    MP_EXPECT_THROW_THAT((void)handler.set(key, "asdf"),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(key)));
 }
@@ -281,7 +281,7 @@ TEST_F(TestPersistentSettingsHandler, setRecordsProvidedBasicSetting)
 
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler.set(key, val));
+    ASSERT_NO_THROW((void)handler.set(key, val));
 }
 
 TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
@@ -293,7 +293,7 @@ TEST_F(TestPersistentSettingsHandler, setRecordsInterpretedSetting)
 
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler.set(key, given_val));
+    ASSERT_NO_THROW((void)handler.set(key, given_val));
 }
 
 TEST_F(TestPersistentSettingsHandler, setThrowsInterpreterExceptions)
@@ -307,7 +307,7 @@ TEST_F(TestPersistentSettingsHandler, setThrowsInterpreterExceptions)
     });
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings).Times(0);
-    MP_EXPECT_THROW_THAT(handler.set(key, val),
+    MP_EXPECT_THROW_THAT((void)handler.set(key, val),
                          mp::InvalidSettingException,
                          mpt::match_what(HasSubstr(error)));
 }

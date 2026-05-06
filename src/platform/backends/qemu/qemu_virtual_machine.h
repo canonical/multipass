@@ -63,7 +63,7 @@ public:
     void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
+    Qualified<void> resize_disk(const MemorySize& new_size) override;
     virtual void add_network_interface(int index,
                                        const std::string& default_mac_addr,
                                        const NetworkInterface& extra_interface) override;
@@ -81,7 +81,7 @@ protected:
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir)
-        : BaseVirtualMachine{name, key_provider, zone, instance_dir}
+        : BaseVirtualMachine{name, {}, key_provider, zone, instance_dir}
     {
     }
 
@@ -109,7 +109,6 @@ private:
 
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     QemuPlatform* qemu_platform;
     VMStatusMonitor* monitor;

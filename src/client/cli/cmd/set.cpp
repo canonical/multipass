@@ -39,7 +39,8 @@ mp::ReturnCodeVariant cmd::Set::run(mp::ArgParser* parser)
         try
         {
             if (ret == ReturnCode::Ok)
-                MP_SETTINGS.set(key, val);
+                // We are in the client, messages cannot be sent
+                (void)MP_SETTINGS.set(key, val);
         }
         catch (const SettingsException& e)
         {

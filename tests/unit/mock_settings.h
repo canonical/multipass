@@ -32,7 +32,7 @@ public:
     MOCK_METHOD(SettingsHandler*, register_handler, (std::unique_ptr<SettingsHandler>), (override));
     MOCK_METHOD(void, unregister_handler, (SettingsHandler * handler), (override));
     MOCK_METHOD(QString, get, (const QString&), (const, override));
-    MOCK_METHOD(void, set, (const QString&, const QString&), (override));
+    MOCK_METHOD(Qualified<void>, set, (const QString&, const QString&), (override));
     MOCK_METHOD(std::set<QString>, keys, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockSettings, Settings);

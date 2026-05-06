@@ -232,10 +232,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                              ? State::suspended
                              : State::off,
                          desc.vm_name,
+                         desc,
                          key_provider,
                          zone,
                          instance_dir},
-      desc{desc},
       qemu_platform{qemu_platform},
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
@@ -721,12 +721,16 @@ void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+mp::Qualified<void> mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
+    if (is_core())
+        return {core_image_disk_resize_message()};
+    else
+        return {};
 }
 
 void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,

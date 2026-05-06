@@ -20,6 +20,7 @@
 #include "settings_handler.h"
 
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/qualified_return_value.h>
 #include <multipass/singleton.h>
 
 #include <QString>
@@ -71,7 +72,7 @@ public:
      * @c key, according to the corresponding SettingHandler's interpretation.
      * @note May also throw any other exceptions that occur when handling.
      */
-    virtual void set(const QString& key, const QString& val);
+    virtual Qualified<void> set(const QString& key, const QString& val);
 
     /**
      * Obtain a setting as a certain type

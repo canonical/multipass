@@ -16,6 +16,7 @@
  */
 
 #include "virtualbox_virtual_machine.h"
+#include "multipass/qualified_return_value.h"
 #include "virtualbox_snapshot.h"
 
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
@@ -335,8 +336,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr,
                                                        bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir_qstr},
-      desc{desc},
+    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir_qstr},
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
 {
@@ -544,7 +544,7 @@ void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
         name);
 }
 
-void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
+mp::Qualified<void> mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
@@ -555,6 +555,10 @@ void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
                                  QString::number(new_size.in_bytes())},
                                 "Could not resize image: {}",
                                 name);
+    if (is_core())
+        return {core_image_disk_resize_message()};
+    else
+        return {};
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,

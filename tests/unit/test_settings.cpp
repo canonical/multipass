@@ -71,7 +71,7 @@ public:
 
     MOCK_METHOD(std::set<QString>, keys, (), (const, override));
     MOCK_METHOD(QString, get, (const QString&), (const, override));
-    MOCK_METHOD(void, set, (const QString& key, const QString& val), (override));
+    MOCK_METHOD(mp::Qualified<void>, set, (const QString& key, const QString& val), (override));
 };
 
 TEST_F(TestSettings, keysReturnsNoKeysWhenNoHandler)
@@ -243,7 +243,7 @@ TEST_F(TestSettings, getReturnsSettingsFromDifferentHandlers)
 TEST_F(TestSettings, setThrowsUnrecognizedWhenNoHandler)
 {
     auto key = "poiu";
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, "qwer"),
+    MP_EXPECT_THROW_THAT((void)MP_SETTINGS.set(key, "qwer"),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(key)));
 }
@@ -256,7 +256,7 @@ TEST_F(TestSettings, setThrowsUnrecognizedFromSingleHandler)
         .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
 
     MP_SETTINGS.register_handler(std::move(mock_handler));
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val),
+    MP_EXPECT_THROW_THAT((void)MP_SETTINGS.set(key, val),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(key)));
 }
@@ -273,7 +273,7 @@ TEST_F(TestSettings, setThrowsUnrecognizedAfterTryingAllHandlers)
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val),
+    MP_EXPECT_THROW_THAT((void)MP_SETTINGS.set(key, val),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(key)));
 }
@@ -285,7 +285,7 @@ TEST_F(TestSettings, setDelegatesOnSingleHandler)
     EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
 
     MP_SETTINGS.register_handler(std::move(mock_handler));
-    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+    EXPECT_NO_THROW((void)MP_SETTINGS.set(key, val));
 }
 
 TEST_F(TestSettings, setDelegatesOnAllHandlers)
@@ -299,7 +299,7 @@ TEST_F(TestSettings, setDelegatesOnAllHandlers)
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+    EXPECT_NO_THROW((void)MP_SETTINGS.set(key, val));
 }
 
 using Indices = std::initializer_list<unsigned>;
@@ -328,7 +328,7 @@ TEST_P(TestSettingsSetMultipleHandlers, setDelegatesOnMultipleHandlers)
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
-    EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+    EXPECT_NO_THROW((void)MP_SETTINGS.set(key, val));
 }
 
 const auto test_indices = std::initializer_list<Indices>{{0u},
@@ -373,10 +373,10 @@ TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
     for (auto i = 0u; i < num_settings; ++i)
     {
         auto [key, val] = make_setting(i);
-        EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
+        EXPECT_NO_THROW((void)MP_SETTINGS.set(key, val));
     }
 
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(unknown_key, "asdf"),
+    MP_EXPECT_THROW_THAT((void)MP_SETTINGS.set(unknown_key, "asdf"),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(unknown_key)));
 }
@@ -406,9 +406,11 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
         auto mock_handler = std::make_unique<MockSettingsHandler>();
         auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
         if (i == thrower_idx)
-            expectation.WillOnce(WithoutArgs(
-                [&thrower, e = &except] { std::visit(thrower, *e); })); /* lambda capture
-                   with initializer works around forbidden capture of structured binding */
+            expectation.WillOnce(WithoutArgs([&thrower, e = &except] {
+                std::visit(thrower, *e);
+                return mp::Qualified<void>{};
+            })); /* lambda capture
+with initializer works around forbidden capture of structured binding */
         else if (i > thrower_idx)
             expectation.Times(0);
 
@@ -416,7 +418,7 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
     }
 
     auto get_what = [](const auto& e) { return e.what(); };
-    MP_EXPECT_THROW_THAT(MP_SETTINGS.set(key, val),
+    MP_EXPECT_THROW_THAT((void)MP_SETTINGS.set(key, val),
                          std::exception,
                          mpt::match_what(StrEq(std::visit(get_what, except))));
 }
