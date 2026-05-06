@@ -477,7 +477,7 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
         relative.is_absolute() || relative.has_root_name())
     {
         // If the path is outside the mount or invalid, return the mount path
-        return target_path;
+        return target_path.generic_string();
     }
 
     // Return it as an absolute path from the perspective of the guest
@@ -597,7 +597,7 @@ void mp::SftpServer::run()
                 sshfs_process = create_sshfs_process(ssh_session,
                                                      sshfs_exec_line,
                                                      source_path.string(),
-                                                     target_path);
+                                                     target_path.generic_string());
                 sftp_server_session =
                     make_sftp_session(ssh_session, sshfs_process->release_channel());
 
