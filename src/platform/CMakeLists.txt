@@ -26,7 +26,6 @@ function(add_target TARGET_NAME)
       platform_win.cpp)
     qt6_disable_unicode_defines(${TARGET_NAME})
     target_link_libraries(${TARGET_NAME}
-      jsoncpp_static
       shared_win
       scope_guard
       wineventlogger
