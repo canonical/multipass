@@ -782,7 +782,7 @@ template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
 template <class Reply, class Request>
 using DaemonSlotPtr = void (mp::Daemon::*)(const Request*,
                                            grpc::ServerReaderWriterInterface<Reply, Request>*,
-                                           std::promise<grpc::Status>*);
+                                           mp::DaemonRpcContext*);
 
 template <template <class> class MockT, class Reply, class Request>
 using Server = MockT<mpt::MockServerReaderWriter<Reply, Request>>;

@@ -92,7 +92,7 @@ struct DaemonTestFixture : public ::Test
      * @tparam DaemonSlotPtr The method pointer type for the provided slot. Example:
      *  @code
      *  void (mp::Daemon::*)(const mp::GetRequest *, grpc::ServerReaderWriterInterface<mp::GetReply>
-     * *, std::promise<grpc::Status> *)>
+     * *, DaemonRpcContext *)>
      *  @endcode
      * @tparam Request The request type that the provided slot expects. Example: @c mp::GetRequest
      * @tparam Server The concrete @c grpc::ServerWriterInterface type that the provided slot

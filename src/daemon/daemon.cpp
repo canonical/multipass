@@ -2904,11 +2904,9 @@ catch (const std::exception& e)
 
 void mp::Daemon::zones(const ZonesRequest* request,
                        grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
-                       std::promise<grpc::Status>* status_promise) // clang-format off
+                       DaemonRpcContext* context) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-
     ZonesReply response{};
 
     for (const auto& zone : config->az_manager->get_zones())
@@ -2919,21 +2917,19 @@ try // clang-format on
     }
 
     server->Write(response);
-    status_promise->set_value(grpc::Status{});
+    context->set_value(grpc::Status{});
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::zones_state(
     const ZonesStateRequest* request,
     grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
-    std::promise<grpc::Status>* status_promise) // clang-format off
+    DaemonRpcContext* context) // clang-format off
 try // clang-format on
 {
-    mpl::ClientLogger logger{mpl::level_from(request->verbosity_level()), *config->logger, server};
-
     auto& az_manager = *config->az_manager;
     if (request->zones().empty())
     {
@@ -2950,15 +2946,15 @@ try // clang-format on
         }
     }
 
-    status_promise->set_value(grpc::Status{});
+    context->set_value(grpc::Status{});
 }
 catch (const AvailabilityZoneNotFound& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const std::exception& e)
 {
-    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::on_shutdown()
