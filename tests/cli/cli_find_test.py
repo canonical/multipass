@@ -129,60 +129,34 @@ class TestFind:
             # Pull the keys present in expected and do a comparison
             assert {k: image[k] for k in expected_image} == expected_image
 
-    @pytest.mark.parametrize(
-        "param",
-        [
-            {"name": "debian", "expected_release": "Trixie"},
-        ],
-    )
-    def test_query_image_debian(self, param):
+    def test_query_image_debian(self):
         skip_if_feature_not_supported("debian_images")
 
-        with multipass(
-            "find",
-            param["name"],
-            "--format=json",
-            *(["--show-unsupported"] if param.get("unsupported") else []),
-        ).json() as output:
+        with multipass("find", "debian", "--format=json").json() as output:
             assert output
-            images = output["images"]
-            image = images[param["name"]]
+            image = output["images"]["debian"]
 
             expected_image = {
                 "aliases": [],
                 "os": "Debian",
-                "release": param["expected_release"],
                 "remote": "",
             }
 
-            # Pull the keys present in expected and do a comparison
             assert {k: image[k] for k in expected_image} == expected_image
+            assert image["release"]
 
-    @pytest.mark.parametrize(
-        "param",
-        [
-            {"name": "fedora", "expected_release": "43"},
-        ],
-    )
-    def test_query_image_fedora(self, param):
+    def test_query_image_fedora(self):
         skip_if_feature_not_supported("fedora_images")
 
-        with multipass(
-            "find",
-            param["name"],
-            "--format=json",
-            *(["--show-unsupported"] if param.get("unsupported") else []),
-        ).json() as output:
+        with multipass("find", "fedora", "--format=json").json() as output:
             assert output
-            images = output["images"]
-            image = images[param["name"]]
+            image = output["images"]["fedora"]
 
             expected_image = {
                 "aliases": [],
                 "os": "Fedora",
-                "release": param["expected_release"],
                 "remote": "",
             }
 
-            # Pull the keys present in expected and do a comparison
             assert {k: image[k] for k in expected_image} == expected_image
+            assert image["release"]

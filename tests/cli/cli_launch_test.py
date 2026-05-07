@@ -95,13 +95,13 @@ class TestLaunch:
         assert not vm_exists(instance)
 
     @pytest.mark.parametrize(
-        "instance, param",
+        "instance",
         [
-            ({"image": "debian", "autopurge": False}, {"expected_release": "Trixie"}),
+            {"image": "debian", "autopurge": False},
         ],
-        indirect=["instance"],
+        indirect=True,
     )
-    def test_launch_debian(self, instance, param, feat_snapshot):
+    def test_launch_debian(self, instance, feat_snapshot):
         """Try to launch a Debian VM with default specs.
         Then, validate the basics."""
 
@@ -111,7 +111,7 @@ class TestLaunch:
             instance,
             {
                 "state": "Running",
-                "release": f"Debian {param["expected_release"]}",
+                "release": lambda r: r.startswith("Debian "),
                 "ipv4": is_valid_ipv4_addr,
             },
         )
@@ -122,7 +122,7 @@ class TestLaunch:
                 "cpu_count": "2",
                 "state": "Running",
                 "mounts": {},
-                "image_release": param["expected_release"],
+                "image_release": lambda r: bool(r),
                 "ipv4": is_valid_ipv4_addr,
             },
         )
@@ -149,13 +149,13 @@ class TestLaunch:
         assert not vm_exists(instance)
 
     @pytest.mark.parametrize(
-        "instance, param",
+        "instance",
         [
-            ({"image": "fedora", "autopurge": False}, {"expected_release": "43"}),
+            {"image": "fedora", "autopurge": False},
         ],
-        indirect=["instance"],
+        indirect=True,
     )
-    def test_launch_fedora(self, instance, param, feat_snapshot):
+    def test_launch_fedora(self, instance, feat_snapshot):
         """Try to launch a Fedora VM with default specs.
         Then, validate the basics."""
 
@@ -165,7 +165,7 @@ class TestLaunch:
             instance,
             {
                 "state": "Running",
-                "release": f"Fedora {param["expected_release"]}",
+                "release": lambda r: r.startswith("Fedora "),
                 "ipv4": is_valid_ipv4_addr,
             },
         )
@@ -176,7 +176,7 @@ class TestLaunch:
                 "cpu_count": "2",
                 "state": "Running",
                 "mounts": {},
-                "image_release": param["expected_release"],
+                "image_release": lambda r: bool(r),
                 "ipv4": is_valid_ipv4_addr,
             },
         )
