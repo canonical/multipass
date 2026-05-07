@@ -520,9 +520,6 @@ grpc::Status mp::DaemonRpc::wait_ready(
 grpc::Status mp::DaemonRpc::zones(grpc::ServerContext* context,
                                   grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server)
 {
-    ZonesRequest request;
-    server->Read(&request);
-
     return verify_client_and_dispatch_operation(std::bind(&DaemonRpc::on_zones,
                                                           this,
                                                           std::placeholders::_1,
@@ -536,9 +533,6 @@ grpc::Status mp::DaemonRpc::zones_state(
     grpc::ServerContext* context,
     grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server)
 {
-    ZonesStateRequest request;
-    server->Read(&request);
-
     return verify_client_and_dispatch_operation(std::bind(&DaemonRpc::on_zones_state,
                                                           this,
                                                           std::placeholders::_1,

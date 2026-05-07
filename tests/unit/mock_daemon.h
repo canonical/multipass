@@ -187,13 +187,13 @@ struct MockDaemon : public Daemon
                 zones,
                 (const ZonesRequest*,
                  (grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
                 zones_state,
                 (const ZonesStateRequest*,
                  (grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>*),
-                 std::promise<grpc::Status>*),
+                 DaemonRpcContext*),
                 (override));
 
     MOCK_METHOD(void,
