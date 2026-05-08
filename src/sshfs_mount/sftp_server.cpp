@@ -416,6 +416,19 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
 
         if (follows_symlinks)
         {
+            // weakly_canonical allows paths that do not exist. This means that broken links will be
+            // treated as literal folders/files, so they need to be filtered out.
+            fs::path check_path = current_path;
+            while (check_path != check_path.parent_path() && !MP_FILEOPS.exists(check_path))
+            {
+                if (MP_FILEOPS.is_symlink(check_path))
+                {
+                    // A broken symlink was detected! It could point anywhere on the host.
+                    return false;
+                }
+                check_path = check_path.parent_path();
+            }
+            // If no broken symlinks, canonicalize the path.
             final_path = MP_FILEOPS.weakly_canonical(current_path);
         }
         else

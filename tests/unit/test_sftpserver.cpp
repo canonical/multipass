@@ -520,6 +520,9 @@ TEST_F(SftpServer, handlesOpendir)
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
 
     REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -543,6 +546,9 @@ TEST_F(SftpServer, opendirNotExistingFails)
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -571,6 +577,9 @@ TEST_F(SftpServer, opendirNotReadableFails)
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -613,6 +622,9 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
@@ -681,6 +693,9 @@ TEST_F(SftpServer, handlesMkdir)
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
 
     int num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_OK, num_calls));
@@ -746,6 +761,9 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     sftp_attributes_struct attr{};
@@ -900,6 +918,9 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
@@ -1250,6 +1271,9 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
+    EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1299,6 +1323,9 @@ TEST_F(SftpServer, renameFailureFails)
         .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     int failure_num_calls{0};
@@ -1404,6 +1431,9 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
         .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
@@ -1616,6 +1646,9 @@ TEST_F(SftpServer, openUnableToOpenFails)
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     int failure_num_calls{0};
@@ -1658,6 +1691,9 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -2159,6 +2195,9 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
+    EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -2212,6 +2251,9 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
     });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -3085,13 +3127,28 @@ INSTANTIATE_TEST_SUITE_P(
         // PERMISSION_DENIED.
         PathTestData{SFTP_STAT, "valid_relative_file.txt", "", SSH_FX_NO_SUCH_FILE},
         PathTestData{SFTP_LSTAT, "valid_relative_file.txt", "", SSH_FX_NO_SUCH_FILE},
-        // We create a symlink named "malicious_link" that points to "/etc/passwd".
-        // STAT follows the link. `weakly_canonical` resolves it to `/etc/passwd`. Validation fails.
-        PathTestData{SFTP_STAT, "malicious_link", "/etc/passwd", SSH_FX_PERMISSION_DENIED},
+        // We create a symlink named "malicious_link" that points outside the mount.STAT follows the
+        // link. `weakly_canonical` resolves it to a forbidden location. Validation fails.
+        PathTestData{SFTP_STAT, "malicious_link", "../", SSH_FX_PERMISSION_DENIED},
         // LSTAT does NOT follow the link. `lexically_normal` resolves it to
         // `/mount/malicious_link`. Validation passes, and because the link physically exists, it
         // returns SSH_FX_OK (via sftp_reply_attr).
-        PathTestData{SFTP_LSTAT, "malicious_link", "/etc/passwd", SSH_FX_OK}),
+        PathTestData{SFTP_LSTAT, "malicious_link", "../", SSH_FX_OK},
+        // We create a symlink named "malicious_link" that points to
+        // "/usr/bin/non_existent_malware". STAT follows the link. `weakly_canonical` cannot resolve
+        // it, to `/usr/bin/non_existent_malware`, but we see it as a broken link and block it.
+        // Validation fails.
+        PathTestData{SFTP_STAT,
+                     "malicious_link",
+                     "../../../../../non_existent_malware",
+                     SSH_FX_PERMISSION_DENIED},
+        // LSTAT does NOT follow the link. `lexically_normal` resolves it to
+        // `/mount/malicious_link`. Validation passes, and because the link physically exists, it
+        // returns SSH_FX_OK (via sftp_reply_attr).
+        PathTestData{SFTP_LSTAT,
+                     "malicious_link",
+                     "../../../../../non_existent_malware",
+                     SSH_FX_OK}),
     string_for_pathdata);
 
 TEST_P(AbsolutePath, normalizesToAbsolutePath)
@@ -3345,11 +3402,42 @@ TEST_F(SftpServer, BlocksSiblingDirectoryBypass)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, BlocksDirectoryTraversalEscape)
+TEST_F(SftpServer, brokenLinkInParentPathFailsValidation)
+{
+    // The OS is supposed to deny O_CREATE (only operation that can bypass the mounts via a broken
+    // link) in a path where one of the parents is a broken link, since the OS will never create a
+    // folder when creating a file. We do not rely on this behavior for security reasons.
+
+    mpt::TempDir temp_dir;
+    auto link = fs::path(temp_dir.path().toStdString()) / "linked";
+    auto non_existent_location =
+        fs::path(temp_dir.path().toStdString()) / ".." / "does_not_exist" / "";
+    auto broken_path = (link / "file.txt").generic_string();
+
+    MP_PLATFORM.symlink(non_existent_location.string().c_str(), link.string().c_str(), true);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_STAT); // A request that follows symlinks
+    auto filename = name_as_char_array(broken_path);
+    msg->filename = filename.data();
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    EXPECT_THAT(num_calls, Eq(1));
+}
+
+TEST_F(SftpServer, isSymlinkErrorFailsValidation)
 {
     mpt::TempDir temp_dir;
 
-    std::string traversal_path = temp_dir.path().toStdString() + "/../../../../etc/passwd";
+    std::string traversal_path = temp_dir.path().toStdString();
     auto file_name = name_as_char_array(traversal_path);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
@@ -3357,6 +3445,15 @@ TEST_F(SftpServer, BlocksDirectoryTraversalEscape)
     msg->filename = file_name.data();
 
     REPLACE(sftp_get_client_message, make_msg_handler());
+
+    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillOnce([](const fs::path& path) {
+        throw fs::filesystem_error{std::string{}, std::error_code{}};
+        return fs::is_symlink(path);
+    });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
@@ -3382,6 +3479,9 @@ TEST_F(SftpServer, CanonicalErrorPermissionDenied)
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
     EXPECT_CALL(*file_ops, weakly_canonical)
         .WillOnce([](const fs::path& path) { return fs::weakly_canonical(path); })
         .WillRepeatedly([](const fs::path& path) {
