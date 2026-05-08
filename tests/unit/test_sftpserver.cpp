@@ -231,6 +231,8 @@ std::string name_for_status(uint32_t status_type)
     {
     case SSH_FX_OK:
         return "SSH_FX_OK";
+    case SSH_FX_PERMISSION_DENIED:
+        return "SSH_FX_PERMISSION_DENIED";
     case SSH_FX_OP_UNSUPPORTED:
         return "SSH_FX_OP_UNSUPPORTED";
     case SSH_FX_BAD_MESSAGE:
@@ -3064,7 +3066,7 @@ TEST_P(PathValidation, validatesAccordingToRequest)
     auto params = GetParam();
     auto symlink_target = params.expected_path;
     auto full_input_path =
-        temp_dir.path().toStdString() + QDir::separator().toLatin1() + params.input_path;
+        (fs::path{temp_dir.path().toStdString()} / params.input_path).make_preferred().string();
 
     if (!symlink_target.empty())
     {
@@ -3294,7 +3296,7 @@ INSTANTIATE_TEST_SUITE_P(
         PathTestData{SFTP_REALPATH, "valid_file.txt", "valid_file.txt", SSH_FX_OK}),
     string_for_pathdata);
 
-TEST_F(SftpServer, AllowsPathWithinMount)
+TEST_F(SftpServer, allowsPathWithinMount)
 {
     mpt::TempDir temp_dir;
 
@@ -3320,7 +3322,7 @@ TEST_F(SftpServer, AllowsPathWithinMount)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, symLinkInPathResolved)
+TEST_F(SftpServer, symlinkInPathResolved)
 {
     mpt::TempDir temp_dir;
     auto link = fs::path(temp_dir.path().toStdString()) / "linked";
@@ -3348,18 +3350,18 @@ TEST_F(SftpServer, symLinkInPathResolved)
     REPLACE(sftp_reply_name, reply_name);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    int num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
+    int num_status_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_status_calls);
     REPLACE(sftp_reply_status, reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
     EXPECT_THAT(num_name_calls, Eq(1));
-    EXPECT_THAT(num_calls, Eq(0));
+    EXPECT_THAT(num_status_calls, Eq(0));
 }
 
-TEST_F(SftpServer, EmptyPathPermissionDenied)
+TEST_F(SftpServer, emptyPathPermissionDenied)
 {
     mpt::TempDir temp_dir;
 
@@ -3379,7 +3381,7 @@ TEST_F(SftpServer, EmptyPathPermissionDenied)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, BlocksSiblingDirectoryBypass)
+TEST_F(SftpServer, blocksSiblingDirectoryBypass)
 {
     mpt::TempDir temp_dir;
 
@@ -3465,7 +3467,7 @@ TEST_F(SftpServer, isSymlinkErrorFailsValidation)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, CanonicalErrorPermissionDenied)
+TEST_F(SftpServer, canonicalErrorPermissionDenied)
 {
     mpt::TempDir temp_dir;
 
@@ -3499,7 +3501,7 @@ TEST_F(SftpServer, CanonicalErrorPermissionDenied)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, RelativeErrorPermissionDenied)
+TEST_F(SftpServer, relativeErrorPermissionDenied)
 {
     mpt::TempDir temp_dir;
 
