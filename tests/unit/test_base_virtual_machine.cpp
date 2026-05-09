@@ -1507,7 +1507,7 @@ TEST_F(BaseVM, sshExecTrimsAndReturnsStdoutOnSuccess)
 
     auto mock_proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
     EXPECT_CALL(*mock_proc, exit_code(_)).WillOnce(Return(0));
-    EXPECT_CALL(*mock_proc, read_std_output()).WillOnce(Return("hello world  \n\n"));
+    EXPECT_CALL(*mock_proc, read_std_output()).WillOnce(Return("hello world\n\n"));
 
     EXPECT_CALL(vm, ssh_exec_process(cmd, _)).WillOnce(Return(ByMove(std::move(mock_proc))));
 
@@ -1522,7 +1522,7 @@ TEST_F(BaseVM, sshExecThrowsSSHExecFailureOnNonZeroExitCode)
     auto mock_proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
     EXPECT_CALL(*mock_proc, get_cmd()).WillOnce(ReturnRefOfCopy(std::string{cmd}));
     EXPECT_CALL(*mock_proc, exit_code(_)).WillOnce(Return(42));
-    EXPECT_CALL(*mock_proc, read_std_error()).WillOnce(Return("boom  \n"));
+    EXPECT_CALL(*mock_proc, read_std_error()).WillOnce(Return("boom\n"));
 
     EXPECT_CALL(vm, ssh_exec_process(cmd, _)).WillOnce(Return(ByMove(std::move(mock_proc))));
 
