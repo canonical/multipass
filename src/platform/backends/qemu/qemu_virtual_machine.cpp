@@ -606,8 +606,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                          // out any scary error messages for this state
                          if (update_shutdown_status)
                          {
-                             const auto log_level =
-                                 force_shutdown ? mpl::Level::info : mpl::Level::error;
+                             const auto log_level = force_shutdown ? mpl::Level::info
+                                                                   : mpl::Level::error;
                              mpl::log(log_level,
                                       vm_name,
                                       "process error occurred {} {}",
@@ -803,8 +803,8 @@ void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     auto action = [this] {
         detect_aborted_start();
         return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-                   ? mpu::TimeoutAction::done
-                   : mpu::TimeoutAction::retry;
+                 ? mpu::TimeoutAction::done
+                 : mpu::TimeoutAction::retry;
     };
 
     auto on_timeout = [this, &timeout] {

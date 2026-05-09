@@ -362,8 +362,8 @@ void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     auto action = [this] {
         detect_aborted_start();
         return ((management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address)))
-                   ? mp::utils::TimeoutAction::done
-                   : mp::utils::TimeoutAction::retry;
+                 ? mp::utils::TimeoutAction::done
+                 : mp::utils::TimeoutAction::retry;
     };
 
     auto on_timeout = [this, &timeout] {
