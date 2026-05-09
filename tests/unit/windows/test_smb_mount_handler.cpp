@@ -23,8 +23,7 @@
 #include "tests/unit/mock_server_reader_writer.h"
 #include "tests/unit/mock_sftp_client.h"
 #include "tests/unit/mock_sftp_utils.h"
-#include "tests/unit/mock_ssh_process_exit_status.h"
-#include "tests/unit/mock_ssh_test_fixture.h"
+#include "tests/unit/mock_ssh_session.h"
 #include "tests/unit/mock_utils.h"
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/stub_ssh_key_provider.h"
@@ -45,19 +44,6 @@ using namespace testing;
 
 namespace
 {
-
-struct SshCommandOutput
-{
-    SshCommandOutput(const std::string& output = "", int exit_code = 0)
-        : output{output}, exit_code{exit_code}
-    {
-    }
-
-    std::string output;
-    int exit_code;
-};
-
-typedef std::unordered_map<std::string, SshCommandOutput> SshCommandOutputs;
 
 struct MockSmbManager : public mp::SmbManager
 {
@@ -97,33 +83,53 @@ struct SmbMountHandlerTest : public ::Test
         MP_DELEGATE_MOCK_CALLS_ON_BASE(utils, run_in_ssh_session, mp::Utils);
     }
 
-    // the returned lambda will modify `output` so that it can be used to mock
-    // ssh_channel_read_timeout
-    auto mocked_ssh_channel_request_exec(std::string& output)
+    static void expect_dpkg_query(mpt::MockSSHSession& session, const std::string& status)
     {
-        return [&](ssh_channel, const char* command) {
-            if (const auto it = ssh_outputs.find(command); it != ssh_outputs.end())
-            {
-                output = it->second.output;
-                exit_status.set_exit_status(it->second.exit_code);
-            }
-            else
-            {
-                ADD_FAILURE() << "unexpected command: " << command;
-            }
-
-            return SSH_OK;
-        };
+        auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+        EXPECT_CALL(*proc, read_std_output).WillOnce(Return(status));
+        EXPECT_CALL(session, exec(HasSubstr("dpkg-query"), _)).WillOnce(Return(std::move(proc)));
     }
 
-    static auto mocked_ssh_channel_read_timeout(const std::string& output)
+    static void expect_ssh_success(mpt::MockSSHSession& session, const std::string& cmd)
     {
-        return [&, copied = 0u](auto, void* dest, uint32_t count, auto...) mutable {
-            auto n = std::min(static_cast<std::string::size_type>(count), output.size() - copied);
-            std::copy_n(output.begin() + copied, n, static_cast<char*>(dest));
-            n ? copied += n : copied = 0;
-            return n;
-        };
+        auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+        EXPECT_CALL(*proc, exit_code).WillRepeatedly(Return(0));
+        EXPECT_CALL(session, exec(HasSubstr(cmd), _)).WillOnce(Return(std::move(proc)));
+    }
+
+    static void expect_mount_path_success(mpt::MockSSHSession& session,
+                                          const std::string& target_path,
+                                          const std::string& credentials_path)
+    {
+        auto mkdir_proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+        EXPECT_CALL(*mkdir_proc, exit_code).WillRepeatedly(Return(0));
+        EXPECT_CALL(session, exec(AllOf(HasSubstr("mkdir -p"), HasSubstr(target_path)), _))
+            .WillOnce(Return(std::move(mkdir_proc)));
+
+        auto mount_proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+        EXPECT_CALL(*mount_proc, exit_code).WillRepeatedly(Return(0));
+        EXPECT_CALL(session,
+                    exec(AllOf(HasSubstr("mount -t cifs"),
+                               HasSubstr(target_path),
+                               HasSubstr(credentials_path)),
+                         _))
+            .WillOnce(Return(std::move(mount_proc)));
+
+        auto rm_proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+        EXPECT_CALL(*rm_proc, exit_code).WillRepeatedly(Return(0));
+        EXPECT_CALL(session, exec(AllOf(HasSubstr("sudo rm"), HasSubstr(credentials_path)), _))
+            .WillOnce(Return(std::move(rm_proc)));
+    }
+
+    static void expect_ssh_fail(mpt::MockSSHSession& session,
+                                const std::string& cmd,
+                                const std::string& error = "")
+    {
+        auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+        EXPECT_CALL(*proc, exit_code).WillOnce(Return(1));
+        if (!error.empty())
+            EXPECT_CALL(*proc, read_std_error).WillOnce(Return(error));
+        EXPECT_CALL(session, exec(HasSubstr(cmd), _)).WillOnce(Return(std::move(proc)));
     }
 
     std::function<bool(mp::MountRequest*)> set_password = [this](mp::MountRequest* request) {
@@ -131,10 +137,8 @@ struct SmbMountHandlerTest : public ::Test
         return true;
     };
 
-    mpt::MockSSHTestFixture ssh_test_fixture;
     mpt::StubSSHKeyProvider key_provider;
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
-    mpt::ExitStatusMock exit_status;
 
     NiceMock<mpt::MockVirtualMachine> vm{};
     std::string source{"source"}, target{"target"};
@@ -162,43 +166,19 @@ struct SmbMountHandlerTest : public ::Test
     std::string username_uuid{"531b4c6f-6090-4b4c-b585-760d18db05e0"};
     std::string password{"password"};
     QString local_cred_dir{"/some/path"};
-    std::string remote_cred_file{"/tmp/.smb_credentials"};
-    std::string enc_key{"key"};
     std::string smb_share_name = fmt::format("{}-{}", vm_name_uuid, target_uuid);
-    std::string dpkg_command{"dpkg-query --show --showformat='${db:Status-Status}' cifs-utils"};
-    std::string install_cifs_command{"sudo apt-get update && sudo apt-get install -y cifs-utils"};
-    std::string mkdir_command{"mkdir -p " + target};
-    std::string rm_command{"sudo rm " + remote_cred_file};
+    std::string remote_creds_path{"/tmp/.smb_credentials"};
     std::string umount_command{
         fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target)};
-    std::string mount_command{
-        fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
-                    QHostInfo::localHostName(),
-                    smb_share_name,
-                    target,
-                    remote_cred_file)};
-    std::string findmnt_command{fmt::format("findmnt --type cifs | grep '{} //{}/{}'",
-                                            target,
-                                            QHostInfo::localHostName(),
-                                            smb_share_name)};
-
-    SshCommandOutputs ssh_outputs{
-        {dpkg_command, {"installed"}},
-        {install_cifs_command, {}},
-        {mkdir_command, {}},
-        {rm_command, {}},
-        {umount_command, {}},
-        {mount_command, {}},
-        {findmnt_command, {}},
-    };
 };
 } // namespace
 
 TEST_F(SmbMountHandlerTest, success)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_mount_path_success(*session, target, remote_creds_path);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
@@ -217,9 +197,10 @@ TEST_F(SmbMountHandlerTest, success)
 
 TEST_F(SmbMountHandlerTest, generateKey)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_mount_path_success(*session, target, remote_creds_path);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(false));
     logger.expect_log(mpl::Level::info, "Successfully generated new encryption key");
@@ -239,13 +220,13 @@ TEST_F(SmbMountHandlerTest, generateKey)
 
 TEST_F(SmbMountHandlerTest, installsCifs)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "not installed");
+    expect_ssh_success(*session, "apt-get");
+    expect_mount_path_success(*session, target, remote_creds_path);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
-
-    ssh_outputs[dpkg_command].output = "not installed";
     EXPECT_CALL(server,
                 Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
         .WillOnce(Return(true));
@@ -268,15 +249,14 @@ TEST_F(SmbMountHandlerTest, installsCifs)
 
 TEST_F(SmbMountHandlerTest, failInstallCifs)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto install_error = "error reasons";
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+
+    expect_dpkg_query(*session, "not installed");
+    expect_ssh_fail(*session, "apt-get", install_error);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
-
-    auto install_error = "error reason";
-    ssh_outputs[dpkg_command].output = "not installed";
-    ssh_outputs[install_cifs_command] = {install_error, 1};
     EXPECT_CALL(server,
                 Write(Property(&mp::MountReply::reply_message, "Enabling support for mounting"), _))
         .WillOnce(Return(true));
@@ -296,9 +276,10 @@ TEST_F(SmbMountHandlerTest, failInstallCifs)
 
 TEST_F(SmbMountHandlerTest, requestAndReceiveCreds)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_mount_path_success(*session, target, remote_creds_path);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
@@ -322,9 +303,9 @@ TEST_F(SmbMountHandlerTest, requestAndReceiveCreds)
 
 TEST_F(SmbMountHandlerTest, failWithoutClient)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
@@ -339,9 +320,9 @@ TEST_F(SmbMountHandlerTest, failWithoutClient)
 
 TEST_F(SmbMountHandlerTest, failRequestCreds)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
@@ -360,9 +341,9 @@ TEST_F(SmbMountHandlerTest, failRequestCreds)
 
 TEST_F(SmbMountHandlerTest, failReceiveCreds)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
@@ -381,9 +362,9 @@ TEST_F(SmbMountHandlerTest, failReceiveCreds)
 
 TEST_F(SmbMountHandlerTest, failEmptyPassword)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(""));
@@ -403,9 +384,9 @@ TEST_F(SmbMountHandlerTest, failEmptyPassword)
 
 TEST_F(SmbMountHandlerTest, failCreateSmbShare)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
@@ -421,17 +402,16 @@ TEST_F(SmbMountHandlerTest, failCreateSmbShare)
 
 TEST_F(SmbMountHandlerTest, failMkdirTarget)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto mkdir_error = "error reason";
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_ssh_fail(*session, "mkdir", mkdir_error);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
 
     EXPECT_CALL(smb_manager, create_share).WillOnce(Return());
-
-    auto mkdir_error = "error reason";
-    ssh_outputs[mkdir_command] = {mkdir_error, 1};
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
@@ -446,9 +426,13 @@ TEST_F(SmbMountHandlerTest, failMkdirTarget)
 
 TEST_F(SmbMountHandlerTest, failMountCommand)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto mount_error = "error reason";
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_ssh_success(*session, "mkdir -p " + target);
+    expect_ssh_fail(*session, "mount -t cifs", mount_error);
+    expect_ssh_success(*session, "sudo rm " + remote_creds_path);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
@@ -457,9 +441,6 @@ TEST_F(SmbMountHandlerTest, failMountCommand)
 
     EXPECT_CALL(*sftp_client, from_cin).WillOnce(Return());
     EXPECT_CALL(sftp_utils, make_SFTPClient).WillOnce(Return(std::move(sftp_client)));
-
-    auto mount_error = "error reason";
-    ssh_outputs[mount_command] = {mount_error, 1};
 
     EXPECT_CALL(file_ops, remove(A<QFile&>())).WillRepeatedly(Return(true));
 
@@ -473,9 +454,13 @@ TEST_F(SmbMountHandlerTest, failMountCommand)
 
 TEST_F(SmbMountHandlerTest, failRemoveCredsFile)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto rm_error = "error reason";
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_ssh_success(*session, "mkdir -p " + target);
+    expect_ssh_success(*session, "mount -t cifs");
+    expect_ssh_fail(*session, "sudo rm " + remote_creds_path, rm_error);
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
@@ -485,8 +470,6 @@ TEST_F(SmbMountHandlerTest, failRemoveCredsFile)
     EXPECT_CALL(*sftp_client, from_cin).WillOnce(Return());
     EXPECT_CALL(sftp_utils, make_SFTPClient).WillOnce(Return(std::move(sftp_client)));
 
-    auto rm_error = "error reason";
-    ssh_outputs[rm_command] = {rm_error, 1};
     logger.expect_log(
         mpl::Level::warning,
         fmt::format("Failed deleting credentials file in \'{}\': {}", vm.get_name(), rm_error));
@@ -500,9 +483,11 @@ TEST_F(SmbMountHandlerTest, failRemoveCredsFile)
 
 TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_mount_path_success(*session, target, remote_creds_path);
+    auto umount_error = "error reason";
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
@@ -512,7 +497,6 @@ TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
     EXPECT_CALL(*sftp_client, from_cin).WillOnce(Return());
     EXPECT_CALL(sftp_utils, make_SFTPClient).WillOnce(Return(std::move(sftp_client)));
 
-    auto umount_error = "error reason";
     logger.expect_log(mpl::Level::warning,
                       fmt::format("Failed to gracefully stop mount \"{}\" in instance '{}': {}",
                                   target,
@@ -532,9 +516,11 @@ TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
 
 TEST_F(SmbMountHandlerTest, stopNonForceFailUmountCommand)
 {
-    std::string ssh_command_output;
-    REPLACE(ssh_channel_request_exec, mocked_ssh_channel_request_exec(ssh_command_output));
-    REPLACE(ssh_channel_read_timeout, mocked_ssh_channel_read_timeout(ssh_command_output));
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_dpkg_query(*session, "installed");
+    expect_mount_path_success(*session, target, remote_creds_path);
+    auto umount_error = "error reason";
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
     EXPECT_CALL(file_ops, exists(A<const QFile&>())).WillOnce(Return(true));
     EXPECT_CALL(aes, decrypt).WillOnce(Return(fmt::format("password={}", password)));
@@ -543,8 +529,6 @@ TEST_F(SmbMountHandlerTest, stopNonForceFailUmountCommand)
 
     EXPECT_CALL(*sftp_client, from_cin).WillOnce(Return());
     EXPECT_CALL(sftp_utils, make_SFTPClient).WillOnce(Return(std::move(sftp_client)));
-
-    auto umount_error = "error reason";
 
     EXPECT_CALL(smb_manager, share_exists).WillRepeatedly(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
