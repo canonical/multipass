@@ -1520,7 +1520,7 @@ TEST_F(BaseVM, sshExecThrowsSSHExecFailureOnNonZeroExitCode)
     static constexpr auto* cmd = "false";
 
     auto mock_proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
-    EXPECT_CALL(*mock_proc, get_cmd()).WillOnce(ReturnRefOfCopy(cmd));
+    EXPECT_CALL(*mock_proc, get_cmd()).WillOnce(ReturnRefOfCopy(std::string{cmd}));
     EXPECT_CALL(*mock_proc, exit_code(_)).WillOnce(Return(42));
     EXPECT_CALL(*mock_proc, read_std_error()).WillOnce(Return("boom  \n"));
 
