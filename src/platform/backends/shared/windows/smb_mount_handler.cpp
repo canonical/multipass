@@ -23,7 +23,6 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/utils.h>
@@ -321,17 +320,14 @@ catch (const std::exception& e)
 void SmbMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 try
 {
-    PlainSSHSession session{vm->ssh_hostname(),
-                            vm->ssh_port(),
-                            vm->ssh_username(),
-                            *ssh_key_provider};
+    auto session = vm->new_ssh_session();
 
     const auto username = MP_PLATFORM.get_username();
     const auto user_id = QString::fromStdString(MP_UTILS.make_uuid(username.toStdString()));
     const auto iv_filename = user_id + ".iv";
     const auto cred_filename = user_id + ".cifs";
 
-    if (session.exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils")
+    if (session->exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils")
             ->read_std_output() != "installed")
     {
         auto visitor = [](auto server) {
@@ -344,7 +340,7 @@ try
         };
 
         std::visit(visitor, server);
-        install_cifs_for(vm->get_name(), session, timeout);
+        install_cifs_for(vm->get_name(), *session, timeout);
     }
 
     const auto rtext = decrypt_credentials_from_file(cred_filename, iv_filename);
@@ -383,7 +379,7 @@ try
     smb_manager->create_share(share_name, source, username);
 
     // The following mkdir in the instance will be replaced with refactored code
-    auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target));
+    auto mkdir_proc = session->exec(fmt::format("mkdir -p {}", target));
     if (mkdir_proc->exit_code() != 0)
         throw std::runtime_error(fmt::format("Cannot create \"{}\" in instance '{}': {}",
                                              target,
@@ -400,7 +396,7 @@ try
     sftp_client->from_cin(creds_stringstream, credentials_path, false);
 
     auto hostname = QHostInfo::localHostName();
-    auto mount_proc = session.exec(
+    auto mount_proc = session->exec(
         fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
                     hostname,
                     share_name,
@@ -409,7 +405,7 @@ try
     auto mount_exit_code = mount_proc->exit_code();
     auto mount_error_msg = mount_proc->read_std_error();
 
-    auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
+    auto rm_proc = session->exec(fmt::format("sudo rm {}", credentials_path));
     if (rm_proc->exit_code() != 0)
         mpl::warn(category,
                   "Failed deleting credentials file in \'{}\': {}",
