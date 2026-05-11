@@ -33,7 +33,7 @@ def validate_output(*args, properties, jq_filter=None):
             # to treat it as a predicate and call it. We'd call it for each
             # element if the matching key's value is a collection.
             if callable(v):
-                if isinstance(instance[k], Sequence):
+                if isinstance(instance[k], Sequence) and not isinstance(instance[k], str):
                     for item in instance[k]:
                         assert v(item)
                 else:
