@@ -408,6 +408,11 @@ bool mp::FileOps::is_directory(const fs::path& path, std::error_code& err) const
     return fs::is_directory(path, err);
 }
 
+bool mp::FileOps::is_symlink(const fs::path& path) const
+{
+    return fs::is_symlink(path);
+}
+
 bool mp::FileOps::create_directory(const fs::path& path, std::error_code& err) const
 {
     return fs::create_directory(path, err);

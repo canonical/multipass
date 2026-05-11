@@ -298,6 +298,29 @@ constexpr bool follows_symlinks(uint8_t type)
         return false; // Fail-safe default
     }
 }
+
+constexpr bool follows_symlinks(uint8_t type)
+{
+    switch (type)
+    {
+    case SSH_FXP_OPEN:
+    case SSH_FXP_OPENDIR:
+    case SSH_FXP_REALPATH:
+    case SSH_FXP_SETSTAT:
+    case SSH_FXP_STAT:
+        return true;
+    case SSH_FXP_LSTAT:
+    case SSH_FXP_READLINK:
+    case SSH_FXP_REMOVE:
+    case SSH_FXP_RMDIR:
+    case SSH_FXP_MKDIR:
+    case SSH_FXP_RENAME:
+    case SSH_FXP_SYMLINK:
+        return false;
+    default:
+        return false; // Fail-safe default
+    }
+}
 } // namespace
 
 mp::SftpServer::SftpServer(SSHSession&& session,
@@ -995,6 +1018,7 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
+    auto guest_link = host_to_guest_path(link.toStdString());
     sftp_attributes_struct attr{};
     sftp_reply_names_add(msg, raw_link.string().c_str(), raw_link.string().c_str(), &attr);
     return sftp_reply_names(msg);
@@ -1091,7 +1115,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    QFileInfo target_info{target};
+    QFileInfo target_info{QString::fromStdString(target.string())};
     if (MP_FILEOPS.exists(target_info) && !has_id_mappings_for(target_info))
     {
         mpl::trace(category,
@@ -1101,7 +1125,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    QFile target_file{target};
+    QFile target_file{QString::fromStdString(target.string())};
     if (MP_FILEOPS.exists(target_info))
     {
         if (!MP_FILEOPS.remove(target_file))

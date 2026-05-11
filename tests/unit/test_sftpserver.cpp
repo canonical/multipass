@@ -591,6 +591,7 @@ TEST_F(SftpServer, opendirNotReadableFails)
     REPLACE(sftp_reply_status,
             make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls));
 
+    auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(
         *logger_scope.mock_logger,
