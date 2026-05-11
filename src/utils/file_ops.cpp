@@ -249,6 +249,11 @@ bool mp::FileOps::is_directory(const fs::path& path, std::error_code& err) const
     return fs::is_directory(path, err);
 }
 
+bool mp::FileOps::is_symlink(const fs::path& path) const
+{
+    return fs::is_symlink(path);
+}
+
 bool mp::FileOps::create_directory(const fs::path& path, std::error_code& err) const
 {
     return fs::create_directory(path, err);
@@ -301,6 +306,13 @@ std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path,
 fs::path mp::FileOps::weakly_canonical(const fs::path& path) const
 {
     return fs::weakly_canonical(path);
+}
+
+fs::path mp::FileOps::relative(const fs::path& path,
+                               const fs::path& base,
+                               std::error_code& ec) const
+{
+    return fs::relative(path, base, ec);
 }
 
 fs::path mp::FileOps::remove_extension(const fs::path& path) const

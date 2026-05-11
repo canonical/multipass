@@ -122,6 +122,7 @@ public:
                                 const fs::path& path,
                                 std::error_code& err) const;
     virtual fs::path read_symlink(const fs::path& path, std::error_code& err) const;
+    virtual bool is_symlink(const fs::path& path) const;
     virtual fs::file_status status(const fs::path& path, std::error_code& err) const;
     virtual fs::file_status symlink_status(const fs::path& path, std::error_code& err) const;
     virtual std::unique_ptr<RecursiveDirIterator>
@@ -129,6 +130,9 @@ public:
     virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path,
                                                       std::error_code& err) const;
     virtual fs::path weakly_canonical(const fs::path& path) const;
+    virtual fs::path relative(const fs::path& path,
+                              const fs::path& base,
+                              std::error_code& ec) const;
 
     virtual fs::perms get_permissions(const fs::path& file) const;
 
