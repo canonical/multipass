@@ -32,6 +32,9 @@ public:
     MOCK_METHOD(std::string, create_bridge_with, (const std::string&), (override));
     MOCK_METHOD(void, check_for_kvm_support, (), (override));
     MOCK_METHOD(void, check_if_kvm_is_in_use, (), (override));
+    MOCK_METHOD(bool, is_iommu_enabled, (), (const, override));
+    MOCK_METHOD(bool, is_bound_to_vfio, (const std::string&), (const, override));
+    MOCK_METHOD(void, bind_device_to_vfio, (const std::string&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockBackend, Backend);
 };
