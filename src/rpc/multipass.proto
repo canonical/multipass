@@ -40,6 +40,8 @@ service Rpc {
     rpc get (stream GetRequest) returns (stream GetReply);
     rpc set (stream SetRequest) returns (stream SetReply);
     rpc keys (stream KeysRequest) returns (stream KeysReply);
+    rpc get_config (stream GetConfigRequest) returns (stream GetConfigReply);
+    rpc set_config (stream SetConfigRequest) returns (stream SetConfigReply);
     rpc authenticate (stream AuthenticateRequest) returns (stream AuthenticateReply);
     rpc snapshot (stream SnapshotRequest) returns (stream SnapshotReply);
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
@@ -499,6 +501,28 @@ message KeysRequest {
 message KeysReply {
     string log_line = 1;
     repeated string settings_keys = 2;
+}
+
+message GetConfigRequest {
+    int32 verbosity_level = 1;
+}
+
+message GetConfigReply {
+    string yaml_content = 1;
+    string log_line = 2;
+}
+
+message SetConfigRequest {
+    string yaml_content = 1;
+    int32 verbosity_level = 2;
+    bool authorized = 3;
+}
+
+message SetConfigReply {
+    string log_line = 1;
+    bool needs_authorization = 2;
+    string instance_name = 3;
+    string bridge_name = 4;
 }
 
 message AuthenticateRequest {
