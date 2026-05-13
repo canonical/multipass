@@ -29,13 +29,15 @@
 #include <scope_guard.hpp>
 
 #include <QCoreApplication>
-#include <QDir>
 #include <QFile>
 #include <QtDBus/QtDBus>
 
 #include <cassert>
 #include <chrono>
+#include <cstring>
+#include <dirent.h>
 #include <exception>
+#include <fstream>
 #include <mutex>
 #include <random>
 #include <type_traits>
@@ -251,57 +253,78 @@ void mp::Backend::check_if_kvm_is_in_use()
 
 bool mp::Backend::is_iommu_enabled() const
 {
-    QDir iommu_dir{"/sys/kernel/iommu_groups"};
-    return iommu_dir.exists() && !iommu_dir.isEmpty();
+    auto dir = opendir("/sys/kernel/iommu_groups");
+    if (!dir)
+        return false;
+
+    int count = 0;
+    while (readdir(dir))
+        ++count;
+
+    closedir(dir);
+    return count > 2; // . and .. always present; >2 means at least one iommu group
 }
 
 bool mp::Backend::is_bound_to_vfio(const std::string& pci_address) const
 {
     auto driver_link = fmt::format("/sys/bus/pci/devices/{}/driver", pci_address);
-    auto driver_path = QFile::symLinkTarget(QString::fromStdString(driver_link));
-    return driver_path.contains("vfio-pci");
+
+    char buf[256];
+    ssize_t len = readlink(driver_link.c_str(), buf, sizeof(buf) - 1);
+    if (len < 0)
+        return false;
+
+    buf[len] = '\0';
+    return strstr(buf, "vfio-pci") != nullptr;
 }
 
 void mp::Backend::bind_device_to_vfio(const std::string& pci_address) const
 {
     auto device_dir = fmt::format("/sys/bus/pci/devices/{}", pci_address);
 
-    auto vendor_file = QFile{QString::fromStdString(fmt::format("{}/vendor", device_dir))};
-    auto device_file = QFile{QString::fromStdString(fmt::format("{}/device", device_dir))};
+    std::ifstream vendor_file(device_dir + "/vendor");
+    std::ifstream device_file(device_dir + "/device");
 
-    if (!MP_FILEOPS.open(vendor_file, QIODevice::ReadOnly) ||
-        !MP_FILEOPS.open(device_file, QIODevice::ReadOnly))
+    if (!vendor_file || !device_file)
     {
         throw std::runtime_error(fmt::format("Cannot read PCI device IDs for {}", pci_address));
     }
 
-    auto vendor = vendor_file.readAll().trimmed().toStdString();
-    auto device = device_file.readAll().trimmed().toStdString();
+    std::string vendor, device;
+    vendor_file >> vendor;
+    device_file >> device;
 
     // Unbind from current driver if bound
-    auto driver_link = fmt::format("{}/driver", device_dir);
-    if (QFile::exists(QString::fromStdString(driver_link)))
+    auto driver_link = device_dir + "/driver";
+    if (access(driver_link.c_str(), F_OK) == 0)
     {
-        auto unbind_file = fmt::format("{}/unbind", driver_link);
-        QFile unbind{QString::fromStdString(unbind_file)};
-        if (MP_FILEOPS.open(unbind, QIODevice::WriteOnly))
+        auto unbind_path = driver_link + "/unbind";
+        std::ofstream unbind_file(unbind_path);
+        if (unbind_file)
         {
-            unbind.write(pci_address.c_str());
-            unbind.close();
+            unbind_file << pci_address;
+            if (!unbind_file)
+            {
+                throw std::runtime_error(
+                    fmt::format("Failed to unbind PCI device {} from its current driver", pci_address));
+            }
         }
     }
 
     // Bind to vfio-pci
-    QFile new_id{"/sys/bus/pci/drivers/vfio-pci/new_id"};
-    if (!MP_FILEOPS.open(new_id, QIODevice::WriteOnly))
+    std::ofstream new_id_file("/sys/bus/pci/drivers/vfio-pci/new_id");
+    if (!new_id_file)
     {
         throw std::runtime_error(
             fmt::format("Cannot open vfio-pci/new_id to bind device {}", pci_address));
     }
 
-    auto new_id_str = fmt::format("{} {}", vendor, device);
-    new_id.write(new_id_str.c_str());
-    new_id.close();
+    new_id_file << vendor << " " << device;
+    if (!new_id_file)
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to write to vfio-pci/new_id to bind device {}", pci_address));
+    }
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail,
