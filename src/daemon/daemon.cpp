@@ -74,6 +74,7 @@
 
 #include <climits>
 #include <dirent.h>
+#include <fstream>
 #include <thread>
 #include <unistd.h>
 
@@ -512,6 +513,21 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
             }
 
             passthrough_devices.push_back({dev.pci_address()});
+
+            // Warn if device is not a display controller
+            auto class_path = fmt::format("{}/class", pci_path);
+            std::ifstream class_file(class_path);
+            if (class_file)
+            {
+                unsigned int pci_class = 0;
+                class_file >> std::hex >> pci_class;
+                if ((pci_class >> 16) != 0x03)
+                    mpl::warn(category,
+                              "PCI device {} (class {:06x}) is not a display controller. "
+                              "Passthrough of non-display devices may cause host instability.",
+                              dev.pci_address(),
+                              pci_class);
+            }
 
             if (!MP_BACKEND.is_bound_to_vfio(dev.pci_address()))
             {
