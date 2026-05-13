@@ -19,6 +19,7 @@ add_library(commands STATIC
   authenticate.cpp
   clone.cpp
   common_cli.cpp
+  config.cpp
   create_alias.cpp
   delete.cpp
   exec.cpp

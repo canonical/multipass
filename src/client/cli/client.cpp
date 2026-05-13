@@ -20,6 +20,7 @@
 #include "cmd/aliases.h"
 #include "cmd/authenticate.h"
 #include "cmd/clone.h"
+#include "cmd/config.h"
 #include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
@@ -92,6 +93,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Alias>(aliases);
     add_command<cmd::Aliases>(aliases);
     add_command<cmd::Authenticate>();
+    add_command<cmd::Config>();
     add_command<cmd::Launch>(aliases);
     add_command<cmd::Purge>(aliases);
     add_command<cmd::Exec>(aliases);
