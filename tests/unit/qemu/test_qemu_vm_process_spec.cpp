@@ -147,7 +147,7 @@ TEST_F(TestQemuVMProcessSpec, passthroughDeviceAppended)
 
     const auto expected_uuid = QString::fromStdString(multipass::utils::make_uuid(desc.vm_name));
     EXPECT_THAT(spec.arguments(),
-                Contains("-vga none").And(Contains("vfio-pci,host=0000:01:00.0")));
+                AllOf(Contains("-vga none"), Contains("vfio-pci,host=0000:01:00.0")));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)
