@@ -119,6 +119,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                dest_spec.zone,
                                                dest_spec.default_mac_address,
                                                dest_spec.extra_interfaces,
+                                               dest_spec.passthrough_devices,
                                                dest_spec.ssh_username,
                                                dest_image,
                                                cloud_init_path.string().c_str(),
