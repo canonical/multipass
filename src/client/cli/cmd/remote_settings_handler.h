@@ -35,7 +35,7 @@ public:
                           int verbosity);
 
     QString get(const QString& key) const override;
-    void set(const QString& key, const QString& val) override;
+    void set(const QString& key, const QString& val, bool allow_reload = true) override;
     std::set<QString> keys() const override;
 
 public: // accessors for tests

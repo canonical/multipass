@@ -71,7 +71,7 @@ public:
 
     MOCK_METHOD(std::set<QString>, keys, (), (const, override));
     MOCK_METHOD(QString, get, (const QString&), (const, override));
-    MOCK_METHOD(void, set, (const QString& key, const QString& val), (override));
+    MOCK_METHOD(void, set, (const QString& key, const QString& val, bool allow_reload), (override));
 };
 
 TEST_F(TestSettings, keysReturnsNoKeysWhenNoHandler)
@@ -252,7 +252,7 @@ TEST_F(TestSettings, setThrowsUnrecognizedFromSingleHandler)
 {
     auto key = "lkjh", val = "asdf";
     auto mock_handler = std::make_unique<MockSettingsHandler>();
-    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)))
+    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
 
     MP_SETTINGS.register_handler(std::move(mock_handler));
@@ -268,7 +268,7 @@ TEST_F(TestSettings, setThrowsUnrecognizedAfterTryingAllHandlers)
     for (auto i = 0u; i < 10; ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
-        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)))
+        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _))
             .WillRepeatedly(Throw(mp::UnrecognizedSettingException{key}));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
@@ -282,7 +282,7 @@ TEST_F(TestSettings, setDelegatesOnSingleHandler)
 {
     auto key = "xyz", val = "zyx";
     auto mock_handler = std::make_unique<MockSettingsHandler>();
-    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+    EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _));
 
     MP_SETTINGS.register_handler(std::move(mock_handler));
     EXPECT_NO_THROW(MP_SETTINGS.set(key, val));
@@ -295,7 +295,7 @@ TEST_F(TestSettings, setDelegatesOnAllHandlers)
     for (auto i = 0; i < 5; ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
-        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+        EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
 
@@ -320,7 +320,7 @@ TEST_P(TestSettingsSetMultipleHandlers, setDelegatesOnMultipleHandlers)
     for (auto i = 0u; i < num_handlers; ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
-        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _));
 
         if (std::find(hit_indices.begin(), hit_indices.end(), i) == hit_indices.end())
             expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
@@ -358,14 +358,14 @@ TEST_F(TestSettings, setDelegatesOnDifferentHandlers)
         for (auto j = 0u; j < num_settings; ++j)
         {
             auto [key, val] = make_setting(j);
-            auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+            auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _));
             if (j < half_i || odd_i)
             {
                 expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
             }
         }
 
-        EXPECT_CALL(*mock_handler, set(Eq(unknown_key), _))
+        EXPECT_CALL(*mock_handler, set(Eq(unknown_key), _, _))
             .WillOnce(Throw(mp::UnrecognizedSettingException{unknown_key}));
         MP_SETTINGS.register_handler(std::move(mock_handler));
     }
@@ -404,7 +404,7 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
     for (auto i = 0u; i < num_handlers; ++i)
     {
         auto mock_handler = std::make_unique<MockSettingsHandler>();
-        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val)));
+        auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _));
         if (i == thrower_idx)
             expectation.WillOnce(WithoutArgs(
                 [&thrower, e = &except] { std::visit(thrower, *e); })); /* lambda capture

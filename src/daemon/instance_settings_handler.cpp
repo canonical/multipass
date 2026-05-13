@@ -254,7 +254,7 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
 }
 
-void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
+void mp::InstanceSettingsHandler::set(const QString& key, const QString& val, bool /*allow_reload*/)
 {
     auto [instance_name, property] = parse_key(key);
 

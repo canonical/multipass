@@ -30,7 +30,7 @@ class PersistentSettingsHandler : public SettingsHandler
 public:
     PersistentSettingsHandler(QString filename, SettingSpec::Set settings); // no nulls please
     QString get(const QString& key) const override;
-    void set(const QString& key, const QString& val) override;
+    void set(const QString& key, const QString& val, bool allow_reload = true) override;
     std::set<QString> keys() const override;
 
 private:

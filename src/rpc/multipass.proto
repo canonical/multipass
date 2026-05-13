@@ -474,6 +474,7 @@ message SetRequest {
     string val = 2;
     int32 verbosity_level = 3;
     bool authorized = 4;
+    bool allow_reload = 5;
 }
 
 message SetReply {

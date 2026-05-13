@@ -17,14 +17,26 @@
 
 #pragma once
 
-namespace multipass::daemon
-{
-void monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings
-                                            // handlers (see #2514)
-void register_global_settings_handlers();
+#include <multipass/cli/command.h>
 
-// Suppress/resume the file-system watcher that triggers a daemon reload on persistent settings
-// changes. Used to coalesce reloads when a bulk edit applies multiple settings.
-void suppress_settings_reload();
-void resume_settings_reload();
-} // namespace multipass::daemon
+#include <QString>
+
+namespace multipass
+{
+namespace cmd
+{
+class Config final : public Command
+{
+public:
+    using Command::Command;
+    ReturnCodeVariant run(ArgParser* parser) override;
+
+    std::string name() const override;
+    QString short_help() const override;
+    QString description() const override;
+
+private:
+    ParseCode parse_args(ArgParser* parser);
+};
+} // namespace cmd
+} // namespace multipass

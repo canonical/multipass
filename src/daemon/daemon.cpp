@@ -17,6 +17,7 @@
 
 #include "daemon.h"
 #include "base_cloud_init_config.h"
+#include "daemon_init_settings.h"
 #include "instance_settings_handler.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
@@ -2536,6 +2537,8 @@ try
     });
 
     mpl::trace(category, "Trying to set {}={}", key, val);
+    if (!request->allow_reload())
+        mp::daemon::suppress_settings_reload();
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
@@ -2559,6 +2562,8 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
     {
         user_authorized_bridges.insert(get_bridged_interface_name());
 
+        if (!request->allow_reload())
+            mp::daemon::suppress_settings_reload();
         MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
 
         user_authorized_bridges.erase(get_bridged_interface_name());
