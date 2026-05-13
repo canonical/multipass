@@ -423,6 +423,30 @@ grpc::Status mp::DaemonRpc::keys(grpc::ServerContext* context,
         client_cert_from(context));
 }
 
+grpc::Status mp::DaemonRpc::get_config(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<GetConfigReply, GetConfigRequest>* server)
+{
+    GetConfigRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_get_config, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
+grpc::Status mp::DaemonRpc::set_config(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<SetConfigReply, SetConfigRequest>* server)
+{
+    SetConfigRequest request;
+    server->Read(&request);
+
+    return verify_client_and_dispatch_operation(
+        std::bind(&DaemonRpc::on_set_config, this, &request, server, std::placeholders::_1),
+        client_cert_from(context));
+}
+
 grpc::Status mp::DaemonRpc::snapshot(
     grpc::ServerContext* context,
     grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server)

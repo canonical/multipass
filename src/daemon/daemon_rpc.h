@@ -120,6 +120,12 @@ signals:
     void on_keys(const KeysRequest* request,
                  grpc::ServerReaderWriter<KeysReply, KeysRequest>* server,
                  std::promise<grpc::Status>* status_promise);
+    void on_get_config(const GetConfigRequest* request,
+                       grpc::ServerReaderWriter<GetConfigReply, GetConfigRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
+    void on_set_config(const SetConfigRequest* request,
+                       grpc::ServerReaderWriter<SetConfigReply, SetConfigRequest>* server,
+                       std::promise<grpc::Status>* status_promise);
     void on_authenticate(const AuthenticateRequest* request,
                          grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server,
                          std::promise<grpc::Status>* status_promise);
@@ -199,6 +205,12 @@ protected:
                      grpc::ServerReaderWriter<SetReply, SetRequest>* server) override;
     grpc::Status keys(grpc::ServerContext* context,
                       grpc::ServerReaderWriter<KeysReply, KeysRequest>* server) override;
+    grpc::Status get_config(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<GetConfigReply, GetConfigRequest>* server) override;
+    grpc::Status set_config(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<SetConfigReply, SetConfigRequest>* server) override;
     grpc::Status authenticate(
         grpc::ServerContext* context,
         grpc::ServerReaderWriter<AuthenticateReply, AuthenticateRequest>* server) override;

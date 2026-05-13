@@ -146,6 +146,16 @@ public slots:
                       grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>* server,
                       std::promise<grpc::Status>* status_promise);
 
+    virtual void get_config(
+        const GetConfigRequest* request,
+        grpc::ServerReaderWriterInterface<GetConfigReply, GetConfigRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
+    virtual void set_config(
+        const SetConfigRequest* request,
+        grpc::ServerReaderWriterInterface<SetConfigReply, SetConfigRequest>* server,
+        std::promise<grpc::Status>* status_promise);
+
     virtual void authenticate(
         const AuthenticateRequest* request,
         grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,

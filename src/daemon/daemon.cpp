@@ -527,6 +527,8 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
     QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
     QObject::connect(&rpc, &mp::DaemonRpc::on_keys, &daemon, &mp::Daemon::keys);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_get_config, &daemon, &mp::Daemon::get_config);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_set_config, &daemon, &mp::Daemon::set_config);
     QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
     QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
     QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
@@ -2674,6 +2676,194 @@ try
     server->Write(reply);
 
     status_promise->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::get_config(
+    const GetConfigRequest* request,
+    grpc::ServerReaderWriterInterface<GetConfigReply, GetConfigRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<GetConfigReply, GetConfigRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    // Force root to materialise as a Map up front so it owns the memory_holder
+    // shared by all child aliases — otherwise lazy-materialised children alias
+    // a fresh, unrelated memory_holder and never propagate back to root.
+    YAML::Node root(YAML::NodeType::Map);
+
+    // Walk parts via chained operator[] (each call returns a child Node aliased
+    // into the same memory_holder). Recursive lambda keeps the alias chain
+    // intact at variable depth without re-assigning a Node handle.
+    std::function<void(YAML::Node, int, const QStringList&, const std::string&)> set_nested =
+        [&](YAML::Node node, int idx, const QStringList& parts, const std::string& val) {
+            const auto key = parts[idx].toStdString();
+            if (idx + 1 == parts.size())
+                node[key] = val;
+            else
+                set_nested(node[key], idx + 1, parts, val);
+        };
+
+    for (const auto& qkey : MP_SETTINGS.keys())
+    {
+        if (qkey == mp::passphrase_key)
+            continue;
+
+        std::string val;
+        try
+        {
+            val = MP_SETTINGS.get(qkey).toStdString();
+        }
+        catch (const std::exception& e)
+        {
+            // Some keys can't be resolved in the current state (e.g. a per-instance
+            // `bridged` key when `local.bridged-network` is unset). Surface them in
+            // the YAML with an empty value rather than aborting the whole dump.
+            mpl::warn(category,
+                      "Skipping value for '{}' in config dump: {}",
+                      qkey.toStdString(),
+                      e.what());
+        }
+        const auto parts = qkey.split('.');
+        set_nested(root, 0, parts, val);
+    }
+
+    YAML::Emitter emitter;
+    emitter << root;
+
+    mpl::debug(category, "Returning config YAML ({} bytes)", emitter.size());
+
+    GetConfigReply reply;
+    reply.set_yaml_content(emitter.c_str());
+    server->Write(reply);
+
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::set_config(
+    const SetConfigRequest* request,
+    grpc::ServerReaderWriterInterface<SetConfigReply, SetConfigRequest>* server,
+    std::promise<grpc::Status>* status_promise)
+try
+{
+    mpl::ClientLogger<SetConfigReply, SetConfigRequest> logger{
+        mpl::level_from(request->verbosity_level()),
+        *config->logger,
+        server};
+
+    const auto root = YAML::Load(request->yaml_content());
+
+    std::vector<std::pair<QString, QString>> pairs;
+    std::function<void(const YAML::Node&, const QString&)> flatten;
+    flatten = [&](const YAML::Node& node, const QString& prefix) {
+        for (const auto& kv : node)
+        {
+            const auto child = prefix.isEmpty()
+                                   ? QString::fromStdString(kv.first.as<std::string>())
+                                   : prefix + "." +
+                                         QString::fromStdString(kv.first.as<std::string>());
+            if (kv.second.IsMap())
+                flatten(kv.second, child);
+            else
+                pairs.emplace_back(child,
+                                   QString::fromStdString(kv.second.as<std::string>()));
+        }
+    };
+    flatten(root, {});
+
+    for (const auto& [key, val] : pairs)
+    {
+        // Skip no-ops: the YAML may contain every key for the round-trip, but
+        // re-applying a same-value setting can still trigger side effects (e.g.
+        // setting `local.driver` to its current value restarts the daemon).
+        bool current_readable = true;
+        QString current;
+        try
+        {
+            current = MP_SETTINGS.get(key);
+        }
+        catch (const std::exception& e)
+        {
+            current_readable = false;
+            mpl::trace(category,
+                       "config: cannot read current value of '{}' ({}); will try to apply",
+                       key,
+                       e.what());
+        }
+        if (current_readable && current == val)
+        {
+            mpl::trace(category, "config: '{}' unchanged ({}); skipping", key, val);
+            continue;
+        }
+        if (!current_readable && val.isEmpty())
+        {
+            // Get-config emitted "" for unreadable keys; if the user kept it empty,
+            // don't try to apply it back (it would just throw again).
+            mpl::trace(category, "config: '{}' unreadable and unchanged; skipping", key);
+            continue;
+        }
+
+        mpl::trace(category, "config: setting {}={}", key, val);
+        try
+        {
+            MP_SETTINGS.set(key, val);
+        }
+        catch (const mp::NonAuthorizedBridgeSettingsException& e)
+        {
+            const auto bridge = get_bridged_interface_name();
+            const auto instance = key.section('.', 1, 1).toStdString();
+
+            SetConfigReply auth_reply;
+            auth_reply.set_needs_authorization(true);
+            auth_reply.set_instance_name(instance);
+            auth_reply.set_bridge_name(bridge);
+            server->Write(auth_reply);
+
+            SetConfigRequest auth_request;
+            server->Read(&auth_request);
+
+            if (!auth_request.authorized())
+            {
+                status_promise->set_value(
+                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+                return;
+            }
+
+            user_authorized_bridges.insert(bridge);
+            auto bridge_guard = sg::make_scope_guard([this, &bridge]() noexcept {
+                mp::top_catch_all(category, [this, &bridge]() {
+                    user_authorized_bridges.erase(bridge);
+                });
+            });
+            MP_SETTINGS.set(key, val);
+        }
+    }
+
+    SetConfigReply reply;
+    server->Write(reply);
+    status_promise->set_value(grpc::Status::OK);
+}
+catch (const mp::BridgeFailureException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+}
+catch (const mp::InstanceStateSettingsException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+catch (const mp::SettingsException& e)
+{
+    status_promise->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
 }
 catch (const std::exception& e)
 {
