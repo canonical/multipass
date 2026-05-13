@@ -23,9 +23,11 @@
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/settings/bool_setting_spec.h>
 
-#include <QFile>
 #include <QRegularExpression>
 #include <QStringList>
+
+#include <regex>
+#include <unistd.h>
 
 namespace mp = multipass;
 
@@ -201,7 +203,7 @@ void update_bridged(const QString& key,
 
 std::vector<mp::PassthroughDevice> parse_devices(const QString& val)
 {
-    static const QRegularExpression pci_regex(QStringLiteral("^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$"));
+    static const std::regex pci_regex(R"(^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$)");
 
     std::vector<mp::PassthroughDevice> devices;
     if (val.isEmpty())
@@ -210,7 +212,7 @@ std::vector<mp::PassthroughDevice> parse_devices(const QString& val)
     for (const auto& s : val.split(',', Qt::SkipEmptyParts))
     {
         auto trimmed = s.trimmed().toStdString();
-            if (!pci_regex.match(QString::fromStdString(trimmed)).hasMatch())
+            if (!std::regex_match(trimmed, pci_regex))
                 throw mp::InvalidSettingException{"devices", val, QString::fromStdString(fmt::format("Invalid PCI address: {}", trimmed))};
             devices.push_back({trimmed});
         }
@@ -225,7 +227,7 @@ std::vector<mp::PassthroughDevice> parse_devices(const QString& val)
         for (const auto& dev : devices)
         {
             auto pci_path = fmt::format("/sys/bus/pci/devices/{}", dev.pci_address);
-            if (!QFile::exists(QString::fromStdString(pci_path)))
+            if (access(pci_path.c_str(), F_OK) != 0)
                 throw mp::InvalidSettingException{key, val, QString::fromStdString(fmt::format("PCI device {} does not exist", dev.pci_address))};
 
             if (!mp::Backend::instance().is_bound_to_vfio(dev.pci_address))
