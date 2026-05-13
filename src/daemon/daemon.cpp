@@ -74,6 +74,7 @@
 
 #include <climits>
 #include <dirent.h>
+#include <thread>
 #include <unistd.h>
 
 #include <algorithm>
@@ -3289,6 +3290,17 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             if (!MP_BACKEND.is_bound_to_vfio(dev.pci_address))
             {
                 MP_BACKEND.bind_device_to_vfio(dev.pci_address);
+
+                // Verify binding took effect
+                using namespace std::chrono_literals;
+                std::this_thread::sleep_for(100ms);
+                if (!MP_BACKEND.is_bound_to_vfio(dev.pci_address))
+                {
+                    mpl::warn(category,
+                              "Device {} may not have been successfully bound to vfio-pci. "
+                              "The VM may fail to start.",
+                              dev.pci_address);
+                }
             }
         }
     }
