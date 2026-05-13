@@ -72,6 +72,8 @@
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
+#include <unistd.h>
+
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -499,7 +501,7 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         for (const auto& dev : request->passthrough_devices())
         {
             auto pci_path = fmt::format("/sys/bus/pci/devices/{}", dev.pci_address());
-            if (!QFile::exists(QString::fromStdString(pci_path)))
+            if (access(pci_path.c_str(), F_OK) != 0)
             {
                 mpl::warn(category, "Invalid PCI device address: {}", dev.pci_address());
                 option_errors.add_error_codes(mp::LaunchError::DEVICE_BINDING_REQUIRED);
