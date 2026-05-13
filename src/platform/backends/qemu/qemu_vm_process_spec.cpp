@@ -107,6 +107,16 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         // To make `/sys/class/dmi/id/product_uuid` present
         args << "-uuid" << vm_uuid;
         // clang-format on
+
+        if (!desc.passthrough_devices.empty())
+        {
+            args << "-vga" << "none";
+            for (const auto& dev : desc.passthrough_devices)
+            {
+                args << "-device"
+                     << QString("vfio-pci,host=%1").arg(QString::fromStdString(dev.pci_address));
+            }
+        }
     }
     // clang-format on
 
@@ -156,6 +166,10 @@ profile %1 flags=(attach_disconnected) {
   /dev/kvm rw,
   /dev/ptmx rw,
   /dev/kqemu rw,
+  /dev/vfio/vfio rw,
+  /dev/vfio/[0-9]* rw,
+  /sys/bus/pci/devices/ r,
+  /sys/bus/pci/devices/** r,
   @{PROC}/*/status r,
   # When qemu is signaled to terminate, it will read cmdline of signaling
   # process for reporting purposes. Allowing read access to a process
