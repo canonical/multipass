@@ -407,6 +407,12 @@ void mp::QemuVirtualMachine::suspend()
             update_shutdown_status = false;
         }
 
+        if (!desc.passthrough_devices.empty())
+        {
+            mpl::warn(vm_name,
+                      "Suspending a VM with passthrough devices may not be supported by the device");
+        }
+
         drop_ssh_session();
         vm_process->write(QByteArray::fromStdString(
             serialize(hmc_to_qmp_json(QString{"savevm "} + suspend_tag))));
