@@ -72,6 +72,8 @@
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
+#include <climits>
+#include <dirent.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -514,6 +516,45 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
             {
                 devices_need_binding.push_back(dev.pci_address());
             }
+        }
+
+        // Check IOMMU group cohesion for each passthrough device
+        for (const auto& dev : passthrough_devices)
+        {
+            auto group_link = fmt::format("/sys/bus/pci/devices/{}/iommu_group", dev.pci_address);
+            char group_path[PATH_MAX]{};
+            auto len = readlink(group_link.c_str(), group_path, sizeof(group_path) - 1);
+            if (len <= 0)
+            {
+                mpl::warn(category, "Cannot read IOMMU group for PCI device {}", dev.pci_address);
+                continue;
+            }
+            group_path[len] = '\0';
+
+            // Extract group name from path, e.g. ".../kernel/iommu_groups/19"
+            auto group_dir = fmt::format("{}/devices", group_path);
+            auto dir = opendir(group_dir.c_str());
+            if (!dir)
+                continue;
+
+            struct dirent* entry;
+            while ((entry = readdir(dir)))
+            {
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                    continue;
+
+                auto found = std::any_of(passthrough_devices.begin(), passthrough_devices.end(),
+                                         [&](const auto& pd) { return pd.pci_address == entry->d_name; });
+                if (!found)
+                {
+                    mpl::warn(category,
+                              "Device {} in the same IOMMU group as passthrough device {} is "
+                              "not being passed through. The VM may fail to start.",
+                              entry->d_name,
+                              dev.pci_address);
+                }
+            }
+            closedir(dir);
         }
     }
 
