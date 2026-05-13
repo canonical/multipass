@@ -44,6 +44,16 @@ final headers = <TableHeader<VmInfo>>[
     ),
   ),
   TableHeader(
+    name: 'ZONE',
+    width: 100,
+    minWidth: 70,
+    sortKey: (info) => info.zone.name,
+    cellBuilder: (info) => Text(
+      info.zone.name.nonBreaking,
+      overflow: TextOverflow.ellipsis,
+    ),
+  ),
+  TableHeader(
     name: 'CPU USAGE',
     width: 130,
     minWidth: 100,
