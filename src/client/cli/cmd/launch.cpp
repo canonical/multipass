@@ -107,6 +107,48 @@ auto net_digest(const QString& options)
 
     return net;
 }
+
+auto checked_pci_address(const std::string& pci)
+{
+    static const QRegularExpression pci_regex(QStringLiteral("^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$"));
+    if (!pci_regex.match(QString::fromStdString(pci)).hasMatch())
+        throw mp::ValidationException(fmt::format("Invalid PCI address: {}", pci));
+    return pci;
+}
+
+auto device_digest(const QString& options)
+{
+    multipass::LaunchRequest_PassthroughDevice device;
+    QStringList split = options.split(',', Qt::SkipEmptyParts);
+    for (const auto& key_value_pair : split)
+    {
+        QStringList key_value_split = key_value_pair.split('=', Qt::SkipEmptyParts);
+        if (key_value_split.size() == 2)
+        {
+            const auto& key = key_value_split[0].toLower();
+            const auto& val = key_value_split[1];
+            if (key == "pci")
+                device.set_pci_address(checked_pci_address(val.toStdString()));
+            else
+                throw mp::ValidationException{fmt::format("Bad device field: {}", key)};
+        }
+        else if (key_value_split.size() == 1 && split.size() == 1)
+        {
+            device.set_pci_address(checked_pci_address(key_value_split[0].toStdString()));
+        }
+        else
+        {
+            throw mp::ValidationException{
+                fmt::format("Bad device field definition: {}", key_value_pair)};
+        }
+    }
+
+    if (device.pci_address().empty())
+        throw mp::ValidationException{
+            fmt::format("Bad device definition, need at least a 'pci' field")};
+
+    return device;
+}
 } // namespace
 
 mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
@@ -246,6 +288,13 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "  mac: hardware address (default: random).\n"
         "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
         "spec");
+    QCommandLineOption deviceOption(
+        "device",
+        "Passthrough a PCI device to the instance, where <spec> is in the "
+        "\"key=value\" format with the following keys available:\n"
+        "  pci: the PCI address (required, e.g. 0000:01:00.0)\n"
+        "You can also use a shortcut of \"<pci>\" to mean \"pci=<pci>\".",
+        "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
 #ifdef AVAILABILITY_ZONES_FEATURE
     QCommandLineOption zoneOption("zone", "The zone in which to launch the instance.", "zone");
@@ -265,6 +314,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         nameOption,
         cloudInitOption,
         networkOption,
+        deviceOption,
         bridgedOption,
 #ifdef AVAILABILITY_ZONES_FEATURE
         zoneOption,
@@ -364,6 +414,20 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         mp::MemorySize{arg_disk_size}; // throw if bad
 
         request.set_disk_space(arg_disk_size);
+    }
+
+    if (parser->isSet(deviceOption))
+    {
+        try
+        {
+            for (const auto& dev : parser->values(deviceOption))
+                request.mutable_passthrough_devices()->Add(device_digest(dev));
+        }
+        catch (mp::ValidationException& e)
+        {
+            cerr << "error: " << e.what() << "\n";
+            return ParseCode::CommandLineError;
+        }
     }
 
     if (parser->isSet(mountOption))
@@ -619,6 +683,19 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                     "To troubleshoot, see "
                     "https://documentation.ubuntu.com/multipass/stable/how-to-guides/troubleshoot/";
             }
+            else if (error == LaunchError::DEVICE_BINDING_REQUIRED)
+            {
+                if (reply.devices_need_binding_size() && ask_device_binding_permission(reply))
+                {
+                    request.set_permission_to_bind_vfio(true);
+                    return request_launch(parser);
+                }
+
+                error_details =
+                    "Device binding required but not authorized. "
+                    "To troubleshoot, see "
+                    "https://documentation.ubuntu.com/multipass/stable/how-to-guides/troubleshoot/";
+            }
             else if (error == LaunchError::INVALID_ZONE)
             {
                 error_details = fmt::format("Invalid zone name supplied: {}", request.zone());
@@ -698,4 +775,16 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 
     mp::BridgePrompter prompter(term);
     return prompter.bridge_prompt(nets);
+}
+
+bool cmd::Launch::ask_device_binding_permission(multipass::LaunchReply& reply)
+{
+    std::vector<std::string> devices;
+
+    std::copy(reply.devices_need_binding().cbegin(),
+              reply.devices_need_binding().cend(),
+              std::back_inserter(devices));
+
+    mp::DeviceBindingPrompter prompter(term);
+    return prompter.device_binding_prompt(devices);
 }
