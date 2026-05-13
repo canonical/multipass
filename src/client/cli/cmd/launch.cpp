@@ -42,6 +42,8 @@
 #include <QRegularExpression>
 #include <QTimeZone>
 #include <QUrl>
+
+#include <regex>
 #include <filesystem>
 #include <unordered_map>
 
@@ -110,8 +112,8 @@ auto net_digest(const QString& options)
 
 auto checked_pci_address(const std::string& pci)
 {
-    static const QRegularExpression pci_regex(QStringLiteral("^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-9a-fA-F]$"));
-    if (!pci_regex.match(QString::fromStdString(pci)).hasMatch())
+    static const std::regex pci_regex(R"(^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$)");
+    if (!std::regex_match(pci, pci_regex))
         throw mp::ValidationException(fmt::format("Invalid PCI address: {}", pci));
     return pci;
 }
