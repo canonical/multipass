@@ -55,6 +55,7 @@ private:
                             const QString& mount_source,
                             const QString& mount_target);
     bool ask_bridge_permission(multipass::LaunchReply& reply);
+    bool ask_device_binding_permission(multipass::LaunchReply& reply);
 
     LaunchRequest request;
     QString petenv_name;

@@ -115,3 +115,39 @@ bool mp::BridgePrompter::bridge_prompt(const std::vector<std::string>& nets_need
 
     return false;
 }
+
+bool mp::DeviceBindingPrompter::device_binding_prompt(const std::vector<std::string>& devices_need_binding) const
+{
+    assert(devices_need_binding.size()); // precondition
+
+    static constexpr auto plural =
+        "Multipass needs to bind the following PCI devices to vfio-pci on the host: {}.\n"
+        "This may disrupt host drivers using those devices.\n\n"
+        "Do you want to continue (yes/no)? ";
+    static constexpr auto singular =
+        "Multipass needs to bind the following PCI device to vfio-pci on the host: {}.\n"
+        "This may disrupt the host driver using that device.\n\n"
+        "Do you want to continue (yes/no)? ";
+
+    if (term->is_live())
+    {
+        if (devices_need_binding.size() != 1)
+            fmt::print(term->cout(), plural, fmt::join(devices_need_binding, ", "));
+        else
+            fmt::print(term->cout(), singular, devices_need_binding[0]);
+
+        while (true)
+        {
+            std::string answer;
+            std::getline(term->cin(), answer);
+            if (std::regex_match(answer, mp::client::yes_answer))
+                return true;
+            else if (std::regex_match(answer, mp::client::no_answer))
+                return false;
+            else
+                term->cout() << "Please answer yes/no: ";
+        }
+    }
+
+    return false;
+}
