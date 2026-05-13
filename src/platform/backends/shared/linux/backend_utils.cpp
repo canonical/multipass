@@ -29,8 +29,8 @@
 #include <scope_guard.hpp>
 
 #include <QCoreApplication>
-#include <QDBusMetaType>
-#include <QString>
+#include <QDir>
+#include <QFile>
 #include <QtDBus/QtDBus>
 
 #include <cassert>
@@ -247,6 +247,61 @@ void mp::Backend::check_if_kvm_is_in_use()
             "starting a Multipass instance.");
 
     MP_LINUX_SYSCALLS.close(ret);
+}
+
+bool mp::Backend::is_iommu_enabled() const
+{
+    QDir iommu_dir{"/sys/kernel/iommu_groups"};
+    return iommu_dir.exists() && !iommu_dir.isEmpty();
+}
+
+bool mp::Backend::is_bound_to_vfio(const std::string& pci_address) const
+{
+    auto driver_link = fmt::format("/sys/bus/pci/devices/{}/driver", pci_address);
+    auto driver_path = QFile::symLinkTarget(QString::fromStdString(driver_link));
+    return driver_path.contains("vfio-pci");
+}
+
+void mp::Backend::bind_device_to_vfio(const std::string& pci_address) const
+{
+    auto device_dir = fmt::format("/sys/bus/pci/devices/{}", pci_address);
+
+    auto vendor_file = QFile{QString::fromStdString(fmt::format("{}/vendor", device_dir))};
+    auto device_file = QFile{QString::fromStdString(fmt::format("{}/device", device_dir))};
+
+    if (!MP_FILEOPS.open(vendor_file, QIODevice::ReadOnly) ||
+        !MP_FILEOPS.open(device_file, QIODevice::ReadOnly))
+    {
+        throw std::runtime_error(fmt::format("Cannot read PCI device IDs for {}", pci_address));
+    }
+
+    auto vendor = vendor_file.readAll().trimmed().toStdString();
+    auto device = device_file.readAll().trimmed().toStdString();
+
+    // Unbind from current driver if bound
+    auto driver_link = fmt::format("{}/driver", device_dir);
+    if (QFile::exists(QString::fromStdString(driver_link)))
+    {
+        auto unbind_file = fmt::format("{}/unbind", driver_link);
+        QFile unbind{QString::fromStdString(unbind_file)};
+        if (MP_FILEOPS.open(unbind, QIODevice::WriteOnly))
+        {
+            unbind.write(pci_address.c_str());
+            unbind.close();
+        }
+    }
+
+    // Bind to vfio-pci
+    QFile new_id{"/sys/bus/pci/drivers/vfio-pci/new_id"};
+    if (!MP_FILEOPS.open(new_id, QIODevice::WriteOnly))
+    {
+        throw std::runtime_error(
+            fmt::format("Cannot open vfio-pci/new_id to bind device {}", pci_address));
+    }
+
+    auto new_id_str = fmt::format("{} {}", vendor, device);
+    new_id.write(new_id_str.c_str());
+    new_id.close();
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail,
