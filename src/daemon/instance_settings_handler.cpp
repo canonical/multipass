@@ -212,12 +212,12 @@ std::vector<mp::PassthroughDevice> parse_devices(const QString& val)
     for (const auto& s : val.split(',', Qt::SkipEmptyParts))
     {
         auto trimmed = s.trimmed().toStdString();
-            if (!std::regex_match(trimmed, pci_regex))
-                throw mp::InvalidSettingException{"devices", val, QString::fromStdString(fmt::format("Invalid PCI address: {}", trimmed))};
-            devices.push_back({trimmed});
-        }
-        return devices;
+        if (!std::regex_match(trimmed, pci_regex))
+            throw mp::InvalidSettingException{"devices", val, QString::fromStdString(fmt::format("Invalid PCI address: {}", trimmed))};
+        devices.push_back({trimmed});
     }
+    return devices;
+}
 
     void update_devices(const QString& key,
                         const QString& val,
