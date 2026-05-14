@@ -79,6 +79,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <vector>
 
 #include <libssh/sftp.h>
 
@@ -1386,4 +1387,14 @@ void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
     if (::shutdown(socket, SD_BOTH) == SOCKET_ERROR)
         if (auto err = WSAGetLastError(); err != WSAENOTCONN)
             throw std::system_error(err, std::system_category(), "Failed to shutdown socket");
+}
+
+std::vector<std::string>
+mp::platform::Platform::check_passthrough_devices(const std::vector<std::string>&) const
+{
+    return {};
+}
+
+void mp::platform::Platform::bind_passthrough_devices(const std::vector<std::string>&) const
+{
 }
