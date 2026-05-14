@@ -60,7 +60,6 @@ public:
     virtual bool is_bound_to_vfio(const std::string& pci_address) const;
     virtual void check_vfio_bind_prerequisites(const std::string& pci_address) const;
     virtual void bind_device_to_vfio(const std::string& pci_address) const;
-    
 };
 
 class LinuxSysCalls : public Singleton<LinuxSysCalls>

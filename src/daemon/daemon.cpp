@@ -56,7 +56,6 @@
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_vault.h>
-#include <shared/linux/backend_utils.h>
 #include <multipass/yaml_node_utils.h>
 
 #include <scope_guard.hpp>
@@ -72,13 +71,11 @@
 #include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
-#include <climits>
-#include <dirent.h>
+#include <algorithm>
 #include <fstream>
 #include <thread>
-#include <unistd.h>
 
-#include <algorithm>
+#include <climits>
 #include <cassert>
 #include <functional>
 #include <optional>
@@ -496,83 +493,13 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
 
     if (request->passthrough_devices_size() > 0)
     {
-        if (!MP_BACKEND.is_iommu_enabled())
-        {
-            mpl::warn(category, "IOMMU is not enabled, but passthrough devices were requested");
-            option_errors.add_error_codes(mp::LaunchError::DEVICE_BINDING_REQUIRED);
-        }
-
+        std::vector<std::string> addresses;
         for (const auto& dev : request->passthrough_devices())
-        {
-            auto pci_path = fmt::format("/sys/bus/pci/devices/{}", dev.pci_address());
-            if (access(pci_path.c_str(), F_OK) != 0)
-            {
-                mpl::warn(category, "Invalid PCI device address: {}", dev.pci_address());
-                option_errors.add_error_codes(mp::LaunchError::DEVICE_BINDING_REQUIRED);
-                continue;
-            }
+            addresses.push_back(dev.pci_address());
 
-            passthrough_devices.push_back({dev.pci_address()});
-
-            // Warn if device is not a display controller
-            auto class_path = fmt::format("{}/class", pci_path);
-            std::ifstream class_file(class_path);
-            if (class_file)
-            {
-                unsigned int pci_class = 0;
-                class_file >> std::hex >> pci_class;
-                if ((pci_class >> 16) != 0x03)
-                    mpl::warn(category,
-                              "PCI device {} (class {:06x}) is not a display controller. "
-                              "Passthrough of non-display devices may cause host instability.",
-                              dev.pci_address(),
-                              pci_class);
-            }
-
-            if (!MP_BACKEND.is_bound_to_vfio(dev.pci_address()))
-            {
-                devices_need_binding.push_back(dev.pci_address());
-            }
-        }
-
-        // Check IOMMU group cohesion for each passthrough device
-        for (const auto& dev : passthrough_devices)
-        {
-            auto group_link = fmt::format("/sys/bus/pci/devices/{}/iommu_group", dev.pci_address);
-            char group_path[PATH_MAX]{};
-            auto len = readlink(group_link.c_str(), group_path, sizeof(group_path) - 1);
-            if (len <= 0)
-            {
-                mpl::warn(category, "Cannot read IOMMU group for PCI device {}", dev.pci_address);
-                continue;
-            }
-            group_path[len] = '\0';
-
-            // Extract group name from path, e.g. ".../kernel/iommu_groups/19"
-            auto group_dir = fmt::format("{}/devices", group_path);
-            auto dir = opendir(group_dir.c_str());
-            if (!dir)
-                continue;
-
-            struct dirent* entry;
-            while ((entry = readdir(dir)))
-            {
-                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                    continue;
-
-                auto found = std::any_of(passthrough_devices.begin(), passthrough_devices.end(),
-                                         [&](const auto& pd) { return pd.pci_address == entry->d_name; });
-                if (!found)
-                {
-                    mpl::warn(category,
-                              "Device {} in the same IOMMU group as passthrough device {} is "
-                              "not being passed through. The VM may fail to start.",
-                              entry->d_name,
-                              dev.pci_address);
-                }
-            }
-            closedir(dir);
-        }
+        devices_need_binding = MP_PLATFORM.check_passthrough_devices(addresses);
+        for (const auto& addr : addresses)
+            passthrough_devices.push_back({addr});
     }
 
     struct CheckedArguments
@@ -3301,24 +3228,10 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     // Bind devices to vfio-pci if user authorized
     if (request->permission_to_bind_vfio())
     {
+        std::vector<std::string> addresses;
         for (const auto& dev : checked_args.passthrough_devices)
-        {
-            if (!MP_BACKEND.is_bound_to_vfio(dev.pci_address))
-            {
-                MP_BACKEND.bind_device_to_vfio(dev.pci_address);
-
-                // Verify binding took effect
-                using namespace std::chrono_literals;
-                std::this_thread::sleep_for(100ms);
-                if (!MP_BACKEND.is_bound_to_vfio(dev.pci_address))
-                {
-                    mpl::warn(category,
-                              "Device {} may not have been successfully bound to vfio-pci. "
-                              "The VM may fail to start.",
-                              dev.pci_address);
-                }
-            }
-        }
+            addresses.push_back(dev.pci_address);
+        MP_PLATFORM.bind_passthrough_devices(addresses);
     }
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
