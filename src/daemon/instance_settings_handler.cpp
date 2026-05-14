@@ -18,16 +18,15 @@
 #include "instance_settings_handler.h"
 
 #include <multipass/cli/prompters.h>
-#include <shared/linux/backend_utils.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/platform.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
 #include <QStringList>
 
 #include <regex>
-#include <unistd.h>
 
 namespace mp = multipass;
 
@@ -226,10 +225,6 @@ std::vector<mp::PassthroughDevice> parse_devices(const QString& val)
         auto devices = parse_devices(val);
         for (const auto& dev : devices)
         {
-            auto pci_path = fmt::format("/sys/bus/pci/devices/{}", dev.pci_address);
-            if (access(pci_path.c_str(), F_OK) != 0)
-                throw mp::InvalidSettingException{key, val, QString::fromStdString(fmt::format("PCI device {} does not exist", dev.pci_address))};
-
             if (!mp::Backend::instance().is_bound_to_vfio(dev.pci_address))
                 throw mp::InvalidSettingException{
                     key,
