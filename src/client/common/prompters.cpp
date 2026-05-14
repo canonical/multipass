@@ -120,34 +120,27 @@ bool mp::DeviceBindingPrompter::device_binding_prompt(const std::vector<std::str
 {
     assert(devices_need_binding.size()); // precondition
 
-    static constexpr auto plural =
-        "Multipass needs to bind the following PCI devices to vfio-pci on the host: {}.\n"
-        "This may disrupt host drivers using those devices.\n\n"
-        "Do you want to continue (yes/no)? ";
-    static constexpr auto singular =
-        "Multipass needs to bind the following PCI device to vfio-pci on the host: {}.\n"
-        "This may disrupt the host driver using that device.\n\n"
-        "Do you want to continue (yes/no)? ";
+    if (!term->is_live())
+        return false;
 
-    if (term->is_live())
+    const auto plural = devices_need_binding.size() != 1;
+    fmt::print(term->cout(),
+               "Multipass needs to bind the following PCI {0} to vfio-pci on the host: {1}.\n"
+               "This may disrupt host {2} using {3} {0}.\n\n"
+               "Do you want to continue (yes/no)? ",
+               plural ? "devices" : "device",
+               fmt::join(devices_need_binding, ", "),
+               plural ? "drivers" : "driver",
+               plural ? "those" : "that");
+
+    while (true)
     {
-        if (devices_need_binding.size() != 1)
-            fmt::print(term->cout(), plural, fmt::join(devices_need_binding, ", "));
-        else
-            fmt::print(term->cout(), singular, devices_need_binding[0]);
-
-        while (true)
-        {
-            std::string answer;
-            std::getline(term->cin(), answer);
-            if (std::regex_match(answer, mp::client::yes_answer))
-                return true;
-            else if (std::regex_match(answer, mp::client::no_answer))
-                return false;
-            else
-                term->cout() << "Please answer yes/no: ";
-        }
+        std::string answer;
+        std::getline(term->cin(), answer);
+        if (std::regex_match(answer, mp::client::yes_answer))
+            return true;
+        if (std::regex_match(answer, mp::client::no_answer))
+            return false;
+        term->cout() << "Please answer yes/no: ";
     }
-
-    return false;
 }
