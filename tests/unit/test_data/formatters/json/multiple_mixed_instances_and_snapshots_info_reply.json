@@ -31,6 +31,8 @@
             "ipv4": [
                 "10.21.124.56"
             ],
+            "devices": [
+            ],
             "mounts": {
                 "source": {
                     "uid_mappings": [
@@ -99,6 +101,8 @@
             "memory": {
             },
             "ipv4": [
+            ],
+            "devices": [
             ],
             "mounts": {
             }

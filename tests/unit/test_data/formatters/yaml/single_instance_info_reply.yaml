@@ -24,6 +24,8 @@ foo:
     ipv4:
       - 10.168.32.2
       - 200.3.123.29
+    devices:
+      []
     mounts:
       foo:
         uid_mappings:
