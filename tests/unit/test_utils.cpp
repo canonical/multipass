@@ -392,7 +392,7 @@ TEST(Utils, trimNewlineAssertionWorks)
 {
     std::string s{"wrong"};
     // https://google.github.io/googletest/advanced.html#regular-expression-syntax
-    ASSERT_DEBUG_DEATH(mp::utils::trim_newline(s), "\\wssert");
+    ASSERT_DEBUG_DEATH(mp::utils::trim_newline(s), "[Aa]ssert");
 }
 
 TEST_F(TestTrimUtilities, trimRvalue)
