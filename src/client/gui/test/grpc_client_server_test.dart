@@ -152,6 +152,13 @@ class _StubService extends RpcServiceBase {
   Stream<WaitReadyReply> wait_ready(
           ServiceCall c, Stream<WaitReadyRequest> r) =>
       _unimplemented();
+  @override
+  Stream<ZonesReply> zones(ServiceCall c, Stream<ZonesRequest> r) =>
+      _unimplemented();
+  @override
+  Stream<ZonesStateReply> zones_state(
+          ServiceCall c, Stream<ZonesStateRequest> r) =>
+      _unimplemented();
 }
 
 late _StubService _stub;
