@@ -3435,6 +3435,35 @@ TEST_F(SftpServer, brokenLinkInParentPathFailsValidation)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
+TEST_F(SftpServer, badLinkReturnsPermissionDenied)
+{
+    // The proper behavior with bad links is to respond permission denied
+    // when they are read to avoid `ls` or `cd` from showing any output.
+    // This contributes to what would be expected behavior (handle_readlink)
+
+    mpt::TempDir temp_dir;
+    auto link = fs::path(temp_dir.path().toStdString()) / "bad_link";
+    auto bad_location = fs::path(temp_dir.path().toStdString()) / "..";
+
+    MP_PLATFORM.symlink(bad_location.string().c_str(), link.string().c_str(), false);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_READLINK); // A request that follows symlinks
+    auto filename = name_as_char_array(link.string());
+    msg->filename = filename.data();
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    EXPECT_THAT(num_calls, Eq(1));
+}
+
 TEST_F(SftpServer, isSymlinkErrorFailsValidation)
 {
     mpt::TempDir temp_dir;

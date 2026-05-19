@@ -312,7 +312,7 @@ mp::SftpServer::SftpServer(SSHSession&& session,
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{MP_FILEOPS.weakly_canonical(source)},
-      target_path{target},
+      target_path{fs::path(target).lexically_normal()},
       gid_mappings{gid_mappings},
       uid_mappings{uid_mappings},
       default_uid{default_uid},
@@ -494,7 +494,7 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
     }
 
     // Return it as an absolute path from the perspective of the guest
-    return (target_path / relative).generic_string();
+    return (target_path / relative).lexically_normal().generic_string();
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
