@@ -87,7 +87,14 @@ const QMap<QString, QMap<QString, CustomImageInfo>> multipass_image_info{
         "Ubuntu",
         "core-24",
         "Core 24",
-        "Core 24"}}}}};
+        "Core 24"}},
+      {{"ubuntu-core-26-amd64.img.xz"},
+       {"https://cdimage.ubuntu.com/ubuntu-core/26/stable/current/",
+        {"core26"},
+        "Ubuntu",
+        "core-26",
+        "Core 26",
+        "Core 26"}}}}};
 
 auto base_image_info_for(mp::URLDownloader* url_downloader,
                          const QString& image_url,
