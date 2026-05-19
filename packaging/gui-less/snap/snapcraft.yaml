@@ -94,7 +94,6 @@ parts:
     after: [qt-ssl-plugin]
     plugin: cmake
     build-snaps:
-    - cmake
     - rustup
     build-environment:
     - PATH: /snap/bin:$PATH
@@ -130,6 +129,7 @@ parts:
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     - autoconf-archive # vcpkg-systemd: libxcrypt requires autoconf-archive
     - python3-pip
+    - cmake
     stage-packages:
     - apparmor
     - libpng16-16
