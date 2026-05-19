@@ -52,7 +52,9 @@ constexpr auto sha256_sums = "934d52e4251537ee3bd8c500f212ae4c34992447e7d40d94f0
                              "6378b1fa3db76cdf18c905c8282ebc97401951a9338722486f653dbf16eb7915 "
                              "*ubuntu-core-22-amd64.img.xz\n"
                              "192c40c8f3361f4f9da2757d87e409ac5abb2df393145983d3696e21f486b552 "
-                             "*ubuntu-core-24-amd64.img.xz\n";
+                             "*ubuntu-core-24-amd64.img.xz\n"
+                             "be0e82c272fe12609e5db7d18f5e93cba76c5b725529b243c71833180b0c6780 "
+                             "*ubuntu-core-26-amd64.img.xz\n";
 
 struct CustomImageHost : public Test
 {
@@ -143,7 +145,8 @@ TEST_F(CustomImageHost, iteratesOverAllEntries)
                              "1ffea8a9caf5a4dcba4f73f9144cb4afe1e4fc1987f4ab43bed4c02fad9f087f",
                              "52a4606b0b3b28e4cb64e2c2595ef8fdbb4170bfd3596f4e0b84f4d84511b614",
                              "6378b1fa3db76cdf18c905c8282ebc97401951a9338722486f653dbf16eb7915",
-                             "192c40c8f3361f4f9da2757d87e409ac5abb2df393145983d3696e21f486b552"));
+                             "192c40c8f3361f4f9da2757d87e409ac5abb2df393145983d3696e21f486b552",
+                             "be0e82c272fe12609e5db7d18f5e93cba76c5b725529b243c71833180b0c6780"));
 }
 
 TEST_F(CustomImageHost, allImagesForNoRemoteReturnsAppropriateMatches)
@@ -152,7 +155,7 @@ TEST_F(CustomImageHost, allImagesForNoRemoteReturnsAppropriateMatches)
     host.update_manifests(false);
     auto images = host.all_images_for("", false);
 
-    const size_t expected_matches{5};
+    const size_t expected_matches{6};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
