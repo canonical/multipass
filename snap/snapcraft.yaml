@@ -66,14 +66,13 @@ apps:
       - system-observe  # to read the host's os-release
   multipass:
     environment:
-      <<: &client-environment
-        LD_LIBRARY_PATH: *library-path
-        PATH: *path
-        QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins
-        XDG_DATA_HOME: $SNAP_USER_DATA/data
-        XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
-        XDG_CACHE_HOME: $SNAP_USER_DATA/cache
-        XDG_CONFIG_HOME: $SNAP_USER_DATA/config
+      LD_LIBRARY_PATH: *library-path
+      PATH: *path
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins
+      XDG_DATA_HOME: $SNAP_USER_DATA/data
+      XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
+      XDG_CACHE_HOME: $SNAP_USER_DATA/cache
+      XDG_CONFIG_HOME: $SNAP_USER_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     command: bin/launch-multipass
     completer: etc/bash_completion.d/snap.multipass
@@ -84,7 +83,7 @@ apps:
     desktop: usr/share/applications/multipass.gui.desktop
     autostart: multipass.gui.autostart.desktop
     extensions: [ gnome ]
-    environment: &_client-environment
+    environment:
       XDG_DATA_HOME: $SNAP_USER_DATA
       XDG_DATA_DIRS: $SNAP/usr/share
     command: bin/bundle/multipass_gui

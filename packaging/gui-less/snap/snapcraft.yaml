@@ -69,14 +69,13 @@ apps:
     - system-observe    # to read the host's os-release
   multipass:
     environment:
-      <<:
-        LD_LIBRARY_PATH: *library-path
-        PATH: *path
-        QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins
-        XDG_DATA_HOME: $SNAP_USER_DATA/data
-        XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
-        XDG_CACHE_HOME: $SNAP_USER_DATA/cache
-        XDG_CONFIG_HOME: $SNAP_USER_DATA/config
+      LD_LIBRARY_PATH: *library-path
+      PATH: *path
+      QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins
+      XDG_DATA_HOME: $SNAP_USER_DATA/data
+      XDG_DATA_DIRS: $SNAP/usr/share:$SNAP_DATA/data
+      XDG_CACHE_HOME: $SNAP_USER_DATA/cache
+      XDG_CONFIG_HOME: $SNAP_USER_DATA/config
       DAEMON_CONFIG_HOME: *daemon-config
                                          # temporary
     command: bin/launch-multipass
