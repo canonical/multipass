@@ -985,6 +985,17 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
         mpl::trace(category, "{}: invalid link for \'{}\'", __FUNCTION__, filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
     }
+    // Hard-code false: we only want to know if the current link points outside the sandbox, not if
+    // a possible target link points outside the sandbox
+    if (!validate_path(fs::path(link.toStdString()), false))
+    {
+        mpl::trace(category,
+                   "{}: cannot validate path '{}' against source '{}'",
+                   __FUNCTION__,
+                   link.toStdString(),
+                   source_path.string());
+        return reply_perm_denied(msg);
+    }
 
     QFileInfo file_info{*filename};
     if (!has_id_mappings_for(file_info))
