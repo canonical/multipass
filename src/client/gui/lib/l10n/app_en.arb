@@ -157,7 +157,7 @@
             }
         }
     },
-    "deleteInstanceBody": "{count, plural, =1{You won't be able to recover this instance.} other{You won't be able to recover these instances.}}",
+    "deleteInstanceBody": "{count, plural, =1{You can't recover this instance.} other{You can't recover these instances.}}",
     "@deleteInstanceBody": {
         "description": "Body text of the delete instance confirmation dialog",
         "placeholders": {
@@ -302,7 +302,7 @@
     "@usagePrimaryNameErrorStartLetter": {
         "description": "Validation error when the primary instance name does not start with a letter"
     },
-    "usagePrimaryNameErrorTooShort": "Name must be at least 2 characters",
+    "usagePrimaryNameErrorTooShort": "Name must be at least two characters",
     "@usagePrimaryNameErrorTooShort": {
         "description": "Validation error when the primary instance name is too short"
     },
@@ -550,7 +550,7 @@
     "@bridgeNoValidNetwork": {
         "description": "Status message when a bridged network is not configured"
     },
-    "bridgeEstablishedWarning": "Once established, you won't be able to unset the connection.",
+    "bridgeEstablishedWarning": "Once established, the connection can't be unset.",
     "@bridgeEstablishedWarning": {
         "description": "Warning shown when the bridged network checkbox is available"
     },
@@ -850,7 +850,7 @@
     "@imageCardTitleFedora": {
         "description": "Display title for Fedora image"
     },
-    "imageCardDescUbuntuCore": "Ubuntu operating system optimised for IoT and Edge",
+    "imageCardDescUbuntuCore": "Ubuntu operating system optimized for IoT and Edge",
     "@imageCardDescUbuntuCore": {
         "description": "Description for Ubuntu Core image"
     },
@@ -952,5 +952,15 @@
     "trayOpenInMultipass": "Open in Multipass",
     "@trayOpenInMultipass": {
         "description": "Tray menu item label to open the instance in the Multipass window"
+    },
+    "spellOutNumber": "{n, select, 0{zero} 1{one} 2{two} 3{three} 4{four} 5{five} 6{six} 7{seven} 8{eight} 9{nine} other{{n}}}",
+    "@spellOutNumber": {
+        "description": "Spells out a single-digit number (0–9) as a word; numbers 10 and above are returned as digits",
+        "placeholders": {
+            "n": {
+                "type": "String",
+                "description": "The number to spell out, passed as a string"
+            }
+        }
     }
 }
