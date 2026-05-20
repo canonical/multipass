@@ -40,13 +40,17 @@
     "@beforeQuitTitle": {
         "description": "Title of the dialog asking the user whether to stop running VMs on quit"
     },
-    "beforeQuitMessage": "{count, plural, =1{There is 1 running instance. Do you want to stop it?} other{There are {count} running instances. Do you want to stop them?}}",
+    "beforeQuitMessage": "{count, plural, =1{There is one running instance. Do you want to stop it?} other{There are {displayCount} running instances. Do you want to stop them?}}",
     "@beforeQuitMessage": {
         "description": "Body of the dialog asking the user whether to stop running VMs on quit",
         "placeholders": {
             "count": {
                 "type": "int",
-                "description": "Number of running VM instances"
+                "description": "Number of running VM instances (used for plural selection only)"
+            },
+            "displayCount": {
+                "type": "String",
+                "description": "Spelled-out or numeric count to display in the message"
             }
         }
     },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'confirmation_dialog.dart';
+import 'extensions.dart';
 import 'l10n/app_localizations.dart';
 
 class BeforeQuitDialog extends StatefulWidget {
@@ -32,7 +33,8 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 8),
-            child: Text(l10n.beforeQuitMessage(widget.runningCount)),
+            child: Text(l10n.beforeQuitMessage(
+                widget.runningCount, widget.runningCount.spelledOut(l10n))),
           ),
           const SizedBox(height: 24),
           Row(
