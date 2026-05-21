@@ -167,7 +167,7 @@ class ImageCard extends ConsumerWidget {
 
                   initiateLaunchFlow(ref, launchRequest);
                 },
-                child: Text(l10n.vmTableLaunch),
+                child: Text(l10n.commonLaunch),
               ),
               const SizedBox(width: 8),
               OutlinedButton(

@@ -292,7 +292,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     final launchButton = TextButton(
       onPressed: () => launch(imageInfo),
-      child: Text(l10n.vmTableLaunch),
+      child: Text(l10n.commonLaunch),
     );
 
     final launchAndConfigureNextButton = OutlinedButton(

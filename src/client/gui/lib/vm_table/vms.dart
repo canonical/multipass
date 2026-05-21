@@ -85,7 +85,7 @@ class Vms extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        TextButton(onPressed: goToCatalogue, child: Text(l10n.vmTableLaunch)),
+        TextButton(onPressed: goToCatalogue, child: Text(l10n.commonLaunch)),
       ],
     );
 

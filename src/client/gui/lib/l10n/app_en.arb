@@ -747,8 +747,8 @@
     "@vmTableAllInstances": {
         "description": "Page heading above the VM table"
     },
-    "vmTableLaunch": "Launch",
-    "@vmTableLaunch": {
+    "commonLaunch": "Launch",
+    "@commonLaunch": {
         "description": "Button label that opens the catalogue to launch a new instance"
     },
     "vmTableShowRunningOnly": "Show running instances only",
