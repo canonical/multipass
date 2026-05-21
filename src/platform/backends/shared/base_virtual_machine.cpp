@@ -913,8 +913,7 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    static constexpr auto wait_step = 1s;
-    ssh_session = std::make_unique<PlainSSHSession>(ssh_hostname(wait_step),
+    ssh_session = std::make_unique<PlainSSHSession>(ssh_hostname(),
                                                     ssh_port(),
                                                     ssh_username(),
                                                     key_provider);

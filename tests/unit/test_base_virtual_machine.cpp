@@ -1364,7 +1364,7 @@ TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
         .WillOnce(Return(mp::VirtualMachine::State::running))    // when 1st waiting for cloud-init
         .WillOnce(Return(mp::VirtualMachine::State::restarting)) // when retrying to ssh
         .WillOnce(Return(mp::VirtualMachine::State::running));   // back waiting for cloud-init
-    EXPECT_CALL(vm, ssh_hostname(_));
+    EXPECT_CALL(vm, ssh_hostname());
     EXPECT_CALL(vm, ssh_port());
     EXPECT_CALL(vm, ssh_username());
     EXPECT_CALL(vm, ssh_exec)
@@ -1380,7 +1380,7 @@ TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
     vm.simulate_waiting_for_ssh();
     constexpr auto action = "determine IP address";
     EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
-    EXPECT_CALL(vm, ssh_hostname(_))
+    EXPECT_CALL(vm, ssh_hostname())
         .WillOnce(Throw(mp::InternalTimeoutException{action, std::chrono::milliseconds{0}}));
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
@@ -1407,11 +1407,11 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     EXPECT_CALL(vm, handle_state_update).WillRepeatedly(Return());
 
     auto timeout = std::chrono::milliseconds{100};
-    EXPECT_CALL(vm, ssh_hostname(_))
-        .WillOnce(WithoutArgs([]() {
+    EXPECT_CALL(vm, ssh_hostname())
+        .WillOnce([]() -> std::string {
             std::visit(thrower, GetParam());
             return "neverland";
-        }))
+        })
         .WillRepeatedly(Return("underworld"));
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
