@@ -278,26 +278,26 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
              : found->first;
 }
 
-constexpr bool follows_symlinks(uint8_t type)
+constexpr bool request_requires_file_exists(uint8_t type)
 {
     switch (type)
     {
-    case SSH_FXP_OPEN:
-    case SSH_FXP_OPENDIR:
-    case SSH_FXP_REALPATH:
-    case SSH_FXP_SETSTAT:
-    case SSH_FXP_STAT:
-        return true;
-    case SSH_FXP_LSTAT:
-    case SSH_FXP_READLINK:
-    case SSH_FXP_REMOVE:
-    case SSH_FXP_RMDIR:
-    case SSH_FXP_MKDIR:
-    case SSH_FXP_RENAME:
-    case SSH_FXP_SYMLINK:
+    case SFTP_LSTAT:
+    case SFTP_READLINK:
+    case SFTP_REMOVE:
+    case SFTP_RMDIR:
+    case SFTP_MKDIR:
+    case SFTP_RENAME:
+    case SFTP_SYMLINK:
         return false;
+    case SFTP_OPEN:
+    case SFTP_OPENDIR:
+    case SFTP_REALPATH:
+    case SFTP_SETSTAT:
+    case SFTP_STAT:
+    case SFTP_EXTENDED:
     default:
-        return false; // Fail-safe default
+        return true; // Fail-safe default
     }
 }
 } // namespace
@@ -409,7 +409,7 @@ bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
            has_gid_mapping_for(MP_FILEOPS.groupId(file_info));
 }
 
-bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlink) const
+bool mp::SftpServer::validate_path(const fs::path& current_path, bool check_file_itself) const
 {
     if (source_path.empty() || current_path.empty())
         return false;
@@ -420,7 +420,7 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
 
         // weakly_canonical allows paths that do not exist. This means that broken links will be
         // treated as literal folders/files, so they need to be filtered out.
-        fs::path check_path = follows_symlink ? current_path : current_path.parent_path();
+        fs::path check_path = check_file_itself ? current_path : current_path.parent_path();
         if (check_path.empty())
         {
             check_path = ".";
@@ -435,7 +435,7 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
             check_path = check_path.parent_path();
         }
         // If no broken symlinks, canonicalize the path.
-        if (follows_symlink)
+        if (check_file_itself)
             final_path = MP_FILEOPS.weakly_canonical(current_path);
         else
         {
@@ -468,9 +468,9 @@ fs::path mp::SftpServer::get_absolute_path(const char* path) const
 
 std::optional<fs::path> mp::SftpServer::get_validated_path(sftp_client_message msg) const
 {
-    bool follows{follows_symlinks(sftp_client_message_get_type(msg))};
+    bool check_file_exists{request_requires_file_exists(sftp_client_message_get_type(msg))};
     const auto path = get_absolute_path(sftp_client_message_get_filename(msg));
-    if (!validate_path(path, follows))
+    if (!validate_path(path, check_file_exists))
     {
         mpl::trace_location(category,
                             "cannot validate path '{}' against source '{}'",
@@ -660,7 +660,8 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 
     const auto& [path, _] = *handle;
 
-    if (!validate_path(path, follows_symlinks(sftp_client_message_get_type(msg))))
+    // File is supposed to be open, and as such it must exist
+    if (!validate_path(path, request_requires_file_exists(SFTP_FSTAT)))
     {
         mpl::trace_location(category,
                             "cannot validate target path \'{}\' against source \'{}\'",
@@ -1221,6 +1222,7 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
     }
     else
     {
+        // Fallback if symlink_attr_from fails
         if (file_info.isSymLink() && follow)
             file_info = QFileInfo(file_info.symLinkTarget());
 
@@ -1332,40 +1334,44 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     const std::string method(submessage);
     if (method == "hardlink@openssh.com")
     {
-        const auto old_name = get_validated_path(msg);
-        if (!old_name.has_value())
+        // A hardlink needs the target to exist, and as such needs to exist within the mount folder
+        const auto hardlink_target = get_validated_path(msg);
+        if (!hardlink_target.has_value())
             return reply_perm_denied(msg);
-        const auto new_name = get_absolute_path(sftp_client_message_get_data(msg));
+        const auto hardlink_path = get_absolute_path(sftp_client_message_get_data(msg));
 
-        if (!validate_path(new_name, follows_symlinks(sftp_client_message_get_type(msg))))
+        // We may be creating a hard-link, it could not exist
+        if (!validate_path(hardlink_path, false))
         {
             mpl::trace_location(category,
                                 "cannot validate path \'{}\' against source \'{}\'",
-                                new_name,
+                                hardlink_path,
                                 source_path);
             return reply_perm_denied(msg);
         }
 
-        QFileInfo file_info{*old_name};
+        QFileInfo file_info{*hardlink_target};
         if (!has_id_mappings_for(file_info))
         {
             mpl::trace_location(category,
                                 "cannot access path \'{}\' without id mapping: permission denied",
-                                old_name);
+                                hardlink_target);
             return reply_perm_denied(msg);
         }
 
-        if (!MP_PLATFORM.link(old_name->string().c_str(), new_name.string().c_str()))
+        if (!MP_PLATFORM.link(hardlink_target->string().c_str(), hardlink_path.string().c_str()))
         {
             mpl::trace_location(category,
                                 "failed creating link from \'{}\' to \'{}\'",
-                                old_name,
-                                new_name);
+                                hardlink_target,
+                                hardlink_path);
             return reply_failure(msg);
         }
     }
     else if (method == "posix-rename@openssh.com")
     {
+        // To override the default file check in SFTP_EXTENDED
+        msg->type = SFTP_RENAME;
         return handle_rename(msg);
     }
     else
