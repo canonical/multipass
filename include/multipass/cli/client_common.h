@@ -21,8 +21,8 @@
 
 #include <multipass/cert_provider.h>
 #include <multipass/cli/client_platform.h>
-#include <multipass/cli/return_codes.h>
 #include <multipass/console.h>
+#include <multipass/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/ssl_cert_provider.h>
 

@@ -18,9 +18,9 @@
 #pragma once
 
 #include <multipass/callable_traits.h>
-#include <multipass/cli/return_codes.h>
 #include <multipass/disabled_copy_move.h>
 #include <multipass/format.h>
+#include <multipass/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 #include <multipass/utils.h>
