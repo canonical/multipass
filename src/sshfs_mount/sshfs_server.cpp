@@ -29,6 +29,7 @@
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
+#include <multipass/return_codes.h>
 #include <multipass/ssh/ssh_session.h>
 
 #include <ssh/ssh_client_key_provider.h>
@@ -76,14 +77,14 @@ int main(int argc, char* argv[])
     if (argc != 9)
     {
         cerr << "Incorrect arguments" << endl;
-        exit(2);
+        return 2;
     }
 
     const auto key = qgetenv("KEY");
     if (key == nullptr)
     {
         cerr << "KEY not set" << endl;
-        exit(2);
+        return 2;
     }
     const auto priv_key_blob = string(key);
     const auto host = string(argv[1]);
@@ -95,13 +96,13 @@ int main(int argc, char* argv[])
     const mp::id_mappings gid_mappings = convert_id_mappings(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
-    auto logger = mpp::make_logger(log_level);
-    if (!logger)
-        logger = std::make_unique<mpl::StandardLogger>(log_level);
+    auto base_logger = mpp::make_logger(log_level);
+    if (!base_logger)
+        base_logger = std::make_unique<mpl::StandardLogger>(log_level);
 
     // Use the MultiplexingLogger as we may end up routing messages to the daemon too at some point
-    auto standard_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(logger));
-    mpl::set_logger(standard_logger);
+    auto mpx_logger = std::make_shared<mpl::MultiplexingLogger>(std::move(base_logger));
+    mpl::set_logger(mpx_logger);
 
     MP_PLATFORM.setup_permission_inheritance(false);
 
@@ -126,16 +127,21 @@ int main(int argc, char* argv[])
             cerr << "SFTP server thread stopped unexpectedly." << endl;
 
         sshfs_mount.stop();
+        // If the sshfs thread is detached, `return` would cause a use-after-free
+        // so we use exit to abort the underlying thread if it is still running.
+        // Any other resources are given back to the OS.
         exit(sig.has_value() ? EXIT_SUCCESS : EXIT_FAILURE);
     }
     catch (const mp::SSHFSMissingError&)
     {
         cerr << "SSHFS was not found on the host: " << host << endl;
-        exit(9);
+        // ssh resource teardown already happened, so exit() is not necessary
+        return mp::missing_host_sshfs_exit_code;
     }
     catch (const exception& e)
     {
         cerr << e.what();
+        // ssh resource teardown already happened, so exit() is not necessary
+        return EXIT_FAILURE;
     }
-    return 1;
 }

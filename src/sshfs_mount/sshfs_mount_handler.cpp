@@ -18,6 +18,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/platform.h>
+#include <multipass/return_codes.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/utils.h>
 
@@ -209,7 +210,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
 
     // Check in case sshfs_server stopped, usually due to an error
     const auto process_state = process->process_state();
-    if (process_state.exit_code == 9) // Magic number returned by sshfs_server
+    if (process_state.exit_code == mp::missing_host_sshfs_exit_code)
         throw SSHFSMissingError();
     else if (process_state.exit_code || process_state.error)
         throw std::runtime_error(fmt::format("{}: {}",
