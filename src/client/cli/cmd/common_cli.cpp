@@ -21,9 +21,9 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/format_utils.h>
-#include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/return_codes.h>
 
 #include <QCommandLineOption>
 #include <QString>

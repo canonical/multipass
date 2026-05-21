@@ -20,6 +20,10 @@
 
 namespace multipass
 {
+
+constexpr auto timeout_exit_code = 5;
+constexpr auto missing_host_sshfs_exit_code = 9;
+
 enum class ParseCode
 {
     Ok,
