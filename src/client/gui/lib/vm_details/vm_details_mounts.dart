@@ -64,7 +64,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             .read(activeEditPageProvider(widget.name).notifier)
             .set(ActiveEditPage.mounts);
       },
-      child: Text(l10n.dialogConfigure),
+      child: Text(l10n.commonConfigure),
     );
 
     final cancelButton = OutlinedButton(

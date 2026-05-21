@@ -368,8 +368,8 @@
     "@dialogSave": {
         "description": "Generic Save button label used across multiple dialogs and edit forms"
     },
-    "dialogConfigure": "Configure",
-    "@dialogConfigure": {
+    "commonConfigure": "Configure",
+    "@commonConfigure": {
         "description": "Generic Configure button label used to enter edit mode"
     },
     "vmStatCpuUsage": "CPU USAGE",

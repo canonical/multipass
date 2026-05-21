@@ -176,7 +176,7 @@ class ImageCard extends ConsumerWidget {
                       selectedImage;
                   Scaffold.of(context).openEndDrawer();
                 },
-                child: Text(l10n.dialogConfigure),
+                child: Text(l10n.commonConfigure),
               ),
             ]),
           ],

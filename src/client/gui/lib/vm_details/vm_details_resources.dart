@@ -124,7 +124,7 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
       message: l10n.vmDetailsStopToConfigure,
       child: OutlinedButton(
         onPressed: stopped ? configure : null,
-        child: Text(l10n.dialogConfigure),
+        child: Text(l10n.commonConfigure),
       ),
     );
 

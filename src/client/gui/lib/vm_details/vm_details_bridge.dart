@@ -107,7 +107,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       message: l10n.vmDetailsStopToConfigure,
       child: OutlinedButton(
         onPressed: stopped ? configure : null,
-        child: Text(l10n.dialogConfigure),
+        child: Text(l10n.commonConfigure),
       ),
     );
 
