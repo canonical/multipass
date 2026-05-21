@@ -11,7 +11,7 @@ runs:
   steps:
     - name: Install yq
       shell: bash
-      run: go install github.com/mikefarah/yq/v4@latest
+      run: sudo snap install yq
 
     - name: Extract CLANG_VERSION
       id: extract

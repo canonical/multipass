@@ -133,7 +133,7 @@ jobs:
         MP_ALLOW_OPTIONAL_FEATURES: ${{ github.event_name == 'schedule' && 'OFF' || 'ON' }}
 
       run: |
-        go install github.com/mikefarah/yq/v4@latest
+        sudo snap install yq
 
         # Substitute the environment variables in the snapcraft-ci-override.yaml
         envsubst < snap/local/snapcraft-ci-override.yaml.in | yq eval 'del(.. | select(. == null or . == "")) | del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))' -P > snap/local/snapcraft-ci-override.yaml
