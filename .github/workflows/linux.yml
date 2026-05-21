@@ -112,6 +112,12 @@ jobs:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
 
+    - name: Exclude GUI from unsupported arches
+      if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-noble-edge' || matrix.runs-on == 'self-hosted-linux-s390x-noble-edge' }}
+      run: |
+        cp packaging/gui-less/snap/snapcraft.yaml snap/snapcraft.yaml
+        yq -i '.parts.multipass.source = "."' snap/snapcraft.yaml
+
     - name: Determine build parameters
       id: build-params
       uses: ./.github/actions/build-params
