@@ -306,6 +306,85 @@ TEST_F(QemuBackend, QMPErrorGetsLogged)
     machine->state = mp::VirtualMachine::State::running; // Necessary to properly shutdown
 }
 
+TEST_F(QemuBackend, QMPHandlerIgnoresNonJsonLines)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    process_factory->register_callback([](mpt::MockProcess* process) {
+        if (process->program().startsWith("qemu-system-"))
+        {
+            EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
+                auto json = boost::json::parse(std::string_view(data));
+                auto execute = value_to<std::string>(json.at("execute"));
+
+                if (execute == "qmp_capabilities")
+                {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillRepeatedly(Return("Can't open directory /proc/device-tree/cpus/\n"
+                                               "Can't open directory /proc/device-tree/cpus/\n"));
+                    emit process->ready_read_standard_output();
+                }
+
+                return data.size();
+            });
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+}
+
+TEST_F(QemuBackend, QMPHandlerProcessesInterleavedJson)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    process_factory->register_callback([](mpt::MockProcess* process) {
+        if (process->program().startsWith("qemu-system-"))
+        {
+            EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
+                auto json = boost::json::parse(std::string_view(data));
+                auto execute = value_to<std::string>(json.at("execute"));
+
+                if (execute == "qmp_capabilities")
+                {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillRepeatedly(Return("Can't open directory /proc/device-tree/cpus/\n"
+                                               "{\"error\": {\"desc\": \"some error\"}}\n"
+                                               "Can't open directory /proc/device-tree/cpus/\n"));
+                    emit process->ready_read_standard_output();
+                }
+
+                return data.size();
+            });
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "QMP error: some error");
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+}
+
 TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
 {
     mpt::MockProcess* vmproc = nullptr;
