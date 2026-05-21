@@ -742,7 +742,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     }
 
     std::error_code err;
-    if (!MP_FILEOPS.remove(filename->c_str(), err) && !err)
+    if (!MP_FILEOPS.remove(*filename, err) && !err)
         err = std::make_error_code(std::errc::no_such_file_or_directory);
 
     if (err)
@@ -765,7 +765,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     std::error_code err;
-    const auto status = MP_FILEOPS.symlink_status(filename->c_str(), err);
+    const auto status = MP_FILEOPS.symlink_status(*filename, err);
     if (err && status.type() != fs::file_type::not_found)
     {
         mpl::trace(category, "Cannot get status of '{}': {}", filename->string(), err.message());
@@ -813,8 +813,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     if (flags & SSH_FXF_EXCL)
         mode |= O_EXCL;
 
-    auto named_fd =
-        MP_FILEOPS.open_fd(filename->c_str(), mode, msg->attr ? msg->attr->permissions : 0);
+    auto named_fd = MP_FILEOPS.open_fd(*filename, mode, msg->attr ? msg->attr->permissions : 0);
     if (named_fd->fd == -1)
     {
         mpl::trace(category, "Cannot open '{}': {}", filename->string(), std::strerror(errno));
@@ -857,7 +856,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     std::error_code err;
-    auto dir_iterator = MP_FILEOPS.dir_iterator(filename->c_str(), err);
+    auto dir_iterator = MP_FILEOPS.dir_iterator(*filename, err);
 
     if (err.value() == int(std::errc::no_such_file_or_directory) ||
         err.value() == int(std::errc::no_such_process))
@@ -1049,7 +1048,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     }
 
     std::error_code err;
-    if (!MP_FILEOPS.remove(filename->c_str(), err) && !err)
+    if (!MP_FILEOPS.remove(*filename, err) && !err)
         err = std::make_error_code(std::errc::no_such_file_or_directory);
 
     if (err)

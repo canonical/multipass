@@ -1060,8 +1060,9 @@ TEST_F(SftpServer, handlesSymlink)
     msg->attr->uid = 1000;
     msg->attr->gid = 1000;
 
-    auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    auto link_char_array = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data,
+            [&link_char_array](auto...) { return link_char_array.data(); });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
