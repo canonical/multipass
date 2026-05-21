@@ -497,7 +497,7 @@ void mp::VirtualBoxVirtualMachine::handle_state_update()
     monitor->persist_state_for(vm_name, state);
 }
 
-std::string mp::VirtualBoxVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string mp::VirtualBoxVirtualMachine::ssh_hostname()
 {
     return "127.0.0.1";
 }

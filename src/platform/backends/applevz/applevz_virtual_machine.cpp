@@ -262,7 +262,7 @@ int AppleVZVirtualMachine::ssh_port()
     return 22;
 }
 
-std::string AppleVZVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string AppleVZVirtualMachine::ssh_hostname()
 {
     // TODO@rewire use management_ipv4 instead?
     if (!(management_ip || ((management_ip = backend::get_neighbour_ip(desc.default_mac_address)))))

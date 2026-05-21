@@ -180,7 +180,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return 42;
     }
 
-    std::string ssh_hostname(std::chrono::milliseconds /*timeout*/) override
+    std::string ssh_hostname() override
     {
         return "localhost";
     }

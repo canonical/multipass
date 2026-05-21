@@ -1064,7 +1064,7 @@ TEST_F(QemuBackend, sshHostnameReturnsExpectedValue)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_EQ(machine.VirtualMachine::ssh_hostname(), expected_ip);
+    EXPECT_EQ(machine.ssh_hostname(), expected_ip);
 }
 
 TEST_F(QemuBackend, getsManagementIp)
@@ -1119,7 +1119,7 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), mp::IPUnavailableException);
+    EXPECT_THROW(machine.ssh_hostname(), mp::IPUnavailableException);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::running);
 }
 

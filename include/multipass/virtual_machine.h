@@ -80,11 +80,7 @@ public:
     virtual void set_available(bool available) = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname()
-    {
-        return ssh_hostname(std::chrono::minutes(2));
-    }
-    virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
+    virtual std::string ssh_hostname() = 0;
     virtual std::string ssh_username() = 0;
     virtual std::optional<IPAddress> management_ipv4() = 0;
     virtual std::vector<IPAddress> get_all_ipv4() = 0;
