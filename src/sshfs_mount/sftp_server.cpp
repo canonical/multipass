@@ -405,7 +405,7 @@ bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
            has_gid_mapping_for(MP_FILEOPS.groupId(file_info));
 }
 
-bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlinks) const
+bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlink) const
 {
     if (source_path.empty() || current_path.empty())
         return false;
@@ -414,32 +414,30 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
     try
     {
 
-        if (follows_symlinks)
+        // weakly_canonical allows paths that do not exist. This means that broken links will be
+        // treated as literal folders/files, so they need to be filtered out.
+        fs::path check_path = follows_symlink ? current_path : current_path.parent_path();
+        if (check_path.empty())
         {
-            // weakly_canonical allows paths that do not exist. This means that broken links will be
-            // treated as literal folders/files, so they need to be filtered out.
-            fs::path check_path = current_path;
-            while (check_path != check_path.parent_path() && !MP_FILEOPS.exists(check_path))
-            {
-                if (MP_FILEOPS.is_symlink(check_path))
-                {
-                    // A broken symlink was detected! It could point anywhere on the host.
-                    return false;
-                }
-                check_path = check_path.parent_path();
-            }
-            // If no broken symlinks, canonicalize the path.
-            final_path = MP_FILEOPS.weakly_canonical(current_path);
+            check_path = ".";
         }
+        while (check_path != check_path.parent_path() && !MP_FILEOPS.exists(check_path))
+        {
+            if (MP_FILEOPS.is_symlink(check_path))
+            {
+                // A broken symlink was detected! It could point anywhere on the host.
+                return false;
+            }
+            check_path = check_path.parent_path();
+        }
+        // If no broken symlinks, canonicalize the path.
+        if (follows_symlink)
+            final_path = MP_FILEOPS.weakly_canonical(current_path);
         else
         {
-            auto parent = current_path.parent_path();
-            if (parent.empty())
-            {
-                parent = ".";
-            }
-            auto resolved_parent = MP_FILEOPS.weakly_canonical(parent);
-
+            // The target path is a symlink, we examine the parent path
+            auto resolved_parent = MP_FILEOPS.weakly_canonical(current_path.parent_path());
+            // If no broken symlinks, canonicalize the path.
             final_path = (resolved_parent / current_path.filename()).lexically_normal();
         }
     }
