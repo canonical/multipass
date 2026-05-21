@@ -21,7 +21,6 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
-#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
@@ -896,10 +895,6 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
     {
         ssh_and_cross_to_running();
         return utils::TimeoutAction::done;
-    }
-    catch (const InternalTimeoutException& e)
-    {
-        return log_and_retry(e, this);
     }
     catch (const SSHException& e)
     {

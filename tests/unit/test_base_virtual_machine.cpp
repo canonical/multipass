@@ -30,7 +30,6 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/exceptions/file_open_failed_exception.h>
-#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
@@ -1375,25 +1374,7 @@ TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
     EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
 }
 
-TEST_F(BaseVM, waitForSSHUpThrowsOnTimeout)
-{
-    vm.simulate_waiting_for_ssh();
-    constexpr auto action = "determine IP address";
-    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
-    EXPECT_CALL(vm, ssh_hostname())
-        .WillOnce(Throw(mp::InternalTimeoutException{action, std::chrono::milliseconds{0}}));
-
-    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    auto& mock_utils = *mock_utils_ptr;
-    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, sleep_for, mp::Utils);
-
-    MP_EXPECT_THROW_THAT(vm.wait_until_ssh_up(std::chrono::milliseconds{1}),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("timed out waiting for response")));
-}
-
-using ExceptionParam =
-    std::variant<mp::IPUnavailableException, mp::SSHException, mp::InternalTimeoutException>;
+using ExceptionParam = std::variant<mp::IPUnavailableException, mp::SSHException>;
 class TestWaitForSSHExceptions : public BaseVM, public WithParamInterface<ExceptionParam>
 {
 };
@@ -1423,8 +1404,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
 INSTANTIATE_TEST_SUITE_P(TestWaitForSSHExceptions,
                          TestWaitForSSHExceptions,
                          Values(mp::IPUnavailableException{"noip"},
-                                mp::SSHException{"nossh"},
-                                mp::InternalTimeoutException{"notime", std::chrono::seconds{1}}));
+                                mp::SSHException{"nossh"}));
 
 TEST_F(BaseVM, sshExecProcessRefusesToExecuteIfVMIsNotRunning)
 {
