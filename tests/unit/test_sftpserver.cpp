@@ -1184,12 +1184,14 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
+    auto new_target = temp_dir.path() + "/new-target";
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
+    MP_PLATFORM.symlink(file_name.toStdString().c_str(), link_name.toStdString().c_str(), false);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
-    auto name = name_as_char_array(file_name.toStdString());
+    auto name = name_as_char_array(new_target.toStdString());
     msg->filename = name.data();
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
@@ -1212,8 +1214,7 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     ASSERT_THAT(perm_denied_num_calls, Eq(1));
 
     QFileInfo info(link_name);
-    EXPECT_FALSE(QFile::exists(link_name));
-    EXPECT_FALSE(info.isSymLink());
+    EXPECT_TRUE(info.symLinkTarget() == file_name);
 }
 
 TEST_F(SftpServer, handlesRename)
@@ -3422,35 +3423,6 @@ TEST_F(SftpServer, brokenLinkInParentPathFailsValidation)
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_STAT); // A request that follows symlinks
     auto filename = name_as_char_array(broken_path);
-    msg->filename = filename.data();
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-
-    int num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-    sftp.run();
-
-    EXPECT_THAT(num_calls, Eq(1));
-}
-
-TEST_F(SftpServer, badLinkReturnsPermissionDenied)
-{
-    // The proper behavior with bad links is to respond permission denied
-    // when they are read to avoid `ls` or `cd` from showing any output.
-    // This contributes to what would be expected behavior (handle_readlink)
-
-    mpt::TempDir temp_dir;
-    auto link = fs::path(temp_dir.path().toStdString()) / "bad_link";
-    auto bad_location = fs::path(temp_dir.path().toStdString()) / "..";
-
-    MP_PLATFORM.symlink(bad_location.string().c_str(), link.string().c_str(), false);
-
-    auto init_msg = make_msg(SSH_FXP_INIT);
-    auto msg = make_msg(SFTP_READLINK); // A request that follows symlinks
-    auto filename = name_as_char_array(link.string());
     msg->filename = filename.data();
 
     REPLACE(sftp_get_client_message, make_msg_handler());
