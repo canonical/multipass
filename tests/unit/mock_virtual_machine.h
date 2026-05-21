@@ -68,7 +68,6 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, current_state).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
-        ON_CALL(*this, ssh_hostname(_)).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_username).WillByDefault(Return("ubuntu"));
         ON_CALL(*this, management_ipv4).WillByDefault(Return(IPAddress{"0.0.0.0"}));
         ON_CALL(*this, get_all_ipv4).WillByDefault(Return(std::vector{IPAddress{"192.168.2.123"}}));
@@ -84,7 +83,6 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(VirtualMachine::State, current_state, (), (override));
     MOCK_METHOD(int, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
-    MOCK_METHOD(std::string, ssh_hostname, (std::chrono::milliseconds), (override));
     MOCK_METHOD(std::string, ssh_username, (), (override));
     MOCK_METHOD(std::optional<IPAddress>, management_ipv4, (), (override));
     MOCK_METHOD(std::vector<IPAddress>, get_all_ipv4, (), (override));

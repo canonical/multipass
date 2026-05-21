@@ -487,7 +487,7 @@ void mp::QemuVirtualMachine::on_restart()
     monitor->on_restart(vm_name);
 }
 
-std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string mp::QemuVirtualMachine::ssh_hostname()
 {
     // TODO@rewire use management_ipv4 instead?
     if (!(management_ip || ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))))

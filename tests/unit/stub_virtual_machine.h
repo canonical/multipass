@@ -71,7 +71,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return 42;
     }
 
-    std::string ssh_hostname(std::chrono::milliseconds) override
+    std::string ssh_hostname() override
     {
         return "localhost";
     }

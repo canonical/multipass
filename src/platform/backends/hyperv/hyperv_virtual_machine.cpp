@@ -449,7 +449,7 @@ void mp::HyperVVirtualMachine::handle_state_update()
     monitor->persist_state_for(vm_name, state);
 }
 
-std::string mp::HyperVVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string mp::HyperVVirtualMachine::ssh_hostname()
 {
     return name.toStdString() + ".mshome.net";
 }
