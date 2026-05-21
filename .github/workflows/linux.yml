@@ -145,6 +145,10 @@ jobs:
         # Add CI=true environment variable to all parts' build-environment
         yq -i '.parts |= with_entries(.value.build-environment += [{"CI": "true"}])' snap/snapcraft.yaml
 
+    - name: Set VCPKG_FORCE_SYSTEM_BINARIES
+      if: ${{ runner.arch != 'X64' }}
+      run: echo "VCPKG_FORCE_SYSTEM_BINARIES=1" >> $GITHUB_ENV
+
     - name: Set up vcpkg
       id: setup-vcpkg
       uses: lukka/run-vcpkg@v11
