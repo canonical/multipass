@@ -18,7 +18,7 @@
 #pragma once
 
 #include <multipass/cli/client_common.h>
-#include <multipass/cli/return_codes.h>
+#include <multipass/return_codes.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 #include <multipass/timer.h>
