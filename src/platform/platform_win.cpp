@@ -85,6 +85,16 @@ namespace mp = multipass;
 namespace mpl = mp::logging;
 namespace mpu = multipass::utils;
 
+struct GetNetworkInterfacesInfoException : public multipass::FormattedExceptionBase<>
+{
+    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
+struct InvalidNetworkPrefixLengthException : public multipass::FormattedExceptionBase<>
+{
+    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
 namespace
 {
 static const auto none = QStringLiteral("none");
@@ -683,6 +693,30 @@ std::vector<std::string> unicast_addrs_to_net_addrs(
     }
     return result;
 }
+
+auto get_adapters_addresses(ULONG family, ULONG flags)
+{
+    ULONG needed_size{0};
+    // Learn how much space we need to allocate.
+    GetAdaptersAddresses(family, flags, nullptr, nullptr, &needed_size);
+
+    std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(&std::free)> adapters_addresses{
+        static_cast<IP_ADAPTER_ADDRESSES*>(std::malloc(needed_size)),
+        std::free};
+
+    if (const auto result =
+            GetAdaptersAddresses(family, flags, nullptr, adapters_addresses.get(), &needed_size);
+        result == NO_ERROR)
+    {
+        return adapters_addresses;
+    }
+    else
+    {
+        throw GetNetworkInterfacesInfoException{
+            "Failed to retrieve network interface information. Error code: {}",
+            result};
+    }
+}
 } // namespace
 
 std::string mp::wchar_to_utf8(std::wstring_view input)
@@ -710,89 +744,60 @@ std::string mp::wchar_to_utf8(std::wstring_view input)
     return result;
 }
 
-struct GetNetworkInterfacesInfoException : public multipass::FormattedExceptionBase<>
-{
-    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
-};
-
-struct InvalidNetworkPrefixLengthException : public multipass::FormattedExceptionBase<>
-{
-    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
-};
-
 std::map<std::string, mp::NetworkInterfaceInfo>
 mp::platform::Platform::get_network_interfaces_info() const
 {
     std::map<std::string, mp::NetworkInterfaceInfo> ret{};
-
-    ULONG needed_size{0};
     constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
                            GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_PREFIX |
                            GAA_FLAG_INCLUDE_ALL_INTERFACES;
-    // Learn how much space we need to allocate.
-    GetAdaptersAddresses(AF_UNSPEC, flags, NULL, nullptr, &needed_size);
+    auto adapters = get_adapters_addresses(AF_UNSPEC, flags);
 
-    auto adapters_info_raw_storage = std::make_unique<char[]>(needed_size);
-
-    auto adapter_info = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(adapters_info_raw_storage.get());
-
-    if (const auto result =
-            GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_info, &needed_size);
-        result == NO_ERROR)
+    // The API returns a linked list, so walk over it.
+    for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
     {
-        // Retrieval was successful. The API returns a linked list, so walk over it.
-        for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
+        const auto& adapter = *pitr;
+
+        MIB_IF_ROW2 ifRow{};
+        ifRow.InterfaceLuid = adapter.Luid;
+        if (GetIfEntry2(&ifRow) != NO_ERROR)
         {
-            const auto& adapter = *pitr;
-
-            MIB_IF_ROW2 ifRow{};
-            ifRow.InterfaceLuid = adapter.Luid;
-            if (GetIfEntry2(&ifRow) != NO_ERROR)
-            {
-                continue;
-            }
-
-            // Only list the physical interfaces.
-            if (!ifRow.InterfaceAndOperStatusFlags.HardwareInterface)
-            {
-                continue;
-            }
-
-            mp::NetworkInterfaceInfo net{};
-            net.id = wchar_to_utf8(adapter.FriendlyName);
-            net.type = adapter_type_to_str(adapter.IfType);
-            net.description = wchar_to_utf8(adapter.Description);
-            net.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
-            ret.insert(std::make_pair(net.id, net));
+            continue;
         }
 
-        // Host compute system API requires the original subnet.
-        for (auto& [name, netinfo] : ret)
+        // Only list the physical interfaces.
+        if (!ifRow.InterfaceAndOperStatusFlags.HardwareInterface)
         {
-            if (netinfo.links.empty())
-            {
-                constexpr static auto name_fmtstr =
-                    hyperv::string_literal<wchar_t>("vEthernet ({})");
-                const std::wstring search = name_fmtstr.format(netinfo.id);
-                for (auto pitr = adapter_info; pitr; pitr = pitr->Next)
-                {
-                    const auto& adapter = *pitr;
-                    std::wstring name{adapter.FriendlyName};
+            continue;
+        }
 
-                    if (name == search)
-                    {
-                        netinfo.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
-                        break;
-                    }
+        mp::NetworkInterfaceInfo net{};
+        net.id = wchar_to_utf8(adapter.FriendlyName);
+        net.type = adapter_type_to_str(adapter.IfType);
+        net.description = wchar_to_utf8(adapter.Description);
+        net.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
+        ret.insert(std::make_pair(net.id, net));
+    }
+
+    // Host compute system API requires the original subnet.
+    for (auto& [name, netinfo] : ret)
+    {
+        if (netinfo.links.empty())
+        {
+            constexpr static auto name_fmtstr = hyperv::string_literal<wchar_t>("vEthernet ({})");
+            const std::wstring search = name_fmtstr.format(netinfo.id);
+            for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
+            {
+                const auto& adapter = *pitr;
+                std::wstring name{adapter.FriendlyName};
+
+                if (name == search)
+                {
+                    netinfo.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
+                    break;
                 }
             }
         }
-    }
-    else
-    {
-        throw GetNetworkInterfacesInfoException{
-            "Failed to retrieve network interface information. Error code: {}",
-            result};
     }
     return ret;
 }
