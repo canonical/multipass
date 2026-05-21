@@ -976,22 +976,13 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    auto link = QFile::symLinkTarget(QString::fromStdString(filename->string()));
-    if (link.isEmpty())
+    std::error_code ec;
+    // We give the raw stored link when reading, block on openat
+    auto raw_link = MP_FILEOPS.read_symlink(*filename, ec);
+    if (ec)
     {
         mpl::trace(category, "{}: invalid link for \'{}\'", __FUNCTION__, filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
-    }
-    // Hard-code false: we only want to know if the current link points outside the sandbox, not if
-    // a possible target link points outside the sandbox
-    if (!validate_path(fs::path(link.toStdString()), false))
-    {
-        mpl::trace(category,
-                   "{}: cannot validate path '{}' against source '{}'",
-                   __FUNCTION__,
-                   link.toStdString(),
-                   source_path.string());
-        return reply_perm_denied(msg);
     }
 
     QFileInfo file_info{*filename};
@@ -1004,9 +995,8 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    auto guest_link = host_to_guest_path(link.toStdString());
     sftp_attributes_struct attr{};
-    sftp_reply_names_add(msg, guest_link.c_str(), guest_link.c_str(), &attr);
+    sftp_reply_names_add(msg, raw_link.string().c_str(), raw_link.string().c_str(), &attr);
     return sftp_reply_names(msg);
 }
 
@@ -1262,15 +1252,15 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 
     sftp_attributes_struct attr{};
 
-    if (!follow && file_info.isSymLink())
+    if (!follow && file_info.isSymLink() &&
+        mp::platform::symlink_attr_from(filename->string().c_str(), &attr) == 0)
     {
-        mp::platform::symlink_attr_from(filename->string().c_str(), &attr);
         attr.uid = mapped_uid_for(attr.uid);
         attr.gid = mapped_gid_for(attr.gid);
     }
     else
     {
-        if (file_info.isSymLink())
+        if (file_info.isSymLink() && follow)
             file_info = QFileInfo(file_info.symLinkTarget());
 
         attr = attr_from(file_info);
@@ -1281,42 +1271,49 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 
 int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
-    const auto old_name = get_validated_path(msg);
-    if (!old_name.has_value())
+    // 9pfs implementation - host only stores and retrieves symlink strings
+    //  We do not check target (link can point anywhere), openat is sandboxed
+    const auto symlink_target = sftp_client_message_get_filename(msg);
+    if (symlink_target == nullptr || *symlink_target == '\0')
+    {
+        mpl::trace(category, "{}: cannot create an empty symlink", __FUNCTION__);
         return reply_perm_denied(msg);
+    }
 
-    const auto new_name = get_absolute_path(sftp_client_message_get_data(msg));
+    // The actual path of the link file must be validated
+    const auto link_path = get_absolute_path(sftp_client_message_get_data(msg));
 
-    // Hardcode false: We are CREATING a link, so we must never follow it!
-    if (!validate_path(new_name, false))
+    // Hardcode false: We are CREATING/EDITING a link, so we must never follow it!
+    if (!validate_path(link_path, false))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
                    __FUNCTION__,
-                   new_name,
+                   link_path,
                    source_path);
         return reply_perm_denied(msg);
     }
 
-    QFileInfo file_info{*old_name};
+    // Bug: we were checking against the target path, not the link path
+    QFileInfo file_info{link_path};
     if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
         mpl::trace(category,
                    "{}: cannot access path \'{}\' without id mapping: permission denied",
                    __FUNCTION__,
-                   old_name);
+                   link_path);
         return reply_perm_denied(msg);
     }
 
-    if (!MP_PLATFORM.symlink(old_name->string().c_str(),
-                             new_name.string().c_str(),
-                             QFileInfo(*old_name).isDir()))
+    if (!MP_PLATFORM.symlink(symlink_target,
+                             link_path.string().c_str(),
+                             QFileInfo(symlink_target).isDir()))
     {
         mpl::trace(category,
                    "{}: failure creating symlink from \'{}\' to \'{}\'",
                    __FUNCTION__,
-                   old_name,
-                   new_name);
+                   symlink_target,
+                   link_path);
         return reply_failure(msg);
     }
 
