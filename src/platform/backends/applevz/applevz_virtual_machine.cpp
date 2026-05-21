@@ -17,12 +17,14 @@
 
 #include <applevz/applevz_utils.h>
 #include <applevz/applevz_virtual_machine.h>
-#include <multipass/exceptions/internal_timeout_exception.h>
+
+#include <shared/macos/backend_utils.h>
+
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/vm_status_monitor.h>
-#include <shared/macos/backend_utils.h>
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
@@ -260,9 +262,11 @@ int AppleVZVirtualMachine::ssh_port()
     return 22;
 }
 
-std::string AppleVZVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
+std::string AppleVZVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
 {
-    fetch_ip(timeout);
+    // TODO@rewire use management_ipv4 instead?
+    if (!(management_ip || ((management_ip = backend::get_neighbour_ip(desc.default_mac_address)))))
+        throw IPUnavailableException{"IP not available"}; // TODO@rewire msg in exception ctor
 
     assert(management_ip && "Should have thrown otherwise");
     return management_ip->as_string();
@@ -352,25 +356,6 @@ void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
     handle_state_update();
 }
 
-void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
-{
-    if (management_ip)
-        return;
-
-    auto action = [this] {
-        detect_aborted_start();
-        return ((management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address)))
-                   ? mp::utils::TimeoutAction::done
-                   : mp::utils::TimeoutAction::retry;
-    };
-
-    auto on_timeout = [this, &timeout] {
-        state = State::unknown;
-        throw InternalTimeoutException{"determine IP address", timeout};
-    };
-
-    mp::utils::try_action_for(on_timeout, timeout, action);
-}
 
 void AppleVZVirtualMachine::initialize_vm_handle()
 {

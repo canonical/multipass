@@ -40,6 +40,7 @@
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/memory_size.h>
@@ -1103,7 +1104,7 @@ TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)
     EXPECT_EQ(machine.management_ipv4(), std::nullopt);
 }
 
-TEST_F(QemuBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
+TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
 {
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
@@ -1118,8 +1119,8 @@ TEST_F(QemuBackend, sshHostnameTimeoutThrowsAndSetsUnknownState)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), std::runtime_error);
-    EXPECT_EQ(machine.state, mp::VirtualMachine::State::unknown);
+    EXPECT_THROW(machine.ssh_hostname(std::chrono::milliseconds(1)), mp::IPUnavailableException);
+    EXPECT_EQ(machine.state, mp::VirtualMachine::State::running);
 }
 
 struct MockQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
