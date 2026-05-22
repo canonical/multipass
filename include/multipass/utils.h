@@ -262,6 +262,9 @@ public:
                                            const std::string& cmd,
                                            bool whisper = false) const;
 
+    // time helpers
+    virtual std::string format_time_t(time_t time) const;
+
     // various
     virtual std::vector<uint8_t> random_bytes(size_t len);
     virtual std::string make_uuid(const std::optional<std::string>& seed = std::nullopt) const;

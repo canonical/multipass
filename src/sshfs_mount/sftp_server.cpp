@@ -25,6 +25,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/ssh/throw_on_error.h>
+#include <multipass/utils/permission_utils.h>
 
 #include <multipass/utils.h>
 
@@ -47,19 +48,6 @@ namespace
 constexpr auto category = "sftp server";
 using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
 using namespace std::literals::chrono_literals;
-
-enum Permissions
-{
-    read_user = 0400,
-    write_user = 0200,
-    exec_user = 0100,
-    read_group = 040,
-    write_group = 020,
-    exec_group = 010,
-    read_other = 04,
-    write_other = 02,
-    exec_other = 01
-};
 
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
@@ -127,73 +115,72 @@ fmt::memory_buffer& operator<<(fmt::memory_buffer& buf, const char* v)
     return buf;
 }
 
-auto longname_from(const QFileInfo& file_info, const std::string& filename)
+auto longname_from(const sftp_attributes_struct& file_attr, const std::string& filename)
 {
     fmt::memory_buffer out;
-    auto mode = file_info.permissions();
 
-    if (file_info.isSymLink())
+    if ((file_attr.permissions & SSH_S_IFMT) == SSH_S_IFLNK)
         out << "l";
-    else if (file_info.isDir())
+    else if ((file_attr.permissions & SSH_S_IFMT) == SSH_S_IFDIR)
         out << "d";
     else
         out << "-";
 
     /* user */
-    if (mode & QFileDevice::ReadOwner)
+    if (file_attr.permissions & mp::Permissions::read_user)
         out << "r";
     else
         out << "-";
 
-    if (mode & QFileDevice::WriteOwner)
+    if (file_attr.permissions & mp::Permissions::write_user)
         out << "w";
     else
         out << "-";
 
-    if (mode & QFileDevice::ExeOwner)
+    if (file_attr.permissions & mp::Permissions::exec_user)
         out << "x";
     else
         out << "-";
 
     /*group*/
-    if (mode & QFileDevice::ReadGroup)
+    if (file_attr.permissions & mp::Permissions::read_group)
         out << "r";
     else
         out << "-";
 
-    if (mode & QFileDevice::WriteGroup)
+    if (file_attr.permissions & mp::Permissions::write_group)
         out << "w";
     else
         out << "-";
 
-    if (mode & QFileDevice::ExeGroup)
+    if (file_attr.permissions & mp::Permissions::exec_group)
         out << "x";
     else
         out << "-";
 
     /* other */
-    if (mode & QFileDevice::ReadOther)
+    if (file_attr.permissions & mp::Permissions::read_other)
         out << "r";
     else
         out << "-";
 
-    if (mode & QFileDevice::WriteOther)
+    if (file_attr.permissions & mp::Permissions::write_other)
         out << "w";
     else
         out << "-";
 
-    if (mode & QFileDevice::ExeOther)
+    if (file_attr.permissions & mp::Permissions::exec_other)
         out << "x";
     else
         out << "-";
 
     fmt::format_to(std::back_inserter(out),
                    " 1 {} {} {}",
-                   file_info.ownerId(),
-                   file_info.groupId(),
-                   file_info.size());
+                   file_attr.uid,
+                   file_attr.gid,
+                   file_attr.size);
 
-    const auto timestamp = file_info.lastModified().toString("MMM d hh:mm:ss yyyy").toStdString();
+    const auto timestamp = MP_UTILS.format_time_t(file_attr.mtime);
     fmt::format_to(std::back_inserter(out), " {} {}", timestamp, filename);
 
     return out;
@@ -204,23 +191,23 @@ auto to_unix_permissions(QFile::Permissions perms)
     int out = 0;
 
     if (perms & QFileDevice::ReadOwner)
-        out |= Permissions::read_user;
+        out |= mp::Permissions::read_user;
     if (perms & QFileDevice::WriteOwner)
-        out |= Permissions::write_user;
+        out |= mp::Permissions::write_user;
     if (perms & QFileDevice::ExeOwner)
-        out |= Permissions::exec_user;
+        out |= mp::Permissions::exec_user;
     if (perms & QFileDevice::ReadGroup)
-        out |= Permissions::read_group;
+        out |= mp::Permissions::read_group;
     if (perms & QFileDevice::WriteGroup)
-        out |= Permissions::write_group;
+        out |= mp::Permissions::write_group;
     if (perms & QFileDevice::ExeGroup)
-        out |= Permissions::exec_group;
+        out |= mp::Permissions::exec_group;
     if (perms & QFileDevice::ReadOther)
-        out |= Permissions::read_other;
+        out |= mp::Permissions::read_other;
     if (perms & QFileDevice::WriteOther)
-        out |= Permissions::write_other;
+        out |= mp::Permissions::write_other;
     if (perms & QFileDevice::ExeOther)
-        out |= Permissions::exec_other;
+        out |= mp::Permissions::exec_other;
 
     return out;
 }
@@ -313,7 +300,7 @@ mp::SftpServer::SftpServer(SSHSession&& session,
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{MP_FILEOPS.weakly_canonical(source)},
-      target_path{fs::path(target).lexically_normal()},
+      target_path{mp::utils::normalize_path(fs::path(target))},
       gid_mappings{gid_mappings},
       uid_mappings{uid_mappings},
       default_uid{default_uid},
@@ -439,7 +426,7 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool check_file
             // The target path is a symlink, we examine the parent path
             auto resolved_parent = MP_FILEOPS.weakly_canonical(current_path.parent_path());
             // If no broken symlinks, canonicalize the path.
-            final_path = (resolved_parent / current_path.filename()).lexically_normal();
+            final_path = mp::utils::normalize_path(resolved_parent / current_path.filename());
         }
     }
     catch (const fs::filesystem_error& e)
@@ -492,7 +479,7 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
     }
 
     // Return it as an absolute path from the perspective of the guest
-    return (target_path / relative).lexically_normal().generic_string();
+    return mp::utils::normalize_path(target_path / relative).generic_string();
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)

@@ -25,6 +25,7 @@
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
+#include <multipass/utils/permission_utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
@@ -84,6 +85,7 @@
 namespace mp = multipass;
 namespace mpl = mp::logging;
 namespace mpu = multipass::utils;
+namespace fs = std::filesystem;
 
 namespace
 {
@@ -95,7 +97,7 @@ time_t time_t_from(const FILETIME* ft)
     long long win_time = (static_cast<long long>(ft->dwHighDateTime) << 32) + ft->dwLowDateTime;
     win_time -= 116444736000000000LL;
     win_time /= 10000000;
-    return static_cast<time_t>(win_time);
+    return mp::saturate_cast<time_t>(win_time);
 }
 
 FILETIME filetime_from(const time_t t)
@@ -121,7 +123,38 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
     attr.atime = time_t_from(&(data->ftLastAccessTime));
     attr.mtime = time_t_from(&(data->ftLastWriteTime));
 
-    attr.permissions = SSH_S_IFLNK | 0777;
+    if (data->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+    {
+        attr.permissions = SSH_S_IFLNK; // Assuming all reparse points are symlinks (DO NOT mount a
+        // junction inside an sshfs mount in windows)
+    }
+    else if (data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        attr.permissions = SSH_S_IFDIR;
+    }
+    else
+    {
+        attr.permissions = SSH_S_IFREG;
+    }
+
+    // Mimicking Windows CRT
+    // Always grant Read permission to User/Group/Other
+    attr.permissions |= mp::Permissions::read_other | mp::Permissions::read_group |
+                        mp::Permissions::read_user;
+
+    // Grant Write permission if not read-only
+    if (!(data->dwFileAttributes & FILE_ATTRIBUTE_READONLY))
+    {
+        attr.permissions |= mp::Permissions::write_other | mp::Permissions::write_group |
+                            mp::Permissions::write_user;
+    }
+
+    // Grant Execute permission for directories
+    if (data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        attr.permissions |= mp::Permissions::exec_other | mp::Permissions::exec_group |
+                            mp::Permissions::exec_user;
+    }
 
     return attr;
 }
