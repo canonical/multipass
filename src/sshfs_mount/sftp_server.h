@@ -54,6 +54,7 @@ public:
     using SSHSessionUptr = std::unique_ptr<ssh_session_struct, void (*)(ssh_session)>;
     using SftpSessionUptr = std::unique_ptr<sftp_session_struct, void (*)(sftp_session)>;
     using SSHFSProcUptr = std::unique_ptr<SSHProcess>;
+    using SFTPHandle = std::variant<NamedFd, DirIterator>;
 
 private:
     void process_message(sftp_client_message msg);
