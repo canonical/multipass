@@ -27,6 +27,19 @@ namespace multipass
 {
 namespace fs = std::filesystem;
 
+enum Permissions
+{
+    read_user = 0400,
+    write_user = 0200,
+    exec_user = 0100,
+    read_group = 040,
+    write_group = 020,
+    exec_group = 010,
+    read_other = 04,
+    write_other = 02,
+    exec_other = 01
+};
+
 class PermissionUtils : public Singleton<PermissionUtils>
 {
 public:
