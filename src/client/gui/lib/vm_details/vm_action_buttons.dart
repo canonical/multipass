@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../delete_instance_dialog.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../vm_action.dart';
@@ -13,6 +14,7 @@ class VmActionButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final client = ref.watch(grpcClientProvider);
 
     Function(VmAction) wrapInNotification(
@@ -22,10 +24,13 @@ class VmActionButtons extends ConsumerWidget {
         final notificationsNotifier = ref.read(notificationsProvider.notifier);
         notificationsNotifier.addOperation(
           function([name]),
-          loading: '${action.continuousTense} $name',
-          onSuccess: (_) => '${action.pastTense} $name',
+          loading:
+              l10n.vmActionNotification(action.continuousTense(l10n), name),
+          onSuccess: (_) =>
+              l10n.vmActionNotification(action.pastTense(l10n), name),
           onError: (error) {
-            return 'Failed to ${action.name.toLowerCase()} $name: $error';
+            return l10n.vmActionNotificationError(
+                action.name.toLowerCase(), name, '$error');
           },
         );
       };
@@ -40,7 +45,6 @@ class VmActionButtons extends ConsumerWidget {
           context: context,
           barrierDismissible: false,
           builder: (_) => DeleteInstanceDialog(
-            multiple: false,
             onDelete: () => wrapInNotification(client.purge)(action),
           ),
         );
@@ -57,7 +61,7 @@ class VmActionButtons extends ConsumerWidget {
     ];
 
     return PopupMenuButton(
-      tooltip: 'Show actions',
+      tooltip: l10n.vmActionsMenuTooltip,
       position: PopupMenuPosition.under,
       itemBuilder: (_) => actionButtons,
       child: Container(
@@ -67,11 +71,12 @@ class VmActionButtons extends ConsumerWidget {
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xff333333)),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Text('Actions', style: TextStyle(fontWeight: FontWeight.bold)),
-            Icon(Icons.keyboard_arrow_down),
+            Text(l10n.vmActionsMenuTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.keyboard_arrow_down),
           ],
         ),
       ),
@@ -98,7 +103,7 @@ class ActionTile extends ConsumerWidget {
       enabled: enabled,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       title: Text(
-        action.name,
+        action.label(AppLocalizations.of(context)!),
         style: enabled ? const TextStyle(color: Colors.black) : null,
       ),
       onTap: () {

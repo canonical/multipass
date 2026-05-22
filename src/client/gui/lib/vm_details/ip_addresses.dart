@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Tooltip;
 
 import '../copyable_text.dart';
+import '../l10n/app_localizations.dart';
 
 class IpAddresses extends StatelessWidget {
   final Iterable<String> ips;
@@ -9,6 +10,7 @@ class IpAddresses extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final firstIp = ips.firstOrNull ?? '-';
     final restIps = ips.skip(1).toList();
 
@@ -24,12 +26,12 @@ class IpAddresses extends StatelessWidget {
             child: PopupMenuButton<void>(
               icon: const Icon(Icons.keyboard_arrow_down),
               position: PopupMenuPosition.under,
-              tooltip: 'Other IP addresses',
+              tooltip: l10n.ipAddressesOtherTitle,
               splashRadius: 10,
               itemBuilder: (_) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   enabled: false,
-                  child: Text('Other IP addresses'),
+                  child: Text(l10n.ipAddressesOtherTitle),
                 ),
                 ...restIps.map((ip) => PopupMenuItem(child: Text(ip))),
               ],

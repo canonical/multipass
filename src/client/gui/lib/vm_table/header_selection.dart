@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../l10n/app_localizations.dart';
 import 'vm_table_headers.dart';
 
 class EnabledHeadersNotifier extends Notifier<BuiltMap<String, bool>> {
@@ -23,8 +24,9 @@ final enabledHeadersProvider =
 
 class HeaderSelectionTile extends ConsumerWidget {
   final String name;
+  final String label;
 
-  const HeaderSelectionTile(this.name, {super.key});
+  const HeaderSelectionTile(this.name, this.label, {super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +34,7 @@ class HeaderSelectionTile extends ConsumerWidget {
 
     return CheckboxListTile(
       controlAffinity: ListTileControlAffinity.leading,
-      title: Text(name, style: const TextStyle(color: Colors.black)),
+      title: Text(label, style: const TextStyle(color: Colors.black)),
       value: enabledHeaders[name],
       onChanged: (isSelected) => ref
           .read(enabledHeadersProvider.notifier)
@@ -46,13 +48,23 @@ class HeaderSelection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final columnLabels = {
+      'STATE': l10n.vmStatState,
+      'CPU USAGE': l10n.vmStatCpuUsage,
+      'MEMORY USAGE': l10n.vmStatMemoryUsage,
+      'DISK USAGE': l10n.vmStatDiskUsage,
+      'IMAGE': l10n.vmStatImage,
+      'PRIVATE IP': l10n.vmStatPrivateIp,
+      'PUBLIC IP': l10n.vmStatPublicIp,
+    };
     return PopupMenuButton(
       position: PopupMenuPosition.under,
       itemBuilder: (_) => headers.skip(2).map((h) {
         return PopupMenuItem<void>(
           padding: EdgeInsets.zero,
           enabled: false,
-          child: HeaderSelectionTile(h.name),
+          child: HeaderSelectionTile(h.name, columnLabels[h.name] ?? h.name),
         );
       }).toList(),
       child: Container(
@@ -70,9 +82,9 @@ class HeaderSelection extends StatelessWidget {
                 BlendMode.srcIn,
               ),
             ),
-            const Text(
-              'Columns',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.vmTableColumnsButton,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),

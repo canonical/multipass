@@ -164,6 +164,9 @@ app.*.symbols
 .gclient_previous_custom_vars
 .gclient_previous_sync_commits
 
+# Generated localization files
+**/l10n/app_localizations*.dart
+
 #### MULTIPASS SPECIFIC IGNORES ###
 lib/generated
 flutter*.log

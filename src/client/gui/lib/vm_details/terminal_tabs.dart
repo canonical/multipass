@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../close_terminal_dialog.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'terminal.dart';
 
@@ -159,6 +160,7 @@ class TerminalTabs extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = shellIdsProvider(name);
     final notifier = provider.notifier;
     final (:ids, :currentIndex) = ref.watch(provider);
@@ -172,7 +174,7 @@ class TerminalTabs extends ConsumerWidget {
         key: ValueKey(shellId.id),
         index: index,
         child: Tab(
-          title: 'Shell ${shellId.id}',
+          title: l10n.terminalTabTitle(shellId.id),
           selected: index == currentIndex,
           os: os,
           onTap: () => ref.read(notifier).setCurrent(index),

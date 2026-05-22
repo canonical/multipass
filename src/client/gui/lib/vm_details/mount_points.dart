@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../ffi.dart';
+import '../l10n/app_localizations.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../tooltip.dart';
@@ -65,34 +66,32 @@ class _EditableMountPointState extends State<EditableMountPoint> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final headers = DefaultTextStyle.merge(
       style: const TextStyle(color: Colors.black),
-      child: const Row(
+      child: Row(
         children: [
           Expanded(
             child: Row(
               children: [
-                Text('HOST DIRECTORY'),
-                SizedBox(width: 8),
+                Text(l10n.mountHostDirLabel),
+                const SizedBox(width: 8),
                 Tooltip(
-                  message:
-                      'A directory on your local machine that will be shared with the instance',
-                  child: Icon(Icons.info_outline, size: 20),
+                  message: l10n.mountHostDirTooltip,
+                  child: const Icon(Icons.info_outline, size: 20),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 24),
+          const SizedBox(width: 24),
           Expanded(
             child: Row(
               children: [
-                Text('GUEST DIRECTORY'),
-                SizedBox(width: 8),
+                Text(l10n.mountGuestDirLabel),
+                const SizedBox(width: 8),
                 Tooltip(
-                  message:
-                      'A destination inside the instance for the shared directory.\n'
-                      'If the destination directory already exists, its contents will not be visible until unmounting.',
-                  child: Icon(Icons.info_outline, size: 20),
+                  message: l10n.mountGuestDirTooltip,
+                  child: const Icon(Icons.info_outline, size: 20),
                 ),
               ],
             ),
@@ -104,7 +103,7 @@ class _EditableMountPointState extends State<EditableMountPoint> {
     final sourceField = ClippingTextField(
       controller: sourceController,
       validator: (value) {
-        return value.isNullOrBlank ? 'Source cannot be empty' : null;
+        return value.isNullOrBlank ? l10n.mountSourceEmpty : null;
       },
     );
 
@@ -112,7 +111,7 @@ class _EditableMountPointState extends State<EditableMountPoint> {
       onPressed: () async {
         final chosenSource = sourceController.text;
         final source = await getDirectoryPath(
-          confirmButtonText: 'Select',
+          confirmButtonText: l10n.mountSelectButton,
           initialDirectory: await Directory(chosenSource).exists()
               ? chosenSource
               : mpPlatform.homeDirectory,
@@ -120,7 +119,7 @@ class _EditableMountPointState extends State<EditableMountPoint> {
         if (source == null) return;
         sourceController.text = source;
       },
-      child: const Text('Select'),
+      child: Text(l10n.mountSelectButton),
     );
 
     final targetField = SpecInput(
@@ -130,7 +129,7 @@ class _EditableMountPointState extends State<EditableMountPoint> {
         target ??= '';
         target = target.isEmpty ? targetHint : target;
         return widget.existingTargets.contains(target)
-            ? 'This path is used by another mount'
+            ? l10n.mountDuplicatePath
             : null;
       },
     );
@@ -183,15 +182,16 @@ class MountPointsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mounts = this.mounts.toList();
 
     final headers = DefaultTextStyle.merge(
       style: const TextStyle(color: Colors.black),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(child: Text('HOST DIRECTORY')),
-          SizedBox(width: 24),
-          Expanded(child: Text('GUEST DIRECTORY')),
+          Expanded(child: Text(l10n.mountHostDirLabel)),
+          const SizedBox(width: 24),
+          Expanded(child: Text(l10n.mountGuestDirLabel)),
         ],
       ),
     );

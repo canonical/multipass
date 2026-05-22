@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'ffi.dart';
+import 'l10n/app_localizations.dart';
 import 'providers.dart';
 import 'tooltip.dart';
 import 'package:flutter/services.dart';
@@ -29,8 +30,9 @@ class _CopyErrorIconState extends State<_CopyErrorIcon> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Tooltip(
-      message: _copied ? 'Copied!' : 'Copy error message',
+      message: _copied ? l10n.daemonCopied : l10n.daemonCopyErrorTooltip,
       child: IconButton(
         icon: const Icon(Icons.copy, size: 20),
         onPressed: _copy,
@@ -44,6 +46,7 @@ class DaemonUnavailable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final available = ref.watch(daemonAvailableProvider);
     final ffiAvailable = ref.watch(ffiAvailableProvider);
 
@@ -77,9 +80,9 @@ class DaemonUnavailable extends ConsumerWidget {
               children: [
                 const Icon(Icons.error, color: Colors.red, size: 48),
                 const SizedBox(height: 16),
-                const Text(
-                  'Fatal Error',
-                  style: TextStyle(
+                Text(
+                  l10n.daemonFatalError,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.red,
@@ -110,7 +113,7 @@ class DaemonUnavailable extends ConsumerWidget {
                   children: [
                     TextButton(
                       onPressed: () => exit(1),
-                      child: const Text('Exit Application'),
+                      child: Text(l10n.daemonExitButton),
                     ),
                   ],
                 ),
@@ -134,12 +137,12 @@ class DaemonUnavailable extends ConsumerWidget {
             BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Colors.orange),
-            SizedBox(width: 20),
-            Text('Waiting for daemon...'),
+            const CircularProgressIndicator(color: Colors.orange),
+            const SizedBox(width: 20),
+            Text(l10n.daemonWaiting),
           ],
         ),
       );

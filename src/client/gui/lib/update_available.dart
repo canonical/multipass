@@ -1,12 +1,13 @@
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
-import 'package:local_notifier/local_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'notifications/notification_entries.dart';
 import 'notifications/notifications_provider.dart';
+import 'l10n/app_localizations.dart';
 import 'platform/platform.dart';
 import 'providers.dart';
 
@@ -29,25 +30,6 @@ class UpdateNotifier extends Notifier<UpdateInfo> {
 
     // Update the state
     state = updateInfo;
-
-    // Create and show a local notification
-    _showLocalNotification(updateInfo);
-  }
-
-  void _showLocalNotification(UpdateInfo updateInfo) {
-    if (!mpPlatform.showLocalUpdateNotifications) return;
-
-    final notification = LocalNotification(
-      title: 'Multipass Update Available',
-      body: 'Version ${updateInfo.version} is available. Click to upgrade now.',
-    );
-
-    notification.onClick = () async {
-      await launchInstallUrl();
-      await notification.close();
-    };
-
-    notification.show();
   }
 
   @override
@@ -65,6 +47,30 @@ final installUrl = Uri.parse('https://canonical.com/multipass/install');
 
 Future<void> launchInstallUrl() => launchUrl(installUrl);
 
+class UpdateSystemNotificationListener extends ConsumerWidget {
+  const UpdateSystemNotificationListener({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(updateProvider, (_, updateInfo) {
+      if (!mpPlatform.showLocalUpdateNotifications) return;
+      final l10n = AppLocalizations.of(context)!;
+      final notification = LocalNotification(
+        title: l10n.localNotificationUpdateTitle,
+        body: l10n.localNotificationUpdateBody(updateInfo.version),
+      );
+      notification.onClick = () async {
+        await launchInstallUrl();
+        await notification.close();
+      };
+      notification.show();
+    });
+    return child;
+  }
+}
+
 class UpdateAvailable extends StatelessWidget {
   final UpdateInfo updateInfo;
 
@@ -72,6 +78,7 @@ class UpdateAvailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final icon = Container(
       alignment: Alignment.center,
       color: _color,
@@ -81,13 +88,13 @@ class UpdateAvailable extends StatelessWidget {
     );
 
     final text = Text(
-      'Multipass ${updateInfo.version} is available',
+      l10n.updateAvailableTitle(updateInfo.version),
       style: const TextStyle(fontSize: 16),
     );
 
-    const button = TextButton(
+    final button = TextButton(
       onPressed: launchInstallUrl,
-      child: Text('Upgrade now'),
+      child: Text(l10n.updateAvailableUpgrade),
     );
 
     return Container(
@@ -113,6 +120,7 @@ class UpdateAvailableNotification extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SimpleNotification(
       barColor: _color,
       icon: SvgPicture.asset(
@@ -124,7 +132,7 @@ class UpdateAvailableNotification extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Multipass ${updateInfo.version} is available',
+            l10n.updateAvailableTitle(updateInfo.version),
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 12),
@@ -134,7 +142,8 @@ class UpdateAvailableNotification extends StatelessWidget {
               if (!context.mounted) return;
               closeNotification(context);
             },
-            child: const Text('Upgrade now', style: TextStyle(fontSize: 14)),
+            child: Text(l10n.updateAvailableUpgrade,
+                style: const TextStyle(fontSize: 14)),
           ),
         ],
       ),

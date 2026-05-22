@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'l10n/app_localizations.dart';
 import 'sidebar.dart';
 
 class HoveredLinkNotifier extends Notifier<TextSpan?> {
@@ -122,4 +123,8 @@ extension NullableMap<T> on T? {
       return null;
     }
   }
+}
+
+extension SpellOutExt on int {
+  String spelledOut(AppLocalizations l10n) => l10n.spellOutNumber('$this');
 }

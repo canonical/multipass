@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter/services.dart';
 
+import 'l10n/app_localizations.dart';
 import 'tooltip.dart';
 
 class CopyableText extends StatefulWidget {
@@ -37,7 +38,9 @@ class _CopyableTextState extends State<CopyableText> {
           setState(() => _copied = true);
         },
         child: Tooltip(
-          message: _copied ? 'Copied' : 'Click to copy',
+          message: _copied
+              ? AppLocalizations.of(context)!.copyableTextCopied
+              : AppLocalizations.of(context)!.copyableTextClickToCopy,
           child: text,
         ),
       ),
