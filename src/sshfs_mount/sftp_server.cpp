@@ -317,27 +317,14 @@ mp::SftpServer::~SftpServer()
     stop_invoked = true;
 }
 
-sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
+std::optional<sftp_attributes_struct> mp::SftpServer::get_attr(const fs::path& path)
 {
     sftp_attributes_struct attr{};
+    if (mp::platform::symlink_attr_from(path.string().c_str(), &attr) != 0)
+        return std::nullopt;
 
-    attr.size = file_info.size();
-
-    attr.uid = mapped_uid_for(file_info.ownerId());
-    attr.gid = mapped_gid_for(file_info.groupId());
-
-    attr.permissions = to_unix_permissions(file_info.permissions());
-    attr.atime = file_info.lastRead().toUTC().toMSecsSinceEpoch() / 1000;
-    attr.mtime = file_info.lastModified().toUTC().toMSecsSinceEpoch() / 1000;
-    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
-                 SSH_FILEXFER_ATTR_ACMODTIME;
-
-    if (file_info.isSymLink())
-        attr.permissions |= SSH_S_IFLNK | 0777;
-    else if (file_info.isDir())
-        attr.permissions |= SSH_S_IFDIR;
-    else if (file_info.isFile())
-        attr.permissions |= SSH_S_IFREG;
+    attr.uid = mapped_uid_for(attr.uid);
+    attr.gid = mapped_gid_for(attr.gid);
 
     return attr;
 }
@@ -662,7 +649,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
     if (file_info.isSymLink())
         file_info = QFileInfo(file_info.symLinkTarget());
 
-    auto attr = attr_from(file_info);
+    auto attr = get_attr(file_info);
     return sftp_reply_attr(msg, &attr);
 }
 
@@ -942,9 +929,9 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
         }
         else
         {
-            attr = attr_from(file_info);
+            attr = get_attr(file_info);
         }
-        const auto longname = longname_from(file_info, entry.path().string());
+        const auto longname = longname_from(entry.path());
         sftp_reply_names_add(msg, entry.path().filename().string().c_str(), longname.data(), &attr);
     }
 
