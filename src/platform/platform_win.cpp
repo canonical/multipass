@@ -1282,13 +1282,15 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
 {
     WIN32_FILE_ATTRIBUTE_DATA data;
 
-    if (GetFileAttributesEx(path, GetFileExInfoStandard, &data))
+    // 0 signals failure
+    if (GetFileAttributesEx(path, GetFileExInfoStandard, &data) != 0)
     {
         *attr = stat_to_attr(&data);
-        attr->size = QFile::symLinkTarget(path).size();
+        attr->size = fs::file_size(path);
+        return 0;
     }
-
-    return 0;
+    else
+        return -1;
 }
 
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
