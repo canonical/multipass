@@ -1334,5 +1334,11 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
 template <typename T>
 T* multipass::SftpServer::get_handle(sftp_client_message msg)
 {
-    return static_cast<T*>(sftp_handle(msg->sftp, msg->handle));
+    const auto key_ptr = sftp_handle(msg->sftp, msg->handle);
+    auto it = open_sftp_handles.find(key_ptr);
+    if (it == open_sftp_handles.end())
+        return nullptr;
+    const auto* uptr = std::get_if<std::unique_ptr<T>>(&it->second);
+
+    return uptr ? uptr->get() : nullptr;
 }
