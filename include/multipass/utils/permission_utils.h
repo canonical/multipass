@@ -29,6 +29,7 @@ namespace fs = std::filesystem;
 
 enum Permissions
 {
+    all_all = 0777,
     read_user = 0400,
     write_user = 0200,
     exec_user = 0100,
