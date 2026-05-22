@@ -121,7 +121,12 @@ FILETIME filetime_from(const time_t t)
     return ft;
 }
 
-sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
+uint64_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
+{
+    return (static_cast<uint64_t>(nFileSizeHigh) << 32) + nFileSizeLow;
+}
+
+sftp_attributes_struct stat_to_attr(const WIN32_FIND_DATAA& file_data)
 {
     sftp_attributes_struct attr{};
 
@@ -131,40 +136,36 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
     attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
                  SSH_FILEXFER_ATTR_ACMODTIME;
 
-    attr.atime = time_t_from(&(data->ftLastAccessTime));
-    attr.mtime = time_t_from(&(data->ftLastWriteTime));
+    attr.atime = time_t_from(&(file_data.ftLastAccessTime));
+    attr.mtime = time_t_from(&(file_data.ftLastWriteTime));
 
-    if (data->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+    attr.size = size_from(file_data.nFileSizeHigh, file_data.nFileSizeLow);
+
+    attr.permissions =
+        (mp::Permissions::all_all & ~(mp::Permissions::write_other | mp::Permissions::write_group));
+    // Default is 0755
+
+    if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
+        (file_data.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
     {
-        attr.permissions = SSH_S_IFLNK; // Assuming all reparse points are symlinks (DO NOT mount a
-        // junction inside an sshfs mount in windows)
+        attr.permissions |= SSH_S_IFLNK | mp::Permissions::write_group |
+                            mp::Permissions::write_other; // Symlinks have 0777 by default
     }
-    else if (data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    else if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
-        attr.permissions = SSH_S_IFDIR;
+        attr.permissions |= SSH_S_IFDIR; // Directories are 0755 by default
+        if (file_data.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+        {
+            attr.permissions &= ~mp::Permissions::write_user;
+        }
     }
     else
     {
-        attr.permissions = SSH_S_IFREG;
-    }
-
-    // Mimicking Windows CRT
-    // Always grant Read permission to User/Group/Other
-    attr.permissions |= mp::Permissions::read_other | mp::Permissions::read_group |
-                        mp::Permissions::read_user;
-
-    // Grant Write permission if not read-only
-    if (!(data->dwFileAttributes & FILE_ATTRIBUTE_READONLY))
-    {
-        attr.permissions |= mp::Permissions::write_other | mp::Permissions::write_group |
-                            mp::Permissions::write_user;
-    }
-
-    // Grant Execute permission for directories
-    if (data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-    {
-        attr.permissions |= mp::Permissions::exec_other | mp::Permissions::exec_group |
-                            mp::Permissions::exec_user;
+        attr.permissions |= SSH_S_IFREG; // Files 0755 by default (exe flag not supported in W32)
+        if (file_data.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+        {
+            attr.permissions &= ~mp::Permissions::write_user;
+        }
     }
 
     return attr;
@@ -1313,13 +1314,12 @@ QString mp::platform::Platform::multipass_storage_location() const
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
-    WIN32_FILE_ATTRIBUTE_DATA data;
+    WIN32_FIND_DATAA data;
 
     // 0 signals failure
-    if (GetFileAttributesEx(path, GetFileExInfoStandard, &data) != 0)
+    if (FindFirstFileA(path, &data) != INVALID_HANDLE_VALUE)
     {
         *attr = stat_to_attr(&data);
-        attr->size = fs::file_size(path);
         return 0;
     }
     else
