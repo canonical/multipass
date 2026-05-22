@@ -58,7 +58,7 @@ public:
 
 private:
     void process_message(sftp_client_message msg);
-    sftp_attributes_struct attr_from(const QFileInfo& file_info);
+    std::optional<sftp_attributes_struct> get_attr(const fs::path& path);
     int mapped_uid_for(const int uid);
     int mapped_gid_for(const int gid);
     int reverse_uid_for(const int uid, const int default_id);
