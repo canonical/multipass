@@ -73,8 +73,6 @@ public:
     virtual bool exists(const QFileInfo& file) const;
     virtual bool isDir(const QFileInfo& file) const;
     virtual bool isReadable(const QFileInfo& file) const;
-    virtual uint ownerId(const QFileInfo& file) const;
-    virtual uint groupId(const QFileInfo& file) const;
 
     // QFile (and parent classes) operations
     virtual bool exists(const QFile& file) const;
