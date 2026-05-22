@@ -186,32 +186,6 @@ auto longname_from(const sftp_attributes_struct& file_attr, const std::string& f
     return out;
 }
 
-auto to_unix_permissions(QFile::Permissions perms)
-{
-    int out = 0;
-
-    if (perms & QFileDevice::ReadOwner)
-        out |= mp::Permissions::read_user;
-    if (perms & QFileDevice::WriteOwner)
-        out |= mp::Permissions::write_user;
-    if (perms & QFileDevice::ExeOwner)
-        out |= mp::Permissions::exec_user;
-    if (perms & QFileDevice::ReadGroup)
-        out |= mp::Permissions::read_group;
-    if (perms & QFileDevice::WriteGroup)
-        out |= mp::Permissions::write_group;
-    if (perms & QFileDevice::ExeGroup)
-        out |= mp::Permissions::exec_group;
-    if (perms & QFileDevice::ReadOther)
-        out |= mp::Permissions::read_other;
-    if (perms & QFileDevice::WriteOther)
-        out |= mp::Permissions::write_other;
-    if (perms & QFileDevice::ExeOther)
-        out |= mp::Permissions::exec_other;
-
-    return out;
-}
-
 void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
 {
     if (sshfs_process.exit_recognized(250ms))
