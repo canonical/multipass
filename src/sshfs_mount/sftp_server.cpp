@@ -312,7 +312,7 @@ mp::SftpServer::SftpServer(SSHSession&& session,
       sshfs_process{create_sshfs_process(ssh_session, sshfs_exec_line, source, target)},
       sftp_server_session{make_sftp_session(ssh_session, sshfs_process->release_channel())},
       source_path{MP_FILEOPS.weakly_canonical(source)},
-      target_path{target},
+      target_path{fs::path(target).lexically_normal()},
       gid_mappings{gid_mappings},
       uid_mappings{uid_mappings},
       default_uid{default_uid},
@@ -405,7 +405,7 @@ bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
            has_gid_mapping_for(MP_FILEOPS.groupId(file_info));
 }
 
-bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlinks) const
+bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_symlink) const
 {
     if (source_path.empty() || current_path.empty())
         return false;
@@ -414,32 +414,30 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
     try
     {
 
-        if (follows_symlinks)
+        // weakly_canonical allows paths that do not exist. This means that broken links will be
+        // treated as literal folders/files, so they need to be filtered out.
+        fs::path check_path = follows_symlink ? current_path : current_path.parent_path();
+        if (check_path.empty())
         {
-            // weakly_canonical allows paths that do not exist. This means that broken links will be
-            // treated as literal folders/files, so they need to be filtered out.
-            fs::path check_path = current_path;
-            while (check_path != check_path.parent_path() && !MP_FILEOPS.exists(check_path))
-            {
-                if (MP_FILEOPS.is_symlink(check_path))
-                {
-                    // A broken symlink was detected! It could point anywhere on the host.
-                    return false;
-                }
-                check_path = check_path.parent_path();
-            }
-            // If no broken symlinks, canonicalize the path.
-            final_path = MP_FILEOPS.weakly_canonical(current_path);
+            check_path = ".";
         }
+        while (check_path != check_path.parent_path() && !MP_FILEOPS.exists(check_path))
+        {
+            if (MP_FILEOPS.is_symlink(check_path))
+            {
+                // A broken symlink was detected! It could point anywhere on the host.
+                return false;
+            }
+            check_path = check_path.parent_path();
+        }
+        // If no broken symlinks, canonicalize the path.
+        if (follows_symlink)
+            final_path = MP_FILEOPS.weakly_canonical(current_path);
         else
         {
-            auto parent = current_path.parent_path();
-            if (parent.empty())
-            {
-                parent = ".";
-            }
-            auto resolved_parent = MP_FILEOPS.weakly_canonical(parent);
-
+            // The target path is a symlink, we examine the parent path
+            auto resolved_parent = MP_FILEOPS.weakly_canonical(current_path.parent_path());
+            // If no broken symlinks, canonicalize the path.
             final_path = (resolved_parent / current_path.filename()).lexically_normal();
         }
     }
@@ -494,7 +492,7 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
     }
 
     // Return it as an absolute path from the perspective of the guest
-    return (target_path / relative).generic_string();
+    return (target_path / relative).lexically_normal().generic_string();
 }
 
 void mp::SftpServer::process_message(sftp_client_message msg)
@@ -744,7 +742,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     }
 
     std::error_code err;
-    if (!MP_FILEOPS.remove(filename->c_str(), err) && !err)
+    if (!MP_FILEOPS.remove(*filename, err) && !err)
         err = std::make_error_code(std::errc::no_such_file_or_directory);
 
     if (err)
@@ -767,7 +765,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     std::error_code err;
-    const auto status = MP_FILEOPS.symlink_status(filename->c_str(), err);
+    const auto status = MP_FILEOPS.symlink_status(*filename, err);
     if (err && status.type() != fs::file_type::not_found)
     {
         mpl::trace(category, "Cannot get status of '{}': {}", filename->string(), err.message());
@@ -815,8 +813,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     if (flags & SSH_FXF_EXCL)
         mode |= O_EXCL;
 
-    auto named_fd =
-        MP_FILEOPS.open_fd(filename->c_str(), mode, msg->attr ? msg->attr->permissions : 0);
+    auto named_fd = MP_FILEOPS.open_fd(*filename, mode, msg->attr ? msg->attr->permissions : 0);
     if (named_fd->fd == -1)
     {
         mpl::trace(category, "Cannot open '{}': {}", filename->string(), std::strerror(errno));
@@ -859,7 +856,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     std::error_code err;
-    auto dir_iterator = MP_FILEOPS.dir_iterator(filename->c_str(), err);
+    auto dir_iterator = MP_FILEOPS.dir_iterator(*filename, err);
 
     if (err.value() == int(std::errc::no_such_file_or_directory) ||
         err.value() == int(std::errc::no_such_process))
@@ -979,8 +976,10 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    auto link = QFile::symLinkTarget(QString::fromStdString(filename->string()));
-    if (link.isEmpty())
+    std::error_code ec;
+    // We give the raw stored link when reading, block on openat
+    auto raw_link = MP_FILEOPS.read_symlink(*filename, ec);
+    if (ec)
     {
         mpl::trace(category, "{}: invalid link for \'{}\'", __FUNCTION__, filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
@@ -996,9 +995,8 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    auto guest_link = host_to_guest_path(link.toStdString());
     sftp_attributes_struct attr{};
-    sftp_reply_names_add(msg, guest_link.c_str(), guest_link.c_str(), &attr);
+    sftp_reply_names_add(msg, raw_link.string().c_str(), raw_link.string().c_str(), &attr);
     return sftp_reply_names(msg);
 }
 
@@ -1040,7 +1038,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     }
 
     std::error_code err;
-    if (!MP_FILEOPS.remove(filename->c_str(), err) && !err)
+    if (!MP_FILEOPS.remove(*filename, err) && !err)
         err = std::make_error_code(std::errc::no_such_file_or_directory);
 
     if (err)
@@ -1254,15 +1252,15 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 
     sftp_attributes_struct attr{};
 
-    if (!follow && file_info.isSymLink())
+    if (!follow && file_info.isSymLink() &&
+        mp::platform::symlink_attr_from(filename->string().c_str(), &attr) == 0)
     {
-        mp::platform::symlink_attr_from(filename->string().c_str(), &attr);
         attr.uid = mapped_uid_for(attr.uid);
         attr.gid = mapped_gid_for(attr.gid);
     }
     else
     {
-        if (file_info.isSymLink())
+        if (file_info.isSymLink() && follow)
             file_info = QFileInfo(file_info.symLinkTarget());
 
         attr = attr_from(file_info);
@@ -1273,42 +1271,49 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 
 int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
-    const auto old_name = get_validated_path(msg);
-    if (!old_name.has_value())
+    // 9pfs implementation - host only stores and retrieves symlink strings
+    //  We do not check target (link can point anywhere), openat is sandboxed
+    const auto symlink_target = sftp_client_message_get_filename(msg);
+    if (symlink_target == nullptr || *symlink_target == '\0')
+    {
+        mpl::trace(category, "{}: cannot create an empty symlink", __FUNCTION__);
         return reply_perm_denied(msg);
+    }
 
-    const auto new_name = get_absolute_path(sftp_client_message_get_data(msg));
+    // The actual path of the link file must be validated
+    const auto link_path = get_absolute_path(sftp_client_message_get_data(msg));
 
-    // Hardcode false: We are CREATING a link, so we must never follow it!
-    if (!validate_path(new_name, false))
+    // Hardcode false: We are CREATING/EDITING a link, so we must never follow it!
+    if (!validate_path(link_path, false))
     {
         mpl::trace(category,
                    "{}: cannot validate path \'{}\' against source \'{}\'",
                    __FUNCTION__,
-                   new_name,
+                   link_path,
                    source_path);
         return reply_perm_denied(msg);
     }
 
-    QFileInfo file_info{*old_name};
+    // Bug: we were checking against the target path, not the link path
+    QFileInfo file_info{link_path};
     if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
     {
         mpl::trace(category,
                    "{}: cannot access path \'{}\' without id mapping: permission denied",
                    __FUNCTION__,
-                   old_name);
+                   link_path);
         return reply_perm_denied(msg);
     }
 
-    if (!MP_PLATFORM.symlink(old_name->string().c_str(),
-                             new_name.string().c_str(),
-                             QFileInfo(*old_name).isDir()))
+    if (!MP_PLATFORM.symlink(symlink_target,
+                             link_path.string().c_str(),
+                             QFileInfo(symlink_target).isDir()))
     {
         mpl::trace(category,
                    "{}: failure creating symlink from \'{}\' to \'{}\'",
                    __FUNCTION__,
-                   old_name,
-                   new_name);
+                   symlink_target,
+                   link_path);
         return reply_failure(msg);
     }
 

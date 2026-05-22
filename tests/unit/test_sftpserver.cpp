@@ -1060,8 +1060,9 @@ TEST_F(SftpServer, handlesSymlink)
     msg->attr->uid = 1000;
     msg->attr->gid = 1000;
 
-    auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    auto link_char_array = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data,
+            [&link_char_array](auto...) { return link_char_array.data(); });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
@@ -1183,12 +1184,14 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
+    auto new_target = temp_dir.path() + "/new-target";
     auto link_name = temp_dir.path() + "/test-link";
     mpt::make_file_with_content(file_name);
+    MP_PLATFORM.symlink(file_name.toStdString().c_str(), link_name.toStdString().c_str(), false);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
-    auto name = name_as_char_array(file_name.toStdString());
+    auto name = name_as_char_array(new_target.toStdString());
     msg->filename = name.data();
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
@@ -1211,8 +1214,7 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     ASSERT_THAT(perm_denied_num_calls, Eq(1));
 
     QFileInfo info(link_name);
-    EXPECT_FALSE(QFile::exists(link_name));
-    EXPECT_FALSE(info.isSymLink());
+    EXPECT_TRUE(info.symLinkTarget() == file_name);
 }
 
 TEST_F(SftpServer, handlesRename)
