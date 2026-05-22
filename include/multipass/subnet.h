@@ -120,6 +120,12 @@ private:
 class SubnetAllocator
 {
 public:
+    // Create a new subnet allocator. If the base `subnet` has non-zero bits after *its* prefix but
+    // before the child `prefix` here, use those bits as the starting offset for subnets. For
+    // example:
+    //
+    //     SubnetAllocator alloc{{"192.168.254.1/16", 24};
+    //     alloc.next_available(); // Returns 192.168.254.0
     SubnetAllocator(Subnet base_subnet, Subnet::PrefixLength prefix);
 
     [[nodiscard]] Subnet next_available();

@@ -180,12 +180,23 @@ mp::SubnetAllocator::SubnetAllocator(Subnet base_subnet, Subnet::PrefixLength pr
 mp::Subnet mp::SubnetAllocator::next_available()
 {
     const size_t possible_subnets = base_subnet.size(prefix);
+    const auto masked_address = base_subnet.masked_address();
+
+    // Get the offset of the first address we should allocate, relative to the masked base address.
+    const auto starting_address = apply_mask(base_subnet.address(), prefix);
+    const auto starting_offset = starting_address.as_uint32() - masked_address.as_uint32();
+
+    // Compute a mask for the bytes we can work with, i.e. the inverse of the base subnet's mask.
+    const auto offset_mask = ~get_subnet_mask(base_subnet.prefix_length()).as_uint32();
+
+    // The step size as a byte offset for each subnet to allocate.
+    const std::uint32_t step = std::size_t{1} << (32 - prefix);
 
     while (block_idx < possible_subnets)
     {
-        // ex. 192.168.0.0 + (4 * 2^(32 - 24)) = 192.168.0.0 + 1024 = 192.168.4.0
+        // Compute a new address, ensuring that we remain within the base subnet.
         mp::IPAddress address =
-            base_subnet.masked_address() + (block_idx * (std::size_t{1} << (32 - prefix)));
+            masked_address + ((block_idx * step + starting_offset) & offset_mask);
 
         ++block_idx;
         mp::Subnet subnet{address, prefix};

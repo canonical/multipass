@@ -374,6 +374,27 @@ TEST_F(SubnetAllocatorTest, nextAvailableWorks)
     EXPECT_EQ(res3.masked_address(), mp::IPAddress{"192.168.2.0"});
 }
 
+TEST_F(SubnetAllocatorTest, nextAvailableMasksProperly)
+{
+    EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
+
+    mp::SubnetAllocator allocator{{"192.168.254.1/16"}, 24};
+    auto res1 = allocator.next_available();
+    EXPECT_EQ(res1.prefix_length(), 24);
+    EXPECT_EQ(res1.address(), mp::IPAddress{"192.168.254.0"});
+    EXPECT_EQ(res1.masked_address(), mp::IPAddress{"192.168.254.0"});
+
+    auto res2 = allocator.next_available();
+    EXPECT_EQ(res2.prefix_length(), 24);
+    EXPECT_EQ(res2.address(), mp::IPAddress{"192.168.255.0"});
+    EXPECT_EQ(res2.masked_address(), mp::IPAddress{"192.168.255.0"});
+
+    auto res3 = allocator.next_available();
+    EXPECT_EQ(res3.prefix_length(), 24);
+    EXPECT_EQ(res3.address(), mp::IPAddress{"192.168.0.0"});
+    EXPECT_EQ(res3.masked_address(), mp::IPAddress{"192.168.0.0"});
+}
+
 TEST_F(SubnetAllocatorTest, nextAvailableSkipsUsedSubnets)
 {
     EXPECT_CALL(mock_platform, subnet_used_locally)
