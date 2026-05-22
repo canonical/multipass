@@ -134,7 +134,7 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
         setState(() => editing = false);
         ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
-      child: Text(l10n.dialogCancel),
+      child: Text(l10n.commonCancel),
     );
 
     return Form(

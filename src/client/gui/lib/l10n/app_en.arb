@@ -54,8 +54,8 @@
             }
         }
     },
-    "dialogDoNotAskAgain": "Do not ask me again",
-    "@dialogDoNotAskAgain": {
+    "commonDoNotAskAgain": "Do not ask me again",
+    "@commonDoNotAskAgain": {
         "description": "Checkbox label to suppress a recurring confirmation dialog"
     },
     "beforeQuitStopAction": "Stop instances",
@@ -166,12 +166,12 @@
             }
         }
     },
-    "dialogDelete": "Delete",
-    "@dialogDelete": {
+    "commonDelete": "Delete",
+    "@commonDelete": {
         "description": "Generic Delete confirm button label used across delete confirmation dialogs"
     },
-    "dialogCancel": "Cancel",
-    "@dialogCancel": {
+    "commonCancel": "Cancel",
+    "@commonCancel": {
         "description": "Generic cancel button label for dialogs"
     },
     "closeTerminalTitle": "Close tab?",
@@ -364,8 +364,8 @@
     "@hotkeyInputPrompt": {
         "description": "Placeholder shown in the hotkey recorder when it has focus and is waiting for input"
     },
-    "dialogSave": "Save",
-    "@dialogSave": {
+    "commonSave": "Save",
+    "@commonSave": {
         "description": "Generic Save button label used across multiple dialogs and edit forms"
     },
     "commonConfigure": "Configure",

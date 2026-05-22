@@ -92,7 +92,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         formKey.currentState?.save();
         setState(() => editing = false);
       },
-      child: Text(l10n.dialogSave),
+      child: Text(l10n.commonSave),
     );
 
     void configure() {
@@ -117,7 +117,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         setState(() => editing = false);
         ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
-      child: Text(l10n.dialogCancel),
+      child: Text(l10n.commonCancel),
     );
 
     return Form(

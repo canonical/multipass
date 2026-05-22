@@ -42,7 +42,7 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
                 onChanged: (value) => setState(() => doNotAsk = value!),
               ),
               const SizedBox(width: 8),
-              Text(l10n.dialogDoNotAskAgain),
+              Text(l10n.commonDoNotAskAgain),
             ],
           ),
         ],
@@ -54,7 +54,7 @@ class _CloseTerminalDialogState extends State<CloseTerminalDialog> {
         ); // Apply "do not ask" setting only when closing
         widget.onYes();
       },
-      inactionText: l10n.dialogCancel,
+      inactionText: l10n.commonCancel,
       onInaction: () {
         widget.onNo(); // Don't apply "do not ask" setting when canceling
       },

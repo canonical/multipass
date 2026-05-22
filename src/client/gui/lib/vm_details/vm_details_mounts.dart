@@ -54,7 +54,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         if (!(formKey.currentState?.validate() ?? false)) return;
         formKey.currentState?.save();
       },
-      child: Text(l10n.dialogSave),
+      child: Text(l10n.commonSave),
     );
 
     final configureButton = OutlinedButton(
@@ -72,7 +72,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         setState(() => phase = MountDetailsPhase.idle);
         ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
-      child: Text(l10n.dialogCancel),
+      child: Text(l10n.commonCancel),
     );
 
     final addMountButton = OutlinedButton(
@@ -154,7 +154,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             l10n.mountDeleteBodySuffix(widget.name).span,
           ].spans,
         ),
-        actionText: l10n.dialogDelete,
+        actionText: l10n.commonDelete,
         onAction: () {
           Navigator.pop(context);
           notificationsNotifier.addOperation(
@@ -168,7 +168,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             },
           );
         },
-        inactionText: l10n.dialogCancel,
+        inactionText: l10n.commonCancel,
         onInaction: () => Navigator.pop(context),
       ),
     );

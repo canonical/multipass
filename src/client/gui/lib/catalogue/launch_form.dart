@@ -201,12 +201,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         if (!mountFormState.validate()) return;
         mountFormState.save();
       },
-      child: Text(l10n.dialogSave),
+      child: Text(l10n.commonSave),
     );
 
     final cancelMountButton = OutlinedButton(
       onPressed: () => setState(() => addingMount = false),
-      child: Text(l10n.dialogCancel),
+      child: Text(l10n.commonCancel),
     );
 
     final editableMountPoint = EditableMountPoint(
@@ -302,7 +302,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     final cancelButton = OutlinedButton(
       onPressed: () => Scaffold.of(context).closeEndDrawer(),
-      child: Text(l10n.dialogCancel),
+      child: Text(l10n.commonCancel),
     );
 
     return Stack(

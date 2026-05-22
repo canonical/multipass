@@ -288,7 +288,7 @@ class LaunchingNotification extends ConsumerWidget {
                         closeNotification(context);
                         cancelCompleter.complete();
                       },
-                      child: Text(l10n.dialogCancel),
+                      child: Text(l10n.commonCancel),
                     ),
                     const SizedBox(width: 20),
                   ],
