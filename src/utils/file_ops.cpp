@@ -19,6 +19,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/posix.h>
+#include <multipass/utils/named_fd.h>
 
 #include <chrono>
 #include <random>
@@ -64,16 +65,6 @@ private:
 thread_local std::mt19937 BackoffTimer::rng(std::random_device{}());
 
 } // namespace
-
-mp::NamedFd::NamedFd(const fs::path& path, int fd) : path{path}, fd{fd}
-{
-}
-
-mp::NamedFd::~NamedFd()
-{
-    if (fd != -1)
-        ::close(fd);
-}
 
 mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept
     : Singleton<FileOps>::Singleton{pass}
