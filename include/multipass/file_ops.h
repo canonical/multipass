@@ -19,6 +19,7 @@
 
 #include "recursive_dir_iterator.h"
 #include "singleton.h"
+#include "utils/named_fd.h"
 
 #include <QByteArray>
 #include <QByteArrayView>
@@ -39,15 +40,6 @@
 namespace multipass
 {
 namespace fs = std::filesystem;
-
-struct NamedFd
-{
-    NamedFd(const fs::path& path, int fd);
-    ~NamedFd();
-
-    fs::path path;
-    int fd;
-};
 
 class FileOps : public Singleton<FileOps>
 {
