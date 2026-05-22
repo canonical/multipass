@@ -1271,7 +1271,7 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(snapshot->get_mounts(), mount_info, have_mounts);
 
-    // TODO@snapshots get snapshot size once available
+    snapshot_info->set_size(snapshot->get_disk_space().human_readable());
 
     for (const auto& child : vm.get_childrens_names(snapshot.get()))
         snapshot_info->add_children(child);

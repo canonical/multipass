@@ -32,6 +32,7 @@
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
+#include "mock_snapshot.h"
 #include "mock_standard_paths.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
@@ -2348,6 +2349,58 @@ TEST_F(Daemon, infoAllReturnsAllInstances)
 
     mp::Daemon daemon{config_builder.build()};
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
+}
+
+TEST_F(Daemon, infoSnapshotsIncludesSnapshotSize)
+{
+    const std::string instance_name{"snapshot-instance"};
+    const auto instances_json =
+        fmt::format("{{{}}}", fmt::format(valid_template, instance_name, "10"));
+    const auto [temp_dir, __] = plant_instance_json(instances_json);
+    config_builder.data_directory = temp_dir->path();
+    config_builder.server_address =
+        fmt::format("unix:{}/multipassd.socket", temp_dir->path().toStdString());
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
+    const mp::MemorySize disk_space{"128MiB"};
+    const std::unordered_map<std::string, mp::VMMount> mounts;
+
+    ON_CALL(*snapshot, get_name).WillByDefault(Return("snapshot1"));
+    ON_CALL(*snapshot, get_state).WillByDefault(Return(mp::VirtualMachine::State::stopped));
+    ON_CALL(*snapshot, get_mem_size).WillByDefault(Return(mp::MemorySize{"1GiB"}));
+    ON_CALL(*snapshot, get_disk_space).WillByDefault(Return(disk_space));
+    ON_CALL(*snapshot, get_num_cores).WillByDefault(Return(2));
+    ON_CALL(*snapshot, get_mounts).WillByDefault(ReturnRef(mounts));
+    ON_CALL(*snapshot, get_parents_name).WillByDefault(Return(""));
+    ON_CALL(*snapshot, get_comment).WillByDefault(Return(""));
+    ON_CALL(*snapshot, get_creation_timestamp)
+        .WillByDefault(Return(QDateTime::currentDateTimeUtc()));
+
+    auto mock_instance = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    ON_CALL(*mock_instance, get_name).WillByDefault(ReturnRefOfCopy(instance_name));
+    ON_CALL(*mock_instance, view_snapshots(_))
+        .WillByDefault(Return(mp::VirtualMachine::SnapshotVista{snapshot}));
+    ON_CALL(*mock_instance, get_childrens_names(snapshot.get()))
+        .WillByDefault(Return(std::vector<std::string>{}));
+
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
+        .WillOnce(Return(std::move(mock_instance)));
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
+    EXPECT_CALL(mock_server,
+                Write(Property(&mp::InfoReply::details,
+                               ElementsAre(Property(&mp::DetailedInfoItem::snapshot_info,
+                                                    Property(&mp::SnapshotDetails::size,
+                                                             disk_space.human_readable())))),
+                      _))
+        .WillOnce(Return(true));
+
+    mp::InfoRequest request;
+    request.set_snapshots(true);
+
+    mp::Daemon daemon{config_builder.build()};
+    call_daemon_slot(daemon, &mp::Daemon::info, request, mock_server);
 }
 
 TEST_F(Daemon, setsPermissionsOnProvidedStoragePath)
