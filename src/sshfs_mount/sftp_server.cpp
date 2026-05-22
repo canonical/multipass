@@ -1328,7 +1328,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
 template <typename T>
 T* multipass::SftpServer::get_handle(sftp_client_message msg)
 {
-    auto handle = static_cast<SftpHandle*>(sftp_handle(msg->sftp, msg->handle));
+    auto* handle = static_cast<SftpHandle*>(sftp_handle(msg->sftp, msg->handle));
     if (!handle)
         return nullptr;
 
