@@ -465,8 +465,7 @@ std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
     // guarantee constness; b) we endure the penalty of creating a new session only when we
     // don't have the IP yet.
     if (!management_ip)
-        management_ip =
-            remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+        management_ip = remote_ip(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 
     return management_ip;
 }
