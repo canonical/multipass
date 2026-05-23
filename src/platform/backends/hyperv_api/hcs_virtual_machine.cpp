@@ -598,7 +598,7 @@ int HCSVirtualMachine::ssh_port()
 {
     return default_ssh_port;
 }
-std::string HCSVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string HCSVirtualMachine::ssh_hostname()
 {
     return fmt::format("{}.mshome.net", get_name());
 }
@@ -609,10 +609,10 @@ std::string HCSVirtualMachine::ssh_username()
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
-    const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname({}).c_str());
+    const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname().c_str());
     if (ipv4.empty())
     {
-        mpl::error(get_name(), "management_ipv4() > failed to resolve `{}`", ssh_hostname({}));
+        mpl::error(get_name(), "management_ipv4() > failed to resolve `{}`", ssh_hostname());
         return std::nullopt;
     }
 
