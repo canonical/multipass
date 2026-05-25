@@ -145,7 +145,6 @@ struct MockVirtualMachineT : public T
     }
 
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd)
-
     {
         return ssh_exec_process(cmd, false);
     }
