@@ -293,7 +293,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
             throw SSHVMNotRunning{"SSH unavailable on instance {}: not running", vm_name};
     }
 
-    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
+    mpl::trace(vm_name, "New SSH session");
     return std::make_unique<PlainSSHSession>(ssh_hostname(),
                                              ssh_port(),
                                              ssh_username(),
