@@ -187,6 +187,9 @@ std::string as_string(ssh_options_e type, const void* value)
 
 void mp::PlainSSHSession::set_option(ssh_options_e type, const void* data)
 {
+    std::unique_lock lock{mut};
+    assert(session && "should not set option on null session");
+
     const auto ret = ssh_options_set(session.get(), type, data);
     if (ret != SSH_OK)
     {
