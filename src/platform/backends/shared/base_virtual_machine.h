@@ -123,6 +123,7 @@ protected:
     void renew_ssh_session();
     void detect_aborted_start();
     void save_error_msg(std::string error) noexcept;
+    IPAddress require_management_ipv4();
 
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,

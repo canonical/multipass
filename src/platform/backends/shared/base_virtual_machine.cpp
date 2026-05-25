@@ -323,6 +323,16 @@ void mp::BaseVirtualMachine::detect_aborted_start()
     }
 }
 
+mp::IPAddress mp::BaseVirtualMachine::require_management_ipv4()
+{
+    // TODO C++23
+    // return management_ipv4().or_else([] { throw IPUnavailableException{}; }).value();
+    if (auto ip = management_ipv4(); ip)
+        return *ip;
+
+    throw IPUnavailableException{"IP not available"}; // TODO@rewire msg in exception ctor
+}
+
 void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
     drop_ssh_session();
