@@ -264,12 +264,10 @@ int AppleVZVirtualMachine::ssh_port()
 
 std::string AppleVZVirtualMachine::ssh_hostname()
 {
-    // TODO@rewire use management_ipv4 instead?
-    if (!(management_ip || ((management_ip = backend::get_neighbour_ip(desc.default_mac_address)))))
-        throw IPUnavailableException{"IP not available"}; // TODO@rewire msg in exception ctor
+    if (auto ip = management_ipv4(); ip)
+        return ip->as_string();
 
-    assert(management_ip && "Should have thrown otherwise");
-    return management_ip->as_string();
+    throw IPUnavailableException{"IP not available"}; // TODO@rewire msg in exception ctor
 }
 
 std::string AppleVZVirtualMachine::ssh_username()
@@ -280,7 +278,7 @@ std::string AppleVZVirtualMachine::ssh_username()
 std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 {
     if (!management_ip)
-        management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address);
+        management_ip = backend::get_neighbour_ip(desc.default_mac_address);
 
     return management_ip;
 }
