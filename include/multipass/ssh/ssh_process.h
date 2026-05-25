@@ -41,7 +41,8 @@ public:
      * Obtain the exit code of the process, blocking up to the given timeout.
      * @param timeout Maximum time to wait for the exit code.
      * @return The process exit code.
-     * @throws ExitlessSSHProcessException if the exit code cannot be obtained within the timeout.
+     * @throws ExitlessSSHProcessException (or descendant) if the exit code cannot be obtained
+     * within the timeout.
      */
     virtual int exit_code(std::chrono::milliseconds timeout = std::chrono::seconds(5)) = 0;
 
