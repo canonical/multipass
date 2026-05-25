@@ -109,10 +109,13 @@ multipass::PlainSSHSession::~PlainSSHSession()
 
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
 {
+    std::unique_lock lock{mut};
+    assert(session && "precondition - cannot call exec on null session");
+
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
     mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
 
-    return make_unique<PlainSSHProcess>(session.get(), cmd, std::unique_lock{mut});
+    return make_unique<PlainSSHProcess>(session.get(), cmd, std::move(lock));
 }
 
 void mp::PlainSSHSession::force_shutdown()

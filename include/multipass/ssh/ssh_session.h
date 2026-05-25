@@ -32,7 +32,9 @@ public:
     virtual ~SSHSession() = default;
 
     // locks the session until the process is destroyed or exit_code is called!
+    // Precondition - session hasn't been moved
     virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd, bool whisper = false) = 0;
+
     [[nodiscard]] virtual bool is_connected() const = 0;
 
     virtual operator ssh_session() = 0; // careful, not thread safe // TODO@rewiressh drop this?
