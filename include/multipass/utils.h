@@ -21,7 +21,6 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
-#include <multipass/ssh/ssh_session.h> // TODO@rewiressh should be fine with fwd decl?
 #include <multipass/virtual_machine.h>
 
 #include <fmt/base.h>
@@ -49,6 +48,7 @@ namespace multipass
 
 // Fwd decl
 class VirtualMachine;
+class SSHSession;
 
 namespace utils
 {

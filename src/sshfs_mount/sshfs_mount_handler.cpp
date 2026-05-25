@@ -18,6 +18,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/utils.h>
 
