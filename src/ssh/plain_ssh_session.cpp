@@ -100,8 +100,11 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
 multipass::PlainSSHSession::~PlainSSHSession()
 {
     std::unique_lock lock{mut};
-    ssh_disconnect(session.get());
-    force_shutdown(); // do we really need this?
+    if (session)
+    {
+        ssh_disconnect(session.get());
+        force_shutdown(); // do we really need this?
+    }
 }
 
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
@@ -114,10 +117,13 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
 
 void mp::PlainSSHSession::force_shutdown()
 {
-    auto socket = ssh_get_fd(session.get());
+    if (session)
+    {
+        auto socket = ssh_get_fd(session.get());
 
-    const int shutdown_read_and_writes = 2;
-    shutdown(socket, shutdown_read_and_writes);
+        const int shutdown_read_and_writes = 2;
+        shutdown(socket, shutdown_read_and_writes);
+    }
 }
 
 mp::PlainSSHSession::operator ssh_session()
@@ -191,5 +197,5 @@ void mp::PlainSSHSession::set_option(ssh_options_e type, const void* data)
 bool multipass::PlainSSHSession::is_connected() const
 {
     std::unique_lock lock{mut};
-    return static_cast<bool>(ssh_is_connected(session.get()));
+    return session && static_cast<bool>(ssh_is_connected(session.get()));
 }
