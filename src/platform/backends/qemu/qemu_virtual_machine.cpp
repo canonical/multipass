@@ -489,10 +489,7 @@ void mp::QemuVirtualMachine::on_restart()
 
 std::string mp::QemuVirtualMachine::ssh_hostname()
 {
-    if (auto ip = management_ipv4(); ip)
-        return ip->as_string();
-
-    throw IPUnavailableException{"IP not available"}; // TODO@rewire msg in exception ctor
+    return require_management_ipv4().as_string();
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
