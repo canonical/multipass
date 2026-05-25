@@ -918,10 +918,8 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    ssh_session = std::make_unique<PlainSSHSession>(ssh_hostname(),
-                                                    ssh_port(),
-                                                    ssh_username(),
-                                                    key_provider);
+    ssh_session =
+        std::make_unique<PlainSSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 
     std::lock_guard lock{state_mutex};
     state = State::running;
