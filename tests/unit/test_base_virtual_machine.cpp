@@ -1403,8 +1403,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
 
 INSTANTIATE_TEST_SUITE_P(TestWaitForSSHExceptions,
                          TestWaitForSSHExceptions,
-                         Values(mp::IPUnavailableException{"noip"},
-                                mp::SSHException{"nossh"}));
+                         Values(mp::IPUnavailableException{}, mp::SSHException{"nossh"}));
 
 TEST_F(BaseVM, sshExecProcessRefusesToExecuteIfVMIsNotRunning)
 {

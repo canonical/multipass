@@ -330,7 +330,7 @@ mp::IPAddress mp::BaseVirtualMachine::require_management_ipv4()
     if (auto ip = management_ipv4(); ip)
         return *ip;
 
-    throw IPUnavailableException{"IP not available"}; // TODO@rewire msg in exception ctor
+    throw IPUnavailableException{};
 }
 
 void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
