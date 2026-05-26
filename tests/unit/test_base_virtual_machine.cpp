@@ -1480,6 +1480,22 @@ TEST_F(BaseVM, sshExecProcessRethrowsSSHExceptionsWhenConnected)
                          mpt::match_what(HasSubstr("intentional")));
 }
 
+TEST_F(BaseVM, sshExecProcessPropagatesNonSSHExceptions)
+{
+    static constexpr auto* cmd = "wrong";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(vm, make_ssh_process(cmd, _)).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    vm.simulate_ssh_exec_process();
+    vm.renew_ssh_session();
+
+    MP_EXPECT_THROW_THAT(vm.ssh_exec_process(cmd),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("intentional")));
+}
+
 TEST_F(BaseVM, newSshSessionThrowsIfNotRunning)
 {
     StubBaseVirtualMachine stub{zone};
