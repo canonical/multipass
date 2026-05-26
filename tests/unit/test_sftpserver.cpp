@@ -692,6 +692,9 @@ TEST_F(SftpServer, handlesMkdir)
     EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
         return file.groupId();
     });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -760,6 +763,9 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
     });
     EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
         return file.groupId();
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
@@ -918,6 +924,8 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -1272,6 +1280,8 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     });
     EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
         .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -1325,6 +1335,8 @@ TEST_F(SftpServer, renameFailureFails)
     });
     EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
         .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -1433,6 +1445,8 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     });
     EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
         .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
