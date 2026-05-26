@@ -120,7 +120,7 @@ struct QemuMountHandlerTest : public ::Test
     {
         auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
 
-        EXPECT_CALL(*proc, get_cmd).WillRepeatedly(ReturnRef(cmd));
+        EXPECT_CALL(*proc, get_cmd).WillRepeatedly(ReturnRefOfCopy(cmd));
         EXPECT_CALL(*proc, exit_code).WillRepeatedly(Return(Success ? 0 : 1));
 
         auto& out_err_expectation = Success ? EXPECT_CALL(*proc, read_std_output)
