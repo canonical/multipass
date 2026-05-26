@@ -103,7 +103,7 @@ multipass::PlainSSHSession::~PlainSSHSession()
     if (session)
     {
         ssh_disconnect(session.get());
-        force_shutdown(); // do we really need this?
+        PlainSSHSession::force_shutdown(); // do we really need this?
     }
 }
 
