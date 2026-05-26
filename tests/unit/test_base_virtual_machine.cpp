@@ -1480,6 +1480,23 @@ TEST_F(BaseVM, sshExecProcessRethrowsSSHExceptionsWhenConnected)
                          mpt::match_what(HasSubstr("intentional")));
 }
 
+TEST_F(BaseVM, newSshSessionThrowsIfNotRunning)
+{
+    StubBaseVirtualMachine stub{zone};
+    ASSERT_THAT(stub.current_state(),
+                AnyOf(mp::VirtualMachine::State::off, mp::VirtualMachine::State::stopped));
+
+    try
+    {
+        [[maybe_unused]] auto session = stub.new_ssh_session();
+        FAIL() << "expected SSHException";
+    }
+    catch (const mp::SSHException& e)
+    {
+        EXPECT_THAT(e.what(), HasSubstr("not running"));
+    }
+}
+
 TEST_F(BaseVM, sshExecTrimsAndReturnsStdoutOnSuccess)
 {
     static constexpr auto* cmd = "echo hi";
