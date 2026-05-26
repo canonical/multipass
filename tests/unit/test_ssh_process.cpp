@@ -149,3 +149,10 @@ TEST_F(SSHProcess, canReadOutput)
 
     EXPECT_THAT(output, StrEq(expected_output));
 }
+
+TEST_F(SSHProcess, getCmdReturnsCommandName)
+{
+    static constexpr auto* cmd = "my-command";
+    auto proc = session.exec(cmd);
+    EXPECT_EQ(proc->get_cmd(), cmd);
+}
