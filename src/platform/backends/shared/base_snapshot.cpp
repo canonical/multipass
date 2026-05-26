@@ -20,15 +20,18 @@
 
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
+#include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
 
-#include <QString>
-
 #include <QFile>
+#include <QString>
 #include <QTemporaryDir>
+
+#include <fmt/format.h>
+
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -37,41 +40,33 @@ namespace
 {
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto index_digits = 4; // these two go together
-const auto snapshot_template =
-    QStringLiteral("@s%1"); /* avoid confusion with snapshot names by prepending a character
-                               that can't be part of the name (users can call a snapshot
-                               "s1", but they cannot call it "@s1") */
+// Avoid confusion with snapshot names by prepending a character that can't be part of the name
+// (users can call a snapshot "s1", but they cannot call it "@s1").
+constexpr auto snapshot_template = "@s{}";
 
-QString derive_index_string(int index)
-{
-    return QString{"%1"}.arg(index, index_digits, 10, QLatin1Char('0'));
-}
-
-mp::SnapshotDescription read_snapshot_json(const QString& filename,
+mp::SnapshotDescription read_snapshot_json(const std::filesystem::path& filename,
                                            const mp::VirtualMachine& vm,
                                            const mp::VirtualMachineDescription& vm_desc)
 {
-    QFile file{filename};
-    if (!MP_FILEOPS.open(file, QIODevice::ReadOnly))
-        throw std::runtime_error{
-            fmt::format("Could not open snapshot file for for reading: {}", file.fileName())};
-
-    const auto& data = MP_FILEOPS.read_all(file);
-    if (data.isEmpty())
-        throw std::runtime_error{fmt::format("Empty snapshot JSON: {}", file.fileName())};
-
-    try
+    if (auto data = MP_FILEOPS.try_read_file(filename))
     {
-        const auto json = boost::json::parse(std::string_view(data));
-        return value_to<mp::SnapshotDescription>(json.at("snapshot"),
-                                                 mp::SnapshotContext{vm, vm_desc});
+        try
+        {
+            const auto json = boost::json::parse(*data);
+            return value_to<mp::SnapshotDescription>(json.at("snapshot"),
+                                                     mp::SnapshotContext{vm, vm_desc});
+        }
+        catch (const boost::system::system_error& e)
+        {
+            throw std::runtime_error{
+                fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
+                            e.what(),
+                            filename)};
+        }
     }
-    catch (const boost::system::system_error& e)
-    {
-        throw std::runtime_error{fmt::format("Could not parse snapshot JSON; error: {}; file: {}",
-                                             e.what(),
-                                             file.fileName())};
-    }
+
+    throw std::runtime_error{
+        fmt::format("Could not open snapshot file for for reading: {}", filename)};
 }
 
 std::shared_ptr<mp::Snapshot> find_parent(const mp::SnapshotDescription& desc,
@@ -97,8 +92,8 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
                                bool captured)
     : desc{std::move(desc)},
       parent{std::move(parent)},
-      id{snapshot_template.arg(this->desc.index)},
-      storage_dir{vm.instance_directory()},
+      id{fmt::format(snapshot_template, this->desc.index)},
+      storage_dir{MP_PLATFORM.qstr_to_path(vm.instance_directory().path())},
       captured{captured}
 {
     this->desc.parent_index = this->parent ? this->parent->get_index() : 0;
@@ -108,8 +103,8 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
 
 mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured)
     : desc{std::move(desc)},
-      id{snapshot_template.arg(desc.index)},
-      storage_dir{vm.instance_directory()},
+      id{fmt::format(snapshot_template, desc.index)},
+      storage_dir{MP_PLATFORM.qstr_to_path(vm.instance_directory().path())},
       captured{captured}
 {
     parent = find_parent(this->desc, vm);
@@ -143,7 +138,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
 {
 }
 
-mp::BaseSnapshot::BaseSnapshot(const QString& filename,
+mp::BaseSnapshot::BaseSnapshot(const std::filesystem::path& filename,
                                VirtualMachine& vm,
                                const VirtualMachineDescription& desc)
     : BaseSnapshot{read_snapshot_json(filename, vm, desc), vm, /*captured=*/true}
@@ -155,7 +150,7 @@ void mp::BaseSnapshot::persist() const
     assert(captured && "precondition: only captured snapshots can be persisted");
     const std::unique_lock lock{mutex};
 
-    auto snapshot_filepath = storage_dir.filePath(derive_snapshot_filename());
+    auto snapshot_filepath = storage_dir / derive_snapshot_filename();
     boost::json::value json = {{"snapshot", boost::json::value_from(desc)}};
     MP_FILEOPS.write_transactionally(snapshot_filepath, pretty_print(json));
 }
@@ -167,8 +162,9 @@ auto mp::BaseSnapshot::erase_helper()
     if (!tmp_dir->isValid())
         throw std::runtime_error{"Could not create temporary directory"};
 
-    const auto snapshot_filename = derive_snapshot_filename();
-    auto snapshot_filepath = storage_dir.filePath(snapshot_filename);
+    const auto snapshot_filename = QString::fromStdString(derive_snapshot_filename());
+    QDir qstorage_dir = MP_PLATFORM.path_to_qstr(storage_dir);
+    auto snapshot_filepath = qstorage_dir.filePath(snapshot_filename);
     auto deleting_filepath = tmp_dir->filePath(snapshot_filename);
 
     QFile snapshot_file{snapshot_filepath};
@@ -195,7 +191,7 @@ void mp::BaseSnapshot::erase()
     rollback_snapshot_file.dismiss();
 }
 
-QString mp::BaseSnapshot::derive_snapshot_filename() const
+std::string mp::BaseSnapshot::derive_snapshot_filename() const
 {
-    return QString{"%1.%2"}.arg(derive_index_string(desc.index), snapshot_extension);
+    return fmt::format("{0:0{1}}.{2}", desc.index, index_digits, snapshot_extension);
 }
