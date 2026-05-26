@@ -1,2 +1,4 @@
 tests/unit/test_data/formatters/** -text
 tests/unit/test_data/alias_dict/formatter/** -text
+vcpkg-ports/**/*.patch linguist-generated=true
+vcpkg-ports/**/multipass-patches/*.patch linguist-generated=false
