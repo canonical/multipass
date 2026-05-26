@@ -13,6 +13,6 @@ file(INSTALL "${SOURCE_PATH}/include/ztd" DESTINATION "${CURRENT_PACKAGES_DIR}/i
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
 
 file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/out_ptr-config.cmake"
-    DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
+    DESTINATION "${CURRENT_PACKAGES_DIR}/share/out_ptr")
 
 set(VCPKG_POLICY_EMPTY_INCLUDE_FOLDER disabled)
