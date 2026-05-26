@@ -23,6 +23,8 @@
 #include "temp_dir.h"
 
 #include <multipass/ip_address.h>
+#include <multipass/ssh/ssh_process.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
 namespace multipass
