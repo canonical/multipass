@@ -17,15 +17,17 @@
 
 #include "petname_generator.h"
 #include <namegen/src/lib.rs.h>
+#include <random>
 
 namespace mp = multipass;
 
 mp::PetnameGenerator::PetnameGenerator(mp::petname::NumWords num_words, char separator)
-    : num_words{num_words}, separator{separator}
+    : backend{
+          rp::PetnameBackend::make_petname_backend(num_words, separator, std::random_device{}())}
 {
 }
 
 std::string mp::PetnameGenerator::make_name()
 {
-    return std::string(rxx::petname::make_petname(num_words, separator));
+    return std::string(backend->make_name());
 }

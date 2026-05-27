@@ -19,7 +19,7 @@ use crate::ffi::NumWords;
 use crate::petname_error::PetnameError;
 
 use macros::make_word_array;
-use rand::{prelude::IndexedRandom, rngs::ThreadRng};
+use rand::{SeedableRng, prelude::IndexedRandom, rngs::SmallRng};
 use static_assertions as sa;
 
 use std::os::raw::c_char;
@@ -32,29 +32,50 @@ sa::const_assert!(!NOUNS.is_empty());
 sa::const_assert!(!ADJECTIVES.is_empty());
 sa::const_assert!(!ADVERBS.is_empty());
 
-pub fn make_petname(num_words: NumWords, separator_8: c_char) -> Result<String, PetnameError> {
-    let separator_c = separator_8 as u8 as char;
-    if !matches!(separator_c, '-' | '_') {
-        return Err(PetnameError::InvalidSeparator(separator_8 as i8));
-    }
-
-    let sources: &[&[&str]] = match num_words {
-        NumWords::One => &[NOUNS],
-        NumWords::Two => &[ADJECTIVES, NOUNS],
-        NumWords::Three => &[ADVERBS, ADJECTIVES, NOUNS],
-        num => return Err(PetnameError::InvalidWordNumber(num.repr)),
-    };
-
-    let mut rng_engine = rand::rng();
-
-    let words: Vec<_> = sources
-        .iter()
-        .map(|&arr| choose_from_str_array(arr, &mut rng_engine))
-        .collect();
-
-    Ok(words.join(&separator_c.to_string()))
+pub struct PetnameBackend {
+    num_words: NumWords,
+    separator: char,
+    rng: SmallRng,
 }
-fn choose_from_str_array(word_array: &[&'static str], rng: &mut ThreadRng) -> &'static str {
+
+impl PetnameBackend {
+    pub fn make_petname_backend(
+        num_words: NumWords,
+        separator_c: c_char,
+        seed: u64,
+    ) -> Result<Box<Self>, PetnameError> {
+        let separator = separator_c as u8 as char;
+        if !matches!(separator, '-' | '_') {
+            return Err(PetnameError::InvalidSeparator(separator_c as i8));
+        }
+        if !matches!(num_words, NumWords::One | NumWords::Two | NumWords::Three) {
+            return Err(PetnameError::InvalidWordNumber(num_words.repr));
+        };
+        Ok(Box::new(Self {
+            num_words,
+            separator,
+            rng: SmallRng::seed_from_u64(seed),
+        }))
+    }
+    pub fn make_name(&mut self) -> String {
+        let sources: &[&[&str]] = match self.num_words {
+            NumWords::One => &[NOUNS],
+            NumWords::Two => &[ADJECTIVES, NOUNS],
+            NumWords::Three => &[ADVERBS, ADJECTIVES, NOUNS],
+            //Constructor should have picked up the error
+            _ => unreachable!(),
+        };
+
+        let words: Vec<_> = sources
+            .iter()
+            .map(|&arr| choose_from_str_array(arr, &mut self.rng))
+            .collect();
+
+        words.join(&self.separator.to_string())
+    }
+}
+
+fn choose_from_str_array(word_array: &[&'static str], rng: &mut SmallRng) -> &'static str {
     match word_array.choose(rng).copied() {
         Some(str) => str,
         //If one of the sources of words was empty, compile-time failure

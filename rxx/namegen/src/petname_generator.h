@@ -18,8 +18,11 @@
 #pragma once
 
 #include <multipass/name_generator.h>
+#include <namegen/src/lib.rs.h>
 
 #include <string>
+
+namespace rp = rxx::petname;
 
 namespace multipass
 {
@@ -32,7 +35,6 @@ public:
     std::string make_name() override;
 
 private:
-    petname::NumWords num_words;
-    char separator;
+    rust::Box<rp::PetnameBackend> backend;
 };
 } // namespace multipass

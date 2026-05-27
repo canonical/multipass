@@ -17,7 +17,7 @@
 
 pub mod petname_error;
 pub mod petname_generator;
-use petname_generator::make_petname;
+use petname_generator::PetnameBackend;
 
 #[cxx::bridge(namespace = "multipass::petname")]
 pub mod ffi {
@@ -32,9 +32,16 @@ pub mod ffi {
 
     #[namespace = "rxx::petname"]
     extern "Rust" {
+        type PetnameBackend;
+        fn make_name(self: &mut PetnameBackend) -> String;
+        #[Self = "PetnameBackend"]
+        fn make_petname_backend(
+            num_words: NumWords,
+            separator: c_char,
+            seed: u64,
+        ) -> Result<Box<PetnameBackend>>;
         //Result<T> allows CXX to turn returned Rust Errors into cxx::RustError
         //on the C++ side.
-        fn make_petname(num_words: NumWords, separator: c_char) -> Result<String>;
     }
     #[namespace = "multipass::petname"]
     extern "C++" {
