@@ -146,17 +146,18 @@ sftp_attributes_struct stat_to_attr(const _stat64& file_data)
     if ((file_data.st_mode & _S_IFREG) == _S_IFREG)
         attr.permissions |= SSH_S_IFREG;
     else if ((file_data.st_mode & _S_IFDIR) == _S_IFDIR)
-        attr.permissions |= SSH_S_IFDIR | mp::Permissions::exec_all;
-    else // Symlink not a possibility in Windows CRT
+        attr.permissions |= SSH_S_IFDIR | fs::perms::others_exec | fs::perms::group_exec |
+                            fs::perms::owner_exec;
+    else // Symlink not a possibility in Windows CRT fstat or stat
          // Keep the filetype flag if other
         attr.permissions |= (file_data.st_mode & _S_IFMT);
 
     if ((file_data.st_mode & _S_IREAD) == _S_IREAD)
-        attr.permissions |= mp::Permissions::read_all;
+        attr.permissions |= fs::perms::others_read | fs::perms::group_read | fs::perms::owner_read;
     if ((file_data.st_mode & _S_IWRITE) == _S_IWRITE)
-        attr.permissions |= mp::Permissions::write_user; // Only user can write
+        attr.permissions |= fs::perms::owner_write; // Only user can write
     if ((file_data.st_mode & _S_IEXEC) == _S_IEXEC)
-        attr.permissions |= mp::Permissions::exec_all;
+        attr.permissions |= fs::perms::others_exec | fs::perms::group_exec | fs::perms::owner_exec;
 
     return attr;
 }
@@ -176,30 +177,29 @@ sftp_attributes_struct stat_to_attr(const WIN32_FIND_DATAA& file_data)
 
     attr.size = size_from(file_data.nFileSizeHigh, file_data.nFileSizeLow);
 
-    attr.permissions =
-        (mp::Permissions::all_all & ~(mp::Permissions::write_other | mp::Permissions::write_group));
+    attr.permissions = (fs::perms::all & ~(fs::perms::group_write | fs::perms::others_write));
     // Default is 0755
 
     if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
         (file_data.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
     {
-        attr.permissions |= SSH_S_IFLNK | mp::Permissions::write_group |
-                            mp::Permissions::write_other; // Symlinks have 0777 by default
+        attr.permissions |= SSH_S_IFLNK | fs::perms::group_write |
+                            fs::perms::others_write; // Symlinks have 0777 by default
     }
     else if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
         attr.permissions |= SSH_S_IFDIR; // Directories are 0755 by default
         if (file_data.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
         {
-            attr.permissions &= ~mp::Permissions::write_user;
+            attr.permissions &= ~fs::perms::owner_write;
         }
     }
     else
     {
-        attr.permissions |= SSH_S_IFREG; // Files 0755 by default (exe flag not supported in W32)
+        attr.permissions |= SSH_S_IFREG; // Files 0755 by default
         if (file_data.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
         {
-            attr.permissions &= ~mp::Permissions::write_user;
+            attr.permissions &= ~fs::perms::owner_write;
         }
     }
 
