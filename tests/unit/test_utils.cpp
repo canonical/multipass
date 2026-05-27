@@ -927,7 +927,7 @@ struct TestReapSSHProcess : public Test
     NiceMock<mpt::MockSSHProcess> proc;
 };
 
-TEST_F(TestReapSSHProcess, reapReturnsTrimedStdoutOnSuccess)
+TEST_F(TestReapSSHProcess, reapReturnsTrimmedStdoutOnSuccess)
 {
     EXPECT_CALL(proc, exit_code(_)).WillOnce(Return(0));
     EXPECT_CALL(proc, read_std_output()).WillOnce(Return("hello\n\n"));
