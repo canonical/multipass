@@ -26,4 +26,5 @@ fn test_error_display() {
         PetnameError::InvalidSeparator(64).to_string(),
         "Invalid separator, ASCII code: 64"
     );
+    assert_eq!(PetnameError::PoisonedMutex.to_string(), "Mutex is poisoned")
 }

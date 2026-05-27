@@ -33,7 +33,7 @@ pub mod ffi {
     #[namespace = "rxx::petname"]
     extern "Rust" {
         type PetnameBackend;
-        fn make_name(self: &mut PetnameBackend) -> String;
+        fn make_name(self: &mut PetnameBackend) -> Result<String>;
         #[Self = "PetnameBackend"]
         fn make_petname_backend(
             num_words: NumWords,

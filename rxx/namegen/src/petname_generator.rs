@@ -23,6 +23,7 @@ use rand::{SeedableRng, prelude::IndexedRandom, rngs::SmallRng};
 use static_assertions as sa;
 
 use std::os::raw::c_char;
+use std::sync::Mutex;
 //Paths are relative to the workspace root
 const ADJECTIVES: &[&str] = &make_word_array!("namegen/assets/adjectives.txt");
 const ADVERBS: &[&str] = &make_word_array!("namegen/assets/adverbs.txt");
@@ -35,7 +36,7 @@ sa::const_assert!(!ADVERBS.is_empty());
 pub struct PetnameBackend {
     num_words: NumWords,
     separator: char,
-    rng: SmallRng,
+    rng: Mutex<SmallRng>,
 }
 
 impl PetnameBackend {
@@ -54,10 +55,10 @@ impl PetnameBackend {
         Ok(Box::new(Self {
             num_words,
             separator,
-            rng: SmallRng::seed_from_u64(seed),
+            rng: Mutex::new(SmallRng::seed_from_u64(seed)),
         }))
     }
-    pub fn make_name(&mut self) -> String {
+    pub fn make_name(&mut self) -> Result<String, PetnameError> {
         let sources: &[&[&str]] = match self.num_words {
             NumWords::One => &[NOUNS],
             NumWords::Two => &[ADJECTIVES, NOUNS],
@@ -65,13 +66,15 @@ impl PetnameBackend {
             //Constructor should have picked up the error
             _ => unreachable!(),
         };
-
+        let Ok(mut rng_guard) = self.rng.lock() else {
+            return Err(PetnameError::PoisonedMutex);
+        };
         let words: Vec<_> = sources
             .iter()
-            .map(|&arr| choose_from_str_array(arr, &mut self.rng))
+            .map(|&arr| choose_from_str_array(arr, &mut rng_guard))
             .collect();
 
-        words.join(&self.separator.to_string())
+        Ok(words.join(&self.separator.to_string()))
     }
 }
 

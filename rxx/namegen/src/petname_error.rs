@@ -21,6 +21,7 @@ use std::fmt;
 pub enum PetnameError {
     InvalidWordNumber(i32),
     InvalidSeparator(i8),
+    PoisonedMutex,
 }
 
 impl fmt::Display for PetnameError {
@@ -29,6 +30,9 @@ impl fmt::Display for PetnameError {
             PetnameError::InvalidWordNumber(num) => write!(f, "Invalid word number: {}", num),
             PetnameError::InvalidSeparator(sep) => {
                 write!(f, "Invalid separator, ASCII code: {}", sep)
+            }
+            PetnameError::PoisonedMutex => {
+                write!(f, "Mutex is poisoned")
             }
         }
     }
