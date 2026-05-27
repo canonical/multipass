@@ -42,12 +42,15 @@ int sftp_reply_version(sftp_client_message msg);
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace fs = std::filesystem;
+using fsp = fs::perms;
 
 namespace
 {
 constexpr auto category = "sftp server";
 using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
 using namespace std::literals::chrono_literals;
+
+// TODO: wstring support for Windows
 
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
@@ -119,6 +122,7 @@ auto longname_from(const sftp_attributes_struct& file_attr, const std::string& f
 {
     fmt::memory_buffer out;
 
+    fsp perms = static_cast<fsp>(file_attr.permissions);
     if ((file_attr.permissions & SSH_S_IFMT) == SSH_S_IFLNK)
         out << "l";
     else if ((file_attr.permissions & SSH_S_IFMT) == SSH_S_IFDIR)
@@ -127,49 +131,49 @@ auto longname_from(const sftp_attributes_struct& file_attr, const std::string& f
         out << "-";
 
     /* user */
-    if (file_attr.permissions & mp::Permissions::read_user)
+    if ((perms & fsp::owner_read) != fsp::none)
         out << "r";
     else
         out << "-";
 
-    if (file_attr.permissions & mp::Permissions::write_user)
+    if ((perms & fsp::owner_write) != fsp::none)
         out << "w";
     else
         out << "-";
 
-    if (file_attr.permissions & mp::Permissions::exec_user)
+    if ((perms & fsp::owner_exec) != fsp::none)
         out << "x";
     else
         out << "-";
 
     /*group*/
-    if (file_attr.permissions & mp::Permissions::read_group)
+    if ((perms & fsp::group_read) != fsp::none)
         out << "r";
     else
         out << "-";
 
-    if (file_attr.permissions & mp::Permissions::write_group)
+    if ((perms & fsp::group_write) != fsp::none)
         out << "w";
     else
         out << "-";
 
-    if (file_attr.permissions & mp::Permissions::exec_group)
+    if ((perms & fsp::group_exec) != fsp::none)
         out << "x";
     else
         out << "-";
 
     /* other */
-    if (file_attr.permissions & mp::Permissions::read_other)
+    if ((perms & fsp::others_read) != fsp::none)
         out << "r";
     else
         out << "-";
 
-    if (file_attr.permissions & mp::Permissions::write_other)
+    if ((perms & fsp::others_write) != fsp::none)
         out << "w";
     else
         out << "-";
 
-    if (file_attr.permissions & mp::Permissions::exec_other)
+    if ((perms & fsp::others_exec) != fsp::none)
         out << "x";
     else
         out << "-";
