@@ -177,11 +177,25 @@ QString mp::platform::Platform::multipass_storage_location() const
     return mp::utils::get_multipass_storage();
 }
 
-int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
+int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct attr)
 {
     struct stat st{};
 
     auto ret = lstat(path, &st);
+
+    if (ret < 0)
+        return ret;
+
+    *attr = stat_to_attr(&st);
+
+    return 0;
+}
+
+int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct attr)
+{
+    struct stat st{};
+
+    auto ret = fstat(fd, &st);
 
     if (ret < 0)
         return ret;

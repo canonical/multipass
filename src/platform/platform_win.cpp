@@ -69,8 +69,10 @@
 // clang-format off
 #include <security.h>
 #include <secext.h>
+#include <sys/types.h>
 // clang-format on
 #include <windows.h>
+#include <sys/stat.h>
 #include <winternl.h>
 
 #include <algorithm>
@@ -113,6 +115,39 @@ FILETIME filetime_from(const time_t t)
 uint64_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
 {
     return (static_cast<uint64_t>(nFileSizeHigh) << 32) + nFileSizeLow;
+}
+
+sftp_attributes_struct stat_to_attr(const _stat64& file_data)
+{
+    sftp_attributes_struct attr{};
+
+    attr.uid = -2;
+    attr.gid = -2;
+
+    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
+                 SSH_FILEXFER_ATTR_ACMODTIME;
+
+    attr.atime = file_data.st_atime;
+    attr.mtime = file_data.st_mtime;
+
+    attr.size = file_data.st_size;
+
+    if ((file_data.st_mode & _S_IFREG) == _S_IFREG)
+        attr.permissions |= SSH_S_IFREG;
+    else if ((file_data.st_mode & _S_IFDIR) == _S_IFDIR)
+        attr.permissions |= SSH_S_IFDIR | mp::Permissions::exec_all;
+    else // Symlink not a possibility in Windows CRT
+         // Keep the filetype flag if other
+        attr.permissions |= (file_data.st_mode & _S_IFMT);
+
+    if ((file_data.st_mode & _S_IREAD) == _S_IREAD)
+        attr.permissions |= mp::Permissions::read_all;
+    if ((file_data.st_mode & _S_IWRITE) == _S_IWRITE)
+        attr.permissions |= mp::Permissions::write_user; // Only user can write
+    if ((file_data.st_mode & _S_IEXEC) == _S_IEXEC)
+        attr.permissions |= mp::Permissions::exec_all;
+
+    return attr;
 }
 
 sftp_attributes_struct stat_to_attr(const WIN32_FIND_DATAA& file_data)
@@ -1297,7 +1332,7 @@ QString mp::platform::Platform::multipass_storage_location() const
     return QString();
 }
 
-int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
+int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct attr)
 {
     WIN32_FIND_DATAA data;
 
@@ -1309,6 +1344,27 @@ int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* at
     }
     else
         return -1;
+}
+
+int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct attr)
+{
+    // Alternative: _fstat plus the uids adaptation
+    // Check out _fstat documentation of Windows CRT
+    struct _stat64 st{};
+    if (_fstat64(fd, &st) != 0)
+        return -1;
+    // HANDLE file_handle = static_cast<HANDLE>(_get_osfhandle(fd));
+    // if (file_handle == INVALID_HANDLE_VALUE)
+    //{
+    //     return -1;
+    // }
+
+    //// 2. Query primary file info (Size, Times, Base Attributes)
+    // BY_HANDLE_FILE_INFORMATION info;
+    // if (GetFileInformationByHandle(file_handle, &info) == 0)
+    //     return -1;
+    *attr = stat_to_attr(&info);
+    return 0;
 }
 
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
