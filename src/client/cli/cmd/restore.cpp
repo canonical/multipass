@@ -63,9 +63,8 @@ mp::ReturnCodeVariant cmd::Restore::run(mp::ArgParser* parser)
             if (term->is_live())
                 client_response.set_destructive(confirm_destruction(request.instance()));
             else
-                throw std::runtime_error(
-                    "Unable to query client for confirmation. Use '--destructive' to "
-                    "automatically discard current machine state.");
+                cerr << "Unable to query client for confirmation. Use '--destructive' to "
+                        "automatically discard current machine state.\n";
 
             client->Write(client_response);
             spinner.start();
