@@ -17,7 +17,6 @@
  */
 
 #include "petnamers/src/lib.rs.h"
-#include <multipass/exceptions/rust_exceptions.h>
 #include <multipass/name_generator_rs.h>
 
 namespace mpp = multipass::petname;
@@ -26,7 +25,7 @@ namespace mp = multipass;
 std::string mpp::generate_petname(petnamers::NumWords word_count, char sep)
 {
     if (word_count >= petnamers::NumWords::Max || word_count < petnamers::NumWords::One)
-        throw mp::FaultyFFIArgument("Invalid argument: word_count is outside the enum's bounds");
+        return "";
     try
     {
         return std::string(petnamers::generate_petname(word_count, sep));
@@ -36,11 +35,11 @@ std::string mpp::generate_petname(petnamers::NumWords word_count, char sep)
         std::string error{e.what()};
         if (error.find("some_error"))
         {
-            throw mp::UnknownRustError(error);
+            throw;
         }
         else
         {
-            throw mp::UnknownRustError(error);
+            throw;
         }
     }
 }
