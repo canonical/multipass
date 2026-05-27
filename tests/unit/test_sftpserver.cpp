@@ -2069,8 +2069,6 @@ TEST_F(SftpServer, handlesFstat)
 
 TEST_F(SftpServer, handlesFsetstat)
 {
-    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
 
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
