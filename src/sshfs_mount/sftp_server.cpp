@@ -288,16 +288,10 @@ mp::SftpServer::~SftpServer()
     stop_invoked = true;
 }
 
-std::optional<sftp_attributes_struct> mp::SftpServer::get_attr(const fs::path& path)
+void mp::SftpServer::convert_attr_ids(sftp_attributes_struct& attr)
 {
-    sftp_attributes_struct attr{};
-    if (mp::platform::symlink_attr_from(path.string().c_str(), &attr) != 0)
-        return std::nullopt;
-
     attr.uid = mapped_uid_for(attr.uid);
     attr.gid = mapped_gid_for(attr.gid);
-
-    return attr;
 }
 
 inline int mp::SftpServer::mapped_uid_for(const int uid)
@@ -603,24 +597,27 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
         return reply_bad_handle(msg, "fstat");
     }
 
-    const auto& [path, _] = *handle;
+    const auto& [path, fd] = *handle;
 
     // File is supposed to be open, and as such it must exist
-    if (!validate_path(path, request_requires_file_exists(SFTP_FSTAT)))
-    {
-        mpl::trace_location(category,
-                            "cannot validate target path \'{}\' against source \'{}\'",
-                            path,
-                            source_path);
-        return reply_perm_denied(msg);
-    }
+    // No need to verify path, we have an fd
+    // if (!validate_path(path, request_requires_file_exists(SFTP_FSTAT)))
+    //{
+    //    mpl::trace_location(category,
+    //                        "cannot validate target path \'{}\' against source \'{}\'",
+    //                        path,
+    //                        source_path);
+    //    return reply_perm_denied(msg);
+    //}
 
-    QFileInfo file_info(path);
+    // QFileInfo file_info(path);
 
-    if (file_info.isSymLink())
-        file_info = QFileInfo(file_info.symLinkTarget());
+    // if (file_info.isSymLink())
+    //     file_info = QFileInfo(file_info.symLinkTarget());
 
-    auto attr = get_attr(file_info);
+    sftp_attributes_struct attr{};
+    mp::platform::fstat_attr_from(fd, attr);
+    convert_attr_ids(attr);
     return sftp_reply_attr(msg, &attr);
 }
 
