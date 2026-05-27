@@ -238,11 +238,8 @@ jobs:
       run: |
         {
           echo 'RUST_EXEC_PATHS<<__EOF__'
-          cargo test --workspace --no-run --message-format=json --target-dir ${{ env.BUILD_DIR }}/rxx \
-            | jq -r 'select(.reason == "compiler-artifact" and .executable != null) | .executable' \
-            | while IFS= read -r exe; do
-                [ -n "$exe" ] && echo "$exe"
-              done
+          cargo test --workspace --no-run --message-format=json --target-dir ${{ env.BUILD_DIR }}/rxx --quiet \
+            | jq -r 'select(.reason == "compiler-artifact" and .executable != null) | .executable'
           echo '__EOF__'
         } >> "$GITHUB_ENV"
 
@@ -259,15 +256,9 @@ jobs:
         # Code-sign the test executable to grant core dump entitlement
         codesign -s - -f --entitlements segv.entitlements bin/multipass_cpp_tests
 
-        RUST_EXECUTABLES=()
-        while IFS= read -r line; do
-          [[ -n "$line" ]] || continue
-          RUST_EXECUTABLES+=("$line")
-        done <<< "$RUST_EXEC_PATHS"
-        for RUST_EXEC in "${RUST_EXECUTABLES[@]}";
-        do
-          codesign -s - -f --entitlements segv.entitlements "$RUST_EXEC"
-        done
+        echo "$RUST_EXEC_PATHS" | awk $'/./ {
+            system("codesign -s - -f --entitlements segv.entitlements \'" $0 "\'")
+        }'
 
         # Ensure destination exists and is writable
         sudo mkdir -p /cores || true
