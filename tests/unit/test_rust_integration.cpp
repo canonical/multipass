@@ -19,7 +19,8 @@
 
 #include <multipass/name_generator.h>
 
-#include <regex>
+#include <boost/algorithm/string/split.hpp>
+
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -32,9 +33,13 @@ namespace
 {
 std::vector<std::string> split(const std::string& string, char delimiter)
 {
-    std::regex regex(std::string(1, delimiter));
-    return {std::sregex_token_iterator{string.begin(), string.end(), regex, -1},
-            std::sregex_token_iterator{}};
+    std::vector<std::string> split_result;
+    boost::split(
+        split_result,
+        string,
+        [delimiter](char a) { return a == delimiter; },
+        boost::token_compress_on);
+    return split_result;
 }
 } // namespace
 

@@ -226,7 +226,7 @@ jobs:
         trap '
           EXIT_STATUS=$?
           echo "MULTIPASS_TESTS_EXIT_CODE=$EXIT_STATUS" >> $GITHUB_ENV
-          # Check if any files were generated in /cores/
+          # Check if any files were generated in /coredump/
           if /snap/bin/lxc --project snapcraft exec "$instance_name" -- bash -c "[ \"\$(ls -A /coredump 2>/dev/null)\" ]"; then
             echo "CORE_DUMPS_FOUND=true" >> $GITHUB_ENV
           fi

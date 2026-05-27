@@ -60,7 +60,7 @@ template <NumWords NW = NumWords::Two, char S = '-'>
 NameGenerator::UPtr make_petname_provider()
 {
     return detail::make_petname_provider_impl(NW, S);
-};
+}
 
 template <char S>
     requires IsValidSeparator<S>
