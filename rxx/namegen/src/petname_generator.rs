@@ -24,9 +24,9 @@ use static_assertions as sa;
 
 use std::os::raw::c_char;
 //Paths are relative to the workspace root
-const ADJECTIVES: &[&str] = &make_word_array!("namegen/src/adjectives.txt");
-const ADVERBS: &[&str] = &make_word_array!("namegen/src/adverbs.txt");
-const NOUNS: &[&str] = &make_word_array!("namegen/src/names.txt");
+const ADJECTIVES: &[&str] = &make_word_array!("namegen/assets/adjectives.txt");
+const ADVERBS: &[&str] = &make_word_array!("namegen/assets/adverbs.txt");
+const NOUNS: &[&str] = &make_word_array!("namegen/assets/names.txt");
 
 sa::const_assert!(!NOUNS.is_empty());
 sa::const_assert!(!ADJECTIVES.is_empty());
