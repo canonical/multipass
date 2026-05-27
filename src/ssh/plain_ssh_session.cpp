@@ -115,7 +115,7 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
     mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
 
-    return make_unique<PlainSSHProcess>(session.get(), cmd, std::move(lock));
+    return std::make_unique<PlainSSHProcess>(session.get(), cmd, std::move(lock));
 }
 
 void mp::PlainSSHSession::force_shutdown()
