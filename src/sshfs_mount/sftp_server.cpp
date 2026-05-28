@@ -766,7 +766,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
         sftp_attributes_struct dir_attr{};
-        if (mp::platform::stat_attr_from(filename->parent_path().string().c_str(), dir_attr) == 0 ||
+        if (mp::platform::stat_attr_from(filename->parent_path().string().c_str(), dir_attr) != 0 ||
             !has_id_mappings_for(dir_attr))
         {
             mpl::trace_location(
@@ -791,18 +791,12 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     int mode = 0;
     const auto flags = sftp_client_message_get_flags(msg);
 
-    if (flags & SSH_FXF_READ)
-        mode |= O_RDONLY;
-
-    if (flags & SSH_FXF_WRITE)
-        mode |= O_WRONLY;
-
     if ((flags & SSH_FXF_READ) && (flags & SSH_FXF_WRITE))
-    {
-        mode &= ~O_RDONLY;
-        mode &= ~O_WRONLY;
         mode |= O_RDWR;
-    }
+    else if (flags & SSH_FXF_READ)
+        mode |= O_RDONLY;
+    else if (flags & SSH_FXF_WRITE)
+        mode |= O_WRONLY;
 
     if (flags & SSH_FXF_APPEND)
         mode |= O_APPEND;
@@ -816,8 +810,10 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     if (flags & SSH_FXF_EXCL)
         mode |= O_EXCL;
 
-    auto named_fd = MP_FILEOPS.open_fd(*filename, mode, msg->attr ? msg->attr->permissions : 0);
-    if (named_fd->fd == -1)
+    auto named_fd_handle =
+        MP_FILEOPS.open_fd(*filename, mode, msg->attr ? msg->attr->permissions : 0);
+    auto named_fd = std::get_if<NamedFd>(named_fd_handle.get());
+    if (!named_fd || named_fd->fd == -1)
     {
         mpl::trace(category, "Cannot open '{}': {}", filename->string(), std::strerror(errno));
         return reply_failure(msg);
@@ -839,7 +835,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         }
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), named_fd.get()),
+    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), named_fd_handle.get()),
                                ssh_string_free};
     if (!sftp_handle)
     {
@@ -847,8 +843,8 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    auto fd_key_ptr{named_fd.get()};
-    open_file_handles.emplace(fd_key_ptr, std::move(named_fd));
+    auto fd_key_ptr{named_fd_handle.get()};
+    open_file_handles.emplace(fd_key_ptr, std::move(named_fd_handle));
 
     return sftp_reply_handle(msg, sftp_handle.get());
 }
@@ -860,9 +856,12 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     std::error_code err;
+    sftp_attributes_struct attr{};
+    const auto res = mp::platform::stat_attr_from(filename->string().c_str(),
+                                                  attr); // First stat to minimize TOCTOU impact
     auto dir_iterator = MP_FILEOPS.dir_iterator(*filename, err);
 
-    if (err.value() == int(std::errc::no_such_file_or_directory) ||
+    if (res != 0 || err.value() == int(std::errc::no_such_file_or_directory) ||
         err.value() == int(std::errc::no_such_process))
     {
         mpl::trace(category, "Cannot open directory '{}': {}", filename->string(), err.message());
@@ -875,8 +874,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    QFileInfo file_info{*filename};
-    if (!has_id_mappings_for(file_info))
+    if (!has_id_mappings_for(attr))
     {
         mpl::trace_location(category,
                             "cannot access path \'{}\' without id mapping: permission denied",
@@ -892,7 +890,8 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    open_dir_handles.emplace(dir_iterator.get(), std::move(dir_iterator));
+    auto dir_iter_ptr{dir_iterator.get()};
+    open_dir_handles.emplace(dir_iter_ptr, std::move(dir_iterator));
 
     return sftp_reply_handle(msg, sftp_handle.get());
 }
