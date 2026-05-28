@@ -400,7 +400,7 @@ final networksProvider =
       );
   if (driver != null && ref.watch(daemonAvailableProvider)) {
     final networks = await ref.watch(grpcClientProvider).networks();
-    return BuiltSet<String>(networks);
+    return BuiltSet<String>(networks.map((ni) => ni.name));
   }
   return BuiltSet<String>();
 });
