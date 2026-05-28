@@ -632,7 +632,7 @@ TEST_F(SftpServer, opendirNotReadableFails)
     msg->filename = dir_name.data();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, dir_iterator).WillOnce([](auto, std::error_code& err) {
+    EXPECT_CALL(*file_ops, dir_iterator).WillOnce([](auto, std::error_code& err) -> mp::SftpHandle {
         err = std::make_error_code(std::errc::permission_denied);
         return std::make_unique<mpt::MockDirIterator>();
     });
@@ -674,12 +674,6 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
     EXPECT_CALL(*file_ops, dir_iterator).WillOnce([&](const mp::fs::path&, std::error_code& err) {
         err.clear();
         return std::make_unique<mpt::MockDirIterator>();
-    });
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
