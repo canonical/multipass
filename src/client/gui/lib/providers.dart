@@ -90,11 +90,6 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
 });
 
 final daemonAvailableProvider = Provider((ref) {
-  // Check FFI availability first
-  if (!ref.watch(ffiAvailableProvider)) {
-    return false;
-  }
-
   final error = ref.watch(vmInfosStreamProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
@@ -234,10 +229,11 @@ final isLaunchingProvider = Provider.autoDispose.family<bool, String>((
 class ClientSettingNotifier extends Notifier<String> {
   ClientSettingNotifier(this.arg);
   final String arg;
-  final file = File(settingsFile());
 
   @override
   String build() {
+    if (!ref.watch(ffiAvailableProvider)) return '';
+    final file = File(settingsFile());
     file.parent.create(recursive: true).then(
           (dir) => dir
               .watch()
