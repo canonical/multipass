@@ -1708,19 +1708,9 @@ TEST_F(SftpServer, openUnableToOpenFails)
     msg->filename = name.data();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, symlink_status).WillOnce([](auto, std::error_code& err) {
-        err.clear();
-        return mp::fs::file_status{mp::fs::file_type::regular};
-    });
     EXPECT_CALL(*file_ops, open_fd).WillOnce([](auto path, auto...) {
         errno = EACCES;
         return std::make_unique<mp::NamedFd>(path, -1);
-    });
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);

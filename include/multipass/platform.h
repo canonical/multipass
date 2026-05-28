@@ -57,6 +57,7 @@ public:
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
     virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
+    virtual int fchown(int fd, unsigned int uid, unsigned int gid) const;
     virtual bool set_permissions(const std::filesystem::path& path,
                                  std::filesystem::perms permissions,
                                  bool try_inherit = false) const;
