@@ -23,7 +23,9 @@ import 'vm_details/vm_details.dart';
 import 'vm_table/vm_table_screen.dart';
 import 'window_size.dart';
 
-void main() async {
+var _windowSetupDone = false;
+
+Future<void> main([List<dynamic> extraOverrides = const []]) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await setupLogger();
@@ -34,27 +36,34 @@ void main() async {
   );
 
   final sharedPreferences = await SharedPreferences.getInstance();
-  await windowManager.ensureInitialized();
-  final windowOptions = WindowOptions(
-    center: true,
-    minimumSize: const Size(750, 450),
-    size: await deriveWindowSize(sharedPreferences),
-    title: 'Multipass',
-  );
 
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+  if (!_windowSetupDone) {
+    _windowSetupDone = true;
+    await windowManager.ensureInitialized();
+    final windowOptions = WindowOptions(
+      center: true,
+      minimumSize: const Size(750, 450),
+      size: await deriveWindowSize(sharedPreferences),
+      title: 'Multipass',
+    );
 
-  await hotKeyManager.unregisterAll();
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+
+    await hotKeyManager.unregisterAll();
+  }
 
   providerContainer = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      ...extraOverrides,
     ],
   );
-  setupTrayMenu(providerContainer);
+  if (providerContainer.read(ffiAvailableProvider)) {
+    setupTrayMenu(providerContainer);
+  }
   runApp(
     UncontrolledProviderScope(
       container: providerContainer,
