@@ -15,7 +15,7 @@ import 'logger.dart';
 
 export 'grpc_client.dart';
 
-late final ProviderContainer providerContainer;
+late ProviderContainer providerContainer;
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('SharedPreferences must be overridden');
