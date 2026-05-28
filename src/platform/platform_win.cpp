@@ -681,8 +681,6 @@ void mp::platform::sync_winterm_profiles()
 {
     constexpr auto log_category = "winterm";
     const auto winterm_setting = MP_SETTINGS.get(mp::winterm_key);
-    if (winterm_setting == none)
-        return;
 
     const auto winterm_path = windows_terminal_config_path();
     if (winterm_path.isEmpty())
@@ -693,24 +691,38 @@ void mp::platform::sync_winterm_profiles()
         return;
     }
 
-    const auto mp_fragment_dir =
-        QDir{MP_UTILS.make_dir(QDir{winterm_path}.filePath("Fragments/Multipass"))};
-    const auto mp_fragment_file = QDir(mp_fragment_dir).filePath("multipass.json");
-    if (MP_FILEOPS.exists(mp_fragment_file))
-    {
-        mpl::debug(log_category,
-                   "Multipass fragment for Windows Terminal already exists: {}",
-                   mp_fragment_file.toStdString());
-        return;
-    }
+    const auto mp_fragment_dir = MP_PLATFORM.qstr_to_path(
+        MP_UTILS.make_dir(QDir{winterm_path}.filePath("Fragments/Multipass")));
+    const auto mp_fragment_file = mp_fragment_dir / "multipass.json";
 
-    try
+    if (winterm_setting == none)
     {
-        MP_FILEOPS.write_transactionally(mp_fragment_file, pretty_print(create_primary_profile()));
+        // If the user requested no Windows Terminal profile, delete the file. This is safe because
+        // any user modifications to the profile are in their main `settings.json`. It's necessary
+        // because their `settings.json` overrides the `hidden` property, meaning we can't use that
+        // property in our fragment.
+        if (MP_FILEOPS.exists(mp_fragment_file))
+            MP_FILEOPS.remove(mp_fragment_file);
     }
-    catch (const std::exception& e)
+    else
     {
-        mpl::error(log_category, "Failed to write Windows Terminal fragment: {}", e.what());
+        if (MP_FILEOPS.exists(mp_fragment_file))
+        {
+            mpl::debug(log_category,
+                       "Multipass fragment for Windows Terminal already exists: {}",
+                       mp_fragment_file);
+            return;
+        }
+
+        try
+        {
+            MP_FILEOPS.write_transactionally(mp_fragment_file,
+                                             pretty_print(create_primary_profile()));
+        }
+        catch (const std::exception& e)
+        {
+            mpl::error(log_category, "Failed to write Windows Terminal fragment: {}", e.what());
+        }
     }
 }
 

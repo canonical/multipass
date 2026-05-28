@@ -132,7 +132,7 @@ TEST_F(TestWintermSync, createsNewFragmentFile)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("primary"));
 
-    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>())).WillOnce(Return(false));
     EXPECT_CALL(mock_file_ops, write_transactionally)
         .WillOnce(WithArg<1>([](const QByteArrayView& data) {
             try
@@ -157,10 +157,20 @@ TEST_F(TestWintermSync, skipsWritingWhenAlreadyExists)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("primary"));
 
-    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>())).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, write_transactionally).Times(0);
 
     const auto mock_logger_guard = expect_only_log(mpl::Level::debug, "already exists");
+    mp::platform::sync_winterm_profiles();
+}
+
+TEST_F(TestWintermSync, noneDeletesFragmentFile)
+{
+    EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("none"));
+
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>())).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, remove(A<const std::filesystem::path&>()));
+
     mp::platform::sync_winterm_profiles();
 }
 
@@ -178,7 +188,7 @@ TEST_F(TestWintermSync, logsOnFailureToOverwrite)
 {
     EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillOnce(Return("primary"));
 
-    EXPECT_CALL(mock_file_ops, exists(A<const QDir&>())).WillOnce(Return(false));
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>())).WillOnce(Return(false));
     EXPECT_CALL(mock_file_ops, write_transactionally)
         .WillOnce(Throw(std::runtime_error("intentional")));
 
