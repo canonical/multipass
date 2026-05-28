@@ -991,6 +991,8 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RMDIR);
