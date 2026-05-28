@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:multipass_gui/main.dart' as app;
 import 'package:multipass_gui/providers.dart';
 
+import 'helpers/app_harness.dart';
 import 'helpers/mock_daemon.dart';
 
 void main() {
@@ -45,12 +45,10 @@ void main() {
     addTearDown(mockDaemon.shutdown);
 
     // Launch app - defaults to catalogue screen
-    await tester.runAsync(() async {
-      await app.main([
-        ffiAvailableProvider.overrideWithValue(false),
-        grpcClientProvider.overrideWithValue(mockDaemon.client),
-      ]);
-    });
+    await launchApp(tester, [
+      ffiAvailableProvider.overrideWithValue(false),
+      grpcClientProvider.overrideWithValue(mockDaemon.client),
+    ]);
     await tester.pumpAndSettle();
 
     // Catalogue welcome title visible
