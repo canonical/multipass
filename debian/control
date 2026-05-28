@@ -1,6 +1,7 @@
 Source: multipass
 Build-Depends: build-essential,
                llvm,
+               lld,
                clang,
                clang-tools,
                cmake,
