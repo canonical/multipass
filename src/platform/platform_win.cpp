@@ -573,15 +573,12 @@ DWORD set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_
 
 DWORD convert_permissions(int unix_perms)
 {
-    if (unix_perms == 07)
-        return GENERIC_ALL;
-
     DWORD access_mask = 0;
-    if (unix_perms & 04)
+    if (unix_perms & 0444)
         access_mask |= GENERIC_READ;
-    if (unix_perms & 02)
+    if (unix_perms & 0222)
         access_mask |= GENERIC_WRITE;
-    if (unix_perms & 01)
+    if (unix_perms & 0111)
         access_mask |= GENERIC_EXECUTE;
 
     return access_mask;
@@ -1156,7 +1153,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
     // Rest handles ACLs
     auto path_str = path.string();
-    LPSTR lpPath = path_str.data();
+    LPSTR lpPath = path_str.c_str(); // Guaranteed null terminated string
     auto success = true;
 
     auto newACL = new_ACL(lpPath);
@@ -1170,19 +1167,17 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                          newACL.get(),
                          nullptr);
 
-    if (int others = int(perms) & 0007; others != 0)
+    if (int others = perms & fs::perms::others_all; others != 0)
         success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) ==
                    ERROR_SUCCESS;
-    if (int group = int(perms) & 0070; group != 0)
-        success &= set_specific_perms(lpPath,
-                                      WinCreatorGroupSid,
-                                      convert_permissions(group >> 3),
-                                      inherit) == ERROR_SUCCESS;
-    if (int owner = int(perms) & 0700; owner != 0)
-        success &= set_specific_perms(lpPath,
-                                      WinCreatorOwnerSid,
-                                      convert_permissions(owner >> 6),
-                                      inherit) == ERROR_SUCCESS;
+    if (int group = perms & fs::perms::group_all; group != 0)
+        success &=
+            set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group), inherit) ==
+            ERROR_SUCCESS;
+    if (int owner = perms & fs::perms::owner_all; owner != 0)
+        success &=
+            set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner), inherit) ==
+            ERROR_SUCCESS;
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
     success &= take_ownership(path);
@@ -1195,7 +1190,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
     auto path_str = path.string();
-    LPSTR lpPath = path_str.data();
+    LPSTR lpPath = path_str.c_str(); // Guaranteed to be null-terminated
 
     return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) ==
            ERROR_SUCCESS;
@@ -1347,21 +1342,30 @@ QString mp::platform::Platform::multipass_storage_location() const
     return QString();
 }
 
-int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct attr)
+int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr)
 {
     WIN32_FIND_DATAA data;
 
     // 0 signals failure
     if (FindFirstFileA(path, &data) != INVALID_HANDLE_VALUE)
     {
-        *attr = stat_to_attr(&data);
+        attr = stat_to_attr(&data);
         return 0;
     }
     else
         return -1;
 }
 
-int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct attr)
+int mp::platform::stat_attr_from(const char* path, sftp_attributes_struct& attr)
+{
+    struct _stat64 st{};
+    if (_stat64(path, &st) != 0)
+        return -1;
+    attr = stat_to_attr(st);
+    return 0;
+}
+
+int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct& attr)
 {
     // Alternative: _fstat plus the uids adaptation
     // Check out _fstat documentation of Windows CRT
@@ -1378,7 +1382,7 @@ int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct attr)
     // BY_HANDLE_FILE_INFORMATION info;
     // if (GetFileInformationByHandle(file_handle, &info) == 0)
     //     return -1;
-    *attr = stat_to_attr(&info);
+    attr = stat_to_attr(st);
     return 0;
 }
 
