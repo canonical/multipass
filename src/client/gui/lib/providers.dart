@@ -67,7 +67,17 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
       lastError = null;
     } catch (error, stackTrace) {
       if (error != lastError) {
-        logger.e('Error on polling info', error: error, stackTrace: stackTrace);
+        // "Channel shutting down" is an orderly disconnection (e.g. app exit);
+        // log at debug rather than error to avoid spurious noise.
+        final isChannelShutdown = error is GrpcError &&
+            (error.message?.contains('Channel shutting down') ?? false);
+        if (isChannelShutdown) {
+          logger.d('gRPC channel shut down while polling info',
+              error: error, stackTrace: stackTrace);
+        } else {
+          logger.e('Error on polling info',
+              error: error, stackTrace: stackTrace);
+        }
         yield* Stream.error(error, stackTrace);
       }
       lastError = error;
