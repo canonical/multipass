@@ -620,33 +620,47 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
     //     file_info = QFileInfo(file_info.symLinkTarget());
 
     sftp_attributes_struct attr{};
-    mp::platform::fstat_attr_from(fd, attr);
+    if (mp::platform::fstat_attr_from(fd, attr) != 0)
+    {
+        mpl::trace_location(category, "fstat failed with error code: {}", errno);
+        return reply_failure(msg);
+    }
     convert_attr_ids(attr);
     return sftp_reply_attr(msg, &attr);
 }
 
 int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 {
+    // The SFTP specification does not put its foot down on recursiveness,
+    // but most implementations replicate the mkdir() syscall (non-recursive)
+    // TODO: handle OS API errors differently for logging (lstat, mkdir)
     const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QDir dir(*filename);
-    QFileInfo current_dir(*filename);
-    QFileInfo parent_dir(current_dir.path());
+    sftp_attributes_struct parent_attr{};
+    if (mp::platform::lstat_attr_from(filename->parent_path().string().c_str(), parent_attr) != 0)
+    {
+        mpl::trace_location(category,
+                            "Parent path {} lstat failed, aborting mkdir on {}",
+                            filename->parent_path().string(),
+                            filename->string());
+        return reply_failure(msg);
+    }
 
-    if (!has_id_mappings_for(parent_dir))
+    if (!has_id_mappings_for(parent_attr))
     {
         mpl::trace_location(
             category,
             "cannot create path \'{}\' with permissions \'{}:{}\': permission denied",
-            parent_dir.ownerId(),
-            parent_dir.groupId(),
+            parent_attr.uid,
+            parent_attr.gid,
             filename->string());
         return reply_perm_denied(msg);
     }
 
-    if (!dir.mkdir(QString::fromStdString(filename->string())))
+    std::error_code ec;
+    if (!MP_FILEOPS.create_directory(*filename, ec) || ec)
     {
         mpl::trace_location(category, "mkdir failed for '{}'", filename->string());
         return reply_failure(msg);
@@ -658,8 +672,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    int rev_uid = reverse_uid_for(parent_dir.ownerId(), parent_dir.ownerId());
-    int rev_gid = reverse_gid_for(parent_dir.groupId(), parent_dir.groupId());
+    int rev_uid = reverse_uid_for(parent_attr.uid, parent_attr.uid);
+    int rev_gid = reverse_gid_for(parent_attr.gid, parent_attr.gid);
 
     if (MP_PLATFORM.chown(filename->string().c_str(), rev_uid, rev_gid) < 0)
     {
