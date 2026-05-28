@@ -6,7 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 
-late final Logger logger;
+Logger? _logger;
+Logger get logger => _logger!;
 
 class NoFilter extends LogFilter {
   @override
@@ -14,9 +15,11 @@ class NoFilter extends LogFilter {
 }
 
 Future<void> setupLogger() async {
+  if (_logger != null) return;
+
   final logFilePath = await getApplicationSupportDirectory();
 
-  logger = Logger(
+  _logger = Logger(
     filter: NoFilter(),
     printer: MpPrettyPrinter(excludePaths: ['dart:', 'package:flutter']),
     output: MultiOutput([
