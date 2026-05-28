@@ -118,18 +118,28 @@ fmt::memory_buffer& operator<<(fmt::memory_buffer& buf, const char* v)
     return buf;
 }
 
+bool is_directory(const sftp_attributes_struct& attr)
+{
+    return (attr.permissions & SSH_S_IFMT) == SSH_S_IFDIR;
+}
+
+bool is_symlink(const sftp_attributes_struct& attr)
+{
+    return (attr.permissions & SSH_S_IFMT) == SSH_S_IFLNK;
+}
+
 auto longname_from(const sftp_attributes_struct& file_attr, const std::string& filename)
 {
     fmt::memory_buffer out;
 
-    fsp perms = static_cast<fsp>(file_attr.permissions);
-    if ((file_attr.permissions & SSH_S_IFMT) == SSH_S_IFLNK)
+    if (is_symlink(file_attr))
         out << "l";
-    else if ((file_attr.permissions & SSH_S_IFMT) == SSH_S_IFDIR)
+    else if (is_directory(file_attr))
         out << "d";
     else
         out << "-";
 
+    fsp perms = static_cast<fsp>(file_attr.permissions);
     /* user */
     if ((perms & fsp::owner_read) != fsp::none)
         out << "r";
@@ -659,6 +669,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
     std::error_code ec;
     if (!MP_FILEOPS.create_directory(*filename, ec) || ec)
     {
+        // If the directory exists, return failure
         mpl::trace_location(category, "mkdir failed for '{}'", filename->string());
         return reply_failure(msg);
     }
@@ -687,12 +698,24 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 
 int mp::SftpServer::handle_rmdir(sftp_client_message msg)
 {
+    // The sftp specification says that only directories should be removed with this message,
+    // similarly to ::rmdir()
     const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo current_dir(*filename);
-    if (MP_FILEOPS.exists(current_dir) && !has_id_mappings_for(current_dir))
+    sftp_attributes_struct attr{};
+    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) != 0)
+    {
+        mpl::trace_location(category, "rmdir failed for '{}': does not exist", filename->string());
+        return reply_failure(msg);
+    }
+    if (!is_directory(attr))
+    {
+        mpl::trace_location(category, "path \'{}\' is not a directory", filename->string());
+        return reply_failure(msg);
+    }
+    if (!has_id_mappings_for(attr))
     {
         mpl::trace_location(category,
                             "cannot access path \'{}\' without id mapping: permission denied",
