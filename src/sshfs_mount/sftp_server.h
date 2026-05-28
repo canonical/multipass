@@ -37,6 +37,7 @@ class SSHProcess;
 
 class SftpServer
 {
+    // Implementation follows the v3 of the SFTP specs and follows the OpenSSH schism
 public:
     SftpServer(SSHSession&& ssh_session,
                const std::string& source,
@@ -55,11 +56,10 @@ public:
     using SSHSessionUptr = std::unique_ptr<ssh_session_struct, decltype(ssh_free)*>;
     using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
     using SSHFSProcUptr = std::unique_ptr<SSHProcess>;
-    using SFTPHandle = std::variant<NamedFd, DirIterator>;
+    using SftpHandle = std::variant<NamedFd, DirIterator>;
 
 private:
     void process_message(sftp_client_message msg);
-    std::optional<sftp_attributes_struct> get_attr(const fs::path& path);
     int mapped_uid_for(const int uid);
     int mapped_gid_for(const int gid);
     int reverse_uid_for(const int uid, const int default_id);
@@ -68,7 +68,8 @@ private:
     bool has_gid_mapping_for(const int gid);
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
-    bool has_id_mappings_for(const QFileInfo& file_info);
+    bool has_id_mappings_for(const sftp_attributes_struct& file_info);
+    void convert_attr_ids(sftp_attributes_struct& attr);
     bool validate_path(const fs::path& current_path, bool follows_symlinks) const;
     std::string host_to_guest_path(const fs::path& host_path) const;
     fs::path get_absolute_path(const char* path) const;

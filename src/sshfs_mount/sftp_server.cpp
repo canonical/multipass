@@ -346,10 +346,9 @@ inline bool mp::SftpServer::has_reverse_gid_mapping_for(const int gid)
     });
 }
 
-bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)
+bool mp::SftpServer::has_id_mappings_for(const sftp_attributes_struct& file_attr)
 {
-    return has_uid_mapping_for(MP_FILEOPS.ownerId(file_info)) &&
-           has_gid_mapping_for(MP_FILEOPS.groupId(file_info));
+    return has_uid_mapping_for(file_attr.uid) && has_gid_mapping_for(file_attr.gid);
 }
 
 bool mp::SftpServer::validate_path(const fs::path& current_path, bool check_file_itself) const
@@ -566,6 +565,7 @@ void mp::SftpServer::run()
             }
         }
 
+        // Expectation is that there are no unmanaged exceptions at the handle_* methods
         process_message(msg);
     }
 }
