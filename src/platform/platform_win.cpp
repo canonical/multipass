@@ -1039,8 +1039,20 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
+int mp::platform::Platform::fchown(int fd, unsigned int uid, unsigned int gid) const
+{
+    // TODO: Implement
+    logging::trace(log_category,
+                   "chown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
+                   path,
+                   uid,
+                   gid);
+    return 0;
+}
+
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
+    // TODO: Implement
     logging::trace(log_category,
                    "chown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
                    path,
@@ -1347,13 +1359,52 @@ int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr
     WIN32_FIND_DATAA data;
 
     // 0 signals failure
-    if (FindFirstFileA(path, &data) != INVALID_HANDLE_VALUE)
+    if (HANDLE hFind = FindFirstFileA(path, &data); hfind != INVALID_HANDLE_VALUE)
     {
         attr = stat_to_attr(&data);
+        FindClose(hFind);
         return 0;
     }
     else
-        return -1;
+    {
+        DWORD win_err = GetLastError();
+
+        // Map common Win32 errors to standard POSIX errno values
+        switch (win_err)
+        {
+        case ERROR_FILE_NOT_FOUND:
+        case ERROR_PATH_NOT_FOUND:
+        case ERROR_INVALID_NAME:
+        case ERROR_BAD_NETPATH:
+        case ERROR_BAD_PATHNAME:
+            errno = ENOENT;
+            break;
+
+        case ERROR_ACCESS_DENIED:
+        case ERROR_SHARING_VIOLATION:
+            errno = EACCES;
+            break;
+
+        case ERROR_OUTOFMEMORY:
+            errno = ENOMEM;
+            break;
+
+        case ERROR_INVALID_PARAMETER:
+            errno = EINVAL;
+            break;
+
+        case ERROR_TOO_MANY_OPEN_FILES:
+            errno = EMFILE;
+            break;
+
+        default:
+            // Fallback for unmapped errors
+            errno = ENOENT;
+            break;
+        }
+
+        return -1; // Standard lstat failure return code
+    }
 }
 
 int mp::platform::stat_attr_from(const char* path, sftp_attributes_struct& attr)
