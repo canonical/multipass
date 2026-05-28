@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show Key;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:multipass_gui/providers.dart';
@@ -8,7 +9,7 @@ import 'helpers/mock_daemon.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Empty state: message contains link to Catalogue',
+  testWidgets('Empty state: Catalogue link navigates to catalogue',
       (tester) async {
     final mockDaemon = MockDaemon.nice();
     mockDaemon.onInfo = (_) => Stream.value(InfoReply());
@@ -27,6 +28,11 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Return to the Catalogue'), findsOneWidget);
+    expect(find.byKey(const Key('catalogue_link')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('catalogue_link')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to Multipass'), findsOneWidget);
   });
 }
