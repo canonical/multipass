@@ -230,6 +230,11 @@ int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct& attr)
     return 0;
 }
 
+ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t offset)
+{
+    return ::pread(fd, buffer, bytes_to_read, offset);
+}
+
 mp::platform::PosixSignal::PosixSignal(const PrivatePass& pass) noexcept : Singleton(pass)
 {
 }
