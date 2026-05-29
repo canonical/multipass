@@ -55,8 +55,7 @@ void main() {
     expect(find.text('Welcome to Multipass'), findsOneWidget);
 
     // Wait for find to complete and images to render
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+    await pumpUntil(tester, find.text('Ubuntu Server'));
 
     // Image cards rendered for each OS
     expect(find.text('Ubuntu Server'), findsOneWidget);

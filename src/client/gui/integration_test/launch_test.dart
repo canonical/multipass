@@ -61,21 +61,28 @@ void main() {
     expect(find.text('Welcome to Multipass'), findsOneWidget);
 
     // Wait for find to complete and image cards to appear
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+    await pumpUntil(tester, find.text('Ubuntu Server'));
 
     // Ubuntu Server card is rendered
     expect(find.text('Ubuntu Server'), findsOneWidget);
 
     // Tap the Launch button on the Ubuntu Server card.
     await tester.tap(find.text('Launch').first);
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+
+    // Wait for the launch to complete and the sidebar badge to update
+    await pumpUntil(tester, find.text('1'));
 
     expect(capturedLaunchReq?.image, equals(testAlias));
 
     // Sidebar Instances badge shows count of 1
     expect(find.text('1'), findsOneWidget);
+
+    // Navigate to Instances page and verify the launched VM appears
+    await tester.tap(find.textContaining('Instances'));
+    await pumpUntil(tester, find.text('All Instances'));
+
+    expect(find.text('All Instances'), findsOneWidget);
+    expect(find.byTooltip(capturedLaunchReq!.instanceName), findsOneWidget);
 
     mockDaemon.assertAllConsumed();
   });

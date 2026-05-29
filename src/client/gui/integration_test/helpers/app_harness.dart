@@ -45,3 +45,39 @@ Future<void> launchApp(
     await tester.pump();
   });
 }
+
+/// Pumps the widget tree at [interval] until [finder] matches at least one
+/// widget, or [timeout] elapses.
+Future<void> pumpUntil(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 5),
+  Duration interval = const Duration(milliseconds: 100),
+}) async {
+  final end = tester.binding.clock.now().add(timeout);
+  while (finder.evaluate().isEmpty) {
+    if (tester.binding.clock.now().isAfter(end)) {
+      throw Exception('pumpUntil timed out waiting for $finder');
+    }
+    await tester.pump(interval);
+  }
+  await tester.pumpAndSettle();
+}
+
+/// Pump the widget tree at [interval] until [finder] matches no widgets,
+/// or [timeout] elapses.
+Future<void> pumpUntilGone(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 5),
+  Duration interval = const Duration(milliseconds: 100),
+}) async {
+  final end = tester.binding.clock.now().add(timeout);
+  while (finder.evaluate().isNotEmpty) {
+    if (tester.binding.clock.now().isAfter(end)) {
+      throw Exception('pumpUntilGone timed out waiting for $finder to vanish');
+    }
+    await tester.pump(interval);
+  }
+  await tester.pumpAndSettle();
+}

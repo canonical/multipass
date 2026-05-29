@@ -24,9 +24,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.textContaining('Instances'));
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+    await pumpUntil(tester, find.byKey(const Key('catalogue_link')));
 
     expect(find.byKey(const Key('catalogue_link')), findsOneWidget);
 
