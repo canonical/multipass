@@ -1215,91 +1215,71 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 }
 int mp::SftpServer::handle_setstat(sftp_client_message msg)
 {
-    fs::path filename;
+    const auto filepath = get_validated_path(msg);
+    if (!filepath.has_value())
+        return reply_perm_denied(msg);
 
-    if (sftp_client_message_get_type(msg) == SFTP_FSETSTAT)
+    const auto& path_string = filepath->string();
+    sftp_attributes_struct attr{};
+    if (mp::platform::stat_attr_from(path_string.c_str(), attr) != 0)
     {
-        const auto handle = get_handle<NamedFd>(msg);
-        if (handle == nullptr)
-        {
-            mpl::trace_location(category, "bad handle requested");
-            return reply_bad_handle(msg, "setstat");
-        }
-
-        const auto& [path, _] = *handle;
-        filename = path;
-    }
-    else
-    {
-        const auto validated_filename = get_validated_path(msg);
-        if (!validated_filename.has_value())
-            return reply_perm_denied(msg);
-
-        filename = *validated_filename;
-
-        QFileInfo file_info{filename};
-        if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
-        {
-            mpl::trace_location(category, "cannot setstat '{}': no such file", filename.string());
-            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
-        }
+        mpl::trace_location(category, "cannot setstat '{}': no such file", path_string);
+        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
-    QFileInfo file_info{filename};
-    if (!has_id_mappings_for(file_info))
+    if (!has_id_mappings_for(attr))
     {
         mpl::trace_location(category,
                             "cannot access path \'{}\' without id mapping: permission denied",
-                            filename.string());
+                            path_string);
         return reply_perm_denied(msg);
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
-        QFile file{filename};
-        if (!MP_FILEOPS.resize(file, msg->attr->size))
+        std::error_code ec;
+        if (MP_FILEOPS.resize(*filepath, msg->attr->size, ec); ec)
         {
-            mpl::trace_location(category, "cannot resize '{}'", filename.string());
+            mpl::trace_location(category, "cannot resize '{}'", path_string);
             return reply_failure(msg);
         }
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
-        if (!MP_PLATFORM.set_permissions(filename, static_cast<fs::perms>(msg->attr->permissions)))
+        if (!MP_PLATFORM.set_permissions(*filepath, static_cast<fs::perms>(msg->attr->permissions)))
         {
-            mpl::trace_location(category, "set permissions failed for '{}'", filename.string());
+            mpl::trace_location(category, "set permissions failed for '{}'", path_string);
             return reply_failure(msg);
         }
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
     {
-        if (MP_PLATFORM.utime(filename.string().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
+        if (MP_PLATFORM.utime(path_string.c_str(), msg->attr->atime, msg->attr->mtime) < 0)
         {
-            mpl::trace_location(category,
-                                "cannot set modification date for '{}'",
-                                filename.string());
+            mpl::trace_location(category, "cannot set modification date for '{}'", path_string);
             return reply_failure(msg);
         }
     }
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        if (!has_reverse_uid_mapping_for(msg->attr->uid) &&
+        // Should it fail if any of the IDs are not mapped?
+        if (!has_reverse_uid_mapping_for(msg->attr->uid) ||
             !has_reverse_gid_mapping_for(msg->attr->gid))
         {
             mpl::trace_location(category,
                                 "cannot set ownership for \'{}\' without id mapping",
-                                filename.string());
+                                path_string);
             return reply_perm_denied(msg);
         }
 
-        if (MP_PLATFORM.chown(filename.string().c_str(),
+        if (MP_PLATFORM.chown(path_string.c_str(),
                               reverse_uid_for(msg->attr->uid, msg->attr->uid),
                               reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
         {
-            mpl::trace_location(category, "cannot set ownership for '{}'", filename.string());
+            mpl::trace_location(category, "cannot set ownership for '{}'", path_string);
             return reply_failure(msg);
         }
     }
