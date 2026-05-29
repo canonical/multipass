@@ -371,6 +371,11 @@ void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p) const
     fs::rename(old_p, new_p);
 }
 
+void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p, std::error_code& ec) const
+{
+    fs::rename(old_p, new_p, ec);
+}
+
 bool mp::FileOps::exists(const fs::path& path) const
 {
     return fs::exists(path);
