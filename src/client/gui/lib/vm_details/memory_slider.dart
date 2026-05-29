@@ -143,10 +143,12 @@ class _MemorySliderState extends State<MemorySlider> {
                 children: [
                   const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
                   const SizedBox(width: 5),
-                  Text(
-                    l10n.memorySliderOverProvisioning(
-                        widget.label.toLowerCase()),
-                    style: const TextStyle(fontSize: 16),
+                  Flexible(
+                    child: Text(
+                      l10n.memorySliderOverProvisioning(
+                          widget.label.toLowerCase()),
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                 ],
               ),

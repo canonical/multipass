@@ -33,7 +33,8 @@ class MappingSlider extends StatelessWidget {
     return Slider(
       min: scaledMin.toDouble(),
       max: (scaledMax + extraMaxStep).toDouble(),
-      divisions: enabled ? math.max(1, scaledMax - scaledMin + extraMaxStep) : null,
+      divisions:
+          enabled ? math.max(1, scaledMax - scaledMin + extraMaxStep) : null,
       value: mapping(value).toDouble(),
       onChanged: enabled
           ? (mappedValue) => onChanged(inverseMapping(mappedValue.toInt()))
