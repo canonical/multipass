@@ -960,26 +960,28 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
+    sftp_attributes_struct attr{};
+    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) != 0 ||
+        !has_id_mappings_for(attr))
+    {
+        mpl::trace_location(category,
+                            "cannot access path '{}' without id mapping: permission denied",
+                            filename->string());
+        return reply_perm_denied(msg);
+    }
+
     std::error_code ec;
     // We give the raw stored link when reading, block on openat
-    auto raw_link = MP_FILEOPS.read_symlink(*filename, ec);
+    const auto raw_link = MP_FILEOPS.read_symlink(*filename, ec);
     if (ec)
     {
         mpl::trace_location(category, "invalid link for \'{}\'", filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
     }
 
-    QFileInfo file_info{*filename};
-    if (!has_id_mappings_for(file_info))
-    {
-        mpl::trace_location(category,
-                            "cannot access path \'{}\' without id mapping: permission denied",
-                            filename->string());
-        return reply_perm_denied(msg);
-    }
-
-    sftp_attributes_struct attr{};
-    sftp_reply_names_add(msg, raw_link.string().c_str(), raw_link.string().c_str(), &attr);
+    sftp_attributes_struct dummy_attr{};
+    // SFTP spec v3 states that dummy/empty attr is returned for SSH_FXP_READLINK responses
+    sftp_reply_names_add(msg, raw_link.string().c_str(), raw_link.string().c_str(), &dummy_attr);
     return sftp_reply_names(msg);
 }
 
