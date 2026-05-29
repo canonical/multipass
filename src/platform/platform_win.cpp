@@ -21,6 +21,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/posix.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
@@ -1475,6 +1476,11 @@ ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t of
     }
 
     return -1;
+}
+
+int mp::platform::ftruncate(int fd, off_t length)
+{
+    return _chsize_s(fd, length);
 }
 
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(

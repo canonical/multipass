@@ -56,7 +56,6 @@ public:
     using SSHSessionUptr = std::unique_ptr<ssh_session_struct, decltype(ssh_free)*>;
     using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
     using SSHFSProcUptr = std::unique_ptr<SSHProcess>;
-    using SftpHandle = std::variant<NamedFd, DirIterator>;
 
 private:
     void process_message(sftp_client_message msg);
@@ -88,7 +87,8 @@ private:
     int handle_remove(sftp_client_message msg);
     int handle_rename(sftp_client_message msg);
     int handle_setstat(sftp_client_message msg);
-    int handle_stat(sftp_client_message msg, bool follow);
+    int handle_fsetstat(sftp_client_message msg);
+    int handle_stat(sftp_client_message msg, const bool follow);
     int handle_symlink(sftp_client_message msg);
     int handle_write(sftp_client_message msg);
     int handle_extended(sftp_client_message msg);

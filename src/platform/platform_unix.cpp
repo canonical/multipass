@@ -229,6 +229,22 @@ ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t of
     return ::pread(fd, buffer, bytes_to_read, offset);
 }
 
+int mp::platform::ftruncate(int fd, off_t length)
+{
+    return ::ftruncate(fd, length);
+}
+
+int mp::platform::futimes(int fd, int atime, int mtime)
+{
+    struct timeval tv[2];
+    tv[0].tv_sec = atime;
+    tv[0].tv_usec = 0;
+    tv[1].tv_sec = mtime;
+    tv[1].tv_usec = 0;
+
+    return ::futimes(fd, tv);
+}
+
 mp::platform::PosixSignal::PosixSignal(const PrivatePass& pass) noexcept : Singleton(pass)
 {
 }
