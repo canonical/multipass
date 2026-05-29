@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 Logger? _logger;
 Logger get logger => _logger!;
+set logger(Logger l) => _logger = l;
 
 class NoFilter extends LogFilter {
   @override
