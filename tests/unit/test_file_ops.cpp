@@ -139,11 +139,12 @@ TEST_F(FileOps, createDirectories)
 TEST_F(FileOps, dirIter)
 {
     auto iter = MP_FILEOPS.dir_iterator(temp_dir, err);
+    auto& dir_iter = std::get<std::unique_ptr<multipass::DirIterator>>(iter);
     EXPECT_FALSE(err);
-    EXPECT_TRUE(iter->hasNext());
-    EXPECT_EQ(iter->next().path(), temp_dir / ".");
-    EXPECT_EQ(iter->next().path(), temp_dir / "..");
-    EXPECT_EQ(iter->next().path(), temp_file);
+    EXPECT_TRUE(dir_iter->hasNext());
+    EXPECT_EQ(dir_iter->next().path(), temp_dir / ".");
+    EXPECT_EQ(dir_iter->next().path(), temp_dir / "..");
+    EXPECT_EQ(dir_iter->next().path(), temp_file);
     MP_FILEOPS.recursive_dir_iterator(temp_file, err);
     EXPECT_TRUE(err);
 }
@@ -151,14 +152,17 @@ TEST_F(FileOps, dirIter)
 TEST_F(FileOps, posixOpen)
 {
     const auto named_fd1 = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
-    EXPECT_NE(named_fd1->fd, -1);
+    auto& nf1 = std::get<std::unique_ptr<multipass::NamedFd>>(named_fd1);
+    EXPECT_NE(nf1->fd, -1);
     const auto named_fd2 = MP_FILEOPS.open_fd(temp_dir, O_RDWR, 0);
-    EXPECT_EQ(named_fd2->fd, -1);
+    auto& nf2 = std::get<std::unique_ptr<multipass::NamedFd>>(named_fd2);
+    EXPECT_EQ(nf2->fd, -1);
 }
 
 TEST_F(FileOps, posixRead)
 {
-    const auto named_fd = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
+    const auto variant_ptr = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
+    auto& named_fd = std::get<std::unique_ptr<multipass::NamedFd>>(variant_ptr);
     std::array<char, 100> buffer{};
     const auto r = MP_FILEOPS.read(named_fd->fd, buffer.data(), buffer.size());
     EXPECT_EQ(r, file_content.size());
@@ -167,7 +171,8 @@ TEST_F(FileOps, posixRead)
 
 TEST_F(FileOps, posixWrite)
 {
-    const auto named_fd = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
+    const auto variant_ptr = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
+    auto& named_fd = std::get<std::unique_ptr<multipass::NamedFd>>(variant_ptr);
     const char data[] = "abcdef";
     const auto r = MP_FILEOPS.write(named_fd->fd, data, sizeof(data));
     EXPECT_EQ(r, sizeof(data));
@@ -178,7 +183,8 @@ TEST_F(FileOps, posixWrite)
 
 TEST_F(FileOps, posixLseek)
 {
-    const auto named_fd = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
+    const auto variant_ptr = MP_FILEOPS.open_fd(temp_file, O_RDWR, 0);
+    auto& named_fd = std::get<std::unique_ptr<multipass::NamedFd>>(variant_ptr);
     const auto seek = 3;
     MP_FILEOPS.lseek(named_fd->fd, seek, SEEK_SET);
     std::array<char, 100> buffer{};
