@@ -239,8 +239,7 @@
 				33CC10EB2044A3C60003C045 /* Resources */,
 				33CC110E2044A8840003C045 /* Bundle Framework */,
 				3399D490228B24CF009A79C7 /* ShellScript */,
-				EA70CB5C0682FD9C53421EFF /* [CP] Embed Pods Frameworks */,
-			);
+				EA70CB5C0682FD9C53421EFF /* [CP] Embed Pods Frameworks */,					7F5B8D3E1C4A9F2E0037C8B1 /* Copy libdart_ffi.dylib */,			);
 			buildRules = (
 			);
 			dependencies = (
@@ -380,6 +379,25 @@
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
+		};
+		7F5B8D3E1C4A9F2E0037C8B1 /* Copy libdart_ffi.dylib */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy libdart_ffi.dylib";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "REPO_ROOT=\"${SRCROOT}/../../../..\"\nDYLIB_DEST=\"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_FOLDER_PATH}/libdart_ffi.dylib\"\nDYLIB_SRC=$(find \"$REPO_ROOT\" -maxdepth 3 -name libdart_ffi.dylib 2>/dev/null | head -1)\nif [ -n \"$DYLIB_SRC\" ]; then\n    cp \"$DYLIB_SRC\" \"$DYLIB_DEST\"\nfi\n";
 		};
 		A86C8DEDA8C985A6BE57FF66 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
