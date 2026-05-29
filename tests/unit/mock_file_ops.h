@@ -52,8 +52,6 @@ public:
     MOCK_METHOD(bool, exists, (const QFileInfo&), (const, override));
     MOCK_METHOD(bool, isDir, (const QFileInfo&), (const, override));
     MOCK_METHOD(bool, isReadable, (const QFileInfo&), (const, override));
-    MOCK_METHOD(uint, ownerId, (const QFileInfo&), (const, override));
-    MOCK_METHOD(uint, groupId, (const QFileInfo&), (const, override));
 
     // QFile (and parent classes) mock methods
     MOCK_METHOD(bool, exists, (const QFile&), (const, override));
@@ -115,7 +113,15 @@ public:
                  fs::copy_options,
                  std::error_code&),
                 (const, override));
+    MOCK_METHOD(void,
+                resize,
+                (const fs::path& old_p, uint64_t, std::error_code&),
+                (const, override));
     MOCK_METHOD(void, rename, (const fs::path& old_p, const fs::path& new_p), (override, const));
+    MOCK_METHOD(void,
+                rename,
+                (const fs::path& old_p, const fs::path& new_p, std::error_code&),
+                (override, const));
     MOCK_METHOD(bool, exists, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 exists,

@@ -366,6 +366,11 @@ void mp::FileOps::copy(const fs::path& src,
     fs::copy(src, dist, copy_options, ec);
 }
 
+void mp::FileOps::resize(const fs::path& path, std::uintmax_t new_size, std::error_code& ec) const
+{
+    fs::resize_file(path, new_size, ec);
+}
+
 void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p) const
 {
     fs::rename(old_p, new_p);
