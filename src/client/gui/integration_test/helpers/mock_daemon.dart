@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
+import 'package:logger/logger.dart';
 import 'package:multipass_gui/providers.dart';
 
 enum _MockMode { strict, nice }
@@ -32,7 +33,8 @@ class MockDaemon extends RpcServiceBase {
   late Server _server;
   late ClientChannel _channel;
 
-  GrpcClient get client => GrpcClient(RpcClient(_channel));
+  GrpcClient get client =>
+      GrpcClient(RpcClient(_channel), Logger(output: MemoryOutput()));
 
   // One-shot queues: consumed in FIFO order; each enqueued handler fires
   // exactly once.  Use enqueue* in tests that need precise per-call control.
