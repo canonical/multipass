@@ -82,10 +82,7 @@ public:
     MOCK_METHOD(bool, tryLock, (QLockFile&, std::chrono::milliseconds), (const, override));
 
     // posix mock methods
-    MOCK_METHOD((std::unique_ptr<NamedFd>),
-                open_fd,
-                (const fs::path&, int, int),
-                (const, override));
+    MOCK_METHOD((SftpHandle), open_fd, (const fs::path&, int, int), (const, override));
     MOCK_METHOD(int, read, (int, void*, size_t), (const, override));
     MOCK_METHOD(int, write, (int, const void*, size_t), (const, override));
     MOCK_METHOD(off_t, lseek, (int, off_t, int), (const, override));
@@ -162,7 +159,7 @@ public:
                 recursive_dir_iterator,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
-    MOCK_METHOD(std::unique_ptr<multipass::DirIterator>,
+    MOCK_METHOD(SftpHandle,
                 dir_iterator,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
