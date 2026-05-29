@@ -106,12 +106,17 @@ logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
 std::unique_ptr<Process> make_process(std::unique_ptr<ProcessSpec>&& process_spec);
-// OS API calls
+// OS stat calls
 int lstat_attr_from(const char* path, sftp_attributes_struct& attr);
 int stat_attr_from(const char* path, sftp_attributes_struct& attr);
 int fstat_attr_from(int fd, sftp_attributes_struct& attr);
 
+// Read OS calls
 ssize_t pread(int fd, void* buffer, size_t bytes_to_read, off_t offset);
+
+// File property change OS calls
+int ftruncate(int fd, off_t length);
+int futimes(int fd, int atime, int mtime);
 // Creates a function that will wait for signals or until the passed function returns false.
 // The passed function is checked every `period` milliseconds.
 // If a signal is received the optional contains it, otherwise the optional is empty.
