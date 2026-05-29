@@ -2208,17 +2208,12 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     msg->flags = SSH_FXF_WRITE;
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, resize(_, _)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
+    EXPECT_CALL(*mock_file_ops, resize(_, _, _))
+        .WillOnce([](const fs::path&, uint64_t, std::error_code& ec) {
+            ec.assign(1, std::generic_category());
+        });
     EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
+        .WillRepeatedly([](const fs::path& file) { return fs::exists(file); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -2265,16 +2260,10 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*file_ops, resize).WillOnce(Return(true));
+    EXPECT_CALL(*file_ops, resize(A<const fs::path&>(), _, _)).WillOnce(Return());
     EXPECT_CALL(*platform, set_permissions(_, _, _)).WillOnce(Return(false));
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
-        return file.exists();
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& file) {
+        return fs::exists(file);
     });
     EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
         return fs::exists(path);
@@ -2465,8 +2454,15 @@ TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
 TEST_F(SftpServer, handlesWrites)
 {
     mpt::TempDir temp_dir;
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
+    const auto fd = 123;
+    auto named_fd = std::make_unique<mp::NamedFd>(path, fd);
+    const auto* fd_ptr = named_fd.get();
 
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg1 = make_msg(SFTP_OPEN);
+    auto folder = name_as_char_array(temp_dir.path().toStdString());
+    open_msg1->filename = folder.data();
     auto write_msg1 = make_msg(SFTP_WRITE);
     auto data1 = make_data("The answer is ");
     write_msg1->data = data1.get();
