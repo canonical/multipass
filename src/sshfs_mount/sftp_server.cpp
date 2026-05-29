@@ -1282,34 +1282,50 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
 int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
 {
+    // Both lstat and stat
     const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo file_info(*filename);
-    if (!file_info.isSymLink() && !MP_FILEOPS.exists(file_info))
-    {
-        mpl::trace_location(category, "cannot stat \'{}\': no such file", filename->string());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
-    }
-
     sftp_attributes_struct attr{};
-
-    if (!follow && file_info.isSymLink() &&
-        mp::platform::symlink_attr_from(filename->string().c_str(), &attr) == 0)
+    int stat_result = -1;
+    if (follow)
     {
-        attr.uid = mapped_uid_for(attr.uid);
-        attr.gid = mapped_gid_for(attr.gid);
+        // stat automatically and safely follows symlinks.
+        stat_result = mp::platform::stat_attr_from(filename->string().c_str(), attr);
     }
     else
     {
-        // Fallback if symlink_attr_from fails
-        if (file_info.isSymLink() && follow)
-            file_info = QFileInfo(file_info.symLinkTarget());
-
-        attr = attr_from(file_info);
+        // lstat explicitly checks the link itself.
+        stat_result = mp::platform::lstat_attr_from(filename->string().c_str(), attr);
     }
 
+    if (stat_result != 0)
+    {
+        if (errno == ENOENT)
+        {
+            mpl::trace_location(category, "cannot stat '{}': no such file", filename->string());
+            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+        }
+
+        mpl::trace_location(category,
+                            "stat failed for '{}': {}",
+                            filename->string(),
+                            std::strerror(errno));
+        // EACCES means they can't traverse the parent dir. Map to permission denied.
+        if (errno == EACCES)
+            return reply_perm_denied(msg);
+
+        return reply_failure(msg);
+    }
+    if (!has_id_mappings_for(attr))
+    {
+        mpl::trace_location(category,
+                            "cannot access path '{}' without id mapping: permission denied",
+                            filename->string());
+        return reply_perm_denied(msg);
+    }
+    convert_attr_ids(attr);
     return sftp_reply_attr(msg, &attr);
 }
 
