@@ -998,18 +998,32 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo file_info{*filename};
-    if (!has_id_mappings_for(file_info))
+    sftp_attributes_struct attr{};
+
+    // Check ID mappings, but gracefully handle ENOENT (file doesn't exist yet)
+    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) == 0)
     {
+        if (!has_id_mappings_for(attr))
+        {
+            mpl::trace_location(category,
+                                "cannot access path '{}' without id mapping: permission denied",
+                                filepath->string());
+            return reply_perm_denied(msg);
+        }
+    }
+    else if (errno != ENOENT)
+    {
+        // Fail securely on real errors (e.g., EACCES - parent directory is restricted)
         mpl::trace_location(category,
-                            "cannot access path \'{}\' without id mapping: permission denied",
-                            filename->string());
+                            "lstat failed for '{}': {}",
+                            filepath->string(),
+                            std::strerror(errno));
         return reply_perm_denied(msg);
     }
-
-    // Path is already absolute from get_validated_path
-    const auto guest_path = host_to_guest_path(*filename);
-    return sftp_reply_name(msg, guest_path.c_str(), nullptr);
+    // Path is already absolute and resolved from get_validated_path
+    // Client is already aware of paths in the host, no sense doing translation
+    const auto& filepath_string = MP_FILEOPS.weakly_canonical(*filepath).string();
+    return sftp_reply_name(msg, filepath_string.c_str(), nullptr);
 }
 
 int mp::SftpServer::handle_remove(sftp_client_message msg)
