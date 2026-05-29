@@ -45,9 +45,9 @@ auto download_manifest(const std::string& host_url,
 {
     auto index_url = QString::fromStdString(host_url + index_path);
     auto json_index = url_downloader->download(index_url, force_update);
-    auto index = mp::SimpleStreamsIndex::fromJson(json_index);
+    auto index = mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json_index});
 
-    auto manifest_url = QString::fromStdString(host_url + index.manifest_path.toStdString());
+    auto manifest_url = QString::fromStdString(host_url + index.manifest_path);
     return url_downloader->download(manifest_url, force_update);
 }
 
