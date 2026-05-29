@@ -90,6 +90,7 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
 });
 
 final daemonAvailableProvider = Provider((ref) {
+  if (!ref.watch(ffiAvailableProvider)) return false;
   final error = ref.watch(vmInfosStreamProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
