@@ -938,21 +938,21 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
     for (int i = 0; i < max_num_entries_per_packet && dir_iterator.hasNext(); i++)
     {
         const auto& entry = dir_iterator.next();
-        QFileInfo file_info(entry.path());
+        const auto& path = entry.path();
+        const auto& path_string = path.string();
         sftp_attributes_struct attr{};
-        if (entry.is_symlink())
+
+        if (mp::platform::lstat_attr_from(path_string.c_str(), attr) != 0)
         {
-            mp::platform::symlink_attr_from(file_info.absoluteFilePath().toStdString().c_str(),
-                                            &attr);
-            attr.uid = mapped_uid_for(attr.uid);
-            attr.gid = mapped_gid_for(attr.gid);
+            mpl::trace(category,
+                       "Cannot get status of '{}': {}",
+                       path_string,
+                       std::strerror(errno));
+            return reply_failure(msg);
         }
-        else
-        {
-            attr = get_attr(file_info);
-        }
-        const auto longname = longname_from(entry.path());
-        sftp_reply_names_add(msg, entry.path().filename().string().c_str(), longname.data(), &attr);
+        convert_attr_ids(attr);
+        const auto longname = longname_from(attr, path_string);
+        sftp_reply_names_add(msg, path.filename().string().c_str(), longname.data(), &attr);
     }
 
     return sftp_reply_names(msg);
