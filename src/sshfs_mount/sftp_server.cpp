@@ -902,24 +902,18 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
         return reply_bad_handle(msg, "read");
     }
 
-    const auto& [path, file] = *handle;
-
-    if (MP_FILEOPS.lseek(file, msg->offset, SEEK_SET) == -1)
-    {
-        mpl::trace_location(category,
-                            "cannot seek to position {} in '{}'",
-                            msg->offset,
-                            path.string());
-        return reply_failure(msg);
-    }
+    const auto& [path, fd] = *handle;
 
     constexpr auto max_packet_size = 65536u;
-    std::array<char, max_packet_size> buffer{};
+    // No array initialization. Memory does not leak because the message copy copies only the read
+    // bytes.
+    std::array<char, max_packet_size> buffer;
+    const auto result =
+        mp::platform::pread(fd, buffer.data(), std::min(msg->len, max_packet_size), msg->offset);
 
-    if (const auto r = MP_FILEOPS.read(file, buffer.data(), std::min(msg->len, max_packet_size));
-        r > 0)
-        return sftp_reply_data(msg, buffer.data(), r);
-    else if (r == 0)
+    if (result > 0)
+        return sftp_reply_data(msg, buffer.data(), result);
+    else if (result == 0)
         return sftp_reply_status(msg, SSH_FX_EOF, "End of file");
 
     mpl::trace_location(category, "read failed for '{}': {}", path.string(), std::strerror(errno));
