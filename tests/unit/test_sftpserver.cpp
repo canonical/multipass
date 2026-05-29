@@ -1249,7 +1249,7 @@ TEST_F(SftpServer, handlesRename)
     EXPECT_FALSE(QFile::exists(old_name));
 }
 
-TEST_F(SftpServer, renameCannotRemoveTargetFails)
+TEST_F(SftpServer, renameCannotRenameIfTargetExists)
 {
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
@@ -1267,20 +1267,14 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, remove(A<QFile&>())).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
-    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
+    EXPECT_CALL(*mock_file_ops,
+                rename(A<const fs::path&>(), A<const fs::path&>(), A<std::error_code&>()))
+        .WillRepeatedly([](const fs::path& path, const fs::path& newpath, std::error_code& ec) {
+            return fs::rename(path, newpath, ec);
+        });
     EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
@@ -1297,9 +1291,9 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
-                    AllOf(HasSubstr("cannot remove"),
+                    AllOf(HasSubstr("rename target"),
                           HasSubstr(new_name.toStdString()),
-                          HasSubstr("for renaming"))));
+                          HasSubstr("already exists"))));
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -1322,17 +1316,14 @@ TEST_F(SftpServer, renameFailureFails)
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, rename(An<QFile&>(), _)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
+    EXPECT_CALL(*mock_file_ops,
+                rename(A<const fs::path&>(), A<const fs::path&>(), A<std::error_code&>()))
+        .WillOnce([](const fs::path& path, const fs::path& pathname, std::error_code& ec) {
+            ec.assign(1, std::generic_category());
+            return false;
+        });
     EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
+        .WillRepeatedly([](const fs::path& file) { return fs::exists(file); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -1430,25 +1421,16 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     auto old_name = temp_dir.path() + "/test-file";
     auto new_name = temp_dir.path() + "/test-renamed";
     mpt::make_file_with_content(old_name);
-    mpt::make_file_with_content(new_name);
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, ownerId(_))
-        .WillOnce([](const QFileInfo& file) { return file.ownerId(); })
-        .WillOnce([](const QFileInfo& file) { return file.ownerId() + 1; });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillOnce([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
-    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
     EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
@@ -1464,18 +1446,17 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
 
     logger_scope.mock_logger->screen_logs(mpl::Level::trace);
     EXPECT_CALL(
         *logger_scope.mock_logger,
-        log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(new_name.toStdString())));
+        log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(old_name.toStdString())));
 
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
     EXPECT_TRUE(QFile::exists(old_name));
-    EXPECT_TRUE(QFile::exists(new_name));
 }
 
 TEST_F(SftpServer, handlesRemove)

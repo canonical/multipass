@@ -1068,62 +1068,61 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
 
 int mp::SftpServer::handle_rename(sftp_client_message msg)
 {
+    // According to the SFTP v3 specification RENAME fails when renaming if the target path already
+    // exists
+    // TODO: Move to v5/6 if the client supports it
     const auto source = get_validated_path(msg);
     if (!source.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo source_info{*source};
-    if (!source_info.isSymLink() && !MP_FILEOPS.exists(source_info))
+    sftp_attributes_struct source_attr{};
+    if (mp::platform::lstat_attr_from(source->string().c_str(), source_attr) != 0)
     {
-        mpl::trace_location(category, "cannot rename \'{}\': no such file", source->string());
+        mpl::trace_location(category,
+                            "cannot rename '{}': {}",
+                            source->string(),
+                            std::strerror(errno));
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
-    if (!has_id_mappings_for(source_info))
+    if (!has_id_mappings_for(source_attr))
     {
         mpl::trace_location(category,
-                            "cannot access path \'{}\' without id mapping: permission denied",
+                            "cannot access path '{}' without id mapping: permission denied",
                             source->string());
         return reply_perm_denied(msg);
     }
 
     const auto target = get_absolute_path(sftp_client_message_get_data(msg));
-    // Hardcode false: Renaming overwrites a target link, it does not follow it!
+
+    // Hardcode false: If file/link exists, it will be found in later check and fail the renaming
     if (!validate_path(target, false))
     {
         mpl::trace_location(category,
-                            "cannot validate target path \'{}\' against source \'{}\'",
+                            "cannot validate target path '{}' against source '{}'",
                             target.string(),
-                            source_path.string());
+                            source->string());
         return reply_perm_denied(msg);
     }
 
-    QFileInfo target_info{target};
-    if (MP_FILEOPS.exists(target_info) && !has_id_mappings_for(target_info))
+    // Target check: SFTP v3 requires rename to FAIL if target exists.
+    sftp_attributes_struct target_attr{};
+    if (mp::platform::lstat_attr_from(target.string().c_str(), target_attr) == 0)
     {
-        mpl::trace_location(category,
-                            "cannot access path \'{}\' without id mapping: permission denied",
-                            target.string());
-        return reply_perm_denied(msg);
+        // Target exists! Refuse to overwrite.
+        mpl::trace_location(category, "rename target '{}' already exists", target.string());
+        return sftp_reply_status(msg, SSH_FX_FAILURE, "Target already exists");
     }
 
-    QFile target_file{target};
-    if (MP_FILEOPS.exists(target_info))
-    {
-        if (!MP_FILEOPS.remove(target_file))
-        {
-            mpl::trace_location(category, "cannot remove \'{}\' for renaming", target.string());
-            return reply_failure(msg);
-        }
-    }
-
-    QFile source_file{*source};
-    if (!MP_FILEOPS.rename(source_file, target.string().c_str()))
+    // Perform the rename
+    std::error_code ec;
+    if (MP_FILEOPS.rename(*source, target, ec); ec)
     {
         mpl::trace_location(category,
-                            "failed renaming \'{}\' to \'{}\'",
+                            "failed renaming '{}' to '{}': {}",
                             source->string(),
-                            target.string());
+                            target.string(),
+                            ec.message());
         return reply_failure(msg);
     }
 
