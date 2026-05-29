@@ -499,8 +499,10 @@ void mp::SftpServer::process_message(sftp_client_message msg)
     case SFTP_REMOVE:
         ret = handle_remove(msg);
         break;
-    case SFTP_SETSTAT:
     case SFTP_FSETSTAT:
+        ret = handle_fsetstat(msg);
+        break;
+    case SFTP_SETSTAT:
         ret = handle_setstat(msg);
         break;
     case SFTP_READLINK:
@@ -1136,6 +1138,81 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     return reply_ok(msg);
 }
 
+int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
+{
+    const auto handle = get_handle<NamedFd>(msg);
+    if (handle == nullptr)
+    {
+        mpl::trace_location(category, "bad handle requested");
+        return reply_bad_handle(msg, "fsetstat");
+    }
+
+    const auto& [path, fd] = *handle;
+
+    sftp_attributes_struct attr{};
+
+    if (mp::platform::fstat_attr_from(fd, attr) != 0)
+    {
+        mpl::trace_location(category, "cannot fstat '{}': {}", path.string(), std::strerror(errno));
+        return reply_failure(msg);
+    }
+    if (!has_id_mappings_for(attr))
+    {
+        mpl::trace_location(category,
+                            "cannot access path \'{}\' without id mapping: permission denied",
+                            path.string());
+        return reply_perm_denied(msg);
+    }
+
+    if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
+    {
+        if (mp::platform::ftruncate(fd, msg->attr->size) != 0)
+        {
+            mpl::trace_location(category, "cannot resize '{}'", path.string());
+            return reply_failure(msg);
+        }
+    }
+
+    if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
+    {
+        if (!MP_PLATFORM.set_permissions(path, static_cast<fs::perms>(msg->attr->permissions)))
+        {
+            mpl::trace_location(category, "set permissions failed for '{}'", path.string());
+            return reply_failure(msg);
+        }
+    }
+
+    if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
+    {
+        if (mp::platform::futimes(fd, msg->attr->atime, msg->attr->mtime) < 0)
+        {
+            mpl::trace_location(category, "cannot set modification date for '{}'", path.string());
+            return reply_failure(msg);
+        }
+    }
+
+    if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
+    {
+        if (!has_reverse_uid_mapping_for(msg->attr->uid) &&
+            !has_reverse_gid_mapping_for(msg->attr->gid))
+        {
+            mpl::trace_location(category,
+                                "cannot set ownership for \'{}\' without id mapping",
+                                path.string());
+            return reply_perm_denied(msg);
+        }
+
+        if (MP_PLATFORM.fchown(fd,
+                               reverse_uid_for(msg->attr->uid, msg->attr->uid),
+                               reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+        {
+            mpl::trace_location(category, "cannot set ownership for '{}'", path.string());
+            return reply_failure(msg);
+        }
+    }
+
+    return reply_ok(msg);
+}
 int mp::SftpServer::handle_setstat(sftp_client_message msg)
 {
     fs::path filename;
