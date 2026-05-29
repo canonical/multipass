@@ -33,7 +33,7 @@ set(RUST_BUILD_DIR "${CMAKE_BINARY_DIR}/rxx")
 set(RUST_BIN_DIR "${RUST_BUILD_DIR}/${RUST_BUILD}")
 
 #Find cargo, which will be a hard dependency
-find_program(CARGO_EXECUTABLE cargo)
+find_program(CARGO_EXECUTABLE cargo REQUIRED)
 #Set the build directory via env variable
 set(CARGO_CMD ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${RUST_BUILD_DIR}" ${CARGO_EXECUTABLE})
 #Crates to build. Both consumers and providers of code to the C++ side
@@ -86,6 +86,12 @@ foreach(CRATE_NAME ${CRATES})
 endforeach()
 
 list(JOIN ACTIVE_FEATURES  "," FEATURES_CSV)
+ file(GLOB_RECURSE RUST_SOURCES CONFIGURE_DEPENDS
+   "${CMAKE_CURRENT_SOURCE_DIR}/*.rs"
+   "${CMAKE_CURRENT_SOURCE_DIR}/*.toml"
+   "${CMAKE_CURRENT_SOURCE_DIR}/*.lock"
+   "${CMAKE_CURRENT_SOURCE_DIR}/*.txt"
+ )
 add_custom_command(
   OUTPUT ${CARGO_GENERATED_FILES}
   COMMAND ${CARGO_CMD} build
@@ -95,6 +101,7 @@ add_custom_command(
   --lib
   --features "${FEATURES_CSV}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  DEPENDS ${RUST_SOURCES}
   COMMENT "Building Rust crates and generating C++ glue..."
 )
 

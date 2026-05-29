@@ -39,7 +39,7 @@ protected:
 
 namespace petname
 {
-enum NumWords
+enum NumWords : int
 {
     One,
     Two,
