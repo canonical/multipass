@@ -3383,7 +3383,7 @@ TEST_P(HostToGuestTranslation, translatesCorrectly)
     int num_name_calls{0};
     int num_status_calls{0};
 
-    auto expected_path = fs::path{temp_dir2.path().toStdString()} / params.expected_path;
+    auto expected_path = fs::path{temp_dir.path().toStdString()} / params.expected_path;
     if (!expected_path.has_filename())
         expected_path = expected_path.parent_path();
     auto expected_string = expected_path.generic_string();
