@@ -1516,7 +1516,7 @@ TEST_F(SftpServer, removeNonExistingFails)
     msg->filename = name.data();
 
     int failure_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, failure_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);

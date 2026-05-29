@@ -1021,17 +1021,36 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
 
 int mp::SftpServer::handle_remove(sftp_client_message msg)
 {
+    // Per v3 specification, this should ONLY remove files, not directories or links
+    // TODO: Moving to platform-specific would allow rmdir(), which does not require checking
+    // existence or lstat
     const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
 
-    QFileInfo file_info{*filename};
-    if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
+    sftp_attributes_struct attr{};
+    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) != 0)
+    {
+        mpl::trace_location(category, "cannot remove '{}': Does not exist", filename->string());
+        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "No such file");
+    }
+    // File exists
+    if (!has_id_mappings_for(attr))
     {
         mpl::trace_location(category,
-                            "cannot access path \'{}\' without id mapping: permission denied",
+                            "cannot access path '{}' without id mapping: permission denied",
                             filename->string());
         return reply_perm_denied(msg);
+    }
+
+    // Enforce SFTP protocol. SSH_FXP_REMOVE must fail on directories.
+    if (is_directory(attr))
+    {
+        mpl::trace_location(category,
+                            "refusing to remove directory '{}' via remove()",
+                            filename->string());
+
+        return reply_failure(msg);
     }
 
     std::error_code err;
