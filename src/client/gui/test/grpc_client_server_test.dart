@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
-import 'package:multipass_gui/logger.dart' show logger;
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/update_available.dart';
 
@@ -176,7 +175,8 @@ Future<void> _startServer() async {
     port: _server.port!,
     options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
   );
-  _client = GrpcClient(RpcClient(_channel));
+  _client = GrpcClient(RpcClient(_channel),
+      Logger(filter: ProductionFilter(), output: MemoryOutput()));
 }
 
 Future<void> _stopServer() async {
@@ -186,8 +186,6 @@ Future<void> _stopServer() async {
 
 void main() {
   setUpAll(() {
-    logger = Logger(filter: ProductionFilter(), output: MemoryOutput());
-
     providerContainer = ProviderContainer();
     providerContainer.listen(updateProvider, (_, __) {});
   });

@@ -8,15 +8,14 @@ import 'package:path_provider/path_provider.dart';
 
 Logger? _logger;
 Logger get logger => _logger!;
-set logger(Logger l) => _logger = l;
 
 class NoFilter extends LogFilter {
   @override
   bool shouldLog(LogEvent event) => true;
 }
 
-Future<void> setupLogger() async {
-  if (_logger != null) return;
+Future<Logger> setupLogger() async {
+  if (_logger != null) return _logger!;
 
   final logFilePath = await getApplicationSupportDirectory();
 
@@ -40,6 +39,7 @@ Future<void> setupLogger() async {
     logger.e('Dart error', error: error, stackTrace: stackTrace);
     return true;
   };
+  return _logger!;
 }
 
 class MpPrettyPrinter extends LogPrinter {

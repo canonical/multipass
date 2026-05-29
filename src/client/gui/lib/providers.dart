@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
+import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ffi.dart';
@@ -25,6 +26,8 @@ final ffiAvailableProvider = Provider((ref) {
   return isFFIAvailable;
 });
 
+final loggerProvider = Provider<Logger>((ref) => logger);
+
 final grpcClientProvider = Provider((ref) {
   // Check if FFI is available first
   if (!ref.watch(ffiAvailableProvider)) {
@@ -35,6 +38,7 @@ final grpcClientProvider = Provider((ref) {
   final certPair = getCertPair();
   final rootCert = getRootCert();
 
+  final logger = ref.read(loggerProvider);
   var channelCredentials = CustomChannelCredentials(
     authority: 'localhost',
     certificate: certPair.cert,
@@ -53,6 +57,7 @@ final grpcClientProvider = Provider((ref) {
         channelShutdownHandler: () => logger.w('gRPC channel shut down'),
       ),
     ),
+    logger,
   );
 });
 
@@ -71,6 +76,7 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
         // log at debug rather than error to avoid spurious noise.
         final isChannelShutdown = error is GrpcError &&
             (error.message?.contains('Channel shutting down') ?? false);
+        final logger = ref.read(loggerProvider);
         if (isChannelShutdown) {
           logger.d('gRPC channel shut down while polling info',
               error: error, stackTrace: stackTrace);

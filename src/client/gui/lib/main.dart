@@ -28,7 +28,7 @@ var _windowSetupDone = false;
 Future<void> main([List<dynamic> extraOverrides = const []]) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await setupLogger();
+  final logger = await setupLogger();
 
   await localNotifier.setup(
     appName: 'Multipass',
@@ -58,6 +58,7 @@ Future<void> main([List<dynamic> extraOverrides = const []]) async {
   providerContainer = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      loggerProvider.overrideWithValue(logger),
       ...extraOverrides,
     ],
   );
