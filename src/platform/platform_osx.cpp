@@ -57,6 +57,7 @@
 #include <vector>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -367,14 +368,9 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
 {
-    QFileInfo file_info{target};
-
-    if (file_info.isSymLink())
-    {
-        return ::symlink(file_info.symLinkTarget().toStdString().c_str(), link) == 0;
-    }
-
-    return ::link(target, link) == 0;
+    // Behavior matches linux implementation-defined ::link() behavior: symlinks are not followed
+    // when creating a hard link
+    return ::linkat(AT_FDCWD, target, AT_FDCWD, link, 0) == 0;
 }
 
 QDir mp::platform::Platform::get_alias_scripts_folder() const

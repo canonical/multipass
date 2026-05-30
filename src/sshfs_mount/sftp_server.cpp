@@ -494,7 +494,8 @@ void mp::SftpServer::process_message(sftp_client_message msg)
         ret = handle_write(msg);
         break;
     case SFTP_RENAME:
-        ret = handle_rename(msg);
+        // SFTPv3 requires renames to not overwrite
+        ret = handle_rename(msg, /*allow_overwrites=*/false);
         break;
     case SFTP_REMOVE:
         ret = handle_remove(msg);
@@ -1075,11 +1076,11 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     return reply_ok(msg);
 }
 
-int mp::SftpServer::handle_rename(sftp_client_message msg)
+int mp::SftpServer::handle_rename(sftp_client_message msg, const bool allow_overwrites)
 {
     // According to the SFTP v3 specification RENAME fails when renaming if the target path already
     // exists
-    // TODO: Move to v5/6 if the client supports it
+    // bool allows for the extension behavior
     const auto source = get_validated_path(msg);
     if (!source.has_value())
         return reply_perm_denied(msg);
@@ -1105,6 +1106,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     const auto target = get_absolute_path(sftp_client_message_get_data(msg));
 
     // Hardcode false: If file/link exists, it will be found in later check and fail the renaming
+    // If not overwriting, the file will be overwritten anyways
     if (!validate_path(target, false))
     {
         mpl::trace_location(category,
@@ -1115,12 +1117,15 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
     }
 
     // Target check: SFTP v3 requires rename to FAIL if target exists.
-    sftp_attributes_struct target_attr{};
-    if (mp::platform::lstat_attr_from(target.string().c_str(), target_attr) == 0)
+    if (!allow_overwrites)
     {
-        // Target exists! Refuse to overwrite.
-        mpl::trace_location(category, "rename target '{}' already exists", target.string());
-        return sftp_reply_status(msg, SSH_FX_FAILURE, "Target already exists");
+        sftp_attributes_struct target_attr{};
+        if (mp::platform::lstat_attr_from(target.string().c_str(), target_attr) == 0)
+        {
+            // Target exists! Refuse to overwrite.
+            mpl::trace_location(category, "rename target '{}' already exists", target.string());
+            return sftp_reply_status(msg, SSH_FX_FAILURE, "Target already exists");
+        }
     }
 
     // Perform the rename
@@ -1453,7 +1458,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     const auto submessage = sftp_client_message_get_submessage(msg);
     if (submessage == nullptr)
     {
-        mpl::trace_location(category, "invalid submesage requested");
+        mpl::trace_location(category, "invalid submessage requested");
         return reply_failure(msg);
     }
 
@@ -1466,31 +1471,54 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
             return reply_perm_denied(msg);
         const auto hardlink_path = get_absolute_path(sftp_client_message_get_data(msg));
 
-        // We may be creating a hard-link, it could not exist
+        // We may be creating a hard-link, it should not exist
         if (!validate_path(hardlink_path, false))
         {
             mpl::trace_location(category,
-                                "cannot validate path \'{}\' against source \'{}\'",
+                                "cannot validate path '{}' against source '{}'",
                                 hardlink_path,
                                 source_path);
             return reply_perm_denied(msg);
         }
+        const auto& hardlink_path_string = hardlink_path.string();
+        const auto& hardlink_target_string = hardlink_target->string();
 
-        QFileInfo file_info{*hardlink_target};
-        if (!has_id_mappings_for(file_info))
+        const auto& hardlink_parent_path = hardlink_path.parent_path();
+        sftp_attributes_struct parent_attr{};
+        // Parent must exist and have id mappings
+        if (mp::platform::stat_attr_from(hardlink_parent_path.string().c_str(), parent_attr) != 0)
         {
             mpl::trace_location(category,
-                                "cannot access path \'{}\' without id mapping: permission denied",
-                                hardlink_target);
+                                "cannot create hardlink: parent path '{}' stat: {}",
+                                hardlink_parent_path.string(),
+                                std::strerror(errno));
+            return reply_failure(msg);
+        }
+
+        if (!has_id_mappings_for(parent_attr))
+        {
+            mpl::trace_location(category,
+                                "cannot access path '{}' without id mapping: permission denied",
+                                hardlink_parent_path.string());
             return reply_perm_denied(msg);
         }
 
-        if (!MP_PLATFORM.link(hardlink_target->string().c_str(), hardlink_path.string().c_str()))
+        // File we are creating cannot exist (no overwrites)
+        sftp_attributes_struct attr{};
+        if (mp::platform::lstat_attr_from(hardlink_path_string.c_str(), attr) == 0)
         {
             mpl::trace_location(category,
-                                "failed creating link from \'{}\' to \'{}\'",
-                                hardlink_target,
-                                hardlink_path);
+                                "cannot create hardlink: path '{}' already exists",
+                                hardlink_path_string);
+            return reply_failure(msg);
+        }
+
+        if (!MP_PLATFORM.link(hardlink_target_string.c_str(), hardlink_path_string.c_str()))
+        {
+            mpl::trace_location(category,
+                                "failed creating link from '{}' to '{}'",
+                                hardlink_target_string,
+                                hardlink_path_string);
             return reply_failure(msg);
         }
     }
@@ -1498,7 +1526,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
     {
         // To override the default file check in SFTP_EXTENDED
         msg->type = SFTP_RENAME;
-        return handle_rename(msg);
+        return handle_rename(msg, /*allow_overwrites=*/true);
     }
     else
     {
