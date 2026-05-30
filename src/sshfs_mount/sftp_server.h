@@ -85,7 +85,7 @@ private:
     int handle_readlink(sftp_client_message msg);
     int handle_realpath(sftp_client_message msg);
     int handle_remove(sftp_client_message msg);
-    int handle_rename(sftp_client_message msg);
+    int handle_rename(sftp_client_message msg, const bool allow_overwrites);
     int handle_setstat(sftp_client_message msg);
     int handle_fsetstat(sftp_client_message msg);
     int handle_stat(sftp_client_message msg, const bool follow);
