@@ -436,23 +436,6 @@ std::optional<fs::path> mp::SftpServer::get_validated_path(sftp_client_message m
     return path;
 }
 
-std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
-{
-    std::error_code ec;
-    // Get the relative difference between the host path and the mount root
-    auto relative = MP_FILEOPS.relative(host_path, source_path, ec);
-
-    if (ec || relative.empty() || relative == "." || relative.begin()->string() == ".." ||
-        relative.is_absolute() || relative.has_root_name())
-    {
-        // If the path is outside the mount or invalid, return the mount path
-        return target_path.generic_string();
-    }
-
-    // Return it as an absolute path from the perspective of the guest
-    return mp::utils::normalize_path(target_path / relative).generic_string();
-}
-
 void mp::SftpServer::process_message(sftp_client_message msg)
 {
     int ret = 0;
@@ -997,14 +980,14 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
 
 int mp::SftpServer::handle_realpath(sftp_client_message msg)
 {
-    const auto filename = get_validated_path(msg);
-    if (!filename.has_value())
+    const auto filepath = get_validated_path(msg);
+    if (!filepath.has_value())
         return reply_perm_denied(msg);
 
     sftp_attributes_struct attr{};
 
     // Check ID mappings, but gracefully handle ENOENT (file doesn't exist yet)
-    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) == 0)
+    if (mp::platform::lstat_attr_from(filepath->string().c_str(), attr) == 0)
     {
         if (!has_id_mappings_for(attr))
         {
@@ -1124,7 +1107,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg, const bool allow_over
         {
             // Target exists! Refuse to overwrite.
             mpl::trace_location(category, "rename target '{}' already exists", target.string());
-            return sftp_reply_status(msg, SSH_FX_FAILURE, "Target already exists");
+            return reply_failure(msg);
         }
     }
 
