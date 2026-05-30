@@ -6,6 +6,7 @@ import 'empty_state_catalogue_link_test.dart'
     as empty_state_catalogue_link_test;
 import 'launch_test.dart' as launch_test;
 import 'launch_form_test.dart' as launch_form_test;
+import 'vm_details_mounts_test.dart' as vm_details_mounts_test;
 import 'vm_lifecycle_test.dart' as vm_lifecycle_test;
 
 void main() {
@@ -15,5 +16,6 @@ void main() {
   empty_state_catalogue_link_test.main();
   launch_test.main();
   launch_form_test.main();
+  vm_details_mounts_test.main();
   vm_lifecycle_test.main();
 }

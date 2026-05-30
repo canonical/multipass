@@ -46,6 +46,7 @@ class MockDaemon extends RpcServiceBase {
   final _deletQ = Queue<Stream<DeleteReply> Function(DeleteRequest)>();
   final _recoverQ = Queue<Stream<RecoverReply> Function(RecoverRequest)>();
   final _purgeQ = Queue<Stream<PurgeReply> Function(PurgeRequest)>();
+  final _mountQ = Queue<Stream<MountReply> Function(MountRequest)>();
   final _launchQ = Queue<Stream<LaunchReply> Function(LaunchRequest)>();
   final _findQ = Queue<Stream<FindReply> Function(FindRequest)>();
   final _networksQ = Queue<Stream<NetworksReply> Function(NetworksRequest)>();
@@ -65,6 +66,7 @@ class MockDaemon extends RpcServiceBase {
   Stream<DeleteReply> Function(DeleteRequest)? onDelete;
   Stream<RecoverReply> Function(RecoverRequest)? onRecover;
   Stream<PurgeReply> Function(PurgeRequest)? onPurge;
+  Stream<MountReply> Function(MountRequest)? onMount;
   Stream<LaunchReply> Function(LaunchRequest)? onLaunch;
   Stream<FindReply> Function(FindRequest)? onFind;
   Stream<NetworksReply> Function(NetworksRequest)? onNetworks;
@@ -89,6 +91,8 @@ class MockDaemon extends RpcServiceBase {
       _recoverQ.add(h);
   void enqueuePurge(Stream<PurgeReply> Function(PurgeRequest) h) =>
       _purgeQ.add(h);
+  void enqueueMount(Stream<MountReply> Function(MountRequest) h) =>
+      _mountQ.add(h);
   void enqueueLaunch(Stream<LaunchReply> Function(LaunchRequest) h) =>
       _launchQ.add(h);
   void enqueueFind(Stream<FindReply> Function(FindRequest) h) => _findQ.add(h);
@@ -154,6 +158,7 @@ class MockDaemon extends RpcServiceBase {
       ('delete', _deletQ),
       ('recover', _recoverQ),
       ('purge', _purgeQ),
+      ('mount', _mountQ),
       ('launch', _launchQ),
       ('find', _findQ),
       ('networks', _networksQ),
@@ -270,6 +275,11 @@ class MockDaemon extends RpcServiceBase {
         'daemon_info', await req.first);
   }
 
+  @override
+  Stream<MountReply> mount(ServiceCall c, Stream<MountRequest> r) async* {
+    yield* _handle(_mountQ, onMount, MountReply.new, 'mount', await r.first);
+  }
+
   // RPCs the GUI never calls. Always return UNIMPLEMENTED so a test fails
   // immediately if the app unexpectedly invokes one of these.
   @override
@@ -278,9 +288,6 @@ class MockDaemon extends RpcServiceBase {
   @override
   Stream<ListReply> list(ServiceCall c, Stream<ListRequest> r) =>
       _unimplemented('list');
-  @override
-  Stream<MountReply> mount(ServiceCall c, Stream<MountRequest> r) =>
-      _unimplemented('mount');
   @override
   Stream<UmountReply> umount(ServiceCall c, Stream<UmountRequest> r) =>
       _unimplemented('umount');
