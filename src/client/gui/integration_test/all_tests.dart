@@ -1,4 +1,5 @@
 // Single entry point that runs all integration tests in one build+process.
+import 'bridge_network_test.dart' as bridge_network_test;
 import 'bulk_actions_test.dart' as bulk_actions_test;
 import 'catalogue_test.dart' as catalogue_test;
 import 'daemon_unavailable_test.dart' as daemon_unavailable_test;
@@ -10,6 +11,7 @@ import 'vm_details_mounts_test.dart' as vm_details_mounts_test;
 import 'vm_lifecycle_test.dart' as vm_lifecycle_test;
 
 void main() {
+  bridge_network_test.main();
   bulk_actions_test.main();
   catalogue_test.main();
   daemon_unavailable_test.main();
