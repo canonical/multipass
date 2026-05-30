@@ -1411,23 +1411,19 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
         return reply_bad_handle(msg, "write");
     }
 
-    const auto& [path, file] = *handle;
-
-    if (MP_FILEOPS.lseek(file, msg->offset, SEEK_SET) == -1)
-    {
-        mpl::trace_location(category,
-                            "cannot seek to position {} in '{}'",
-                            msg->offset,
-                            path.string());
-        return reply_failure(msg);
-    }
+    const auto& [path, fd] = *handle;
 
     auto len = ssh_string_len(msg->data);
     auto data_ptr = ssh_string_get_char(msg->data);
 
-    do
+    uint64_t current_offset = msg->offset;
+
+    while (len > 0)
     {
-        const auto r = MP_FILEOPS.write(file, data_ptr, len);
+        const auto r = mp::platform::pwrite(fd,
+                                            static_cast<void*>(const_cast<char*>(data_ptr)),
+                                            len,
+                                            current_offset);
         if (r == -1)
         {
             mpl::trace_location(category,
@@ -1439,7 +1435,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
 
         data_ptr += r;
         len -= r;
-    } while (len > 0);
+    };
 
     return reply_ok(msg);
 }
