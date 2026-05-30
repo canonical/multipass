@@ -113,6 +113,7 @@ int fstat_attr_from(int fd, sftp_attributes_struct& attr);
 
 // Read OS calls
 ssize_t pread(int fd, void* buffer, size_t bytes_to_read, off_t offset);
+ssize_t pwrite(int fd, void* buffer, size_t bytes_to_write, off_t offset);
 
 // File property change OS calls
 int ftruncate(int fd, off_t length);
