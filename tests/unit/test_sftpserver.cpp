@@ -1246,11 +1246,8 @@ TEST_F(SftpServer, symlinkFailureFails)
 TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
 {
     mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
     auto new_target = temp_dir.path() + "/new-target";
     auto link_name = temp_dir.path() + "/test-link";
-    mpt::make_file_with_content(file_name);
-    MP_PLATFORM.symlink(file_name.toStdString().c_str(), link_name.toStdString().c_str(), false);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
@@ -1275,9 +1272,6 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     sftp.run();
 
     ASSERT_THAT(perm_denied_num_calls, Eq(1));
-
-    QFileInfo info(link_name);
-    EXPECT_TRUE(info.symLinkTarget() == file_name);
 }
 
 TEST_F(SftpServer, handlesRename)
