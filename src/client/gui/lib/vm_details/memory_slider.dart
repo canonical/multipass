@@ -162,8 +162,13 @@ class _MemorySliderState extends State<MemorySlider> {
       children: [
         Row(
           children: [
-            Text(widget.label, style: TextStyle(fontSize: 16)),
-            Spacer(),
+            Expanded(
+              child: Text(
+                widget.label,
+                style: const TextStyle(fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             ConstrainedBox(
               constraints: BoxConstraints(minWidth: 65),
               child: IntrinsicWidth(child: textField),
