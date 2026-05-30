@@ -20,9 +20,6 @@
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/url_downloader.h>
 
-#include <QStringList>
-#include <QTimer>
-
 #include <shared_mutex>
 
 namespace multipass

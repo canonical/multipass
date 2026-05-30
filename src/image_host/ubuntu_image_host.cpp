@@ -57,6 +57,57 @@ auto key_from(const std::string& search_string)
 }
 } // namespace
 
+mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
+                                             std::string uri,
+                                             std::optional<std::string> mirror_key)
+    : UbuntuVMImageRemote(std::move(official_host),
+                          std::move(uri),
+                          &default_image_mutator,
+                          std::move(mirror_key))
+{
+}
+
+multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(
+    std::string official_host,
+    std::string uri,
+    std::function<bool(VMImageInfo&)> custom_image_mutator,
+    std::optional<std::string> mirror_key)
+    : official_host(std::move(official_host)),
+      uri(std::move(uri)),
+      image_mutator{custom_image_mutator},
+      mirror_key(std::move(mirror_key))
+{
+}
+
+const std::string mp::UbuntuVMImageRemote::get_official_url() const
+{
+    return official_host + uri;
+}
+
+const std::optional<std::string> mp::UbuntuVMImageRemote::get_mirror_url() const
+{
+    if (mirror_key)
+    {
+        if (auto mirror = MP_SETTINGS.get(QString::fromStdString(mirror_key.value()));
+            !mirror.isEmpty())
+        {
+            return std::make_optional(mirror.toStdString() + uri);
+        }
+    }
+
+    return std::nullopt;
+}
+
+bool mp::UbuntuVMImageRemote::apply_image_mutator(VMImageInfo& info) const
+{
+    return image_mutator(info);
+}
+
+bool multipass::UbuntuVMImageRemote::default_image_mutator(VMImageInfo& image)
+{
+    return true;
+}
+
 mp::UbuntuVMImageHost::UbuntuVMImageHost(
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes,
     URLDownloader* downloader)
@@ -280,55 +331,4 @@ const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
     }
 
     return nullptr;
-}
-
-mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
-                                             std::string uri,
-                                             std::optional<std::string> mirror_key)
-    : UbuntuVMImageRemote(std::move(official_host),
-                          std::move(uri),
-                          &default_image_mutator,
-                          std::move(mirror_key))
-{
-}
-
-multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(
-    std::string official_host,
-    std::string uri,
-    std::function<bool(VMImageInfo&)> custom_image_mutator,
-    std::optional<std::string> mirror_key)
-    : official_host(std::move(official_host)),
-      uri(std::move(uri)),
-      image_mutator{custom_image_mutator},
-      mirror_key(std::move(mirror_key))
-{
-}
-
-const std::string mp::UbuntuVMImageRemote::get_official_url() const
-{
-    return official_host + uri;
-}
-
-const std::optional<std::string> mp::UbuntuVMImageRemote::get_mirror_url() const
-{
-    if (mirror_key)
-    {
-        if (auto mirror = MP_SETTINGS.get(QString::fromStdString(mirror_key.value()));
-            !mirror.isEmpty())
-        {
-            return std::make_optional(mirror.toStdString() + uri);
-        }
-    }
-
-    return std::nullopt;
-}
-
-bool mp::UbuntuVMImageRemote::apply_image_mutator(VMImageInfo& info) const
-{
-    return image_mutator(info);
-}
-
-bool multipass::UbuntuVMImageRemote::default_image_mutator(VMImageInfo& image)
-{
-    return true;
 }
