@@ -1447,13 +1447,16 @@ ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t of
         return -1;
     }
 
-    OVERLAPPED overlapped{};
+    OVERLAPPED overlapped;
+    SecureZeroMemory(&overlapped, sizeof(OVERLAPPED));
+
     overlapped.Offset = static_cast<DWORD>(offset & 0xFFFFFFFF);
     overlapped.OffsetHigh = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFF);
 
     // Perform the read (atomic)
     DWORD bytesRead = 0;
-    BOOL success = ReadFile(file_handle, buf, static_cast<DWORD>(count), &bytesRead, &overlapped);
+    BOOL success =
+        ReadFile(file_handle, buf, static_cast<DWORD>(bytes_to_read), &bytesRead, &overlapped);
 
     if (success)
     {
@@ -1487,6 +1490,56 @@ ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t of
         break;
     default:
         errno = EINVAL;
+        break;
+    }
+
+    return -1;
+}
+
+ssize_t mp::platform::pwrite(int fd, void* buffer, size_t bytes_to_write, off_t offset)
+{
+    HANDLE file_handle = static_cast<HANDLE>(_get_osfhandle(fd));
+    if (file_handle == INVALID_HANDLE_VALUE)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    OVERLAPPED overlapped;
+    SecureZeroMemory(&overlapped, sizeof(OVERLAPPED));
+
+    overlapped.Offset = static_cast<DWORD>(offset & 0xFFFFFFFF);
+    overlapped.OffsetHigh = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFF);
+
+    // Perform the read (atomic)
+    DWORD bytesWritten = 0;
+    BOOL success =
+        WriteFile(file_handle, buf, static_cast<DWORD>(bytes_to_write), &bytesWritten, &overlapped);
+
+    if (success)
+    {
+        return static_cast<ssize_t>(bytesWritten);
+    }
+
+    DWORD win_err = GetLastError();
+
+    // Map critical Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_ACCESS_DENIED:
+        errno = EACCES;
+        break;
+    case ERROR_DISK_FULL:
+        errno = ENOSPC;
+        break;
+    case ERROR_INVALID_HANDLE:
+        errno = EBADF;
+        break;
+    case ERROR_IO_PENDING:
+        errno = EAGAIN;
+        break;
+    default:
+        errno = EIO;
         break;
     }
 

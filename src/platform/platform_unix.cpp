@@ -235,6 +235,11 @@ ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t of
     return ::pread(fd, buffer, bytes_to_read, offset);
 }
 
+ssize_t mp::platform::pwrite(int fd, void* buffer, size_t bytes_to_write, off_t offset)
+{
+    return ::pwrite(fd, buffer, bytes_to_write, offset);
+}
+
 int mp::platform::ftruncate(int fd, off_t length)
 {
     return ::ftruncate(fd, length);
