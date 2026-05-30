@@ -1333,44 +1333,69 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
     // 9pfs implementation - host only stores and retrieves symlink strings
     //  We do not check target (link can point anywhere), openat is sandboxed
+    // SFTP v3 spec - Symlinks can be created but not edited. To change one you must delete and then
+    // create a new one. Later versions may support this.
+    // Note - In SFTP v3 (following OpenSSH quirks), the target usually comes first.
     const auto symlink_target = sftp_client_message_get_filename(msg);
     if (symlink_target == nullptr || *symlink_target == '\0')
     {
-        mpl::trace(category, "{}: cannot create an empty symlink", __FUNCTION__);
+        mpl::trace_location(category, "cannot create an empty symlink");
         return reply_perm_denied(msg);
     }
 
     // The actual path of the link file must be validated
     const auto link_path = get_absolute_path(sftp_client_message_get_data(msg));
+    const auto& link_path_string = link_path.string();
 
-    // Hardcode false: We are CREATING/EDITING a link, so we must never follow it!
+    // Hardcode false: File is not supposed to exist (SFTPv3).
     if (!validate_path(link_path, false))
     {
         mpl::trace_location(category,
                             "cannot validate path \'{}\' against source \'{}\'",
-                            link_path,
+                            link_path_string,
                             source_path);
         return reply_perm_denied(msg);
     }
 
-    // Bug: we were checking against the target path, not the link path
-    QFileInfo file_info{link_path};
-    if (MP_FILEOPS.exists(file_info) && !has_id_mappings_for(file_info))
+    sftp_attributes_struct attr{};
+    if (mp::platform::lstat_attr_from(link_path_string.c_str(), attr) == 0)
+    {
+        mpl::trace_location(category,
+                            "cannot create symlink: path '{}' already exists",
+                            link_path_string);
+        return reply_failure(msg);
+    }
+
+    const auto& link_parent_path = link_path.parent_path();
+    attr = {};
+    if (mp::platform::stat_attr_from(link_parent_path.string().c_str(), attr) != 0)
+    {
+        mpl::trace_location(category,
+                            "cannot create symlink: parent path '{}' stat: {}",
+                            link_parent_path.string(),
+                            std::strerror(errno));
+        return reply_failure(msg);
+    }
+
+    if (!has_id_mappings_for(attr))
     {
         mpl::trace_location(category,
                             "cannot access path \'{}\' without id mapping: permission denied",
-                            symlink_target);
+                            link_parent_path.string());
         return reply_perm_denied(msg);
     }
 
-    if (!MP_PLATFORM.symlink(symlink_target,
-                             link_path.string().c_str(),
-                             QFileInfo(symlink_target).isDir()))
+    fs::path secure_target_path{link_parent_path / symlink_target};
+    std::error_code ec;
+    // Needed for windows
+    bool target_is_dir{MP_FILEOPS.is_directory(secure_target_path, ec)};
+
+    if (!MP_PLATFORM.symlink(symlink_target, link_path.string().c_str(), target_is_dir))
     {
         mpl::trace_location(category,
-                            "failure creating symlink from \'{}\' to \'{}\'",
+                            "failure creating symlink from '{}' to '{}'",
                             symlink_target,
-                            link_path);
+                            link_path.string());
         return reply_failure(msg);
     }
 
