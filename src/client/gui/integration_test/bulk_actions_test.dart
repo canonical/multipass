@@ -75,7 +75,7 @@ void main() {
     });
 
     await tester.tap(find.text('Stop'));
-    await pumpUntilGone(tester, find.text('Stop'));
+    await pumpUntil(tester, find.text('Stopped'));
 
     // Verify both VM names were included in the stop request
     final stoppedNames = capturedStopReq?.instanceNames.instanceName ?? [];

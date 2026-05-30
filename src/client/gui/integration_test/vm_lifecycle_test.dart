@@ -67,7 +67,7 @@ void main() {
       return Stream.value(SuspendReply());
     });
     await tester.tap(find.text('Suspend'));
-    await pumpUntilGone(tester, find.text('Suspend'));
+    await pumpUntil(tester, find.text('Suspended'));
     expect(capturedSuspendReq?.instanceNames.instanceName, contains(vmName));
 
     // 6. Start VM again
@@ -89,7 +89,7 @@ void main() {
       return Stream.value(StopReply());
     });
     await tester.tap(find.text('Stop'));
-    await pumpUntilGone(tester, find.text('Stop'));
+    await pumpUntil(tester, find.text('Stopped'));
     expect(capturedStopReq?.instanceNames.instanceName, contains(vmName));
 
     // 8. Delete VM
