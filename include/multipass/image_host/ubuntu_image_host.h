@@ -51,7 +51,8 @@ private:
     void fetch_manifests(bool force_update) override;
     void clear() override;
     const SimpleStreamsManifest& manifest_from(const std::string& remote) const;
-    const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;
+    const VMImageInfo* match_alias(const std::string& key,
+                                   const SimpleStreamsManifest& manifest) const;
 
     std::vector<std::pair<std::string, std::unique_ptr<SimpleStreamsManifest>>> manifests;
     std::vector<std::pair<std::string, UbuntuVMImageRemote>> remotes;
@@ -63,13 +64,13 @@ class UbuntuVMImageRemote
 public:
     UbuntuVMImageRemote(std::string official_host,
                         std::string uri,
-                        std::optional<QString> mirror_key = std::nullopt);
+                        std::optional<std::string> mirror_key = std::nullopt);
     UbuntuVMImageRemote(std::string official_host,
                         std::string uri,
                         std::function<bool(VMImageInfo&)> custom_image_mutator,
-                        std::optional<QString> mirror_key = std::nullopt);
-    const QString get_official_url() const;
-    const std::optional<QString> get_mirror_url() const;
+                        std::optional<std::string> mirror_key = std::nullopt);
+    const std::string get_official_url() const;
+    const std::optional<std::string> get_mirror_url() const;
     bool apply_image_mutator(VMImageInfo& info) const;
 
 private:
@@ -78,6 +79,6 @@ private:
     const std::string official_host;
     const std::string uri;
     const std::function<bool(VMImageInfo&)> image_mutator;
-    const std::optional<QString> mirror_key;
+    const std::optional<std::string> mirror_key;
 };
 } // namespace multipass

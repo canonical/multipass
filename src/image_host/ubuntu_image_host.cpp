@@ -39,23 +39,21 @@ namespace
 {
 constexpr auto index_path = "streams/v1/index.json";
 
-auto download_manifest(const QString& host_url,
+auto download_manifest(const std::string& host_url,
                        mp::URLDownloader* url_downloader,
                        bool force_update)
 {
-    auto json_index = url_downloader->download({host_url + index_path}, force_update);
+    auto index_url = QString::fromStdString(host_url + index_path);
+    auto json_index = url_downloader->download(index_url, force_update);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
 
-    auto json_manifest = url_downloader->download({host_url + index.manifest_path}, force_update);
-    return json_manifest;
+    auto manifest_url = QString::fromStdString(host_url + index.manifest_path.toStdString());
+    return url_downloader->download(manifest_url, force_update);
 }
 
 auto key_from(const std::string& search_string)
 {
-    auto key = QString::fromStdString(search_string);
-    if (key.isEmpty())
-        key = "default";
-    return key;
+    return search_string.empty() ? "default" : search_string;
 }
 } // namespace
 
@@ -74,10 +72,10 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query&
         return std::nullopt;
 
     auto key = key_from(query.release);
-    auto image_id = images.front().second.id;
+    auto image_id = images.front().second.id.toStdString();
 
     // If a partial hash query matches more than once, throw an exception
-    if (images.size() > 1 && key != image_id && image_id.startsWith(key))
+    if (images.size() > 1 && key != image_id && image_id.starts_with(key))
         throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
 
     // It's not a hash match, so choose the first one no matter what
@@ -119,11 +117,12 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
             for (const auto& entry : manifest.products)
             {
-                if (entry.id.startsWith(key) && (entry.supported || query.allow_unsupported) &&
-                    found_hashes.find(entry.id.toStdString()) == found_hashes.end())
+                const auto id = entry.id.toStdString();
+                if (id.starts_with(key) && (entry.supported || query.allow_unsupported) &&
+                    found_hashes.find(id) == found_hashes.end())
                 {
                     images.emplace_back(remote_name, entry);
-                    found_hashes.insert(entry.id.toStdString());
+                    found_hashes.insert(id);
                 }
             }
         }
@@ -217,7 +216,7 @@ void mp::UbuntuVMImageHost::fetch_manifests(bool force_update)
             auto manifest = mp::SimpleStreamsManifest::fromJson(
                 manifest_bytes_from_official,
                 manifest_bytes_from_mirror,
-                mirror_site.value_or(official_site),
+                QString::fromStdString(mirror_site.value_or(official_site)),
                 [&remote_info](VMImageInfo& info) {
                     return remote_info.apply_image_mutator(info);
                 });
@@ -271,10 +270,11 @@ const mp::SimpleStreamsManifest& mp::UbuntuVMImageHost::manifest_from(
 }
 
 const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
-    const QString& key,
+    const std::string& key,
     const mp::SimpleStreamsManifest& manifest) const
 {
-    if (auto it = manifest.image_records.find(key); it != manifest.image_records.end())
+    if (auto it = manifest.image_records.find(QString::fromStdString(key));
+        it != manifest.image_records.end())
     {
         return it->second;
     }
@@ -284,7 +284,7 @@ const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
 
 mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
                                              std::string uri,
-                                             std::optional<QString> mirror_key)
+                                             std::optional<std::string> mirror_key)
     : UbuntuVMImageRemote(std::move(official_host),
                           std::move(uri),
                           &default_image_mutator,
@@ -296,7 +296,7 @@ multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(
     std::string official_host,
     std::string uri,
     std::function<bool(VMImageInfo&)> custom_image_mutator,
-    std::optional<QString> mirror_key)
+    std::optional<std::string> mirror_key)
     : official_host(std::move(official_host)),
       uri(std::move(uri)),
       image_mutator{custom_image_mutator},
@@ -304,23 +304,19 @@ multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(
 {
 }
 
-const QString mp::UbuntuVMImageRemote::get_official_url() const
+const std::string mp::UbuntuVMImageRemote::get_official_url() const
 {
-    auto host = official_host;
-    host.append(uri);
-    return QString::fromStdString(host);
+    return official_host + uri;
 }
 
-const std::optional<QString> mp::UbuntuVMImageRemote::get_mirror_url() const
+const std::optional<std::string> mp::UbuntuVMImageRemote::get_mirror_url() const
 {
     if (mirror_key)
     {
-        auto mirror = MP_SETTINGS.get(mirror_key.value());
-        if (!mirror.isEmpty())
+        if (auto mirror = MP_SETTINGS.get(QString::fromStdString(mirror_key.value()));
+            !mirror.isEmpty())
         {
-            auto url = mirror.toStdString();
-            url.append(uri);
-            return std::make_optional(QString::fromStdString(url));
+            return std::make_optional(mirror.toStdString() + uri);
         }
     }
 
