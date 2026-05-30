@@ -9,6 +9,7 @@ import 'launch_test.dart' as launch_test;
 import 'launch_form_test.dart' as launch_form_test;
 import 'vm_details_mounts_test.dart' as vm_details_mounts_test;
 import 'vm_lifecycle_test.dart' as vm_lifecycle_test;
+import 'vm_list_test.dart' as vm_list_test;
 
 void main() {
   bridge_network_test.main();
@@ -20,4 +21,5 @@ void main() {
   launch_form_test.main();
   vm_details_mounts_test.main();
   vm_lifecycle_test.main();
+  vm_list_test.main();
 }
