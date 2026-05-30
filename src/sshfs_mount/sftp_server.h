@@ -70,7 +70,6 @@ private:
     bool has_id_mappings_for(const sftp_attributes_struct& file_info);
     void convert_attr_ids(sftp_attributes_struct& attr);
     bool validate_path(const fs::path& current_path, bool follows_symlinks) const;
-    std::string host_to_guest_path(const fs::path& host_path) const;
     fs::path get_absolute_path(const char* path) const;
     std::optional<fs::path> get_validated_path(sftp_client_message msg) const;
 
