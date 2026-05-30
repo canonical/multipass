@@ -16,6 +16,9 @@ Future<void> launchApp(
   tester.binding.platformDispatcher.localesTestValue = [const Locale('en')];
   await tester.runAsync(() async {
     await app.main([
+      // In tests the gRPC client is always provided via grpcClientProvider
+      // override, so the daemon is always reachable regardless of FFI state.
+      daemonAvailableProvider.overrideWith((_) => true),
       // Cancellation-aware polling override avoids timer leaks between tests.
       vmInfosStreamProvider.overrideWith((ref) async* {
         var cancelled = false;
