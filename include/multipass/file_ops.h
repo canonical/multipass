@@ -40,7 +40,7 @@
 namespace multipass
 {
 namespace fs = std::filesystem;
-using SftpHandle = std::variant<NamedFd, DirIterator>;
+using SftpHandle = std::variant<std::unique_ptr<NamedFd>, std::unique_ptr<DirIterator>>;
 
 class FileOps : public Singleton<FileOps>
 {
@@ -94,7 +94,7 @@ public:
     virtual bool tryLock(QLockFile& lock, std::chrono::milliseconds timeout) const;
 
     // posix operations
-    virtual std::unique_ptr<SftpHandle> open_fd(const fs::path& path, int flags, int perms) const;
+    virtual SftpHandle open_fd(const fs::path& path, int flags, int perms) const;
     virtual int read(int fd, void* buf, size_t nbytes) const;
     virtual int write(int fd, const void* buf, size_t nbytes) const;
     virtual off_t lseek(int fd, off_t offset, int whence) const;
@@ -146,8 +146,7 @@ public:
     virtual std::unique_ptr<RecursiveDirIterator>
     recursive_dir_iterator(const fs::path& path, std::error_code& err) const;
     //[[deprecated("Use non-std::error_code overload instead!")]]
-    virtual std::unique_ptr<SftpHandle> dir_iterator(const fs::path& path,
-                                                     std::error_code& err) const;
+    virtual SftpHandle dir_iterator(const fs::path& path, std::error_code& err) const;
     virtual fs::path weakly_canonical(const fs::path& path) const;
     virtual fs::path relative(const fs::path& path,
                               const fs::path& base,
