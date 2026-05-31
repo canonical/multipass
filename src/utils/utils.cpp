@@ -411,7 +411,7 @@ std::string mp::Utils::contents_of(const multipass::Path& file_path) const
     return mp::utils::contents_of(file_path);
 }
 
-std::string format_time_t(time_t mtime)
+std::string mp::Utils::format_time_t(time_t mtime) const
 {
     std::tm time_struct{get_localtime(mtime)};
 
