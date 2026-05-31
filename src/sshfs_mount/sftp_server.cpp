@@ -581,7 +581,7 @@ void mp::SftpServer::stop()
 int mp::SftpServer::handle_close(sftp_client_message msg)
 {
     const auto id = sftp_handle(sftp_server_session.get(), msg->handle);
-    if (!open_file_handles.erase(id) && !open_dir_handles.erase(id))
+    if (!open_sftp_handles.erase(id))
     {
         mpl::trace_location(category, "bad handle requested");
         return reply_bad_handle(msg, "close");
@@ -798,7 +798,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     auto named_fd_handle =
         MP_FILEOPS.open_fd(*filename, mode, msg->attr ? msg->attr->permissions : 0);
-    auto named_fd = std::get_if<NamedFd>(named_fd_handle.get());
+    auto& named_fd = std::get<std::unique_ptr<NamedFd>>(named_fd_handle);
     if (!named_fd || named_fd->fd == -1)
     {
         mpl::trace(category, "Cannot open '{}': {}", filename->string(), std::strerror(errno));
@@ -821,7 +821,8 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         }
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), named_fd_handle.get()),
+    auto fd_key_ptr{named_fd.get()};
+    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), fd_key_ptr),
                                ssh_string_free};
     if (!sftp_handle)
     {
@@ -829,8 +830,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    auto fd_key_ptr{named_fd_handle.get()};
-    open_file_handles.emplace(fd_key_ptr, std::move(named_fd_handle));
+    open_sftp_handles.emplace(fd_key_ptr, std::move(named_fd_handle));
 
     return sftp_reply_handle(msg, sftp_handle.get());
 }
@@ -845,7 +845,8 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
     sftp_attributes_struct attr{};
     const auto res = mp::platform::stat_attr_from(filename->string().c_str(),
                                                   attr); // First stat to minimize TOCTOU impact
-    auto dir_iterator = MP_FILEOPS.dir_iterator(*filename, err);
+    auto dir_iterator_handle = MP_FILEOPS.dir_iterator(*filename, err);
+    auto& dir_iterator = std::get<std::unique_ptr<DirIterator>>(dir_iterator_handle);
 
     if (res != 0 || err.value() == int(std::errc::no_such_file_or_directory) ||
         err.value() == int(std::errc::no_such_process))
@@ -868,7 +869,8 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()),
+    auto dir_iter_ptr{dir_iterator.get()};
+    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), dir_iter_ptr),
                                ssh_string_free};
     if (!sftp_handle)
     {
@@ -876,8 +878,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    auto dir_iter_ptr{dir_iterator.get()};
-    open_dir_handles.emplace(dir_iter_ptr, std::move(dir_iterator));
+    open_sftp_handles.emplace(dir_iter_ptr, std::move(dir_iterator));
 
     return sftp_reply_handle(msg, sftp_handle.get());
 }

@@ -284,12 +284,10 @@ bool mp::FileOps::tryLock(QLockFile& lock, std::chrono::milliseconds timeout) co
     return lock.tryLock(timeout);
 }
 
-std::unique_ptr<mp::SftpHandle> mp::FileOps::open_fd(const fs::path& path,
-                                                     int flags,
-                                                     int perms) const
+mp::SftpHandle mp::FileOps::open_fd(const fs::path& path, int flags, int perms) const
 {
     const auto fd = ::open(path.string().c_str(), flags | O_BINARY, perms);
-    return std::make_unique<mp::SftpHandle>(std::in_place_type<mp::NamedFd>, path, fd);
+    return std::make_unique<mp::NamedFd>(path, fd);
 }
 
 int mp::FileOps::read(int fd, void* buf, size_t nbytes) const
@@ -449,10 +447,9 @@ mp::FileOps::recursive_dir_iterator(const fs::path& path, std::error_code& err) 
     return std::make_unique<mp::RecursiveDirIterator>(path, err);
 }
 
-std::unique_ptr<mp::SftpHandle> mp::FileOps::dir_iterator(const fs::path& path,
-                                                          std::error_code& err) const
+mp::SftpHandle mp::FileOps::dir_iterator(const fs::path& path, std::error_code& err) const
 {
-    return std::make_unique<mp::SftpHandle>(std::in_place_type<mp::DirIterator>, path, err);
+    return std::make_unique<mp::DirIterator>(path, err);
 }
 
 fs::path mp::FileOps::weakly_canonical(const fs::path& path) const

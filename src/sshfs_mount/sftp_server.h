@@ -98,8 +98,7 @@ private:
     SftpSessionUptr sftp_server_session;
     const std::filesystem::path source_path;
     const std::filesystem::path target_path;
-    std::unordered_map<void*, std::unique_ptr<SftpHandle>> open_file_handles;
-    std::unordered_map<void*, std::unique_ptr<SftpHandle>> open_dir_handles;
+    std::unordered_map<void*, SftpHandle> open_sftp_handles;
     const id_mappings gid_mappings;
     const id_mappings uid_mappings;
     const int default_uid;
