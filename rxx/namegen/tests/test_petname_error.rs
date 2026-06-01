@@ -13,16 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
-#include "petname.h"
-#include <multipass/name_generator.h>
-
-namespace mp = multipass;
-
-mp::NameGenerator::UPtr mp::make_default_name_generator()
-{
-    return std::make_unique<mp::Petname>(mp::Petname::NumWords::TWO, "-");
+use namegen::petname_error::PetnameError;
+#[test]
+fn test_error_display() {
+    assert_eq!(
+        PetnameError::InvalidWordNumber(5).to_string(),
+        "Invalid word number: 5"
+    );
+    assert_eq!(
+        PetnameError::InvalidSeparator(64).to_string(),
+        "Invalid separator, ASCII code: 64"
+    );
+    assert_eq!(PetnameError::PoisonedMutex.to_string(), "Mutex is poisoned")
 }

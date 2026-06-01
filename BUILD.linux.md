@@ -10,6 +10,16 @@ sudo apt install devscripts equivs
 mk-build-deps -s sudo -i
 ```
 
+### Install the Rust compiler
+
+1. Install the `rustup` snap:
+```
+sudo snap install rustup --classic
+```
+2. Install the stable version of the Rust toolchain:
+```
+rustup default stable
+```
 ## Building
 
 First, go into the repository root and get all the submodules:

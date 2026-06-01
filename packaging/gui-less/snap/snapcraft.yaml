@@ -95,6 +95,7 @@ parts:
     plugin: cmake
     build-snaps:
     - cmake
+    - rustup
     build-environment:
     - PATH: /snap/bin:$PATH
     - PYTHON: /usr/bin/python3
@@ -194,6 +195,8 @@ parts:
     source-type: git
     override-pull: |
       set -e
+
+      rustup default stable
 
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build

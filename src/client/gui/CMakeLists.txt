@@ -19,7 +19,7 @@ message(STATUS "Setting build number to: ${MULTIPASS_BUILD_NUMBER}")
 add_library(dart_ffi SHARED ffi/dart_ffi.cpp)
 
 target_link_libraries(dart_ffi
-  petname
+  namegen
   client_common
   client_platform
 )

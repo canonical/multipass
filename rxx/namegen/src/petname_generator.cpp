@@ -15,26 +15,19 @@
  *
  */
 
-#include "common.h"
-#include "mock_standard_paths.h"
-
-#include <QCoreApplication>
+#include "petname_generator.h"
+#include <namegen/src/lib.rs.h>
+#include <random>
 
 namespace mp = multipass;
 
-// Normally one would just use libgtest_main but our static library dependencies
-// also define main... DAMN THEM!
-int main(int argc, char* argv[])
+mp::PetnameGenerator::PetnameGenerator(mp::petname::NumWords num_words, char separator)
+    : backend{
+          rp::PetnameBackend::make_petname_backend(num_words, separator, std::random_device{}())}
 {
-    // Verify that the version of the library that we linked against is
-    // compatible with the version of the headers we compiled against.
-    GOOGLE_PROTOBUF_VERIFY_VERSION;
+}
 
-    QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationName("multipass_cpp_tests");
-
-    ::testing::InitGoogleTest(&argc, argv);
-    mp::test::MockStandardPaths::mockit();
-
-    return RUN_ALL_TESTS();
+std::string mp::PetnameGenerator::make_name()
+{
+    return std::string(backend->make_name());
 }
