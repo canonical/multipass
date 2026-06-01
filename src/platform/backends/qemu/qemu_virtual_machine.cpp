@@ -538,8 +538,14 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
         auto qmp_output = vm_process->read_all_standard_output();
         mpl::debug(vm_name, "QMP: {}", qmp_output);
-        auto qmp_object =
-            boost::json::parse(qmp_output.split('\n').first().toStdString()).as_object();
+        // Skip non-JSON output.
+        const auto lines = qmp_output.split('\n');
+        const auto json_line = std::find_if(lines.cbegin(), lines.cend(), [](const QString& line) {
+            return line.startsWith('{');
+        });
+        if (json_line == lines.cend())
+            return;
+        auto qmp_object = boost::json::parse(json_line->toStdString()).as_object();
 
         if (auto event = qmp_object.if_contains("event"))
         {

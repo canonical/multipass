@@ -39,14 +39,20 @@ def generate(input_path: Path, output_path: Path) -> None:
     data["platforms"]["s390x"] = None
     data["platforms"]["ppc64el"] = None
 
+    # The cmake snap on ppc64el/s390x is deprecated; use apt cmake instead
+    multipass_part = data["parts"]["multipass"]
+    multipass_part["build-snaps"] = [s for s in multipass_part.get("build-snaps", []) if s != "cmake"]
+    build_packages = multipass_part["build-packages"]
+    build_packages.append("cmake")
+
     # Remove the GUI app
     del data["apps"]["gui"]
 
     # Change multipass part to use remote git source
-    data["parts"]["multipass"]["source"] = MULTIPASS_SOURCE
+    multipass_part["source"] = MULTIPASS_SOURCE
 
     # Use a CMake preset to turn off the GUI
-    data["parts"]["multipass"]["build-environment"].append(
+    multipass_part["build-environment"].append(
         {"CMAKE_PRESET": "snap-gui-less"}
     )
 

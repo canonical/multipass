@@ -241,16 +241,10 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
 #endif
     }
 
-    opts << "--enable-kvm";
-
-    // Pass host CPU flags to VM
-#if defined Q_PROCESSOR_POWER
-    opts << "-cpu"
-         << "POWER9";
-#else
-    opts << "-cpu"
+    opts << "--enable-kvm"
+         // Pass host CPU flags to VM
+         << "-cpu"
          << "host";
-#endif
     // clang-format on
 
     // Set up the network related args
