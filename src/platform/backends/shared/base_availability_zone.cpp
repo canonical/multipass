@@ -20,6 +20,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 
 #include <fmt/format.h>
 
@@ -32,7 +33,9 @@ namespace
 constexpr auto subnet_key = "subnet";
 constexpr auto available_key = "available";
 
-multipass::SubnetAllocator subnet_allocator(std::string("10.97.0.0/20"), 24);
+constexpr multipass::Subnet::PrefixLength subnet_prefix_length = 24;
+multipass::SubnetAllocator subnet_allocator(MP_PLATFORM.get_preferred_subnet(),
+                                            subnet_prefix_length);
 } // namespace
 
 namespace multipass

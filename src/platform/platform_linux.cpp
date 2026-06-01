@@ -396,7 +396,7 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
 
 mp::Subnet mp::platform::Platform::get_preferred_subnet() const
 {
-    return {"10.97.0.0/20"};
+    return {"10.97.0.0/16"};
 }
 
 auto mp::platform::detail::get_network_interfaces_from(const QDir& sys_dir)
