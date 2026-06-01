@@ -57,6 +57,7 @@ jobs:
               - "snap/**"
               - "snap-wrappers/**"
               - "src/**"
+              - "rxx/**"
               - "tests/**"
               - ".gitmodules"
               - "CMakeLists.txt"
