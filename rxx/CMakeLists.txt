@@ -32,10 +32,15 @@ endif()
 set(RUST_BUILD_DIR "${CMAKE_BINARY_DIR}/rxx")
 set(RUST_BIN_DIR "${RUST_BUILD_DIR}/${RUST_BUILD}")
 
+set(CARGO_ENV "CARGO_TARGET_DIR=${RUST_BUILD_DIR}")
+if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+  list(APPEND CARGO_ENV "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
+
 #Find cargo, which will be a hard dependency
 find_program(CARGO_EXECUTABLE cargo REQUIRED)
 #Set the build directory via env variable
-set(CARGO_CMD ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${RUST_BUILD_DIR}" ${CARGO_EXECUTABLE})
+set(CARGO_CMD ${CMAKE_COMMAND} -E env ${CARGO_ENV} ${CARGO_EXECUTABLE})
 #Crates to build. Both consumers and providers of code to the C++ side
 #have to be built, since the CXX glue code has to be generated and compiled
 #for said usage

@@ -67,7 +67,7 @@ jobs:
     env:
       BUILD_DIR: ${{ github.workspace }}/build
       SCCACHE_DIR: ${{ github.workspace }}/.sccache
-      RUSTC_WRAPPER: "sccache"
+      #RUSTC_WRAPPER: "sccache" Removed due to concurrency issues between C++ and Rust
 
     steps:
     - name: Check out code
