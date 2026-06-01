@@ -615,7 +615,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
     //     file_info = QFileInfo(file_info.symLinkTarget());
 
     sftp_attributes_struct attr{};
-    if (mp::platform::fstat_attr_from(fd, attr) != 0)
+    if (MP_PLATFORM.fstat_attr_from(fd, attr) != 0)
     {
         mpl::trace_location(category, "fstat failed: {}", std::strerror(errno));
         return reply_failure(msg);
@@ -634,7 +634,7 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     sftp_attributes_struct parent_attr{};
-    if (mp::platform::lstat_attr_from(filename->parent_path().string().c_str(), parent_attr) != 0)
+    if (MP_PLATFORM.lstat_attr_from(filename->parent_path().string().c_str(), parent_attr) != 0)
     {
         mpl::trace_location(category,
                             "Parent path {} lstat failed, aborting mkdir on {}",
@@ -693,7 +693,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     sftp_attributes_struct attr{};
-    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) != 0)
+    if (MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) != 0)
     {
         mpl::trace_location(category, "rmdir failed for '{}': does not exist", filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
@@ -735,7 +735,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     bool exists{true};
     sftp_attributes_struct attr{};
-    exists = mp::platform::lstat_attr_from(filename->string().c_str(), attr) == 0;
+    exists = MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) == 0;
     if (!exists)
     {
         // If it does not exist, we can continue, otherwise it is an error
@@ -748,7 +748,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
         sftp_attributes_struct dir_attr{};
-        if (mp::platform::stat_attr_from(filename->parent_path().string().c_str(), dir_attr) != 0 ||
+        if (MP_PLATFORM.stat_attr_from(filename->parent_path().string().c_str(), dir_attr) != 0 ||
             !has_id_mappings_for(dir_attr))
         {
             mpl::trace_location(
@@ -840,8 +840,8 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
 
     std::error_code err;
     sftp_attributes_struct attr{};
-    const auto res = mp::platform::stat_attr_from(filename->string().c_str(),
-                                                  attr); // First stat to minimize TOCTOU impact
+    const auto res = MP_PLATFORM.stat_attr_from(filename->string().c_str(),
+                                                attr); // First stat to minimize TOCTOU impact
     auto dir_iterator_handle = MP_FILEOPS.dir_iterator(*filename, err);
     auto& dir_iterator = std::get<std::unique_ptr<DirIterator>>(dir_iterator_handle);
 
@@ -895,10 +895,10 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     // No array initialization. Memory does not leak because the message copy copies only the read
     // bytes.
     std::array<char, max_packet_size> buffer;
-    const auto result = mp::platform::pread(fd,
-                                            buffer.data(),
-                                            std::min(msg->len, max_packet_size),
-                                            msg->offset);
+    const auto result = MP_PLATFORM.pread(fd,
+                                          buffer.data(),
+                                          std::min(msg->len, max_packet_size),
+                                          msg->offset);
 
     if (result > 0)
         return MP_LIBSSH.sftp_reply_data(msg, buffer.data(), result);
@@ -931,7 +931,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
         const auto& path_string = path.string();
         sftp_attributes_struct attr{};
 
-        if (mp::platform::lstat_attr_from(path_string.c_str(), attr) != 0)
+        if (MP_PLATFORM.lstat_attr_from(path_string.c_str(), attr) != 0)
         {
             mpl::trace(category,
                        "Cannot get status of '{}': {}",
@@ -957,8 +957,12 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     sftp_attributes_struct attr{};
-    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) != 0 ||
-        !has_id_mappings_for(attr))
+    if (MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) != 0)
+    {
+        mpl::trace_location(category, "cannot access path '{}': no such file", filename->string());
+        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "readlink");
+    }
+    if (!has_id_mappings_for(attr))
     {
         mpl::trace_location(category,
                             "cannot access path '{}' without id mapping: permission denied",
@@ -993,7 +997,7 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
     sftp_attributes_struct attr{};
 
     // Check ID mappings, but gracefully handle ENOENT (file doesn't exist yet)
-    if (mp::platform::lstat_attr_from(filepath->string().c_str(), attr) == 0)
+    if (MP_PLATFORM.lstat_attr_from(filepath->string().c_str(), attr) == 0)
     {
         if (!has_id_mappings_for(attr))
         {
@@ -1028,7 +1032,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
         return reply_perm_denied(msg);
 
     sftp_attributes_struct attr{};
-    if (mp::platform::lstat_attr_from(filename->string().c_str(), attr) != 0)
+    if (MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) != 0)
     {
         mpl::trace_location(category, "cannot remove '{}': Does not exist", filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "No such file");
@@ -1075,7 +1079,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg, const bool allow_over
         return reply_perm_denied(msg);
 
     sftp_attributes_struct source_attr{};
-    if (mp::platform::lstat_attr_from(source->string().c_str(), source_attr) != 0)
+    if (MP_PLATFORM.lstat_attr_from(source->string().c_str(), source_attr) != 0)
     {
         mpl::trace_location(category,
                             "cannot rename '{}': {}",
@@ -1109,7 +1113,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg, const bool allow_over
     if (!allow_overwrites)
     {
         sftp_attributes_struct target_attr{};
-        if (mp::platform::lstat_attr_from(target.string().c_str(), target_attr) == 0)
+        if (MP_PLATFORM.lstat_attr_from(target.string().c_str(), target_attr) == 0)
         {
             // Target exists! Refuse to overwrite.
             mpl::trace_location(category, "rename target '{}' already exists", target.string());
@@ -1145,7 +1149,7 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 
     sftp_attributes_struct attr{};
 
-    if (mp::platform::fstat_attr_from(fd, attr) != 0)
+    if (MP_PLATFORM.fstat_attr_from(fd, attr) != 0)
     {
         mpl::trace_location(category, "cannot fstat '{}': {}", path.string(), std::strerror(errno));
         return reply_failure(msg);
@@ -1160,7 +1164,7 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
-        if (mp::platform::ftruncate(fd, msg->attr->size) != 0)
+        if (MP_PLATFORM.ftruncate(fd, msg->attr->size) != 0)
         {
             mpl::trace_location(category, "cannot resize '{}'", path.string());
             return reply_failure(msg);
@@ -1178,7 +1182,7 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
     {
-        if (mp::platform::futimes(fd, msg->attr->atime, msg->attr->mtime) < 0)
+        if (MP_PLATFORM.futimes(fd, msg->attr->atime, msg->attr->mtime) < 0)
         {
             mpl::trace_location(category, "cannot set modification date for '{}'", path.string());
             return reply_failure(msg);
@@ -1215,7 +1219,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     const auto& path_string = filepath->string();
     sftp_attributes_struct attr{};
-    if (mp::platform::stat_attr_from(path_string.c_str(), attr) != 0)
+    if (MP_PLATFORM.stat_attr_from(path_string.c_str(), attr) != 0)
     {
         mpl::trace_location(category, "cannot setstat '{}': no such file", path_string);
         return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
@@ -1293,12 +1297,12 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
     if (follow)
     {
         // stat automatically and safely follows symlinks.
-        stat_result = mp::platform::stat_attr_from(filename->string().c_str(), attr);
+        stat_result = MP_PLATFORM.stat_attr_from(filename->string().c_str(), attr);
     }
     else
     {
         // lstat explicitly checks the link itself.
-        stat_result = mp::platform::lstat_attr_from(filename->string().c_str(), attr);
+        stat_result = MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr);
     }
 
     if (stat_result != 0)
@@ -1359,7 +1363,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
     }
 
     sftp_attributes_struct attr{};
-    if (mp::platform::lstat_attr_from(link_path_string.c_str(), attr) == 0)
+    if (MP_PLATFORM.lstat_attr_from(link_path_string.c_str(), attr) == 0)
     {
         mpl::trace_location(category,
                             "cannot create symlink: path '{}' already exists",
@@ -1369,7 +1373,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
 
     const auto& link_parent_path = link_path.parent_path();
     attr = {};
-    if (mp::platform::stat_attr_from(link_parent_path.string().c_str(), attr) != 0)
+    if (MP_PLATFORM.stat_attr_from(link_parent_path.string().c_str(), attr) != 0)
     {
         mpl::trace_location(category,
                             "cannot create symlink: parent path '{}' stat: {}",
@@ -1421,10 +1425,10 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
 
     while (len > 0)
     {
-        const auto r = mp::platform::pwrite(fd,
-                                            static_cast<void*>(const_cast<char*>(data_ptr)),
-                                            len,
-                                            current_offset);
+        const auto r = MP_PLATFORM.pwrite(fd,
+                                          static_cast<const void*>(data_ptr),
+                                          len,
+                                          current_offset);
         if (r == -1)
         {
             mpl::trace_location(category,
@@ -1475,7 +1479,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
         const auto& hardlink_parent_path = hardlink_path.parent_path();
         sftp_attributes_struct parent_attr{};
         // Parent must exist and have id mappings
-        if (mp::platform::stat_attr_from(hardlink_parent_path.string().c_str(), parent_attr) != 0)
+        if (MP_PLATFORM.stat_attr_from(hardlink_parent_path.string().c_str(), parent_attr) != 0)
         {
             mpl::trace_location(category,
                                 "cannot create hardlink: parent path '{}' stat: {}",
@@ -1494,7 +1498,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
 
         // File we are creating cannot exist (no overwrites)
         sftp_attributes_struct attr{};
-        if (mp::platform::lstat_attr_from(hardlink_path_string.c_str(), attr) == 0)
+        if (MP_PLATFORM.lstat_attr_from(hardlink_path_string.c_str(), attr) == 0)
         {
             mpl::trace_location(category,
                                 "cannot create hardlink: path '{}' already exists",

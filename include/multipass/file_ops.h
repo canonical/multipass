@@ -33,7 +33,9 @@
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string_view>
+#include <variant>
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
