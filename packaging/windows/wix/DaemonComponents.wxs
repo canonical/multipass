@@ -8,8 +8,6 @@
                     Description="Provides a service to create and manage virtual machines"
                     Arguments="/svc --verbosity debug" Start="auto" Type="ownProcess"
                     ErrorControl="normal">
-                    <ServiceConfig FailureActionsWhen="failedToStopOrReturnedError" OnInstall="yes"
-                        OnReinstall="yes" />
                     <util:ServiceConfig FirstFailureActionType="restart"
                         SecondFailureActionType="restart" ThirdFailureActionType="restart"
                         ResetPeriodInDays="49710" />

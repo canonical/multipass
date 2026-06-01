@@ -68,6 +68,9 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/build
       SCCACHE_DIR: ${{ github.workspace }}/.sccache
       RUSTC_WRAPPER: "sccache"
+      # TODO: Remove once ilammy/msvc-dev-cmd is updated to support Node.js 24
+      # https://github.com/ilammy/msvc-dev-cmd/pull/106
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
     - name: Check out code
