@@ -343,6 +343,30 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
       set(LCOV_IGNORE_ERRORS --ignore-errors mismatch --ignore-errors negative)
     endif()
 
+    if(MULTIPASS_ENABLE_FLUTTER_GUI)
+      set(FLUTTER_COVERAGE_COMMANDS
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
+                ${FLUTTER_EXECUTABLE} test --coverage
+        COMMAND ${LCOV}
+          --remove ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+          --ignore-errors unused
+          '*/lib/generated/*'
+          '*/lib/l10n/*'
+          --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+        COMMAND ${LCOV}
+          --add-tracefile coverage.cleaned
+          --add-tracefile lcov.info
+          --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+          --output-file total_coverage.info
+      )
+      set(GENHTML_SOURCE_ARGS --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui)
+    else()
+      set(FLUTTER_COVERAGE_COMMANDS
+        COMMAND ${CMAKE_COMMAND} -E copy coverage.cleaned total_coverage.info
+      )
+      set(GENHTML_SOURCE_ARGS)
+    endif()
+
     add_custom_target(covreport
       DEPENDS multipass_cpp_tests multipass_integration_tests rust_coverage_tarpaulin
         $<$<BOOL:${MULTIPASS_ENABLE_FLUTTER_GUI}>:multipass_gui>
@@ -359,23 +383,9 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
         ${CMAKE_BINARY_DIR}'/*'
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-
-      # Merge Flutter test coverage with C++ coverage
-      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
-              ${FLUTTER_EXECUTABLE} test --coverage
-      COMMAND ${LCOV}
-        --remove ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
-        --ignore-errors unused
-        '*/lib/generated/*'
-        '*/lib/l10n/*'
-        --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
-      COMMAND ${LCOV}
-        --add-tracefile coverage.cleaned
-        --add-tracefile lcov.info
-        --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
-        --output-file total_coverage.info
-
-      COMMAND ${GENHTML} --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui -o coverage total_coverage.info
+      # Merge Flutter test coverage with C++ coverage (when enabled)
+      ${FLUTTER_COVERAGE_COMMANDS}
+      COMMAND ${GENHTML} ${GENHTML_SOURCE_ARGS} -o coverage total_coverage.info
     )
   endif()
 endif()
