@@ -188,7 +188,7 @@ QString mp::platform::Platform::multipass_storage_location() const
     return mp::utils::get_multipass_storage();
 }
 
-int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr)
+int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
     struct stat st{};
 
@@ -202,7 +202,7 @@ int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr
     return 0;
 }
 
-int mp::platform::stat_attr_from(const char* path, sftp_attributes_struct& attr)
+int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
     struct stat st{};
 
@@ -216,7 +216,7 @@ int mp::platform::stat_attr_from(const char* path, sftp_attributes_struct& attr)
     return 0;
 }
 
-int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct& attr)
+int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr) const
 {
     struct stat st{};
 
@@ -230,22 +230,28 @@ int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct& attr)
     return 0;
 }
 
-ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t offset)
+ssize_t mp::platform::Platform::pread(int fd,
+                                      void* buffer,
+                                      size_t bytes_to_read,
+                                      off_t offset) const
 {
     return ::pread(fd, buffer, bytes_to_read, offset);
 }
 
-ssize_t mp::platform::pwrite(int fd, void* buffer, size_t bytes_to_write, off_t offset)
+std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
+                                              const void* buffer,
+                                              size_t bytes_to_write,
+                                              std::ptrdiff_t offset) const
 {
     return ::pwrite(fd, buffer, bytes_to_write, offset);
 }
 
-int mp::platform::ftruncate(int fd, off_t length)
+int mp::platform::Platform::ftruncate(int fd, off_t length) const
 {
     return ::ftruncate(fd, length);
 }
 
-int mp::platform::futimes(int fd, int atime, int mtime)
+int mp::platform::Platform::futimes(int fd, int atime, int mtime) const
 {
     struct timeval tv[2];
     tv[0].tv_sec = atime;

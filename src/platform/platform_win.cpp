@@ -72,6 +72,7 @@
 #include <security.h>
 #include <secext.h>
 #include <sys/types.h>
+#include <sys/utime.h>
 // clang-format on
 #include <windows.h>
 #include <sys/stat.h>
@@ -1355,7 +1356,7 @@ QString mp::platform::Platform::multipass_storage_location() const
     return QString();
 }
 
-int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr)
+int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
     WIN32_FIND_DATAA data;
 
@@ -1408,7 +1409,7 @@ int mp::platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr
     }
 }
 
-int mp::platform::stat_attr_from(const char* path, sftp_attributes_struct& attr)
+int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
     struct _stat64 st{};
     if (_stat64(path, &st) != 0)
@@ -1417,7 +1418,7 @@ int mp::platform::stat_attr_from(const char* path, sftp_attributes_struct& attr)
     return 0;
 }
 
-int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct& attr)
+int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr) const
 {
     // Alternative: _fstat plus the uids adaptation
     // Check out _fstat documentation of Windows CRT
@@ -1438,7 +1439,10 @@ int mp::platform::fstat_attr_from(int fd, sftp_attributes_struct& attr)
     return 0;
 }
 
-ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t offset)
+ssize_t mp::platform::Platform::pread(int fd,
+                                      void* buffer,
+                                      size_t bytes_to_read,
+                                      off_t offset) const
 {
     HANDLE file_handle = static_cast<HANDLE>(_get_osfhandle(fd));
     if (file_handle == INVALID_HANDLE_VALUE)
@@ -1496,7 +1500,10 @@ ssize_t mp::platform::pread(int fd, void* buffer, size_t bytes_to_read, off_t of
     return -1;
 }
 
-ssize_t mp::platform::pwrite(int fd, void* buffer, size_t bytes_to_write, off_t offset)
+std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
+                                              const void* buffer,
+                                              size_t bytes_to_write,
+                                              std::ptrdiff_t offset) const
 {
     HANDLE file_handle = static_cast<HANDLE>(_get_osfhandle(fd));
     if (file_handle == INVALID_HANDLE_VALUE)
@@ -1546,9 +1553,17 @@ ssize_t mp::platform::pwrite(int fd, void* buffer, size_t bytes_to_write, off_t 
     return -1;
 }
 
-int mp::platform::ftruncate(int fd, off_t length)
+int mp::platform::Platform::ftruncate(int fd, off_t length) const
 {
     return _chsize_s(fd, length);
+}
+
+int mp::platform::Platform::futimes(int fd, int atime, int mtime) const
+{
+    struct _utimbuf64 ut;
+    ut.actime = atime;
+    ut.modtime = mtime;
+    return ::_futime64(fd, &ut);
 }
 
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(
