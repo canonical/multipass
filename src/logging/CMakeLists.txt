@@ -24,3 +24,5 @@ target_link_libraries(logger
   fmt::fmt-header-only
   Qt6::Core
 )
+
+add_dependencies(logger rpc)
