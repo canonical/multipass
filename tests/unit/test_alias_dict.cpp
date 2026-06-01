@@ -374,13 +374,13 @@ TEST_P(FormatterTestsuite, table)
 
     dict.set_active_context("default");
 
-    auto csv_output = mpt::load_test_file((basename + ".csv").c_str());
+    auto csv_output = mpt::load_test_file((basename + ".csv").c_str()).toStdString();
     EXPECT_EQ(mp::CSVFormatter().format(dict), csv_output);
-    auto json_output = mpt::load_test_file((basename + ".json").c_str());
+    auto json_output = mpt::load_test_file((basename + ".json").c_str()).toStdString();
     EXPECT_EQ(mp::JsonFormatter().format(dict), json_output);
-    auto table_output = mpt::load_test_file((basename + ".txt").c_str());
+    auto table_output = mpt::load_test_file((basename + ".txt").c_str()).toStdString();
     EXPECT_EQ(mp::TableFormatter().format(dict), table_output);
-    auto yaml_output = mpt::load_test_file((basename + ".yaml").c_str());
+    auto yaml_output = mpt::load_test_file((basename + ".yaml").c_str()).toStdString();
     EXPECT_EQ(mp::YamlFormatter().format(dict), yaml_output);
 }
 

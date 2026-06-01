@@ -1,5 +1,7 @@
 Source: multipass
-Build-Depends: build-essential,
+Build-Depends: autoconf-archive,
+               build-essential,
+               python3-venv,
                llvm,
                clang,
                clang-tools,
