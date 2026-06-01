@@ -975,7 +975,7 @@ auto new_ACL(LPSTR path)
     auto deleter = [](ACL* acl) noexcept { return LocalFree(HLOCAL(acl)); };
     auto newACL = std::unique_ptr<ACL, decltype(deleter)>{NULL, deleter};
 
-    PSECURITY_DESCRIPTOR pSD;
+    PSECURITY_DESCRIPTOR pSD{nullptr};
     auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
 
     PACL pOldDACL = nullptr;
