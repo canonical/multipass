@@ -43,7 +43,8 @@ def generate(input_path: Path, output_path: Path) -> None:
     multipass_part = data["parts"]["multipass"]
     multipass_part["build-snaps"] = [s for s in multipass_part.get("build-snaps", []) if s != "cmake"]
     build_packages = multipass_part["build-packages"]
-    build_packages.append("cmake")
+    if "cmake" not in build_packages:
+        build_packages.append("cmake")
 
     # Remove the GUI app
     del data["apps"]["gui"]
