@@ -27,9 +27,6 @@
 
 #include <ComputeDefs.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
-
 #include <chrono>
 #include <memory>
 
@@ -425,15 +422,16 @@ OperationResult HCSWrapper::get_compute_system_state(const HcsSystemHandle& targ
         return result;
 
     state_out = [json = result.status_msg]() {
-        QString qstr{QString::fromStdWString(json)};
-        const auto doc = QJsonDocument::fromJson(qstr.toUtf8());
-        const auto obj = doc.object();
-        if (obj.contains("State"))
+        const std::string result_msg_str = wchar_to_utf8(json);
+        std::error_code ec;
+        const auto parsed = boost::json::parse(result_msg_str, ec);
+        if (ec)
+            return ComputeSystemState::unknown;
+
+        if (const auto state = parsed.find_pointer("State", ec))
         {
-            const auto state = obj["State"];
-            const auto state_str = state.toString();
-            const auto ccs = compute_system_state_from_string(state_str.toStdString());
-            if (ccs)
+            const auto state_str = value_to<std::string>(*state);
+            if (const auto ccs = compute_system_state_from_string(state_str.toStdString()))
             {
                 return ccs.value();
             }
