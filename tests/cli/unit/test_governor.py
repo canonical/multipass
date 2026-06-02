@@ -62,13 +62,16 @@ class MockController:
 @pytest.fixture
 def controller():
     """Factory fixture for creating MockController instances."""
+
     def _factory(exit_code=None, exit_delay=0.0):
         return MockController(exit_code=exit_code, exit_delay=exit_delay)
+
     return _factory
 
 
 async def run_governor(controller, ready_fn=None, exit_fn=None):
     """Start governor with mocked dependencies."""
+
     async def hang_forever():
         await asyncio.sleep(3600)
 
@@ -77,22 +80,37 @@ async def run_governor(controller, ready_fn=None, exit_fn=None):
 
     governor = MultipassdGovernor(controller, None, print_daemon_output=False)
     with ExitStack() as stack:
-        stack.enter_context(patch.object(governor, '_ensure_client_certs_are_created', new_callable=AsyncMock))
-        stack.enter_context(patch.object(governor, '_authenticate_client_cert'))
-        stack.enter_context(patch.object(governor, 'wait_for_multipassd_ready', side_effect=ready_fn or hang_forever))
-        stack.enter_context(patch.object(governor, 'on_monitor_exit', side_effect=exit_fn or noop))
-        stack.enter_context(patch('cli.controller.multipassd_governor.Session'))
+        stack.enter_context(
+            patch.object(
+                governor, "_ensure_client_certs_are_created", new_callable=AsyncMock
+            )
+        )
+        stack.enter_context(patch.object(governor, "_authenticate_client_cert"))
+        stack.enter_context(
+            patch.object(
+                governor,
+                "wait_for_multipassd_ready",
+                side_effect=ready_fn or hang_forever,
+            )
+        )
+        stack.enter_context(
+            patch.object(governor, "on_monitor_exit", side_effect=exit_fn or noop)
+        )
+        stack.enter_context(patch("cli.controller.multipassd_governor.Session"))
         await governor.start_async()
     return governor
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("exit_code,exception,message", [
-    (42, TestCaseFailure, "daemon exited during startup"),
-    (0, TestCaseFailure, "multipassd died with code 0"),
-    (1, TestSessionFailure, "multipassd died with code 1"),
-    (2, TestCaseFailure, "multipassd died with code 2"),
-])
+@pytest.mark.parametrize(
+    "exit_code,exception,message",
+    [
+        (42, TestCaseFailure, "daemon exited during startup"),
+        (0, TestCaseFailure, "multipassd died with code 0"),
+        (1, TestSessionFailure, "multipassd died with code 1"),
+        (2, TestCaseFailure, "multipassd died with code 2"),
+    ],
+)
 async def test_startup_failures(controller, exit_code, exception, message):
     """Test governor behavior when daemon exits during startup."""
     with pytest.raises(exception) as exc_info:
@@ -104,11 +122,11 @@ async def test_startup_failures(controller, exit_code, exception, message):
 async def test_successful_startup(controller):
     """Successful daemon startup should complete without errors."""
     governor = await run_governor(controller(exit_code=None), ready_fn=lambda: True)
-    
+
     assert governor.monitor_task is not None
     assert governor.daemon_ready_event.is_set()
     assert governor.controller.start_called
-    
+
     await governor.stop_async()
 
 
