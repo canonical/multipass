@@ -26,6 +26,7 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       code: ${{ steps.filter.outputs.code }}
       hooks: ${{ steps.filter.outputs.hooks }}
+      cli-tests: ${{ steps.filter.outputs.cli-tests }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -62,6 +63,8 @@ jobs:
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
+            cli-tests:
+              - 'tests/cli/**'
             hooks:
               - "git-hooks/**"
 
@@ -104,11 +107,17 @@ jobs:
     if: needs.filter.outputs.hooks == 'true'
     uses: "./.github/workflows/test-hooks.yml"
 
+  cli-tests:
+    name: CLI Unit Tests
+    needs: filter
+    if: needs.filter.outputs.cli-tests == 'true'
+    uses: "./.github/workflows/cli-unit-tests.yml"
+
   finalize:
     name: Finalize
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [docs, lint, linux, windows, macos, hooks]
+    needs: [docs, lint, linux, windows, macos, hooks, cli-tests]
     steps:
       - name: Docs failure check
         if: ${{
@@ -127,4 +136,8 @@ jobs:
 
       - name: Hooks failure check
         if: ${{ needs.hooks.result == 'failure' || needs.hooks.result == 'cancelled' }}
+        run: exit 1
+
+      - name: CLI tests failure check
+        if: ${{ needs.cli-tests.result == 'failure' || needs.cli-tests.result == 'cancelled' }}
         run: exit 1
