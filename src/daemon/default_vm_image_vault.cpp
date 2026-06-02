@@ -255,10 +255,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                                        {},
                                        {},
                                        true,
-                                       image_url.url(),
-                                       QString::fromStdString(id),
+                                       image_url.url().toStdString(),
+                                       id,
                                        {},
-                                       last_modified.toString(),
+                                       last_modified.toString().toStdString(),
                                        0,
                                        checksum.has_value()};
 
@@ -291,7 +291,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
             if (!info)
                 throw mp::ImageNotFoundException(query.release, query.remote_name);
 
-            id = info->id.toStdString();
+            id = info->id;
 
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
             if (!query.name.empty())
@@ -438,7 +438,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
                     throw mp::ImageNotFoundException(record.second.query.release,
                                                      record.second.query.remote_name);
 
-                if (info->id.toStdString() != record.first)
+                if (info->id != record.first)
                 {
                     keys_to_update.push_back(record.first);
                 }
@@ -557,25 +557,21 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     }
     else
     {
-        QFileInfo file_info{info.image_location};
+        QFileInfo file_info{QString::fromStdString(info.image_location)};
 
-        source_image.id = id.toStdString();
+        source_image.id = id;
         source_image.image_path = image_dir.filePath(file_info.fileName()).toStdString();
-        source_image.original_release = info.release_title.toStdString();
-        source_image.release_date = info.version.toStdString();
-        source_image.os = info.os.toStdString();
-
-        for (const auto& alias : info.aliases)
-        {
-            source_image.aliases.push_back(alias.toStdString());
-        }
+        source_image.original_release = info.release_title;
+        source_image.release_date = info.version;
+        source_image.os = info.os;
+        source_image.aliases = info.aliases;
     }
 
     mp::vault::DeleteOnException image_file{source_image.image_path};
 
     try
     {
-        url_downloader->download_to(info.image_location,
+        url_downloader->download_to(QString::fromStdString(info.image_location),
                                     MP_PLATFORM.path_to_qstr(source_image.image_path),
                                     info.size,
                                     LaunchProgress::IMAGE,
@@ -585,7 +581,7 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
         {
             mpl::debug(category, "Verifying hash \"{}\"", id);
             monitor(LaunchProgress::VERIFY, -1);
-            MP_IMAGE_VAULT_UTILS.verify_file_hash(source_image.image_path, id.toStdString());
+            MP_IMAGE_VAULT_UTILS.verify_file_hash(source_image.image_path, id);
         }
 
         if (source_image.image_path.extension() == ".xz")

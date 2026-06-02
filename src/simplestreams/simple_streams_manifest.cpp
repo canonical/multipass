@@ -21,6 +21,8 @@
 #include <QHash>
 #include <QSysInfo>
 
+#include <algorithm>
+
 #include <boost/json.hpp>
 
 #include <multipass/constants.h>
@@ -62,10 +64,10 @@ QString latest_version_in(const boost::json::object& versions)
     return max_version;
 }
 
-std::unordered_map<QString, const mp::VMImageInfo*> map_aliases_to_vm_info_for(
+std::unordered_map<std::string, const mp::VMImageInfo*> map_aliases_to_vm_info_for(
     const std::vector<mp::VMImageInfo>& images)
 {
-    std::unordered_map<QString, const mp::VMImageInfo*> map;
+    std::unordered_map<std::string, const mp::VMImageInfo*> map;
 
     for (const auto& image : images)
     {
@@ -126,15 +128,18 @@ try
         if (!official_product)
             continue;
 
-        auto product_aliases = lookup_or<QString>(product, "aliases", "").split(",");
+        auto product_aliases = utils::split(lookup_or<std::string>(product, "aliases", ""), ",");
 
-        const auto image_type = lookup_or<QString>(product, "image_type", "");
-        const auto os = lookup_or<QString>(product, "os", "");
-        const auto release = lookup_or<QString>(product, "release", "");
-        const auto release_title = lookup_or<QString>(product, "release_title", "");
-        const auto release_codename = lookup_or<QString>(product, "release_codename", "");
+        const auto image_type = lookup_or<std::string>(product, "image_type", "");
+        const auto os = lookup_or<std::string>(product, "os", "");
+        const auto release = lookup_or<std::string>(product, "release", "");
+        const auto release_title = lookup_or<std::string>(product, "release_title", "");
+        const auto release_codename = lookup_or<std::string>(product, "release_codename", "");
+
+        // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
         const auto supported = lookup_or<bool>(product, "supported", false) ||
-                               product_aliases.contains("devel") ||
+                               std::ranges::find(product_aliases, "devel") !=
+                                   product_aliases.end() ||
                                (os == "ubuntu-core" && image_type == "stable");
 
         const auto* versions = if_contains_object(product, "versions");
@@ -155,11 +160,6 @@ try
             if (!items || items->empty())
                 continue;
 
-            const auto& driver = MP_SETTINGS.get(mp::driver_key);
-
-            QString sha256, image_location;
-            int size = -1;
-
             std::string image_key;
             // Prioritize UEFI images
             if (items->contains("uefi1.img"))
@@ -175,14 +175,15 @@ try
                 continue;
 
             const auto& image = items->at(image_key);
-            image_location = host_url + value_to<QString>(image.at("path"));
-            sha256 = lookup_or<QString>(image, "sha256", "");
-            size = lookup_or<int>(image, "size", -1);
+            std::string image_location =
+                host_url.toStdString() + value_to<std::string>(image.at("path"));
+            std::string sha256 = lookup_or<std::string>(image, "sha256", "");
+            int size = lookup_or<int>(image, "size", -1);
 
             const auto version_qstring = QString::fromStdString(version_string);
             // Aliases always alias to the latest version
-            const QStringList& aliases =
-                version_qstring == latest_version ? product_aliases : QStringList();
+            const auto& aliases = version_qstring == latest_version ? product_aliases
+                                                                    : std::vector<std::string>{};
 
             VMImageInfo info{aliases,
                              "Ubuntu",
@@ -192,8 +193,8 @@ try
                              supported,
                              image_location,
                              sha256,
-                             host_url,
-                             version_qstring,
+                             host_url.toStdString(),
+                             version_string,
                              size,
                              true};
 

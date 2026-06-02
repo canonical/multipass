@@ -40,7 +40,7 @@ struct SimpleStreamsManifest
 
     const QString updated_at;
     const std::vector<VMImageInfo> products;
-    const std::unordered_map<QString, const VMImageInfo*> image_records;
+    const std::unordered_map<std::string, const VMImageInfo*> image_records;
 
     SimpleStreamsManifest(const QString& updated_at, std::vector<VMImageInfo>&& images);
 };

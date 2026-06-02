@@ -52,10 +52,10 @@ auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
     std::unordered_map<std::string, const mp::VMImageInfo*> map;
     for (const auto& image : images)
     {
-        map[image.id.toStdString()] = &image;
+        map[image.id] = &image;
         for (const auto& alias : image.aliases)
         {
-            map[alias.toStdString()] = &image;
+            map[alias] = &image;
         }
     }
 
@@ -168,7 +168,7 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string
 {
     for (const auto& product : manifest.second->products)
     {
-        if (multipass::utils::iequals(product.id.toStdString(), full_hash))
+        if (multipass::utils::iequals(product.id, full_hash))
         {
             return product;
         }
