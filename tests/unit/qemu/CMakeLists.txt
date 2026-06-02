@@ -16,7 +16,7 @@ set_target_properties(mock-qemu-img
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_dependencies(multipass_tests
+add_dependencies(multipass_cpp_tests
   mock-qemu-img
 )
 
