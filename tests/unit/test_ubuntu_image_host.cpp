@@ -75,7 +75,7 @@ struct UbuntuImageHost : public testing::Test
         "release",
         mp::UbuntuVMImageRemote{mock_image_host,
                                 "releases/",
-                                std::make_optional<QString>(mp::mirror_key)}};
+                                std::make_optional<std::string>(mp::mirror_key)}};
     std::pair<std::string, mp::UbuntuVMImageRemote> daily_remote_spec = {
         "daily",
         mp::UbuntuVMImageRemote{mock_image_host, "daily/"}};

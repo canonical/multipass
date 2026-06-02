@@ -21,16 +21,13 @@
 #include <multipass/json_utils.h>
 #include <multipass/simple_streams_index.h>
 
-#include <boost/json.hpp>
-
 #include <stdexcept>
-#include <string_view>
 
 namespace mp = multipass;
 
-mp::SimpleStreamsIndex mp::SimpleStreamsIndex::fromJson(const QByteArray& json)
+mp::SimpleStreamsIndex mp::SimpleStreamsIndex::get_image_downloads(std::string_view json)
 {
-    auto doc = boost::json::parse(std::string_view{json});
+    auto doc = boost::json::parse(json);
     if (!doc.is_object())
         throw std::runtime_error("invalid index object");
 
@@ -40,8 +37,8 @@ mp::SimpleStreamsIndex mp::SimpleStreamsIndex::fromJson(const QByteArray& json)
     {
         if (lookup_or<std::string>(value, "datatype", "") == "image-downloads")
         {
-            return {lookup_or<QString>(value, "path", ""),
-                    lookup_or<QString>(value, "updated", "")};
+            return {lookup_or<std::string>(value, "path", ""),
+                    lookup_or<std::string>(value, "updated", "")};
         }
     }
 

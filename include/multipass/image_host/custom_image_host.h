@@ -20,8 +20,6 @@
 #include <multipass/image_host/base_image_host.h>
 #include <multipass/vm_image_info.h>
 
-#include <QString>
-
 #include <string>
 #include <vector>
 
@@ -55,7 +53,7 @@ private:
     void clear() override;
     CustomManifest* manifest_from(const std::string& remote_name);
 
-    const QString arch;
+    const std::string arch;
     std::pair<std::string, std::unique_ptr<CustomManifest>> manifest;
     std::string remote;
 };

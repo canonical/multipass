@@ -28,7 +28,7 @@ using namespace testing;
 TEST(SimpleStreamsIndex, parsesManifestLocation)
 {
     auto json = mpt::load_test_file("simple_streams_index/good_index.json");
-    auto index = mp::SimpleStreamsIndex::fromJson(json);
+    auto index = mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json});
 
     EXPECT_THAT(index.manifest_path, Eq("multiple_versions_manifest.json"));
 }
@@ -36,7 +36,7 @@ TEST(SimpleStreamsIndex, parsesManifestLocation)
 TEST(SimpleStreamsIndex, parsesUpdateStamp)
 {
     auto json = mpt::load_test_file("simple_streams_index/good_index.json");
-    auto index = mp::SimpleStreamsIndex::fromJson(json);
+    auto index = mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json});
 
     EXPECT_THAT(index.updated_at, Eq("Thu, 18 May 2017 09:18:01 +0000"));
 }
@@ -44,35 +44,39 @@ TEST(SimpleStreamsIndex, parsesUpdateStamp)
 TEST(SimpleStreamsIndex, throwsIfInvalidDataType)
 {
     auto json = mpt::load_test_file("simple_streams_index/bad_datatype_index.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json}),
+                 std::runtime_error);
 }
 
 TEST(SimpleStreamsIndex, throwsIfMissingIndex)
 {
     auto json = mpt::load_test_file("simple_streams_index/missing_index.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json}),
+                 std::runtime_error);
 }
 
 TEST(SimpleStreamsIndex, throwsIfIndexIsNotObjectType)
 {
     auto json = mpt::load_test_file("simple_streams_index/bad_index.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json}),
+                 std::runtime_error);
 }
 
 TEST(SimpleStreamsIndex, throwsOnInvalidJson)
 {
-    QByteArray json;
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::get_image_downloads(""), std::runtime_error);
 }
 
 TEST(SimpleStreamsIndex, throwsOnInvalidTopLevelType)
 {
     auto json = mpt::load_test_file("simple_streams_manifest/invalid_top_level.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json}),
+                 std::runtime_error);
 }
 
 TEST(SimpleStreamsIndex, throws_on_no_image_with_image_downloads)
 {
     auto json = mpt::load_test_file("simple_streams_index/no_image_downloads_in_datatype.json");
-    EXPECT_THROW(mp::SimpleStreamsIndex::fromJson(json), std::runtime_error);
+    EXPECT_THROW(mp::SimpleStreamsIndex::get_image_downloads(std::string_view{json}),
+                 std::runtime_error);
 }
