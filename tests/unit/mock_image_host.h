@@ -95,7 +95,7 @@ public:
     MOCK_METHOD(VMImageInfo, info_for_full_hash, (const std::string&), (const, override));
     MOCK_METHOD(std::vector<VMImageInfo>,
                 all_images_for,
-                (const std::string&, const bool),
+                (const std::string&, bool),
                 (const, override));
     MOCK_METHOD(void, for_each_entry_do, (const Action&), (const, override));
     MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (const, override));

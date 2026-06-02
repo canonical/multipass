@@ -45,10 +45,10 @@ private:
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for_impl(
         const Query& query) const override;
     std::vector<VMImageInfo> all_images_for_impl(const std::string& remote_name,
-                                                 const bool allow_unsupported) const override;
+                                                 bool allow_unsupported) const override;
     void for_each_entry_do_impl(const Action& action) const override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const override;
-    void fetch_manifests(const bool force_update) override;
+    void fetch_manifests(bool force_update) override;
     void clear() override;
     const SimpleStreamsManifest& manifest_from(const std::string& remote) const;
     const VMImageInfo* match_alias(const QString& key, const SimpleStreamsManifest& manifest) const;

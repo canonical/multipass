@@ -64,7 +64,7 @@ auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
 
 std::vector<mp::VMImageInfo> fetch_image_info(const QString& arch,
                                               mp::URLDownloader* url_downloader,
-                                              const bool force_update = false)
+                                              bool force_update = false)
 {
     mpl::log(mpl::Level::debug, category, "Fetching images from {}", get_manifest_url());
 
@@ -146,7 +146,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for_impl(
     const std::string& remote_name,
-    const bool allow_unsupported) const
+    bool allow_unsupported) const
 {
     return manifest_from(remote_name).products;
 }
@@ -177,7 +177,7 @@ mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string
     throw mp::ImageNotFoundException(full_hash);
 }
 
-void mp::CustomVMImageHost::fetch_manifests(const bool force_update)
+void mp::CustomVMImageHost::fetch_manifests(bool force_update)
 {
     try
     {

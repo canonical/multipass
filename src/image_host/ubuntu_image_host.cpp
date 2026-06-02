@@ -41,7 +41,7 @@ constexpr auto index_path = "streams/v1/index.json";
 
 auto download_manifest(const QString& host_url,
                        mp::URLDownloader* url_downloader,
-                       const bool force_update)
+                       bool force_update)
 {
     auto json_index = url_downloader->download({host_url + index_path}, force_update);
     auto index = mp::SimpleStreamsIndex::fromJson(json_index);
@@ -150,7 +150,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
 
 std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for_impl(
     const std::string& remote_name,
-    const bool allow_unsupported) const
+    bool allow_unsupported) const
 {
     std::vector<mp::VMImageInfo> images;
     const auto& manifest = manifest_from(remote_name);
@@ -193,7 +193,7 @@ std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes() const
     return supported_remotes;
 }
 
-void mp::UbuntuVMImageHost::fetch_manifests(const bool force_update)
+void mp::UbuntuVMImageHost::fetch_manifests(bool force_update)
 {
     auto fetch_one_remote =
         [this, force_update](const std::pair<std::string, UbuntuVMImageRemote>& remote_pair)

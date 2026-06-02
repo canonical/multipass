@@ -41,10 +41,10 @@ public:
         const Query& query) const = 0;
     virtual VMImageInfo info_for_full_hash(const std::string& full_hash) const = 0;
     virtual std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
-                                                    const bool allow_unsupported) const = 0;
+                                                    bool allow_unsupported) const = 0;
     virtual void for_each_entry_do(const Action& action) const = 0;
     virtual std::vector<std::string> supported_remotes() const = 0;
-    virtual void update_manifests(const bool force_update) = 0;
+    virtual void update_manifests(bool force_update) = 0;
 
 protected:
     VMImageHost() = default;

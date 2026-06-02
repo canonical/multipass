@@ -37,9 +37,9 @@ public:
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const final;
     VMImageInfo info_for_full_hash(const std::string& full_hash) const final;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
-                                            const bool allow_unsupported) const final;
+                                            bool allow_unsupported) const final;
     void for_each_entry_do(const Action& action) const final;
-    void update_manifests(const bool force_update);
+    void update_manifests(bool force_update);
 
 protected:
     void on_manifest_update_failure(const std::string& details);
@@ -50,10 +50,10 @@ protected:
         const Query& query) const = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const = 0;
     virtual std::vector<VMImageInfo> all_images_for_impl(const std::string& remote_name,
-                                                         const bool allow_unsupported) const = 0;
+                                                         bool allow_unsupported) const = 0;
     virtual void for_each_entry_do_impl(const Action& action) const = 0;
     virtual void clear() = 0;
-    virtual void fetch_manifests(const bool force_update) = 0;
+    virtual void fetch_manifests(bool force_update) = 0;
 
     mutable std::shared_mutex manifest_mutex;
     URLDownloader* const url_downloader;

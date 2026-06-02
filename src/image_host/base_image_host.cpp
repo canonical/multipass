@@ -52,8 +52,7 @@ auto mp::BaseVMImageHost::info_for_full_hash(const std::string& full_hash) const
 }
 
 auto mp::BaseVMImageHost::all_images_for(const std::string& remote_name,
-                                         const bool allow_unsupported) const
-    -> std::vector<VMImageInfo>
+                                         bool allow_unsupported) const -> std::vector<VMImageInfo>
 {
     std::shared_lock lock{manifest_mutex};
     return all_images_for_impl(remote_name, allow_unsupported);
@@ -65,7 +64,7 @@ void mp::BaseVMImageHost::for_each_entry_do(const Action& action) const
     for_each_entry_do_impl(action);
 }
 
-void mp::BaseVMImageHost::update_manifests(const bool force_update)
+void mp::BaseVMImageHost::update_manifests(bool force_update)
 {
     std::lock_guard lock{manifest_mutex};
     clear();
