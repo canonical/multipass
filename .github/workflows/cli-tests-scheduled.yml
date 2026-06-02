@@ -1,0 +1,13 @@
+name: CLI Tests (Scheduled)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '51 2 * * 2'   # Tuesday 02:51 UTC
+    - cron: '51 2 * * 5'   # Friday 02:51 UTC
+
+jobs:
+  cli-tests:
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      snap-channel: edge
