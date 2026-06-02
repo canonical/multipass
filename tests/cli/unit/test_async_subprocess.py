@@ -77,6 +77,24 @@ class TestAsyncSubprocess:
         
         assert proc.returncode is not None
 
+    @pytest.mark.asyncio
+    async def test_process_exits_immediately_with_zero(self):
+        """Process that exits immediately with code 0 should be handled."""
+        async with AsyncSubprocess(sys.executable, "-c", "exit(0)") as proc:
+            # Explicitly wait for the process to be reaped
+            await proc.wait()
+        
+        assert proc.returncode == 0
+
+    @pytest.mark.asyncio
+    async def test_process_exits_immediately_with_error(self):
+        """Process that exits immediately with error code should be handled."""
+        async with AsyncSubprocess(sys.executable, "-c", "exit(42)") as proc:
+            # Explicitly wait for the process to be reaped
+            await proc.wait()
+        
+        assert proc.returncode == 42
+
 
 class TestStdoutAsyncSubprocess:
     """Test StdoutAsyncSubprocess captures stdout."""
