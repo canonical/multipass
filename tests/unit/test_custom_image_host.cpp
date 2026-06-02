@@ -96,7 +96,7 @@ TEST_F(CustomImageHost, allImagesForNoRemoteReturnsAppropriateMatches)
 
     host.update_manifests(false);
 
-    auto images = host.all_images_for("", false);
+    auto images = host.all_images_for("");
     int supported_count = num_images_for_arch(payload);
 
     EXPECT_EQ(images.size(), supported_count);
@@ -166,11 +166,11 @@ TEST_F(CustomImageHost, handlesAndRecoversFromInitialNetworkFailure)
     int supported_count = num_images_for_arch(payload);
 
     host.update_manifests(false);
-    auto images_info = host.all_images_for("", false);
+    auto images_info = host.all_images_for("");
     EXPECT_EQ(images_info.size(), 0);
 
     host.update_manifests(false);
-    images_info = host.all_images_for("", false);
+    images_info = host.all_images_for("");
     EXPECT_EQ(images_info.size(), supported_count);
 }
 
@@ -185,13 +185,13 @@ TEST_F(CustomImageHost, handlesAndRecoversFromLaterNetworkFailure)
     int supported_count = num_images_for_arch(payload);
 
     host.update_manifests(false);
-    EXPECT_EQ(host.all_images_for("", false).size(), supported_count);
+    EXPECT_EQ(host.all_images_for("").size(), supported_count);
 
     host.update_manifests(false);
-    EXPECT_EQ(host.all_images_for("", false).size(), 0);
+    EXPECT_EQ(host.all_images_for("").size(), 0);
 
     host.update_manifests(false);
-    EXPECT_EQ(host.all_images_for("", false).size(), supported_count);
+    EXPECT_EQ(host.all_images_for("").size(), supported_count);
 }
 
 TEST_F(CustomImageHost, infoForFullHashReturnsEmptyImageInfo)
@@ -238,7 +238,7 @@ TEST_F(CustomImageHost, badJsonLogsAndReturnsEmptyImages)
 
     host.update_manifests(false);
 
-    auto images = host.all_images_for("", false);
+    auto images = host.all_images_for("");
 
     EXPECT_EQ(images.size(), 0);
 }

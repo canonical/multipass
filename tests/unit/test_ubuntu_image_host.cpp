@@ -25,7 +25,6 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/image_not_found_exception.h>
-#include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/query.h>
 
@@ -174,7 +173,7 @@ TEST_F(UbuntuImageHost, iteratesOverAllEntries)
     };
     host.for_each_entry_do(action);
 
-    const size_t expected_entries{5};
+    const size_t expected_entries{4};
     EXPECT_THAT(ids.size(), Eq(expected_entries));
 
     EXPECT_THAT(ids.count("1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"),
@@ -184,8 +183,6 @@ TEST_F(UbuntuImageHost, iteratesOverAllEntries)
     EXPECT_THAT(ids.count("1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4"),
                 Eq(1u));
     EXPECT_THAT(ids.count("ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c"),
-                Eq(1u));
-    EXPECT_THAT(ids.count("520224efaaf49b15a976b49c7ce7f2bd2e5b161470d684b37a838933595c0520"),
                 Eq(1u));
 }
 
@@ -295,20 +292,9 @@ TEST_F(UbuntuImageHost, allImagesForReleaseReturnsFourMatches)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    auto images = host.all_images_for(release_remote_spec.first, false);
+    auto images = host.all_images_for(release_remote_spec.first);
 
     const size_t expected_matches{4};
-    EXPECT_THAT(images.size(), Eq(expected_matches));
-}
-
-TEST_F(UbuntuImageHost, allImagesForReleaseUnsupportedReturnsFiveMatches)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    auto images = host.all_images_for(release_remote_spec.first, true);
-
-    const size_t expected_matches{5};
     EXPECT_THAT(images.size(), Eq(expected_matches));
 }
 
@@ -318,7 +304,7 @@ TEST_F(UbuntuImageHost, allImagesForThrowsForUnknownRemote)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    MP_EXPECT_THROW_THAT(host.all_images_for(remote_name, false),
+    MP_EXPECT_THROW_THAT(host.all_images_for(remote_name),
                          std::runtime_error,
                          mpt::match_what(HasSubstr(
                              fmt::format("Remote \"{}\" is unknown or unreachable", remote_name))));
@@ -329,7 +315,7 @@ TEST_F(UbuntuImageHost, allImagesForDailyReturnsAllMatches)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    auto images = host.all_images_for(daily_remote_spec.first, false);
+    auto images = host.all_images_for(daily_remote_spec.first);
 
     const size_t expected_matches{3};
     EXPECT_THAT(images.size(), Eq(expected_matches));
@@ -410,13 +396,13 @@ TEST_F(UbuntuImageHost, handlesAndRecoversFromIndependentServerFailures)
     }
 }
 
-TEST_F(UbuntuImageHost, throwsUnsupportedImageWhenImageNotSupported)
+TEST_F(UbuntuImageHost, unsupportedImageNotFound)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    EXPECT_THROW(host.info_for(make_query("artful", release_remote_spec.first)),
-                 mp::UnsupportedImageException);
+    auto info = host.info_for(make_query("artful", release_remote_spec.first));
+    EXPECT_FALSE(info);
 }
 
 TEST_F(UbuntuImageHost, develRequestWithNoRemoteReturnsExpectedInfo)
@@ -479,19 +465,6 @@ TEST_F(UbuntuImageHost, allInfoForNoRemoteQueryDefaultsToRelease)
 
     const size_t expected_matches{2};
     EXPECT_EQ(images_info.size(), expected_matches);
-}
-
-TEST_F(UbuntuImageHost, allInfoForUnsupportedImageThrow)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    const std::string release{"artful"};
-
-    MP_EXPECT_THROW_THAT(
-        host.all_info_for(make_query(release, release_remote_spec.first)),
-        mp::UnsupportedImageException,
-        mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
 }
 
 TEST_F(UbuntuImageHost, infoForFullHashFindsImage)

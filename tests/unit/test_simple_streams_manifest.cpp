@@ -204,4 +204,20 @@ TEST_F(TestSimpleStreamsManifest, correctlyMutatesCoreImages)
     EXPECT_EQ(info->release_codename, "Core 22");
 }
 
+TEST_F(TestSimpleStreamsManifest, filtersUnsupportedImages)
+{
+    auto json = mpt::load_test_file("simple_streams_manifest/unsupported_manifest.json");
+    auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
+
+    EXPECT_THAT(manifest->products.size(), Eq(1u));
+
+    auto info = manifest->image_records.find("bionic");
+    EXPECT_NE(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("xenial");
+    EXPECT_EQ(info, manifest->image_records.end());
+
+    info = manifest->image_records.find("16.04");
+    EXPECT_EQ(info, manifest->image_records.end());
+}
 } // namespace

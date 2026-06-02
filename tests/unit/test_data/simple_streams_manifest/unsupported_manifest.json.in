@@ -1,0 +1,52 @@
+{
+  "content_id": "com.ubuntu.cloud:released:download",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "updated": "Wed, 20 May 2020 16:47:50 +0000",
+  "products": {
+    "com.ubuntu.cloud:server:16.04:@MANIFEST_ARCH@": {
+      "aliases": "16.04,xenial",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "xenial",
+      "release_codename": "Xenial Xerus",
+      "release_title": "16.04 LTS",
+      "supported": false,
+      "version": "16.04",
+      "versions": {
+        "20170516": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "server/releases/xenial/release-20170516/ubuntu-16.04-server-cloudimg-@MANIFEST_ARCH@-disk1.img",
+              "sha256": "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+              "size": 287440896
+            }
+          }
+        }
+      }
+    },
+    "com.ubuntu.cloud:server:18.04:@MANIFEST_ARCH@": {
+      "aliases": "18.04,bionic,default",
+      "arch": "@MANIFEST_ARCH@",
+      "os": "ubuntu",
+      "release": "bionic",
+      "release_codename": "Bionic Beaver",
+      "release_title": "18.04 LTS",
+      "supported": true,
+      "version": "18.04",
+      "versions": {
+        "20200518": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "server/releases/bionic/release-20200518/ubuntu-18.04-server-cloudimg-@MANIFEST_ARCH@.img",
+              "sha256": "19f9b706755717ee7b38a4a79d8e7599e3fd96d57fb824b8e68ac92255a8323d",
+              "size": 345505792
+            }
+          }
+        }
+      }
+    }
+  }
+}
