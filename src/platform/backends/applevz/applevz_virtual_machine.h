@@ -56,6 +56,13 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size) override;
 
+    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& /*specs*/,
+                                                  const std::string& /*snapshot_name*/,
+                                                  const std::string& /*comment*/) override
+    {
+        throw NotImplementedOnThisBackendException{"snapshots"};
+    }
+
 private:
     void initialize_vm_handle();
     void set_state(applevz::AppleVMState vm_state);
@@ -65,5 +72,6 @@ private:
     VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
     VMHandle vm_handle{nullptr};
+    bool update_shutdown_status{true};
 };
 } // namespace multipass::applevz
