@@ -1,4 +1,4 @@
-name: CLI Unit Tests
+name: Unit Tests for cli-test harness
 
 on:
   workflow_call:
