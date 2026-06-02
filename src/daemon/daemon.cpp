@@ -3712,17 +3712,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                 {
                     if (!mount->is_mount_managed_by_backend())
                     {
-                        if (vm->current_state() == VirtualMachine::State::running)
-                        {
-                            mount->activate(server);
-                        }
-                        else
-                        {
-                            mpl::log(mpl::Level::info,
-                                     name,
-                                     "Mount '{}' saved but not activated (VM stopped)",
-                                                 target);
-                        }
+                        mount->activate(server);
                     }
                 }
                 catch (const mp::SSHFSMissingError&)
