@@ -28,7 +28,8 @@
                 "server"
             ]
         },
-        "premock"
+        "premock",
+        "out-ptr"
     ],
     "overrides": [
         {

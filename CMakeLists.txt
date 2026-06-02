@@ -231,15 +231,11 @@ endif()
 # Boost config
 find_package(Boost CONFIG REQUIRED COMPONENTS json uuid)
 
-# Dependencies satisfied by CMake
-include(src/cmake/cmake-deps.cmake)
-
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
 
 # gRPC config
 find_package(gRPC CONFIG REQUIRED)
-
 
 # SG_REQUIRE_NOEXCEPT_IN_CPP17
 # fmt config
@@ -269,6 +265,9 @@ find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 
 # xz-embedded config
 find_package(xz-embedded CONFIG)
+
+# out_ptr config
+find_package(out_ptr CONFIG REQUIRED)
 
 include(src/cmake/versioning.cmake)
 determine_version(MULTIPASS_VERSION)
