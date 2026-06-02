@@ -19,6 +19,7 @@
 
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <regex>
 
 namespace multipass::image_mutators
@@ -28,12 +29,12 @@ bool snapcraft_mutator(VMImageInfo& info)
 {
     const auto& aliases = info.aliases;
     return aliases.empty() || std::any_of(aliases.begin(), aliases.end(), [](const auto& alias) {
-               std::string alias_string{alias.toStdString()}, lts_year_regex{"([0-9]+[24680])"},
+               std::string lts_year_regex{"([0-9]+[24680])"},
                    core_version_rgx{fmt::format("core{}", lts_year_regex)},
                    num_version_rgx{fmt::format("{}\\.04", lts_year_regex)};
                std::smatch matches;
                if (!std::regex_match(
-                       alias_string,
+                       alias,
                        matches,
                        std::regex{fmt::format("{}|{}|devel", core_version_rgx, num_version_rgx)}))
                    // Not a supported alias
@@ -61,10 +62,9 @@ bool core_mutator(VMImageInfo& info)
 
 bool release_mutator(VMImageInfo& info)
 {
-    if (info.aliases.contains("lts"))
-    {
-        info.aliases << "ubuntu";
-    }
+    // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
+    if (std::ranges::find(info.aliases, "lts") != info.aliases.end())
+        info.aliases.push_back("ubuntu");
 
     return true;
 }

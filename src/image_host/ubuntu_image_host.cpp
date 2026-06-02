@@ -123,7 +123,7 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for(const Query& quer
         return std::nullopt;
 
     auto key = key_from(query.release);
-    auto image_id = images.front().second.id.toStdString();
+    auto image_id = images.front().second.id;
 
     // If a partial hash query matches more than once, throw an exception
     if (images.size() > 1 && key != image_id && image_id.starts_with(key))
@@ -168,7 +168,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
 
             for (const auto& entry : manifest->products)
             {
-                const auto id = entry.id.toStdString();
+                const auto id = entry.id;
                 if (id.starts_with(key) && (entry.supported || query.allow_unsupported) &&
                     found_hashes.find(id) == found_hashes.end())
                 {
@@ -188,7 +188,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     {
         for (const auto& product : manifest.second->products)
         {
-            if (multipass::utils::iequals(product.id.toStdString(), full_hash))
+            if (multipass::utils::iequals(product.id, full_hash))
             {
                 return product;
             }
@@ -322,8 +322,7 @@ const mp::VMImageInfo* mp::UbuntuVMImageHost::match_alias(
     const std::string& key,
     const mp::SimpleStreamsManifest& manifest) const
 {
-    if (auto it = manifest.image_records.find(QString::fromStdString(key));
-        it != manifest.image_records.end())
+    if (auto it = manifest.image_records.find(key); it != manifest.image_records.end())
     {
         return it->second;
     }
