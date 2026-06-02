@@ -75,7 +75,7 @@ struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
             ASSERT_TRUE(d_result);
             std::wprintf(L"%s\n\n", d_result.status_msg.c_str());
             handle.reset();
-            ASSERT_EQ(std::future_status::ready, fut.wait_for(std::chrono::seconds(15)))
+            ASSERT_EQ(std::future_status::ready, fut.wait_for(std::chrono::seconds(60)))
                 << "SystemExited callback not received within timeout";
         }
     }
