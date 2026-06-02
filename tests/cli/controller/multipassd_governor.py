@@ -110,7 +110,11 @@ class MultipassdGovernor:
             if not stdout_task.done():
                 stdout_task.cancel()
 
-            error_reason = await stdout_task
+            try:
+                error_reason = await stdout_task
+            except asyncio.CancelledError:
+                error_reason = None
+
             if error_reason:
                 error_reasons.append(
                     f"\nReason: {error_reason}")
@@ -219,8 +223,7 @@ class MultipassdGovernor:
             await _drain(ready_task)
             try:
                 await monitor_task
-                asyncio.current_task().cancel()
-                await asyncio.sleep(0)
+                raise TestCaseFailure("daemon exited during startup")
             except TestSessionFailure as ex:
                 Session.shouldfail = str(ex)
                 raise
