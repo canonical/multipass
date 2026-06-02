@@ -20,7 +20,9 @@
 
 class TestSessionFailure(RuntimeError):
     """Raised to signal that the test session should be aborted with a failure."""
+    __test__ = False
 
 
 class TestCaseFailure(RuntimeError):
     """Raised to signal that the current test case has failed."""
+    __test__ = False
