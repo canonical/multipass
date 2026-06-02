@@ -44,7 +44,7 @@ jobs:
 
             const names = [...new Set(repoPackages.map(p => p.name))];
 
-            core.setOutput("names", names.join("\n"));
+            core.setOutput("names", names.join("\\n"));
 
   prune:
     needs: list-packages
@@ -61,7 +61,7 @@ jobs:
           with: |
             organization: ${{ github.repository_owner }}
             type: nuget
-            names: ${{ needs.list-packages.outputs.names }}
+            names: "${{ needs.list-packages.outputs.names }}"
             keep: 2
           attempt_limit: 3
           attempt_delay: 60000
