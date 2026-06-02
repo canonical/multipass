@@ -109,17 +109,17 @@ jobs:
     if: needs.filter.outputs.hooks == 'true'
     uses: "./.github/workflows/test-hooks.yml"
 
-  cli-tests:
-    name: CLI Unit Tests
+  cli-tests-ut:
+    name: Unit tests for cli-test harness
     needs: filter
     if: needs.filter.outputs.cli-tests == 'true'
-    uses: "./.github/workflows/cli-unit-tests.yml"
+    uses: "./.github/workflows/cli-tests-ut.yml"
 
   finalize:
     name: Finalize
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [docs, lint, linux, windows, macos, hooks, cli-tests]
+    needs: [docs, lint, linux, windows, macos, hooks, cli-tests-ut]
     steps:
       - name: Docs failure check
         if: ${{
