@@ -157,3 +157,24 @@ class TestBackgroundEventLoop:
             
             assert t1.done() and t1.cancelled()
             assert t2.done() and t2.cancelled()
+
+    def test_drain_loop_until_handles_failing_tasks(self):
+        """drain_loop_until should handle tasks that raise exceptions."""
+        async def failing_task():
+            await asyncio.sleep(0.01)
+            raise ValueError("task failed")
+        
+        async def run_and_drain():
+            task = asyncio.create_task(failing_task())
+            await asyncio.sleep(0.05)
+            
+            await loop.drain_loop_until(timeout=1.0)
+            
+            return task
+        
+        with BackgroundEventLoop() as loop:
+            future = loop.run(run_and_drain())
+            task = future.result(timeout=2.0)
+            
+            assert task.done()
+            assert isinstance(task.exception(), ValueError)
