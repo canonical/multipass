@@ -129,7 +129,6 @@ parts:
     - libltdl-dev # vcpkg-systemd: libxcrypt requires libltdl-dev from the system package manager
     - autoconf-archive # vcpkg-systemd: libxcrypt requires autoconf-archive
     - python3-pip
-    - cmake
     stage-packages:
     - apparmor
     - libpng16-16
@@ -195,6 +194,7 @@ parts:
     source-type: git
     override-pull: |
       set -e
+      python3 -m pip install --break-system-packages cmake
 
       rustup default stable
 
