@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/exceptions/image_not_found_exception.h>
+#include <multipass/exceptions/unsupported_arch_exception.h>
 #include <multipass/image_host/custom_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/query.h>
@@ -43,23 +44,8 @@ constexpr auto manifest_endpoint{"https://raw.githubusercontent.com/canonical/mu
 auto get_manifest_url()
 {
     return qEnvironmentVariable(mp::distributions_url_env_var).isEmpty()
-               ? manifest_endpoint
-               : qEnvironmentVariable(mp::distributions_url_env_var);
-}
-
-auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
-{
-    std::unordered_map<std::string, const mp::VMImageInfo*> map;
-    for (const auto& image : images)
-    {
-        map[image.id] = &image;
-        for (const auto& alias : image.aliases)
-        {
-            map[alias] = &image;
-        }
-    }
-
-    return map;
+             ? manifest_endpoint
+             : qEnvironmentVariable(mp::distributions_url_env_var);
 }
 
 std::vector<mp::VMImageInfo> fetch_image_info(const std::string& arch,
@@ -82,7 +68,7 @@ std::vector<mp::VMImageInfo> fetch_image_info(const std::string& arch,
             {
                 result.push_back(value_to<mp::VMImageInfo>(value, context));
             }
-            catch (mp::UnsupportedArchException&)
+            catch (const mp::UnsupportedArchException&)
             {
                 mpl::debug(category,
                            "Skipping unsupported distro '{}' for arch '{}'",

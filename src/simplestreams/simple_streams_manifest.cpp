@@ -27,6 +27,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/manifest_exceptions.h>
+#include <multipass/json_utils.h>
 #include <multipass/settings/settings.h>
 #include <multipass/utils.h>
 
@@ -64,30 +65,13 @@ QString latest_version_in(const boost::json::object& versions)
     return max_version;
 }
 
-std::unordered_map<std::string, const mp::VMImageInfo*> map_aliases_to_vm_info_for(
-    const std::vector<mp::VMImageInfo>& images)
-{
-    std::unordered_map<std::string, const mp::VMImageInfo*> map;
-
-    for (const auto& image : images)
-    {
-        map[image.id] = &image;
-        for (const auto& alias : image.aliases)
-        {
-            map[alias] = &image;
-        }
-    }
-
-    return map;
-}
-
 } // namespace
 
 mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at,
                                                  std::vector<VMImageInfo>&& images)
     : updated_at{updated_at},
       products{std::move(images)},
-      image_records{map_aliases_to_vm_info_for(products)}
+      image_records{map_aliases_to_vm_info(products)}
 {
 }
 

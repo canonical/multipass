@@ -54,3 +54,20 @@ mp::VMImageInfo mp::tag_invoke(const boost::json::value_to_tag<mp::VMImageInfo>&
             lookup_or<int>(*arch_json, "size", -1),
             true};
 }
+
+std::unordered_map<std::string, const mp::VMImageInfo*> mp::map_aliases_to_vm_info(
+    const std::vector<mp::VMImageInfo>& images)
+{
+    std::unordered_map<std::string, const mp::VMImageInfo*> map;
+
+    for (const auto& image : images)
+    {
+        map[image.id] = &image;
+        for (const auto& alias : image.aliases)
+        {
+            map[alias] = &image;
+        }
+    }
+
+    return map;
+}
