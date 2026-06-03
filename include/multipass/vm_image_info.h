@@ -50,4 +50,7 @@ struct ArchContext
 VMImageInfo tag_invoke(const boost::json::value_to_tag<VMImageInfo>&,
                        const boost::json::value& json,
                        const ArchContext& arch);
+
+std::unordered_map<std::string, const VMImageInfo*> map_aliases_to_vm_info(
+    const std::vector<VMImageInfo>& images);
 } // namespace multipass
