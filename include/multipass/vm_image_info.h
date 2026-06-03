@@ -17,18 +17,10 @@
 
 #pragma once
 
-#include <QString>
-#include <QStringList>
-
 #include <string>
 #include <vector>
 
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/json.hpp>
-
-#include <multipass/exceptions/unsupported_arch_exception.h>
-#include <multipass/json_utils.h>
-#include <multipass/utils.h>
 
 namespace multipass
 {
@@ -55,33 +47,7 @@ struct ArchContext
     std::string arch;
 };
 
-inline VMImageInfo tag_invoke(const boost::json::value_to_tag<VMImageInfo>&,
-                              const boost::json::value& json,
-                              const ArchContext& arch)
-{
-    const auto arch_json = json.at("items").try_at(arch.arch);
-    if (arch_json.has_error())
-        throw UnsupportedArchException(arch.arch);
-
-    std::vector<std::string> aliases;
-    for (auto& alias : utils::split(value_to<std::string>(json.at("aliases")), ","))
-    {
-        boost::trim(alias);
-        if (!alias.empty())
-            aliases.push_back(std::move(alias));
-    }
-
-    return {aliases,
-            value_to<std::string>(json.at("os")),
-            value_to<std::string>(json.at("release")),
-            value_to<std::string>(json.at("release_codename")),
-            value_to<std::string>(json.at("release_title")),
-            true,
-            value_to<std::string>(arch_json->at("image_location")),
-            value_to<std::string>(arch_json->at("id")),
-            "",
-            value_to<std::string>(arch_json->at("version")),
-            lookup_or<int>(*arch_json, "size", -1),
-            true};
-}
+VMImageInfo tag_invoke(const boost::json::value_to_tag<VMImageInfo>&,
+                       const boost::json::value& json,
+                       const ArchContext& arch);
 } // namespace multipass
