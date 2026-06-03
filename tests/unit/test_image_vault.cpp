@@ -1031,7 +1031,7 @@ TEST_F(ImageVault, imageUpdateCreatesNewDirAndRemovesOld)
     const QString new_date_string{"20180825"};
     host.mock_bionic_image_info.id =
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b856";
-    host.mock_bionic_image_info.version = new_date_string;
+    host.mock_bionic_image_info.version = new_date_string.toStdString();
     host.mock_bionic_image_info.verify = false;
 
     vault.update_images(mp::FetchType::ImageOnly, stub_prepare, stub_monitor);
@@ -1229,13 +1229,13 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
 
     const auto& [first_image_remote, first_image_info] = images[0];
     EXPECT_EQ(first_image_remote, remote_name);
-    EXPECT_EQ(first_image_info.id.toStdString(), mpt::default_id);
-    EXPECT_EQ(first_image_info.version.toStdString(), mpt::default_version);
+    EXPECT_EQ(first_image_info.id, mpt::default_id);
+    EXPECT_EQ(first_image_info.version, mpt::default_version);
 
     const auto& [second_image_remote, second_image_info] = images[1];
     EXPECT_EQ(second_image_remote, remote_name);
-    EXPECT_EQ(second_image_info.id.toStdString(), mpt::another_image_id);
-    EXPECT_EQ(second_image_info.version.toStdString(), mpt::another_image_version);
+    EXPECT_EQ(second_image_info.id, mpt::another_image_id);
+    EXPECT_EQ(second_image_info.version, mpt::another_image_version);
 }
 
 TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
@@ -1259,13 +1259,13 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
 
     const auto& [first_image_remote, first_image_info] = images[0];
     EXPECT_EQ(first_image_remote, remote_name);
-    EXPECT_EQ(first_image_info.id.toStdString(), mpt::default_id);
-    EXPECT_EQ(first_image_info.version.toStdString(), mpt::default_version);
+    EXPECT_EQ(first_image_info.id, mpt::default_id);
+    EXPECT_EQ(first_image_info.version, mpt::default_version);
 
     const auto& [second_image_remote, second_image_info] = images[1];
     EXPECT_EQ(second_image_remote, remote_name);
-    EXPECT_EQ(second_image_info.id.toStdString(), mpt::another_image_id);
-    EXPECT_EQ(second_image_info.version.toStdString(), mpt::another_image_version);
+    EXPECT_EQ(second_image_info.id, mpt::another_image_id);
+    EXPECT_EQ(second_image_info.version, mpt::another_image_version);
 }
 
 TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)

@@ -56,7 +56,7 @@ TEST_F(TestSimpleStreamsManifest, canParseImageInfo)
 
     const auto info = manifest->image_records.at("default");
     ASSERT_THAT(info, NotNull());
-    EXPECT_FALSE(info->image_location.isEmpty());
+    EXPECT_FALSE(info->image_location.empty());
 }
 
 TEST_F(TestSimpleStreamsManifest, canFindInfoByAlias)
@@ -65,7 +65,8 @@ TEST_F(TestSimpleStreamsManifest, canFindInfoByAlias)
     const auto host_url{"http://stream/url"};
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, host_url);
 
-    const QString expected_id{"1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
+    const std::string expected_id{
+        "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"};
     const QString expected_location =
         QString("http://stream/urlserver/releases/xenial/release-20170516/"
                 "ubuntu-16.04-server-cloudimg-%1-disk1.img")
@@ -134,11 +135,11 @@ TEST_F(TestSimpleStreamsManifest, ltsReceivesUbuntuAlias)
 
     auto info = manifest->image_records.at("lts");
     ASSERT_THAT(info, NotNull());
-    EXPECT_THAT(info->aliases.indexOf("ubuntu"), Gt(0));
+    EXPECT_THAT(std::ranges::find(info->aliases, "ubuntu"), Ne(info->aliases.begin()));
 
     info = manifest->image_records.at("zesty");
     ASSERT_THAT(info, NotNull());
-    EXPECT_THAT(info->aliases.indexOf("ubuntu"), Lt(0));
+    EXPECT_THAT(std::ranges::find(info->aliases, "ubuntu"), Eq(info->aliases.end()));
 }
 
 TEST_F(TestSimpleStreamsManifest, filtersSnapcraftImages)
@@ -170,11 +171,11 @@ TEST_F(TestSimpleStreamsManifest, canQueryAllVersions)
     auto json = mpt::load_test_file("simple_streams_manifest/multiple_versions_manifest.json");
     auto manifest = mp::SimpleStreamsManifest::fromJson(json, std::nullopt, "");
 
-    QStringList all_known_hashes;
-    all_known_hashes << "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac"
-                     << "8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f"
-                     << "1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4"
-                     << "ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c";
+    std::vector<std::string> all_known_hashes{
+        "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac",
+        "8842e7a8adb01c7a30cc702b01a5330a1951b12042816e87efd24b61c5e2239f",
+        "1507bd2b3288ef4bacd3e699fe71b827b7ccf321ec4487e168a30d7089d3c8e4",
+        "ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c"};
 
     for (const auto& hash : all_known_hashes)
     {
@@ -197,7 +198,7 @@ TEST_F(TestSimpleStreamsManifest, correctlyMutatesCoreImages)
     const auto info = manifest->image_records.at("core22");
     ASSERT_THAT(info, NotNull());
 
-    EXPECT_EQ(info->image_location.last(6), "img.xz");
+    EXPECT_EQ(info->image_location.substr(info->image_location.size() - 6), "img.xz");
     EXPECT_EQ(info->os, "Ubuntu");
     EXPECT_EQ(info->release, "core-22");
     EXPECT_EQ(info->release_title, "Core 22");

@@ -50,7 +50,7 @@ public:
                                                          default_release_info,
                                                          "Bionic Beaver",
                                                          true,
-                                                         dummy_image.url(),
+                                                         dummy_image.url().toStdString(),
                                                          default_id,
                                                          default_stream_location,
                                                          default_version,
