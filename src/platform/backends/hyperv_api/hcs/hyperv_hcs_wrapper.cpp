@@ -472,11 +472,10 @@ OperationResult HCSWrapper::get_compute_system_guid(const HcsSystemHandle& targe
         return {E_FAIL, L"Json parse error"};
     }
 
-    const auto json_object = parsed.as_object();
-
-    if (const auto it = json_object.find("RuntimeId"); it != json_object.end())
+    if (const auto runtime_id = parsed.find_pointer("RuntimeId");
+        runtime_id && runtime_id->is_string())
     {
-        guid_out = it->value().as_string();
+        guid_out = runtime_id->get_string();
         return result;
     }
     return {E_FAIL, L"GUID not found in compute system properties"};
