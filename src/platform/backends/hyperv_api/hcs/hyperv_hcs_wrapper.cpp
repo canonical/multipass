@@ -534,13 +534,11 @@ OperationResult HCSWrapper::save_compute_system(const HcsSystemHandle& target_hc
                fmt::ptr(target_hcs_system.get()),
                save_path);
 
-    static constexpr auto json_template = string_literal<wchar_t>(R"(
-    {{
-        "SaveType": "ToFile",
-        "SaveStateFilePath": "{0}"
-    }})");
-
-    const auto save_option = json_template.format(save_path);
+    const boost::json::value json = {
+        {"SaveType","ToFile"},
+        {"SaveStateFilePath", save_path.get().string()}
+    };
+    const auto save_option = to_wstring(serialize(json));
 
     return perform_hcs_operation(
         [&](auto&& op) {
