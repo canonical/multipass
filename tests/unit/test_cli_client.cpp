@@ -2095,6 +2095,16 @@ TEST_F(Client, infoCmdSucceedsWithAllAndNoRuntimeInformation)
                 Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, infoCmdFailsWithInvalidFormat)
+{
+    std::stringstream cerr_stream;
+
+    EXPECT_CALL(mock_daemon, info(_, _)).Times(0);
+    EXPECT_THAT(send_command({"info", "--format", "invalid"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_EQ(cerr_stream.str(), "Invalid format type given.\n");
+}
+
 // list cli tests
 TEST_F(Client, listCmdOkNoArgs)
 {
