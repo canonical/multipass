@@ -885,9 +885,18 @@ std::string mp::platform::Platform::bridge_nomenclature() const
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
 {
-    // ping
-    // Get-NetAdapter | Get-NetIPAddress | Format-Table IPAddress,PrefixLength
-    // throw mp::NotImplementedOnThisBackendException{"AZs @TODO"};
+    auto adapters = get_adapters_addresses(AF_INET, GAA_FLAG_INCLUDE_ALL_INTERFACES);
+    for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
+    {
+        const auto& adapter = *pitr;
+        auto addrs = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
+        for (const auto& addr : addrs)
+        {
+            const Subnet found_net{addr};
+            if (found_net.contains(subnet) || subnet.contains(found_net))
+                return true;
+        }
+    }
     return false;
 }
 
