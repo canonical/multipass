@@ -54,6 +54,12 @@ public:
     // For detecting KVM
     virtual void check_for_kvm_support();
     virtual void check_if_kvm_is_in_use();
+
+    // For VFIO / device passthrough
+    virtual bool is_iommu_enabled() const;
+    virtual bool is_bound_to_vfio(const std::string& pci_address) const;
+    virtual void check_vfio_bind_prerequisites(const std::string& pci_address) const;
+    virtual void bind_device_to_vfio(const std::string& pci_address) const;
 };
 
 class LinuxSysCalls : public Singleton<LinuxSysCalls>

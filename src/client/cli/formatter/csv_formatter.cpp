@@ -94,19 +94,27 @@ std::string generate_instance_details(const mp::InfoReply reply)
 #endif
                    "Ipv4,Release,Image hash,Image release,Load,Disk usage,Disk "
                    "total,Memory usage,Memory "
-                   "total,Mounts,AllIPv4,CPU(s){}\n",
+                   "total,Mounts,AllIPv4,CPU(s),Devices{}\n",
                    have_num_snapshots ? ",Snapshots" : "");
 
     for (const auto& info : mp::format::sorted(reply.details()))
     {
         const auto& instance_details = info.instance_info();
 
+        std::string devices_str;
+        for (int i = 0; i < info.passthrough_devices_size(); ++i)
+        {
+            if (i > 0)
+                devices_str += ";";
+            devices_str += info.passthrough_devices(i);
+        }
+
         fmt::format_to(std::back_inserter(buf),
                        "{},{},"
 #ifdef AVAILABILITY_ZONES_FEATURE
                        "{},{},"
 #endif
-                       "{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
+                       "{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
                        info.name(),
                        mp::format::status_string_for(info.instance_status()),
 #ifdef AVAILABILITY_ZONES_FEATURE
@@ -125,6 +133,7 @@ std::string generate_instance_details(const mp::InfoReply reply)
                        info.mount_info(),
                        fmt::join(instance_details.ipv4(), ";"),
                        info.cpu_count(),
+                       devices_str,
                        have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots())
                                           : "");
     }

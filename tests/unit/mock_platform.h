@@ -68,6 +68,8 @@ public:
     MOCK_METHOD(std::string, bridge_nomenclature, (), (const, override));
     MOCK_METHOD(bool, subnet_used_locally, (Subnet), (const, override));
     MOCK_METHOD(std::filesystem::path, get_root_cert_dir, (), (const, override));
+    MOCK_METHOD(std::vector<std::string>, check_passthrough_devices, (const std::vector<std::string>&), (const, override));
+    MOCK_METHOD(void, bind_passthrough_devices, (const std::vector<std::string>&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };

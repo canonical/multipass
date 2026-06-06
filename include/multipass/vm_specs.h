@@ -20,6 +20,7 @@
 #include "availability_zone_manager.h"
 #include "memory_size.h"
 #include "network_interface.h"
+#include "passthrough_device.h"
 #include "virtual_machine.h"
 #include "vm_mount.h"
 
@@ -38,6 +39,7 @@ struct VMSpecs
     MemorySize disk_space;
     std::string default_mac_address;
     std::vector<NetworkInterface> extra_interfaces; // We want interfaces to be ordered.
+    std::vector<PassthroughDevice> passthrough_devices;
     std::string ssh_username;
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;

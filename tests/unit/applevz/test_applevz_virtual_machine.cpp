@@ -50,6 +50,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
                                        "zone1",
                                        "aa:bb:cc:dd:ee:ff",
                                        {},
+                                       {},
                                        "",
                                        {dummy_image.path(), "", "", "", {}, {}},
                                        dummy_cloud_init_iso.name(),

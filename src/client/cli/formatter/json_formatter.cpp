@@ -115,6 +115,11 @@ boost::json::object generate_instance_details(const mp::DetailedInfoItem& item)
 
     instance_info.emplace("ipv4", boost::json::value_from(instance_details.ipv4()));
 
+    boost::json::array devices;
+    for (const auto& dev : item.passthrough_devices())
+        devices.push_back(boost::json::value(dev));
+    instance_info.emplace("devices", std::move(devices));
+
     boost::json::object mounts;
     for (const auto& mount : item.mount_info().mount_paths())
     {

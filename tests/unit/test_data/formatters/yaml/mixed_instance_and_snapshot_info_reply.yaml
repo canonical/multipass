@@ -19,6 +19,8 @@ bombastic:
       total: ~
     ipv4:
       []
+    devices:
+      []
     mounts: ~
 bogus-instance:
   - snapshots:

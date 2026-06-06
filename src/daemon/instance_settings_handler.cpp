@@ -20,10 +20,13 @@
 #include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/platform.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
 #include <QStringList>
+
+#include <regex>
 
 namespace mp = multipass;
 
@@ -33,6 +36,7 @@ constexpr auto cpus_suffix = "cpus";
 constexpr auto mem_suffix = "memory";
 constexpr auto disk_suffix = "disk";
 constexpr auto bridged_suffix = "bridged";
+constexpr auto devices_suffix = "devices";
 
 enum class Operation
 {
@@ -51,7 +55,7 @@ QRegularExpression make_key_regex()
     const auto instance_pattern = QStringLiteral("(?<instance>.+)");
     const auto prop_template = QStringLiteral("(?<property>%1)");
     const auto either_prop =
-        QStringList{cpus_suffix, mem_suffix, disk_suffix, bridged_suffix}.join("|");
+        QStringList{cpus_suffix, mem_suffix, disk_suffix, bridged_suffix, devices_suffix}.join("|");
     const auto prop_pattern = prop_template.arg(either_prop);
 
     const auto key_template = QStringLiteral(R"(%1\.%2\.%3)");
@@ -195,6 +199,42 @@ void update_bridged(const QString& key,
     else
         add_interface(instance_name); // if already bridged, this merely warns
 }
+
+std::vector<mp::PassthroughDevice> parse_devices(const QString& val)
+{
+    static const std::regex pci_regex(R"(^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$)");
+
+    std::vector<mp::PassthroughDevice> devices;
+    if (val.isEmpty())
+        return devices;
+
+    for (const auto& s : val.split(',', Qt::SkipEmptyParts))
+    {
+        auto trimmed = s.trimmed().toStdString();
+        if (!std::regex_match(trimmed, pci_regex))
+            throw mp::InvalidSettingException{"devices", val, QString::fromStdString(fmt::format("Invalid PCI address: {}", trimmed))};
+        devices.push_back({trimmed});
+    }
+    return devices;
+}
+
+    void update_devices(const QString& key,
+                        const QString& val,
+                        mp::VMSpecs& spec)
+    {
+        auto devices = parse_devices(val);
+        for (const auto& dev : devices)
+        {
+            if (!mp::Backend::instance().is_bound_to_vfio(dev.pci_address))
+                throw mp::InvalidSettingException{
+                    key,
+                    val,
+                    QString::fromStdString(
+                        fmt::format("PCI device {} is not bound to vfio-pci. Bind it manually first.", dev.pci_address))};
+        }
+
+        spec.passthrough_devices = std::move(devices);
+    }
 } // namespace
 
 mp::InstanceSettingsException::InstanceSettingsException(const std::string& reason,
@@ -228,7 +268,7 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
 
     std::set<QString> ret;
     for (const auto& item : vm_instance_specs)
-        for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix, bridged_suffix})
+        for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix, bridged_suffix, devices_suffix})
             ret.insert(key_template.arg(item.first.c_str()).arg(suffix));
 
     return ret;
@@ -249,6 +289,13 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
         return QString::fromStdString(
             spec.mem_size.human_readable()); /* TODO return in bytes when --raw
                                                 (need unmarshall capability, w/ flag) */
+    if (property == devices_suffix)
+    {
+        QStringList devices;
+        for (const auto& dev : spec.passthrough_devices)
+            devices.append(QString::fromStdString(dev.pci_address));
+        return devices.join(',');
+    }
 
     assert(property == disk_suffix);
     return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
@@ -273,6 +320,10 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
     else if (property == bridged_suffix)
     {
         update_bridged(key, val, instance_name, is_bridged, add_interface);
+    }
+    else if (property == devices_suffix)
+    {
+        update_devices(key, val, spec);
     }
     else
     {

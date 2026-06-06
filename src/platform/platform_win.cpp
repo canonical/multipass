@@ -78,6 +78,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <vector>
 
 #include <libssh/sftp.h>
 
@@ -1364,4 +1365,14 @@ std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) 
 QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
 {
     return QString::fromStdWString(path.generic_wstring());
+}
+
+std::vector<std::string>
+mp::platform::Platform::check_passthrough_devices(const std::vector<std::string>&) const
+{
+    return {};
+}
+
+void mp::platform::Platform::bind_passthrough_devices(const std::vector<std::string>&) const
+{
 }
