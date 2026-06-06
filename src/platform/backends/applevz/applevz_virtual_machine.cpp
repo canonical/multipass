@@ -387,7 +387,7 @@ void AppleVZVirtualMachine::initialize_vm_handle()
     mpl::trace(log_category, "initialize_vm_handle() -> Creating VM handle for '{}'", vm_name);
 
     vm_handle.reset();
-    if (const auto& error = MP_APPLEVZ.create_vm(desc, vm_handle); error)
+    if (const auto& error = MP_APPLEVZ.create_vm(desc, zone, vm_handle); error)
     {
         throw std::runtime_error(
             fmt::format("Failed to create VM handle for '{}': {}", vm_name, error));
