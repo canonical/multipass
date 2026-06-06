@@ -195,7 +195,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         std::vector<VmnetRelayHandle> relays;
         for (const auto& extra : desc.extra_interfaces)
         {
-            VmnetBridge bridge = create_vmnet_bridge(extra.id);
+            VmnetBridge bridge{extra.id};
 
             VZVirtioNetworkDeviceConfiguration* bridgedDevice =
                 [[VZVirtioNetworkDeviceConfiguration alloc] init];
