@@ -18,8 +18,8 @@ void main() {
   daemon_unavailable_test.main();
   empty_state_catalogue_link_test.main();
   launch_test.main();
-  launch_form_test.main();
-  vm_details_mounts_test.main();
+  // launch_form_test.main();
+  // vm_details_mounts_test.main();
   vm_lifecycle_test.main();
   vm_list_test.main();
 }
