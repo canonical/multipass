@@ -30,6 +30,8 @@
 #include <QFileSystemWatcher>
 #include <QObject>
 
+#include <atomic>
+
 namespace mp = multipass;
 
 namespace
@@ -94,15 +96,39 @@ QString image_mirror_interpreter(QString val)
 
 } // namespace
 
-void mp::daemon::monitor_and_quit_on_settings_change() // temporary
+namespace
+{
+QFileSystemWatcher& settings_monitor()
 {
     static const auto filename = persistent_settings_filename();
     mp::utils::check_and_create_config_file(filename); // create if not there
-
     static QFileSystemWatcher monitor{{filename}};
+    return monitor;
+}
+
+std::atomic<int> expected_skips{0};
+} // namespace
+
+void mp::daemon::monitor_and_quit_on_settings_change() // temporary
+{
+    auto& monitor = settings_monitor();
     QObject::connect(&monitor, &QFileSystemWatcher::fileChanged, [] {
-        QCoreApplication::exit(settings_changed_code);
+        if (expected_skips > 0)
+            --expected_skips;
+        else
+            QMetaObject::invokeMethod(qApp,
+                                      [] { QCoreApplication::exit(settings_changed_code); },
+                                      Qt::QueuedConnection);
     });
+}
+
+void mp::daemon::suppress_settings_reload()
+{
+    ++expected_skips;
+}
+
+void mp::daemon::resume_settings_reload()
+{
 }
 
 void mp::daemon::register_global_settings_handlers()

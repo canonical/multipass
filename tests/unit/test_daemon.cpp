@@ -1898,7 +1898,7 @@ TEST_F(Daemon, setSetsSetting)
     request.set_key(key);
     request.set_val(val);
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).Times(1);
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _)).Times(1);
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
@@ -2010,7 +2010,7 @@ TEST_F(Daemon, setWorksIfBridgedInterfaceIsEmpty)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillOnce(Return(""));
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(value))).Times(1);
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(value), _)).Times(1);
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
 

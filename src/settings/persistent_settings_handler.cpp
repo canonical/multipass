@@ -129,7 +129,9 @@ auto mp::PersistentSettingsHandler::get_setting(const QString& key) const -> con
     }
 }
 
-void mp::PersistentSettingsHandler::set(const QString& key, const QString& val)
+void mp::PersistentSettingsHandler::set(const QString& key,
+                                        const QString& val,
+                                        bool /*allow_reload*/)
 {
     auto interpreted = get_setting(key).interpret(
         val); // check both key and value validity, convert as appropriate

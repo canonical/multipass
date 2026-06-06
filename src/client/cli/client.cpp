@@ -23,6 +23,7 @@
 #include "cmd/delete.h"
 #include "cmd/exec.h"
 #include "cmd/find.h"
+#include "cmd/config.h"
 #include "cmd/get.h"
 #include "cmd/help.h"
 #include "cmd/info.h"
@@ -96,6 +97,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Purge>(aliases);
     add_command<cmd::Exec>(aliases);
     add_command<cmd::Find>();
+    add_command<cmd::Config>();
     add_command<cmd::Get>();
     add_command<cmd::Help>();
     add_command<cmd::Info>();

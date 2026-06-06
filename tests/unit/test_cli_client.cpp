@@ -386,7 +386,7 @@ struct Client : public Test
 
     void aux_set_cmd_rejects_bad_val(const char* key, const char* val)
     {
-        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
             .WillRepeatedly(Throw(mp::InvalidSettingException{key, val, "bad"}));
         EXPECT_THAT(send_command({"set", keyval_arg(key, val)}),
                     Eq(mp::ReturnCode::CommandLineError));
@@ -3441,7 +3441,7 @@ TEST_P(TestBasicGetSetOptions, setCanWriteSettings)
     const auto& key = GetParam();
     const auto val = "blah";
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -3450,7 +3450,7 @@ TEST_P(TestBasicGetSetOptions, setCmdAllowsEmptyVal)
     const auto& key = GetParam();
     const auto val = "";
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -3460,7 +3460,7 @@ TEST_P(TestBasicGetSetOptions, interactiveSetWritesSettings)
     const auto val = "blah";
     std::istringstream cin{fmt::format("{}\n", val)};
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _));
     EXPECT_THAT(send_command({"set", key}, trash_stream, trash_stream, cin),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -3487,7 +3487,7 @@ TEST_F(Client, getCmdFailsWithNoArguments)
 
 TEST_F(Client, setCmdFailsWithNoArguments)
 {
-    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0);
     EXPECT_THAT(send_command({"set"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
@@ -3499,7 +3499,7 @@ TEST_F(Client, getCmdFailsWithMultipleArguments)
 
 TEST_F(Client, setCmdFailsWithMultipleArguments)
 {
-    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0);
     EXPECT_THAT(
         send_command(
             {"set", keyval_arg(mp::petenv_key, "asdf"), keyval_arg(mp::driver_key, "qemu")}),
@@ -3508,7 +3508,7 @@ TEST_F(Client, setCmdFailsWithMultipleArguments)
 
 TEST_F(Client, setCmdFailsWithBadKeyValFormat)
 {
-    EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0); // this is not where the rejection is here
     EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
@@ -3542,7 +3542,7 @@ TEST_F(Client, setCmdFailsWithUnknownKey)
 {
     const auto key = "wrong.key";
     const auto val = "blah";
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
@@ -3554,7 +3554,7 @@ TEST_F(Client, interactiveSetFailsWithUnknownKey)
     std::ostringstream cerr;
     std::istringstream cin{fmt::format("{}\n", val)};
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     EXPECT_THAT(send_command({"set", key}, trash_stream, cerr, cin),
                 Eq(mp::ReturnCode::CommandLineError));
@@ -3630,7 +3630,7 @@ TEST_F(Client, setHandlesPersistentSettingsErrors)
 {
     const auto key = mp::petenv_key;
     const auto val = "asdasdasd";
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandFail));
 }
@@ -3638,17 +3638,17 @@ TEST_F(Client, setHandlesPersistentSettingsErrors)
 TEST_F(Client, setCmdRejectsBadValues)
 {
     const auto key = "hip", val = "hop", why = "don't like it";
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::InvalidSettingException{key, val, why}));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, setCmdTogglePetenv)
 {
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(""), _));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
 
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary"), _));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}),
                 Eq(mp::ReturnCode::Ok));
 }

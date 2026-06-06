@@ -47,7 +47,7 @@ public:
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
-    void set(const QString& key, const QString& val) override;
+    void set(const QString& key, const QString& val, bool allow_reload = true) override;
 
 private:
     VirtualMachine& modify_instance(const std::string& instance_name);

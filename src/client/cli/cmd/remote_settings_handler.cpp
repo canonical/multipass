@@ -118,7 +118,8 @@ public:
               mp::Rpc::StubInterface& stub,
               mp::Terminal* term,
               int verbosity,
-              bool user_authorized)
+              bool user_authorized,
+              bool allow_reload)
         : RemoteSettingsCmd{stub, term} // need to ensure refs outlive this
     {
         mp::SetRequest set_request;
@@ -126,6 +127,7 @@ public:
         set_request.set_key(key.toStdString());
         set_request.set_val(val.toStdString());
         set_request.set_authorized(user_authorized);
+        set_request.set_allow_reload(allow_reload);
 
         auto streaming_confirmation_callback =
             mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
@@ -196,12 +198,12 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     throw mp::UnrecognizedSettingException{key};
 }
 
-void mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
+void mp::RemoteSettingsHandler::set(const QString& key, const QString& val, bool allow_reload)
 {
     if (key.startsWith(key_prefix))
     {
         assert(term);
-        RemoteSet(key, val, stub, term, verbosity, false);
+        RemoteSet(key, val, stub, term, verbosity, false, allow_reload);
     }
     else
         throw mp::UnrecognizedSettingException{key};

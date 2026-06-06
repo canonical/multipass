@@ -71,7 +71,7 @@ public:
      * @c key, according to the corresponding SettingHandler's interpretation.
      * @note May also throw any other exceptions that occur when handling.
      */
-    virtual void set(const QString& key, const QString& val);
+    virtual void set(const QString& key, const QString& val, bool allow_reload = true);
 
     /**
      * Obtain a setting as a certain type
