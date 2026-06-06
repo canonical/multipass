@@ -178,13 +178,12 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         config.entropyDevices = @[ entropy ];
 
         // Network devices
-        // Primary NAT interface
         NSMutableArray<VZNetworkDeviceConfiguration*>* networkDevices = [NSMutableArray array];
 
         VZVirtioNetworkDeviceConfiguration* netDevice =
             [[VZVirtioNetworkDeviceConfiguration alloc] init];
-        VZNATNetworkDeviceAttachment* natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
-        netDevice.attachment = natAttachment;
+        VmnetBridge zone_bridge{zone};
+        netDevice.attachment = zone_bridge.attachment;
 
         VZMACAddress* mac =
             [[VZMACAddress alloc] initWithString:nsstring_from_stdstring(desc.default_mac_address)];
@@ -225,6 +224,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
 
         out_handle = std::make_shared<VirtualMachineHandle>();
         out_handle->relays = std::move(relays);
+        out_handle->relays.push_back(std::move(zone_bridge.relay));
         out_handle->id = vmIDCounter.fetch_add(1, std::memory_order_relaxed);
 
         // Create dispatch queue
