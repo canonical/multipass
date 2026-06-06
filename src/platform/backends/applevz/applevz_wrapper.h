@@ -31,7 +31,9 @@ class AppleVZ : public Singleton<AppleVZ>
 public:
     using Singleton<AppleVZ>::Singleton;
 
-    virtual CFError create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const;
+    virtual CFError create_vm(const VirtualMachineDescription& desc,
+                              multipass::AvailabilityZone& zone,
+                              VMHandle& out_handle) const;
 
     // Starting and stopping VM
     virtual CFError start_vm(const VMHandle& vm_handle) const;

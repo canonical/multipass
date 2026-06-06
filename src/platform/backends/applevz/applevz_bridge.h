@@ -18,6 +18,7 @@
 #pragma once
 
 #include <applevz/cf_error.h>
+#include <multipass/availability_zone.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -44,6 +45,7 @@ enum class AppleVMState
 };
 
 CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
+                                multipass::AvailabilityZone& zone,
                                 VMHandle& out_handle);
 
 // Starting and stopping VM
