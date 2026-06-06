@@ -19,6 +19,8 @@
 
 #include <Virtualization/Virtualization.h>
 
+#include <multipass/availability_zone.h>
+
 #include <memory>
 
 namespace multipass::applevz
@@ -29,10 +31,11 @@ using VmnetRelayHandle = std::shared_ptr<void>;
 
 struct VmnetBridge
 {
+    explicit VmnetBridge(const std::string& physical_iface);
+    explicit VmnetBridge(multipass::AvailabilityZone& zone);
+
     VZFileHandleNetworkDeviceAttachment* attachment;
     VmnetRelayHandle relay;
 };
-
-VmnetBridge create_vmnet_bridge(const std::string& physical_iface);
 
 } // namespace multipass::applevz
