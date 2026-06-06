@@ -15,7 +15,7 @@
 include(src/cmake/feature-flag.cmake)
 
 # Multipass backend integrating with Apple Virtualization framework
-feature_flag(APPLEVZ_ENABLED "AppleVZ backend" APPLE)
+feature_flag(APPLEVZ_ENABLED "AppleVZ backend" "APPLE;AVAILABILITY_ZONES_ENABLED")
 
 # The new Windows backend based on Hyper-V Host Compute System / Host Compute Networking APIs
 feature_flag(HYPERV_HCS_ENABLED "Hyper-V HCS backend" WIN32)
