@@ -293,3 +293,37 @@ void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
         if (auto err = errno; err != ENOTCONN)
             throw std::system_error(err, std::generic_category(), "Failed to shutdown socket");
 }
+
+size_t mp::platform::Platform::get_maximum_path_length(
+    const std::filesystem::path& target_dir) const
+{
+    auto result = pathconf(target_dir.c_str(), _PC_PATH_MAX);
+
+    if (result > 0)
+    {
+        return static_cast<size_t>(result);
+    }
+
+#ifdef PATH_MAX
+    return static_cast<size_t>(PATH_MAX);
+#else
+    return 4096u;
+#endif
+}
+
+size_t mp::platform::Platform::get_maximum_file_name_length(
+    const std::filesystem::path& target_dir) const
+{
+    auto result = pathconf(target_dir.c_str(), _PC_NAME_MAX);
+
+    if (result > 0)
+    {
+        return static_cast<size_t>(result);
+    }
+
+#ifdef NAME_MAX
+    return static_cast<size_t>(NAME_MAX);
+#else
+    return 255u;
+#endif
+}

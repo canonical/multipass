@@ -93,6 +93,8 @@ public:
 
     // Shuts down I/O on a socket in both directions, without closing it
     virtual void shutdown_socket(Socket socket) const;
+    virtual size_t get_maximum_path_length(const std::filesystem::path& target_dir) const;
+    virtual size_t get_maximum_file_name_length(const std::filesystem::path& target_dir) const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);
