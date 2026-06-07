@@ -227,6 +227,24 @@ auto name_from(const std::string& requested_name,
     }
 }
 
+auto abbreviate_name(const std::string& name)
+{
+    static constexpr size_t max_name_length = 100;
+
+    if constexpr (max_name_length < 3)
+    {
+        return name;
+    }
+
+    if (name.size() <= max_name_length)
+    {
+        return name;
+    }
+
+    return name.substr(0, (max_name_length - 3) * 3 / 4) + "..." +
+           name.substr(name.size() - (max_name_length / 4), max_name_length / 4);
+}
+
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
                                                      const mp::Path& cache_path,
                                                      const mp::AvailabilityZoneManager& az_manager)
@@ -1810,7 +1828,7 @@ try
         const auto& name = vm.get_name();
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
-        entry->set_name(name);
+        entry->set_name(abbreviate_name(name));
         const auto zone = entry->mutable_zone();
         zone->set_name(vm.get_zone().get_name());
         zone->set_available(vm.get_zone().is_available());
@@ -3076,6 +3094,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
+    auto abbreviated_name = abbreviate_name(name);
+
     auto zone_name = checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name()
                                                     : checked_args.zone_name;
 
@@ -3104,7 +3124,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     QObject::connect(prepare_future_watcher,
                      &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-                     [this, server, context, name, timeout, start, prepare_future_watcher] {
+                     [this,
+                      server,
+                      context,
+                      name,
+                      abbreviated_name,
+                      timeout,
+                      start,
+                      prepare_future_watcher] {
                          // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
                          try
@@ -3136,7 +3163,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                              if (start)
                              {
                                  LaunchReply reply;
-                                 reply.set_create_message("Starting " + name);
+                                 reply.set_create_message("Starting " + abbreviated_name);
                                  server->Write(reply);
 
                                  operative_instances[name]->start();
@@ -3182,13 +3209,19 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          prepare_future_watcher->deleteLater();
                      });
 
-    auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
-        -> mp::VirtualMachineDescription {
+    auto make_vm_description = [this,
+                                server,
+                                request,
+                                name,
+                                abbreviated_name,
+                                zone_name,
+                                checked_args,
+                                log_level]() mutable -> mp::VirtualMachineDescription {
         try
         {
             CreateReply reply;
 #if AVAILABILITY_ZONES_FEATURE
-            reply.set_create_message(fmt::format("Creating {} in {}", name, zone_name));
+            reply.set_create_message(fmt::format("Creating {} in {}", abbreviated_name, zone_name));
 #else
             reply.set_create_message(fmt::format("Creating {}", name));
 #endif
@@ -3227,9 +3260,10 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 return server->Write(create_reply);
             };
 
-            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+            auto prepare_action =
+                [this, server, &abbreviated_name](const VMImage& source_image) -> VMImage {
                 CreateReply reply;
-                reply.set_create_message("Preparing image for " + name);
+                reply.set_create_message("Preparing image for " + abbreviated_name);
                 server->Write(reply);
 
                 return config->factory->prepare_source_image(source_image);
@@ -3255,7 +3289,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
                 config->data_directory);
 
-            reply.set_create_message("Configuring " + name);
+            reply.set_create_message("Configuring " + abbreviated_name);
             server->Write(reply);
 
             config->factory->prepare_networking(checked_args.extra_interfaces);
