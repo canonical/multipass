@@ -3239,7 +3239,15 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     QObject::connect(
         prepare_future_watcher,
         &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-        [this, server, status_promise, name, abbreviated_name, timeout, start, prepare_future_watcher, log_level] {
+        [this,
+         server,
+         status_promise,
+         name,
+         abbreviated_name,
+         timeout,
+         start,
+         prepare_future_watcher,
+         log_level] {
             mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level,
                                                                  *config->logger,
                                                                  server};
@@ -3319,17 +3327,21 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             prepare_future_watcher->deleteLater();
         });
 
-    auto make_vm_description =
-        [this, server, request, name, abbreviated_name, zone_name, checked_args, log_level]() mutable
-        -> mp::VirtualMachineDescription {
+    auto make_vm_description = [this,
+                                server,
+                                request,
+                                name,
+                                abbreviated_name,
+                                zone_name,
+                                checked_args,
+                                log_level]() mutable -> mp::VirtualMachineDescription {
         mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
 
         try
         {
             CreateReply reply;
 #if AVAILABILITY_ZONES_FEATURE
-            reply.set_create_message(
-                fmt::format("Creating {} in {}", abbreviated_name, zone_name));
+            reply.set_create_message(fmt::format("Creating {} in {}", abbreviated_name, zone_name));
 #else
             reply.set_create_message(fmt::format("Creating {}", name));
 #endif
@@ -3368,7 +3380,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 return server->Write(create_reply);
             };
 
-            auto prepare_action = [this, server, &abbreviated_name](const VMImage& source_image) -> VMImage {
+            auto prepare_action =
+                [this, server, &abbreviated_name](const VMImage& source_image) -> VMImage {
                 CreateReply reply;
                 reply.set_create_message("Preparing image for " + abbreviated_name);
                 server->Write(reply);
