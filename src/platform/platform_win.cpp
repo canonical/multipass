@@ -1387,3 +1387,46 @@ void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
         if (auto err = WSAGetLastError(); err != WSAENOTCONN)
             throw std::system_error(err, std::system_category(), "Failed to shutdown socket");
 }
+
+size_t mp::platform::Platform::get_maximum_path_length(
+    const std::filesystem::path& target_dir) const
+{
+    const auto ws = target_dir.wstring();
+    const bool has_extended_prefix = ws.starts_with(L"\\\\?\\");
+
+    if (has_extended_prefix)
+    {
+        return 32767u;
+    }
+
+#ifdef MAX_PATH
+    return static_cast<size_t>(MAX_PATH);
+#else
+    return 260u;
+#endif
+}
+
+size_t mp::platform::Platform::get_maximum_file_name_length(
+    const std::filesystem::path& target_dir) const
+{
+    constexpr size_t volume_name_size = 260;
+    wchar_t volume_name[volume_name_size] = {0};
+
+    DWORD max_component_length = 0;
+    DWORD file_system_flags = 0;
+
+    if (GetVolumePathNameW(target_dir.wstring().c_str(), volume_name, std::size(volume_name)) &&
+        GetVolumeInformationW(volume_name,
+                              NULL,
+                              0,
+                              NULL,
+                              &max_component_length,
+                              &file_system_flags,
+                              NULL,
+                              0))
+    {
+        return static_cast<size_t>(max_component_length > 0 ? max_component_length : 255u);
+    }
+
+    return 255u;
+}
