@@ -471,6 +471,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
+    config->factory->validate_instance_name(instance_name);
+
     try
     {
         if (!zone_name.empty() && !config->az_manager->get_zone(zone_name).is_available())
