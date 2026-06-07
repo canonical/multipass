@@ -148,3 +148,33 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
         }
     }
 }
+
+void mp::BaseVirtualMachineFactory::validate_instance_name(const std::string& name) const
+{
+    static constexpr size_t internal_paths_safety_buffer = 128u;
+    const auto instances_dir_in_std_path = MP_PLATFORM.qstr_to_path(instances_dir);
+    const auto maximum_file_name_length =
+        MP_PLATFORM.get_maximum_file_name_length(instances_dir_in_std_path);
+    const auto maximum_path_length = MP_PLATFORM.get_maximum_path_length(instances_dir_in_std_path);
+    const auto instances_dir_length = instances_dir_in_std_path.native().size();
+    const auto path_length_restricted_max_instance_name = [&maximum_path_length,
+                                                           &instances_dir_length] {
+        if (maximum_path_length > instances_dir_length + internal_paths_safety_buffer)
+        {
+            return static_cast<size_t>(maximum_path_length -
+                                       (instances_dir_length + internal_paths_safety_buffer));
+        }
+
+        return (size_t)0u;
+    }();
+
+    const auto max_instance_name_length =
+        std::min(maximum_file_name_length, path_length_restricted_max_instance_name);
+    if (name.size() > max_instance_name_length)
+    {
+        throw std::runtime_error(
+            std::format("instance name too long; name size: {}, maximum name size: {}",
+                        name.size(),
+                        max_instance_name_length));
+    }
+}
