@@ -173,7 +173,7 @@ void mp::BaseVirtualMachineFactory::validate_instance_name(const std::string& na
     if (name.size() > max_instance_name_length)
     {
         throw std::runtime_error(
-            std::format("instance name too long; name size: {}, maximum name size: {}",
+            std::format("instance name too long (name size: {}, maximum name size: {})",
                         name.size(),
                         max_instance_name_length));
     }
