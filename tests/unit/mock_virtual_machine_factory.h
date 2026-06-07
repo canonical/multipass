@@ -66,6 +66,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
 
     // originally protected:
     MOCK_METHOD(std::string, create_bridge_with, (const NetworkInterfaceInfo&), (override));
+    MOCK_METHOD(void, validate_instance_name, (const std::string&), (const, override));
 };
 } // namespace test
 } // namespace multipass
