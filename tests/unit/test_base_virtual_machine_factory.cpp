@@ -320,4 +320,30 @@ TEST_F(BaseFactory, prepareNetworkingPreparesEachRequestedNetwork)
     EXPECT_EQ(extra_nets.size(), num_nets);
     EXPECT_THAT(extra_nets, Each(Eq(tag)));
 }
+
+TEST_F(BaseFactory, validateInstanceNameThrowsOnLongNames)
+{
+    const MockBaseFactory factory{az_manager};
+    const auto max_file_name_length =
+        MP_PLATFORM.get_maximum_file_name_length(MP_PLATFORM.qstr_to_path(factory.tmp_dir->path()));
+    const auto max_path_length =
+        MP_PLATFORM.get_maximum_path_length(MP_PLATFORM.qstr_to_path(factory.tmp_dir->path()));
+    const auto instances_dir_path_length = static_cast<size_t>(factory.tmp_dir->path().size());
+
+    const auto path_restricted_max_instance_name_length =
+        std::max(max_path_length, instances_dir_path_length + 128) - instances_dir_path_length -
+        128;
+    const auto expected_max_instance_name_length =
+        std::min(max_file_name_length, path_restricted_max_instance_name_length);
+
+    // Name exactly at the limit should pass
+    const std::string max_length_name(expected_max_instance_name_length, 'a');
+    EXPECT_NO_THROW(factory.validate_instance_name(max_length_name));
+
+    // Name exceeding the limit should throw
+    const std::string too_long_name(expected_max_instance_name_length + 1, 'a');
+    MP_EXPECT_THROW_THAT(factory.validate_instance_name(too_long_name),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("instance name too long")));
+}
 } // namespace
