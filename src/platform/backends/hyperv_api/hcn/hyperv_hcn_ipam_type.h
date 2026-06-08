@@ -43,6 +43,11 @@ struct HcnIpamType : FormatAsMixin<HcnIpamType>
         return {"static"};
     }
 
+    [[nodiscard]] bool operator==(const HcnIpamType& rhs) const
+    {
+        return value == rhs.value;
+    }
+
 private:
     HcnIpamType(std::string_view v) : value(v)
     {

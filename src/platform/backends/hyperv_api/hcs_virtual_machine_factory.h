@@ -19,6 +19,8 @@
 
 #include <shared/base_virtual_machine_factory.h>
 
+#include <unordered_map>
+
 namespace multipass::hyperv
 {
 
@@ -61,5 +63,10 @@ private:
      */
     [[nodiscard]] static std::vector<NetworkInterfaceInfo> get_adapters();
     [[nodiscard]] static std::vector<NetworkInterfaceInfo> get_hyperv_vswitches();
+
+    [[nodiscard]] static std::unordered_map<std::string, std::string> create_az_bridges(
+        const AvailabilityZoneManager::Zones& zones);
+
+    std::unordered_map<std::string, std::string> az_network_guids;
 };
 } // namespace multipass::hyperv

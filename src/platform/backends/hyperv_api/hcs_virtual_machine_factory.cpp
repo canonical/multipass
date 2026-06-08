@@ -72,7 +72,8 @@ HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
           MP_UTILS.derive_instances_dir(data_dir,
                                         HCSVirtualMachineFactory::get_backend_directory_name(),
                                         instances_subdir),
-          az_manager)
+          az_manager),
+      az_network_guids{create_az_bridges(az_manager.get_zones())}
 {
 }
 
@@ -81,7 +82,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
+    return std::make_unique<HCSVirtualMachine>(az_network_guids.at(desc.zone),
                                                desc,
                                                monitor,
                                                key_provider,
@@ -341,6 +342,36 @@ void HCSVirtualMachineFactory::hypervisor_health_check()
                 state == WindowsFeatureState::Absent ? "Absent" : "Disabled"};
         }
     }
+}
+
+std::unordered_map<std::string, std::string> HCSVirtualMachineFactory::create_az_bridges(
+    const AvailabilityZoneManager::Zones& zones)
+{
+    std::unordered_map<std::string, std::string> az_mapping;
+    for (const auto& i : zones)
+    {
+        const auto& zone = i.get();
+        hcn::CreateNetworkParameters network_params{
+            .name = fmt::format("Multipass vNetwork ({})", zone.get_name()),
+            .type = hcn::HcnNetworkType::Ics(),
+            .flags = hcn::HcnNetworkFlags::enable_dhcp_server,
+            .guid = utils::make_uuid(network_params.name),
+            .ipams = {{.type = hcn::HcnIpamType::Static(),
+                       .subnets = {{.ip_address_prefix = {zone.get_subnet().to_cidr()}}}}}};
+
+        const auto create_network_result = HCN().create_network(network_params);
+        if (!create_network_result &&
+            static_cast<HRESULT>(create_network_result.code) != HCN_E_NETWORK_ALREADY_EXISTS)
+        {
+            throw CreateNetworkException{"Could not create network for {}, status: {}",
+                                         zone.get_name(),
+                                         create_network_result};
+        }
+
+        az_mapping.emplace(zone.get_name(), network_params.guid);
+    }
+
+    return az_mapping;
 }
 
 } // namespace multipass::hyperv
