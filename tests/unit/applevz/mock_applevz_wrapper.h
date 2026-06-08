@@ -33,7 +33,7 @@ public:
     MOCK_METHOD(applevz::CFError,
                 create_vm,
                 (const multipass::VirtualMachineDescription& desc,
-                 multipass::AvailabilityZone& zone,
+                 const multipass::AvailabilityZone& zone,
                  multipass::applevz::VMHandle& out_handle),
                 (const, override));
     MOCK_METHOD(applevz::CFError,

@@ -105,7 +105,7 @@ auto query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, Callable c
 namespace multipass::applevz
 {
 CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
-                                multipass::AvailabilityZone& zone,
+                                const multipass::AvailabilityZone& zone,
                                 VMHandle& out_handle)
 {
     @autoreleasepool

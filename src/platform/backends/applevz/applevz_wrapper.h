@@ -32,7 +32,7 @@ public:
     using Singleton<AppleVZ>::Singleton;
 
     virtual CFError create_vm(const VirtualMachineDescription& desc,
-                              multipass::AvailabilityZone& zone,
+                              const multipass::AvailabilityZone& zone,
                               VMHandle& out_handle) const;
 
     // Starting and stopping VM
