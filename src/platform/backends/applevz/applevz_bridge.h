@@ -45,7 +45,7 @@ enum class AppleVMState
 };
 
 CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
-                                multipass::AvailabilityZone& zone,
+                                const multipass::AvailabilityZone& zone,
                                 VMHandle& out_handle);
 
 // Starting and stopping VM

@@ -393,7 +393,7 @@ VmnetBridge::VmnetBridge(const std::string& physical_iface)
     std::tie(this->attachment, this->relay) = connect_relay(std::move(relay));
 }
 
-VmnetBridge::VmnetBridge(multipass::AvailabilityZone& zone)
+VmnetBridge::VmnetBridge(const multipass::AvailabilityZone& zone)
 {
     auto relay = std::make_unique<VmnetRelay>();
     start_vmnet_interface(*relay, zone.get_subnet());

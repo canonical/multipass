@@ -32,7 +32,7 @@ using VmnetRelayHandle = std::shared_ptr<void>;
 struct VmnetBridge
 {
     explicit VmnetBridge(const std::string& physical_iface);
-    explicit VmnetBridge(multipass::AvailabilityZone& zone);
+    explicit VmnetBridge(const multipass::AvailabilityZone& zone);
 
     VZFileHandleNetworkDeviceAttachment* attachment;
     VmnetRelayHandle relay;
