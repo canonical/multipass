@@ -270,16 +270,16 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_cpp_tests mock_process)
 
-add_executable(qemu-img
+add_executable(mock-qemu-img
   qemu/mock_qemuimg.cpp)
 
-set_target_properties(qemu-img
+set_target_properties(mock-qemu-img
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_dependencies(multipass_cpp_tests qemu-img)
+add_dependencies(multipass_cpp_tests mock-qemu-img)
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)

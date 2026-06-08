@@ -49,6 +49,7 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
+#include <QCoreApplication>
 #include <boost/json.hpp>
 
 #include <thread>
@@ -177,6 +178,15 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         }
     };
 
+    auto expected_qemu_img_path()
+    {
+        return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
+    }
+    auto expected_qemu_system_prefix()
+    {
+        return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-system-");
+    }
+
     mpt::MockLogger::Scope logger_scope{mpt::MockLogger::inject()};
 
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
@@ -275,9 +285,9 @@ TEST_F(QemuBackend, QMPErrorGetsLogged)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    process_factory->register_callback([](mpt::MockProcess* process) {
+    process_factory->register_callback([this](mpt::MockProcess* process) {
         if (process->program().startsWith(
-                "qemu-system-")) // we only care about the actual vm process
+                expected_qemu_system_prefix())) // we only care about the actual vm process
         {
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
                 auto json = boost::json::parse(std::string_view(data));
@@ -389,7 +399,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
 {
     mpt::MockProcess* vmproc = nullptr;
     process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+        if (process->program().contains("qemu-system-") &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -408,7 +418,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     machine->start();
     ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread{[&machine, vmproc] {
+    mp::AutoJoinThread thread{[&machine, &vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
         machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
     }};
@@ -429,8 +439,8 @@ TEST_F(QemuBackend, throwsOnShutdownTimeout)
     static const std::string sub_error_msg2{"seconds after being shutdown"};
 
     mpt::MockProcess* vmproc = nullptr;
-    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -467,8 +477,8 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
 {
     constexpr auto error_msg = "failing spectacularly";
     mpt::MockProcess* vmproc = nullptr;
-    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -611,8 +621,8 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
 TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 {
     mpt::MockProcess* vmproc = nullptr;
-    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -710,7 +720,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes =
         process_factory->process_list();
     EXPECT_FALSE(processes.empty());
-    EXPECT_TRUE(processes.back().command == "qemu-img" &&
+    EXPECT_TRUE(processes.back().command == expected_qemu_img_path() &&
                 processes.back().arguments.contains("-d") &&
                 processes.back().arguments.contains(suspend_tag));
 }
@@ -773,7 +783,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes =
         process_factory->process_list();
     EXPECT_FALSE(processes.empty());
-    EXPECT_TRUE(processes.back().command == "qemu-img" &&
+    EXPECT_TRUE(processes.back().command == expected_qemu_img_path() &&
                 processes.back().arguments.contains("-d") &&
                 processes.back().arguments.contains(suspend_tag));
 }
@@ -794,14 +804,15 @@ TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
     auto processes = factory->process_list();
     EXPECT_TRUE(std::find_if(processes.cbegin(),
                              processes.cend(),
-                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command == "qemu-img";
+                             [this](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command == expected_qemu_img_path();
                              }) != processes.cend());
 
     EXPECT_TRUE(std::find_if(processes.cbegin(),
                              processes.cend(),
-                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
+                             [this](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
                              }) != processes.cend());
 }
 
@@ -812,8 +823,8 @@ TEST_F(QemuBackend, verifySomeCommonQemuArguments)
     });
 
     mpt::MockProcess* qemu = nullptr;
-    process_factory->register_callback([&qemu](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &qemu](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -853,11 +864,12 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
-                             });
+    auto qemu =
+        std::find_if(processes.cbegin(),
+                     processes.cend(),
+                     [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                         return process_info.command.startsWith(expected_qemu_system_prefix());
+                     });
 
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-loadvm"));
@@ -885,14 +897,15 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
-                             });
+    auto qemu =
+        std::find_if(processes.cbegin(),
+                     processes.cend(),
+                     [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                         return process_info.command.startsWith(expected_qemu_system_prefix());
+                     });
 
     ASSERT_TRUE(qemu != processes.cend());
-    ASSERT_TRUE(qemu->command.startsWith("qemu-system-"));
+    ASSERT_TRUE(qemu->command.startsWith(expected_qemu_system_prefix()));
     EXPECT_TRUE(qemu->arguments.contains("-machine"));
     EXPECT_TRUE(qemu->arguments.contains(machine_type));
 }
@@ -929,11 +942,12 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
-                             });
+    auto qemu =
+        std::find_if(processes.cbegin(),
+                     processes.cend(),
+                     [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                         return process_info.command.startsWith(expected_qemu_system_prefix());
+                     });
 
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-hi_there"));
@@ -1361,9 +1375,10 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     const auto lastProcessInfo = processes.back();
     const auto last2ndProcessInfo = processes[processes.size() - 2];
 
-    EXPECT_TRUE(lastProcessInfo.command == "qemu-img" && lastProcessInfo.arguments.contains("-d") &&
+    EXPECT_TRUE(lastProcessInfo.command == expected_qemu_img_path() &&
+                lastProcessInfo.arguments.contains("-d") &&
                 lastProcessInfo.arguments.contains("@s3"));
-    EXPECT_TRUE(last2ndProcessInfo.command == "qemu-img" &&
+    EXPECT_TRUE(last2ndProcessInfo.command == expected_qemu_img_path() &&
                 last2ndProcessInfo.arguments.contains("-d") &&
                 last2ndProcessInfo.arguments.contains("@s2"));
 }
