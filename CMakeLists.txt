@@ -358,7 +358,10 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
       set(GENHTML_SOURCE_ARGS --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui)
     else()
       set(FLUTTER_COVERAGE_COMMANDS
-        COMMAND ${CMAKE_COMMAND} -E copy coverage.cleaned total_coverage.info
+        COMMAND ${LCOV}
+          --add-tracefile coverage.cleaned
+          --add-tracefile lcov.info
+          --output-file total_coverage.info
       )
       set(GENHTML_SOURCE_ARGS)
     endif()
