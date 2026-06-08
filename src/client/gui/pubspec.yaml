@@ -51,7 +51,7 @@ dependencies:
       ref: 6c66ad2
   xterm:
     git:
-      url: https://github.com/levkropp/xterm.dart
+      url: https://github.com/canonical/xterm.dart
       ref: 4.0.0+mp
 
 dependency_overrides:
