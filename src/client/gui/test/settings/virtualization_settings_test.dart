@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/settings/virtualization_settings.dart';
+
+final _l10n = AppLocalizationsEn();
 
 Widget _buildApp({
   String driver = 'qemu',
@@ -18,7 +21,6 @@ Widget _buildApp({
       networksProvider.overrideWith((_) async => BuiltSet<String>(networks)),
     ],
     child: MaterialApp(
-      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: const Scaffold(
@@ -34,14 +36,14 @@ void main() {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Virtualization'), findsOneWidget);
+      expect(find.text(_l10n.virtualizationTitle), findsOneWidget);
     });
 
     testWidgets('shows the Driver label and dropdown', (tester) async {
       await tester.pumpWidget(_buildApp(driver: 'qemu'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Driver'), findsOneWidget);
+      expect(find.text(_l10n.virtualizationDriverLabel), findsOneWidget);
       expect(find.byType(DropdownButton<String>), findsOneWidget);
     });
 
@@ -50,7 +52,7 @@ void main() {
       await tester.pumpWidget(_buildApp(networks: {}));
       await tester.pumpAndSettle();
 
-      expect(find.text('Bridged network'), findsNothing);
+      expect(find.text(_l10n.bridgeTitle), findsNothing);
       expect(find.byType(DropdownButton<String>), findsOneWidget);
     });
 
@@ -59,7 +61,7 @@ void main() {
       await tester.pumpWidget(_buildApp(networks: {'eth0', 'en0'}));
       await tester.pumpAndSettle();
 
-      expect(find.text('Bridged network'), findsOneWidget);
+      expect(find.text(_l10n.bridgeTitle), findsOneWidget);
       // 2 = driver dropdown + bridged network dropdown
       expect(find.byType(DropdownButton<String>), findsNWidgets(2));
     });
@@ -73,7 +75,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('None'), findsOneWidget);
+      expect(find.text(_l10n.virtualizationBridgedNetworkNone), findsOneWidget);
     });
   });
 }
