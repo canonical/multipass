@@ -89,7 +89,6 @@ public:
     [[nodiscard]] virtual std::filesystem::path qstr_to_path(const QString& qstr) const;
     [[nodiscard]] virtual QString path_to_qstr(const std::filesystem::path& path) const;
 
-    virtual size_t get_maximum_path_length(const std::filesystem::path& target_dir) const;
     virtual size_t get_maximum_file_name_length(const std::filesystem::path& target_dir) const;
 };
 

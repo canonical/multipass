@@ -1366,24 +1366,6 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
     return QString::fromStdWString(path.generic_wstring());
 }
 
-size_t mp::platform::Platform::get_maximum_path_length(
-    const std::filesystem::path& target_dir) const
-{
-    const auto ws = target_dir.wstring();
-    const bool has_extended_prefix = ws.starts_with(L"\\\\?\\");
-
-    if (has_extended_prefix)
-    {
-        return 32767u;
-    }
-
-#ifdef MAX_PATH
-    return static_cast<size_t>(MAX_PATH);
-#else
-    return 260u;
-#endif
-}
-
 size_t mp::platform::Platform::get_maximum_file_name_length(
     const std::filesystem::path& target_dir) const
 {
