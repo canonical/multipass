@@ -281,23 +281,6 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
     return QString::fromStdString(path.generic_string());
 }
 
-size_t mp::platform::Platform::get_maximum_path_length(
-    const std::filesystem::path& target_dir) const
-{
-    auto result = pathconf(target_dir.c_str(), _PC_PATH_MAX);
-
-    if (result > 0)
-    {
-        return static_cast<size_t>(result);
-    }
-
-#ifdef PATH_MAX
-    return static_cast<size_t>(PATH_MAX);
-#else
-    return 4096u;
-#endif
-}
-
 size_t mp::platform::Platform::get_maximum_file_name_length(
     const std::filesystem::path& target_dir) const
 {
