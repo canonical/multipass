@@ -6,7 +6,6 @@ import 'package:multipass_gui/vm_details/memory_slider.dart';
 
 Widget buildWidget({int? initialValue, FormFieldSetter<int>? onSaved}) {
   return MaterialApp(
-    locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(

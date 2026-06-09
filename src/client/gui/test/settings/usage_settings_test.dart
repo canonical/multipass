@@ -10,7 +10,6 @@ final _l10n = AppLocalizationsEn();
 
 Widget _buildApp(Widget child) {
   return MaterialApp(
-    locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: child),
