@@ -1520,10 +1520,10 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, stayed), _, _, _, _))
+    EXPECT_CALL(*mock_image_vault, fetch_image(Field(&mp::Query::name, stayed), _, _, _, _))
         .WillRepeatedly(
             DoDefault()); // returns an image that can be verified to exist for this instance
-    EXPECT_CALL(*mock_image_vault, fetch_image(_, Field(&mp::Query::name, gone), _, _, _, _))
+    EXPECT_CALL(*mock_image_vault, fetch_image(Field(&mp::Query::name, gone), _, _, _, _))
         .WillOnce(Return(
             mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})); // an image that can't be
                                                                        // verified to exist for

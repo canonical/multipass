@@ -283,8 +283,7 @@ auto fetch_image_for(const std::string& name,
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(factory.fetch_type(),
-                             query,
+    return vault.fetch_image(query,
                              stub_prepare,
                              stub_progress,
                              std::nullopt,
@@ -1470,9 +1469,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
                 try
                 {
-                    config->vault->update_images(config->factory->fetch_type(),
-                                                 prepare_action,
-                                                 download_monitor);
+                    config->vault->update_images(prepare_action, download_monitor);
                 }
                 catch (const std::exception& e)
                 {
@@ -3350,19 +3347,16 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 return config->factory->prepare_source_image(source_image);
             };
 
-            auto fetch_type = config->factory->fetch_type();
-
             std::optional<std::string> checksum;
             if (!vm_desc.image.id.empty())
                 checksum = vm_desc.image.id;
 
-            auto vm_image =
-                config->vault->fetch_image(fetch_type,
-                                           query,
-                                           prepare_action,
-                                           progress_monitor,
-                                           checksum,
-                                           config->factory->get_instance_directory(name));
+            auto vm_image = config->vault->fetch_image(
+                query,
+                prepare_action,
+                progress_monitor,
+                checksum,
+                config->factory->get_instance_directory(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
