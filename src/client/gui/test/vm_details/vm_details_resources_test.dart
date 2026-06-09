@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_details/vm_details_resources.dart';
 
 const _vmName = 'test-vm';
+
+final _l10n = AppLocalizationsEn();
 
 Widget _buildApp({Status status = Status.STOPPED}) {
   final vmInfo = DetailedInfoItem(
@@ -32,7 +35,6 @@ Widget _buildApp({Status status = Status.STOPPED}) {
       ),
     ],
     child: MaterialApp(
-      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -51,14 +53,14 @@ void main() {
       await tester.pumpWidget(_buildApp());
       await tester.pump();
 
-      expect(find.text('Resources'), findsOneWidget);
+      expect(find.text(_l10n.resourcesTitle), findsOneWidget);
     });
 
     testWidgets('shows CPUs value from provider data', (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pump();
 
-      expect(find.text('CPUs 4'), findsOneWidget);
+      expect(find.text(_l10n.resourcesCpusDisplay('4')), findsOneWidget);
     });
 
     testWidgets('shows "…" placeholders while memory and disk are loading',
@@ -75,7 +77,7 @@ void main() {
       await tester.pump();
 
       final button = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Configure'),
+        find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
       );
       expect(button.onPressed, isNotNull);
     });
@@ -86,7 +88,7 @@ void main() {
       await tester.pump();
 
       final button = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Configure'),
+        find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
       );
       expect(button.onPressed, isNull);
     });

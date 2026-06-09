@@ -3,10 +3,13 @@ import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_details/vm_details_bridge.dart';
 
 const _vmName = 'test-vm';
+
+final _l10n = AppLocalizationsEn();
 
 Widget _buildApp({
   Status status = Status.STOPPED,
@@ -34,7 +37,6 @@ Widget _buildApp({
       ),
     ],
     child: MaterialApp(
-      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -56,7 +58,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('not connected', findRichText: true),
+      expect(
+          find.textContaining(_l10n.bridgeStatusNotConnected,
+              findRichText: true),
           findsOneWidget);
     });
 
@@ -67,7 +71,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Status: connected'),
+        find.text(_l10n.bridgeStatusConnected),
         findsOneWidget,
       );
     });
@@ -80,7 +84,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final button = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Configure'),
+        find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
       );
       expect(button.onPressed, isNull);
     });
@@ -89,7 +93,8 @@ void main() {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Bridge', findRichText: true), findsOneWidget);
+      expect(find.textContaining(_l10n.bridgeTitle, findRichText: true),
+          findsOneWidget);
     });
 
     testWidgets('tapping Configure enters editing mode', (tester) async {
@@ -103,12 +108,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Configure'));
+      await tester
+          .tap(find.widgetWithText(OutlinedButton, _l10n.commonConfigure));
       await tester.pumpAndSettle();
 
       // In editing mode, Cancel button is shown instead of Configure
-      expect(find.widgetWithText(OutlinedButton, 'Cancel'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'Configure'), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, _l10n.commonCancel),
+          findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
+          findsNothing);
     });
 
     testWidgets('Cancel button exits editing mode', (tester) async {
@@ -122,14 +130,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Configure'));
+      await tester
+          .tap(find.widgetWithText(OutlinedButton, _l10n.commonConfigure));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel'));
+      await tester.tap(find.widgetWithText(OutlinedButton, _l10n.commonCancel));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(OutlinedButton, 'Configure'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'Cancel'), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
+          findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, _l10n.commonCancel),
+          findsNothing);
     });
   });
 }
