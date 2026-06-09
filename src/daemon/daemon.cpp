@@ -2988,6 +2988,7 @@ try
 
     response.set_cpus(MP_PLATFORM.get_cpus());
     response.set_memory(MP_PLATFORM.get_total_ram());
+    response.set_max_instance_name_len(MP_UTILS.max_instance_name_length(config->data_directory));
 
     server->Write(response);
     status_promise->set_value(grpc::Status{});
