@@ -76,6 +76,6 @@ Sample output:
 
 ```{code-block} text
 Name                    State             IPv4             Image
-calm-chimaera           Running           10.122.139.63    Ubuntu 19.04 LTS
-first                   Stopped           --               Ubuntu 18.04 LTS
+calm-chimaera           Running           10.122.139.63    Ubuntu 26.04 LTS
+first                   Stopped           --               Ubuntu 26.04 LTS
 ```
