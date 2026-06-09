@@ -306,6 +306,10 @@
     "@usagePrimaryNameErrorTooShort": {
         "description": "Validation error when the primary instance name is too short"
     },
+    "usagePrimaryNameErrorTooLong": "Name too long",
+    "@usagePrimaryNameErrorTooLong": {
+        "description": "Validation error when the primary instance name is too long"
+    },
     "usagePrimaryNameErrorEndChar": "Name must end in digit or letter",
     "@usagePrimaryNameErrorEndChar": {
         "description": "Validation error when the primary instance name ends with a hyphen"
