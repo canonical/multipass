@@ -16,18 +16,21 @@ To create an instance with Multipass, run the command `multipass launch`. This l
 Launched: keen-yak
 ```
 
-In particular, when we run `multipass info keen-yak`, we find out that it is an Ubuntu LTS release, namely 18.04, with 1GB RAM, 1 CPU, 5GB of disk:
+In particular, when we run `multipass info keen-yak`, we find out that it is an Ubuntu LTS release, with 1GB RAM, 1 CPU, 5GB of disk:
 
 ```{code-block} text
 Name:           keen-yak
-State:          RUNNING
-IPv4:           10.140.94.253
-Release:        Ubuntu 18.04.1 LTS
-Image hash:     d53116c67a41 (Ubuntu 18.04 LTS)
+State:          Running
+Zone:           zone1(a)
+Snapshots:      0
+IPv4:           10.97.0.76
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
 CPU(s):         1
-Load:           0.00 0.12 0.18
-Disk usage:     1.1G out of 4.7G
-Memory usage:   71.6M out of 985.4M
+Load:           0.16 0.09 0.08
+Disk usage:     2.2GiB out of 4.8GiB
+Memory usage:   169.8MiB out of 950.4MiB
+Mounts:         --
 ```
 
 ## Create an instance with a specific image
