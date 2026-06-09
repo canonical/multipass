@@ -108,7 +108,6 @@ void main() {
           isLaunchingProvider.overrideWith((ref, _) => isLaunching),
         ],
         child: MaterialApp(
-          locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(body: GeneralDetails('test-vm')),

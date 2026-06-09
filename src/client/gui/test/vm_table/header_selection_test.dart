@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/vm_table/header_selection.dart';
 import 'package:multipass_gui/vm_table/vm_table_headers.dart';
 
 import '../helpers.dart';
+
+final _l10n = AppLocalizationsEn();
 
 void main() {
   group('HeaderSelectionTile', () {
@@ -13,7 +16,6 @@ void main() {
       return withFakeSvgAssetBundle(
         ProviderScope(
           child: MaterialApp(
-            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(body: HeaderSelectionTile(name, name)),
@@ -39,7 +41,6 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
@@ -67,7 +68,6 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
@@ -111,7 +111,6 @@ void main() {
       return withFakeSvgAssetBundle(
         ProviderScope(
           child: MaterialApp(
-            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(body: Center(child: HeaderSelection())),
@@ -124,7 +123,7 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Columns'), findsOneWidget);
+      expect(find.text(_l10n.vmTableColumnsButton), findsOneWidget);
     });
 
     testWidgets('renders a PopupMenuButton', (tester) async {
