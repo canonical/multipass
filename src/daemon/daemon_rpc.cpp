@@ -386,8 +386,8 @@ grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context,
 }
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context,
-                                 const PingRequest* request,
-                                 PingReply* server)
+                                 const PingRequest* /*request*/,
+                                 PingReply* /*server*/)
 {
     auto client_cert = client_cert_from(context);
 

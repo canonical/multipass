@@ -51,7 +51,7 @@ mp::ReturnCodeVariant cmd::WaitReady::run(mp::ArgParser* parser)
         timer->start();
     }
 
-    auto on_success = [&spinner, &timer](WaitReadyReply& reply) -> ReturnCodeVariant {
+    auto on_success = [&spinner, &timer](WaitReadyReply&) -> ReturnCodeVariant {
         if (timer)
             timer->stop();
         spinner.stop();

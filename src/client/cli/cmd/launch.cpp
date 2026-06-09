@@ -633,8 +633,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
     };
 
     auto streaming_callback =
-        [this](mp::LaunchReply& reply,
-               grpc::ClientReaderWriterInterface<LaunchRequest, LaunchReply>* client) {
+        [this](LaunchReply& reply, grpc::ClientReaderWriterInterface<LaunchRequest, LaunchReply>*) {
             std::unordered_map<int, std::string> progress_messages{
                 {LaunchProgress_ProgressTypes_IMAGE, "Retrieving image: "},
                 {LaunchProgress_ProgressTypes_EXTRACT, "Extracting image: "},
