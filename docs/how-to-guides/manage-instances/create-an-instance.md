@@ -67,14 +67,15 @@ Launched: tenacious-mink
 ```{code-block} text
 Name:           tenacious-mink
 State:          Running
+Zone:           zone1(a)
 Snapshots:      0
-IPv4:           192.168.64.22
-Release:        Ubuntu 22.04.5 LTS
-Image hash:     e898c1c93b32 (Ubuntu 22.04 LTS)
+IPv4:           10.97.0.76
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
 CPU(s):         1
-Load:           0.00 0.02 0.01
-Disk usage:     1.6GiB out of 4.8GiB
-Memory usage:   149.5MiB out of 962.2MiB
+Load:           0.16 0.09 0.08
+Disk usage:     2.2GiB out of 4.8GiB
+Memory usage:   169.8MiB out of 950.4MiB
 Mounts:         --
 ```
 

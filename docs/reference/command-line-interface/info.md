@@ -47,25 +47,28 @@ For example, the command `multipass info --format yaml calm-squirrel` produces t
 errors:
   - ~
 calm-squirrel:
-  - state: RUNNING
-    snapshot_count: 2
-    image_hash: 2461b36d86ac524e755c56e25cdc1537c92aec8bac6d3e1795fa92b105beba2f
-    image_release: 22.04 LTS
-    release: Ubuntu 22.04.3 LTS
+  - state: Running
+    zone:
+      name: zone1
+      available: true
+    snapshot_count: 0
+    image_hash: dced94c031cc1f23dee14419a3723a5b110df9938de0ac31913a2bfd07c755b4
+    image_release: 26.04 LTS
+    release: Ubuntu 26.04 LTS
     cpu_count: 1
     load:
-      - 0.00
-      - 0.01
-      - 0.00
+      - 0.04
+      - 0.06
+      - 0.06
     disks:
       - sda1:
-          used: 905637888
-          total: 5136297984
+          used: 2402924032
+          total: 5120138752
     memory:
-      usage: 31199232
-      total: 1040195584
+      usage: 178364416
+      total: 996544512
     ipv4:
-      - 10.218.69.109
+      - 10.97.0.76
     mounts: ~
 ```
 
