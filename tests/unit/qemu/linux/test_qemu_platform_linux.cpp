@@ -233,7 +233,7 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
     vm_desc.default_mac_address = vswitch.hw_addr;
     vm_desc.extra_interfaces = {extra_interface};
 
-    QString tap_name;
+    QStringList saved_opts;
 
     EXPECT_CALL(*mock_dnsmasq_server, release_mac(vswitch.hw_addr, vswitch.bridge_name))
         .WillOnce(Return());
@@ -244,10 +244,7 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
             QString("ip"),
             ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))),
             _))
-        .WillOnce([&tap_name](auto& cmd, auto& opts, auto...) {
-            tap_name = opts.last();
-            return false;
-        });
+        .WillOnce(DoAll(SaveArg<1>(&saved_opts), Return(false)));
 
     mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
 
@@ -288,7 +285,7 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
         // clang-format on
         "-nic",
         QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model={},mac={}",
-                                           tap_name,
+                                           saved_opts.last(),
                                            network_interface,
                                            vm_desc.default_mac_address)),
         "-nic",
@@ -302,12 +299,12 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
 
     EXPECT_CALL(*mock_utils,
                 run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("addr"), QString("show"), tap_name),
+                                   ElementsAre(QString("addr"), QString("show"), saved_opts.last()),
                                    _))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_utils,
                 run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("link"), QString("delete"), tap_name),
+                                   ElementsAre(QString("link"), QString("delete"), saved_opts.last()),
                                    _))
         .WillOnce(Return(true));
 
@@ -325,7 +322,7 @@ TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
     vm_desc.default_mac_address = vswitch.hw_addr;
     vm_desc.extra_interfaces = {extra_interface};
 
-    QString tap_name;
+    QStringList saved_opts;
 
     EXPECT_CALL(
         *mock_utils,
@@ -333,10 +330,7 @@ TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
             QString("ip"),
             ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))),
             _))
-        .WillOnce([&tap_name](auto& cmd, auto& opts, auto...) {
-            tap_name = opts.last();
-            return false;
-        });
+        .WillOnce(DoAll(SaveArg<1>(&saved_opts), Return(false)));
 
     mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
 
@@ -344,12 +338,12 @@ TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
 
     EXPECT_CALL(*mock_utils,
                 run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("addr"), QString("show"), tap_name),
+                                   ElementsAre(QString("addr"), QString("show"), saved_opts.last()),
                                    _))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_utils,
                 run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("link"), QString("delete"), tap_name),
+                                   ElementsAre(QString("link"), QString("delete"), saved_opts.last()),
                                    _))
         .WillOnce(Return(true));
 }
