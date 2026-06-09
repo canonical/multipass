@@ -511,14 +511,14 @@ TEST_F(BaseVM, providesSnapshotsView)
 
     {
         // Select nothing
-        auto snapshots = vm.view_snapshots([&](const auto& snapshot) { return false; });
+        auto snapshots = vm.view_snapshots([&](const auto&) { return false; });
 
         EXPECT_THAT(snapshots, SizeIs(0));
     }
 
     {
         // Select everything
-        auto snapshots = vm.view_snapshots([&](const auto& snapshot) { return true; });
+        auto snapshots = vm.view_snapshots([&](const auto&) { return true; });
 
         EXPECT_THAT(snapshots, SizeIs(4));
     }
