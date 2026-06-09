@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_table/no_vms.dart';
@@ -9,10 +8,6 @@ import 'package:multipass_gui/vm_table/vm_table_screen.dart';
 import 'package:multipass_gui/vm_table/vms.dart';
 
 import '../helpers.dart';
-
-class _FakeGrpcClient extends GrpcClient {
-  _FakeGrpcClient() : super(RpcClient(ClientChannel('localhost')));
-}
 
 class _StaticVmInfosNotifier extends AllVmInfosNotifier {
   _StaticVmInfosNotifier(this._vms);
@@ -26,7 +21,7 @@ Widget _buildScreen({List<DetailedInfoItem> vms = const []}) {
   return withFakeSvgAssetBundle(
     ProviderScope(
       overrides: [
-        grpcClientProvider.overrideWithValue(_FakeGrpcClient()),
+        grpcClientProvider.overrideWithValue(FakeGrpcClient()),
         allVmInfosProvider.overrideWith(() => _StaticVmInfosNotifier(vms)),
       ],
       child: MaterialApp(
