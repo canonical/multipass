@@ -7,21 +7,17 @@ For example, `multipass info calm-squirrel`:
 
 ```{code-block} text
 Name:           calm-squirrel
-State:          RUNNING
-Snapshots:      2
-IPv4:           10.218.69.109
-Release:        Ubuntu 16.04.6 LTS
-Image hash:     2461b36d86ac (Ubuntu 22.04 LTS)
+State:          Running
+Zone:           zone1(a)
+Snapshots:      0
+IPv4:           10.97.0.76
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
 CPU(s):         1
-Load:           0.49, 0.70, 0.71
-Disk usage:     849.4M out of 4.8G
-Memory usage:   41.9M out of 992.0M
-Mounts:         /home/user => Home
-                    UID map: 1000:default
-                    GID map: 1001:default
-                /home/user/multipass => mp
-                    UID map: 1000:default
-                    GID map: 1001:default
+Load:           0.16 0.09 0.08
+Disk usage:     2.2GiB out of 4.8GiB
+Memory usage:   169.8MiB out of 950.4MiB
+Mounts:         --
 ```
 
 or, in case of a snapshot, `multipass info relative-lion.snapshot3`:
