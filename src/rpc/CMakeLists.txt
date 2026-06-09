@@ -43,4 +43,4 @@ protobuf_generate(
 # Mark the generated folder  as SYSTEM so the linters and other
 # tooling won't complain.
 target_include_directories(rpc SYSTEM PUBLIC ${GRPC_GENERATED_SOURCE_DIR})
-target_link_libraries(rpc gRPC)
+target_link_libraries(rpc PRIVATE gRPC)
