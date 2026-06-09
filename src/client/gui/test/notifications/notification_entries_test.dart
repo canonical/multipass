@@ -7,10 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/notifications/notification_entries.dart';
 import 'package:multipass_gui/notifications/notifications_list.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/sidebar.dart';
+
+final _l10n = AppLocalizationsEn();
 
 Widget buildWidget(Widget child) {
   return MaterialApp(home: Scaffold(body: child));
@@ -275,7 +278,6 @@ void main() {
           vmNamesProvider.overrideWith((ref) => BuiltSet<String>()),
         ],
         child: MaterialApp(
-          locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: child),
@@ -339,7 +341,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SuccessNotification), findsOneWidget);
-      expect(find.text('Go to instance'), findsOneWidget);
+      expect(find.text(_l10n.launchGoToInstance), findsOneWidget);
     });
 
     testWidgets(
@@ -357,7 +359,6 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp(
-            locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
@@ -373,7 +374,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Go to instance'));
+      await tester.tap(find.text(_l10n.launchGoToInstance));
       expect(container.read(sidebarKeyProvider), equals('vm-my-vm'));
     });
 
@@ -398,8 +399,8 @@ void main() {
       )));
       await tester.pump();
 
-      expect(find.textContaining('Verifying image'), findsOneWidget);
-      expect(find.text('Cancel'), findsNothing);
+      expect(find.textContaining(_l10n.launchVerifyingImage), findsOneWidget);
+      expect(find.text(_l10n.commonCancel), findsNothing);
     });
 
     testWidgets('download progress shows percentage and cancel button',
@@ -425,7 +426,7 @@ void main() {
       await tester.pump();
 
       expect(find.textContaining('42'), findsOneWidget);
-      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text(_l10n.commonCancel), findsOneWidget);
     });
 
     testWidgets('tapping cancel button completes cancelCompleter',
@@ -451,7 +452,7 @@ void main() {
       )));
       await tester.pump();
 
-      await tester.tap(find.text('Cancel'));
+      await tester.tap(find.text(_l10n.commonCancel));
       await tester.pump();
 
       expect(cancelCompleter.isCompleted, isTrue);

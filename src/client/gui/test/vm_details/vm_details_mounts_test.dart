@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart' show vmInfoProvider;
 import 'package:multipass_gui/vm_details/vm_details_mounts.dart';
+
+final _l10n = AppLocalizationsEn();
 
 Widget _buildApp({
   required Widget child,
@@ -17,7 +20,6 @@ Widget _buildApp({
       vmInfoProvider(vmName).overrideWithBuild((ref, _) => vmInfo),
     ],
     child: MaterialApp(
-      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -50,7 +52,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Add mount'), findsOneWidget);
+      expect(find.text(_l10n.mountsAddMount), findsOneWidget);
     });
 
     testWidgets('does not show Configure button', (tester) async {
@@ -62,7 +64,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Configure'), findsNothing);
+      expect(find.text(_l10n.commonConfigure), findsNothing);
     });
 
     testWidgets('shows Mounts title', (tester) async {
@@ -74,7 +76,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Mounts'), findsOneWidget);
+      expect(find.text(_l10n.mountsTitle), findsOneWidget);
     });
   });
 
@@ -93,7 +95,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Configure'), findsOneWidget);
+      expect(find.text(_l10n.commonConfigure), findsOneWidget);
     });
 
     testWidgets('does not show Add Mount button initially', (tester) async {
@@ -105,7 +107,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Add mount'), findsNothing);
+      expect(find.text(_l10n.mountsAddMount), findsNothing);
     });
 
     testWidgets('source path is displayed', (tester) async {
@@ -152,8 +154,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('HOST DIRECTORY'), findsOneWidget);
-      expect(find.text('GUEST DIRECTORY'), findsOneWidget);
+      expect(find.text(_l10n.mountHostDirLabel), findsOneWidget);
+      expect(find.text(_l10n.mountGuestDirLabel), findsOneWidget);
     });
   });
 
@@ -173,17 +175,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Configure'));
+      await tester.tap(find.text(_l10n.commonConfigure));
       await tester.pumpAndSettle();
 
-      expect(find.text('Cancel'), findsOneWidget);
-      expect(find.text('Configure'), findsNothing);
+      expect(find.text(_l10n.commonCancel), findsOneWidget);
+      expect(find.text(_l10n.commonConfigure), findsNothing);
 
-      await tester.tap(find.text('Cancel'));
+      await tester.tap(find.text(_l10n.commonCancel));
       await tester.pumpAndSettle();
 
-      expect(find.text('Configure'), findsOneWidget);
-      expect(find.text('Cancel'), findsNothing);
+      expect(find.text(_l10n.commonConfigure), findsOneWidget);
+      expect(find.text(_l10n.commonCancel), findsNothing);
     });
 
     testWidgets('tapping Configure shows Add Mount button', (tester) async {
@@ -200,10 +202,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Configure'));
+      await tester.tap(find.text(_l10n.commonConfigure));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add mount'), findsOneWidget);
+      expect(find.text(_l10n.mountsAddMount), findsOneWidget);
     });
   });
 }

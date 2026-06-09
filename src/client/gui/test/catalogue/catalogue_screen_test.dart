@@ -6,13 +6,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/catalogue/catalogue.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 
 import '../helpers.dart';
+
+final _l10n = AppLocalizationsEn();
 
 Widget _scope(Widget child) {
   return withFakeSvgAssetBundle(
     MaterialApp(
-      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: child,
@@ -71,7 +73,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Refresh'), findsOneWidget);
+      expect(find.text(_l10n.catalogueRefresh), findsOneWidget);
     });
 
     testWidgets('shows the welcome title when images are successfully loaded',
@@ -86,7 +88,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Welcome to Multipass'), findsOneWidget);
+      expect(find.text(_l10n.catalogueWelcomeTitle), findsOneWidget);
     });
   });
 }

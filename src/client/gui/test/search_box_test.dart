@@ -9,7 +9,6 @@ void main() {
     Widget buildApp({required Widget child}) {
       return ProviderScope(
         child: MaterialApp(
-          locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: child),
