@@ -34,8 +34,7 @@ Learn the complete lifecycle of a virtual machine.
 
 - **Instance management:** [Create an instance](how-to-guides-manage-instances-create-an-instance) • [Use an instance](how-to-guides-manage-instances-use-an-instance) • [Modify an instance](how-to-guides-manage-instances-modify-an-instance)  • [Use the primary instance](how-to-guides-manage-instances-use-the-primary-instance) • [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases) • [Remove an instance](how-to-guides-manage-instances-remove-an-instance)
 
-- **Instance customization:** [`cloud-init`](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init) • [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer) • [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface) •
-[Run a Docker container in Multipass](how-to-guides-manage-instances-run-a-docker-container-in-multipass)
+- **Instance customization:** [`cloud-init`](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init) • [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer) • [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface)
 
 - **Interfaces (CLI/GUI):** [Command-line interface](reference-command-line-interface-index) • [GUI client](reference-gui-client) • [Use a different terminal from the system icon](how-to-guides-customise-multipass-use-a-different-terminal-from-the-system-icon) • [How to integrate with Windows Terminal](how-to-guides-customise-multipass-integrate-with-windows-terminal)
 
