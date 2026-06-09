@@ -37,11 +37,11 @@ struct PublicMountHandler : public mp::MountHandler
     {
     }
 
-    void activate_impl(mp::ServerVariant server, std::chrono::milliseconds timeout) override
+    void activate_impl(mp::ServerVariant, std::chrono::milliseconds) override
     {
     }
 
-    void deactivate_impl(bool force) override
+    void deactivate_impl(bool) override
     {
     }
 };

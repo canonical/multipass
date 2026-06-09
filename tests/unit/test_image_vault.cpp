@@ -62,16 +62,16 @@ struct BadURLDownloader : public mp::URLDownloader
     BadURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
     {
     }
-    void download_to(const QUrl& url,
+    void download_to(const QUrl& /*url*/,
                      const QString& file_name,
-                     int64_t size,
-                     const int download_type,
+                     int64_t /*size*/,
+                     const int /*download_type*/,
                      const mp::ProgressMonitor&) override
     {
         mpt::make_file_with_content(file_name, "Bad hash");
     }
 
-    QByteArray download(const QUrl& url) override
+    QByteArray download(const QUrl& /*url*/) override
     {
         return {};
     }
@@ -84,8 +84,8 @@ struct HttpURLDownloader : public mp::URLDownloader
     }
     void download_to(const QUrl& url,
                      const QString& file_name,
-                     int64_t size,
-                     const int download_type,
+                     int64_t /*size*/,
+                     const int /*download_type*/,
                      const mp::ProgressMonitor&) override
     {
         mpt::make_file_with_content(file_name, "");
@@ -93,12 +93,12 @@ struct HttpURLDownloader : public mp::URLDownloader
         downloaded_files << file_name;
     }
 
-    QByteArray download(const QUrl& url) override
+    QByteArray download(const QUrl& /*url*/) override
     {
         return {};
     }
 
-    QDateTime last_modified(const QUrl& url) override
+    QDateTime last_modified(const QUrl& /*url*/) override
     {
         return default_last_modified;
     }
@@ -112,10 +112,10 @@ struct RunningURLDownloader : public mp::URLDownloader
     RunningURLDownloader() : mp::URLDownloader{std::chrono::seconds(10)}
     {
     }
-    void download_to(const QUrl& url,
-                     const QString& file_name,
-                     int64_t size,
-                     const int download_type,
+    void download_to(const QUrl& /*url*/,
+                     const QString& /*file_name*/,
+                     int64_t /*size*/,
+                     const int /*download_type*/,
                      const mp::ProgressMonitor&) override
     {
         while (!abort_downloads)
@@ -124,7 +124,7 @@ struct RunningURLDownloader : public mp::URLDownloader
         throw mp::AbortedDownloadException("Aborted!");
     }
 
-    QByteArray download(const QUrl& url) override
+    QByteArray download(const QUrl& /*url*/) override
     {
         return {};
     }

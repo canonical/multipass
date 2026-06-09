@@ -66,8 +66,8 @@ struct fmt::formatter<AngryTypeThatThrowsUnexpectedThings, Char>
     }
 
     template <typename FormatContext>
-    fmt::context::iterator format(const AngryTypeThatThrowsUnexpectedThings& api,
-                                  FormatContext& ctx) const
+    fmt::context::iterator format(const AngryTypeThatThrowsUnexpectedThings&,
+                                  FormatContext&) const
     {
         // What an unusual sight.
         throw int{5};

@@ -26,7 +26,7 @@ namespace test
 class StubCertStore : public CertStore
 {
 public:
-    void add_cert(const std::string& pem_cert) override
+    void add_cert(const std::string& /*pem_cert*/) override
     {
     }
 
@@ -35,7 +35,7 @@ public:
         return {};
     }
 
-    bool verify_cert(const std::string& pem_cert) override
+    bool verify_cert(const std::string& /*pem_cert*/) override
     {
         return true;
     }

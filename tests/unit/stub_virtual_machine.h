@@ -49,7 +49,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override
+    void shutdown(ShutdownPolicy = ShutdownPolicy::Powerdown) override
     {
     }
 
@@ -91,7 +91,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {IPAddress{"192.168.2.123"}};
     }
 
-    std::string ssh_exec(const std::string& cmd, bool whisper = false) override
+    std::string ssh_exec(const std::string& /*cmd*/, bool /*whisper*/ = false) override
     {
         return {};
     }
@@ -100,7 +100,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void wait_for_cloud_init(std::chrono::milliseconds timeout) override
+    void wait_for_cloud_init(std::chrono::milliseconds /*timeout*/) override
     {
     }
 
@@ -108,7 +108,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void update_cpus(int num_cores) override
+    void update_cpus(int /*num_cores*/) override
     {
     }
 
@@ -167,7 +167,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    void rename_snapshot(const std::string& old_name, const std::string& new_name) override
+    void rename_snapshot(const std::string& /*old_name*/, const std::string& /*new_name*/) override
     {
     }
 
@@ -175,7 +175,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void restore_snapshot(const std::string& name, VMSpecs& specs) override
+    void restore_snapshot(const std::string& /*name*/, VMSpecs& /*specs*/) override
     {
     }
 
