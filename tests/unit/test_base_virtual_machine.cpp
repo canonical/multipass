@@ -511,21 +511,21 @@ TEST_F(BaseVM, providesSnapshotsView)
 
     {
         // Select nothing
-        auto snapshots = vm.view_snapshots([&](const auto&) { return false; });
+        auto snapshots = vm.view_snapshots([](const auto&) { return false; });
 
         EXPECT_THAT(snapshots, SizeIs(0));
     }
 
     {
         // Select everything
-        auto snapshots = vm.view_snapshots([&](const auto&) { return true; });
+        auto snapshots = vm.view_snapshots([](const auto&) { return true; });
 
         EXPECT_THAT(snapshots, SizeIs(4));
     }
 
     {
         // Select index 2 and 5
-        auto snapshots = vm.view_snapshots([&](const multipass::Snapshot& snapshot) {
+        auto snapshots = vm.view_snapshots([](const multipass::Snapshot& snapshot) {
             return snapshot.get_index() == 2 || snapshot.get_index() == 5;
         });
 
