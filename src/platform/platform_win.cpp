@@ -1388,24 +1388,6 @@ void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
             throw std::system_error(err, std::system_category(), "Failed to shutdown socket");
 }
 
-size_t mp::platform::Platform::get_maximum_path_length(
-    const std::filesystem::path& target_dir) const
-{
-    const auto ws = target_dir.wstring();
-    const bool has_extended_prefix = ws.starts_with(L"\\\\?\\");
-
-    if (has_extended_prefix)
-    {
-        return 32767u;
-    }
-
-#ifdef MAX_PATH
-    return static_cast<size_t>(MAX_PATH);
-#else
-    return 260u;
-#endif
-}
-
 size_t mp::platform::Platform::get_maximum_file_name_length(
     const std::filesystem::path& target_dir) const
 {
