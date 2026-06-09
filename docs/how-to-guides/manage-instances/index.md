@@ -13,6 +13,7 @@ Multipass allows you to create Ubuntu instances with a single command. As your n
 - [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases)
 - [Share data with an instance](how-to-guides-manage-instances-share-data-with-an-instance)
 - [Remove an instance](how-to-guides-manage-instances-remove-an-instance)
+- [Create an instance with customized network](how-to-guides-set-up-custom-networking)
 - [Add a network to an existing instance](how-to-guides-manage-instances-add-a-network-to-an-existing-instance)
 - [Configure static IPs](how-to-guides-manage-instances-configure-static-ips)
 - {ref}`how-to-guides-manage-instances-use-a-blueprint`
@@ -33,6 +34,7 @@ use-the-primary-instance
 use-instance-command-aliases
 share-data-with-an-instance
 remove-an-instance
+set-up-custom-networking
 add-a-network-to-an-existing-instance
 configure-static-ips
 use-a-blueprint
