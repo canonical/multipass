@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/notifications/notifications_provider.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_table/bulk_actions.dart';
 import 'package:multipass_gui/vm_table/vms.dart';
 
 import '../helpers.dart' show FakeGrpcClient;
+
+final _l10n = AppLocalizationsEn();
 
 Widget _buildApp({
   required FakeGrpcClient client,
@@ -26,7 +29,6 @@ Widget _buildApp({
       ),
     ],
     child: MaterialApp(
-      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -76,7 +78,7 @@ void main() {
       await tester.pump();
 
       final start = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Start'),
+        find.widgetWithText(OutlinedButton, _l10n.vmActionLabel('start')),
       );
       expect(start.onPressed, isNotNull);
     });
@@ -90,7 +92,7 @@ void main() {
       await tester.pump();
 
       final start = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Start'),
+        find.widgetWithText(OutlinedButton, _l10n.vmActionLabel('start')),
       );
       expect(start.onPressed, isNull);
     });
@@ -104,7 +106,7 @@ void main() {
       await tester.pump();
 
       final stop = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Stop'),
+        find.widgetWithText(OutlinedButton, _l10n.vmActionLabel('stop')),
       );
       expect(stop.onPressed, isNotNull);
     });
@@ -119,7 +121,7 @@ void main() {
         await tester.pump();
 
         final delete = tester.widget<OutlinedButton>(
-          find.widgetWithText(OutlinedButton, 'Delete'),
+          find.widgetWithText(OutlinedButton, _l10n.vmActionLabel('delete')),
         );
         expect(delete.onPressed, isNotNull);
       });
@@ -134,7 +136,7 @@ void main() {
       await tester.pump();
 
       final delete = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Delete'),
+        find.widgetWithText(OutlinedButton, _l10n.vmActionLabel('delete')),
       );
       expect(delete.onPressed, isNull);
     });
@@ -148,7 +150,8 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Start'));
+      await tester.tap(
+          find.widgetWithText(OutlinedButton, _l10n.vmActionLabel('start')));
       await tester.pump();
 
       expect(fakeClient.calls, hasLength(1));
@@ -165,7 +168,8 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Stop'));
+      await tester.tap(
+          find.widgetWithText(OutlinedButton, _l10n.vmActionLabel('stop')));
       await tester.pump();
 
       expect(fakeClient.calls, hasLength(1));
