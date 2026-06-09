@@ -67,7 +67,7 @@ mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
 {
 }
 
-multipass::UbuntuVMImageRemote::UbuntuVMImageRemote(
+mp::UbuntuVMImageRemote::UbuntuVMImageRemote(
     std::string official_host,
     std::string uri,
     std::function<bool(VMImageInfo&)> custom_image_mutator,
@@ -103,7 +103,7 @@ bool mp::UbuntuVMImageRemote::apply_image_mutator(VMImageInfo& info) const
     return image_mutator(info);
 }
 
-bool multipass::UbuntuVMImageRemote::default_image_mutator(VMImageInfo& image)
+bool mp::UbuntuVMImageRemote::default_image_mutator(VMImageInfo& image)
 {
     return true;
 }
@@ -188,7 +188,7 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     {
         for (const auto& product : manifest.second->products)
         {
-            if (multipass::utils::iequals(product.id, full_hash))
+            if (utils::iequals(product.id, full_hash))
             {
                 return product;
             }
