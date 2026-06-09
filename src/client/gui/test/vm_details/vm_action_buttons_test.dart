@@ -162,5 +162,51 @@ void main() {
           of: find.text('Stop'), matching: find.byType(ListTile)));
       expect(tile.enabled, isFalse);
     });
+
+    ListTile findTile(WidgetTester tester, String label) =>
+        tester.widget<ListTile>(find.ancestor(
+            of: find.text(label), matching: find.byType(ListTile)));
+
+    testWidgets('action enabled states are correct for a RUNNING vm',
+        (tester) async {
+      suppressOverflowErrors();
+      await tester.pumpWidget(buildApp(vmStatus: Status.RUNNING));
+      await tester.pump();
+      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
+      await tester.pumpAndSettle();
+
+      expect(findTile(tester, 'Start').enabled, isFalse);
+      expect(findTile(tester, 'Stop').enabled, isTrue);
+      expect(findTile(tester, 'Suspend').enabled, isTrue);
+      expect(findTile(tester, 'Delete').enabled, isTrue);
+    });
+
+    testWidgets('action enabled states are correct for a STOPPED vm',
+        (tester) async {
+      suppressOverflowErrors();
+      await tester.pumpWidget(buildApp(vmStatus: Status.STOPPED));
+      await tester.pump();
+      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
+      await tester.pumpAndSettle();
+
+      expect(findTile(tester, 'Start').enabled, isTrue);
+      expect(findTile(tester, 'Stop').enabled, isFalse);
+      expect(findTile(tester, 'Suspend').enabled, isFalse);
+      expect(findTile(tester, 'Delete').enabled, isTrue);
+    });
+
+    testWidgets('action enabled states are correct for a SUSPENDED vm',
+        (tester) async {
+      suppressOverflowErrors();
+      await tester.pumpWidget(buildApp(vmStatus: Status.SUSPENDED));
+      await tester.pump();
+      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
+      await tester.pumpAndSettle();
+
+      expect(findTile(tester, 'Start').enabled, isTrue);
+      expect(findTile(tester, 'Stop').enabled, isFalse);
+      expect(findTile(tester, 'Suspend').enabled, isFalse);
+      expect(findTile(tester, 'Delete').enabled, isTrue);
+    });
   });
 }
