@@ -35,13 +35,6 @@ if (APPLE AND "qemu" IN_LIST MULTIPASS_BACKENDS)
     add_subdirectory(qemu SYSTEM)
 endif ()
 
-if(MSVC)
-  set(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF CACHE BOOL "Disable pkgconfig in jsoncpp" FORCE)
-  set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "Disable unit tests in jsoncpp" FORCE)
-  set(JSONCPP_WITH_TESTS OFF CACHE BOOL "Disable test executables in jsoncpp lib" FORCE)
-  add_subdirectory(jsoncpp SYSTEM)
-endif()
-
 # premock header only library to mock c-functions
 add_library(premock INTERFACE)
 target_include_directories(premock INTERFACE
