@@ -135,7 +135,7 @@ TEST_F(SSHProcess, canReadOutput)
     std::string expected_output{"some content here"};
     auto remaining = expected_output.size();
     auto channel_read = [&expected_output,
-                         &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+                         &remaining](ssh_channel, void* dest, uint32_t count, int, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
         const auto begin = expected_output.begin() + expected_output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));

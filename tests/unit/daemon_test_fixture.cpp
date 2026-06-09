@@ -82,7 +82,7 @@ public:
 
         auto streaming_callback =
             [this](mp::CreateReply& reply,
-                   grpc::ClientReaderWriterInterface<mp::CreateRequest, mp::CreateReply>* client) {
+                   grpc::ClientReaderWriterInterface<mp::CreateRequest, mp::CreateReply>*) {
                 cout << reply.create_message() << std::endl;
             };
 

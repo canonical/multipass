@@ -73,7 +73,7 @@ struct SFTPClient : public testing::Test
 {
     SFTPClient()
         : sftp_new{mock_sftp_new,
-                   [](ssh_session session) -> sftp_session {
+                   [](ssh_session) -> sftp_session {
                        auto sftp = static_cast<sftp_session_struct*>(
                            std::calloc(1, sizeof(struct sftp_session_struct)));
                        return sftp;
@@ -825,7 +825,7 @@ TEST_F(SFTPClient, pullDirSuccessRegular)
         .WillOnce(Return(std::make_unique<std::ostream>(test_file.rdbuf())));
     REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
 
-    auto mocked_sftp_read = [&, read = false](auto, const void* data, auto size) mutable {
+    auto mocked_sftp_read = [&, read = false](auto, const void* data, auto /*size*/) mutable {
         strcpy((char*)data, test_data.c_str());
         return (read = !read) ? test_data.size() : 0;
     };
