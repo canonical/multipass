@@ -271,6 +271,8 @@ public:
     virtual Path default_mount_target(const Path& source) const;
     virtual Path normalize_mount_target(Path target_mount_path) const;
     virtual bool invalid_target_path(const Path& target_path) const; // needs normalized input path
+
+    virtual size_t max_instance_name_length(const Path& data_dir) const;
 };
 } // namespace multipass
 
