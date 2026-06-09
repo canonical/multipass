@@ -53,6 +53,7 @@
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils/grpc_utils.h>
+#include <multipass/utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -499,6 +500,13 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
                                                       *config->factory,
                                                       nets_need_bridging,
                                                       option_errors);
+
+    const auto max_instance_name_len = MP_UTILS.max_instance_name_length(config->data_directory);
+    if (instance_name.size() > max_instance_name_len)
+    {
+        option_errors.add_error_codes(mp::LaunchError::INSTANCE_NAME_TOO_LONG);
+        option_errors.set_max_instance_name_len(max_instance_name_len);
+    }
 
     struct CheckedArguments
     {
