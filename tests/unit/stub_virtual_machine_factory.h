@@ -51,11 +51,6 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     {
     }
 
-    multipass::FetchType fetch_type() override
-    {
-        return multipass::FetchType::ImageOnly;
-    }
-
     multipass::VMImage prepare_source_image(const multipass::VMImage& source_image) override
     {
         return source_image;

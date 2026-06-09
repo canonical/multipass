@@ -60,8 +60,7 @@ public:
 
     MOCK_METHOD(VMImage,
                 fetch_image,
-                (const FetchType&,
-                 const Query&,
+                (const Query&,
                  const PrepareAction&,
                  const ProgressMonitor&,
                  const std::optional<std::string>&,
@@ -70,10 +69,7 @@ public:
     MOCK_METHOD(void, remove, (const std::string&), (override));
     MOCK_METHOD(bool, has_record_for, (const std::string&), (override));
     MOCK_METHOD(void, prune_expired_images, (), (override));
-    MOCK_METHOD(void,
-                update_images,
-                (const FetchType&, const PrepareAction&, const ProgressMonitor&),
-                (override));
+    MOCK_METHOD(void, update_images, (const PrepareAction&, const ProgressMonitor&), (override));
     MOCK_METHOD(MemorySize, minimum_image_size_for, (const std::string&), (override));
     MOCK_METHOD(void, clone, (const std::string&, const std::string&), (override));
     MOCK_METHOD(VMImageHost*, image_host_for, (const std::string&), (const, override));

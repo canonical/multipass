@@ -29,8 +29,7 @@ namespace test
 {
 struct StubVMImageVault final : public multipass::VMImageVault
 {
-    multipass::VMImage fetch_image(const multipass::FetchType&,
-                                   const multipass::Query&,
+    multipass::VMImage fetch_image(const multipass::Query&,
                                    const PrepareAction& prepare,
                                    const multipass::ProgressMonitor&,
                                    const std::optional<std::string>&,
@@ -46,9 +45,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
     }
 
     void prune_expired_images() override{};
-    void update_images(const FetchType& fetch_type,
-                       const PrepareAction& prepare,
-                       const ProgressMonitor& monitor) override{};
+    void update_images(const PrepareAction& prepare, const ProgressMonitor& monitor) override {};
 
     MemorySize minimum_image_size_for(const std::string& image) override
     {

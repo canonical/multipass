@@ -46,11 +46,6 @@ public:
 
     void remove_resources_for(const std::string& name) final;
 
-    FetchType fetch_type() override
-    {
-        return FetchType::ImageOnly;
-    };
-
     QString get_backend_directory_name() const override
     {
         return {};
