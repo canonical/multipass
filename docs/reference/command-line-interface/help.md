@@ -7,7 +7,7 @@ Sample output:
 
 ```{code-block} text
 Usage: multipass [options] <command>
-Create, control and connect to Ubuntu instances.
+Create, control and connect to cloud instances.
 
 This is a command line utility for multipass, a
 service that manages Ubuntu instances.
