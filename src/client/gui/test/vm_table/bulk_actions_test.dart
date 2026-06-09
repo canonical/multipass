@@ -109,18 +109,34 @@ void main() {
       expect(stop.onPressed, isNotNull);
     });
 
-    testWidgets('Delete enabled when selected VM is STOPPED', (tester) async {
+    for (final status in [Status.RUNNING, Status.STOPPED, Status.SUSPENDED]) {
+      testWidgets('Delete enabled when selected VM is $status', (tester) async {
+        await tester.pumpWidget(_buildApp(
+          client: fakeClient,
+          selected: BuiltSet({'vm1'}),
+          statuses: {'vm1': status},
+        ));
+        await tester.pump();
+
+        final delete = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'Delete'),
+        );
+        expect(delete.onPressed, isNotNull);
+      });
+    }
+
+    testWidgets('Delete disabled when selected VM is STARTING', (tester) async {
       await tester.pumpWidget(_buildApp(
         client: fakeClient,
         selected: BuiltSet({'vm1'}),
-        statuses: {'vm1': Status.STOPPED},
+        statuses: {'vm1': Status.STARTING},
       ));
       await tester.pump();
 
       final delete = tester.widget<OutlinedButton>(
         find.widgetWithText(OutlinedButton, 'Delete'),
       );
-      expect(delete.onPressed, isNotNull);
+      expect(delete.onPressed, isNull);
     });
 
     testWidgets('tapping Start calls client.start() with selected VM names',
