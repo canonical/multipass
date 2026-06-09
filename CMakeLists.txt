@@ -311,10 +311,6 @@ else()
       add_compile_options(-Wcast-align)
     endif()
 
-    CHECK_CXX_COMPILER_FLAG("-Wno-expansion-to-defined" COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
-    if(COMPILER_SUPPORTS_NO_EXP_TO_DEFINED)
-      add_compile_options(-Wno-expansion-to-defined)
-    endif()
 
     add_definitions(-DMULTIPASS_PLATFORM_LINUX)
     set(MULTIPASS_PLATFORM linux)
