@@ -2,45 +2,16 @@ import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/notifications/notifications_provider.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_table/bulk_actions.dart';
 import 'package:multipass_gui/vm_table/vms.dart';
 
-class _FakeGrpcClient extends GrpcClient {
-  final List<({String method, Iterable<String> names})> calls = [];
-
-  _FakeGrpcClient() : super(RpcClient(ClientChannel('localhost')));
-
-  @override
-  Future<StartReply?> start(Iterable<String> names) async {
-    calls.add((method: 'start', names: names));
-    return StartReply();
-  }
-
-  @override
-  Future<StopReply?> stop(Iterable<String> names) async {
-    calls.add((method: 'stop', names: names));
-    return StopReply();
-  }
-
-  @override
-  Future<SuspendReply?> suspend(Iterable<String> names) async {
-    calls.add((method: 'suspend', names: names));
-    return SuspendReply();
-  }
-
-  @override
-  Future<DeleteReply?> purge(Iterable<String> names) async {
-    calls.add((method: 'purge', names: names));
-    return DeleteReply();
-  }
-}
+import '../helpers.dart' show FakeGrpcClient;
 
 Widget _buildApp({
-  required _FakeGrpcClient client,
+  required FakeGrpcClient client,
   BuiltSet<String>? selected,
   Map<String, Status> statuses = const {},
 }) {
@@ -71,8 +42,8 @@ Widget _buildApp({
 }
 
 void main() {
-  late _FakeGrpcClient fakeClient;
-  setUp(() => fakeClient = _FakeGrpcClient());
+  late FakeGrpcClient fakeClient;
+  setUp(() => fakeClient = FakeGrpcClient());
 
   group('BulkActionsBar', () {
     testWidgets('renders four action buttons', (tester) async {
