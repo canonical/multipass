@@ -1,47 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/notifications/notifications_provider.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_details/vm_action_buttons.dart';
 
-class _FakeGrpcClient extends GrpcClient {
-  final List<({String method, String name})> calls = [];
-
-  _FakeGrpcClient() : super(RpcClient(ClientChannel('localhost')));
-
-  @override
-  Future<StartReply?> start(Iterable<String> names) async {
-    calls.add((method: 'start', name: names.first));
-    return StartReply();
-  }
-
-  @override
-  Future<StopReply?> stop(Iterable<String> names) async {
-    calls.add((method: 'stop', name: names.first));
-    return StopReply();
-  }
-
-  @override
-  Future<SuspendReply?> suspend(Iterable<String> names) async {
-    calls.add((method: 'suspend', name: names.first));
-    return SuspendReply();
-  }
-
-  @override
-  Future<DeleteReply?> purge(Iterable<String> names) async {
-    calls.add((method: 'purge', name: names.first));
-    return DeleteReply();
-  }
-}
+import '../helpers.dart' show FakeGrpcClient;
 
 void main() {
   const vmName = 'test-vm';
-  late _FakeGrpcClient fakeClient;
+  late FakeGrpcClient fakeClient;
 
-  setUp(() => fakeClient = _FakeGrpcClient());
+  setUp(() => fakeClient = FakeGrpcClient());
 
   Widget buildApp({Status vmStatus = Status.RUNNING}) {
     return ProviderScope(
@@ -112,7 +83,9 @@ void main() {
       await tester.tap(find.ancestor(
           of: find.text('Stop'), matching: find.byType(ListTile)));
       await tester.pumpAndSettle();
-      expect(fakeClient.calls, contains((method: 'stop', name: vmName)));
+      expect(fakeClient.calls, hasLength(1));
+      expect(fakeClient.calls.first.method, equals('stop'));
+      expect(fakeClient.calls.first.names, contains(vmName));
     });
 
     testWidgets('tapping Start calls grpcClient.start with the vm name',
@@ -125,7 +98,9 @@ void main() {
       await tester.tap(find.ancestor(
           of: find.text('Start'), matching: find.byType(ListTile)));
       await tester.pumpAndSettle();
-      expect(fakeClient.calls, contains((method: 'start', name: vmName)));
+      expect(fakeClient.calls, hasLength(1));
+      expect(fakeClient.calls.first.method, equals('start'));
+      expect(fakeClient.calls.first.names, contains(vmName));
     });
 
     testWidgets('tapping Suspend calls grpcClient.suspend with the vm name',
@@ -138,7 +113,9 @@ void main() {
       await tester.tap(find.ancestor(
           of: find.text('Suspend'), matching: find.byType(ListTile)));
       await tester.pumpAndSettle();
-      expect(fakeClient.calls, contains((method: 'suspend', name: vmName)));
+      expect(fakeClient.calls, hasLength(1));
+      expect(fakeClient.calls.first.method, equals('suspend'));
+      expect(fakeClient.calls.first.names, contains(vmName));
     });
 
     testWidgets('Stop is enabled for a RUNNING vm', (tester) async {
