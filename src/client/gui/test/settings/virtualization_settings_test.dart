@@ -60,6 +60,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Bridged network'), findsOneWidget);
+      // 2 = driver dropdown + bridged network dropdown
       expect(find.byType(DropdownButton<String>), findsNWidgets(2));
     });
 
