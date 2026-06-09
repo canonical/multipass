@@ -279,7 +279,7 @@ auto fetch_image_for(const std::string& name,
                      mp::VMImageVault& vault)
 {
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
-    auto stub_progress = [](int download_type, int progress) { return true; };
+    auto stub_progress = [](int /*download_type*/, int /*progress*/) { return true; };
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
@@ -586,8 +586,7 @@ LinearInstanceSelection select_all(InstanceTable& instances)
 }
 
 // careful to keep the original `name` around while the provided `selection` is in use!
-void rank_instance(const std::string& name,
-                   const InstanceTrail& trail,
+void rank_instance(const InstanceTrail& trail,
                    InstanceSelectionReport& selection)
 {
     switch (trail.index())
@@ -635,7 +634,7 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances,
             if (seen_instances.insert(*vm_name).second)
             {
                 auto trail = find_instance(operative_instances, deleted_instances, *vm_name);
-                rank_instance(*vm_name, trail, ret);
+                rank_instance(trail, ret);
             }
         }
     }
@@ -1163,8 +1162,7 @@ mp::SettingsHandler* register_instance_mod(
 mp::SettingsHandler* register_snapshot_mod(
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances,
-    const mp::VirtualMachineFactory& vm_factory)
+    const std::unordered_set<std::string>& preparing_instances)
 {
     try
     {
@@ -1299,8 +1297,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           [this](const std::string& n) { return add_bridged_interface(n); })},
       snapshot_mod_handler{register_snapshot_mod(operative_instances,
                                                  deleted_instances,
-                                                 preparing_instances,
-                                                 *config->factory)}
+                                                 preparing_instances)}
 {
     using e_state = VirtualMachine::State;
 

@@ -38,7 +38,7 @@ mp::ReturnCodeVariant cmd::Version::run(mp::ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
+    auto on_failure = [this](grpc::Status&) -> ReturnCodeVariant {
         VersionReply reply;
         cout << chosen_formatter->format(reply, multipass::version_string);
 
