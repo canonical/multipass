@@ -80,8 +80,6 @@ public:
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
 
-    virtual void validate_instance_name(const std::string& name) const = 0;
-
 protected:
     VirtualMachineFactory() = default;
 
