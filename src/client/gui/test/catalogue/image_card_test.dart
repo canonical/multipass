@@ -8,6 +8,7 @@ import 'package:multipass_gui/l10n/app_localizations.dart';
 
 import '../helpers.dart';
 
+// Shared ImageInfo fixtures
 ImageInfo makeImage({
   String os = 'Ubuntu',
   String release = '24.04',
@@ -15,6 +16,19 @@ ImageInfo makeImage({
   List<String> aliases = const ['24.04', 'lts'],
 }) =>
     ImageInfo(os: os, release: release, codename: codename, aliases: aliases);
+
+final noble = makeImage(); // Ubuntu 24.04 noble ['24.04', 'lts']
+final jammy =
+    makeImage(release: '22.04', codename: 'jammy', aliases: ['22.04']);
+final core20 =
+    makeImage(release: 'core20', codename: 'core20', aliases: ['core20']);
+final core22 = makeImage(release: '22', codename: '', aliases: ['core22']);
+final debian = makeImage(
+    os: 'Debian', release: '12', codename: 'bookworm', aliases: ['debian']);
+final fedora = makeImage(
+    os: 'Fedora', release: '39', codename: 'fedora', aliases: ['fedora']);
+final alpine =
+    makeImage(os: 'Alpine', release: '3.20', codename: '', aliases: ['alpine']);
 
 Widget buildApp(ImageCard card) => withFakeSvgAssetBundle(
       ProviderScope(
@@ -40,10 +54,9 @@ void main() {
   group('ImageCard', () {
     group('title', () {
       testWidgets('shows "Ubuntu Server" for Ubuntu images', (tester) async {
-        final image = makeImage(os: 'Ubuntu');
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: noble,
+          versions: [noble],
           width: 500,
           imageKey: 'k',
         )));
@@ -54,15 +67,9 @@ void main() {
 
       testWidgets('shows "Ubuntu Core" when alias contains "core"',
           (tester) async {
-        final image = makeImage(
-          os: 'Ubuntu',
-          release: '22',
-          codename: '',
-          aliases: ['core22'],
-        );
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: core22,
+          versions: [core22],
           width: 500,
           imageKey: 'k',
         )));
@@ -72,15 +79,9 @@ void main() {
       });
 
       testWidgets('shows "Debian" for Debian images', (tester) async {
-        final image = makeImage(
-          os: 'Debian',
-          release: '12',
-          codename: 'bookworm',
-          aliases: ['debian'],
-        );
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: debian,
+          versions: [debian],
           width: 500,
           imageKey: 'k',
         )));
@@ -90,15 +91,9 @@ void main() {
       });
 
       testWidgets('shows "Fedora" for Fedora images', (tester) async {
-        final image = makeImage(
-          os: 'Fedora',
-          release: '39',
-          codename: 'fedora',
-          aliases: ['fedora'],
-        );
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: fedora,
+          versions: [fedora],
           width: 500,
           imageKey: 'k',
         )));
@@ -108,15 +103,9 @@ void main() {
       });
 
       testWidgets('shows OS name for unrecognised OS', (tester) async {
-        final image = makeImage(
-          os: 'Alpine',
-          release: '3.20',
-          codename: '',
-          aliases: ['alpine'],
-        );
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: alpine,
+          versions: [alpine],
           width: 500,
           imageKey: 'k',
         )));
@@ -129,10 +118,9 @@ void main() {
     group('version label', () {
       testWidgets('shows "release (codename)" when they differ',
           (tester) async {
-        final image = makeImage(release: '24.04', codename: 'noble');
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: noble,
+          versions: [noble],
           width: 500,
           imageKey: 'k',
         )));
@@ -143,14 +131,9 @@ void main() {
 
       testWidgets('shows release only when release equals codename',
           (tester) async {
-        final image = makeImage(
-          release: 'core20',
-          codename: 'core20',
-          aliases: ['core20'],
-        );
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: core20,
+          versions: [core20],
           width: 500,
           imageKey: 'k',
         )));
@@ -163,10 +146,9 @@ void main() {
     group('version dropdown', () {
       testWidgets('is disabled when only one version is provided',
           (tester) async {
-        final image = makeImage();
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: noble,
+          versions: [noble],
           width: 500,
           imageKey: 'k',
         )));
@@ -180,13 +162,9 @@ void main() {
 
       testWidgets('is enabled when multiple versions are provided',
           (tester) async {
-        final v1 =
-            makeImage(release: '22.04', codename: 'jammy', aliases: ['22.04']);
-        final v2 = makeImage(
-            release: '24.04', codename: 'noble', aliases: ['24.04', 'lts']);
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: v2,
-          versions: [v1, v2],
+          parentImage: noble,
+          versions: [jammy, noble],
           width: 500,
           imageKey: 'k',
         )));
@@ -200,13 +178,9 @@ void main() {
 
       testWidgets('selecting a version updates the displayed label',
           (tester) async {
-        final v1 =
-            makeImage(release: '22.04', codename: 'jammy', aliases: ['22.04']);
-        final v2 = makeImage(
-            release: '24.04', codename: 'noble', aliases: ['24.04', 'lts']);
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: v2,
-          versions: [v1, v2],
+          parentImage: noble,
+          versions: [jammy, noble],
           width: 500,
           imageKey: 'k',
         )));
@@ -224,10 +198,9 @@ void main() {
 
     group('buttons', () {
       testWidgets('Launch button is present', (tester) async {
-        final image = makeImage();
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: noble,
+          versions: [noble],
           width: 500,
           imageKey: 'k',
         )));
@@ -237,10 +210,9 @@ void main() {
       });
 
       testWidgets('Configure button is present', (tester) async {
-        final image = makeImage();
         await tester.pumpWidget(buildApp(ImageCard(
-          parentImage: image,
-          versions: [image],
+          parentImage: noble,
+          versions: [noble],
           width: 500,
           imageKey: 'k',
         )));
