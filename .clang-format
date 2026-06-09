@@ -15,7 +15,7 @@ BinPackArguments: false
 BinPackParameters: false
 BreakBeforeTernaryOperators: true
 AlignOperands: AlignAfterOperator
-PenaltyBreakAssignment: 10
+PenaltyBreakAssignment: 150
 BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
