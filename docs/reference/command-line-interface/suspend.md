@@ -18,7 +18,7 @@ If check your instances with `multipass list`, you'll see that its status is now
 
 ```{code-block} text
 Name                    State             IPv4             Image
-boisterous-tortoise     Suspended         --               Ubuntu 22.04 LTS
+boisterous-tortoise     Suspended         --               Ubuntu 26.04 LTS
 ```
 
 Suspended instances can be resumed with the [`multipass start`](/reference/command-line-interface/start) command.
