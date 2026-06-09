@@ -78,8 +78,6 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
-    void validate_instance_name(const std::string& name) const override;
-
 protected:
     static const Path instances_subdir;
     AvailabilityZoneManager& az_manager;
