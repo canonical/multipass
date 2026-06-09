@@ -25,7 +25,6 @@ Widget _buildScreen({List<DetailedInfoItem> vms = const []}) {
         allVmInfosProvider.overrideWith(() => _StaticVmInfosNotifier(vms)),
       ],
       child: MaterialApp(
-        locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const VmTableScreen(),

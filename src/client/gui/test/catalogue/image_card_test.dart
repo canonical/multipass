@@ -5,8 +5,11 @@ import 'package:multipass_gui/catalogue/image_card.dart';
 import 'package:multipass_gui/catalogue/launch_form.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 
 import '../helpers.dart';
+
+final _l10n = AppLocalizationsEn();
 
 // Shared ImageInfo fixtures
 ImageInfo makeImage({
@@ -36,7 +39,6 @@ Widget buildApp(ImageCard card) => withFakeSvgAssetBundle(
           randomNameProvider.overrideWith((ref) => 'test-vm'),
         ],
         child: MaterialApp(
-          locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
@@ -62,7 +64,7 @@ void main() {
         )));
         await tester.pumpAndSettle();
 
-        expect(find.text('Ubuntu Server'), findsOneWidget);
+        expect(find.text(_l10n.imageCardTitleUbuntuServer), findsOneWidget);
       });
 
       testWidgets('shows "Ubuntu Core" when alias contains "core"',
@@ -75,7 +77,7 @@ void main() {
         )));
         await tester.pumpAndSettle();
 
-        expect(find.text('Ubuntu Core'), findsOneWidget);
+        expect(find.text(_l10n.imageCardTitleUbuntuCore), findsOneWidget);
       });
 
       testWidgets('shows "Debian" for Debian images', (tester) async {
@@ -87,7 +89,7 @@ void main() {
         )));
         await tester.pumpAndSettle();
 
-        expect(find.text('Debian'), findsOneWidget);
+        expect(find.text(_l10n.imageCardTitleDebian), findsOneWidget);
       });
 
       testWidgets('shows "Fedora" for Fedora images', (tester) async {
@@ -99,7 +101,7 @@ void main() {
         )));
         await tester.pumpAndSettle();
 
-        expect(find.text('Fedora'), findsOneWidget);
+        expect(find.text(_l10n.imageCardTitleFedora), findsOneWidget);
       });
 
       testWidgets('shows OS name for unrecognised OS', (tester) async {
@@ -219,7 +221,7 @@ void main() {
         )));
         await tester.pumpAndSettle();
 
-        expect(find.text('Launch'), findsOneWidget);
+        expect(find.text(_l10n.commonLaunch), findsOneWidget);
       });
 
       testWidgets('Configure button is present', (tester) async {
@@ -231,7 +233,7 @@ void main() {
         )));
         await tester.pumpAndSettle();
 
-        expect(find.text('Configure'), findsOneWidget);
+        expect(find.text(_l10n.commonConfigure), findsOneWidget);
       });
     });
   });

@@ -9,7 +9,6 @@ void main() {
     late AppLocalizations l10n;
     await tester.pumpWidget(
       MaterialApp(
-        locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(builder: (context) {

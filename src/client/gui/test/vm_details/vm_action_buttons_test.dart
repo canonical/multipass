@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/notifications/notifications_provider.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_details/vm_action_buttons.dart';
 
 import '../helpers.dart' show FakeGrpcClient;
+
+final _l10n = AppLocalizationsEn();
 
 void main() {
   const vmName = 'test-vm';
@@ -25,7 +28,6 @@ void main() {
         ),
       ],
       child: MaterialApp(
-        locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -57,7 +59,7 @@ void main() {
       suppressOverflowErrors();
       await tester.pumpWidget(buildApp());
       await tester.pump();
-      expect(find.text('Actions'), findsOneWidget);
+      expect(find.text(_l10n.vmActionsMenuTitle), findsOneWidget);
     });
 
     testWidgets('opening the menu shows Start, Stop, Suspend and Delete items',
@@ -67,10 +69,10 @@ void main() {
       await tester.pump();
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
-      expect(find.text('Start'), findsOneWidget);
-      expect(find.text('Stop'), findsOneWidget);
-      expect(find.text('Suspend'), findsOneWidget);
-      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text(_l10n.vmActionLabel('start')), findsOneWidget);
+      expect(find.text(_l10n.vmActionLabel('stop')), findsOneWidget);
+      expect(find.text(_l10n.vmActionLabel('suspend')), findsOneWidget);
+      expect(find.text(_l10n.vmActionLabel('delete')), findsOneWidget);
     });
 
     testWidgets('tapping Stop calls grpcClient.stop with the vm name',
@@ -81,7 +83,8 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
       await tester.tap(find.ancestor(
-          of: find.text('Stop'), matching: find.byType(ListTile)));
+          of: find.text(_l10n.vmActionLabel('stop')),
+          matching: find.byType(ListTile)));
       await tester.pumpAndSettle();
       expect(fakeClient.calls, hasLength(1));
       expect(fakeClient.calls.first.method, equals('stop'));
@@ -96,7 +99,8 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
       await tester.tap(find.ancestor(
-          of: find.text('Start'), matching: find.byType(ListTile)));
+          of: find.text(_l10n.vmActionLabel('start')),
+          matching: find.byType(ListTile)));
       await tester.pumpAndSettle();
       expect(fakeClient.calls, hasLength(1));
       expect(fakeClient.calls.first.method, equals('start'));
@@ -111,7 +115,8 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
       await tester.tap(find.ancestor(
-          of: find.text('Suspend'), matching: find.byType(ListTile)));
+          of: find.text(_l10n.vmActionLabel('suspend')),
+          matching: find.byType(ListTile)));
       await tester.pumpAndSettle();
       expect(fakeClient.calls, hasLength(1));
       expect(fakeClient.calls.first.method, equals('suspend'));
@@ -125,7 +130,8 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
       final tile = tester.widget<ListTile>(find.ancestor(
-          of: find.text('Stop'), matching: find.byType(ListTile)));
+          of: find.text(_l10n.vmActionLabel('stop')),
+          matching: find.byType(ListTile)));
       expect(tile.enabled, isTrue);
     });
 
@@ -136,7 +142,8 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
       final tile = tester.widget<ListTile>(find.ancestor(
-          of: find.text('Stop'), matching: find.byType(ListTile)));
+          of: find.text(_l10n.vmActionLabel('stop')),
+          matching: find.byType(ListTile)));
       expect(tile.enabled, isFalse);
     });
 
@@ -152,10 +159,10 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
 
-      expect(findTile(tester, 'Start').enabled, isFalse);
-      expect(findTile(tester, 'Stop').enabled, isTrue);
-      expect(findTile(tester, 'Suspend').enabled, isTrue);
-      expect(findTile(tester, 'Delete').enabled, isTrue);
+      expect(findTile(tester, _l10n.vmActionLabel('start')).enabled, isFalse);
+      expect(findTile(tester, _l10n.vmActionLabel('stop')).enabled, isTrue);
+      expect(findTile(tester, _l10n.vmActionLabel('suspend')).enabled, isTrue);
+      expect(findTile(tester, _l10n.vmActionLabel('delete')).enabled, isTrue);
     });
 
     testWidgets('action enabled states are correct for a STOPPED vm',
@@ -166,10 +173,10 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
 
-      expect(findTile(tester, 'Start').enabled, isTrue);
-      expect(findTile(tester, 'Stop').enabled, isFalse);
-      expect(findTile(tester, 'Suspend').enabled, isFalse);
-      expect(findTile(tester, 'Delete').enabled, isTrue);
+      expect(findTile(tester, _l10n.vmActionLabel('start')).enabled, isTrue);
+      expect(findTile(tester, _l10n.vmActionLabel('stop')).enabled, isFalse);
+      expect(findTile(tester, _l10n.vmActionLabel('suspend')).enabled, isFalse);
+      expect(findTile(tester, _l10n.vmActionLabel('delete')).enabled, isTrue);
     });
 
     testWidgets('action enabled states are correct for a SUSPENDED vm',
@@ -180,10 +187,10 @@ void main() {
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
       await tester.pumpAndSettle();
 
-      expect(findTile(tester, 'Start').enabled, isTrue);
-      expect(findTile(tester, 'Stop').enabled, isFalse);
-      expect(findTile(tester, 'Suspend').enabled, isFalse);
-      expect(findTile(tester, 'Delete').enabled, isTrue);
+      expect(findTile(tester, _l10n.vmActionLabel('start')).enabled, isTrue);
+      expect(findTile(tester, _l10n.vmActionLabel('stop')).enabled, isFalse);
+      expect(findTile(tester, _l10n.vmActionLabel('suspend')).enabled, isFalse);
+      expect(findTile(tester, _l10n.vmActionLabel('delete')).enabled, isTrue);
     });
   });
 }
