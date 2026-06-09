@@ -141,6 +141,19 @@ void main() {
 
         expect(find.text('core20'), findsOneWidget);
       });
+
+      testWidgets('shows release only when codename is empty', (tester) async {
+        await tester.pumpWidget(buildApp(ImageCard(
+          parentImage: alpine,
+          versions: [alpine],
+          width: 500,
+          imageKey: 'k',
+        )));
+        await tester.pumpAndSettle();
+
+        expect(find.text('3.20'), findsOneWidget);
+        expect(find.textContaining('()'), findsNothing);
+      });
     });
 
     group('version dropdown', () {
