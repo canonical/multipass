@@ -1457,7 +1457,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     return config->factory->prepare_source_image(source_image);
                 };
 
-                auto download_monitor = [](int download_type, int percentage) {
+                auto download_monitor = [](int /*progress_type*/, int percentage) {
                     static int last_percentage_logged = -1;
                     if (percentage % 10 == 0)
                     {
@@ -1564,7 +1564,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::purge(const PurgeRequest* request,
+void mp::Daemon::purge(const PurgeRequest*,
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
                        DaemonRpcContext* context)
 try

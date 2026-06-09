@@ -59,11 +59,11 @@ public:
         return false;
     }
 
-    void set_cin_echo(const bool enable) override
+    void set_cin_echo(const bool) override
     {
     }
 
-    ConsolePtr make_console(ssh_channel channel) override
+    ConsolePtr make_console(ssh_channel) override
     {
         return std::make_unique<StubConsole>();
     }
