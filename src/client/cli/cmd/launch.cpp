@@ -627,6 +627,16 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             {
                 error_details = fmt::format("Unavailable zone name supplied: {}", request.zone());
             }
+            else if (error == LaunchError::INSTANCE_NAME_TOO_LONG)
+            {
+                if (launch_error.has_max_instance_name_len())
+                    error_details = fmt::format("Instance name too long ({} chars, max is {})",
+                                                request.instance_name().size(),
+                                                launch_error.max_instance_name_len());
+                else
+                    error_details = fmt::format("Instance name too long ({} chars)",
+                                                request.instance_name().size());
+            }
         }
 
         return standard_failure_handler_for(name(), cerr, status, error_details);
