@@ -52,7 +52,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       VMStatusMonitor& monitor,
                       const SSHKeyProvider& key_provider,
                       AvailabilityZone& zone,
-                      const Path& instance_dir);
+                      const std::filesystem::path& instance_dir);
 
     HCSVirtualMachine(const std::string& source_vm_name,
                       const multipass::VMSpecs& src_vm_specs,
@@ -60,7 +60,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       VMStatusMonitor& monitor,
                       const SSHKeyProvider& key_provider,
                       AvailabilityZone& zone,
-                      const Path& dest_instance_dir);
+                      const std::filesystem::path& dest_instance_dir);
 
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy) override;

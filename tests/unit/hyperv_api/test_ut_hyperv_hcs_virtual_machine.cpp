@@ -202,7 +202,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                                    monitor ? *monitor : stub_monitor,
                                    stub_key_provider,
                                    dummy_zone,
-                                   dummy_instances_dir.path());
+                                   dummy_instances_dir);
     }
 };
 

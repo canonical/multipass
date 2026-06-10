@@ -202,7 +202,7 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      class VMStatusMonitor& monitor,
                                      const SSHKeyProvider& key_provider,
                                      AvailabilityZone& zone,
-                                     const Path& instance_dir)
+                                     const std::filesystem::path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
       description(desc),
       primary_network_guid(network_guid),
