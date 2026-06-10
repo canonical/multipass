@@ -3335,7 +3335,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 create_reply.mutable_launch_progress()->set_percent_complete(
                     std::to_string(percentage));
                 create_reply.mutable_launch_progress()->set_type(
-                    (CreateProgress::ProgressTypes)progress_type);
+                    (CreateProgress::ProgressType)progress_type);
                 return server->Write(create_reply);
             };
 

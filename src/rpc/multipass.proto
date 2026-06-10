@@ -93,13 +93,13 @@ message LaunchError {
 }
 
 message LaunchProgress {
-    enum ProgressTypes {
+    enum ProgressType {
         IMAGE = 0;
         EXTRACT = 1;
         VERIFY = 2;
         WAITING = 3;
     }
-    ProgressTypes type = 1;
+    ProgressType type = 1;
     string percent_complete = 2;
 }
 
