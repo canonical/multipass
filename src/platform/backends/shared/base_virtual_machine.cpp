@@ -142,7 +142,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
-                                           const Path& instance_dir)
+                                           const std::filesystem::path& instance_dir)
     : BaseVirtualMachine(zone.is_available() ? St::stopped : St::unavailable,
                          vm_name,
                          vm_desc,
@@ -159,7 +159,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(St state,
                                            VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
-                                           const Path& instance_dir)
+                                           const std::filesystem::path& instance_dir)
     : vm_name{vm_name},
       desc{vm_desc},
       monitor{monitor},
