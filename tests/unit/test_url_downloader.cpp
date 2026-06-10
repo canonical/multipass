@@ -181,7 +181,7 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
 {
     mpt::MockQNetworkReply* mock_reply = new mpt::MockQNetworkReply();
     const QByteArray test_data{"This is some data to put in a file when downloaded."};
-    const int download_type{-1};
+    const int progress_type{-1};
 
     EXPECT_CALL(*mock_network_access_manager, createRequest(_, _, _))
         .WillOnce([&mock_reply, &test_data](auto...) {
@@ -203,8 +203,8 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
         .WillRepeatedly(Return(0));
 
     bool progress_called{false};
-    auto progress_monitor = [download_type, &progress_called](int type, int progress) {
-        EXPECT_EQ(type, download_type);
+    auto progress_monitor = [progress_type, &progress_called](int type, int progress) {
+        EXPECT_EQ(type, progress_type);
         EXPECT_EQ(progress, 100);
         progress_called = true;
 
@@ -224,7 +224,7 @@ TEST_F(URLDownloader, fileDownloadNoErrorHasExpectedResults)
     downloader.download_to(fake_url,
                            download_file,
                            test_data.size(),
-                           download_type,
+                           progress_type,
                            progress_monitor);
 
     EXPECT_TRUE(progress_called);

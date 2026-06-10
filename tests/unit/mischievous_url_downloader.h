@@ -33,7 +33,7 @@ public:
     void download_to(const QUrl& url,
                      const QString& file_name,
                      int64_t size,
-                     const int download_type,
+                     const int progress_type,
                      const ProgressMonitor& monitor) override;
     QByteArray download(const QUrl& url) override;
     QByteArray download(const QUrl& url, const bool force_update) override;

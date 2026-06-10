@@ -242,7 +242,7 @@ mp::URLDownloader::URLDownloader(const mp::Path& cache_dir, std::chrono::millise
 void mp::URLDownloader::download_to(const QUrl& url,
                                     const QString& file_name,
                                     int64_t size,
-                                    const int download_type,
+                                    const int progress_type,
                                     const mp::ProgressMonitor& monitor)
 {
     std::atomic_bool abort_download{false};
@@ -253,7 +253,7 @@ void mp::URLDownloader::download_to(const QUrl& url,
         throw std::runtime_error(
             fmt::format("unable to write to file \"{}\"", file_name.toStdString()));
 
-    auto progress_monitor = [this, &abort_download, &monitor, download_type, size](
+    auto progress_monitor = [this, &abort_download, &monitor, progress_type, size](
                                 QNetworkReply* reply,
                                 qint64 bytes_received,
                                 qint64 bytes_total) {
@@ -267,7 +267,7 @@ void mp::URLDownloader::download_to(const QUrl& url,
         auto progress = (size < 0) ? size : (100 * bytes_received + bytes_total / 2) / bytes_total;
 
         abort_download = abort_downloads ||
-                         (last_progress_printed != progress && !monitor(download_type, progress));
+                         (last_progress_printed != progress && !monitor(progress_type, progress));
         last_progress_printed = progress;
 
         if (abort_download)
