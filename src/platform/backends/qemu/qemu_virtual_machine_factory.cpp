@@ -62,12 +62,13 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::QemuVirtualMachine>(desc,
-                                                    qemu_platform.get(),
-                                                    monitor,
-                                                    key_provider,
-                                                    az_manager.get_zone(desc.zone),
-                                                    get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::QemuVirtualMachine>(
+        desc,
+        qemu_platform.get(),
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -183,11 +184,12 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return std::make_unique<mp::QemuVirtualMachine>(desc,
-                                                    qemu_platform.get(),
-                                                    monitor,
-                                                    key_provider,
-                                                    az_manager.get_zone(desc.zone),
-                                                    get_instance_directory(desc.vm_name),
-                                                    true);
+    return std::make_unique<mp::QemuVirtualMachine>(
+        desc,
+        qemu_platform.get(),
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)),
+        true);
 }

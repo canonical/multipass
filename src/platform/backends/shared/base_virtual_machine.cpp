@@ -98,12 +98,8 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const VirtualMachineDescription& vm_desc,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
-                                           const Path& instance_dir)
-    : vm_name{vm_name},
-      desc{vm_desc},
-      key_provider{key_provider},
-      zone{zone},
-      instance_dir{instance_dir}
+                                           const std::filesystem::path& instance_dir)
+    : vm_name{vm_name}, desc{vm_desc}, key_provider{key_provider}, zone{zone}, instance_dir{instance_dir}
 {
     zone.add_vm(*this);
 }
@@ -113,7 +109,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            const VirtualMachineDescription& vm_desc,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
-                                           const Path& instance_dir)
+                                           const std::filesystem::path& instance_dir)
     : VirtualMachine{state},
       vm_name{vm_name},
       desc{vm_desc},

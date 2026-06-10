@@ -42,7 +42,7 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
         monitor,
         key_provider,
         az_manager.get_zone(desc.zone),
-        get_instance_directory(desc.vm_name));
+        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 }
 
 VMImage AppleVZVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
@@ -92,6 +92,6 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
         monitor,
         key_provider,
         az_manager.get_zone(desc.zone),
-        get_instance_directory(desc.vm_name));
+        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 }
 } // namespace multipass::applevz
