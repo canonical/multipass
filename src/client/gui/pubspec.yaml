@@ -15,7 +15,7 @@ dependencies:
   dartssh2:
     git:
       url: https://github.com/canonical/dartssh2.git
-      ref: 2.12.0+mp
+      ref: 2.17.1+mp
   extended_text: ^15.0.0
   ffi: ^2.1.4
   file_selector: ^1.0.3

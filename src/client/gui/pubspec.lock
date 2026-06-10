@@ -141,11 +141,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "2.12.0+mp"
-      resolved-ref: "1d924a068e4a4fa8ca51706192f91221a392144a"
+      ref: "2.17.1+mp"
+      resolved-ref: f1559d4b6961f6bdc5c9436e871493398b9b2456
       url: "https://github.com/canonical/dartssh2.git"
     source: git
-    version: "2.12.0"
+    version: "2.17.1"
   equatable:
     dependency: transitive
     description:
@@ -479,14 +479,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
-  js:
-    dependency: transitive
-    description:
-      name: js
-      sha256: "53385261521cc4a0c4658fd0ad07a7d14591cf8fc33abbceae306ddb974888dc"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.2"
   json_annotation:
     dependency: transitive
     description:
@@ -707,10 +699,10 @@ packages:
     dependency: transitive
     description:
       name: pointycastle
-      sha256: "4be0097fcf3fd3e8449e53730c631200ebc7b88016acecab2b0da2f0149222fe"
+      sha256: "92aa3841d083cc4b0f4709b5c74fd6409a3e6ba833ffc7dc6a8fee096366acf5"
       url: "https://pub.dev"
     source: hosted
-    version: "3.9.1"
+    version: "4.0.0"
   pool:
     dependency: transitive
     description:
