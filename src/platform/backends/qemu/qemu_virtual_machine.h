@@ -47,7 +47,7 @@ public:
                        VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
-                       const Path& instance_dir,
+                       const std::filesystem::path& instance_dir,
                        bool remove_snapshots = false);
     ~QemuVirtualMachine();
 

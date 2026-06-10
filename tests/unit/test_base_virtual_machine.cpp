@@ -167,7 +167,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
                                  stub_monitor,
                                  mpt::StubSSHKeyProvider{},
                                  zone,
-                                 tmp_dir->path()},
+                                 *tmp_dir},
           tmp_dir{std::move(tmp_dir)}
     {
     }

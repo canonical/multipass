@@ -95,7 +95,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
                                                                     mock_monitor,
                                                                     stub_key_provider,
                                                                     az_manager.get_zone(desc.zone),
-                                                                    instance_dir.path());
+                                                                    instance_dir);
     }
 };
 

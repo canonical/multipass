@@ -55,7 +55,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       VMStatusMonitor& monitor,
                       const SSHKeyProvider& key_provider,
                       AvailabilityZone& zone,
-                      const Path& instance_dir);
+                      const std::filesystem::path& instance_dir);
     ~HCSVirtualMachine();
 
     void start() override;
