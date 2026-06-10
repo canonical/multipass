@@ -65,7 +65,7 @@ struct BadURLDownloader : public mp::URLDownloader
     void download_to(const QUrl& /*url*/,
                      const QString& file_name,
                      int64_t /*size*/,
-                     const int /*download_type*/,
+                     const int /*progress_type*/,
                      const mp::ProgressMonitor&) override
     {
         mpt::make_file_with_content(file_name, "Bad hash");
@@ -85,7 +85,7 @@ struct HttpURLDownloader : public mp::URLDownloader
     void download_to(const QUrl& url,
                      const QString& file_name,
                      int64_t /*size*/,
-                     const int /*download_type*/,
+                     const int /*progress_type*/,
                      const mp::ProgressMonitor&) override
     {
         mpt::make_file_with_content(file_name, "");
@@ -115,7 +115,7 @@ struct RunningURLDownloader : public mp::URLDownloader
     void download_to(const QUrl& /*url*/,
                      const QString& /*file_name*/,
                      int64_t /*size*/,
-                     const int /*download_type*/,
+                     const int /*progress_type*/,
                      const mp::ProgressMonitor&) override
     {
         while (!abort_downloads)

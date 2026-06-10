@@ -39,7 +39,7 @@ struct TrackingURLDownloader : public URLDownloader
     void download_to(const QUrl& url,
                      const QString& file_name,
                      int64_t /*size*/,
-                     const int /*download_type*/,
+                     const int /*progress_type*/,
                      const ProgressMonitor&) override
     {
         make_file_with_content(file_name, content);
