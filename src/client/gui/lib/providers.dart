@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
+import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ffi.dart';
@@ -15,7 +16,7 @@ import 'logger.dart';
 
 export 'grpc_client.dart';
 
-late final ProviderContainer providerContainer;
+late ProviderContainer providerContainer;
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('SharedPreferences must be overridden');
@@ -24,6 +25,8 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 final ffiAvailableProvider = Provider((ref) {
   return isFFIAvailable;
 });
+
+final loggerProvider = Provider<Logger>((ref) => logger);
 
 final grpcClientProvider = Provider((ref) {
   // Check if FFI is available first
@@ -35,6 +38,7 @@ final grpcClientProvider = Provider((ref) {
   final certPair = getCertPair();
   final rootCert = getRootCert();
 
+  final logger = ref.read(loggerProvider);
   var channelCredentials = CustomChannelCredentials(
     authority: 'localhost',
     certificate: certPair.cert,
@@ -53,6 +57,7 @@ final grpcClientProvider = Provider((ref) {
         channelShutdownHandler: () => logger.w('gRPC channel shut down'),
       ),
     ),
+    logger,
   );
 });
 
@@ -67,7 +72,18 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
       lastError = null;
     } catch (error, stackTrace) {
       if (error != lastError) {
-        logger.e('Error on polling info', error: error, stackTrace: stackTrace);
+        // "Channel shutting down" is an orderly disconnection (e.g. app exit);
+        // log at debug rather than error to avoid spurious noise.
+        final isChannelShutdown = error is GrpcError &&
+            (error.message?.contains('Channel shutting down') ?? false);
+        final logger = ref.read(loggerProvider);
+        if (isChannelShutdown) {
+          logger.d('gRPC channel shut down while polling info',
+              error: error, stackTrace: stackTrace);
+        } else {
+          logger.e('Error on polling info',
+              error: error, stackTrace: stackTrace);
+        }
         yield* Stream.error(error, stackTrace);
       }
       lastError = error;
@@ -80,11 +96,7 @@ final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
 });
 
 final daemonAvailableProvider = Provider((ref) {
-  // Check FFI availability first
-  if (!ref.watch(ffiAvailableProvider)) {
-    return false;
-  }
-
+  if (!ref.watch(ffiAvailableProvider)) return false;
   final error = ref.watch(vmInfosStreamProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
@@ -224,10 +236,11 @@ final isLaunchingProvider = Provider.autoDispose.family<bool, String>((
 class ClientSettingNotifier extends Notifier<String> {
   ClientSettingNotifier(this.arg);
   final String arg;
-  final file = File(settingsFile());
 
   @override
   String build() {
+    if (!ref.watch(ffiAvailableProvider)) return '';
+    final file = File(settingsFile());
     file.parent.create(recursive: true).then(
           (dir) => dir
               .watch()
@@ -394,7 +407,7 @@ final networksProvider =
       );
   if (driver != null && ref.watch(daemonAvailableProvider)) {
     final networks = await ref.watch(grpcClientProvider).networks();
-    return BuiltSet<String>(networks);
+    return BuiltSet<String>(networks.map((ni) => ni.name));
   }
   return BuiltSet<String>();
 });

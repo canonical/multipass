@@ -6,17 +6,20 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 
-late final Logger logger;
+Logger? _logger;
+Logger get logger => _logger!;
 
 class NoFilter extends LogFilter {
   @override
   bool shouldLog(LogEvent event) => true;
 }
 
-Future<void> setupLogger() async {
+Future<Logger> setupLogger() async {
+  if (_logger != null) return _logger!;
+
   final logFilePath = await getApplicationSupportDirectory();
 
-  logger = Logger(
+  _logger = Logger(
     filter: NoFilter(),
     printer: MpPrettyPrinter(excludePaths: ['dart:', 'package:flutter']),
     output: MultiOutput([
@@ -36,6 +39,7 @@ Future<void> setupLogger() async {
     logger.e('Dart error', error: error, stackTrace: stackTrace);
     return true;
   };
+  return _logger!;
 }
 
 class MpPrettyPrinter extends LogPrinter {

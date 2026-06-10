@@ -13,6 +13,8 @@ class AboutSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final daemonVersion = ref.watch(daemonVersionProvider);
+    final ffiAvailable = ref.watch(ffiAvailableProvider);
+    final version = ffiAvailable ? multipassVersion : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -24,11 +26,11 @@ class AboutSection extends ConsumerWidget {
         DisplayField(
           label: l10n.aboutVersionLabel,
           width: 260,
-          text: multipassVersion,
+          text: version,
           copyable: true,
         ),
-        if (multipassVersion != daemonVersion) const SizedBox(height: 20),
-        if (multipassVersion != daemonVersion)
+        if (version != daemonVersion) const SizedBox(height: 20),
+        if (version != daemonVersion)
           DisplayField(
             label: l10n.aboutDaemonVersionLabel,
             width: 260,

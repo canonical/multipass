@@ -15,6 +15,7 @@ class MemorySlider extends StatefulWidget {
   final int max;
   final bool enabled;
   final int sysMax;
+  final String Function(int) memoryFormatter;
 
   const MemorySlider({
     super.key,
@@ -25,6 +26,7 @@ class MemorySlider extends StatefulWidget {
     required this.max,
     this.enabled = true,
     required this.sysMax,
+    this.memoryFormatter = humanReadableMemory,
   });
 
   @override
@@ -130,9 +132,9 @@ class _MemorySliderState extends State<MemorySlider> {
             const SizedBox(height: 5),
             Row(
               children: [
-                Text(humanReadableMemory(widget.min)),
+                Text(widget.memoryFormatter(widget.min)),
                 Spacer(),
-                Text(humanReadableMemory(widget.max)),
+                Text(widget.memoryFormatter(widget.max)),
               ],
             ),
             if ((field.value ?? widget.min) > widget.sysMax) ...[
@@ -141,10 +143,12 @@ class _MemorySliderState extends State<MemorySlider> {
                 children: [
                   const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
                   const SizedBox(width: 5),
-                  Text(
-                    l10n.memorySliderOverProvisioning(
-                        widget.label.toLowerCase()),
-                    style: const TextStyle(fontSize: 16),
+                  Flexible(
+                    child: Text(
+                      l10n.memorySliderOverProvisioning(
+                          widget.label.toLowerCase()),
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                 ],
               ),
@@ -158,8 +162,13 @@ class _MemorySliderState extends State<MemorySlider> {
       children: [
         Row(
           children: [
-            Text(widget.label, style: TextStyle(fontSize: 16)),
-            Spacer(),
+            Expanded(
+              child: Text(
+                widget.label,
+                style: const TextStyle(fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             ConstrainedBox(
               constraints: BoxConstraints(minWidth: 65),
               child: IntrinsicWidth(child: textField),

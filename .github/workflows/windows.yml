@@ -181,6 +181,12 @@ jobs:
       run: |
         ctest -V
 
+    - name: Run GUI integration tests
+      working-directory: ${{ github.workspace }}/src/client/gui
+      timeout-minutes: 15
+      run: |
+        ${{ github.workspace }}\3rd-party\flutter\bin\flutter.bat test integration_test/all_tests.dart -d windows
+
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}

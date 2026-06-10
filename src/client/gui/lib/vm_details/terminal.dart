@@ -12,7 +12,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:xterm/xterm.dart';
 
-import '../logger.dart';
 import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
@@ -98,6 +97,7 @@ class TerminalNotifier extends Notifier<Terminal?> {
     });
     if (sshInfo == null) return null;
 
+    final logger = ref.read(loggerProvider);
     final terminal = Terminal(maxLines: 10000);
     final receiver = ReceivePort();
     final errorReceiver = ReceivePort();

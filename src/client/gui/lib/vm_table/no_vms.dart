@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../catalogue/catalogue.dart';
-import '../extensions.dart';
 import '../l10n/app_localizations.dart';
 import '../sidebar.dart';
 
@@ -36,13 +35,31 @@ class NoVms extends ConsumerWidget {
             Text(l10n.noVmsTitle, style: const TextStyle(fontSize: 21)),
             const SizedBox(height: 8),
             Text.rich(
-              [
-                l10n.noVmsMessageBefore.span,
-                l10n.catalogueLabel.span
-                    .color(Colors.blue)
-                    .link(ref, goToCatalogue),
-                l10n.noVmsMessageAfter.span,
-              ].spans.size(16),
+              TextSpan(
+                style: const TextStyle(color: Colors.black, fontSize: 16),
+                children: [
+                  TextSpan(text: l10n.noVmsMessageBefore),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.baseline,
+                    baseline: TextBaseline.alphabetic,
+                    child: GestureDetector(
+                      key: const Key('catalogue_link'),
+                      onTap: goToCatalogue,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Text(
+                          l10n.catalogueLabel,
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  TextSpan(text: l10n.noVmsMessageAfter),
+                ],
+              ),
             ),
           ],
         ),

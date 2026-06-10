@@ -6,7 +6,7 @@ import 'package:grpc/grpc.dart';
 import 'package:protobuf/protobuf.dart' hide RpcClient;
 import 'package:rxdart/rxdart.dart';
 
-import 'logger.dart';
+import 'package:logger/logger.dart';
 import 'providers.dart';
 import 'update_available.dart';
 
@@ -37,59 +37,60 @@ void checkForUpdate(RpcMessage message) {
   providerContainer.read(updateProvider.notifier).set(updateInfo);
 }
 
-void Function(StreamNotification<RpcMessage>) logGrpc(RpcMessage request) {
-  return (notification) {
-    switch (notification.kind) {
-      case NotificationKind.data:
-        final reply = notification.requireDataValue.deepCopy();
-        if (reply is SSHInfoReply) {
-          for (final info in reply.sshInfo.values) {
-            info.privKeyBase64 = '*hidden*';
-          }
-        }
-        if (reply is LaunchReply) {
-          final percent = reply.launchProgress.percentComplete;
-          if (!['0', '100', '-1'].contains(percent)) return;
-        }
-        logger.i('${request.repr} received ${reply.repr}');
-      case NotificationKind.error:
-        final es = notification.errorAndStackTraceOrNull;
-        logger.e(
-          '${request.repr} received an error',
-          error: es?.error,
-          stackTrace: es?.stackTrace,
-        );
-      case NotificationKind.done:
-        logger.i('${request.repr} is done');
-    }
-  };
-}
-
 class GrpcClient {
   final RpcClient _client;
+  final Logger _logger;
 
-  GrpcClient(this._client);
+  GrpcClient(this._client, this._logger);
+
+  void Function(StreamNotification<RpcMessage>) _logGrpc(RpcMessage request) {
+    return (notification) {
+      switch (notification.kind) {
+        case NotificationKind.data:
+          final reply = notification.requireDataValue.deepCopy();
+          if (reply is SSHInfoReply) {
+            for (final info in reply.sshInfo.values) {
+              info.privKeyBase64 = '*hidden*';
+            }
+          }
+          if (reply is LaunchReply) {
+            final percent = reply.launchProgress.percentComplete;
+            if (!['0', '100', '-1'].contains(percent)) return;
+          }
+          _logger.i('${request.repr} received ${reply.repr}');
+        case NotificationKind.error:
+          final es = notification.errorAndStackTraceOrNull;
+          _logger.e(
+            '${request.repr} received an error',
+            error: es?.error,
+            stackTrace: es?.stackTrace,
+          );
+        case NotificationKind.done:
+          _logger.i('${request.repr} is done');
+      }
+    };
+  }
 
   Stream<Either<LaunchReply, MountReply>?> launch(
     LaunchRequest request, {
     List<MountRequest> mountRequests = const [],
     Future<void>? cancel,
   }) async* {
-    logger.i('Sent ${request.repr}');
+    _logger.i('Sent ${request.repr}');
     final launchReplyStream = _client.launch(Stream.value(request));
     cancel?.then((_) => launchReplyStream.cancel());
     final launchStream = launchReplyStream
         .doOnData(checkForUpdate)
-        .doOnEach(logGrpc(request))
+        .doOnEach(_logGrpc(request))
         .map(Either<LaunchReply, MountReply>.left);
     await for (final launchReply in launchStream) {
       yield launchReply;
     }
     for (final mountRequest in mountRequests) {
-      logger.i('Sent ${mountRequest.repr}');
+      _logger.i('Sent ${mountRequest.repr}');
       yield* _client
           .mount(Stream.value(mountRequest))
-          .doOnEach(logGrpc(mountRequest))
+          .doOnEach(_logGrpc(mountRequest))
           .map((Either<LaunchReply, MountReply>.right));
     }
   }
@@ -100,10 +101,10 @@ class GrpcClient {
     bool checkUpdates = false,
     bool log = true,
   }) {
-    if (log) logger.i('Sent ${request.repr}');
+    if (log) _logger.i('Sent ${request.repr}');
     Stream<Rep> replyStream = action(Stream.value(request));
     if (checkUpdates) replyStream = replyStream.doOnData(checkForUpdate);
-    if (log) replyStream = replyStream.doOnEach(logGrpc(request));
+    if (log) replyStream = replyStream.doOnEach(_logGrpc(request));
     return replyStream.lastOrNull;
   }
 
