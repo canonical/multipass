@@ -589,7 +589,7 @@ Open a browser and type in the IP address of your instance into the address bar.
 
 <!-- This used to be platform dependent but that does not make sense... -->
 
-```{figure} /images/tutorial/mp-linux-4.png
+```{figure} /images/tutorial/mp-apache.png
    :width: 720px
    :alt: Default Apache homepage
 ```
