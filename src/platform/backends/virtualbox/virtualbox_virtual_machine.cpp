@@ -184,8 +184,8 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        AvailabilityZone& zone,
-                                                       const mp::Path& instance_dir_qstr)
-    : VirtualBoxVirtualMachine(vm_desc, monitor, key_provider, zone, instance_dir_qstr, true)
+                                                       const std::filesystem::path& instance_dir)
+    : VirtualBoxVirtualMachine(vm_desc, monitor, key_provider, zone, instance_dir, true)
 {
     if (desc.extra_interfaces.size() > 7)
     {
@@ -197,13 +197,12 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                    "Could not get instance info: {}",
                                    name))
     {
-        const fs::path instances_dir = fs::path{instance_dir_qstr.toStdString()}.parent_path();
         mpu::process_throw_on_error("VBoxManage",
                                     {"createvm",
                                      "--name",
                                      name,
                                      "--basefolder",
-                                     QString::fromStdString(instances_dir.string()),
+                                     MP_PLATFORM.path_to_qstr(instance_dir),
                                      "--ostype",
                                      "ubuntu_64",
                                      "--register"},
@@ -261,15 +260,16 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
     }
 }
 
-mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source_vm_name,
-                                                       const VirtualMachineDescription& vm_desc,
-                                                       VMStatusMonitor& monitor,
-                                                       const SSHKeyProvider& key_provider,
-                                                       AvailabilityZone& zone,
-                                                       const Path& dest_instance_dir)
+mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(
+    const std::string& source_vm_name,
+    const VirtualMachineDescription& vm_desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider,
+    AvailabilityZone& zone,
+    const std::filesystem::path& dest_instance_dir)
     : VirtualBoxVirtualMachine(vm_desc, monitor, key_provider, zone, dest_instance_dir, true)
 {
-    const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
+    const auto instances_dir = dest_instance_dir.parent_path();
 
     // 1. clone the vm with certain options and mode. --mode value is all, which copies all snapshot
     // history and it always includes the base disk whereas machine mode only copies the current
@@ -333,9 +333,9 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        AvailabilityZone& zone,
-                                                       const mp::Path& instance_dir_qstr,
+                                                       const fs::path& instance_dir,
                                                        bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir_qstr},
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir},
       name{QString::fromStdString(desc.vm_name)}
 {
 }
