@@ -118,7 +118,7 @@ jobs:
         fi
 
     - name: Upload installer SBOMs
-      if: always()
+      if: ${{ always() && steps.installer-sboms.outputs.reports_dir }}
       uses: actions/upload-artifact@v7
       with:
         name: sboms-installers-${{ inputs.tag }}
