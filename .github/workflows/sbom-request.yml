@@ -6,12 +6,15 @@ on:
       email:
         description: 'Canonical email address to receive SBOM completion notifications'
         required: true
+        type: string
       tag:
         description: 'Release tag to scan (e.g. v1.16.3 or v1.17.0-rc1).'
         required: true
+        type: string
       release:
         description: 'Release cycle (e.g. 25.04).'
         required: true
+        type: string
 
 permissions:
   contents: read
