@@ -26,10 +26,10 @@ artifacts:
 
   - <<: *multipass
     name: multipass-s390x
-    channel: edge
+    channel: edge # TODO: remove once released to stable
     arch: s390x
 
   - <<: *multipass
     name: multipass-ppc64el
-    channel: edge
+    channel: edge # TODO: remove once released to stable
     arch: ppc64el
