@@ -187,9 +187,11 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         vault = factory->create_image_vault(
             hosts,
             url_downloader.get(),
-            MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name()),
-            mp::utils::backend_directory_path(data_directory,
-                                              factory->get_backend_directory_name()),
+            MP_PLATFORM.qstr_to_path(
+                MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name())),
+            MP_PLATFORM.qstr_to_path(
+                mp::utils::backend_directory_path(data_directory,
+                                                  factory->get_backend_directory_name())),
             days_to_expire);
     }
     if (name_generator == nullptr)

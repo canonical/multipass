@@ -114,11 +114,8 @@ TEST_F(BaseFactory, createImageVaultReturnsDefaultVault)
     std::vector<mp::VMImageHost*> hosts;
     MockBaseFactory factory{az_manager};
 
-    auto vault = factory.create_image_vault(hosts,
-                                            &stub_downloader,
-                                            cache_dir.path(),
-                                            data_dir.path(),
-                                            mp::days{0});
+    auto vault =
+        factory.create_image_vault(hosts, &stub_downloader, cache_dir, data_dir, mp::days{0});
 
     EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
 }
