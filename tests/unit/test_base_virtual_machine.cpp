@@ -136,7 +136,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
     StubBaseVirtualMachine(St s, mp::AvailabilityZone& zone, std::unique_ptr<mpt::TempDir> tmp_dir)
-        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
+        : mp::BaseVirtualMachine{s, "stub", mpt::StubSSHKeyProvider{}, zone, *tmp_dir},
           tmp_dir{std::move(tmp_dir)}
     {
     }

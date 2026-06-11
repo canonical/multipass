@@ -59,7 +59,11 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
     MOCK_METHOD(VMImageVault::UPtr,
                 create_image_vault,
-                (std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&),
+                (std::vector<VMImageHost*>,
+                 URLDownloader*,
+                 const std::filesystem::path&,
+                 const std::filesystem::path&,
+                 const days&),
                 (override));
     MOCK_METHOD(void, configure, (VirtualMachineDescription&), (override));
     MOCK_METHOD(std::vector<NetworkInterfaceInfo>, networks, (), (const, override));

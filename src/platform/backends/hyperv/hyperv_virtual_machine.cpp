@@ -149,7 +149,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                AvailabilityZone& zone,
-                                               const mp::Path& instance_dir)
+                                               const std::filesystem::path& instance_dir)
     : HyperVVirtualMachine{desc, monitor, key_provider, zone, instance_dir, true}
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
@@ -204,23 +204,23 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                AvailabilityZone& zone,
-                                               const Path& dest_instance_dir)
+                                               const std::filesystem::path& dest_instance_dir)
     : HyperVVirtualMachine{desc, monitor, key_provider, zone, dest_instance_dir, true}
 {
+    const auto qdest_instance_dir = MP_PLATFORM.path_to_qstr(dest_instance_dir);
     // 1. Export-VM -Name vm1 -Path C:\ProgramData\Multipass\data\vault\instances\vm1-clone1
     power_shell->easy_run({"Export-VM",
                            "-Name",
                            QString::fromStdString(source_vm_name),
                            "-Path",
-                           quoted(dest_instance_dir)},
+                           quoted(qdest_instance_dir)},
                           "Could not export the source vm");
 
     // 2. $imported_vm=Import-VM -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
-    const fs::path exported_vm_path =
-        fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
+    const fs::path exported_vm_path = dest_instance_dir / source_vm_name;
     const fs::path vmcx_file_path = locate_vmcx_file(exported_vm_path);
     // The next step needs to rename the instance, so we need to store the instance variable
     // $imported_vm from the Import-VM step. Because we can not use vm name to uniquely identify the
@@ -231,7 +231,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                            "-Copy",
                            "-GenerateNewId",
                            "-VhdDestinationPath",
-                           quoted(dest_instance_dir)},
+                           quoted(qdest_instance_dir)},
                           "Could not import from the exported instance directory");
     // 3. Rename-vm $imported_vm -NewName vm1-clone1
     power_shell->easy_run({"Rename-vm", "$imported_vm", "-NewName", name},
@@ -248,8 +248,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
         "Could not remove the cloud-init-config.iso file from the virtual machine");
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
-    const fs::path dest_cloud_init_path =
-        fs::path{dest_instance_dir.toStdString()} / cloud_init_file_name;
+    const fs::path dest_cloud_init_path = dest_instance_dir / cloud_init_file_name;
     power_shell->easy_run({"Add-VMDvdDrive",
                            "-VMName",
                            name,
@@ -269,7 +268,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                AvailabilityZone& zone,
-                                               const Path& instance_dir,
+                                               const std::filesystem::path& instance_dir,
                                                bool /*is_internal*/)
     : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
       desc{desc},

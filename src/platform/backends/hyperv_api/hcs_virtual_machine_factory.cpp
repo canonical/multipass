@@ -81,12 +81,13 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
-                                               desc,
-                                               monitor,
-                                               key_provider,
-                                               az_manager.get_zone(desc.zone),
-                                               get_instance_directory(desc.vm_name));
+    return std::make_unique<HCSVirtualMachine>(
+        default_hyperv_switch_guid,
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 }
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)

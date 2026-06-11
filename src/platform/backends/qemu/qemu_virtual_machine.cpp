@@ -225,7 +225,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
-                                           const Path& instance_dir,
+                                           const std::filesystem::path& instance_dir,
                                            bool remove_snapshots)
     : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path,
                                                                   suspend_tag)

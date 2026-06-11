@@ -25,6 +25,7 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -42,11 +43,11 @@ public:
                        const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
-                       const Path& instance_dir);
+                       const std::filesystem::path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
-                       const Path& instance_dir);
+                       const std::filesystem::path& instance_dir);
     ~BaseVirtualMachine();
 
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;

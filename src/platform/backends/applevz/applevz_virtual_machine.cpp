@@ -38,7 +38,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              VMStatusMonitor& monitor,
                                              const SSHKeyProvider& key_provider,
                                              AvailabilityZone& zone,
-                                             const Path& instance_dir)
+                                             const std::filesystem::path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
       desc{desc},
       monitor{&monitor}
