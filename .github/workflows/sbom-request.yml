@@ -35,11 +35,11 @@ jobs:
         cat "$RUNNER_TEMP/sbomber-manifest.yaml"
 
     - name: sbomber (snap)
-      uses: canonical/sbomber/.github/actions/run@cf7a76e810497ec932e8285b2c9d6b373d225e79  # main
+      uses: canonical/sbomber/.github/actions/run@7a6c0b5f115b2b739d22a595257aa3a73590ed61  # main
       with:
         manifest: '${{ runner.temp }}/sbomber-manifest.yaml'
         artifact-name: secscan-report-upload-snap
-        sbomber-ref: cf7a76e810497ec932e8285b2c9d6b373d225e79  # should match the ref in 'uses' above
+        sbomber-ref: 7a6c0b5f115b2b739d22a595257aa3a73590ed61  # should match the ref in 'uses' above
 
   installers:
     if: ${{ github.repository == 'canonical/multipass' }}
