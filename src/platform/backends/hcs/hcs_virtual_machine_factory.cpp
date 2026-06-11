@@ -102,13 +102,12 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<HCSVirtualMachine>(
-        az_network_guids.at(desc.zone),
-        desc,
-        monitor,
-        key_provider,
-        az_manager.get_zone(desc.zone),
-        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
+    return std::make_unique<HCSVirtualMachine>(az_network_guids.at(desc.zone),
+                                               desc,
+                                               monitor,
+                                               key_provider,
+                                               az_manager.get_zone(desc.zone),
+                                               get_instance_directory(desc.vm_name));
 }
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -215,7 +214,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
                                                              const SSHKeyProvider& key_provider)
 {
 
-    const fs::path src_vm_instance_dir{get_instance_directory(source_vm_name).toStdWString()};
+    const auto src_vm_instance_dir{get_instance_directory(source_vm_name)};
 
     if (!fs::exists(src_vm_instance_dir))
     {

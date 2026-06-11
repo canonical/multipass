@@ -20,6 +20,7 @@
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/logging/log.h>
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
@@ -28,6 +29,7 @@
 #include <multipass/vm_specs.h>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
 const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
@@ -36,6 +38,19 @@ const std::unordered_set<std::string> cloneable_files{".iso", ".img", ".qcow2", 
 mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir,
                                                          AvailabilityZoneManager& az_manager)
     : az_manager{az_manager}, instances_dir{instances_dir} {};
+
+void multipass::BaseVirtualMachineFactory::remove_resources_for(const std::string& name)
+{
+    remove_resources_for_impl(name);
+    try
+    {
+        MP_FILEOPS.remove_all(get_instance_directory(name));
+    }
+    catch (const std::filesystem::filesystem_error& e)
+    {
+        mpl::error(name, "Unable to remove resources: {}", e.what());
+    }
+}
 
 void mp::BaseVirtualMachineFactory::prepare_networking(
     std::vector<NetworkInterface>& extra_interfaces)
@@ -86,8 +101,8 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
     const multipass::SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
-    const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
+    const auto src_instance_dir{get_instance_directory(src_name)};
+    const auto dest_instance_dir{get_instance_directory(dest_name)};
 
     copy_instance_dir_with_essential_files(src_instance_dir, dest_instance_dir);
 
