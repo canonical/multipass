@@ -1,0 +1,124 @@
+name: SBOM and secscan
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Canonical email address to receive SBOM completion notifications'
+        required: true
+      tag:
+        description: 'Release tag to scan (e.g. v1.16.3 or v1.17.0-rc1).'
+        required: true
+      release:
+        description: 'Release cycle (e.g. 25.04).'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  snap:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
+    # Requires a runner with Canonical VPN access via a private endpoint.
+    runs-on: [self-hosted-linux-amd64-noble-small]
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
+        sparse-checkout: .github/.sbomber-manifest-snap.yaml
+
+    - name: Render manifest
+      run: |
+        sed "s/__EMAIL__/${{ inputs.email }}/g" "$GITHUB_WORKSPACE/.github/.sbomber-manifest-snap.yaml" > "$RUNNER_TEMP/sbomber-manifest.yaml"
+        cat "$RUNNER_TEMP/sbomber-manifest.yaml"
+
+    - name: sbomber (snap)
+      uses: canonical/sbomber/.github/actions/run@cf7a76e810497ec932e8285b2c9d6b373d225e79  # main
+      with:
+        manifest: '${{ runner.temp }}/sbomber-manifest.yaml'
+        artifact-name: secscan-report-upload-snap
+        sbomber-ref: cf7a76e810497ec932e8285b2c9d6b373d225e79  # should match the ref in 'uses' above
+
+  installers:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
+    runs-on: [self-hosted-linux-amd64-noble-small]
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
+        sparse-checkout: tools/ssdlc
+
+    - name: Download release installers
+      id: release
+      # Download the .pkg and .msi assets from the given release tag.
+      run: |
+        TAG="${{ inputs.tag }}"
+        VERSION="${TAG#v}"
+        VERSION="${VERSION%%-rc*}"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+        mkdir -p "$RUNNER_TEMP/installers"
+        gh release download "$TAG" \
+          --repo "${{ github.repository }}" \
+          --pattern "*.pkg" \
+          --pattern "*.msi" \
+          --dir "$RUNNER_TEMP/installers"
+        ls -lh "$RUNNER_TEMP/installers"
+      env:
+        GH_TOKEN: ${{ github.token }}
+
+    - name: Install Python dependencies
+      uses: BSFishy/pip-action@v1
+      with:
+        requirements: tools/ssdlc/requirements.txt
+
+    - name: Request installer SBOMs
+      id: installer-sboms
+      # sbomber does not support macOS/Windows installers. Use the SBOM REST API directly
+      # via request-sboms.py. secscan is also skipped.
+      run: |
+        REPORTS_DIR="$RUNNER_TEMP/sboms-installers"
+        PIDS=()
+
+        for f in "$RUNNER_TEMP/installers"/*.pkg "$RUNNER_TEMP/installers"/*.msi; do
+          [ -f "$f" ] || continue
+          case "$f" in
+            *.pkg)
+              # Universal binary, but we only request for amd64
+              ARCH="amd64"
+              ;;
+            *.msi)
+              # Windows only supports amd64 right now
+              ARCH="amd64"
+              ;;
+          esac
+
+          tools/ssdlc/request_sboms.py \
+            --email "${{ inputs.email }}" \
+            --version "${{ steps.release.outputs.version }}" \
+            --output-dir "$REPORTS_DIR" \
+            --arch "$ARCH" \
+            --release "${{ inputs.release }}" \
+            "$f" &
+          PIDS+=($!)
+        done
+
+        if [ ${#PIDS[@]} -eq 0 ]; then
+          echo "::warning::No .pkg or .msi installers found; skipping installer SBOMs"
+        else
+          for pid in "${PIDS[@]}"; do wait "$pid"; done
+          echo "reports_dir=$REPORTS_DIR" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Upload installer SBOMs
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: sboms-installers-${{ inputs.tag }}
+        path: ${{ steps.installer-sboms.outputs.reports_dir }}
+        if-no-files-found: warn
+        retention-days: 90
