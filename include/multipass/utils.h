@@ -69,7 +69,8 @@ enum class TimeoutAction
 // filesystem and path helpers
 QDir base_dir(const QString& path);
 bool is_dir(const std::filesystem::path& path);
-QString backend_directory_path(const Path& path, const QString& subdirectory);
+std::filesystem::path backend_directory_path(const std::filesystem::path& path,
+                                             const std::string& subdirectory);
 std::string contents_of(const multipass::Path& file_path);
 
 // path normalization: returns the lexically-normal form of the path with any trailing directory

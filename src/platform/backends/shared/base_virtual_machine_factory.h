@@ -54,7 +54,7 @@ public:
 
     std::filesystem::path get_instance_directory(const std::string& name) const override
     {
-        return MP_PLATFORM.qstr_to_path(utils::backend_directory_path(instances_dir, QString::fromStdString(name)));
+        return utils::backend_directory_path(MP_PLATFORM.qstr_to_path(instances_dir), name);
     }
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;

@@ -350,12 +350,13 @@ mp::Path mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions
     return make_dir(dir, QString(), permissions);
 }
 
-QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
+std::filesystem::path mp::utils::backend_directory_path(const std::filesystem::path& path,
+                                                        const std::string& subdirectory)
 {
-    if (subdirectory.isEmpty())
+    if (subdirectory.empty())
         return path;
 
-    return mp::Path("%1/%2").arg(path).arg(subdirectory);
+    return path / subdirectory;
 }
 
 QString mp::utils::get_multipass_storage()

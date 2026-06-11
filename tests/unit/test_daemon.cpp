@@ -1515,13 +1515,16 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
     const std::string stayed{"foo"}, gone{"fighters"};
     auto stayed_json = fmt::format(valid_template, stayed, "12");
     auto gone_json = fmt::format(valid_template, gone, "34");
-    const auto [temp_dir, filename] = plant_instance_json(
-        fmt::format("{{\n{},\n{}\n}}", std::move(stayed_json), std::move(gone_json)));
-    config_builder.data_directory = temp_dir->path();
+    auto json_contents = fmt::format("{{\n{},\n{}\n}}",
+                                     std::move(stayed_json),
+                                     std::move(gone_json));
+    auto filename = config_builder.data_directory + "/multipassd-vm-instances.json";
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
+    EXPECT_CALL(*mock_file_ops, try_read_file(Eq(MP_PLATFORM.qstr_to_path(filename))))
+        .WillOnce(Return(std::make_optional(json_contents)));
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image(Field(&mp::Query::name, stayed), _, _, _, _))
@@ -2327,13 +2330,13 @@ TEST_F(Daemon, purgePersistsInstances)
     auto instance_json1 = fmt::format(valid_template, name1, "10");
     auto instance_json2 = fmt::format(valid_template, name2, "11");
     auto json_contents = fmt::format("{{{}, {}}}", instance_json1, instance_json2);
-
-    const auto [temp_dir, filename] = plant_instance_json(json_contents);
-    config_builder.data_directory = temp_dir->path();
+    auto filename = config_builder.data_directory + "/multipassd-vm-instances.json";
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, try_read_file(Eq(MP_PLATFORM.qstr_to_path(filename))))
+        .WillOnce(Return(std::make_optional(json_contents)));
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())
