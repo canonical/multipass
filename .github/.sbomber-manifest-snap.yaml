@@ -1,0 +1,35 @@
+clients:
+  sbom:
+    service_url: https://sbom-request.canonical.com
+    department: devex
+    email: __EMAIL__
+    team: Multipass
+  secscan: {}
+
+.:
+  - &multipass
+    type: snap
+    channel: latest/stable
+    ssdlc_params:
+      name: multipass
+      version: ""
+      channel: latest/stable
+
+artifacts:
+  - <<: *multipass
+    name: multipass-amd64
+    arch: amd64
+
+  - <<: *multipass
+    name: multipass-arm64
+    arch: arm64
+
+  - <<: *multipass
+    name: multipass-s390x
+    channel: edge
+    arch: s390x
+
+  - <<: *multipass
+    name: multipass-ppc64el
+    channel: edge
+    arch: ppc64el
