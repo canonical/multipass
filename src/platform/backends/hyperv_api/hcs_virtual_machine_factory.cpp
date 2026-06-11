@@ -87,7 +87,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
         monitor,
         key_provider,
         az_manager.get_zone(desc.zone),
-        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
+        get_instance_directory(desc.vm_name));
 }
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -234,7 +234,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
                                                              const SSHKeyProvider& key_provider)
 {
 
-    const fs::path src_vm_instance_dir{get_instance_directory(source_vm_name).toStdWString()};
+    const auto src_vm_instance_dir{get_instance_directory(source_vm_name)};
 
     if (!fs::exists(src_vm_instance_dir))
     {

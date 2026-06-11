@@ -54,7 +54,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                 (override));
     MOCK_METHOD(void, hypervisor_health_check, (), (override));
     MOCK_METHOD(QString, get_backend_directory_name, (), (const, override));
-    MOCK_METHOD(QString, get_instance_directory, (const std::string&), (const, override));
+    MOCK_METHOD(std::filesystem::path, get_instance_directory, (const std::string&), (const, override));
     MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
     MOCK_METHOD(VMImageVault::UPtr,
                 create_image_vault,

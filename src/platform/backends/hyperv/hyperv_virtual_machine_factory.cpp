@@ -288,7 +288,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
         monitor,
         key_provider,
         az_manager.get_zone(desc.zone),
-        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -485,5 +485,5 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
         monitor,
         key_provider,
         az_manager.get_zone(dest_vm_desc.zone),
-        MP_PLATFORM.qstr_to_path(get_instance_directory(dest_vm_desc.vm_name)));
+        get_instance_directory(dest_vm_desc.vm_name));
 }

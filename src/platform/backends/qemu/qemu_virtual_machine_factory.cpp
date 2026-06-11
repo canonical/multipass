@@ -68,7 +68,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
         monitor,
         key_provider,
         az_manager.get_zone(desc.zone),
-        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -190,6 +190,6 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
         monitor,
         key_provider,
         az_manager.get_zone(desc.zone),
-        MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)),
+        get_instance_directory(desc.vm_name),
         true);
 }

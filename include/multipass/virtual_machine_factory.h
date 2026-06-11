@@ -19,7 +19,6 @@
 
 #include "days.h"
 #include "disabled_copy_move.h"
-#include "path.h"
 #include "virtual_machine.h"
 #include "vm_image.h"
 #include "vm_image_vault.h"
@@ -68,7 +67,7 @@ public:
                                         const VirtualMachineDescription& desc) = 0;
     virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() const = 0;
-    virtual Path get_instance_directory(const std::string& name) const = 0;
+    virtual std::filesystem::path get_instance_directory(const std::string& name) const = 0;
     virtual QString get_backend_version_string() const = 0;
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                                   URLDownloader* downloader,

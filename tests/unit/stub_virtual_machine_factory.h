@@ -70,9 +70,9 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return {};
     }
 
-    QString get_instance_directory(const std::string&) const override
+    std::filesystem::path get_instance_directory(const std::string&) const override
     {
-        return tmp_dir->path();
+        return *tmp_dir;
     }
 
     QString get_backend_version_string() const override

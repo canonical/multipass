@@ -52,9 +52,9 @@ public:
         return {};
     };
 
-    Path get_instance_directory(const std::string& name) const override
+    std::filesystem::path get_instance_directory(const std::string& name) const override
     {
-        return utils::backend_directory_path(instances_dir, QString::fromStdString(name));
+        return MP_PLATFORM.qstr_to_path(utils::backend_directory_path(instances_dir, QString::fromStdString(name)));
     }
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
@@ -111,8 +111,7 @@ private:
 inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std::string& name)
 {
     remove_resources_for_impl(name);
-    QDir instance_dir{get_instance_directory(name)};
-    instance_dir.removeRecursively();
+    MP_FILEOPS.remove_all(get_instance_directory(name));
 }
 
 inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clone_vm_impl(
