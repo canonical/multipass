@@ -115,7 +115,7 @@ public:
                 (const, override));
     MOCK_METHOD(void,
                 resize,
-                (const fs::path& old_p, uint64_t, std::error_code&),
+                (const fs::path& old_p, std::uintmax_t, std::error_code&),
                 (const, override));
     MOCK_METHOD(void, rename, (const fs::path& old_p, const fs::path& new_p), (override, const));
     MOCK_METHOD(void,
