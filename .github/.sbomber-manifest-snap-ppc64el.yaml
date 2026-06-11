@@ -9,9 +9,9 @@ clients:
 artifacts:
   - name: multipass
     type: snap
-    arch: amd64
-    channel: latest/stable
+    arch: ppc64el
+    channel: edge  # TODO: remove once released to stable
     ssdlc_params:
       name: multipass
       version: ""
-      channel: latest/stable
+      channel: edge
