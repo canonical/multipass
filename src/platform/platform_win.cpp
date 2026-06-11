@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
@@ -73,9 +74,11 @@
 #include <secext.h>
 #include <sys/types.h>
 #include <sys/utime.h>
+#include <sys/stat.h>
 // clang-format on
 #include <windows.h>
-#include <sys/stat.h>
+#include <winbase.h>
+#include <winioctl.h>
 #include <winternl.h>
 
 #include <algorithm>
@@ -106,6 +109,55 @@ namespace
 {
 static const auto none = QStringLiteral("none");
 static constexpr auto log_category = "platform-win";
+static constexpr uint32_t default_file_mode = 0600;
+static constexpr uint32_t default_dir_mode = 0700;
+
+struct PosixSecurity
+{
+    std::optional<uint32_t> perms;
+    std::optional<uint32_t> uid;
+    std::optional<uint32_t> gid;
+};
+
+// FILE_FULL_EA_INFORMATION / FILE_GET_EA_INFORMATION live in ntifs.h (DDK), not
+// the user-mode SDK. Declared here with the documented packed layout under
+// distinct names so there's no clash if ntifs.h is ever pulled in.
+#pragma pack(push, 1)
+struct EaFull
+{
+    ULONG NextEntryOffset;
+    UCHAR Flags;
+    UCHAR EaNameLength; // excludes the null terminator
+    USHORT EaValueLength;
+    CHAR EaName[1]; // name, null terminator, then value
+};
+struct EaGet
+{
+    ULONG NextEntryOffset;
+    UCHAR EaNameLength; // excludes the null terminator
+    CHAR EaName[1];
+};
+
+// Our metadata blob. `present` records which POSIX fields were actually set, so
+// a partial set (e.g. chown-only) never fabricates a mode=0 that get_ would read
+// back as 000. magic/version let future formats be detected and ignored cleanly.
+struct PosixEa
+{
+    uint32_t magic;
+    uint16_t version;
+    uint16_t present; // bitmask: MODE | UID | GID
+    uint32_t mode;    // POSIX permission bits
+    uint32_t uid;
+    uint32_t gid;
+};
+#pragma pack(pop)
+
+constexpr char kEaName[] = "$POSIX";      // NTFS stores EA names uppercased
+constexpr uint32_t kEaMagic = 0x49584F50; // 'POXI'
+constexpr uint16_t kEaVersion = 1;
+constexpr uint16_t POSIX_EA_MODE = 1u << 0;
+constexpr uint16_t POSIX_EA_UID = 1u << 1;
+constexpr uint16_t POSIX_EA_GID = 1u << 2;
 
 time_t time_t_from(const FILETIME* ft)
 {
@@ -125,12 +177,196 @@ FILETIME filetime_from(const time_t t)
     return ft;
 }
 
-uint64_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
+size_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
 {
     return (static_cast<uint64_t>(nFileSizeHigh) << 32) + nFileSizeLow;
 }
 
-sftp_attributes_struct stat_to_attr(const _stat64& file_data)
+// For ALLOW ACEs: full GENERIC_* mapping including standard rights
+ACCESS_MASK to_allow_mask(uint32_t rwx)
+{
+    ACCESS_MASK mask = 0;
+    if (rwx & 4)
+        mask |= FILE_READ_DATA | FILE_READ_EA | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE;
+    if (rwx & 2)
+        mask |= FILE_WRITE_DATA | FILE_WRITE_EA | FILE_WRITE_ATTRIBUTES | FILE_APPEND_DATA |
+                READ_CONTROL | SYNCHRONIZE;
+    if (rwx & 1)
+        mask |= FILE_EXECUTE | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE;
+    return mask;
+}
+
+inline bool nt_ok(NTSTATUS s)
+{
+    return s >= 0; // NOTE: STATUS_PENDING (0x103)
+                   //  also passes; safe only because these handles are synchronous
+                   //  (no FILE_FLAG_OVERLAPPED). Revisit if that ever changes.
+}
+
+// NtSetEaFile / NtQueryEaFile are the native EA primitives, resolved from ntdll
+// once and cached. They operate directly on the HANDLE we hold and give precise
+// single-EA control (unlike BackupRead or the higher-level info classes).
+using NtSetEaFile_t = NTSTATUS(NTAPI*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG);
+using NtQueryEaFile_t = NTSTATUS(
+    NTAPI*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, BOOLEAN, PVOID, ULONG, PULONG, BOOLEAN);
+
+NtSetEaFile_t nt_set_ea()
+{
+    static auto fn = reinterpret_cast<NtSetEaFile_t>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetEaFile"));
+    return fn;
+}
+NtQueryEaFile_t nt_query_ea()
+{
+    static auto fn = reinterpret_cast<NtQueryEaFile_t>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryEaFile"));
+    return fn;
+}
+
+// Writes the $POSIX EA. Requires FILE_WRITE_EA on the handle.
+// Cost: 1 syscall (NtSetEaFile).
+bool write_posix_ea(HANDLE handle, const PosixEa& meta)
+{
+    auto fn = nt_set_ea();
+    if (!fn)
+        return false;
+
+    constexpr UCHAR name_len = sizeof(kEaName) - 1; // 6, no null
+    constexpr USHORT value_len = sizeof(PosixEa);
+    constexpr size_t header = offsetof(EaFull, EaName);
+    const size_t total = header + name_len + 1 + value_len; // +1 = name's null
+
+    std::vector<BYTE> buf(total, 0);
+    auto* ea = reinterpret_cast<EaFull*>(buf.data());
+    ea->NextEntryOffset = 0;
+    ea->Flags = 0;
+    ea->EaNameLength = name_len;
+    ea->EaValueLength = value_len;
+    std::memcpy(buf.data() + header, kEaName, name_len); // null slot already 0
+    std::memcpy(buf.data() + header + name_len + 1, &meta, value_len);
+
+    IO_STATUS_BLOCK iosb{};
+    return nt_ok(fn(handle, &iosb, buf.data(), static_cast<ULONG>(total)));
+}
+
+// Reads the $POSIX EA. Requires FILE_READ_EA. Returns false when the EA is
+// absent, the volume has no EA support, or the blob isn't our format/version.
+// Cost: 1 syscall (NtQueryEaFile).
+bool read_posix_ea(HANDLE handle, PosixEa& out)
+{
+    auto fn = nt_query_ea();
+    if (!fn)
+        return false;
+
+    // GET list naming our single EA.
+    constexpr UCHAR name_len = sizeof(kEaName) - 1;
+    constexpr size_t get_header = offsetof(EaGet, EaName);
+    const size_t get_total = get_header + name_len + 1;
+    std::vector<BYTE> get_buf(get_total, 0);
+    auto* g = reinterpret_cast<EaGet*>(get_buf.data());
+    g->NextEntryOffset = 0;
+    g->EaNameLength = name_len;
+    std::memcpy(get_buf.data() + get_header, kEaName, name_len);
+
+    std::vector<BYTE> out_buf(512, 0);
+    IO_STATUS_BLOCK iosb{};
+    NTSTATUS st = fn(handle,
+                     &iosb,
+                     out_buf.data(),
+                     static_cast<ULONG>(out_buf.size()),
+                     TRUE, // ReturnSingleEntry
+                     get_buf.data(),
+                     static_cast<ULONG>(get_total),
+                     nullptr, // EaIndex
+                     TRUE);   // RestartScan
+    if (!nt_ok(st))
+        return false; // STATUS_NO_EAS_ON_FILE / NONEXISTENT_EA_ENTRY land here
+
+    auto* ea = reinterpret_cast<EaFull*>(out_buf.data());
+    if (ea->EaValueLength != sizeof(PosixEa))
+        return false;
+    PosixEa meta{};
+    std::memcpy(&meta,
+                out_buf.data() + offsetof(EaFull, EaName) + ea->EaNameLength + 1,
+                sizeof(PosixEa));
+    if (meta.magic != kEaMagic || meta.version != kEaVersion)
+        return false;
+
+    out = meta;
+    return true;
+}
+
+bool set_posix_security(HANDLE handle, const PosixSecurity& posix_security)
+{
+    if (!posix_security.perms && !posix_security.uid && !posix_security.gid)
+        return true;
+
+    PosixEa meta{};
+    if (!read_posix_ea(handle, meta)) // syscall #1 (read-modify-write read)
+    {
+        meta.magic = kEaMagic;
+        meta.version = kEaVersion;
+        meta.present = 0;
+        meta.mode = 0;
+        meta.uid = mp::no_id_info_available;
+        meta.gid = mp::no_id_info_available;
+    }
+
+    if (posix_security.perms)
+    {
+        meta.mode = *posix_security.perms;
+        meta.present |= POSIX_EA_MODE;
+    }
+    if (posix_security.uid)
+    {
+        meta.uid = *posix_security.uid;
+        meta.present |= POSIX_EA_UID;
+    }
+    if (posix_security.gid)
+    {
+        meta.gid = *posix_security.gid;
+        meta.present |= POSIX_EA_GID;
+    }
+
+    // The EA is the sole source of truth. If the volume can't store it, the
+    // round-trip guarantee is gone, so fail loud rather than silently dropping
+    // the metadata.
+    return write_posix_ea(handle, meta);
+}
+
+bool get_posix_security(HANDLE handle, sftp_attributes_struct& attr)
+{
+
+    attr.uid = mp::no_id_info_available;
+    attr.gid = mp::no_id_info_available;
+    PosixEa meta{};
+    if (!read_posix_ea(handle, meta))
+    {
+        // EA-less file: request setting the defaults
+        if (attr.permissions & SSH_S_IFDIR)
+            attr.permissions |= default_dir_mode;
+        else
+            attr.permissions |= default_file_mode;
+        attr.uid = mp::no_id_info_available;
+        attr.gid = mp::no_id_info_available;
+        return true;
+    }
+
+    // Each field is reported only if its present-bit is set; otherwise the
+    // sentinel. This keeps a chown-only or chmod-only file honest — an unset mode
+    // is never reported as 000, an unset id is never reported as 0.
+    // attr.uid = (meta.present & POSIX_EA_UID) ? meta.uid : mp::no_id_info_available;
+    // attr.gid = (meta.present & POSIX_EA_GID) ? meta.gid : mp::no_id_info_available;
+    // uid/gid retrieval is intentionally not wired up yet -> our own mapping
+    // even though set_ now stores them in the EA. When enabled, read meta.uid/gid
+    // here (guarded by the present bits) instead of the constants above.
+    if (meta.present & POSIX_EA_MODE)
+        attr.permissions |= meta.mode;
+
+    return true;
+}
+
+sftp_attributes_struct stat_to_attr(const struct _stat64& file_data)
 {
     sftp_attributes_struct attr{};
 
@@ -167,46 +403,43 @@ sftp_attributes_struct stat_to_attr(const _stat64& file_data)
     return attr;
 }
 
-sftp_attributes_struct stat_to_attr(const WIN32_FIND_DATAA& file_data)
+sftp_attributes_struct stat_to_attr(const BY_HANDLE_FILE_INFORMATION& file_data,
+                                    const HANDLE file_handle)
 {
     sftp_attributes_struct attr{};
 
     attr.uid = -2;
     attr.gid = -2;
 
+    attr.size = size_from(file_data.nFileSizeHigh, file_data.nFileSizeLow);
     attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
                  SSH_FILEXFER_ATTR_ACMODTIME;
 
     attr.atime = time_t_from(&(file_data.ftLastAccessTime));
     attr.mtime = time_t_from(&(file_data.ftLastWriteTime));
 
-    attr.size = size_from(file_data.nFileSizeHigh, file_data.nFileSizeLow);
-
-    attr.permissions = (fs::perms::all & ~(fs::perms::group_write | fs::perms::others_write));
-    // Default is 0755
-
-    if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
-        (file_data.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
+    if (file_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
     {
-        attr.permissions |= SSH_S_IFLNK | fs::perms::group_write |
-                            fs::perms::others_write; // Symlinks have 0777 by default
+        FILE_ATTRIBUTE_TAG_INFO tagInfo{};
+        if (GetFileInformationByHandleEx(file_handle,
+                                         FileAttributeTagInfo,
+                                         &tagInfo,
+                                         sizeof(tagInfo)) &&
+            (tagInfo.ReparseTag == IO_REPARSE_TAG_SYMLINK ||
+             tagInfo.ReparseTag == IO_REPARSE_TAG_MOUNT_POINT))
+        {
+            attr.size = GetFinalPathNameByHandleA(file_handle, NULL, 0, VOLUME_NAME_DOS);
+            // Strip prefix "\\?\"
+            if (attr.size >= 4)
+                attr.size -= 4;
+            attr.permissions |= SSH_S_IFLNK | static_cast<uint32_t>(fs::perms::all); // Windows does
+            // not enforce symlink ACLs
+        }
     }
     else if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-    {
         attr.permissions |= SSH_S_IFDIR; // Directories are 0755 by default
-        if (file_data.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
-        {
-            attr.permissions &= ~fs::perms::owner_write;
-        }
-    }
     else
-    {
         attr.permissions |= SSH_S_IFREG; // Files 0755 by default
-        if (file_data.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
-        {
-            attr.permissions &= ~fs::perms::owner_write;
-        }
-    }
 
     return attr;
 }
@@ -1200,6 +1433,57 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     return success;
 }
 
+bool mp::platform::Platform::set_permissions_sftp(const std::filesystem::path& path,
+                                                  std::filesystem::perms permissions) const
+{
+
+    HANDLE file_handle =
+        CreateFileA(path.string().c_str(),
+                    READ_CONTROL | WRITE_DAC | WRITE_OWNER | FILE_READ_EA | FILE_WRITE_EA,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+                    NULL);
+
+    if (file_handle == INVALID_HANDLE_VALUE)
+    {
+        DWORD win_err = GetLastError();
+        switch (win_err)
+        {
+        case ERROR_FILE_NOT_FOUND:
+        case ERROR_PATH_NOT_FOUND:
+        case ERROR_INVALID_NAME:
+        case ERROR_BAD_NETPATH:
+        case ERROR_BAD_PATHNAME:
+            errno = ENOENT;
+            break;
+        case ERROR_ACCESS_DENIED:
+        case ERROR_SHARING_VIOLATION:
+            errno = EACCES;
+            break;
+        case ERROR_OUTOFMEMORY:
+            errno = ENOMEM;
+            break;
+        case ERROR_INVALID_PARAMETER:
+            errno = EINVAL;
+            break;
+        case ERROR_TOO_MANY_OPEN_FILES:
+            errno = EMFILE;
+            break;
+        default:
+            errno = EPERM;
+            break;
+        }
+        return false;
+    }
+
+    const PosixSecurity perms{static_cast<uint32_t>(permissions), std::nullopt, std::nullopt};
+    const bool ok = set_posix_security(file_handle, perms);
+    CloseHandle(file_handle);
+    return ok;
+}
+
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
     auto path_str = path.string();
@@ -1357,64 +1641,126 @@ QString mp::platform::Platform::multipass_storage_location() const
 
 int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
-    WIN32_FIND_DATAA data;
-
-    // 0 signals failure
-    if (HANDLE hFind = FindFirstFileA(path, &data); hfind != INVALID_HANDLE_VALUE)
+    HANDLE file_handle = CreateFileA(path,
+                                     READ_CONTROL | FILE_READ_EA,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                     NULL,
+                                     OPEN_EXISTING,
+                                     FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+                                     NULL);
+    if (file_handle != INVALID_HANDLE_VALUE)
     {
-        attr = stat_to_attr(&data);
-        FindClose(hFind);
-        return 0;
-    }
-    else
-    {
-        DWORD win_err = GetLastError();
+        BY_HANDLE_FILE_INFORMATION file_info;
 
-        // Map common Win32 errors to standard POSIX errno values
-        switch (win_err)
+        if (GetFileInformationByHandle(file_handle, &file_info) != 0)
+        // 0 signals failure
         {
-        case ERROR_FILE_NOT_FOUND:
-        case ERROR_PATH_NOT_FOUND:
-        case ERROR_INVALID_NAME:
-        case ERROR_BAD_NETPATH:
-        case ERROR_BAD_PATHNAME:
-            errno = ENOENT;
-            break;
+            attr = stat_to_attr(file_info, file_handle);
+            get_posix_security(file_handle, attr);
 
-        case ERROR_ACCESS_DENIED:
-        case ERROR_SHARING_VIOLATION:
-            errno = EACCES;
-            break;
-
-        case ERROR_OUTOFMEMORY:
-            errno = ENOMEM;
-            break;
-
-        case ERROR_INVALID_PARAMETER:
-            errno = EINVAL;
-            break;
-
-        case ERROR_TOO_MANY_OPEN_FILES:
-            errno = EMFILE;
-            break;
-
-        default:
-            // Fallback for unmapped errors
-            errno = ENOENT;
-            break;
+            CloseHandle(file_handle);
+            return 0;
         }
 
-        return -1; // Standard lstat failure return code
+        CloseHandle(file_handle);
     }
+    DWORD win_err = GetLastError();
+
+    // Map common Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_NAME:
+    case ERROR_BAD_NETPATH:
+    case ERROR_BAD_PATHNAME:
+        errno = ENOENT;
+        break;
+
+    case ERROR_ACCESS_DENIED:
+    case ERROR_SHARING_VIOLATION:
+        errno = EACCES;
+        break;
+
+    case ERROR_OUTOFMEMORY:
+        errno = ENOMEM;
+        break;
+
+    case ERROR_INVALID_PARAMETER:
+        errno = EINVAL;
+        break;
+
+    case ERROR_TOO_MANY_OPEN_FILES:
+        errno = EMFILE;
+        break;
+
+    default:
+        errno = ENOENT;
+        break;
+    }
+    return -1; // Standard lstat failure return code
 }
 
 int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
-    struct _stat64 st{};
-    if (_stat64(path, &st) != 0)
-        return -1;
-    attr = stat_to_attr(st);
-    return 0;
+    HANDLE file_handle = CreateFileA(path,
+                                     READ_CONTROL | FILE_READ_EA,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                     NULL,
+                                     OPEN_EXISTING,
+                                     FILE_FLAG_BACKUP_SEMANTICS,
+                                     NULL);
+    if (file_handle != INVALID_HANDLE_VALUE)
+    {
+        BY_HANDLE_FILE_INFORMATION file_info;
+
+        if (GetFileInformationByHandle(file_handle, &file_info) != 0)
+        // 0 signals failure
+        {
+            attr = stat_to_attr(file_info, file_handle);
+            get_posix_security(file_handle, attr);
+
+            CloseHandle(file_handle);
+            return 0;
+        }
+
+        CloseHandle(file_handle);
+    }
+    DWORD win_err = GetLastError();
+
+    // Map common Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_NAME:
+    case ERROR_BAD_NETPATH:
+    case ERROR_BAD_PATHNAME:
+        errno = ENOENT;
+        break;
+
+    case ERROR_ACCESS_DENIED:
+    case ERROR_SHARING_VIOLATION:
+        errno = EACCES;
+        break;
+
+    case ERROR_OUTOFMEMORY:
+        errno = ENOMEM;
+        break;
+
+    case ERROR_INVALID_PARAMETER:
+        errno = EINVAL;
+        break;
+
+    case ERROR_TOO_MANY_OPEN_FILES:
+        errno = EMFILE;
+        break;
+
+    default:
+        errno = ENOENT;
+        break;
+    }
+    return -1; // Standard lstat failure return code
 }
 
 int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr) const
