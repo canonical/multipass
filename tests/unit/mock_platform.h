@@ -53,6 +53,10 @@ public:
                 set_permissions,
                 (const std::filesystem::path&, std::filesystem::perms, bool),
                 (const, override));
+    MOCK_METHOD(bool,
+                set_permissions_sftp,
+                (const std::filesystem::path&, std::filesystem::perms),
+                (const, override));
     MOCK_METHOD(bool, take_ownership, (const std::filesystem::path&), (const, override));
     MOCK_METHOD(void, setup_permission_inheritance, (bool), (const, override));
     MOCK_METHOD(bool, link, (const char*, const char*), (const, override));

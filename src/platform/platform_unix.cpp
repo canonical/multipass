@@ -92,6 +92,12 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     return !ec;
 }
 
+bool mp::platform::Platform::set_permissions_sftp(const std::filesystem::path& path,
+                                                  std::filesystem::perms permissions) const
+{
+    return mp::platform::Platform::set_permissions(path, permissions);
+}
+
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
     return this->chown(path.string().c_str(), 0, 0) == 0;
