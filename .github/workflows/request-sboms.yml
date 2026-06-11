@@ -24,7 +24,7 @@ jobs:
     if: ${{ github.repository == 'canonical/multipass' }}
 
     # Requires a runner with Canonical VPN access via a private endpoint.
-    runs-on: [self-hosted-linux-amd64-noble-small]
+    runs-on: [self-hosted, noble, amd64]
 
     steps:
     - uses: actions/checkout@v6
@@ -47,7 +47,7 @@ jobs:
   installers:
     if: ${{ github.repository == 'canonical/multipass' }}
 
-    runs-on: [self-hosted-linux-amd64-noble-small]
+    runs-on: [self-hosted, noble, amd64]
 
     steps:
     - uses: actions/checkout@v6
