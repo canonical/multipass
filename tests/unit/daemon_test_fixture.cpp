@@ -365,7 +365,7 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
     ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
 
     ON_CALL(*mock_factory_ptr, get_instance_directory(_))
-        .WillByDefault(Return(instance_dir.path()));
+        .WillByDefault(Return(static_cast<fs::path>(instance_dir)));
 
     ON_CALL(*mock_factory_ptr, supports_availability_zones()).WillByDefault(Return(true));
 
