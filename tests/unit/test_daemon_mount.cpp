@@ -329,19 +329,16 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
 
 TEST_F(TestDaemonMount, mountUsesResolvedSource)
 {
-    // can't use _ since _ is needed for gmock matching later.
-    const auto [temp_dir, ignored_filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
-    config_builder.data_directory = temp_dir->path();
-
     const auto target_path = config_builder.data_directory.toStdString();
+    const auto filename = std::filesystem::path(target_path) / "multipassd-vm-instances.json";
 
     // have resolver return target_path
     const auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillOnce(Return(target_path));
-
+    EXPECT_CALL(*mock_file_ops, try_read_file(Eq(filename)))
+        .WillOnce(Return(std::make_optional(fake_json_contents(mac_addr, extra_interfaces))));
     // mock mount_handler to check the VMMount is using target_path as its source
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
