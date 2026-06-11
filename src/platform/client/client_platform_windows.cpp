@@ -24,12 +24,26 @@
 #include <QProcess>
 #include <QString>
 
+#include <windows.h>
 #include <fcntl.h>
 #include <io.h>
-#include <windows.h>
 
 namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
+
+namespace
+{
+uint32_t sid_to_rid(PSID sid)
+{
+    if (!sid || !IsValidSid(sid))
+        return 0;
+    PUCHAR count = GetSidSubAuthorityCount(sid);
+    if (!count || *count == 0)
+        return 0;
+    PDWORD rid = GetSidSubAuthority(sid, *count - 1);
+    return rid ? static_cast<uint32_t>(*rid) : 0;
+}
+}; // namespace
 
 void mcp::parse_transfer_entry(const QString& entry, QString& path, QString& instance_name)
 {
@@ -56,11 +70,37 @@ void mcp::parse_transfer_entry(const QString& entry, QString& path, QString& ins
 
 int mcp::getuid()
 {
+    // HANDLE hToken = nullptr;
+    // if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+    //     return -1;
+    // auto token_guard = std::unique_ptr<void, decltype(&CloseHandle)>(hToken, CloseHandle);
+
+    // DWORD size = 0;
+    // GetTokenInformation(hToken, TokenOwner, nullptr, 0, &size);
+    // std::vector<BYTE> buf(size);
+    // if (!GetTokenInformation(hToken, TokenOwner, buf.data(), size, &size))
+    //     return -1;
+
+    // auto* token_owner = reinterpret_cast<TOKEN_OWNER*>(buf.data());
+    // return static_cast<int>(sid_to_rid(token_owner->Owner));
     return mp::no_id_info_available;
 }
 
 int mcp::getgid()
 {
+    // HANDLE hToken = nullptr;
+    // if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+    //     return -1;
+    // auto token_guard = std::unique_ptr<void, decltype(&CloseHandle)>(hToken, CloseHandle);
+
+    // DWORD size = 0;
+    // GetTokenInformation(hToken, TokenPrimaryGroup, nullptr, 0, &size);
+    // std::vector<BYTE> buf(size);
+    // if (!GetTokenInformation(hToken, TokenPrimaryGroup, buf.data(), size, &size))
+    //     return -1;
+
+    // auto* token_group = reinterpret_cast<TOKEN_PRIMARY_GROUP*>(buf.data());
+    // return static_cast<int>(sid_to_rid(token_group->PrimaryGroup));
     return mp::no_id_info_available;
 }
 
