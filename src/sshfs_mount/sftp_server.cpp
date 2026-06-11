@@ -663,7 +663,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    if (!MP_PLATFORM.set_permissions(*filename, static_cast<fs::perms>(msg->attr->permissions)))
+    if (!MP_PLATFORM.set_permissions_sftp(*filename,
+                                          static_cast<fs::perms>(msg->attr->permissions)))
     {
         mpl::trace_location(category, "set permissions failed for '{}'", filename->string());
         return reply_failure(msg);
@@ -796,7 +797,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     auto named_fd_handle =
         MP_FILEOPS.open_fd(*filename, mode, msg->attr ? msg->attr->permissions : 0);
     auto& named_fd = std::get<std::unique_ptr<NamedFd>>(named_fd_handle);
-    if (!named_fd || named_fd->fd == -1)
+    if (!named_fd.get() || named_fd->fd == -1)
     {
         mpl::trace(category, "Cannot open '{}': {}", filename->string(), std::strerror(errno));
         return reply_failure(msg);
@@ -875,7 +876,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    open_sftp_handles.emplace(dir_iter_ptr, std::move(dir_iterator));
+    open_sftp_handles.emplace(dir_iter_ptr, std::move(dir_iterator_handle));
 
     return sftp_reply_handle(msg, sftp_handle.get());
 }
@@ -1165,7 +1166,7 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
-        if (!MP_PLATFORM.set_permissions(path, static_cast<fs::perms>(msg->attr->permissions)))
+        if (!MP_PLATFORM.set_permissions_sftp(path, static_cast<fs::perms>(msg->attr->permissions)))
         {
             mpl::trace_location(category, "set permissions failed for '{}'", path.string());
             return reply_failure(msg);
@@ -1237,7 +1238,8 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
-        if (!MP_PLATFORM.set_permissions(*filepath, static_cast<fs::perms>(msg->attr->permissions)))
+        if (!MP_PLATFORM.set_permissions_sftp(*filepath,
+                                              static_cast<fs::perms>(msg->attr->permissions)))
         {
             mpl::trace_location(category, "set permissions failed for '{}'", path_string);
             return reply_failure(msg);
