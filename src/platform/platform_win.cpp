@@ -99,7 +99,7 @@ static constexpr auto log_category = "platform-win";
 time_t time_t_from(const FILETIME* ft)
 {
     long long win_time = (static_cast<long long>(ft->dwHighDateTime) << 32) + ft->dwLowDateTime;
-    win_time -= 116444736000000000LL;
+    win_time -= 116444736000000000LL; // FILETIME epoch (1601) -> Unix epoch (1970)
     win_time /= 10000000;
     return mp::saturate_cast<time_t>(win_time);
 }
@@ -137,18 +137,21 @@ sftp_attributes_struct stat_to_attr(const _stat64& file_data)
     if ((file_data.st_mode & _S_IFREG) == _S_IFREG)
         attr.permissions |= SSH_S_IFREG;
     else if ((file_data.st_mode & _S_IFDIR) == _S_IFDIR)
-        attr.permissions |= SSH_S_IFDIR | fs::perms::others_exec | fs::perms::group_exec |
-                            fs::perms::owner_exec;
+        attr.permissions |= SSH_S_IFDIR |
+                            static_cast<uint32_t>(fs::perms::others_exec | fs::perms::group_exec |
+                                                  fs::perms::owner_exec);
     else // Symlink not a possibility in Windows CRT fstat or stat
          // Keep the filetype flag if other
         attr.permissions |= (file_data.st_mode & _S_IFMT);
 
     if ((file_data.st_mode & _S_IREAD) == _S_IREAD)
-        attr.permissions |= fs::perms::others_read | fs::perms::group_read | fs::perms::owner_read;
+        attr.permissions |= static_cast<int32_t>(fs::perms::others_read | fs::perms::group_read |
+                                                 fs::perms::owner_read);
     if ((file_data.st_mode & _S_IWRITE) == _S_IWRITE)
-        attr.permissions |= fs::perms::owner_write; // Only user can write
+        attr.permissions |= static_cast<int32_t>(fs::perms::owner_write); // Only user can write
     if ((file_data.st_mode & _S_IEXEC) == _S_IEXEC)
-        attr.permissions |= fs::perms::others_exec | fs::perms::group_exec | fs::perms::owner_exec;
+        attr.permissions |= static_cast<int32_t>(fs::perms::others_exec | fs::perms::group_exec |
+                                                 fs::perms::owner_exec);
 
     return attr;
 }
@@ -562,7 +565,7 @@ DWORD set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_
     return set_specific_perms(path, pSid.get(), access_mask, inherit);
 }
 
-DWORD convert_permissions(int unix_perms)
+DWORD convert_permissions(uint32_t unix_perms)
 {
     DWORD access_mask = 0;
     if (unix_perms & 0444)
@@ -572,7 +575,7 @@ DWORD convert_permissions(int unix_perms)
     if (unix_perms & 0111)
         access_mask |= GENERIC_EXECUTE;
 
-    return access_mask;
+    return static_cast<DWORD>(access_mask);
 }
 
 // Since the Windows API expects a C style function pointer, we cannot pass parameters.
@@ -1030,8 +1033,8 @@ int mp::platform::Platform::fchown(int fd, unsigned int uid, unsigned int gid) c
 {
     // TODO: Implement
     logging::trace(log_category,
-                   "chown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
-                   path,
+                   "fchown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
+                   fd,
                    uid,
                    gid);
     return 0;
@@ -1144,19 +1147,15 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                                              std::filesystem::perms perms,
                                              bool inherit) const
 {
-    // Windows has both ACLs and very limited POSIX permissions
-
     // This handles the POSIX side of things.
     std::error_code ec{};
     std::filesystem::permissions(path, perms, ec);
 
     // Rest handles ACLs
     auto path_str = path.string();
-    LPSTR lpPath = path_str.c_str(); // Guaranteed null terminated string
+    LPSTR lpPath = const_cast<LPSTR>(path_str.c_str()); // Guaranteed null-terminated
     auto success = true;
-
     auto newACL = new_ACL(lpPath);
-
     // Wipe out current ACLs
     SetNamedSecurityInfo(lpPath,
                          SE_FILE_OBJECT,
@@ -1166,14 +1165,14 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                          newACL.get(),
                          nullptr);
 
-    if (int others = perms & fs::perms::others_all; others != 0)
+    if (int others = int(perms) & 0007; others != 0)
         success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) ==
                    ERROR_SUCCESS;
-    if (int group = perms & fs::perms::group_all; group != 0)
+    if (int group = int(perms) & 0070; group != 0)
         success &=
             set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group), inherit) ==
             ERROR_SUCCESS;
-    if (int owner = perms & fs::perms::owner_all; owner != 0)
+    if (int owner = int(perms) & 0700; owner != 0)
         success &=
             set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner), inherit) ==
             ERROR_SUCCESS;
@@ -1189,7 +1188,7 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
     auto path_str = path.string();
-    LPSTR lpPath = path_str.c_str(); // Guaranteed to be null-terminated
+    LPSTR lpPath = const_cast<LPSTR>(path_str.c_str()); // Guaranteed to be null-terminated
 
     return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) ==
            ERROR_SUCCESS;
@@ -1410,26 +1409,16 @@ int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr
     struct _stat64 st{};
     if (_fstat64(fd, &st) != 0)
         return -1;
-    // HANDLE file_handle = static_cast<HANDLE>(_get_osfhandle(fd));
-    // if (file_handle == INVALID_HANDLE_VALUE)
-    //{
-    //     return -1;
-    // }
-
-    //// 2. Query primary file info (Size, Times, Base Attributes)
-    // BY_HANDLE_FILE_INFORMATION info;
-    // if (GetFileInformationByHandle(file_handle, &info) == 0)
-    //     return -1;
     attr = stat_to_attr(st);
     return 0;
 }
 
-ssize_t mp::platform::Platform::pread(int fd,
-                                      void* buffer,
-                                      size_t bytes_to_read,
-                                      off_t offset) const
+std::ptrdiff_t mp::platform::Platform::pread(int fd,
+                                             void* buffer,
+                                             size_t bytes_to_read,
+                                             std::ptrdiff_t offset) const
 {
-    HANDLE file_handle = static_cast<HANDLE>(_get_osfhandle(fd));
+    HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
     if (file_handle == INVALID_HANDLE_VALUE)
     {
         errno = EBADF;
@@ -1445,11 +1434,11 @@ ssize_t mp::platform::Platform::pread(int fd,
     // Perform the read (atomic)
     DWORD bytesRead = 0;
     BOOL success =
-        ReadFile(file_handle, buf, static_cast<DWORD>(bytes_to_read), &bytesRead, &overlapped);
+        ReadFile(file_handle, buffer, static_cast<DWORD>(bytes_to_read), &bytesRead, &overlapped);
 
     if (success)
     {
-        return static_cast<int64_t>(bytesRead);
+        return static_cast<std::ptrdiff_t>(bytesRead);
     }
 
     DWORD win_err = GetLastError();
@@ -1485,12 +1474,12 @@ ssize_t mp::platform::Platform::pread(int fd,
     return -1;
 }
 
-ssize_t mp::platform::Platform::pwrite(int fd,
-                                       void* buffer,
-                                       size_t bytes_to_write,
-                                       off_t offset) const
+std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
+                                              void* buffer,
+                                              size_t bytes_to_write,
+                                              std::ptrdiff_t offset) const
 {
-    HANDLE file_handle = static_cast<HANDLE>(_get_osfhandle(fd));
+    HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
     if (file_handle == INVALID_HANDLE_VALUE)
     {
         errno = EBADF;
@@ -1505,12 +1494,15 @@ ssize_t mp::platform::Platform::pwrite(int fd,
 
     // Perform the read (atomic)
     DWORD bytesWritten = 0;
-    BOOL success =
-        WriteFile(file_handle, buf, static_cast<DWORD>(bytes_to_write), &bytesWritten, &overlapped);
+    BOOL success = WriteFile(file_handle,
+                             buffer,
+                             static_cast<DWORD>(bytes_to_write),
+                             &bytesWritten,
+                             &overlapped);
 
     if (success)
     {
-        return static_cast<ssize_t>(bytesWritten);
+        return static_cast<std::ptrdiff_t>(bytesWritten);
     }
 
     DWORD win_err = GetLastError();
@@ -1538,14 +1530,14 @@ ssize_t mp::platform::Platform::pwrite(int fd,
     return -1;
 }
 
-int mp::platform::Platform::ftruncate(int fd, off_t length) const
+int mp::platform::Platform::ftruncate(int fd, std::ptrdiff_t length) const
 {
-    return _chsize_s(fd, length);
+    return ::_chsize_s(fd, length);
 }
 
 int mp::platform::Platform::futimes(int fd, int atime, int mtime) const
 {
-    struct _utimbuf64 ut;
+    struct __utimbuf64 ut{};
     ut.actime = atime;
     ut.modtime = mtime;
     return ::_futime64(fd, &ut);
