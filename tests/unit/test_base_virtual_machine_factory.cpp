@@ -113,8 +113,8 @@ TEST_F(BaseFactory, createImageVaultReturnsDefaultVault)
 
     auto vault = factory.create_image_vault(hosts,
                                             &stub_downloader,
-                                            cache_dir.path(),
-                                            data_dir.path(),
+                                            cache_dir,
+                                            data_dir,
                                             mp::days{0});
 
     EXPECT_TRUE(dynamic_cast<mp::DefaultVMImageVault*>(vault.get()));
