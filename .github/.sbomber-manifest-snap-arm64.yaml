@@ -9,7 +9,7 @@ clients:
 artifacts:
   - name: multipass
     type: snap
-    arch: amd64
+    arch: arm64
     channel: latest/stable
     ssdlc_params:
       name: multipass

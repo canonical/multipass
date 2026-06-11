@@ -24,30 +24,35 @@ jobs:
     if: ${{ github.repository == 'canonical/multipass' }}
 
     # Requires a runner with Canonical VPN access via a private endpoint.
-    runs-on: [self-hosted, noble, amd64]
+    runs-on: [self-hosted-linux-amd64-jammy-private-endpoint-medium]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64, s390x, ppc64el]
 
     steps:
     - uses: actions/checkout@v6
       with:
         persist-credentials: false
-        sparse-checkout: .github/.sbomber-manifest-snap.yaml
+        sparse-checkout: .github/.sbomber-manifest-snap-${{ matrix.arch }}.yaml
 
     - name: Render manifest
       run: |
-        sed "s/__EMAIL__/${{ inputs.email }}/g" "$GITHUB_WORKSPACE/.github/.sbomber-manifest-snap.yaml" > "$RUNNER_TEMP/sbomber-manifest.yaml"
+        sed "s/__EMAIL__/${{ inputs.email }}/g" "$GITHUB_WORKSPACE/.github/.sbomber-manifest-snap-${{ matrix.arch }}.yaml" > "$RUNNER_TEMP/sbomber-manifest.yaml"
         cat "$RUNNER_TEMP/sbomber-manifest.yaml"
 
     - name: sbomber (snap)
-      uses: canonical/sbomber/.github/actions/run@7a6c0b5f115b2b739d22a595257aa3a73590ed61  # main
+      uses: canonical/sbomber/.github/actions/run@cf7a76e810497ec932e8285b2c9d6b373d225e79  # main
       with:
         manifest: '${{ runner.temp }}/sbomber-manifest.yaml'
-        artifact-name: secscan-report-upload-snap
-        sbomber-ref: 7a6c0b5f115b2b739d22a595257aa3a73590ed61  # should match the ref in 'uses' above
+        artifact-name: secscan-report-upload-snap-${{ matrix.arch }}
+        sbomber-ref: cf7a76e810497ec932e8285b2c9d6b373d225e79  # should match the ref in 'uses' above
 
   installers:
     if: ${{ github.repository == 'canonical/multipass' }}
 
-    runs-on: [self-hosted, noble, amd64]
+    runs-on: [self-hosted-linux-amd64-jammy-private-endpoint-medium]
 
     steps:
     - uses: actions/checkout@v6
@@ -73,6 +78,11 @@ jobs:
         ls -lh "$RUNNER_TEMP/installers"
       env:
         GH_TOKEN: ${{ github.token }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
 
     - name: Install Python dependencies
       uses: BSFishy/pip-action@v1
@@ -100,7 +110,7 @@ jobs:
               ;;
           esac
 
-          tools/ssdlc/request_sboms.py \
+          python3 tools/ssdlc/request_sboms.py \
             --email "${{ inputs.email }}" \
             --version "${{ steps.release.outputs.version }}" \
             --output-dir "$REPORTS_DIR" \
