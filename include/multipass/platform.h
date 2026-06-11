@@ -70,7 +70,7 @@ public:
                                   size_t bytes_to_write,
                                   std::ptrdiff_t offset) const;
     // File property change OS calls
-    virtual int ftruncate(int fd, off_t length) const;
+    virtual int ftruncate(int fd, std::ptrdiff_t length) const;
     virtual int futimes(int fd, int atime, int mtime) const;
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
     virtual int fchown(int fd, unsigned int uid, unsigned int gid) const;
