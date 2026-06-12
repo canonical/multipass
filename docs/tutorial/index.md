@@ -346,7 +346,7 @@ fedora                                           20260422         Fedora 44
 ````{tab-item} Linux
 :sync: Linux
 
-Launch an instance running Ubuntu 26.04 ("Resolute Racoon") by typing the `multipass launch resolute` command:
+Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `multipass launch resolute` command:
 
 ```{code-block} text
 $ multipass launch resolute
@@ -393,7 +393,7 @@ Mounts:         --
 ````{tab-item} macOS
 :sync: macOS
 
-Launch an instance running Ubuntu 26.04 ("Resolute Racoon") by typing the `multipass launch resolute` command:
+Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `multipass launch resolute` command:
 
 ```{code-block} text
 $ multipass launch resolute
@@ -440,7 +440,7 @@ Mounts:         --
 ````{tab-item} Windows
 :sync: Windows
 
-Launch an instance running Ubuntu 26.04 ("Resolute Racoon") by typing the `multipass launch resolute` command:
+Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `multipass launch resolute` command:
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass launch resolute
