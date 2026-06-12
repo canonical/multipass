@@ -25,7 +25,7 @@ namespace multipass
 class SingleAvailabilityZoneManager final : public AvailabilityZoneManager
 {
 public:
-    SingleAvailabilityZoneManager(const multipass::Path& data_dir);
+    SingleAvailabilityZoneManager(const std::filesystem::path& data_dir);
 
     AvailabilityZone& get_zone(const std::string& name) override
     {

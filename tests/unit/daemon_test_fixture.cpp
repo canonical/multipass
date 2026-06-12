@@ -322,8 +322,8 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     auto az_manager = std::make_unique<StubAvailabilityZoneManager>();
 
     config_builder.server_address = server_address;
-    config_builder.cache_directory = cache_dir.path();
-    config_builder.data_directory = data_dir.path();
+    config_builder.cache_directory = cache_dir;
+    config_builder.data_directory = data_dir;
     config_builder.vault = std::make_unique<StubVMImageVault>();
     config_builder.factory = std::make_unique<StubVirtualMachineFactory>(*az_manager);
     config_builder.az_manager = std::move(az_manager);

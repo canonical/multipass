@@ -1277,10 +1277,10 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{load_db(mp::utils::backend_directory_path(
-                                    MP_PLATFORM.qstr_to_path(config->data_directory),
+                                    config->data_directory,
                                     config->factory->get_backend_directory_name().toStdString()),
                                 mp::utils::backend_directory_path(
-                                    MP_PLATFORM.qstr_to_path(config->cache_directory),
+                                    config->cache_directory,
                                     config->factory->get_backend_directory_name().toStdString()),
                                 *config->az_manager)},
       daemon_rpc{config->server_address,
@@ -3004,7 +3004,7 @@ void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
     auto data_dir{mp::utils::backend_directory_path(
-        MP_PLATFORM.qstr_to_path(config->data_directory),
+        config->data_directory,
         config->factory->get_backend_directory_name().toStdString())};
     MP_FILEOPS.write_transactionally(data_dir / instance_db_name,
                                      pretty_print(instance_records_json));
@@ -3232,7 +3232,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.disk_space = compute_final_image_size(
                 image_size,
                 vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
-                config->data_directory);
+                MP_PLATFORM.path_to_qstr(config->data_directory));
 
             reply.set_create_message("Configuring " + name);
             server->Write(reply);

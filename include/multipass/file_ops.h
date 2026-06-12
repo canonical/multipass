@@ -133,6 +133,7 @@ public:
     virtual bool is_directory(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
+    virtual bool create_directory(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]

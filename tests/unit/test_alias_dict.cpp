@@ -510,7 +510,7 @@ TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
 
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of
     // the file.
-    config_builder.data_directory = temp_dir.path();
+    config_builder.data_directory = temp_dir;
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream cout, cerr;
