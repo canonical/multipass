@@ -19,9 +19,11 @@
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_openssl_syscalls.h"
+#include "mock_ssh_process.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
@@ -919,3 +921,34 @@ std::vector<StringPairParam> normalize_mount_target_values = {
 };
 
 INSTANTIATE_TEST_SUITE_P(Utils, NormalizeMountTargetTest, ValuesIn(normalize_mount_target_values));
+
+struct TestReapSSHProcess : public Test
+{
+    NiceMock<mpt::MockSSHProcess> proc;
+};
+
+TEST_F(TestReapSSHProcess, reapReturnsTrimmedStdoutOnSuccess)
+{
+    EXPECT_CALL(proc, exit_code(_)).WillOnce(Return(0));
+    EXPECT_CALL(proc, read_std_output()).WillOnce(Return("hello\n\n"));
+
+    EXPECT_EQ(MP_UTILS.reap_ssh_process(proc), "hello");
+}
+
+TEST_F(TestReapSSHProcess, reapThrowsSSHExecFailureOnNonZeroExitCode)
+{
+    EXPECT_CALL(proc, exit_code(_)).WillOnce(Return(42));
+    EXPECT_CALL(proc, read_std_error()).WillOnce(Return("boom\n"));
+    EXPECT_CALL(proc, get_cmd()).WillOnce(ReturnRefOfCopy(std::string{"false"}));
+
+    try
+    {
+        MP_UTILS.reap_ssh_process(proc);
+        FAIL() << "expected SSHExecFailure";
+    }
+    catch (const mp::SSHExecFailure& e)
+    {
+        EXPECT_EQ(e.exit_code(), 42);
+        EXPECT_THAT(e.what(), HasSubstr("boom"));
+    }
+}

@@ -37,6 +37,8 @@ namespace multipass
 class AvailabilityZone;
 struct IPAddress;
 class MemorySize;
+class SSHProcess;
+class SSHSession;
 class VMMount;
 struct VMSpecs;
 class MountHandler;
@@ -78,17 +80,17 @@ public:
     virtual void set_available(bool available) = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname()
-    {
-        return ssh_hostname(std::chrono::minutes(2));
-    }
-    virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
+    virtual std::string ssh_hostname() = 0;
     virtual std::string ssh_username() = 0;
     virtual std::optional<IPAddress> management_ipv4() = 0;
     virtual std::vector<IPAddress> get_all_ipv4() = 0;
 
-    // careful: default param in virtual method; be sure to keep the same value in all descendants
+    // careful: default param in virtual methods; be sure to keep the same value in all descendants
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
+    virtual std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
+                                                         bool whisper = false) = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<SSHSession> new_ssh_session() = 0;
 
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;

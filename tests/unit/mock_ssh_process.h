@@ -17,17 +17,18 @@
 
 #pragma once
 
-#include <stdexcept>
+#include "common.h"
 
-namespace multipass
-{
+#include <multipass/ssh/ssh_process.h>
 
-class IPUnavailableException : public std::runtime_error
+namespace multipass::test
 {
-public:
-    IPUnavailableException() : std::runtime_error("IP not available")
-    {
-    }
+struct MockSSHProcess : public SSHProcess
+{
+    MOCK_METHOD(bool, exit_recognized, (std::chrono::milliseconds timeout), (override));
+    MOCK_METHOD(int, exit_code, (std::chrono::milliseconds timeout), (override));
+    MOCK_METHOD(std::string, read_std_output, (), (override));
+    MOCK_METHOD(std::string, read_std_error, (), (override));
+    MOCK_METHOD(const std::string&, get_cmd, (), (const, override));
 };
-
-} // namespace multipass
+} // namespace multipass::test

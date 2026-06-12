@@ -24,7 +24,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
@@ -58,7 +58,7 @@ std::optional<mp::IPAddress> remote_ip(const std::string& host,
                                        const mp::SSHKeyProvider& key_provider)
 try
 {
-    mp::SSHSession session{host, port, username, key_provider};
+    mp::PlainSSHSession session{host, port, username, key_provider};
 
     sockaddr_in addr{};
     int size = sizeof(addr);
@@ -449,7 +449,7 @@ void mp::HyperVVirtualMachine::handle_state_update()
     monitor->persist_state_for(vm_name, state);
 }
 
-std::string mp::HyperVVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string mp::HyperVVirtualMachine::ssh_hostname()
 {
     return name.toStdString() + ".mshome.net";
 }
@@ -465,8 +465,7 @@ std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
     // guarantee constness; b) we endure the penalty of creating a new session only when we
     // don't have the IP yet.
     if (!management_ip)
-        management_ip =
-            remote_ip(VirtualMachine::ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+        management_ip = remote_ip(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 
     return management_ip;
 }

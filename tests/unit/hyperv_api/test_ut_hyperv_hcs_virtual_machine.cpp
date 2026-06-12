@@ -524,7 +524,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_hostname)
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
-    EXPECT_EQ(uut->ssh_hostname({}), uut->get_name() + ".mshome.net");
+    EXPECT_EQ(uut->ssh_hostname(), uut->get_name() + ".mshome.net");
 }
 
 // ---------------------------------------------------------

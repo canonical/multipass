@@ -22,7 +22,7 @@
 #include "qemu_vmstate_process_spec.h"
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/internal_timeout_exception.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -32,7 +32,6 @@
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/utils.h>
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
@@ -47,7 +46,6 @@
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
-namespace mpu = mp::utils;
 
 using namespace std::chrono_literals;
 
@@ -489,12 +487,9 @@ void mp::QemuVirtualMachine::on_restart()
     monitor->on_restart(vm_name);
 }
 
-std::string mp::QemuVirtualMachine::ssh_hostname(std::chrono::milliseconds timeout)
+std::string mp::QemuVirtualMachine::ssh_hostname()
 {
-    fetch_ip(timeout);
-
-    assert(management_ip && "Should have thrown otherwise");
-    return management_ip->as_string();
+    return require_management_ipv4().as_string();
 }
 
 std::string mp::QemuVirtualMachine::ssh_username()
@@ -793,25 +788,6 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
     return std::make_shared<QemuSnapshot>(filename, *this, desc);
 }
 
-void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
-{
-    if (management_ip)
-        return;
-
-    auto action = [this] {
-        detect_aborted_start();
-        return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-                   ? mpu::TimeoutAction::done
-                   : mpu::TimeoutAction::retry;
-    };
-
-    auto on_timeout = [this, &timeout] {
-        state = State::unknown;
-        throw InternalTimeoutException{"determine IP address", timeout};
-    };
-
-    mpu::try_action_for(on_timeout, timeout, action);
-}
 
 void mp::QemuVirtualMachine::refresh_start()
 {

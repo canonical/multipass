@@ -17,22 +17,29 @@
 
 #pragma once
 
-#include <chrono>
-#include <stdexcept>
-#include <string>
+#include "common.h"
+#include "mock_ssh_process.h"
 
-#include <multipass/format.h>
+#include <multipass/ssh/ssh_session.h>
 
-namespace multipass
+namespace multipass::test
 {
-
-class InternalTimeoutException : public std::runtime_error
+struct MockSSHSession : public SSHSession
 {
-public:
-    InternalTimeoutException(const std::string& action, std::chrono::milliseconds timeout)
-        : std::runtime_error{fmt::format("Could not {} within {}ms", action, timeout.count())}
+    MockSSHSession()
     {
+        ON_CALL(*this, exec).WillByDefault(std::make_unique<testing::NiceMock<MockSSHProcess>>);
     }
-};
 
-} // namespace multipass
+    MOCK_METHOD(std::unique_ptr<SSHProcess>,
+                exec,
+                (const std::string& cmd, bool whisper),
+                (override));
+    MOCK_METHOD(bool, is_connected, (), (const, override));
+    operator ssh_session() override
+    {
+        return nullptr;
+    }
+    MOCK_METHOD(void, force_shutdown, (), (override));
+};
+} // namespace multipass::test

@@ -23,13 +23,15 @@
 #include "temp_dir.h"
 
 #include <multipass/ip_address.h>
+#include <multipass/ssh/ssh_process.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
 
 namespace multipass
 {
 namespace test
 {
-struct StubVirtualMachine final : public multipass::VirtualMachine
+struct StubVirtualMachine final : public VirtualMachine
 {
     StubVirtualMachine() : StubVirtualMachine{"stub"}
     {
@@ -49,7 +51,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override
+    void shutdown(ShutdownPolicy = ShutdownPolicy::Powerdown) override
     {
     }
 
@@ -61,9 +63,9 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    multipass::VirtualMachine::State current_state() override
+    State current_state() override
     {
-        return multipass::VirtualMachine::State::off;
+        return State::off;
     }
 
     int ssh_port() override
@@ -71,7 +73,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return 42;
     }
 
-    std::string ssh_hostname(std::chrono::milliseconds) override
+    std::string ssh_hostname() override
     {
         return "localhost";
     }
@@ -91,9 +93,19 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {IPAddress{"192.168.2.123"}};
     }
 
-    std::string ssh_exec(const std::string& cmd, bool whisper = false) override
+    std::string ssh_exec(const std::string&, bool = false) override
     {
         return {};
+    }
+
+    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string&, bool = false) override
+    {
+        return nullptr;
+    }
+
+    [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override
+    {
+        return nullptr;
     }
 
     void wait_until_ssh_up(std::chrono::milliseconds) override
@@ -167,7 +179,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return {};
     }
 
-    void rename_snapshot(const std::string& old_name, const std::string& new_name) override
+    void rename_snapshot(const std::string&, const std::string&) override
     {
     }
 
@@ -175,7 +187,7 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void restore_snapshot(const std::string& name, VMSpecs& specs) override
+    void restore_snapshot(const std::string&, VMSpecs&) override
     {
     }
 
