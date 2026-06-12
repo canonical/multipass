@@ -10,7 +10,7 @@ Usage: multipass [options] <command>
 Create, control and connect to cloud instances.
 
 This is a command line utility for multipass, a
-service that manages Ubuntu instances.
+service that manages cloud instances.
 
 Options:
   -h, --help     Displays help on commandline options
