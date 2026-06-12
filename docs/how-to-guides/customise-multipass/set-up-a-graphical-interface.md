@@ -84,13 +84,13 @@ Name:           headbanging-squid
 State:          Running
 Zone:           zone1(a)
 Snapshots:      0
-IPv4:           10.97.0.76
+IPv4:           10.49.93.209
 Release:        Ubuntu 26.04 LTS
 Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
 CPU(s):         1
 Load:           0.16 0.09 0.08
-Disk usage:     2.2GiB out of 4.8GiB
-Memory usage:   169.8MiB out of 950.4MiB
+Disk usage:     2.2GiB out of 9.8GiB
+Memory usage:   294.8MiB out of 1.9GiB
 Mounts:         --
 ```
 
