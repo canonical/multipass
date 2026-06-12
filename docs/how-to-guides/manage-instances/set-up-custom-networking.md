@@ -166,10 +166,10 @@ network:
       dhcp4: true
       match:
         macaddress: 52:54:00:fe:52:ee
-     set-name: ens3
-     nameservers:
-       search: [mydomain]
-       addresses: [8.8.8.8]</b>
+      set-name: ens3
+      nameservers:
+        search: [mydomain]
+        addresses: [8.8.8.8]
 ```
 
 You can then test it with the command `sudo netplan try`:
