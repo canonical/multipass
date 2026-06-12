@@ -7,3 +7,4 @@ Instance names must be valid, non-qualified host names, and thus conform to a sp
 * The instance name can only include alphanumeric characters or hyphens (e.g. `desirable-earwig`).
 * The first character must be an alphabetic letter.
 * The last character must be alphanumeric.
+* The name length must not exceed the filesystem's maximum file name length.
