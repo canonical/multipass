@@ -67,6 +67,11 @@ qint64 mp::Utils::filesystem_bytes_available(const QString& data_directory) cons
     return QStorageInfo(QDir(data_directory)).bytesAvailable();
 }
 
+size_t mp::Utils::max_instance_name_length(const Path& data_dir) const
+{
+    return MP_PLATFORM.get_maximum_file_name_length(MP_PLATFORM.qstr_to_path(data_dir));
+}
+
 void mp::Utils::exit(int code) const
 {
     std::exit(code);

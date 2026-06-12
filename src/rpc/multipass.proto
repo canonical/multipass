@@ -88,8 +88,10 @@ message LaunchError {
         INVALID_NETWORK = 4;
         INVALID_ZONE = 5;
         ZONE_UNAVAILABLE = 6;
+        INSTANCE_NAME_TOO_LONG = 7;
     }
     repeated ErrorCodes error_codes = 1;
+    optional uint32 max_instance_name_len = 2;
 }
 
 message LaunchProgress {
@@ -554,6 +556,7 @@ message DaemonInfoReply {
     uint64 available_space = 2;
     uint32 cpus = 3;
     uint64 memory = 4;
+    uint32 max_instance_name_len = 5;
 }
 
 message WaitReadyRequest {

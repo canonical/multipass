@@ -1365,3 +1365,28 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
 {
     return QString::fromStdWString(path.generic_wstring());
 }
+
+size_t mp::platform::Platform::get_maximum_file_name_length(
+    const std::filesystem::path& target_dir) const
+{
+    constexpr size_t volume_name_size = 260;
+    wchar_t volume_name[volume_name_size] = {0};
+
+    DWORD max_component_length = 0;
+    DWORD file_system_flags = 0;
+
+    if (GetVolumePathNameW(target_dir.wstring().c_str(), volume_name, std::size(volume_name)) &&
+        GetVolumeInformationW(volume_name,
+                              NULL,
+                              0,
+                              NULL,
+                              &max_component_length,
+                              &file_system_flags,
+                              NULL,
+                              0))
+    {
+        return static_cast<size_t>(max_component_length > 0 ? max_component_length : 255u);
+    }
+
+    return 255u;
+}
