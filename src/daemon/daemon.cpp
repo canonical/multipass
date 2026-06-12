@@ -230,20 +230,18 @@ auto name_from(const std::string& requested_name,
 
 auto abbreviate_name(const std::string& name)
 {
-    static constexpr size_t max_name_length = 100;
+    static constexpr size_t max_display_length = 100;
+    static constexpr std::string_view ellipsis = "...";
 
-    if constexpr (max_name_length < 3)
-    {
+    if (name.size() <= max_display_length)
         return name;
-    }
 
-    if (name.size() <= max_name_length)
-    {
-        return name;
-    }
+    static constexpr size_t kept_length = max_display_length - ellipsis.size();
+    static constexpr size_t prefix_length = kept_length * 3 / 4;
+    static constexpr size_t suffix_length = kept_length - prefix_length;
 
-    return name.substr(0, (max_name_length - 3) * 3 / 4) + "..." +
-           name.substr(name.size() - (max_name_length / 4), max_name_length / 4);
+    return name.substr(0, prefix_length) + std::string{ellipsis} +
+           name.substr(name.size() - suffix_length);
 }
 
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
