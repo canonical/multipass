@@ -147,16 +147,23 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
       COMMAND ${CARGO_CMD} install cargo-tarpaulin
     )
   endif()
+
+    # Isolate tarpaulin's target dir so its internal `cargo clean` doesn't wipe
+    # build/rxx/debug while cargo_build compiles into it
+    set(TARPAULIN_TARGET_DIR "${RUST_BUILD_DIR}-coverage")
+
     #Engine is for non-x86_64 processors. Can only use if return codes from test are always 0 + no fork or similar syscalls
     add_custom_target(rust_coverage_tarpaulin
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMAND ${CARGO_CMD} tarpaulin
+        --target-dir ${TARPAULIN_TARGET_DIR}
         --out Lcov
         --output-dir ${CMAKE_BINARY_DIR}
         --exclude-files '../*'
         --engine llvm
         --workspace
         ${TESTING_EXCLUDE_CRATES_ARG}
+      DEPENDS cargo_build
       COMMENT "Running Rust coverage with Tarpaulin"
     )
 endif()

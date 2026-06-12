@@ -45,6 +45,9 @@ jobs:
           python3-pip
         sudo --preserve-env apt-get build-dep --yes ./
 
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
     - name: Install cmake
       uses: lukka/get-cmake@v4.3.3
 
