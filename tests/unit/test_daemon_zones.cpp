@@ -135,7 +135,7 @@ TEST_F(TestDaemonZones, zonesStateCmdDisableStopsMountsBeforeUnavailable)
     auto* mock_factory = use_a_mock_vm_factory();
     const auto [temp_dir, filename] = plant_instance_json(
         fake_json_contents("52:54:00:73:76:28", {}, mounts));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
         mp::VirtualMachine::State::running);
