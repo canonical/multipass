@@ -15,16 +15,19 @@
  *
  */
 
+#include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/posix.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
+#include <multipass/utils/permission_utils.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
@@ -68,8 +71,13 @@
 // clang-format off
 #include <security.h>
 #include <secext.h>
+#include <sys/types.h>
+#include <sys/utime.h>
+#include <sys/stat.h>
 // clang-format on
 #include <windows.h>
+#include <winbase.h>
+#include <winioctl.h>
 #include <winternl.h>
 
 #include <algorithm>
@@ -84,18 +92,68 @@
 namespace mp = multipass;
 namespace mpl = mp::logging;
 namespace mpu = multipass::utils;
+namespace fs = std::filesystem;
 
 namespace
 {
 static const auto none = QStringLiteral("none");
 static constexpr auto log_category = "platform-win";
+static constexpr uint32_t default_file_mode = 0600;
+static constexpr uint32_t default_dir_mode = 0700;
+
+struct PosixSecurity
+{
+    std::optional<uint32_t> perms;
+    std::optional<uint32_t> uid;
+    std::optional<uint32_t> gid;
+};
+
+// FILE_FULL_EA_INFORMATION / FILE_GET_EA_INFORMATION live in ntifs.h (DDK), not
+// the user-mode SDK. Declared here with the documented packed layout under
+// distinct names so there's no clash if ntifs.h is ever pulled in.
+#pragma pack(push, 1)
+struct EaFull
+{
+    ULONG NextEntryOffset;
+    UCHAR Flags;
+    UCHAR EaNameLength; // excludes the null terminator
+    USHORT EaValueLength;
+    CHAR EaName[1]; // name, null terminator, then value
+};
+struct EaGet
+{
+    ULONG NextEntryOffset;
+    UCHAR EaNameLength; // excludes the null terminator
+    CHAR EaName[1];
+};
+
+// Our metadata blob. `present` records which POSIX fields were actually set, so
+// a partial set (e.g. chown-only) never fabricates a mode=0 that get_ would read
+// back as 000. magic/version let future formats be detected and ignored cleanly.
+struct PosixEa
+{
+    uint32_t magic;
+    uint16_t version;
+    uint16_t present; // bitmask: MODE | UID | GID
+    uint32_t mode;    // POSIX permission bits
+    uint32_t uid;
+    uint32_t gid;
+};
+#pragma pack(pop)
+
+constexpr char kEaName[] = "$POSIX";      // NTFS stores EA names uppercased
+constexpr uint32_t kEaMagic = 0x49584F50; // 'POXI'
+constexpr uint16_t kEaVersion = 1;
+constexpr uint16_t POSIX_EA_MODE = 1u << 0;
+constexpr uint16_t POSIX_EA_UID = 1u << 1;
+constexpr uint16_t POSIX_EA_GID = 1u << 2;
 
 time_t time_t_from(const FILETIME* ft)
 {
     long long win_time = (static_cast<long long>(ft->dwHighDateTime) << 32) + ft->dwLowDateTime;
-    win_time -= 116444736000000000LL;
+    win_time -= 116444736000000000LL; // FILETIME epoch (1601) -> Unix epoch (1970)
     win_time /= 10000000;
-    return static_cast<time_t>(win_time);
+    return mp::saturate_cast<time_t>(win_time);
 }
 
 FILETIME filetime_from(const time_t t)
@@ -108,7 +166,196 @@ FILETIME filetime_from(const time_t t)
     return ft;
 }
 
-sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
+size_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
+{
+    return (static_cast<uint64_t>(nFileSizeHigh) << 32) + nFileSizeLow;
+}
+
+// For ALLOW ACEs: full GENERIC_* mapping including standard rights
+ACCESS_MASK to_allow_mask(uint32_t rwx)
+{
+    ACCESS_MASK mask = 0;
+    if (rwx & 4)
+        mask |= FILE_READ_DATA | FILE_READ_EA | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE;
+    if (rwx & 2)
+        mask |= FILE_WRITE_DATA | FILE_WRITE_EA | FILE_WRITE_ATTRIBUTES | FILE_APPEND_DATA |
+                READ_CONTROL | SYNCHRONIZE;
+    if (rwx & 1)
+        mask |= FILE_EXECUTE | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE;
+    return mask;
+}
+
+inline bool nt_ok(NTSTATUS s)
+{
+    return s >= 0; // NOTE: STATUS_PENDING (0x103)
+                   //  also passes; safe only because these handles are synchronous
+                   //  (no FILE_FLAG_OVERLAPPED). Revisit if that ever changes.
+}
+
+// NtSetEaFile / NtQueryEaFile are the native EA primitives, resolved from ntdll
+// once and cached. They operate directly on the HANDLE we hold and give precise
+// single-EA control (unlike BackupRead or the higher-level info classes).
+using NtSetEaFile_t = NTSTATUS(NTAPI*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG);
+using NtQueryEaFile_t = NTSTATUS(
+    NTAPI*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, BOOLEAN, PVOID, ULONG, PULONG, BOOLEAN);
+
+NtSetEaFile_t nt_set_ea()
+{
+    static auto fn = reinterpret_cast<NtSetEaFile_t>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetEaFile"));
+    return fn;
+}
+NtQueryEaFile_t nt_query_ea()
+{
+    static auto fn = reinterpret_cast<NtQueryEaFile_t>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryEaFile"));
+    return fn;
+}
+
+// Writes the $POSIX EA. Requires FILE_WRITE_EA on the handle.
+// Cost: 1 syscall (NtSetEaFile).
+bool write_posix_ea(HANDLE handle, const PosixEa& meta)
+{
+    auto fn = nt_set_ea();
+    if (!fn)
+        return false;
+
+    constexpr UCHAR name_len = sizeof(kEaName) - 1; // 6, no null
+    constexpr USHORT value_len = sizeof(PosixEa);
+    constexpr size_t header = offsetof(EaFull, EaName);
+    const size_t total = header + name_len + 1 + value_len; // +1 = name's null
+
+    std::vector<BYTE> buf(total, 0);
+    auto* ea = reinterpret_cast<EaFull*>(buf.data());
+    ea->NextEntryOffset = 0;
+    ea->Flags = 0;
+    ea->EaNameLength = name_len;
+    ea->EaValueLength = value_len;
+    std::memcpy(buf.data() + header, kEaName, name_len); // null slot already 0
+    std::memcpy(buf.data() + header + name_len + 1, &meta, value_len);
+
+    IO_STATUS_BLOCK iosb{};
+    return nt_ok(fn(handle, &iosb, buf.data(), static_cast<ULONG>(total)));
+}
+
+// Reads the $POSIX EA. Requires FILE_READ_EA. Returns false when the EA is
+// absent, the volume has no EA support, or the blob isn't our format/version.
+// Cost: 1 syscall (NtQueryEaFile).
+bool read_posix_ea(HANDLE handle, PosixEa& out)
+{
+    auto fn = nt_query_ea();
+    if (!fn)
+        return false;
+
+    // GET list naming our single EA.
+    constexpr UCHAR name_len = sizeof(kEaName) - 1;
+    constexpr size_t get_header = offsetof(EaGet, EaName);
+    const size_t get_total = get_header + name_len + 1;
+    std::vector<BYTE> get_buf(get_total, 0);
+    auto* g = reinterpret_cast<EaGet*>(get_buf.data());
+    g->NextEntryOffset = 0;
+    g->EaNameLength = name_len;
+    std::memcpy(get_buf.data() + get_header, kEaName, name_len);
+
+    std::vector<BYTE> out_buf(512, 0);
+    IO_STATUS_BLOCK iosb{};
+    NTSTATUS st = fn(handle,
+                     &iosb,
+                     out_buf.data(),
+                     static_cast<ULONG>(out_buf.size()),
+                     TRUE, // ReturnSingleEntry
+                     get_buf.data(),
+                     static_cast<ULONG>(get_total),
+                     nullptr, // EaIndex
+                     TRUE);   // RestartScan
+    if (!nt_ok(st))
+        return false; // STATUS_NO_EAS_ON_FILE / NONEXISTENT_EA_ENTRY land here
+
+    auto* ea = reinterpret_cast<EaFull*>(out_buf.data());
+    if (ea->EaValueLength != sizeof(PosixEa))
+        return false;
+    PosixEa meta{};
+    std::memcpy(&meta,
+                out_buf.data() + offsetof(EaFull, EaName) + ea->EaNameLength + 1,
+                sizeof(PosixEa));
+    if (meta.magic != kEaMagic || meta.version != kEaVersion)
+        return false;
+
+    out = meta;
+    return true;
+}
+
+bool set_posix_security(HANDLE handle, const PosixSecurity& posix_security)
+{
+    if (!posix_security.perms && !posix_security.uid && !posix_security.gid)
+        return true;
+
+    PosixEa meta{};
+    if (!read_posix_ea(handle, meta)) // syscall #1 (read-modify-write read)
+    {
+        meta.magic = kEaMagic;
+        meta.version = kEaVersion;
+        meta.present = 0;
+        meta.mode = 0;
+        meta.uid = mp::no_id_info_available;
+        meta.gid = mp::no_id_info_available;
+    }
+
+    if (posix_security.perms)
+    {
+        meta.mode = *posix_security.perms;
+        meta.present |= POSIX_EA_MODE;
+    }
+    if (posix_security.uid)
+    {
+        meta.uid = *posix_security.uid;
+        meta.present |= POSIX_EA_UID;
+    }
+    if (posix_security.gid)
+    {
+        meta.gid = *posix_security.gid;
+        meta.present |= POSIX_EA_GID;
+    }
+
+    // The EA is the sole source of truth. If the volume can't store it, the
+    // round-trip guarantee is gone, so fail loud rather than silently dropping
+    // the metadata.
+    return write_posix_ea(handle, meta);
+}
+
+bool get_posix_security(HANDLE handle, sftp_attributes_struct& attr)
+{
+
+    attr.uid = mp::no_id_info_available;
+    attr.gid = mp::no_id_info_available;
+    PosixEa meta{};
+    if (!read_posix_ea(handle, meta))
+    {
+        // EA-less file: request setting the defaults
+        if (attr.permissions & SSH_S_IFDIR)
+            attr.permissions |= default_dir_mode;
+        else
+            attr.permissions |= default_file_mode;
+        attr.uid = mp::no_id_info_available;
+        attr.gid = mp::no_id_info_available;
+        return true;
+    }
+
+    // Each field is reported only if its present-bit is set; otherwise the
+    // sentinel. This keeps a chown-only or chmod-only file honest — an unset mode
+    // is never reported as 000, an unset id is never reported as 0.
+    // attr.uid = (meta.present & POSIX_EA_UID) ? meta.uid : mp::no_id_info_available;
+    // attr.gid = (meta.present & POSIX_EA_GID) ? meta.gid : mp::no_id_info_available;
+    // uid/gid retrieval is intentionally not wired up yet -> our own mapping
+    // even though set_ now stores them in the EA. When enabled, read meta.uid/gid
+    // here (guarded by the present bits) instead of the constants above.
+    if (meta.present & POSIX_EA_MODE)
+        attr.permissions |= meta.mode;
+
+    return true;
+}
+
+sftp_attributes_struct stat_to_attr(const struct _stat64& file_data)
 {
     sftp_attributes_struct attr{};
 
@@ -118,10 +365,70 @@ sftp_attributes_struct stat_to_attr(const WIN32_FILE_ATTRIBUTE_DATA* data)
     attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
                  SSH_FILEXFER_ATTR_ACMODTIME;
 
-    attr.atime = time_t_from(&(data->ftLastAccessTime));
-    attr.mtime = time_t_from(&(data->ftLastWriteTime));
+    attr.atime = file_data.st_atime;
+    attr.mtime = file_data.st_mtime;
 
-    attr.permissions = SSH_S_IFLNK | 0777;
+    attr.size = file_data.st_size;
+
+    if ((file_data.st_mode & _S_IFREG) == _S_IFREG)
+        attr.permissions |= SSH_S_IFREG;
+    else if ((file_data.st_mode & _S_IFDIR) == _S_IFDIR)
+        attr.permissions |= SSH_S_IFDIR |
+                            static_cast<uint32_t>(fs::perms::others_exec | fs::perms::group_exec |
+                                                  fs::perms::owner_exec);
+    else // Symlink not a possibility in Windows CRT fstat or stat
+         // Keep the filetype flag if other
+        attr.permissions |= (file_data.st_mode & _S_IFMT);
+
+    if ((file_data.st_mode & _S_IREAD) == _S_IREAD)
+        attr.permissions |= static_cast<int32_t>(fs::perms::others_read | fs::perms::group_read |
+                                                 fs::perms::owner_read);
+    if ((file_data.st_mode & _S_IWRITE) == _S_IWRITE)
+        attr.permissions |= static_cast<int32_t>(fs::perms::owner_write); // Only user can write
+    if ((file_data.st_mode & _S_IEXEC) == _S_IEXEC)
+        attr.permissions |= static_cast<int32_t>(fs::perms::others_exec | fs::perms::group_exec |
+                                                 fs::perms::owner_exec);
+
+    return attr;
+}
+
+sftp_attributes_struct stat_to_attr(const BY_HANDLE_FILE_INFORMATION& file_data,
+                                    const HANDLE file_handle)
+{
+    sftp_attributes_struct attr{};
+
+    attr.uid = -2;
+    attr.gid = -2;
+
+    attr.size = size_from(file_data.nFileSizeHigh, file_data.nFileSizeLow);
+    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
+                 SSH_FILEXFER_ATTR_ACMODTIME;
+
+    attr.atime = time_t_from(&(file_data.ftLastAccessTime));
+    attr.mtime = time_t_from(&(file_data.ftLastWriteTime));
+
+    if (file_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+    {
+        FILE_ATTRIBUTE_TAG_INFO tagInfo{};
+        if (GetFileInformationByHandleEx(file_handle,
+                                         FileAttributeTagInfo,
+                                         &tagInfo,
+                                         sizeof(tagInfo)) &&
+            (tagInfo.ReparseTag == IO_REPARSE_TAG_SYMLINK ||
+             tagInfo.ReparseTag == IO_REPARSE_TAG_MOUNT_POINT))
+        {
+            attr.size = GetFinalPathNameByHandleA(file_handle, NULL, 0, VOLUME_NAME_DOS);
+            // Strip prefix "\\?\"
+            if (attr.size >= 4)
+                attr.size -= 4;
+            attr.permissions |= SSH_S_IFLNK | static_cast<uint32_t>(fs::perms::all); // Windows does
+            // not enforce symlink ACLs
+        }
+    }
+    else if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        attr.permissions |= SSH_S_IFDIR; // Directories are 0755 by default
+    else
+        attr.permissions |= SSH_S_IFREG; // Files 0755 by default
 
     return attr;
 }
@@ -491,20 +798,17 @@ DWORD set_specific_perms(LPSTR path, WELL_KNOWN_SID_TYPE sid_type, DWORD access_
     return set_specific_perms(path, pSid.get(), access_mask, inherit);
 }
 
-DWORD convert_permissions(int unix_perms)
+DWORD convert_permissions(uint32_t unix_perms)
 {
-    if (unix_perms == 07)
-        return GENERIC_ALL;
-
     DWORD access_mask = 0;
-    if (unix_perms & 04)
+    if (unix_perms & 0444)
         access_mask |= GENERIC_READ;
-    if (unix_perms & 02)
+    if (unix_perms & 0222)
         access_mask |= GENERIC_WRITE;
-    if (unix_perms & 01)
+    if (unix_perms & 0111)
         access_mask |= GENERIC_EXECUTE;
 
-    return access_mask;
+    return static_cast<DWORD>(access_mask);
 }
 
 // Since the Windows API expects a C style function pointer, we cannot pass parameters.
@@ -958,8 +1262,20 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
+int mp::platform::Platform::fchown(int fd, unsigned int uid, unsigned int gid) const
+{
+    // TODO: Implement
+    logging::trace(log_category,
+                   "fchown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
+                   fd,
+                   uid,
+                   gid);
+    return 0;
+}
+
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
+    // TODO: Implement
     logging::trace(log_category,
                    "chown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
                    path,
@@ -1064,19 +1380,15 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                                              std::filesystem::perms perms,
                                              bool inherit) const
 {
-    // Windows has both ACLs and very limited POSIX permissions
-
     // This handles the POSIX side of things.
     std::error_code ec{};
     std::filesystem::permissions(path, perms, ec);
 
     // Rest handles ACLs
     auto path_str = path.string();
-    LPSTR lpPath = path_str.data();
+    LPSTR lpPath = const_cast<LPSTR>(path_str.c_str()); // Guaranteed null-terminated
     auto success = true;
-
     auto newACL = new_ACL(lpPath);
-
     // Wipe out current ACLs
     SetNamedSecurityInfo(lpPath,
                          SE_FILE_OBJECT,
@@ -1090,15 +1402,13 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
         success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) ==
                    ERROR_SUCCESS;
     if (int group = int(perms) & 0070; group != 0)
-        success &= set_specific_perms(lpPath,
-                                      WinCreatorGroupSid,
-                                      convert_permissions(group >> 3),
-                                      inherit) == ERROR_SUCCESS;
+        success &=
+            set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group), inherit) ==
+            ERROR_SUCCESS;
     if (int owner = int(perms) & 0700; owner != 0)
-        success &= set_specific_perms(lpPath,
-                                      WinCreatorOwnerSid,
-                                      convert_permissions(owner >> 6),
-                                      inherit) == ERROR_SUCCESS;
+        success &=
+            set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner), inherit) ==
+            ERROR_SUCCESS;
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
     success &= take_ownership(path);
@@ -1108,10 +1418,61 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     return success;
 }
 
+bool mp::platform::Platform::set_permissions_sftp(const std::filesystem::path& path,
+                                                  std::filesystem::perms permissions) const
+{
+
+    HANDLE file_handle =
+        CreateFileA(path.string().c_str(),
+                    READ_CONTROL | WRITE_DAC | WRITE_OWNER | FILE_READ_EA | FILE_WRITE_EA,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+                    NULL);
+
+    if (file_handle == INVALID_HANDLE_VALUE)
+    {
+        DWORD win_err = GetLastError();
+        switch (win_err)
+        {
+        case ERROR_FILE_NOT_FOUND:
+        case ERROR_PATH_NOT_FOUND:
+        case ERROR_INVALID_NAME:
+        case ERROR_BAD_NETPATH:
+        case ERROR_BAD_PATHNAME:
+            errno = ENOENT;
+            break;
+        case ERROR_ACCESS_DENIED:
+        case ERROR_SHARING_VIOLATION:
+            errno = EACCES;
+            break;
+        case ERROR_OUTOFMEMORY:
+            errno = ENOMEM;
+            break;
+        case ERROR_INVALID_PARAMETER:
+            errno = EINVAL;
+            break;
+        case ERROR_TOO_MANY_OPEN_FILES:
+            errno = EMFILE;
+            break;
+        default:
+            errno = EPERM;
+            break;
+        }
+        return false;
+    }
+
+    const PosixSecurity perms{static_cast<uint32_t>(permissions), std::nullopt, std::nullopt};
+    const bool ok = set_posix_security(file_handle, perms);
+    CloseHandle(file_handle);
+    return ok;
+}
+
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
     auto path_str = path.string();
-    LPSTR lpPath = path_str.data();
+    LPSTR lpPath = const_cast<LPSTR>(path_str.c_str()); // Guaranteed to be null-terminated
 
     return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) ==
            ERROR_SUCCESS;
@@ -1263,17 +1624,269 @@ QString mp::platform::Platform::multipass_storage_location() const
     return QString();
 }
 
-int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
+int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
-    WIN32_FILE_ATTRIBUTE_DATA data;
-
-    if (GetFileAttributesEx(path, GetFileExInfoStandard, &data))
+    HANDLE file_handle = CreateFileA(path,
+                                     READ_CONTROL | FILE_READ_EA,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                     NULL,
+                                     OPEN_EXISTING,
+                                     FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+                                     NULL);
+    if (file_handle != INVALID_HANDLE_VALUE)
     {
-        *attr = stat_to_attr(&data);
-        attr->size = QFile::symLinkTarget(path).size();
+        BY_HANDLE_FILE_INFORMATION file_info;
+
+        if (GetFileInformationByHandle(file_handle, &file_info) != 0)
+        // 0 signals failure
+        {
+            attr = stat_to_attr(file_info, file_handle);
+            get_posix_security(file_handle, attr);
+
+            CloseHandle(file_handle);
+            return 0;
+        }
+
+        CloseHandle(file_handle);
+    }
+    DWORD win_err = GetLastError();
+
+    // Map common Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_NAME:
+    case ERROR_BAD_NETPATH:
+    case ERROR_BAD_PATHNAME:
+        errno = ENOENT;
+        break;
+
+    case ERROR_ACCESS_DENIED:
+    case ERROR_SHARING_VIOLATION:
+        errno = EACCES;
+        break;
+
+    case ERROR_OUTOFMEMORY:
+        errno = ENOMEM;
+        break;
+
+    case ERROR_INVALID_PARAMETER:
+        errno = EINVAL;
+        break;
+
+    case ERROR_TOO_MANY_OPEN_FILES:
+        errno = EMFILE;
+        break;
+
+    default:
+        errno = ENOENT;
+        break;
+    }
+    return -1; // Standard lstat failure return code
+}
+
+int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_struct& attr) const
+{
+    HANDLE file_handle = CreateFileA(path,
+                                     READ_CONTROL,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                     NULL,
+                                     OPEN_EXISTING,
+                                     FILE_FLAG_BACKUP_SEMANTICS,
+                                     NULL);
+    if (file_handle != INVALID_HANDLE_VALUE)
+    {
+        BY_HANDLE_FILE_INFORMATION file_info;
+
+        if (GetFileInformationByHandle(file_handle, &file_info) != 0)
+        // 0 signals failure
+        {
+            attr = stat_to_attr(file_info, file_handle);
+            get_posix_security(file_handle, attr);
+
+            CloseHandle(file_handle);
+            return 0;
+        }
+
+        CloseHandle(file_handle);
+    }
+    DWORD win_err = GetLastError();
+
+    // Map common Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_NAME:
+    case ERROR_BAD_NETPATH:
+    case ERROR_BAD_PATHNAME:
+        errno = ENOENT;
+        break;
+
+    case ERROR_ACCESS_DENIED:
+    case ERROR_SHARING_VIOLATION:
+        errno = EACCES;
+        break;
+
+    case ERROR_OUTOFMEMORY:
+        errno = ENOMEM;
+        break;
+
+    case ERROR_INVALID_PARAMETER:
+        errno = EINVAL;
+        break;
+
+    case ERROR_TOO_MANY_OPEN_FILES:
+        errno = EMFILE;
+        break;
+
+    default:
+        errno = ENOENT;
+        break;
+    }
+    return -1; // Standard lstat failure return code
+}
+
+int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr) const
+{
+    // Alternative: _fstat plus the uids adaptation
+    // Check out _fstat documentation of Windows CRT
+    struct _stat64 st{};
+    if (_fstat64(fd, &st) != 0)
+        return -1;
+    attr = stat_to_attr(st);
+    return 0;
+}
+
+std::ptrdiff_t mp::platform::Platform::pread(int fd,
+                                             void* buffer,
+                                             size_t bytes_to_read,
+                                             std::ptrdiff_t offset) const
+{
+    HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+    if (file_handle == INVALID_HANDLE_VALUE)
+    {
+        errno = EBADF;
+        return -1;
     }
 
-    return 0;
+    OVERLAPPED overlapped;
+    SecureZeroMemory(&overlapped, sizeof(OVERLAPPED));
+
+    overlapped.Offset = static_cast<DWORD>(offset & 0xFFFFFFFF);
+    overlapped.OffsetHigh = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFF);
+
+    // Perform the read (atomic)
+    DWORD bytesRead = 0;
+    BOOL success =
+        ReadFile(file_handle, buffer, static_cast<DWORD>(bytes_to_read), &bytesRead, &overlapped);
+
+    if (success)
+    {
+        return static_cast<std::ptrdiff_t>(bytesRead);
+    }
+
+    DWORD win_err = GetLastError();
+
+    // In POSIX, reading at or past EOF is not a failure; it simply returns 0 bytes read.
+    // Windows ReadFile treats it as an explicit ERROR_HANDLE_EOF error.
+    if (win_err == ERROR_HANDLE_EOF)
+    {
+        return 0;
+    }
+
+    // Map critical Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_ACCESS_DENIED:
+        errno = EACCES;
+        break;
+    case ERROR_INVALID_HANDLE:
+        errno = EBADF;
+        break;
+    case ERROR_IO_DEVICE:
+    case ERROR_CRC:
+        errno = EIO;
+        break;
+    case ERROR_OUTOFMEMORY:
+        errno = ENOMEM;
+        break;
+    default:
+        errno = EINVAL;
+        break;
+    }
+
+    return -1;
+}
+
+std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
+                                              void* buffer,
+                                              size_t bytes_to_write,
+                                              std::ptrdiff_t offset) const
+{
+    HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+    if (file_handle == INVALID_HANDLE_VALUE)
+    {
+        errno = EBADF;
+        return -1;
+    }
+
+    OVERLAPPED overlapped;
+    SecureZeroMemory(&overlapped, sizeof(OVERLAPPED));
+
+    overlapped.Offset = static_cast<DWORD>(offset & 0xFFFFFFFF);
+    overlapped.OffsetHigh = static_cast<DWORD>((offset >> 32) & 0xFFFFFFFF);
+
+    // Perform the read (atomic)
+    DWORD bytesWritten = 0;
+    BOOL success = WriteFile(file_handle,
+                             buffer,
+                             static_cast<DWORD>(bytes_to_write),
+                             &bytesWritten,
+                             &overlapped);
+
+    if (success)
+    {
+        return static_cast<std::ptrdiff_t>(bytesWritten);
+    }
+
+    DWORD win_err = GetLastError();
+
+    // Map critical Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_ACCESS_DENIED:
+        errno = EACCES;
+        break;
+    case ERROR_DISK_FULL:
+        errno = ENOSPC;
+        break;
+    case ERROR_INVALID_HANDLE:
+        errno = EBADF;
+        break;
+    case ERROR_IO_PENDING:
+        errno = EAGAIN;
+        break;
+    default:
+        errno = EIO;
+        break;
+    }
+
+    return -1;
+}
+
+int mp::platform::Platform::ftruncate(int fd, std::ptrdiff_t length) const
+{
+    return ::_chsize_s(fd, length);
+}
+
+int mp::platform::Platform::futimes(int fd, int atime, int mtime) const
+{
+    struct __utimbuf64 ut{};
+    ut.actime = atime;
+    ut.modtime = mtime;
+    return ::_futime64(fd, &ut);
 }
 
 std::function<std::optional<int>(const std::function<bool()>&)> mp::platform::make_quit_watchdog(

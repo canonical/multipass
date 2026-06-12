@@ -17,9 +17,27 @@
 
 #pragma once
 
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
-#include <sys/types.h>
+#include <filesystem>
+#include <multipass/posix.h>
+
+#define MP_FILEOPS multipass::FileOps::instance()
+
+namespace multipass
+{
+namespace fs = std::filesystem;
+
+struct NamedFd
+{
+    NamedFd(const fs::path& path, int fd);
+    ~NamedFd();
+
+    NamedFd(NamedFd&&) noexcept;
+    NamedFd& operator=(NamedFd&&) noexcept;
+    // No copy to avoid handle leaks
+    NamedFd(const NamedFd&) = delete;
+    NamedFd& operator=(const NamedFd&) = delete;
+
+    fs::path path;
+    int fd;
+};
+} // namespace multipass

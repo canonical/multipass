@@ -18,7 +18,7 @@
 #pragma once
 
 #include <multipass/cli/alias_dict.h>
-#include <multipass/cli/return_codes.h>
+#include <multipass/return_codes.h>
 
 #include <optional>
 

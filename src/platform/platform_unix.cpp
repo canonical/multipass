@@ -61,6 +61,11 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return ::lchown(path, uid, gid);
 }
 
+int mp::platform::Platform::fchown(int fd, unsigned int uid, unsigned int gid) const
+{
+    return ::fchown(fd, uid, gid);
+}
+
 bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                                              std::filesystem::perms permissions,
                                              bool) const
@@ -79,6 +84,12 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     }
 
     return !ec;
+}
+
+bool mp::platform::Platform::set_permissions_sftp(const std::filesystem::path& path,
+                                                  std::filesystem::perms permissions) const
+{
+    return mp::platform::Platform::set_permissions(path, permissions);
 }
 
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
@@ -177,20 +188,78 @@ QString mp::platform::Platform::multipass_storage_location() const
     return mp::utils::get_multipass_storage();
 }
 
-int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
+int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
-    struct stat st
-    {
-    };
+    struct stat st{};
 
     auto ret = lstat(path, &st);
 
     if (ret < 0)
         return ret;
 
-    *attr = stat_to_attr(&st);
+    attr = stat_to_attr(&st);
 
     return 0;
+}
+
+int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_struct& attr) const
+{
+    struct stat st{};
+
+    auto ret = stat(path, &st);
+
+    if (ret < 0)
+        return ret;
+
+    attr = stat_to_attr(&st);
+
+    return 0;
+}
+
+int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr) const
+{
+    struct stat st{};
+
+    auto ret = fstat(fd, &st);
+
+    if (ret < 0)
+        return ret;
+
+    attr = stat_to_attr(&st);
+
+    return 0;
+}
+
+std::ptrdiff_t mp::platform::Platform::pread(int fd,
+                                             void* buffer,
+                                             size_t bytes_to_read,
+                                             std::ptrdiff_t offset) const
+{
+    return ::pread(fd, buffer, bytes_to_read, offset);
+}
+
+std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
+                                              void* buffer,
+                                              size_t bytes_to_write,
+                                              std::ptrdiff_t offset) const
+{
+    return ::pwrite(fd, buffer, bytes_to_write, offset);
+}
+
+int mp::platform::Platform::ftruncate(int fd, std::ptrdiff_t length) const
+{
+    return ::ftruncate(fd, length);
+}
+
+int mp::platform::Platform::futimes(int fd, int atime, int mtime) const
+{
+    struct timeval tv[2];
+    tv[0].tv_sec = atime;
+    tv[0].tv_usec = 0;
+    tv[1].tv_sec = mtime;
+    tv[1].tv_usec = 0;
+
+    return ::futimes(fd, tv);
 }
 
 mp::platform::PosixSignal::PosixSignal(const PrivatePass& pass) noexcept : Singleton(pass)
