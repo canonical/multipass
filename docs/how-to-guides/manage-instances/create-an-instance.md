@@ -55,7 +55,7 @@ debian                      trixie               20260601         Debian Trixie
 fedora                                           20260422         Fedora 44
 ```
 
-To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch jammy`:
+To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch resolute`:
 
 ```{code-block} text
 ...
