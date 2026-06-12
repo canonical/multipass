@@ -552,7 +552,7 @@ You have created and deleted quite a few instances. It is time to run `multipass
 C:\WINDOWS\system32> multipass list
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-decorous-skate          Deleted           --               Not Available
+coherent-trumpetfish    Deleted           --               Not Available
 ltsInstance             Running           172.22.115.152   Ubuntu 26.04 LTS
 ```
 
