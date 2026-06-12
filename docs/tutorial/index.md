@@ -334,25 +334,19 @@ Multipass has a great feature to help you get started with creating customised i
 
 ```{code-block} text
 $ multipass find
-Image                       Aliases           Version          Description
-snapcraft:core18            18.04             20201111         Snapcraft builder for Core 18
-snapcraft:core20            20.04             20210921         Snapcraft builder for Core 20
-snapcraft:core22            22.04             20220426         Snapcraft builder for Core 22
-snapcraft:devel                               20230126         Snapcraft builder for the devel series
-core                        core16            20200818         Ubuntu Core 16
-core18                                        20211124         Ubuntu Core 18
-core20                                        20230119         Ubuntu Core 20
-core22                                        20230119         Ubuntu Core 22
-18.04                       bionic            20230112         Ubuntu 18.04 LTS
-20.04                       focal             20230117         Ubuntu 20.04 LTS
-22.04                       jammy,lts         20230107         Ubuntu 22.04 LTS
-22.10                       kinetic           20230112         Ubuntu 22.10
-daily:23.04                 devel,lunar       20230125         Ubuntu 23.04
-anbox-cloud-appliance                         latest           Anbox Cloud Appliance
-charm-dev                                     latest           A development and testing environment for charmers
-docker                                        0.4              A Docker environment with Portainer and related tools
-jellyfin                                      latest           Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media.
-minikube                                      latest           minikube is local Kubernetes
+Image                       Aliases              Version          Description
+22.04                       jammy                20260515         Ubuntu 22.04 LTS
+24.04                       noble                20260518         Ubuntu 24.04 LTS
+25.10                       questing             20260520         Ubuntu 25.10
+26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
+core:core16                                      current          Ubuntu Core 16
+core:core18                                      current          Ubuntu Core 18
+core:core20                                      current          Ubuntu Core 20
+core:core22                                      current          Ubuntu Core 22
+core:core24                                      current          Ubuntu Core 24
+core:core26                                      current          Ubuntu Core 26
+debian                      trixie               20260601         Debian Trixie
+fedora                                           20260422         Fedora 44
 ```
 
 Launch an instance running Ubuntu 22.10 ("Kinetic Kudu") by typing the `multipass launch kinetic` command.
