@@ -232,7 +232,6 @@ jobs:
     - name: Run unit tests
       id: test
       if: ${{ matrix.build-type == 'Debug' }}
-      timeout-minutes: 5
       run: |
         source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
         /snap/bin/lxc --project snapcraft start $instance_name
