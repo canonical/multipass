@@ -59,7 +59,7 @@ In the example above, we got the following interfaces inside the instance:
 
 ### Routing
 
-Extra interfaces are configured with a higher metric (200) than the default one (100). So, by default the instance will only route through them if they're a better match for the destination IP (see [Wikipedia | Longest_prefix-match](https://en.wikipedia.org/wiki/Longest_prefix_match).
+Extra interfaces are configured with a higher metric (200) than the default one (100). So, by default the instance will only route through them if they're a better match for the destination IP (see [Wikipedia | Longest_prefix-match](https://en.wikipedia.org/wiki/Longest_prefix_match)).
 
 For example, if the command `multipass exec upbeat-whipsnake -- ip route` returns the following routing table:
 
