@@ -45,6 +45,9 @@ jobs:
           python3-pip
         sudo --preserve-env apt-get build-dep --yes ./
 
+    - name: Install cmake
+      uses: lukka/get-cmake@v4.3.3
+
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \

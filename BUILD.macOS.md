@@ -35,8 +35,8 @@ You may need to update your version of Ruby first. You can do so with RVM <https
 
 ### Cmake
 
-Building a Multipass package requires cmake 3.9 or greater. The most convenient
-means to obtain cmake is with Homebrew <https://brew.sh/>.
+Building a Multipass package requires cmake. The most convenient means to obtain cmake is with Homebrew
+<https://brew.sh/>.
 
     brew install cmake
 
