@@ -97,6 +97,35 @@ mp::PlainSSHProcess::PlainSSHProcess(ssh_session session,
     assert(this->session_lock.owns_lock());
 }
 
+mp::PlainSSHProcess::PlainSSHProcess(mp::PlainSSHProcess&& other)
+    : session_lock{std::move(other.session_lock)},
+      session{std::move(other.session)},
+      cmd{std::move(other.cmd)},
+      channel{std::move(other.channel)},
+      exit_result{std::move(other.exit_result)}
+{
+    // Moved-from object safety
+    other.session = nullptr; // libssh functions return SSH_ERROR
+    other.exit_result = std::monostate();
+}
+
+mp::PlainSSHProcess& mp::PlainSSHProcess::operator=(mp::PlainSSHProcess&& other)
+{
+    if (this != &other)
+    {
+        session_lock = std::move(other.session_lock);
+        session = std::move(other.session);
+        cmd = std::move(other.cmd);
+        channel = std::move(other.channel);
+        exit_result = std::move(other.exit_result);
+        // Moved-from object safety
+        other.session = nullptr; // libssh functions return SSH_ERROR
+        other.exit_result = std::monostate();
+    }
+
+    return *this;
+}
+
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 {
     rethrow_if_saved();
@@ -134,7 +163,14 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(),
                                                                        ssh_event_free};
-    ssh_event_add_session(event.get(), session);
+    if (ssh_event_add_session(event.get(), session) != SSH_OK)
+    {
+        std::exception_ptr eptr;
+        eptr = std::make_exception_ptr(EmptySSHProcessException{cmd});
+        if (save_exception)
+            exit_result = eptr;
+        rethrow_exception(eptr);
+    }
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
@@ -182,7 +218,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
     // If the channel is closed there's no output to read
-    if (ssh_channel_is_closed(channel.get()))
+    if (ssh_channel_is_closed(channel.get()) != SSH_OK)
     {
         mpl::trace_location(category, "channel closed");
         return std::string();

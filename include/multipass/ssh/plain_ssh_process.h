@@ -42,8 +42,8 @@ public:
     PlainSSHProcess& operator=(const PlainSSHProcess&) = delete;
 
     // we should be able to move just fine though
-    PlainSSHProcess(PlainSSHProcess&&) = default;
-    PlainSSHProcess& operator=(PlainSSHProcess&&) = default;
+    PlainSSHProcess(PlainSSHProcess&&);
+    PlainSSHProcess& operator=(PlainSSHProcess&&);
 
     ~PlainSSHProcess() override = default; // releases session lock
 

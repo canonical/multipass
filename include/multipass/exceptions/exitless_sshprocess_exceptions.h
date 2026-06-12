@@ -56,4 +56,13 @@ public:
     }
 };
 
+class EmptySSHProcessException : public ExitlessSSHProcessException
+{
+public:
+    EmptySSHProcessException(const std::string& command)
+        : ExitlessSSHProcessException{command.empty() ? "(empty)" : command, "SSHProcess is empty"}
+    {
+    }
+};
+
 } // namespace multipass
