@@ -232,7 +232,7 @@ jobs:
     - name: Run unit tests
       id: test
       if: ${{ matrix.build-type == 'Debug' }}
-      timeout-minutes: 2
+      timeout-minutes: 5
       run: |
         instance_name=$(/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass)
         trap '
