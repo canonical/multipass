@@ -1,9 +1,9 @@
-(how-to-guides-set-up-custom-networking)=
+(how-to-guides-manage-instances-set-up-custom-networking)=
 # Set up custom networking
 
 > See also: [`launch`](reference-command-line-interface-launch), [Instance](explanation-instance)
 
-This document demonstrates various ways to create an instance with Multipass with additional network interfaces.
+This document demonstrates various ways to create an instance in Multipass with additional network interfaces.
 
 (create-an-instance-with-multiple-network-interfaces)=
 ## Create an instance with a bridged or custom network
