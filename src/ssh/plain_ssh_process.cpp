@@ -97,6 +97,35 @@ mp::PlainSSHProcess::PlainSSHProcess(ssh_session session,
     assert(this->session_lock.owns_lock());
 }
 
+mp::PlainSSHProcess::PlainSSHProcess(mp::PlainSSHProcess&& other)
+    : session_lock{std::move(other.session_lock)},
+      session{std::move(other.session)},
+      cmd{std::move(other.cmd)},
+      channel{std::move(other.channel)},
+      exit_result{std::move(other.exit_result)}
+{
+    // Moved-from object safety
+    other.session = nullptr; // libssh functions return SSH_ERROR
+    other.exit_result = std::monostate();
+}
+
+mp::PlainSSHProcess& mp::PlainSSHProcess::operator=(mp::PlainSSHProcess&& other)
+{
+    if (this != &other)
+    {
+        session_lock = std::move(other.session_lock);
+        session = std::move(other.session);
+        cmd = std::move(other.cmd);
+        channel = std::move(other.channel);
+        exit_result = std::move(other.exit_result);
+        // Moved-from object safety
+        other.session = nullptr; // libssh functions return SSH_ERROR
+        other.exit_result = std::monostate();
+    }
+
+    return *this;
+}
+
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 {
     rethrow_if_saved();
@@ -129,7 +158,9 @@ int mp::PlainSSHProcess::exit_code(std::chrono::milliseconds timeout)
 
 void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
 {
-    assert(std::holds_alternative<std::monostate>(exit_result));
+    // Monostate is a pre-condition to the call, non-null session checks that the object was not
+    // moved from
+    assert(std::holds_alternative<std::monostate>(exit_result) && session);
     ExitStatusCallback cb{channel.get(), exit_result};
 
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(),
@@ -179,6 +210,8 @@ const std::string& mp::PlainSSHProcess::get_cmd() const
 
 std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
 {
+    // Check that the object is not moved-from.
+    assert(session);
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
     // If the channel is closed there's no output to read
