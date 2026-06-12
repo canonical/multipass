@@ -30,7 +30,7 @@ These properties can be specified in the format `<key>=<value>` but a simpler fo
 multipass launch --network en0 --network name=bridge0,mode=manual
 ```
 
-You can inspect the IP addresses assigned to the network interfaces of the new instance ("upbeat-whipsnake) on the system using the command:
+You can inspect the IP addresses assigned to the network interfaces of the new instance "upbeat-whipsnake" on the system using the command:
 
 ```{code-block} text
 multipass exec upbeat-whipsnake -- ip -br address show scope global
