@@ -1992,7 +1992,7 @@ try
         const auto& name = vm.get_name();
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
-        entry->set_name(abbreviate_name(name));
+        entry->set_name(name);
         if (config->factory->supports_availability_zones())
         {
             const auto zone = entry->mutable_zone();
