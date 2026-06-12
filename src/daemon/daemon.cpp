@@ -3228,7 +3228,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 #if AVAILABILITY_ZONES_FEATURE
             reply.set_create_message(fmt::format("Creating {} in {}", abbreviated_name, zone_name));
 #else
-            reply.set_create_message(fmt::format("Creating {}", name));
+            reply.set_create_message(fmt::format("Creating {}", abbreviated_name));
 #endif
             server->Write(reply);
 
