@@ -119,7 +119,7 @@ This feature is only supported for images with [`cloud-init` support for v2 netw
 
 * on Linux, with QEMU (*from Multipass 1.15 onward*)
 * on Windows, with both Hyper-V and VirtualBox
-* on macOS, with the QEMU and VirtualBox drivers
+* on macOS, with the QEMU, AppleVZ, and VirtualBox drivers
 
 The `--network` option can be given multiple times to request multiple network interfaces beyond the default one, which is always present. Each time you add the `--network` option you also need to provide an argument specifying the properties of the desired interface:
 
