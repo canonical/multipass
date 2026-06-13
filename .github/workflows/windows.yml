@@ -207,6 +207,33 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
+    # --- Debug symbols (PDBs) for post-mortem crash analysis ---
+    - name: Collect debug symbols
+      id: collect-symbols
+      shell: pwsh
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        New-Item -ItemType Directory -Force -Path symbols | Out-Null
+        Get-ChildItem -Path bin -Recurse -Filter *.pdb | Copy-Item -Destination symbols -Force
+        if (-not (Test-Path symbols\multipassd.pdb)) {
+          Write-Error "multipassd.pdb not found -- ensure that the build process produces PDB files."
+          exit 1
+        }
+        $base = [IO.Path]::GetFileNameWithoutExtension("${{ steps.cmake-package.outputs.name }}")
+        $zip  = Join-Path (Get-Location) "$base-pdb.zip"
+        Compress-Archive -Path symbols\* -DestinationPath $zip -Force
+        "name=$base-pdb.zip" >> $env:GITHUB_OUTPUT
+        "path=$zip"          >> $env:GITHUB_OUTPUT
+
+    - name: Upload debug symbols
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.runs-on }}-${{ steps.collect-symbols.outputs.name }}
+        path: ${{ steps.collect-symbols.outputs.path }}
+        if-no-files-found: error
+        # Same as the package's retention days
+        retention-days: 7
+
     # Put the package on S3 for public consumption
     - name: Publish package on S3
       id: s3-upload
@@ -220,10 +247,24 @@ jobs:
         storage-class: ONEZONE_IA
       timeout-minutes: 5
 
+    # Put the package's PDB's on S3
+    - name: Publish debug symbols (PDB) on S3
+      id: s3-upload-pdbs
+      uses: canonical/actions/s3-upload@release
+      if: ${{ env.AWS_ACCESS_KEY_ID }}
+      with:
+        path: ${{ steps.collect-symbols.outputs.path }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ steps.build-params.outputs.label }}/symbols
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
     # This shows up on this run's page
     - name: Report public URL
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+        echo "##[warning] Debug symbols: ${{ steps.s3-upload-pdbs.outputs.url }}"
 
     - name: Store publishing outputs
       if: always()
