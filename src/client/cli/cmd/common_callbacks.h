@@ -106,7 +106,10 @@ auto make_confirmation_callback(Terminal& term, QString key)
         // If the reply does not contain the reply authorization, it contains a user message
         else if (!reply.reply_message().empty())
         {
-            term.cout() << reply.reply_message() << '\n';
+            const auto& msg = reply.reply_message();
+            term.cout() << msg;
+            if (!msg.empty() && msg.back() != '\n')
+                term.cout() << '\n';
         }
     };
 }

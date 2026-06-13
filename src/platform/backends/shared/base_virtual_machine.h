@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "multipass/virtual_machine_description.h"
 #include <multipass/availability_zone.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/start_exception.h>
@@ -26,6 +25,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <memory>
 #include <mutex>
@@ -260,10 +260,10 @@ inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message
     return std::string("Disk resized. To make the new space available on this Ubuntu Core "
                        "instance, use lsblk to find the /writable partition and run the "
                        "following commands:\n\n"
-                       "        multipass exec <instance> -- sudo growpart /dev/<block_device> "
+                       "        multipass exec <instance> -- sudo growpart /dev/<disk_device> "
                        "<partition_number>\n"
                        "        multipass exec <instance> -- sudo resize2fs "
-                       "/dev/<block_device><partition_number>\n\n"
+                       "/dev/<disk_device><partition_number>\n\n"
                        "Check the resize status with the command below:\n\n"
                        "         multipass info <instance>\n");
 }

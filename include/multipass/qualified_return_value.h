@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include <multipass.grpc.pb.h>
+#include <multipass/reply_concepts.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <concepts>
 #include <iterator>
@@ -238,10 +239,11 @@ private:
 };
 
 template <typename Reply, typename Request>
+    requires LogMsgReply<Reply>
 void send_messages(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                    MessageBag&& message_bag)
 {
-    auto reply = SetReply{};
+    auto reply = Reply{};
     for (const auto& message : message_bag)
     {
         reply.set_reply_message(message);
