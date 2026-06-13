@@ -1350,6 +1350,7 @@ TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
         .WillOnce(Return(mp::VirtualMachine::State::running))    // when 1st waiting for cloud-init
         .WillOnce(Return(mp::VirtualMachine::State::restarting)) // when retrying to ssh
         .WillOnce(Return(mp::VirtualMachine::State::running));   // back waiting for cloud-init
+        .WillOnce(Return(mp::VirtualMachine::State::running));   // back to cloud-init
     EXPECT_CALL(vm, ssh_hostname(_));
     EXPECT_CALL(vm, ssh_port());
     EXPECT_CALL(vm, ssh_username());

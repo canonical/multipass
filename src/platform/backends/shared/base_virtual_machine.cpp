@@ -21,6 +21,7 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
+#include <multipass/exceptions/intentional_shutdown_exception.h>
 #include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -290,7 +291,10 @@ void mp::BaseVirtualMachine::detect_aborted_start()
     {
         shutdown_while_starting = true;
         state_wait.notify_all();
-
+        if (expected_shutdown)
+        {
+            throw IntentionalShutdownException(vm_name);
+        }
         std::string msg{"Instance shutdown during start"};
         if (!saved_error_msg.empty())
             msg += ": " + saved_error_msg;
@@ -305,7 +309,26 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
     drop_ssh_session();
     mpl::debug(vm_name, "Waiting for SSH to be up");
 
-    auto action = std::bind_front(&BaseVirtualMachine::try_to_ssh, this);
+    auto action = [this]() -> utils::TimeoutAction {
+        auto vm_state = current_state();
+
+        if (vm_state == State::stopped || vm_state == State::off)
+        {
+            if (expected_shutdown)
+            {
+                mpl::log(mpl::Level::info, vm_name, "VM powered off as configured in cloud-init");
+                throw IntentionalShutdownException(vm_name);
+            }
+            else
+            {
+                mpl::log(mpl::Level::error, vm_name, "VM stopped unexpectedly");
+                throw StartException(vm_name, "VM stopped unexpectedly");
+            }
+        }
+
+        return try_to_ssh();
+    };
+
     auto timeout_action = std::bind_front(&BaseVirtualMachine::timeout_ssh, this);
     mpu::try_action_for(timeout_action, timeout, action);
 
@@ -314,8 +337,23 @@ void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeout)
 {
-    auto action = [this] {
+    auto action = [this]() -> mpu::TimeoutAction {
         detect_aborted_start();
+
+        auto vm_state = current_state();
+        if (vm_state == State::stopped || vm_state == State::off)
+        {
+            if (expected_shutdown)
+            {
+                mpl::log(mpl::Level::error, vm_name, "VM powered off as configured in cloud-init");
+                throw IntentionalShutdownException(vm_name);
+            }
+            else
+            {
+                mpl::log(mpl::Level::error, vm_name, "VM stopped unexpectedly during cloud-init");
+                throw StartException(vm_name, "VM Stopped unexpectedly during cloud-init");
+            }
+        }
         try
         {
             ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
@@ -812,8 +850,8 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     specs.num_cores = snapshot->get_num_cores();
     specs.mem_size = snapshot->get_mem_size();
     specs.disk_space = snapshot->get_disk_space();
-    const bool are_extra_interfaces_different =
-        specs.extra_interfaces != snapshot->get_extra_interfaces();
+    const bool are_extra_interfaces_different = specs.extra_interfaces !=
+                                                snapshot->get_extra_interfaces();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();

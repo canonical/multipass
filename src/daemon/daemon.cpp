@@ -29,6 +29,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ghost_instance_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
+#include <multipass/exceptions/intentional_shutdown_exception.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -683,8 +684,9 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
-    -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer,
+                fmt::format_string<Ts...> fmt,
+                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
@@ -968,8 +970,8 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
     if (!command_line_value)
     {
         auto default_disk_size_as_struct = mp::MemorySize(mp::default_disk_size);
-        disk_space =
-            image_size < default_disk_size_as_struct ? default_disk_size_as_struct : image_size;
+        disk_space = image_size < default_disk_size_as_struct ? default_disk_size_as_struct
+                                                              : image_size;
     }
     else if (*command_line_value < image_size)
     {
@@ -1654,8 +1656,8 @@ try
             auto remote_name = (!request->remote_name().empty() ||
                                 (request->remote_name().empty() && vm_images_info.size() > 1 &&
                                  remote != mp::release_remote))
-                                   ? remote
-                                   : "";
+                                 ? remote
+                                 : "";
 
             add_aliases(response.mutable_images_info(), remote_name, info);
         }
@@ -1740,8 +1742,8 @@ try
         const auto& name = vm.get_name();
 
         const auto& it = instance_snapshots_map.find(name);
-        const auto& snapshot_pick =
-            it == instance_snapshots_map.end() ? SnapshotPick{{}, true} : it->second;
+        const auto& snapshot_pick = it == instance_snapshots_map.end() ? SnapshotPick{{}, true}
+                                                                       : it->second;
 
         try
         {
@@ -2006,8 +2008,8 @@ try
         }
 
         const auto mount_type = request->mount_type() == MountRequest_MountType_CLASSIC
-                                    ? VMMount::MountType::Classic
-                                    : VMMount::MountType::Native;
+                                  ? VMMount::MountType::Classic
+                                  : VMMount::MountType::Native;
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
@@ -2129,8 +2131,8 @@ try
                                                        *config->logger,
                                                        server};
 
-    auto timeout =
-        request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
+                                          : mp::default_timeout;
 
     if (!instances_running(operative_instances))
         config->factory->hypervisor_health_check();
@@ -2315,8 +2317,8 @@ try
         *config->logger,
         server};
 
-    auto timeout =
-        request->timeout() > 0 ? std::chrono::seconds(request->timeout()) : mp::default_timeout;
+    auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
+                                          : mp::default_timeout;
 
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
@@ -2422,8 +2424,8 @@ try
 
                 auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
                 const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
-                                              ? SnapshotPick{{}, true}
-                                              : snapshot_pick_it->second;
+                                            ? SnapshotPick{{}, true}
+                                            : snapshot_pick_it->second;
 
                 if (!all || !purge) // if we're not purging the instance, we need to delete
                                     // specified snapshots
@@ -3400,7 +3402,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
             prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
-
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
@@ -3627,11 +3628,11 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
                                               const VMMount& mount)
 {
     return mount.get_mount_type() == VMMount::MountType::Classic
-               ? std::make_unique<SSHFSMountHandler>(vm,
-                                                     config->ssh_key_provider.get(),
-                                                     target,
-                                                     mount)
-               : vm->make_native_mount_handler(target, mount);
+             ? std::make_unique<SSHFSMountHandler>(vm,
+                                                   config->ssh_key_provider.get(),
+                                                   target,
+                                                   mount)
+             : vm->make_native_mount_handler(target, mount);
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watcher(
@@ -3670,18 +3671,35 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             return fmt::to_string(errors);
         }
         const auto vm = it->second;
-        vm->wait_until_ssh_up(timeout);
 
-        if (std::is_same<Reply, LaunchReply>::value)
+        try
         {
-            if (server)
-            {
-                Reply reply;
-                reply.set_reply_message("Waiting for initialization to complete");
-                server->Write(reply);
-            }
+            vm->wait_until_ssh_up(timeout);
 
-            vm->wait_for_cloud_init(timeout);
+            if (std::is_same<Reply, LaunchReply>::value)
+            {
+                if (server)
+                {
+                    Reply reply;
+                    reply.set_reply_message("Waiting for initialization to complete");
+                    server->Write(reply);
+                }
+
+                vm->wait_for_cloud_init(timeout);
+            }
+        }
+        catch (const mp::IntentionalShutdownException& e)
+        {
+            if constexpr (std::is_same_v<Request, LaunchRequest>)
+            {
+                mpl::log(mpl::Level::info,
+                         name,
+                         "Instance powered off intentionally during initialization");
+            }
+            else
+            {
+                throw StartException(name, "Unexpected shutdown during start");
+            }
         }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
@@ -3936,9 +3954,9 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
     return request.has_destination_name()
-               ? request.destination_name()
-               : generate_next_clone_name(vm_instance_specs.at(request.source_name()).clone_count,
-                                          request.source_name());
+             ? request.destination_name()
+             : generate_next_clone_name(vm_instance_specs.at(request.source_name()).clone_count,
+                                        request.source_name());
 };
 
 grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
