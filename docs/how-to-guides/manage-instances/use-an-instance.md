@@ -12,29 +12,26 @@ This document demonstrates various ways to use an instance.
 To open a shell prompt on an existing instance (e.g. `loving-duck`), run the command `multipass shell loving-duck`. The output will be similar to the following:
 
 ```{code-block} text
-Welcome to Ubuntu 20.04.4 LTS (GNU/Linux 5.4.0-109-generic x86_64)
+Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
 
- * Documentation:  https://help.ubuntu.com
+ * Documentation:  https://docs.ubuntu.com
  * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/advantage
+ * Support:        https://ubuntu.com/pro
 
-  System information as of Tue May 31 14:26:40 -03 2022
+ System information as of Tue Jun  9 15:54:32 UTC 2026
 
-  System load:  0.0               Processes:             113
-  Usage of /:   28.8% of 4.67GB   Users logged in:       0
-  Memory usage: 21%               IPv4 address for ens3: 10.49.93.241
+  System load:  0.4               Processes:             123
+  Usage of /:   67.7% of 3.70GB   Users logged in:       0
+  Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
   Swap usage:   0%
 
 
-1 update can be applied immediately.
-To see these additional updates run: apt list --upgradable
+Expanded Security Maintenance for Applications is not enabled.
 
+0 updates can be applied immediately.
 
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
-
-To run a command as administrator (user "root"), use "sudo <command>".
-See "man sudo_root" for details.
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
 
 ubuntu@loving-duck:~$
 ```

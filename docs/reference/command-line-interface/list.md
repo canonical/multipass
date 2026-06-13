@@ -7,8 +7,8 @@ The `multipass list` command lists available instances or snapshots. With no opt
 
 ```{code-block} text
 Name                    State             IPv4             Release
-primary                 SUSPENDED         --               Ubuntu 18.04 LTS
-calm-squirrel           RUNNING           10.218.69.109    Ubuntu 16.04 LTS
+primary                 SUSPENDED         --               Ubuntu 26.04 LTS
+calm-squirrel           RUNNING           10.218.69.109    Ubuntu 26.04 LTS
 ```
 
 You can also call it with the `--snapshots` flag to get an overview of available snapshots. Here's a sample output of `multipass list --snapshots`:
@@ -28,12 +28,12 @@ primary:
   - state: SUSPENDED
     ipv4:
       - ""
-    release: 18.04 LTS
+    release: 26.04 LTS
 calm-squirrel:
   - state: RUNNING
     ipv4:
       - 10.218.69.109
-    release: 16.04 LTS
+    release: 26.04 LTS
 ```
 
 ---

@@ -6,31 +6,23 @@ The `multipass shell` command will open a shell prompt on an instance. Without a
 If you run `multipass shell` you'll find yourself in the *primary* instance:
 
 ```{code-block} text
-Launched: primary
-Mounted '/Users/giulia' into 'primary:Home'
-Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-44-generic aarch64)
+Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
 
- * Documentation:  https://help.ubuntu.com
+ * Documentation:  https://docs.ubuntu.com
  * Management:     https://landscape.canonical.com
  * Support:        https://ubuntu.com/pro
 
- System information as of Wed Sep 18 15:11:15 UTC 2024
+ System information as of Tue Jun  9 15:54:32 UTC 2026
 
-  System load:             0.47
-  Usage of /:              40.2% of 3.80GB
-  Memory usage:            22%
-  Swap usage:              0%
-  Processes:               109
-  Users logged in:         0
-  IPv4 address for enp0s1: 192.168.64.21
-  IPv6 address for enp0s1: fdec:5598:6ba4:a940:5054:ff:fe88:498b
+  System load:  0.4               Processes:             123
+  Usage of /:   67.7% of 3.70GB   Users logged in:       0
+  Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
+  Swap usage:   0%
 
 
 Expanded Security Maintenance for Applications is not enabled.
 
-23 updates can be applied immediately.
-23 of these updates are standard security updates.
-To see these additional updates run: apt list --upgradable
+0 updates can be applied immediately.
 
 Enable ESM Apps to receive additional future security updates.
 See https://ubuntu.com/esm or run: sudo pro status
