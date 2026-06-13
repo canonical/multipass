@@ -604,8 +604,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                          // out any scary error messages for this state
                          if (update_shutdown_status)
                          {
-                             const auto log_level =
-                                 force_shutdown ? mpl::Level::info : mpl::Level::error;
+                             const auto log_level = force_shutdown ? mpl::Level::info
+                                                                   : mpl::Level::error;
                              mpl::log(log_level,
                                       vm_name,
                                       "process error occurred {} {}",
@@ -727,16 +727,12 @@ void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-mp::Qualified<void> mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
-    if (is_core())
-        return {core_image_disk_resize_message()};
-    else
-        return {};
 }
 
 void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,
@@ -805,8 +801,8 @@ void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     auto action = [this] {
         detect_aborted_start();
         return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-                   ? mpu::TimeoutAction::done
-                   : mpu::TimeoutAction::retry;
+                 ? mpu::TimeoutAction::done
+                 : mpu::TimeoutAction::retry;
     };
 
     auto on_timeout = [this, &timeout] {

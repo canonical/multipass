@@ -350,6 +350,15 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
+mp::Qualified<void> mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    resize_disk_impl(new_size);
+    if (is_core())
+        return {core_image_disk_resize_message()};
+    else
+        return {};
+}
+
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
     std::vector<IPAddress> all_ipv4;
@@ -819,8 +828,8 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     specs.num_cores = snapshot->get_num_cores();
     specs.mem_size = snapshot->get_mem_size();
     specs.disk_space = snapshot->get_disk_space();
-    const bool are_extra_interfaces_different =
-        specs.extra_interfaces != snapshot->get_extra_interfaces();
+    const bool are_extra_interfaces_different = specs.extra_interfaces !=
+                                                snapshot->get_extra_interfaces();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();

@@ -296,16 +296,12 @@ void AppleVZVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-multipass::Qualified<void> AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
+void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
     MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
     desc.disk_space = new_size;
-    if (is_core())
-        return {core_image_disk_resize_message()};
-    else
-        return {};
 }
 
 void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
@@ -362,8 +358,8 @@ void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     auto action = [this] {
         detect_aborted_start();
         return ((management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address)))
-                   ? mp::utils::TimeoutAction::done
-                   : mp::utils::TimeoutAction::retry;
+                 ? mp::utils::TimeoutAction::done
+                 : mp::utils::TimeoutAction::retry;
     };
 
     auto on_timeout = [this, &timeout] {

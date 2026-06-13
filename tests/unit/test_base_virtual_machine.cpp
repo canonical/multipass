@@ -103,6 +103,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  const mp::VMSpecs& specs,
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
+    MOCK_METHOD(void, resize_disk_impl, (const mp::MemorySize&), (override));
 
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
@@ -201,12 +202,9 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    mp::Qualified<void> resize_disk(const mp::MemorySize&) override
+    using mp::BaseVirtualMachine::resize_disk;
+    void resize_disk_impl(const mp::MemorySize& new_size) override
     {
-        if (is_core())
-            return {core_image_disk_resize_message()};
-        else
-            return {};
     }
 
     std::unique_ptr<mpt::TempDir> tmp_dir;
