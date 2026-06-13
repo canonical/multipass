@@ -91,7 +91,7 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce([](const mp::Query& query) {
+    EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce([](const mp::Query&) {
         mpt::MockImageHost mock_image_host;
         std::vector<std::pair<std::string, mp::VMImageInfo>> info;
         info.push_back(std::make_pair(mpt::release_remote, mock_image_host.mock_bionic_image_info));

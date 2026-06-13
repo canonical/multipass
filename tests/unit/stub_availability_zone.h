@@ -47,15 +47,15 @@ public:
         return true;
     }
 
-    void set_available(bool new_available) override
+    void set_available(bool) override
     {
     }
 
-    void add_vm(VirtualMachine& vm) override
+    void add_vm(VirtualMachine&) override
     {
     }
 
-    void remove_vm(VirtualMachine& vm) override
+    void remove_vm(VirtualMachine&) override
     {
     }
 

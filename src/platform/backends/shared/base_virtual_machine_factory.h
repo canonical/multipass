@@ -46,11 +46,6 @@ public:
 
     void remove_resources_for(const std::string& name) final;
 
-    FetchType fetch_type() override
-    {
-        return FetchType::ImageOnly;
-    };
-
     QString get_backend_directory_name() const override
     {
         return {};
@@ -88,7 +83,7 @@ protected:
     AvailabilityZoneManager& az_manager;
 
 protected:
-    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override
+    std::string create_bridge_with(const NetworkInterfaceInfo&) override
     {
         throw NotImplementedOnThisBackendException{"bridge creation"};
     }
@@ -120,11 +115,11 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
 }
 
 inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clone_vm_impl(
-    const std::string& source_vm_name,
-    const VMSpecs& src_vm_specs,
-    const VirtualMachineDescription& desc,
-    VMStatusMonitor& monitor,
-    const SSHKeyProvider& key_provider)
+    const std::string&,
+    const VMSpecs&,
+    const VirtualMachineDescription&,
+    VMStatusMonitor&,
+    const SSHKeyProvider&)
 {
     throw NotImplementedOnThisBackendException{"clone"};
 }

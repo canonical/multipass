@@ -19,6 +19,7 @@
 
 #include <multipass/progress_monitor.h>
 
+#include <filesystem>
 #include <memory>
 
 #include <xz.h>

@@ -332,7 +332,7 @@ bool mp::UbuntuVMImageRemote::apply_image_mutator(VMImageInfo& info) const
     return image_mutator(info);
 }
 
-bool multipass::UbuntuVMImageRemote::default_image_mutator(VMImageInfo& image)
+bool mp::UbuntuVMImageRemote::default_image_mutator(VMImageInfo&)
 {
     return true;
 }

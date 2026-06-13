@@ -474,7 +474,7 @@ TEST_F(SftpServer, handlesRealpath)
     bool invoked{false};
     auto reply_name = [&msg, &invoked, &file_name](sftp_client_message cmsg,
                                                    const char* name,
-                                                   sftp_attributes attr) {
+                                                   sftp_attributes) {
         EXPECT_THAT(cmsg, Eq(msg.get()));
         EXPECT_THAT(name, StrEq(file_name.data()));
         invoked = true;
@@ -3117,7 +3117,7 @@ TEST_P(PathValidation, validatesAccordingToRequest)
     int num_calls_attr{0};
     auto reply_attr =
         [&num_calls_attr, &msg, expected_status = params.expected_status](sftp_client_message m,
-                                                                          sftp_attributes attr) {
+                                                                          sftp_attributes) {
             EXPECT_THAT(m, Eq(msg.get()));
             EXPECT_THAT(expected_status,
                         Eq(SSH_FX_OK)); // We only expect this if SSH_FX_OK was the goal
@@ -3513,7 +3513,7 @@ TEST_F(SftpServer, canonicalErrorPermissionDenied)
     });
     EXPECT_CALL(*file_ops, weakly_canonical)
         .WillOnce([](const fs::path& path) { return fs::weakly_canonical(path); })
-        .WillRepeatedly([](const fs::path& path) {
+        .WillRepeatedly([](const fs::path&) {
             throw fs::filesystem_error(std::string{}, std::error_code{});
             return fs::path();
         });

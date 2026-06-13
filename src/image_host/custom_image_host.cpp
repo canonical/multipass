@@ -146,7 +146,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_
 
 std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for_impl(
     const std::string& remote_name,
-    bool allow_unsupported) const
+    bool /*allow_unsupported*/) const
 {
     return manifest_from(remote_name).products;
 }

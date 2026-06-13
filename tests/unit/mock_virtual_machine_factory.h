@@ -46,7 +46,6 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                 (override));
     MOCK_METHOD(void, remove_resources_for, (const std::string&), (override));
 
-    MOCK_METHOD(FetchType, fetch_type, (), (override));
     MOCK_METHOD(void, prepare_networking, (std::vector<NetworkInterface>&), (override));
     MOCK_METHOD(VMImage, prepare_source_image, (const VMImage&), (override));
     MOCK_METHOD(void,

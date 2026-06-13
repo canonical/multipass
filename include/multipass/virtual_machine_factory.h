@@ -19,7 +19,6 @@
 
 #include "days.h"
 #include "disabled_copy_move.h"
-#include "fetch_type.h"
 #include "path.h"
 #include "virtual_machine.h"
 #include "vm_image.h"
@@ -62,7 +61,6 @@ public:
      */
     virtual void remove_resources_for(const std::string& name) = 0;
 
-    virtual FetchType fetch_type() = 0;
     virtual void prepare_networking(
         std::vector<NetworkInterface>& extra_interfaces) = 0; // note the arg may be updated
     virtual VMImage prepare_source_image(const VMImage& source_image) = 0;

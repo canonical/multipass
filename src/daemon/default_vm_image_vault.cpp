@@ -152,8 +152,7 @@ mp::DefaultVMImageVault::~DefaultVMImageVault()
     url_downloader->abort_all_downloads();
 }
 
-mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
-                                                 const Query& query,
+mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
                                                  const PrepareAction& prepare,
                                                  const ProgressMonitor& monitor,
                                                  const std::optional<std::string>& checksum,
@@ -278,7 +277,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                               info,
                               source_image,
                               image_dir,
-                              fetch_type,
                               prepare,
                               monitor));
 
@@ -330,7 +328,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const FetchType& fetch_type,
                               *info,
                               source_image,
                               image_dir,
-                              fetch_type,
                               prepare,
                               monitor));
 
@@ -417,8 +414,7 @@ void mp::DefaultVMImageVault::prune_expired_images()
     persist_image_records();
 }
 
-void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
-                                            const PrepareAction& prepare,
+void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
                                             const ProgressMonitor& monitor)
 {
     mpl::debug(category, "Checking for images to update…");
@@ -460,8 +456,7 @@ void mp::DefaultVMImageVault::update_images(const FetchType& fetch_type,
         mpl::info(category, "Updating {} source image to latest", record.query.release);
         try
         {
-            fetch_image(fetch_type,
-                        record.query,
+            fetch_image(record.query,
                         prepare,
                         monitor,
                         std::nullopt,
@@ -544,7 +539,6 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
     const VMImageInfo& info,
     std::optional<VMImage>& existing_source_image,
     const QDir& image_dir,
-    const FetchType& fetch_type,
     const PrepareAction& prepare,
     const ProgressMonitor& monitor)
 {

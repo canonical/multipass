@@ -28,14 +28,14 @@ struct StubURLDownloader : public multipass::URLDownloader
     StubURLDownloader() : multipass::URLDownloader{std::chrono::seconds(10)}
     {
     }
-    void download_to(const QUrl& url,
-                     const QString& file_name,
-                     int64_t size,
-                     const int download_type,
+    void download_to(const QUrl&,
+                     const QString&,
+                     int64_t,
+                     const int,
                      const multipass::ProgressMonitor&) override
     {
     }
-    QByteArray download(const QUrl& url) override
+    QByteArray download(const QUrl&) override
     {
         return {};
     }

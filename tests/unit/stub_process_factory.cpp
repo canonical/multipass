@@ -72,17 +72,17 @@ public:
         emit finished(exit_state);
     }
 
-    bool wait_for_started(int msecs = 30000) override
+    bool wait_for_started(int = 30000) override
     {
         return true;
     }
 
-    bool wait_for_finished(int msecs = 30000) override
+    bool wait_for_finished(int = 30000) override
     {
         return false;
     }
 
-    bool wait_for_ready_read(int msecs = 30000) override
+    bool wait_for_ready_read(int = 30000) override
     {
         return true;
     }
@@ -111,7 +111,7 @@ public:
         return "";
     }
 
-    qint64 write(const QByteArray& data) override
+    qint64 write(const QByteArray&) override
     {
         return 0;
     }

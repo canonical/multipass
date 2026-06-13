@@ -290,7 +290,7 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
 }
 
 void mp::platform::Platform::create_alias_script(const std::string& alias,
-                                                 const mp::AliasDefinition& def) const
+                                                 const AliasDefinition& /*def*/) const
 {
     std::string file_path = get_alias_script_path(alias);
 

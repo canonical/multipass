@@ -161,7 +161,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         auto channel_read =
             [&output,
              &remaining,
-             &prereq_invoked](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+             &prereq_invoked](ssh_channel, void* dest, uint32_t count, int, int) {
                 if (!prereq_invoked)
                     return 0u;
                 const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));

@@ -31,7 +31,7 @@ struct StubAvailabilityZoneManager final : public AvailabilityZoneManager
     {
     }
 
-    AvailabilityZone& get_zone(const std::string& name) override
+    AvailabilityZone& get_zone(const std::string&) override
     {
         return zone;
     }

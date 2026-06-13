@@ -31,7 +31,7 @@ mp::ReturnCodeVariant cmd::Umount::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::UmountReply& reply) -> ReturnCodeVariant { return ReturnCode::Ok; };
+    auto on_success = [](UmountReply&) -> ReturnCodeVariant { return ReturnCode::Ok; };
 
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         return standard_failure_handler_for(name(), cerr, status);
