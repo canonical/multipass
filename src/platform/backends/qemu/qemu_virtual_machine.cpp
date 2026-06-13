@@ -232,10 +232,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                              ? State::suspended
                              : State::off,
                          desc.vm_name,
+                         desc,
                          key_provider,
                          zone,
                          instance_dir},
-      desc{desc},
       qemu_platform{qemu_platform},
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
@@ -604,8 +604,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                          // out any scary error messages for this state
                          if (update_shutdown_status)
                          {
-                             const auto log_level =
-                                 force_shutdown ? mpl::Level::info : mpl::Level::error;
+                             const auto log_level = force_shutdown ? mpl::Level::info
+                                                                   : mpl::Level::error;
                              mpl::log(log_level,
                                       vm_name,
                                       "process error occurred {} {}",
@@ -727,7 +727,7 @@ void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
@@ -801,8 +801,8 @@ void mp::QemuVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     auto action = [this] {
         detect_aborted_start();
         return ((management_ip = qemu_platform->get_ip_for(desc.default_mac_address)))
-                   ? mpu::TimeoutAction::done
-                   : mpu::TimeoutAction::retry;
+                 ? mpu::TimeoutAction::done
+                 : mpu::TimeoutAction::retry;
     };
 
     auto on_timeout = [this, &timeout] {

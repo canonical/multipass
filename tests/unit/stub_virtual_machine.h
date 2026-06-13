@@ -116,8 +116,9 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
     {
     }
 
-    void resize_disk(const MemorySize&) override
+    Qualified<void> resize_disk(const MemorySize&) override
     {
+        return {};
     }
 
     void add_network_interface(int, const std::string&, const NetworkInterface&) override

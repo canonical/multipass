@@ -39,9 +39,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const SSHKeyProvider& key_provider,
                                              AvailabilityZone& zone,
                                              const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
-      desc{desc},
-      monitor{&monitor}
+    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir}, monitor{&monitor}
 {
     initialize_vm_handle();
 }
@@ -298,7 +296,7 @@ void AppleVZVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-void AppleVZVirtualMachine::resize_disk(const MemorySize& new_size)
+void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
@@ -360,8 +358,8 @@ void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     auto action = [this] {
         detect_aborted_start();
         return ((management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address)))
-                   ? mp::utils::TimeoutAction::done
-                   : mp::utils::TimeoutAction::retry;
+                 ? mp::utils::TimeoutAction::done
+                 : mp::utils::TimeoutAction::retry;
     };
 
     auto on_timeout = [this, &timeout] {

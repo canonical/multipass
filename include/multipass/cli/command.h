@@ -157,6 +157,13 @@ protected:
                             {
                                 cerr << reply.log_line();
                             }
+                            if constexpr (requires { reply.reply_message(); })
+                            {
+                                if (!reply.reply_message().empty())
+                                {
+                                    cout << reply.reply_message();
+                                }
+                            }
                         });
     }
 

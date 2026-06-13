@@ -54,7 +54,6 @@ public:
 
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
 
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& /*specs*/,
                                                   const std::string& /*snapshot_name*/,
@@ -63,13 +62,15 @@ public:
         throw NotImplementedOnThisBackendException{"snapshots"};
     }
 
+protected:
+    void resize_disk_impl(const MemorySize& new_size) override;
+
 private:
     void initialize_vm_handle();
     void set_state(applevz::AppleVMState vm_state);
     void fetch_ip(std::chrono::milliseconds timeout);
 
 private:
-    VirtualMachineDescription desc;
     VMStatusMonitor* monitor;
     VMHandle vm_handle{nullptr};
     bool update_shutdown_status{true};
