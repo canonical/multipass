@@ -44,7 +44,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
 
     MockBaseFactory(std::unique_ptr<mp::test::TempDir>&& tmp_dir,
                     mp::AvailabilityZoneManager& az_manager)
-        : mp::BaseVirtualMachineFactory{tmp_dir->path(), az_manager}, tmp_dir{std::move(tmp_dir)}
+        : mp::BaseVirtualMachineFactory{*tmp_dir, az_manager}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -96,7 +96,7 @@ TEST_F(BaseFactory, dirNameReturnsEmptyString)
 
     const auto dir_name = factory.get_backend_directory_name();
 
-    EXPECT_TRUE(dir_name.isEmpty());
+    EXPECT_TRUE(dir_name.empty());
 }
 
 TEST_F(BaseFactory, createImageVaultReturnsDefaultVault)

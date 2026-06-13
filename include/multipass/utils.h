@@ -247,9 +247,10 @@ public:
                                     const QStringList& args,
                                     const int timeout = 30000) const;
 
-    virtual Path derive_instances_dir(const Path& data_dir,
-                                      const Path& backend_directory_name,
-                                      const Path& instances_subdir) const;
+    virtual std::filesystem::path derive_instances_dir(
+        const std::filesystem::path& data_dir,
+        const std::filesystem::path& backend_directory_name,
+        const std::filesystem::path& instances_subdir) const;
 
     // system info helpers
     virtual std::string get_kernel_version() const;

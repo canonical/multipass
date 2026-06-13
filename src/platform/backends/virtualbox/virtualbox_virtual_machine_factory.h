@@ -24,7 +24,7 @@ namespace multipass
 class VirtualBoxVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit VirtualBoxVirtualMachineFactory(const Path& data_dir,
+    explicit VirtualBoxVirtualMachineFactory(const std::filesystem::path& data_dir,
                                              AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -36,7 +36,7 @@ public:
     void prepare_instance_image(const VMImage& instance_image,
                                 const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
-    QString get_backend_directory_name() const override
+    std::filesystem::path get_backend_directory_name() const override
     {
         return "virtualbox";
     };

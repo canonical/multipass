@@ -66,7 +66,7 @@ constexpr auto extra_interface_vswitch_name_fmtstr = "Multipass vSwitch ({})";
  */
 constexpr auto extra_interface_vswitch_name_regex = R"(Multipass vSwitch \((.*)\))";
 
-HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
+HCSVirtualMachineFactory::HCSVirtualMachineFactory(const std::filesystem::path& data_dir,
                                                    AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir,

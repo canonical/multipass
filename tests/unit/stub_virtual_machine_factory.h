@@ -35,8 +35,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     }
 
     StubVirtualMachineFactory(std::unique_ptr<TempDir> tmp_dir, AvailabilityZoneManager& az_manager)
-        : multipass::BaseVirtualMachineFactory{tmp_dir->path(), az_manager},
-          tmp_dir{std::move(tmp_dir)}
+        : multipass::BaseVirtualMachineFactory{*tmp_dir, az_manager}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -65,9 +64,9 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     {
     }
 
-    QString get_backend_directory_name() const override
+    std::filesystem::path get_backend_directory_name() const override
     {
-        return {};
+        return "";
     }
 
     std::filesystem::path get_instance_directory(const std::string&) const override

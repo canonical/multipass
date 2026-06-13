@@ -53,7 +53,7 @@ using namespace testing;
 
 namespace
 {
-const auto backend_path = QStringLiteral("/tmp");
+const std::filesystem::path backend_path = "/tmp";
 
 struct PlatformLinux : public mpt::TestWithMockedBinPath
 {

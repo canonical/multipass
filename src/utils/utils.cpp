@@ -622,14 +622,15 @@ void mp::utils::set_owner_for(mp::SSHSession& session,
                     relative_target.substr(0, relative_target.find_first_of('/'))));
 }
 
-mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
-                                         const mp::Path& backend_directory_name,
-                                         const mp::Path& instances_subdir) const
+std::filesystem::path mp::Utils::derive_instances_dir(
+    const std::filesystem::path& data_dir,
+    const std::filesystem::path& backend_directory_name,
+    const std::filesystem::path& instances_subdir) const
 {
-    if (backend_directory_name.isEmpty())
-        return QDir(data_dir).filePath(instances_subdir);
+    if (backend_directory_name.empty())
+        return data_dir / instances_subdir;
     else
-        return QDir(QDir(data_dir).filePath(backend_directory_name)).filePath(instances_subdir);
+        return data_dir / backend_directory_name / instances_subdir;
 }
 
 void mp::Utils::sleep_for(const std::chrono::milliseconds& ms) const

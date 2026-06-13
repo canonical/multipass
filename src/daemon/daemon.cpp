@@ -1276,13 +1276,12 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
-      vm_instance_specs{load_db(mp::utils::backend_directory_path(
-                                    config->data_directory,
-                                    config->factory->get_backend_directory_name().toStdString()),
-                                mp::utils::backend_directory_path(
-                                    config->cache_directory,
-                                    config->factory->get_backend_directory_name().toStdString()),
-                                *config->az_manager)},
+      vm_instance_specs{
+          load_db(mp::utils::backend_directory_path(config->data_directory,
+                                                    config->factory->get_backend_directory_name()),
+                  mp::utils::backend_directory_path(config->cache_directory,
+                                                    config->factory->get_backend_directory_name()),
+                  *config->az_manager)},
       daemon_rpc{config->server_address,
                  *config->cert_provider,
                  config->client_cert_store.get(),
@@ -3003,9 +3002,8 @@ boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
-    auto data_dir{mp::utils::backend_directory_path(
-        config->data_directory,
-        config->factory->get_backend_directory_name().toStdString())};
+    auto data_dir{mp::utils::backend_directory_path(config->data_directory,
+                                                    config->factory->get_backend_directory_name())};
     MP_FILEOPS.write_transactionally(data_dir / instance_db_name,
                                      pretty_print(instance_records_json));
 }

@@ -35,7 +35,7 @@ constexpr auto log_category = "base factory";
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    explicit BaseVirtualMachineFactory(const Path& instances_dir,
+    explicit BaseVirtualMachineFactory(const std::filesystem::path& instances_dir,
                                        AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
                                        const VMSpecs& dest_spec,
@@ -47,14 +47,14 @@ public:
 
     void remove_resources_for(const std::string& name) final;
 
-    QString get_backend_directory_name() const override
+    std::filesystem::path get_backend_directory_name() const override
     {
-        return {};
+        return "";
     };
 
     std::filesystem::path get_instance_directory(const std::string& name) const override
     {
-        return utils::backend_directory_path(MP_PLATFORM.qstr_to_path(instances_dir), name);
+        return utils::backend_directory_path(instances_dir, name);
     }
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
@@ -80,7 +80,7 @@ public:
     };
 
 protected:
-    static const Path instances_subdir;
+    static const std::filesystem::path instances_subdir;
     AvailabilityZoneManager& az_manager;
 
 protected:
@@ -103,7 +103,7 @@ private:
     static void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
                                                        const fs::path& dest_instance_dir_path);
 
-    Path instances_dir;
+    std::filesystem::path instances_dir;
 };
 
 } // namespace multipass

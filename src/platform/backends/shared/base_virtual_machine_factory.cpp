@@ -29,10 +29,10 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
+const std::filesystem::path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
 const std::unordered_set<std::string> cloneable_files{".iso", ".img", ".qcow2", ".raw", ".asif"};
 
-mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir,
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const std::filesystem::path& instances_dir,
                                                          AvailabilityZoneManager& az_manager)
     : az_manager{az_manager}, instances_dir{instances_dir} {};
 

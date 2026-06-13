@@ -121,7 +121,7 @@ QStringList mp::QemuPlatformMacOS::vm_platform_args(const VirtualMachineDescript
     return qemu_args;
 }
 
-QString mp::QemuPlatformMacOS::get_directory_name() const
+std::filesystem::path mp::QemuPlatformMacOS::get_directory_name() const
 {
     return "qemu";
 }

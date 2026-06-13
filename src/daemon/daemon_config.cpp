@@ -157,7 +157,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         az_manager = std::make_unique<SingleAvailabilityZoneManager>(data_directory);
 #endif
     if (factory == nullptr)
-        factory = platform::vm_backend(MP_PLATFORM.path_to_qstr(data_directory), *az_manager);
+        factory = platform::vm_backend(data_directory, *az_manager);
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
@@ -193,13 +193,14 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             hosts.push_back(image.get());
         }
 
+        const auto cache_dir_path = cache_directory / factory->get_backend_directory_name();
+        MP_FILEOPS.create_directory(cache_dir_path);
         vault = factory->create_image_vault(
             hosts,
             url_downloader.get(),
-            MP_PLATFORM.qstr_to_path(
-                MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name())),
+            cache_dir_path,
             mp::utils::backend_directory_path(data_directory,
-                                              factory->get_backend_directory_name().toStdString()),
+                                              factory->get_backend_directory_name()),
             days_to_expire);
     }
     if (name_generator == nullptr)
