@@ -66,7 +66,7 @@ struct AppleVZVirtualMachineFactory_UnitTests : public ::testing::Test
 
     auto construct_factory()
     {
-        return std::make_shared<mp::applevz::AppleVZVirtualMachineFactory>(dummy_data_dir.path(),
+        return std::make_shared<mp::applevz::AppleVZVirtualMachineFactory>(dummy_data_dir,
                                                                            stub_az_manager);
     }
 };

@@ -32,7 +32,8 @@ void check_hcs_support();
 struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 
-    HCSVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
+    HCSVirtualMachineFactory(const std::filesystem::path& data_dir,
+                             AvailabilityZoneManager& az_manager);
 
     [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                               const SSHKeyProvider& key_provider,

@@ -120,7 +120,7 @@ mp::NetworkInterfaceInfo list_vbox_network(
 } // namespace
 
 mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(
-    const mp::Path& data_dir,
+    const std::filesystem::path& data_dir,
     AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
