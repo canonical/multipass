@@ -62,6 +62,7 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
+    Qualified<void> resize_disk(const MemorySize& new_size) override;
     std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int, const std::string&, const NetworkInterface&) override
     {
@@ -115,6 +116,7 @@ protected:
 
     bool is_core() const;
     std::string core_image_disk_resize_message() const;
+    virtual void resize_disk_impl(const MemorySize& new_size) = 0;
     /**
      * Refresh the VM, if possible, when the startup appears stuck.
      *

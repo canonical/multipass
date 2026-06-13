@@ -648,7 +648,7 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
     description.mem_size = new_size;
 }
 
-mp::Qualified<void> HCSVirtualMachine::resize_disk(const MemorySize& new_size)
+void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     mpl::debug(get_name(), "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
 
@@ -659,10 +659,6 @@ mp::Qualified<void> HCSVirtualMachine::resize_disk(const MemorySize& new_size)
         throw ResizeDiskException{"Disk resize failed, details: {}", result};
     }
     description.disk_space = new_size;
-    if (is_core())
-        return {core_image_disk_resize_message()};
-    else
-        return {};
 }
 
 void HCSVirtualMachine::add_network_interface(int index,
