@@ -49,20 +49,19 @@ Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
 
 ```
 $ multipass find
-
-Image                       Aliases           Version          Description
-20.04                       focal             20240731         Ubuntu 20.04 LTS
-22.04                       jammy             20240808         Ubuntu 22.04 LTS
-24.04                       noble,lts         20240806         Ubuntu 24.04 LTS
-
-Blueprint                   Aliases           Version          Description
-anbox-cloud-appliance                         latest           Anbox Cloud Appliance
-charm-dev                                     latest           A development and testing environment for charmers
-docker                                        0.4              A Docker environment with Portainer and related tools
-jellyfin                                      latest           Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media.
-minikube                                      latest           minikube is local Kubernetes
-ros-noetic                                    0.1              A development and testing environment for ROS Noetic.
-ros2-humble                                   0.1              A development and testing environment for ROS 2 Humble.
+Image                       Aliases              Version          Description
+22.04                       jammy                20260515         Ubuntu 22.04 LTS
+24.04                       noble                20260518         Ubuntu 24.04 LTS
+25.10                       questing             20260520         Ubuntu 25.10
+26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
+core:core16                                      current          Ubuntu Core 16
+core:core18                                      current          Ubuntu Core 18
+core:core20                                      current          Ubuntu Core 20
+core:core22                                      current          Ubuntu Core 22
+core:core24                                      current          Ubuntu Core 24
+core:core26                                      current          Ubuntu Core 26
+debian                      trixie               20260601         Debian Trixie
+fedora                                           20260422         Fedora 44
 ```
 
 ## Launch a fresh instance of the current Ubuntu LTS
@@ -79,10 +78,7 @@ Launched: dancing-chipmunk
 $ multipass list
 
 Name                    State             IPv4             Image
-dancing-chipmunk        Running           192.168.64.8     Ubuntu 24.04 LTS
-phlegmatic-bluebird     Stopped           --               Ubuntu 22.04 LTS
-docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
-                                          172.17.0.1
+dancing-chipmunk        Running           192.168.64.8     Ubuntu 26.04 LTS
 ```
 
 ## Learn more about an instance
@@ -94,8 +90,8 @@ Name:           dancing-chipmunk
 State:          Running
 Snapshots:      0
 IPv4:           192.168.64.8
-Release:        Ubuntu 24.04 LTS
-Image hash:     e2608bfdbc44 (Ubuntu 24.04 LTS)
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
 CPU(s):         1
 Load:           5.70 4.58 2.63
 Disk usage:     3.3GiB out of 4.8GiB
@@ -108,7 +104,7 @@ Mounts:         --
 ```
 $ multipass shell dancing-chipmunk
 
-Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8.0-39-generic aarch64)
+Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-22-generic x86_64)
 ...
 ```
 
@@ -120,10 +116,10 @@ Don't forget to logout (or Ctrl-D) or you may find yourself heading all the way 
 $ multipass exec dancing-chipmunk -- lsb_release -a
 
 No LSB modules are available.
-Distributor ID:  Ubuntu
-Description:     Ubuntu 24.04 LTS
-Release:         24.04
-Codename:        noble
+Distributor ID:Ubuntu
+Description:Ubuntu 26.04 LTS
+Release:26.04
+Codename:resolute
 ```
 
 ## Stop an instance to save resources
@@ -145,9 +141,6 @@ $ multipass list
 
 Name                    State             IPv4             Image
 dancing-chipmunk        Deleted           --               Ubuntu 24.04 LTS
-phlegmatic-bluebird     Stopped           --               Ubuntu 22.04 LTS
-docker                  Running           192.168.64.11    Ubuntu 22.04 LTS
-                                          172.17.0.1
 ```
 
 If you want to completely get rid of it:

@@ -334,25 +334,19 @@ Multipass has a great feature to help you get started with creating customised i
 
 ```{code-block} text
 $ multipass find
-Image                       Aliases           Version          Description
-snapcraft:core18            18.04             20201111         Snapcraft builder for Core 18
-snapcraft:core20            20.04             20210921         Snapcraft builder for Core 20
-snapcraft:core22            22.04             20220426         Snapcraft builder for Core 22
-snapcraft:devel                               20230126         Snapcraft builder for the devel series
-core                        core16            20200818         Ubuntu Core 16
-core18                                        20211124         Ubuntu Core 18
-core20                                        20230119         Ubuntu Core 20
-core22                                        20230119         Ubuntu Core 22
-18.04                       bionic            20230112         Ubuntu 18.04 LTS
-20.04                       focal             20230117         Ubuntu 20.04 LTS
-22.04                       jammy,lts         20230107         Ubuntu 22.04 LTS
-22.10                       kinetic           20230112         Ubuntu 22.10
-daily:23.04                 devel,lunar       20230125         Ubuntu 23.04
-anbox-cloud-appliance                         latest           Anbox Cloud Appliance
-charm-dev                                     latest           A development and testing environment for charmers
-docker                                        0.4              A Docker environment with Portainer and related tools
-jellyfin                                      latest           Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media.
-minikube                                      latest           minikube is local Kubernetes
+Image                       Aliases              Version          Description
+22.04                       jammy                20260515         Ubuntu 22.04 LTS
+24.04                       noble                20260518         Ubuntu 24.04 LTS
+25.10                       questing             20260520         Ubuntu 25.10
+26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
+core:core16                                      current          Ubuntu Core 16
+core:core18                                      current          Ubuntu Core 18
+core:core20                                      current          Ubuntu Core 20
+core:core22                                      current          Ubuntu Core 22
+core:core24                                      current          Ubuntu Core 24
+core:core26                                      current          Ubuntu Core 26
+debian                      trixie               20260601         Debian Trixie
+fedora                                           20260422         Fedora 44
 ```
 
 Launch an instance running Ubuntu 22.10 ("Kinetic Kudu") by typing the `multipass launch kinetic` command.
@@ -595,7 +589,6 @@ You've now seen a few ways to create, customise, and delete an instance. It is t
 Let's see some practical examples of what you can do with your Multipass instances:
 
 * {ref}`run-a-simple-web-server`
-* {ref}`launch-from-a-blueprint-to-run-docker-containers`
 
 (run-a-simple-web-server)=
 ### Run a simple web server
@@ -663,219 +656,6 @@ Open a browser and type in the IP address of your instance into the address bar.
 Just like that, you've got a web server running in a Multipass instance!
 
 You can use this web server locally for any kind of local development or testing. However, if you want to access this web server from the internet (for instance, a different computer), you need an instance that is exposed to the external network.
-
-(launch-from-a-blueprint-to-run-docker-containers)=
-### Launch from a Blueprint to run Docker containers (deprecated)
-```{Warning}
-Blueprints are deprecated and will be removed in a future release. You can achieve similar effects with cloud-init and other launch options.
-```
-Some environments require a lot of configuration and setup. Multipass Blueprints are instances with a deep level of customisation. For example, the Docker Blueprint is a pre-configured Docker environment with a Portainer container already running.
-
-You can launch an instance using the Docker Blueprint by running `multipass launch docker --name docker-dev`.
-
-Once that's done, run `multipass info docker-dev` to note down the IP of the new instance.
-
-`````{tab-set}
-
-````{tab-item} Linux
-:sync: Linux
-
-```{code-block} text
-$ multipass launch docker --name docker-dev
-Launched: docker-dev
-$ multipass info docker-dev
-Name:           docker-dev
-State:          Running
-IPv4:           10.115.5.235
-                172.17.0.1
-Release:        Ubuntu 22.04.1 LTS
-Image hash:     3100a27357a0 (Ubuntu 22.04 LTS)
-CPU(s):         2
-Load:           1.50 2.21 1.36
-Disk usage:     2.6GiB out of 38.6GiB
-Memory usage:   259.7MiB out of 3.8GiB
-Mounts:         --
-```
-
-Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
-
-```{figure} /images/tutorial/mp-linux-5.png
-   :width: 720px
-   :alt: Portainer login page
-```
-
-<!-- Original image on the Asset Manager
-![|720x543](https://assets.ubuntu.com/v1/75a164a1-mp-linux-5.png)
--->
-
-From there, select **Local** to manage a local Docker environment.
-
-```{figure} /images/tutorial/mp-linux-6.png
-   :width: 720px
-   :alt: Portainer - Select "Local"
-```
-
-<!-- Original image on the Asset Manager
-![|720x601](https://assets.ubuntu.com/v1/ee3ff308-mp-linux-6.png)
--->
-
-Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **App Templates**, then select **NGINX**.
-
-```{figure} /images/tutorial/mp-linux-7.png
-   :width: 720px
-   :alt: Portainer - Select "App templates"
-```
-
-<!-- Original image on the Asset Manager
-![|720x460](https://assets.ubuntu.com/v1/86be3eae-mp-linux-7.png)
--->
-
-From the Portainer dashboard, you can see the ports available on nginx. To verify that you have nginx running in a Docker container inside Multipass, open a new web page and paste the IP address of your instance followed by one of the port numbers.
-
-```{figure} /images/tutorial/mp-linux-8.png
-   :width: 720px
-   :alt: Welcome to nginx!
-```
-
-<!-- Original image on the Asset Manager
-![|720x465](https://assets.ubuntu.com/v1/25585a03-mp-linux-8.png)
--->
-
-````
-
-````{tab-item} macOS
-:sync: macOS
-
-```{code-block} text
-$ multipass launch docker --name docker-dev
-Launched: docker-dev
-$ multipass info docker-dev
-Name:           docker-dev
-State:          Running
-IPv4:           10.115.5.235
-                172.17.0.1
-Release:        Ubuntu 22.04.1 LTS
-Image hash:     3100a27357a0 (Ubuntu 22.04 LTS)
-CPU(s):         2
-Load:           1.40 0.64 0.25
-Disk usage:     2.5GiB out of 38.6GiB
-Memory usage:   236.4MiB out of 3.8GiB
-Mounts:         --
-```
-
-Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
-
-```{figure} /images/tutorial/mp-macos-6.png
-   :width: 720px
-   :alt: Portainer login page
-```
-
-<!-- Original image on the Asset Manager
-![|720x543](https://assets.ubuntu.com/v1/75a164a1-mp-macos-6.png)
--->
-
-From there, select **Local** to manage a local Docker environment.
-
-```{figure} /images/tutorial/mp-macos-7.png
-   :width: 720px
-   :alt: Portainer - Select "Local"
-```
-
-<!-- Original image on the Asset Manager
-![|720x601](https://assets.ubuntu.com/v1/ee3ff308-mp-macos-7.png)
--->
-
-Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **App Templates**, then select **NGINX**.
-
-```{figure} /images/tutorial/mp-macos-8.png
-   :width: 720px
-   :alt: Portainer - Select "App Templates"
-```
-
-<!-- Original image on the Asset Manager
-![|720x460](https://assets.ubuntu.com/v1/86be3eae-mp-macos-8.png)
--->
-
-From the Portainer dashboard, you can see the ports available on nginx. To verify that you have nginx running in a Docker container inside Multipass, open a new web page and paste the IP address of your instance followed by one of the port numbers.
-
-```{figure} /images/tutorial/mp-macos-9.png
-   :width: 720px
-   :alt: Welcome to nginx!
-```
-
-<!-- Original image on the Asset Manager
-![|720x465](https://assets.ubuntu.com/v1/25585a03-mp-macos-9.png)
--->
-
-````
-
-````{tab-item} Windows
-:sync: Windows
-
-```{code-block} text
-C:\WINDOWS\system32> multipass launch docker --name docker-dev
-Launched: docker-dev
-C:\WINDOWS\system32> multipass info docker-dev
-Name:           docker-dev
-State:          Running
-IPv4:           10.115.5.235
-                172.17.0.1
-Release:        Ubuntu 22.04.1 LTS
-Image hash:     3100a27357a0 (Ubuntu 22.04 LTS)
-CPU(s):         2
-Load:           0.04 0.17 0.09
-Disk usage:     2.5GiB out of 38.6GiB
-Memory usage:   283.3MiB out of 3.8GiB
-Mounts:         --
-```
-
-Copy the IP address starting with "10" and paste it into your browser, then add a colon and the Portainer default port, 9000. It should look like this: 10.115.5.235:9000. This will take you to the Portainer login page where you can set a username and password.
-
-```{figure} /images/tutorial/mp-windows-14.png
-   :width: 720px
-   :alt: Portainer login page
-```
-
-<!-- Original image on the Asset Manager
-![|720x601](https://assets.ubuntu.com/v1/75a164a1-mp-windows-14.png)
--->
-
-From there, select **Local** to manage a local Docker environment.
-
-```{figure} /images/tutorial/mp-windows-15.png
-   :width: 720px
-   :alt: Portainer - Select "Local"
-```
-
-<!-- Original image on the Asset Manager
-![|720x460](https://assets.ubuntu.com/v1/ee3ff308-mp-windows-15.png)
--->
-
-Inside the newly selected local Docker environment, locate the sidebar menu on the page and click on **App Templates**, then select **NGINX**.
-
-```{figure} /images/tutorial/mp-windows-16.png
-   :width: 720px
-   :alt: Portainer - Select "App templates"
-```
-
-<!-- Original image on the Asset Manager
-![](https://assets.ubuntu.com/v1/86be3eae-mp-windows-16.png)
--->
-
-From the Portainer dashboard, you can see the ports available on nginx. To verify that you have nginx running in a Docker container inside Multipass, open a new web page and paste the IP address of your instance followed by one of the port numbers.
-
-```{figure} /images/tutorial/mp-windows-17.png
-   :width: 720px
-   :alt: Welcome to nginx!
-```
-
-<!-- Original image on the Asset Manager
-![|720x465](https://assets.ubuntu.com/v1/f0b28200-mp-windows-17.png)
--->
-
-````
-
-`````
 
 ## Next steps
 

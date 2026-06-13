@@ -37,19 +37,19 @@ Memory usage:   71.6M out of 985.4M
 To find out which images are available, run `multipass find`. Here's a sample output:
 
 ```{code-block} text
-Image                       Aliases           Version          Description
-20.04                       focal             20240821         Ubuntu 20.04 LTS
-22.04                       jammy             20240912         Ubuntu 22.04 LTS
-24.04                       noble,lts         20240911         Ubuntu 24.04 LTS
-
-Blueprint                   Aliases           Version          Description
-anbox-cloud-appliance                         latest           Anbox Cloud Appliance
-charm-dev                                     latest           A development and testing environment for charmers
-docker                                        0.4              A Docker environment with Portainer and related tools
-jellyfin                                      latest           Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media.
-minikube                                      latest           minikube is local Kubernetes
-ros-noetic                                    0.1              A development and testing environment for ROS Noetic.
-ros2-humble                                   0.1              A development and testing environment for ROS 2 Humble.
+Image                       Aliases              Version          Description
+22.04                       jammy                20260515         Ubuntu 22.04 LTS
+24.04                       noble                20260518         Ubuntu 24.04 LTS
+25.10                       questing             20260520         Ubuntu 25.10
+26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
+core:core16                                      current          Ubuntu Core 16
+core:core18                                      current          Ubuntu Core 18
+core:core20                                      current          Ubuntu Core 20
+core:core22                                      current          Ubuntu Core 22
+core:core24                                      current          Ubuntu Core 24
+core:core26                                      current          Ubuntu Core 26
+debian                      trixie               20260601         Debian Trixie
+fedora                                           20260422         Fedora 44
 ```
 
 To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch jammy`:
