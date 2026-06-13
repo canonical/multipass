@@ -91,15 +91,18 @@ class WindowsAutostartNotifier extends AutostartNotifier {
 
   void _createShortcut(String path, String linkPath) {
     final shellLink = createInstance<IShellLink>(ShellLink);
+    final persistFile = IPersistFile.from(shellLink);
     final pathPcwstr = path.toPcwstr();
     final linkPathPcwstr = linkPath.toPcwstr();
 
     try {
       shellLink.setPath(pathPcwstr);
-      IPersistFile.from(shellLink).save(linkPathPcwstr, true);
+      persistFile.save(linkPathPcwstr, true);
     } finally {
       free(pathPcwstr);
       free(linkPathPcwstr);
+      persistFile.release();
+      shellLink.release();
     }
   }
 }
