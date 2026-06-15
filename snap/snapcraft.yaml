@@ -339,7 +339,7 @@ parts:
     stage-packages:
     - ipxe-qemu
     - on amd64: [ovmf]
-    - on arm64: [qemu-efi]
+    - on arm64: [qemu-efi-aarch64]
     organize:
       usr/share/ovmf/*: qemu/
       usr/lib/ipxe/qemu/*: qemu/
