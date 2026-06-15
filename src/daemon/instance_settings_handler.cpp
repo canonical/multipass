@@ -162,7 +162,7 @@ void update_mem(const QString& key,
     }
 }
 
-mp::Qualified<void> update_disk(const QString& key,
+mp::Annotated<void> update_disk(const QString& key,
                                 const QString& val,
                                 mp::VirtualMachine& instance,
                                 mp::VMSpecs& spec,
@@ -256,7 +256,7 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
 }
 
-mp::Qualified<void> mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
+mp::Annotated<void> mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
 {
     auto [instance_name, property] = parse_key(key);
 

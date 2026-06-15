@@ -196,7 +196,7 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     throw mp::UnrecognizedSettingException{key};
 }
 
-mp::Qualified<void> mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
+mp::Annotated<void> mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
 {
     if (key.startsWith(key_prefix))
     {

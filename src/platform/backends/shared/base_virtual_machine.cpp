@@ -386,7 +386,7 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
-mp::Qualified<void> mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size)
+mp::Annotated<void> mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size)
 {
     resize_disk_impl(new_size);
     if (is_core())
