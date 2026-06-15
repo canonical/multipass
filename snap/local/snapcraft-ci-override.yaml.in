@@ -12,9 +12,9 @@ parts:
       EOF
 
       cat <<EOF > /etc/apt/sources.list
-      deb mirror+file:/etc/apt/apt-mirrors.txt jammy main restricted universe multiverse
-      deb mirror+file:/etc/apt/apt-mirrors.txt jammy-updates main restricted universe multiverse
-      deb mirror+file:/etc/apt/apt-mirrors.txt jammy-security main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble-updates main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble-security main restricted universe multiverse
       EOF
 
       apt-get update
