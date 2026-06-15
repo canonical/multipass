@@ -244,8 +244,8 @@ jobs:
         storage-class: ONEZONE_IA
       timeout-minutes: 5
 
-    # Put the package's PDB's on S3
-    - name: Publish debug symbols (PDB) on S3
+    # Put the package PDBs on S3
+    - name: Publish debug symbols (PDBs) on S3
       id: s3-upload-pdbs
       uses: canonical/actions/s3-upload@release
       if: ${{ env.AWS_ACCESS_KEY_ID }}
