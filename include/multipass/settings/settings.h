@@ -19,8 +19,8 @@
 
 #include "settings_handler.h"
 
-#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/annotated_value.h>
+#include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/singleton.h>
 
 #include <QString>
@@ -65,6 +65,7 @@ public:
      * @param key The key identifying the setting to modify.
      * @param val A string representation of the value to assign to the setting. The actual value is
      * derived according to the corresponding SettingsHandler's interpretation.
+     * @return An Annotated<void> containing messages, cannot be discarded
      * @throws UnrecognizedSettingException When @c key does not identify a setting that any
      * registered handler recognizes.
      * @throws InvalidSettingException When @c val does not represent a valid value for the setting
