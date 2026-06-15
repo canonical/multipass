@@ -172,12 +172,13 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, createVirtualMachine)
 {
     mp::VirtualMachineDescription desc;
     desc.vm_name = "test-vm";
+    desc.zone = "zone1";
 
     EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_, _))
         .WillRepeatedly(ReturnArg<0>());
 
-    EXPECT_CALL(mock_applevz, create_vm(_, _))
-        .WillOnce(DoAll(SetArgReferee<1>(mock_handle), Return(mp::applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, create_vm(_, _, _))
+        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(mp::applevz::CFError{})));
 
     EXPECT_CALL(mock_applevz, get_state(_))
         .WillRepeatedly(Return(mp::applevz::AppleVMState::stopped));
@@ -213,16 +214,21 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, cloneCopiesRelevantFiles)
         std::ofstream(src_vm_dir / file);
     }
 
-    EXPECT_CALL(mock_applevz, create_vm(_, _))
-        .WillOnce(DoAll(SetArgReferee<1>(mock_handle), Return(mp::applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, create_vm(_, _, _))
+        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(mp::applevz::CFError{})));
     EXPECT_CALL(mock_applevz, get_state(_))
         .WillRepeatedly(Return(mp::applevz::AppleVMState::stopped));
     EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_, _))
         .WillRepeatedly(ReturnArg<0>());
     EXPECT_CALL(mock_applevz_utils, resize_image(_, _)).WillRepeatedly(Return());
 
-    EXPECT_TRUE(
-        uut->clone_bare_vm({}, {}, src_vm_name, dest_vm_name, {}, stub_key_provider, stub_monitor));
+    EXPECT_TRUE(uut->clone_bare_vm({},
+                                   {.zone = "zone1"},
+                                   src_vm_name,
+                                   dest_vm_name,
+                                   {},
+                                   stub_key_provider,
+                                   stub_monitor));
 
     std::unordered_set<std::string> actual_files;
     for (const auto& file : fs::directory_iterator(dest_vm_dir))

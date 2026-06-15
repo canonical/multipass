@@ -81,8 +81,8 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
 
     auto construct_vm(applevz::AppleVMState initial_state = applevz::AppleVMState::stopped)
     {
-        EXPECT_CALL(mock_applevz, create_vm(_, _))
-            .WillOnce(DoAll(SetArgReferee<1>(mock_handle), Return(applevz::CFError{})));
+        EXPECT_CALL(mock_applevz, create_vm(_, _, _))
+            .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
 
         EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(initial_state));
         EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, _)).Times(AnyNumber());

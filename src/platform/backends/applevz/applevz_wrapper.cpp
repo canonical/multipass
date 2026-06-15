@@ -20,9 +20,11 @@
 
 namespace multipass::applevz
 {
-CFError AppleVZ::create_vm(const VirtualMachineDescription& desc, VMHandle& out_handle) const
+CFError AppleVZ::create_vm(const VirtualMachineDescription& desc,
+                           const multipass::AvailabilityZone& zone,
+                           VMHandle& out_handle) const
 {
-    return init_with_configuration(desc, out_handle);
+    return init_with_configuration(desc, zone, out_handle);
 }
 
 CFError AppleVZ::start_vm(const VMHandle& vm_handle) const
