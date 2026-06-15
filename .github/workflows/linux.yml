@@ -406,24 +406,27 @@ jobs:
 
     timeout-minutes: 15
     steps:
-    - name: Download the built snap
+    - name: Download the built snaps
       uses: actions/download-artifact@v8
       with:
-        name: ${{ needs.BuildAndTest.outputs.snap-file }}
+        pattern: '*.snap'
+        merge-multiple: true
 
     - name: Install Snapcraft and log in
       uses: samuelmeuli/action-snapcraft@v3
 
-    - name: Publish the snap
+    - name: Publish the snaps
       env:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       run: |
-        snapcraft upload *.snap --release ${{ needs.BuildAndTest.outputs.channel }}
+        for snap in *.snap; do
+          snapcraft upload "$snap" --release ${{ needs.BuildAndTest.outputs.channel }}
+        done
 
     - name: Delete unused artifacts from github
       uses: geekyeggo/delete-artifact@v6
       with:
-        name: ${{ needs.BuildAndTest.outputs.snap-file }}
+        name: '*.snap'
         failOnError: false
 
   Report-Workflow-Failure:
