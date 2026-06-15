@@ -18,7 +18,6 @@
 #include "virtualbox_virtual_machine.h"
 #include "virtualbox_snapshot.h"
 
-#include <multipass/annotated_value.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>

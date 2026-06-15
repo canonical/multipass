@@ -17,9 +17,9 @@
 
 #pragma once
 
+#include "annotated_value.h"
 #include "disabled_copy_move.h"
 #include "network_interface.h"
-#include "annotated_value.h"
 
 #include <QDir>
 #include <fmt/format.h>
