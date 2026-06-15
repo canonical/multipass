@@ -71,7 +71,7 @@ public:
 
     MOCK_METHOD(std::set<QString>, keys, (), (const, override));
     MOCK_METHOD(QString, get, (const QString&), (const, override));
-    MOCK_METHOD(mp::Qualified<void>, set, (const QString& key, const QString& val), (override));
+    MOCK_METHOD(mp::Annotated<void>, set, (const QString& key, const QString& val), (override));
 };
 
 TEST_F(TestSettings, keysReturnsNoKeysWhenNoHandler)
@@ -408,7 +408,7 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
         if (i == thrower_idx)
             expectation.WillOnce(WithoutArgs([&thrower, e = &except] {
                 std::visit(thrower, *e);
-                return mp::Qualified<void>{};
+                return mp::Annotated<void>{};
             })); /* lambda capture
 with initializer works around forbidden capture of structured binding */
         else if (i > thrower_idx)

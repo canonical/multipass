@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/qualified_return_value.h>
+#include <multipass/annotated_value.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/settings/settings_handler.h>
 #include <multipass/terminal.h>
@@ -36,7 +36,7 @@ public:
                           int verbosity);
 
     QString get(const QString& key) const override;
-    Qualified<void> set(const QString& key, const QString& val) override;
+    Annotated<void> set(const QString& key, const QString& val) override;
     std::set<QString> keys() const override;
 
 public: // accessors for tests

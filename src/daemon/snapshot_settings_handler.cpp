@@ -123,7 +123,7 @@ QString mp::SnapshotSettingsHandler::get(const QString& key) const
     return QString::fromStdString(snapshot->get_comment());
 }
 
-mp::Qualified<void> mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
+mp::Annotated<void> mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
 {
     auto [instance_name, snapshot_name, property] = parse_key(key);
     auto snapshot_name_stdstr = snapshot_name.toStdString();

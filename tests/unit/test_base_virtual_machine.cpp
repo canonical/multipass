@@ -1608,7 +1608,7 @@ TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
 
     StubBaseVirtualMachine vm{St::off, zone, std::make_unique<mpt::TempDir>(), desc};
     auto qualified_return = vm.resize_disk(mp::MemorySize{});
-    auto expected_return = mp::Qualified<void>{};
+    auto expected_return = mp::Annotated<void>{};
     expected_return.add_message(vm.core_image_disk_resize_message());
     EXPECT_TRUE(std::equal(qualified_return.get_messages().begin(),
                            qualified_return.get_messages().end(),

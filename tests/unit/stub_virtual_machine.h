@@ -129,7 +129,7 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    Qualified<void> resize_disk(const MemorySize&) override
+    Annotated<void> resize_disk(const MemorySize&) override
     {
         return {};
     }

@@ -1956,7 +1956,7 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
     auto thrower = [](const auto& e) { throw e; };
     EXPECT_CALL(mock_settings, set).WillOnce(WithoutArgs([&thrower, e = &exception] {
         std::visit(thrower, *e);
-        return mp::Qualified<void>{};
+        return mp::Annotated<void>{};
     })); /*
 lambda capture with initializer works around forbidden capture of structured binding */
 
@@ -2011,7 +2011,7 @@ TEST_F(Daemon, setWorksIfUserAuthorizes)
 
     EXPECT_CALL(mock_settings, set)
         .WillOnce(Throw(exception))
-        .WillOnce(Return(mp::Qualified<void>{}));
+        .WillOnce(Return(mp::Annotated<void>{}));
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
 

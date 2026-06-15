@@ -39,7 +39,8 @@ namespace multipass
 
 template <typename T>
 // The payload should never be a reference, and no move constructor will fail compilation
-concept Qualifiable = std::is_void_v<T> || (std::move_constructible<T> && !std::is_reference_v<T>);
+concept CanBeAnnotated =
+    std::is_void_v<T> || (std::move_constructible<T> && !std::is_reference_v<T>);
 
 class MessageBag
 {
@@ -99,39 +100,41 @@ private:
     }
 
     // To allow usage of merge()
-    template <Qualifiable T>
-    friend class Qualified;
+    template <typename T>
+        requires CanBeAnnotated<T>
+    friend class Annotated;
 };
 
-template <Qualifiable T>
-class [[nodiscard("You must collect() the value or bind it to retrieve the MessageBag")]] Qualified
+template <typename T>
+    requires CanBeAnnotated<T>
+class [[nodiscard("You must collect() the value or bind it to retrieve the MessageBag")]] Annotated
 {
 public:
-    Qualified(T value, MessageBag messages)
+    Annotated(T value, MessageBag messages)
         : _value{std::move(value)}, _messages{std::move(messages)}
     {
     }
 
-    template <Qualifiable U>
-    Qualified(T value, Qualified<U>&& qualified_return) : _value{std::move(value)}
+    template <CanBeAnnotated U>
+    Annotated(T value, Annotated<U>&& qualified_return) : _value{std::move(value)}
     {
         _messages.merge(std::move(qualified_return._messages));
     }
 
     template <std::convertible_to<std::string>... Mesgs>
-    Qualified(T value, Mesgs&&... messages) : _value{std::move(value)}
+    Annotated(T value, Mesgs&&... messages) : _value{std::move(value)}
     {
         ((_messages.add_message(std::forward<Mesgs>(messages))), ...);
     }
 
-    ~Qualified() = default;
+    ~Annotated() = default;
 
     // Disable copy constructors to avoid string copies
-    Qualified(const Qualified&) = delete;
-    Qualified& operator=(const Qualified&) = delete;
+    Annotated(const Annotated&) = delete;
+    Annotated& operator=(const Annotated&) = delete;
 
-    Qualified(Qualified&&) = default;
-    Qualified& operator=(Qualified&&) = default;
+    Annotated(Annotated&&) = default;
+    Annotated& operator=(Annotated&&) = default;
 
     const auto& get_messages() const
     {
@@ -169,38 +172,39 @@ public:
 
 private:
     // To allow message merge in the cross-type constructor
-    template <Qualifiable U>
-    friend class Qualified;
+    template <typename U>
+        requires CanBeAnnotated<T>
+    friend class Annotated;
 
     T _value;
     MessageBag _messages;
 };
 
 template <>
-class [[nodiscard("You must collect() or bind the returned MessageBag")]] Qualified<void>
+class [[nodiscard("You must collect() or bind the returned MessageBag")]] Annotated<void>
 {
 public:
-    Qualified() = default;
-    Qualified(MessageBag messages) : _messages{std::move(messages)}
+    Annotated() = default;
+    Annotated(MessageBag messages) : _messages{std::move(messages)}
     {
     }
-    template <Qualifiable U>
-    Qualified(Qualified<U>&& qualified_return)
+    template <CanBeAnnotated U>
+    Annotated(Annotated<U>&& qualified_return)
     {
         _messages.merge(std::move(qualified_return._messages));
     }
     template <std::convertible_to<std::string>... Mesgs>
-    Qualified(Mesgs&&... messages)
+    Annotated(Mesgs&&... messages)
     {
         ((_messages.add_message(std::forward<Mesgs>(messages))), ...);
     }
-    ~Qualified() = default;
+    ~Annotated() = default;
 
-    Qualified(const Qualified&) = delete;
-    Qualified& operator=(const Qualified&) = delete;
+    Annotated(const Annotated&) = delete;
+    Annotated& operator=(const Annotated&) = delete;
 
-    Qualified(Qualified&&) = default;
-    Qualified& operator=(Qualified&&) = default;
+    Annotated(Annotated&&) = default;
+    Annotated& operator=(Annotated&&) = default;
 
     const auto& get_messages() const
     {
@@ -232,8 +236,9 @@ public:
     decltype(auto) get() const& = delete;
 
 private:
-    template <Qualifiable U>
-    friend class Qualified;
+    template <typename U>
+        requires CanBeAnnotated<U>
+    friend class Annotated;
 
     MessageBag _messages;
 };
@@ -255,30 +260,30 @@ void send_messages(grpc::ServerReaderWriterInterface<Reply, Request>* server,
 namespace std
 {
 // Necessary to allow structured bindings
-template <multipass::Qualifiable T>
-struct tuple_size<multipass::Qualified<T>> : std::integral_constant<std::size_t, 2>
+template <multipass::CanBeAnnotated T>
+struct tuple_size<multipass::Annotated<T>> : std::integral_constant<std::size_t, 2>
 {
 };
 
-template <multipass::Qualifiable T>
-struct tuple_element<0, multipass::Qualified<T>>
+template <multipass::CanBeAnnotated T>
+struct tuple_element<0, multipass::Annotated<T>>
 {
     using type = T;
 };
 
-template <multipass::Qualifiable T>
-struct tuple_element<1, multipass::Qualified<T>>
+template <multipass::CanBeAnnotated T>
+struct tuple_element<1, multipass::Annotated<T>>
 {
     using type = multipass::MessageBag;
 };
 
 template <>
-struct tuple_size<multipass::Qualified<void>> : std::integral_constant<std::size_t, 1>
+struct tuple_size<multipass::Annotated<void>> : std::integral_constant<std::size_t, 1>
 {
 };
 
 template <>
-struct tuple_element<0, multipass::Qualified<void>>
+struct tuple_element<0, multipass::Annotated<void>>
 {
     using type = multipass::MessageBag;
 };

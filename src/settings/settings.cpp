@@ -89,7 +89,7 @@ QString mp::Settings::get(const QString& key) const
     throw UnrecognizedSettingException{key};
 }
 
-mp::Qualified<void> mp::Settings::set(const QString& key, const QString& val)
+mp::Annotated<void> mp::Settings::set(const QString& key, const QString& val)
 {
     auto success = false;
     MessageBag bag{};
