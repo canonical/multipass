@@ -123,74 +123,52 @@ void main() {
       expect(fakeClient.calls.first.names, contains(vmName));
     });
 
-    testWidgets('Stop is enabled for a RUNNING vm', (tester) async {
-      suppressOverflowErrors();
-      await tester.pumpWidget(buildApp(vmStatus: Status.RUNNING));
-      await tester.pump();
-      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
-      await tester.pumpAndSettle();
-      final tile = tester.widget<ListTile>(find.ancestor(
-          of: find.text(_l10n.vmActionLabel('stop')),
-          matching: find.byType(ListTile)));
-      expect(tile.enabled, isTrue);
-    });
-
-    testWidgets('Stop is disabled for a STOPPED vm', (tester) async {
-      suppressOverflowErrors();
-      await tester.pumpWidget(buildApp(vmStatus: Status.STOPPED));
-      await tester.pump();
-      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
-      await tester.pumpAndSettle();
-      final tile = tester.widget<ListTile>(find.ancestor(
-          of: find.text(_l10n.vmActionLabel('stop')),
-          matching: find.byType(ListTile)));
-      expect(tile.enabled, isFalse);
-    });
-
     ListTile findTile(WidgetTester tester, String label) =>
         tester.widget<ListTile>(find.ancestor(
             of: find.text(label), matching: find.byType(ListTile)));
 
-    testWidgets('action enabled states are correct for a RUNNING vm',
-        (tester) async {
-      suppressOverflowErrors();
-      await tester.pumpWidget(buildApp(vmStatus: Status.RUNNING));
-      await tester.pump();
-      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
-      await tester.pumpAndSettle();
+    const actionEnabledCases = [
+      (
+        status: Status.RUNNING,
+        start: false,
+        stop: true,
+        suspend: true,
+        delete: true,
+      ),
+      (
+        status: Status.STOPPED,
+        start: true,
+        stop: false,
+        suspend: false,
+        delete: true,
+      ),
+      (
+        status: Status.SUSPENDED,
+        start: true,
+        stop: false,
+        suspend: false,
+        delete: true,
+      ),
+    ];
 
-      expect(findTile(tester, _l10n.vmActionLabel('start')).enabled, isFalse);
-      expect(findTile(tester, _l10n.vmActionLabel('stop')).enabled, isTrue);
-      expect(findTile(tester, _l10n.vmActionLabel('suspend')).enabled, isTrue);
-      expect(findTile(tester, _l10n.vmActionLabel('delete')).enabled, isTrue);
-    });
+    for (final tc in actionEnabledCases) {
+      testWidgets(
+          'action enabled states are correct for a ${tc.status.name} vm',
+          (tester) async {
+        suppressOverflowErrors();
+        await tester.pumpWidget(buildApp(vmStatus: tc.status));
+        await tester.pump();
+        await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
+        await tester.pumpAndSettle();
 
-    testWidgets('action enabled states are correct for a STOPPED vm',
-        (tester) async {
-      suppressOverflowErrors();
-      await tester.pumpWidget(buildApp(vmStatus: Status.STOPPED));
-      await tester.pump();
-      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
-      await tester.pumpAndSettle();
-
-      expect(findTile(tester, _l10n.vmActionLabel('start')).enabled, isTrue);
-      expect(findTile(tester, _l10n.vmActionLabel('stop')).enabled, isFalse);
-      expect(findTile(tester, _l10n.vmActionLabel('suspend')).enabled, isFalse);
-      expect(findTile(tester, _l10n.vmActionLabel('delete')).enabled, isTrue);
-    });
-
-    testWidgets('action enabled states are correct for a SUSPENDED vm',
-        (tester) async {
-      suppressOverflowErrors();
-      await tester.pumpWidget(buildApp(vmStatus: Status.SUSPENDED));
-      await tester.pump();
-      await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
-      await tester.pumpAndSettle();
-
-      expect(findTile(tester, _l10n.vmActionLabel('start')).enabled, isTrue);
-      expect(findTile(tester, _l10n.vmActionLabel('stop')).enabled, isFalse);
-      expect(findTile(tester, _l10n.vmActionLabel('suspend')).enabled, isFalse);
-      expect(findTile(tester, _l10n.vmActionLabel('delete')).enabled, isTrue);
-    });
+        expect(
+            findTile(tester, _l10n.vmActionLabel('start')).enabled, tc.start);
+        expect(findTile(tester, _l10n.vmActionLabel('stop')).enabled, tc.stop);
+        expect(findTile(tester, _l10n.vmActionLabel('suspend')).enabled,
+            tc.suspend);
+        expect(
+            findTile(tester, _l10n.vmActionLabel('delete')).enabled, tc.delete);
+      });
+    }
   });
 }
