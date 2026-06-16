@@ -2700,7 +2700,7 @@ TEST_F(SftpServer, handlesSetstat)
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
 
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(-1));
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*platform, stat_attr_from(_, _))
         .WillOnce([](const char*, sftp_attributes_struct& attr) {
             attr.uid = default_uid;
