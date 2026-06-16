@@ -26,6 +26,9 @@
 
 #include <QDir>
 
+#include <cerrno>
+#include <cstring>
+#include <stdexcept>
 #include <string>
 
 namespace mp = multipass;
@@ -125,10 +128,18 @@ void mp::PlainSSHSession::force_shutdown()
 {
     if (session)
     {
-        auto socket = ssh_get_fd(session.get());
-
-        const int shutdown_read_and_writes = 2;
-        shutdown(socket, shutdown_read_and_writes);
+        if (auto socket = ssh_get_fd(session.get()); socket != -1)
+        {
+            const int shutdown_read_and_writes = 2;
+            if (shutdown(socket, shutdown_read_and_writes) == -1)
+            {
+                if (errno == ENOTCONN)
+                    mpl::trace("ssh session", "socket already disconnected on shutdown");
+                else
+                    throw std::runtime_error(fmt::format("Failed to shutdown SSHSession socket: {}",
+                                                         std::strerror(errno)));
+            }
+        }
     }
 }
 
