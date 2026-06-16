@@ -1154,21 +1154,6 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 
     const auto& [path, fd] = *handle;
 
-    sftp_attributes_struct attr{};
-
-    if (MP_PLATFORM.fstat_attr_from(fd, attr) != 0)
-    {
-        mpl::trace_location(category, "cannot fstat '{}': {}", path.string(), std::strerror(errno));
-        return reply_failure(msg);
-    }
-    if (!has_id_mappings_for(attr))
-    {
-        mpl::trace_location(category,
-                            "cannot access path \'{}\' without id mapping: permission denied",
-                            path.string());
-        return reply_perm_denied(msg);
-    }
-
     if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
     {
         if (MP_PLATFORM.ftruncate(fd, msg->attr->size) != 0)
