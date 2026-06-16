@@ -76,8 +76,6 @@
 #include <sys/stat.h>
 // clang-format on
 #include <windows.h>
-#include <winbase.h>
-#include <winioctl.h>
 #include <winternl.h>
 
 #include <algorithm>
