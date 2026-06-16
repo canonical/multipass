@@ -117,6 +117,11 @@ struct SFTPClient : public testing::Test
     std::shared_ptr<testing::NiceMock<mpt::MockLogger>> mock_logger{mock_logger_scope.mock_logger};
     fs::path source_path{"source/path"};
     fs::path target_path{"target/path"};
+
+    void SetUp() override
+    {
+        EXPECT_CALL(*mock_logger, log(mpl::Level::trace, _, _)).Times(AnyNumber());
+    }
 };
 } // namespace
 
