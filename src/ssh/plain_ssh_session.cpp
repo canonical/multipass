@@ -126,19 +126,22 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
 
 void mp::PlainSSHSession::force_shutdown()
 {
-    if (session)
+    // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
+    // with a lock acquired). Make it private instead. Provide public way to close the session
+    // (probably just the dtor - let callers delete and deal with null session)
+    if (!session)
+        return;
+
+    if (auto socket = ssh_get_fd(session.get()); socket != -1)
     {
-        if (auto socket = ssh_get_fd(session.get()); socket != -1)
+        const int shutdown_read_and_writes = 2;
+        if (shutdown(socket, shutdown_read_and_writes) == -1)
         {
-            const int shutdown_read_and_writes = 2;
-            if (shutdown(socket, shutdown_read_and_writes) == -1)
-            {
-                if (errno == ENOTCONN)
-                    mpl::trace("ssh session", "socket already disconnected on shutdown");
-                else
-                    throw std::runtime_error(fmt::format("Failed to shutdown SSHSession socket: {}",
-                                                         std::strerror(errno)));
-            }
+            if (errno == ENOTCONN)
+                mpl::trace("ssh session", "socket already disconnected on shutdown");
+            else
+                throw std::runtime_error(fmt::format("Failed to shutdown SSHSession socket: {}",
+                                                     std::strerror(errno)));
         }
     }
 }

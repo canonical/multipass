@@ -633,7 +633,7 @@ void mp::SftpServer::run()
 void mp::SftpServer::stop()
 {
     stop_invoked = true;
-    ssh_session->force_shutdown();
+    ssh_session->force_shutdown(); // TODO@sftp there should be a better way...
 }
 
 int mp::SftpServer::handle_close(sftp_client_message msg)

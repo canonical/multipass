@@ -64,7 +64,7 @@ public:
     [[nodiscard]] bool is_moved() const override;
 
     operator ssh_session() override;
-    void force_shutdown() override;
+    void force_shutdown() override; // TODO@sftp this should not be public
 
 private:
     PlainSSHSession(PlainSSHSession&&, std::unique_lock<std::mutex> lock);
