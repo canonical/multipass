@@ -32,9 +32,12 @@
 
 #include <gtest/gtest-death-test.h>
 
+#include <algorithm>
+#include <iterator>
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -59,7 +62,36 @@ void check_file_contents(QFile& checked_file, const std::string& checked_content
 
     ASSERT_EQ(checked_contents, actual_contents.toStdString());
 }
+
+void check_time_formatting(const std::string& time)
+{
+    std::istringstream ss{time};
+    std::vector<std::string> tokens{std::istream_iterator<std::string>(ss),
+                                    std::istream_iterator<std::string>{}};
+    EXPECT_EQ(tokens.size(), 4u);
+    EXPECT_EQ(tokens[0].size(), 3u);
+    EXPECT_EQ(tokens[2].size(), 8u); // 00:00:00
+    EXPECT_TRUE(std::all_of(tokens[2].begin(), tokens[2].end(), [](char c) {
+        return ::isdigit(c) || c == ':';
+    }));
+    EXPECT_EQ(tokens[3].size(), 4u);
+}
 } // namespace
+
+TEST(Utils, timeFormattingZeroIsValid)
+{
+    const std::string result = MP_UTILS.format_time_t(0);
+
+    check_time_formatting(result);
+}
+
+TEST(Utils, timeFormatting)
+{
+    const time_t time{std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())};
+    const std::string result = MP_UTILS.format_time_t(time);
+
+    check_time_formatting(result);
+}
 
 TEST(Utils, hostnameBeginsWithLetterIsValid)
 {
