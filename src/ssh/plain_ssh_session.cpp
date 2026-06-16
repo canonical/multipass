@@ -34,6 +34,11 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+namespace
+{
+constexpr auto category = "ssh session";
+}
+
 mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
                                      const std::string& username,
@@ -103,8 +108,8 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
 
 multipass::PlainSSHSession::~PlainSSHSession()
 {
-    mpl::trace("ssh session", "destroying SSH session");
-    mp::top_catch_all("ssh session", [this] { // TODO@ricab extract category
+    mpl::trace(category, "destroying SSH session");
+    mp::top_catch_all(category, [this] {
         std::unique_lock lock{mut};
         if (session)
         {
@@ -120,7 +125,7 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
     assert(!is_moved() && "precondition - cannot call exec on a moved session");
 
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
-    mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
+    mpl::log(lvl, category, "Executing '{}'", cmd);
 
     return std::make_unique<PlainSSHProcess>(session.get(), cmd, std::move(lock));
 }
@@ -139,7 +144,7 @@ void mp::PlainSSHSession::force_shutdown()
         if (shutdown(socket, shutdown_read_and_writes) == -1)
         {
             if (errno == ENOTCONN)
-                mpl::trace("ssh session", "socket already disconnected on shutdown");
+                mpl::trace(category, "socket already disconnected on shutdown");
             else
                 throw std::runtime_error(fmt::format("Failed to shutdown SSHSession socket: {}",
                                                      std::strerror(errno)));
