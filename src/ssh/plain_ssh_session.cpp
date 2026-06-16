@@ -22,6 +22,7 @@
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
+#include <multipass/top_catch_all.h>
 
 #include <QDir>
 
@@ -99,12 +100,14 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
 
 multipass::PlainSSHSession::~PlainSSHSession()
 {
-    std::unique_lock lock{mut};
-    if (session)
-    {
-        ssh_disconnect(session.get());
-        PlainSSHSession::force_shutdown(); // do we really need this?
-    }
+    mp::top_catch_all("ssh session", [this] { // TODO@ricab extract category
+        std::unique_lock lock{mut};
+        if (session)
+        {
+            ssh_disconnect(session.get());
+            PlainSSHSession::force_shutdown(); // close the socket if manually open outside libssh
+        }
+    });
 }
 
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
