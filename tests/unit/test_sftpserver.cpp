@@ -117,8 +117,7 @@ struct SftpServer : public mp::test::SftpServerTest
     void screen_logs_trace()
     {
         logger_scope.mock_logger->screen_logs(mpl::Level::trace);
-        EXPECT_CALL(*logger_scope.mock_logger,
-                    log(Eq(mpl::Level::trace), StrEq("ssh session"), _))
+        EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::trace), StrEq("ssh session"), _))
             .Times(testing::AnyNumber());
     }
 

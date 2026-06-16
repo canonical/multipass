@@ -147,8 +147,8 @@ void mp::PlainSSHSession::force_shutdown()
             if (errno == ENOTCONN)
                 mpl::trace(category, "socket already disconnected on shutdown");
             else
-                throw std::runtime_error(fmt::format("Failed to shutdown SSHSession socket: {}",
-                                                     std::strerror(errno)));
+                throw std::runtime_error(
+                    fmt::format("Failed to shutdown SSHSession socket: {}", std::strerror(errno)));
         }
     }
 }
