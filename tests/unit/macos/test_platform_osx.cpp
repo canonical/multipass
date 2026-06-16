@@ -395,4 +395,47 @@ TEST(PlatformOSX, removeAliasScriptThrowsIfCannotRemoveScript)
                          std::runtime_error,
                          mpt::match_what(StrEq("No such file or directory")));
 }
+
+TEST(PlatformOsx, linkDoesNotFollowSymlinks)
+{
+    mpt::TempDir temp_dir;
+
+    const auto real_file = temp_dir.path().toStdString() + "/real-file";
+    const auto symlink_path = temp_dir.path().toStdString() + "/symlink-to-real";
+    const auto hard_link_to_sym = temp_dir.path().toStdString() + "/hard-link-to-symlink";
+
+    mpt::make_file_with_content(QString::fromStdString(real_file), "content");
+    ASSERT_EQ(MP_PLATFORM.symlink(real_file.c_str(), symlink_path.c_str(), false), true);
+
+    ASSERT_TRUE(MP_PLATFORM.link(symlink_path.c_str(), hard_link_to_sym.c_str()));
+
+    struct stat st{};
+    ASSERT_EQ(::lstat(hard_link_to_sym.c_str(), &st), 0);
+
+    EXPECT_TRUE(S_ISLNK(st.st_mode));
+
+    struct stat st_sym{};
+    ASSERT_EQ(::lstat(symlink_path.c_str(), &st_sym), 0);
+    EXPECT_EQ(st.st_ino, st_sym.st_ino);
+}
+
+TEST(PlatformOsx, linkToRegularFileSucceeds)
+{
+    mpt::TempDir temp_dir;
+
+    const auto real_file = temp_dir.path().toStdString() + "/real-file";
+    const auto hard_link = temp_dir.path().toStdString() + "/hard-link";
+
+    mpt::make_file_with_content(QString::fromStdString(real_file), "content");
+
+    ASSERT_TRUE(MP_PLATFORM.link(real_file.c_str(), hard_link.c_str()))
+        << "MP_PLATFORM.link() on a regular file failed: " << strerror(errno);
+
+    // Both entries must share the same inode
+    struct stat st_orig{}, st_link{};
+    ASSERT_EQ(::stat(real_file.c_str(), &st_orig), 0);
+    ASSERT_EQ(::stat(hard_link.c_str(), &st_link), 0);
+    EXPECT_EQ(st_orig.st_ino, st_link.st_ino);
+    EXPECT_EQ(st_orig.st_nlink, 2u); // original file now has two hard links
+}
 } // namespace
