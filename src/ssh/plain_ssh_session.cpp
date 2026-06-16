@@ -108,11 +108,12 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
 
 multipass::PlainSSHSession::~PlainSSHSession()
 {
-    mpl::trace(category, "destroying SSH session");
-    mp::top_catch_all(category, [this] {
+    top_catch_all(category, [this] {
         std::unique_lock lock{mut};
         if (session)
         {
+            mpl::trace(category, "disconnecting SSH session");
+
             ssh_disconnect(session.get());
             PlainSSHSession::force_shutdown(); // close the socket if manually open outside libssh
         }
