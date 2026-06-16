@@ -45,6 +45,7 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <optional>
 #include <random>
 #include <regex>
