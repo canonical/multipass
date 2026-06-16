@@ -103,6 +103,7 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
 
 multipass::PlainSSHSession::~PlainSSHSession()
 {
+    mpl::trace("ssh session", "destroying SSH session");
     mp::top_catch_all("ssh session", [this] { // TODO@ricab extract category
         std::unique_lock lock{mut};
         if (session)
