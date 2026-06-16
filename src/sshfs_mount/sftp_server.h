@@ -66,7 +66,9 @@ private:
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
     bool has_id_mappings_for(const sftp_attributes_struct& file_info);
+    bool has_reverse_id_mappings_for(const sftp_attributes_struct& file_info);
     void convert_attr_ids(sftp_attributes_struct& attr);
+    void reverse_convert_attr_ids(sftp_attributes_struct& attr);
     bool validate_path(const fs::path& current_path, bool follows_symlinks) const;
     fs::path get_absolute_path(const char* path) const;
     std::optional<fs::path> get_validated_path(sftp_client_message msg) const;

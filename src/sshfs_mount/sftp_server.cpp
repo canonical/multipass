@@ -305,6 +305,12 @@ mp::SftpServer::~SftpServer()
     stop_invoked = true;
 }
 
+void mp::SftpServer::reverse_convert_attr_ids(sftp_attributes_struct& attr)
+{
+    attr.uid = reverse_uid_for(attr.uid, attr.uid);
+    attr.gid = reverse_gid_for(attr.gid, attr.gid);
+}
+
 void mp::SftpServer::convert_attr_ids(sftp_attributes_struct& attr)
 {
     attr.uid = mapped_uid_for(attr.uid);
@@ -362,6 +368,11 @@ inline bool mp::SftpServer::has_reverse_gid_mapping_for(const int gid)
 bool mp::SftpServer::has_id_mappings_for(const sftp_attributes_struct& file_attr)
 {
     return has_uid_mapping_for(file_attr.uid) && has_gid_mapping_for(file_attr.gid);
+}
+
+bool mp::SftpServer::has_reverse_id_mappings_for(const sftp_attributes_struct& file_attr)
+{
+    return has_reverse_uid_mapping_for(file_attr.uid) && has_reverse_gid_mapping_for(file_attr.gid);
 }
 
 bool mp::SftpServer::validate_path(const fs::path& current_path, bool check_file_itself) const
@@ -673,16 +684,15 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    int rev_uid = reverse_uid_for(parent_attr.uid, parent_attr.uid);
-    int rev_gid = reverse_gid_for(parent_attr.gid, parent_attr.gid);
+    reverse_convert_attr_ids(parent_attr);
 
-    if (MP_PLATFORM.chown(filename->string().c_str(), rev_uid, rev_gid) < 0)
+    if (MP_PLATFORM.chown(filename->string().c_str(), parent_attr.uid, parent_attr.gid) < 0)
     {
         mpl::trace(category,
                    "failed to chown '{}' to owner:{} and group:{}",
                    filename->string(),
-                   rev_uid,
-                   rev_gid);
+                   parent_attr.uid,
+                   parent_attr.gid);
         return reply_failure(msg);
     }
 
@@ -740,7 +750,9 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     bool exists{true};
     sftp_attributes_struct attr{};
-    exists = MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) == 0;
+    // The SFTP client will never send an open request without resolving symlinks, we assume full
+    // resolution. stat instead of lstat is more secure under this model
+    exists = MP_PLATFORM.stat_attr_from(filename->string().c_str(), attr) == 0;
     if (!exists)
     {
         // If it does not exist, we can continue, otherwise it is an error
@@ -808,16 +820,15 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     if (!exists)
     {
-        auto new_uid = reverse_uid_for(attr.uid, attr.uid);
-        auto new_gid = reverse_gid_for(attr.gid, attr.gid);
+        reverse_convert_attr_ids(attr);
 
-        if (MP_PLATFORM.fchown(named_fd->fd, new_uid, new_gid) < 0)
+        if (MP_PLATFORM.fchown(named_fd->fd, attr.uid, attr.gid) < 0)
         {
             mpl::trace(category,
                        "failed to chown '{}' to owner:{} and group:{}",
                        filename->string(),
-                       new_uid,
-                       new_gid);
+                       attr.uid,
+                       attr.gid);
             return reply_failure(msg);
         }
     }
@@ -1187,8 +1198,7 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        if (!has_reverse_uid_mapping_for(msg->attr->uid) &&
-            !has_reverse_gid_mapping_for(msg->attr->gid))
+        if (!has_reverse_id_mappings_for(*msg->attr))
         {
             mpl::trace_location(category,
                                 "cannot set ownership for \'{}\' without id mapping",
@@ -1196,9 +1206,9 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (MP_PLATFORM.fchown(fd,
-                               reverse_uid_for(msg->attr->uid, msg->attr->uid),
-                               reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+        reverse_convert_attr_ids(*msg->attr);
+
+        if (MP_PLATFORM.fchown(fd, msg->attr->uid, msg->attr->gid) < 0)
         {
             mpl::trace_location(category, "cannot set ownership for '{}'", path.string());
             return reply_failure(msg);
@@ -1207,6 +1217,7 @@ int mp::SftpServer::handle_fsetstat(sftp_client_message msg)
 
     return reply_ok(msg);
 }
+
 int mp::SftpServer::handle_setstat(sftp_client_message msg)
 {
     const auto filepath = get_validated_path(msg);
@@ -1261,8 +1272,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
         // Should it fail if any of the IDs are not mapped?
-        if (!has_reverse_uid_mapping_for(msg->attr->uid) ||
-            !has_reverse_gid_mapping_for(msg->attr->gid))
+        if (!has_reverse_id_mappings_for(*msg->attr))
         {
             mpl::trace_location(category,
                                 "cannot set ownership for \'{}\' without id mapping",
@@ -1270,9 +1280,9 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (MP_PLATFORM.chown(path_string.c_str(),
-                              reverse_uid_for(msg->attr->uid, msg->attr->uid),
-                              reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+        reverse_convert_attr_ids(*msg->attr);
+
+        if (MP_PLATFORM.chown(path_string.c_str(), msg->attr->uid, msg->attr->gid) < 0)
         {
             mpl::trace_location(category, "cannot set ownership for '{}'", path_string);
             return reply_failure(msg);
