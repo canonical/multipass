@@ -319,7 +319,7 @@ endif()
 
 include(src/cmake/qemu-img-install-and-copy.cmake)
 
-if(cmake_build_type_lower MATCHES "coverage")
+if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
   find_program(GCOV gcov)
   find_program(LCOV lcov)
   find_program(GENHTML genhtml)
