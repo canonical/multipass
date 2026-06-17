@@ -610,22 +610,6 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 
     const auto& [path, fd] = *handle;
 
-    // File is supposed to be open, and as such it must exist
-    // No need to verify path, we have an fd
-    // if (!validate_path(path, request_requires_file_exists(SFTP_FSTAT)))
-    //{
-    //    mpl::trace_location(category,
-    //                        "cannot validate target path \'{}\' against source \'{}\'",
-    //                        path,
-    //                        source_path);
-    //    return reply_perm_denied(msg);
-    //}
-
-    // QFileInfo file_info(path);
-
-    // if (file_info.isSymLink())
-    //     file_info = QFileInfo(file_info.symLinkTarget());
-
     sftp_attributes_struct attr{};
     if (MP_PLATFORM.fstat_attr_from(fd, attr) != 0)
     {
@@ -640,7 +624,6 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
 {
     // The SFTP specification does not put its foot down on recursiveness,
     // but most implementations replicate the mkdir() syscall (non-recursive)
-    // TODO: handle OS API errors differently for logging (lstat, mkdir)
     const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
@@ -1029,8 +1012,8 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
 int mp::SftpServer::handle_remove(sftp_client_message msg)
 {
     // Per v3 specification, this should ONLY remove files, not directories or links
-    // TODO: Moving to platform-specific would allow rmdir(), which does not require checking
-    // existence or lstat
+    // TODO: Moving to platform-specific remove functions would allow rmdir(), which does not
+    // require checking file existence or file/folder checks
     const auto filename = get_validated_path(msg);
     if (!filename.has_value())
         return reply_perm_denied(msg);
@@ -1077,7 +1060,6 @@ int mp::SftpServer::handle_rename(sftp_client_message msg, const bool allow_over
 {
     // According to the SFTP v3 specification RENAME fails when renaming if the target path already
     // exists
-    // bool allows for the extension behavior
     const auto source = get_validated_path(msg);
     if (!source.has_value())
         return reply_perm_denied(msg);
@@ -1119,7 +1101,6 @@ int mp::SftpServer::handle_rename(sftp_client_message msg, const bool allow_over
         sftp_attributes_struct target_attr{};
         if (MP_PLATFORM.lstat_attr_from(target.string().c_str(), target_attr) == 0)
         {
-            // Target exists! Refuse to overwrite.
             mpl::trace_location(category, "rename target '{}' already exists", target.string());
             return reply_failure(msg);
         }
