@@ -18,7 +18,6 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
-#include <multipass/snap_utils.h>
 #include <multipass/timer.h>
 #include <multipass/utils.h>
 
