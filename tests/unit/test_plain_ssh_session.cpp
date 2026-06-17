@@ -16,12 +16,15 @@
  */
 
 #include "common.h"
+#include "mock_platform.h"
 #include "mock_ssh.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/socket.h>
 #include <multipass/ssh/plain_ssh_session.h>
 
 namespace mp = multipass;
+namespace mpt = multipass::test;
 using namespace testing;
 
 namespace
@@ -129,4 +132,47 @@ TEST_F(TestPlainSSHSession, moveAssigns)
     session1 = std::move(session2);
     EXPECT_EQ(ssh_session{session1}, ssh_session2);
     EXPECT_EQ(ssh_session{session2}, nullptr);
+}
+
+TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
+{
+    constexpr socket_t fake_fd = 5;
+
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    REPLACE(ssh_get_fd, [](auto...) -> socket_t { return fake_fd; });
+
+    mp::PlainSSHSession session = make_ssh_session();
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
+    session.force_shutdown();
+}
+
+TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    REPLACE(ssh_get_fd, [](auto...) { return (socket_t)-1; });
+
+    mp::PlainSSHSession session = make_ssh_session();
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket).Times(0);
+    session.force_shutdown();
+}
+
+TEST_F(TestPlainSSHSession, dtorCallsShutdownSocket)
+{
+    constexpr socket_t fake_fd = 12;
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    REPLACE(ssh_get_fd, [](auto...) -> socket_t { return fake_fd; });
+
+    {
+        auto [mock_platform, guard] = mpt::MockPlatform::inject();
+        EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
+
+        mp::PlainSSHSession session = make_ssh_session();
+    }
 }

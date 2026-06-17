@@ -34,4 +34,5 @@ IMPL_MOCK_DEFAULT(4, ssh_channel_get_exit_state);
 IMPL_MOCK_DEFAULT(2, ssh_event_dopoll);
 IMPL_MOCK_DEFAULT(2, ssh_add_channel_callbacks);
 IMPL_MOCK_DEFAULT(1, ssh_get_error);
+IMPL_MOCK_DEFAULT(1, ssh_get_fd);
 }
