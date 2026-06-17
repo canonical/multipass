@@ -24,8 +24,6 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/ssh/throw_on_error.h>
-
 #include <multipass/utils.h>
 
 extern "C"
