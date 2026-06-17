@@ -86,7 +86,7 @@ Options:
   --mount <local-path>:<instance-path>  Mount a local directory inside the
                                         instance. If <target> is omitted,
                                         the mount point will be under
-                                        /home/<user>/<source-dir>, where
+                                        /home/ubuntu/<source-dir>, where
                                         <source-dir> is the name of the
                                         <source> directory.
   --timeout <timeout>                   Maximum time, in seconds, to wait for
