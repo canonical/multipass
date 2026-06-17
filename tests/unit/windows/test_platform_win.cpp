@@ -16,6 +16,7 @@
  */
 
 #include "tests/unit/common.h"
+#include "tests/unit/file_operations.h"
 #include "tests/unit/mock_environment_helpers.h"
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
@@ -26,6 +27,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
 
@@ -36,7 +38,11 @@
 
 #include <json/json.h>
 
+#include <libssh/sftp.h>
+
 #include <scope_guard.hpp>
+
+#include <fcntl.h>
 
 #include <filesystem>
 #include <fstream>
@@ -721,6 +727,414 @@ TEST(PlatformWin, test_qstr_path_conversion)
     // Spaces and special filesystem characters
     QString special = QStringLiteral("/path with spaces/file (1).txt");
     EXPECT_EQ(MP_PLATFORM.path_to_qstr(MP_PLATFORM.qstr_to_path(special)), special);
+}
+
+struct TestPlatformWinSftp : public Test
+{
+    mpt::TempDir temp_dir;
+
+    std::string make_file(const std::string& name, const std::string& content = "data")
+    {
+        auto path = temp_dir.path().toStdString() + "\\" + name;
+        mpt::make_file_with_content(QString::fromStdString(path), content);
+        return path;
+    }
+};
+
+// ── lstat_attr_from ──────────────────────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, lstatAttrFromRegularFileReturnsRegularType)
+{
+    auto path = make_file("regular.txt");
+    sftp_attributes_struct attr{};
+
+    EXPECT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    EXPECT_EQ(attr.permissions & SSH_S_IFMT, static_cast<uint32_t>(SSH_S_IFREG));
+}
+
+TEST_F(TestPlatformWinSftp, lstatAttrFromDirectoryReturnsDirType)
+{
+    auto path = temp_dir.path().toStdString();
+    sftp_attributes_struct attr{};
+
+    EXPECT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    EXPECT_EQ(attr.permissions & SSH_S_IFMT, static_cast<uint32_t>(SSH_S_IFDIR));
+}
+
+TEST_F(TestPlatformWinSftp, lstatAttrFromFillsSizeAndTimestamps)
+{
+    auto path = make_file("sized.txt", "hello");
+    sftp_attributes_struct attr{};
+
+    ASSERT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    EXPECT_EQ(attr.size, 5u);
+    EXPECT_GT(attr.mtime, 0u);
+    EXPECT_GT(attr.atime, 0u);
+}
+
+TEST_F(TestPlatformWinSftp, lstatAttrFromMissingFileReturnsMinus1AndSetsEnoent)
+{
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.lstat_attr_from("C:\\does\\not\\exist\\file.txt", attr), -1);
+    EXPECT_EQ(errno, ENOENT);
+}
+
+TEST_F(TestPlatformWinSftp, lstatAttrFromDoesNotFollowSymlink)
+{
+    // Create a real file and a symlink to it
+    auto target = make_file("sym-target.txt", "content");
+    auto link = temp_dir.path().toStdString() + "\\sym-link.txt";
+
+    // CreateSymbolicLink requires either admin or Developer Mode on Windows
+    if (!::CreateSymbolicLinkA(link.c_str(),
+                               target.c_str(),
+                               SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE))
+        GTEST_SKIP() << "Cannot create symlinks (need Developer Mode or admin)";
+
+    sftp_attributes_struct attr{};
+    ASSERT_EQ(MP_PLATFORM.lstat_attr_from(link.c_str(), attr), 0);
+    // lstat must see SSH_S_IFLNK, not SSH_S_IFREG
+    EXPECT_EQ(attr.permissions & SSH_S_IFMT, static_cast<uint32_t>(SSH_S_IFLNK));
+}
+
+// ── stat_attr_from ───────────────────────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, statAttrFromRegularFileReturnsRegularType)
+{
+    auto path = make_file("stat-file.txt");
+    sftp_attributes_struct attr{};
+
+    EXPECT_EQ(MP_PLATFORM.stat_attr_from(path.c_str(), attr), 0);
+    EXPECT_EQ(attr.permissions & SSH_S_IFMT, static_cast<uint32_t>(SSH_S_IFREG));
+}
+
+TEST_F(TestPlatformWinSftp, statAttrFromFollowsSymlink)
+{
+    auto target = make_file("stat-target.txt", "content");
+    auto link = temp_dir.path().toStdString() + "\\stat-link.txt";
+
+    if (!::CreateSymbolicLinkA(link.c_str(),
+                               target.c_str(),
+                               SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE))
+        GTEST_SKIP() << "Cannot create symlinks (need Developer Mode or admin)";
+
+    sftp_attributes_struct attr{};
+    ASSERT_EQ(MP_PLATFORM.stat_attr_from(link.c_str(), attr), 0);
+    // stat follows the link → regular file
+    EXPECT_EQ(attr.permissions & SSH_S_IFMT, static_cast<uint32_t>(SSH_S_IFREG));
+}
+
+TEST_F(TestPlatformWinSftp, statAttrFromMissingFileReturnsMinus1AndSetsEnoent)
+{
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.stat_attr_from("C:\\does\\not\\exist\\file.txt", attr), -1);
+    EXPECT_EQ(errno, ENOENT);
+}
+
+// ── fstat_attr_from ──────────────────────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, fstatAttrFromOpenFdReturnsRegularType)
+{
+    auto path = make_file("fstat.txt");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.fstat_attr_from(fd, attr), 0);
+    EXPECT_EQ(attr.permissions & SSH_S_IFMT, static_cast<uint32_t>(SSH_S_IFREG));
+}
+
+TEST_F(TestPlatformWinSftp, fstatAttrFromFillsSizeAndTimestamps)
+{
+    auto path = make_file("fstat-sz.txt", "abcde");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    sftp_attributes_struct attr{};
+    ASSERT_EQ(MP_PLATFORM.fstat_attr_from(fd, attr), 0);
+    EXPECT_EQ(attr.size, 5u);
+    EXPECT_GT(attr.mtime, 0u);
+}
+
+TEST_F(TestPlatformWinSftp, fstatAttrFromBadFdReturnsMinus1)
+{
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.fstat_attr_from(-1, attr), -1);
+}
+
+// ── pread ────────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, preadReadsAtOffset)
+{
+    auto path = make_file("pread.txt", "Hello, World!");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    std::array<char, 5> buf{};
+    auto r = MP_PLATFORM.pread(fd, buf.data(), buf.size(), 7); // "World"
+    EXPECT_EQ(r, 5);
+    EXPECT_EQ(std::string(buf.data(), buf.size()), "World");
+}
+
+TEST_F(TestPlatformWinSftp, preadAtEofReturnsZero)
+{
+    auto path = make_file("pread-eof.txt", "hi");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    std::array<char, 4> buf{};
+    auto r = MP_PLATFORM.pread(fd, buf.data(), buf.size(), 100); // past EOF
+    EXPECT_EQ(r, 0);
+}
+
+TEST_F(TestPlatformWinSftp, preadDoesNotAdvanceFilePosition)
+{
+    // Windows OVERLAPPED-based ReadFile does not move the handle's file pointer,
+    // so a second pread at offset 0 must still return the file's beginning.
+    auto path = make_file("pread-pos.txt", "ABCDEFGH");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    std::array<char, 4> buf{};
+    MP_PLATFORM.pread(fd, buf.data(), buf.size(), 4); // read "EFGH"
+
+    MP_PLATFORM.pread(fd, buf.data(), buf.size(), 0); // must still give "ABCD"
+    EXPECT_EQ(std::string(buf.data(), buf.size()), "ABCD");
+}
+
+TEST_F(TestPlatformWinSftp, preadBadFdReturnsMinus1WithEbadf)
+{
+    std::array<char, 4> buf{};
+    auto r = MP_PLATFORM.pread(-1, buf.data(), buf.size(), 0);
+    EXPECT_EQ(r, -1);
+    EXPECT_EQ(errno, EBADF);
+}
+
+// ── pwrite ───────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, pwriteWritesAtOffset)
+{
+    auto path = make_file("pwrite.txt", "Hello, World!");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    const std::string patch = "XXXXX";
+    auto w = MP_PLATFORM.pwrite(fd,
+                                const_cast<char*>(patch.data()),
+                                patch.size(),
+                                7); // overwrite "World"
+    EXPECT_EQ(w, 5);
+
+    // Read back and verify
+    std::array<char, 13> result{};
+    MP_PLATFORM.pread(fd, result.data(), result.size(), 0);
+    EXPECT_EQ(std::string(result.data(), result.size()), "Hello, XXXXX!");
+}
+
+TEST_F(TestPlatformWinSftp, pwriteDoesNotAdvanceFilePosition)
+{
+    auto path = make_file("pwrite-pos.txt", "00000000");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    const std::string data = "AAAA";
+    auto w = MP_PLATFORM.pwrite(fd, const_cast<char*>(data.data()), data.size(), 4);
+    EXPECT_NE(w, -1);
+
+    // File pointer must not have moved — pread at 0 still returns the original start
+    std::array<char, 4> buf{};
+    MP_PLATFORM.pread(fd, buf.data(), buf.size(), 0);
+    EXPECT_EQ(std::string(buf.data(), buf.size()), "0000");
+}
+
+TEST_F(TestPlatformWinSftp, pwriteBadFdReturnsMinus1WithEbadf)
+{
+    std::array<char, 4> buf{};
+    auto r = MP_PLATFORM.pwrite(-1, buf.data(), buf.size(), 0);
+    EXPECT_EQ(r, -1);
+    EXPECT_EQ(errno, EBADF);
+}
+
+// ── ftruncate ────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, ftruncateShrinksTruncatesFile)
+{
+    auto path = make_file("trunc.txt", "Hello, World!");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    EXPECT_EQ(MP_PLATFORM.ftruncate(fd, 5), 0);
+
+    struct _stat64 st{};
+    ::_fstat64(fd, &st);
+    EXPECT_EQ(st.st_size, 5);
+}
+
+TEST_F(TestPlatformWinSftp, ftruncateBadFdReturnsNonZero)
+{
+    EXPECT_NE(MP_PLATFORM.ftruncate(-1, 0), 0);
+}
+
+// ── futimes ──────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, futimesSetsModificationTime)
+{
+    auto path = make_file("utime.txt", "data");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    constexpr int new_mtime = 1'000'000;
+    EXPECT_EQ(MP_PLATFORM.futimes(fd, new_mtime, new_mtime), 0);
+
+    struct _stat64 st{};
+    ::_fstat64(fd, &st);
+    EXPECT_EQ(static_cast<int>(st.st_mtime), new_mtime);
+}
+
+TEST_F(TestPlatformWinSftp, futimesBadFdReturnsNonZero)
+{
+    EXPECT_NE(MP_PLATFORM.futimes(-1, 0, 0), 0);
+}
+
+// ── fchown ───────────────────────────────────────────────────────────────
+
+TEST(PlatformWin, fchownIsNoOpAndReturnsZero)
+{
+    // On Windows fchown is explicitly a no-op (TODO comment in source).
+    // It must return 0 and only emit a trace log.
+    mpt::TempDir tmp;
+    auto path = tmp.path().toStdString() + "\\fchown-file.txt";
+    mpt::make_file_with_content(QString::fromStdString(path), "content");
+
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    EXPECT_EQ(MP_PLATFORM.fchown(fd, 1000, 1000), 0);
+}
+
+TEST(PlatformWin, fchownLogsTrace)
+{
+    mpt::TempDir tmp;
+    auto path = tmp.path().toStdString() + "\\fchown-log.txt";
+    mpt::make_file_with_content(QString::fromStdString(path), "content");
+
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace), StrEq("base factory"), HasSubstr("fchown")));
+
+    MP_PLATFORM.fchown(fd, 42, 42);
+}
+
+// ── set_permissions_sftp (EA round-trip) ─────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, setPermissionsSftpOnRegularFileSucceeds)
+{
+    namespace fs = std::filesystem;
+    auto path = make_file("perms.txt");
+
+    EXPECT_TRUE(MP_PLATFORM.set_permissions_sftp(path,
+                                                 fs::perms::owner_read | fs::perms::owner_write |
+                                                     fs::perms::group_read));
+}
+
+TEST_F(TestPlatformWinSftp, setPermissionsSftpRoundTripsPermissionsViaEA)
+{
+    // Write a permission set via set_permissions_sftp, then read it back
+    // via lstat_attr_from. The permission bits must survive the round-trip.
+    namespace fs = std::filesystem;
+    auto path = make_file("ea-roundtrip.txt");
+
+    const auto expected_perms = fs::perms::owner_read | fs::perms::owner_write |
+                                fs::perms::group_read;
+    ASSERT_TRUE(MP_PLATFORM.set_permissions_sftp(path, expected_perms));
+
+    sftp_attributes_struct attr{};
+    ASSERT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    // Only the rwxrwxrwx bits should be compared
+    EXPECT_EQ(static_cast<fs::perms>(attr.permissions & 0777), expected_perms);
+}
+
+TEST_F(TestPlatformWinSftp, setPermissionsSftpPartialUpdatePreservesOtherFields)
+{
+    // Two successive calls with different permission sets must not corrupt
+    // each other: the second call should overwrite only the mode bits,
+    // leaving a fresh file in a consistent state.
+    namespace fs = std::filesystem;
+    auto path = make_file("ea-partial.txt");
+
+    ASSERT_TRUE(MP_PLATFORM.set_permissions_sftp(path, fs::perms::owner_read));
+    ASSERT_TRUE(
+        MP_PLATFORM.set_permissions_sftp(path, fs::perms::owner_read | fs::perms::owner_write));
+
+    sftp_attributes_struct attr{};
+    ASSERT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    EXPECT_EQ(static_cast<fs::perms>(attr.permissions & 0777),
+              fs::perms::owner_read | fs::perms::owner_write);
+}
+
+TEST_F(TestPlatformWinSftp, setPermissionsSftpOnNonExistentPathReturnsFalse)
+{
+    namespace fs = std::filesystem;
+    EXPECT_FALSE(
+        MP_PLATFORM.set_permissions_sftp("C:\\does\\not\\exist\\file.txt", fs::perms::owner_read));
+}
+
+TEST_F(TestPlatformWinSftp, setPermissionsSftpOnNonExistentPathSetsEnoent)
+{
+    namespace fs = std::filesystem;
+    MP_PLATFORM.set_permissions_sftp("C:\\does\\not\\exist\\file.txt", fs::perms::owner_read);
+    EXPECT_EQ(errno, ENOENT);
+}
+
+// ── lstat_attr_from EA integration ───────────────────────────────────────
+
+TEST_F(TestPlatformWinSftp, lstatAttrFromOnFileWithoutEaReturnsDefaultPermissions)
+{
+    // A freshly created file has no $POSIX EA: the implementation must
+    // fall back to the default mode (0600 for files, 0700 for dirs).
+    auto path = make_file("no-ea.txt");
+    sftp_attributes_struct attr{};
+
+    ASSERT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    // Default file mode from the source: 0600
+    EXPECT_EQ(attr.permissions & 0777, 0600u);
+}
+
+TEST_F(TestPlatformWinSftp, lstatAttrFromDirectoryWithoutEaReturnsDefaultDirPermissions)
+{
+    auto path = temp_dir.path().toStdString() + "\\newdir";
+    ::CreateDirectoryA(path.c_str(), nullptr);
+
+    sftp_attributes_struct attr{};
+    ASSERT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    // Default dir mode: 0700
+    EXPECT_EQ(attr.permissions & 0777, 0700u);
 }
 
 } // namespace
