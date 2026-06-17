@@ -62,6 +62,10 @@ sftp_attributes_struct stat_to_attr(const struct stat* st)
 }
 } // namespace
 
+multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
+{
+}
+
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
     return ::lchown(path, uid, gid);
