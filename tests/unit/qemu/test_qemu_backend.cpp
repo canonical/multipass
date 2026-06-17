@@ -326,8 +326,8 @@ TEST_F(QemuBackend, QMPHandlerIgnoresNonJsonLines)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    process_factory->register_callback([](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-"))
+    process_factory->register_callback([this](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()))
         {
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
                 auto json = boost::json::parse(std::string_view(data));
@@ -365,8 +365,8 @@ TEST_F(QemuBackend, QMPHandlerProcessesInterleavedJson)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    process_factory->register_callback([](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-"))
+    process_factory->register_callback([this](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()))
         {
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
                 auto json = boost::json::parse(std::string_view(data));
