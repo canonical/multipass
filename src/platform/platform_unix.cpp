@@ -21,6 +21,8 @@
 #include <multipass/timer.h>
 #include <multipass/utils.h>
 
+#include <multipass/socket.h>
+
 #include <libssh/sftp.h>
 
 #include <grp.h>
@@ -284,7 +286,7 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
     return QString::fromStdString(path.generic_string());
 }
 
-void mp::platform::Platform::shutdown_socket(int socket) const
+void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
 {
     if (::shutdown(socket, SHUT_RDWR) == -1 && errno != ENOTCONN)
         throw std::runtime_error(

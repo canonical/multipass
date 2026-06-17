@@ -45,6 +45,8 @@ struct sftp_attributes_struct;
 
 namespace multipass
 {
+struct Socket;
+
 namespace platform
 {
 class Platform : public Singleton<Platform>
@@ -90,7 +92,7 @@ public:
     [[nodiscard]] virtual QString path_to_qstr(const std::filesystem::path& path) const;
 
     // Shuts down I/O on a socket in both directions, without closing it
-    virtual void shutdown_socket(int socket) const;
+    virtual void shutdown_socket(Socket socket) const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);

@@ -21,6 +21,7 @@
 #include "mock_singleton_helpers.h"
 
 #include <multipass/platform.h>
+#include <multipass/socket.h>
 
 namespace multipass::test
 {
@@ -68,7 +69,7 @@ public:
     MOCK_METHOD(std::string, bridge_nomenclature, (), (const, override));
     MOCK_METHOD(bool, subnet_used_locally, (Subnet), (const, override));
     MOCK_METHOD(std::filesystem::path, get_root_cert_dir, (), (const, override));
-    MOCK_METHOD(void, shutdown_socket, (int), (const, override));
+    MOCK_METHOD(void, shutdown_socket, (Socket), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };
