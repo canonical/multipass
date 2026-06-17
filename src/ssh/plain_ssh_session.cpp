@@ -134,7 +134,7 @@ void mp::PlainSSHSession::force_shutdown()
 {
     // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
     // with a lock acquired). Make it private instead. Provide public way to close the session
-    // (probably just the dtor - let callers delete and deal with null session)
+    // (probably just the dtor - let outside callers delete and deal with null session)
     if (!session)
         return;
 
