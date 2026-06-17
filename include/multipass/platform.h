@@ -136,10 +136,6 @@ std::string host_version();
 } // namespace platform
 } // namespace multipass
 
-inline multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
-{
-}
-
 inline std::filesystem::path multipass::platform::Platform::get_root_cert_path() const
 {
     constexpr auto* root_cert_file_name = "multipass_root_cert.pem";

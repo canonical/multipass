@@ -76,6 +76,8 @@
 #include <sys/stat.h>
 // clang-format on
 #include <windows.h>
+#include <crtdbg.h>
+#include <stdlib.h>
 #include <winternl.h>
 
 #include <algorithm>
@@ -98,6 +100,17 @@ static const auto none = QStringLiteral("none");
 static constexpr auto log_category = "platform-win";
 static constexpr uint32_t default_file_mode = 0600;
 static constexpr uint32_t default_dir_mode = 0700;
+
+void silent_invalid_parameter_handler(const wchar_t* expression,
+                                      const wchar_t* function,
+                                      const wchar_t* file,
+                                      unsigned int line,
+                                      uintptr_t reserved)
+{
+    // Do nothing. Returning from this function tells the CRT to
+    // safely abort the current CRT call, return an error code (like -1),
+    // and set errno appropriately.
+}
 
 struct PosixSecurity
 {
@@ -1022,6 +1035,17 @@ struct InvalidNetworkPrefixLengthException : public multipass::FormattedExceptio
     using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
 };
 
+multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
+{
+    // Set the parameter handler to do nothing. This will avoid invalid paramters in CRT functions
+    // from crashing the program.
+    _set_invalid_parameter_handler(silent_invalid_parameter_handler);
+
+    // Disable GUI assert dialogs in Debug builds, otherwise, debug builds will still pop up a UI
+    // box before returning
+    _CrtSetReportMode(_CRT_ASSERT, 0);
+}
+
 std::map<std::string, mp::NetworkInterfaceInfo>
 mp::platform::Platform::get_network_interfaces_info() const
 {
@@ -1748,7 +1772,6 @@ int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_str
 
 int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr) const
 {
-    // Alternative: _fstat plus the uids adaptation
     // Check out _fstat documentation of Windows CRT
     struct _stat64 st{};
     if (_fstat64(fd, &st) != 0)
