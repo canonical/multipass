@@ -114,7 +114,8 @@ multipass::PlainSSHSession::~PlainSSHSession()
             mpl::trace(category, "disconnecting SSH session");
 
             ssh_disconnect(session.get());
-            PlainSSHSession::force_shutdown(); // close the socket if manually open outside libssh
+            PlainSSHSession::force_shutdown(); // Shutdown I/O on manually open sockets.
+                                               // The socket is still closed by libssh in ssh_free.
         }
     });
 }
