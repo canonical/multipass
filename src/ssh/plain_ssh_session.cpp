@@ -18,6 +18,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
@@ -26,9 +27,6 @@
 
 #include <QDir>
 
-#include <cerrno>
-#include <cstring>
-#include <stdexcept>
 #include <string>
 
 namespace mp = multipass;
@@ -140,17 +138,7 @@ void mp::PlainSSHSession::force_shutdown()
         return;
 
     if (auto socket = ssh_get_fd(session.get()); socket != -1)
-    {
-        const int shutdown_read_and_writes = 2;
-        if (shutdown(socket, shutdown_read_and_writes) == -1)
-        {
-            if (errno == ENOTCONN)
-                mpl::trace(category, "socket already disconnected on shutdown");
-            else
-                throw std::runtime_error(
-                    fmt::format("Failed to shutdown SSHSession socket: {}", std::strerror(errno)));
-        }
-    }
+        MP_PLATFORM.shutdown_socket(socket);
 }
 
 mp::PlainSSHSession::operator ssh_session()

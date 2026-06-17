@@ -88,6 +88,9 @@ public:
     // Converts QString to path, using appropriate string functions depending on the platform
     [[nodiscard]] virtual std::filesystem::path qstr_to_path(const QString& qstr) const;
     [[nodiscard]] virtual QString path_to_qstr(const std::filesystem::path& path) const;
+
+    // Shuts down I/O on a socket in both directions, without closing it
+    virtual void shutdown_socket(int socket) const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);
