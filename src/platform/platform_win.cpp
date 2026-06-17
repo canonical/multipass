@@ -23,6 +23,7 @@
 #include <multipass/platform.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/settings.h>
+#include <multipass/socket.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
@@ -1364,4 +1365,11 @@ std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) 
 QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
 {
     return QString::fromStdWString(path.generic_wstring());
+}
+
+void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
+{
+    if (::shutdown(socket, SD_BOTH) == SOCKET_ERROR)
+        if (auto err = WSAGetLastError(); err != WSAENOTCONN)
+            throw std::system_error(err, std::system_category(), "Failed to shutdown socket");
 }
