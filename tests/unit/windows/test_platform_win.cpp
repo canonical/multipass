@@ -931,9 +931,7 @@ TEST_F(TestPlatformWinSftp, pwriteWritesAtOffset)
     ASSERT_NE(fd, -1);
 
     const std::string patch = "XXXXX";
-    auto w = MP_PLATFORM.pwrite(fd,
-                                const_cast<char*>(patch.data()),
-                                patch.size(),
+    auto w = MP_PLATFORM.pwrite(fd, patch.data(), patch.size(),
                                 7); // overwrite "World"
     EXPECT_EQ(w, 5);
 
@@ -952,7 +950,7 @@ TEST_F(TestPlatformWinSftp, pwriteDoesNotAdvanceFilePosition)
     ASSERT_NE(fd, -1);
 
     const std::string data = "AAAA";
-    auto w = MP_PLATFORM.pwrite(fd, const_cast<char*>(data.data()), data.size(), 4);
+    auto w = MP_PLATFORM.pwrite(fd, data.data(), data.size(), 4);
     EXPECT_NE(w, -1);
 
     // File pointer must not have moved — pread at 0 still returns the original start

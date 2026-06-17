@@ -48,7 +48,10 @@ public:
     MOCK_METHOD(int, ftruncate, (int, std::ptrdiff_t), (const, override));
     MOCK_METHOD(int, futimes, (int, int, int), (const, override));
     MOCK_METHOD(std::ptrdiff_t, pread, (int, void*, size_t, std::ptrdiff_t), (const, override));
-    MOCK_METHOD(std::ptrdiff_t, pwrite, (int, void*, size_t, std::ptrdiff_t), (const, override));
+    MOCK_METHOD(std::ptrdiff_t,
+                pwrite,
+                (int, const void*, size_t, std::ptrdiff_t),
+                (const, override));
     MOCK_METHOD(bool,
                 set_permissions,
                 (const std::filesystem::path&, std::filesystem::perms, bool),

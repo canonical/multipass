@@ -314,13 +314,13 @@ TEST_F(TestPlatformUnix, makeQuitWatchdogBlocksSignals)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
-    EXPECT_CALL(
-        *mock_signals,
-        pthread_sigmask(SIG_BLOCK,
-                        Pointee(Truly([](const auto& set) {
-                            return test_sigset_has(set, {SIGQUIT, SIGTERM, SIGHUP, SIGUSR2});
-                        })),
-                        _));
+    EXPECT_CALL(*mock_signals,
+                pthread_sigmask(SIG_BLOCK,
+                                Pointee(Truly([](const auto& set) {
+                                    return test_sigset_has(set,
+                                                           {SIGQUIT, SIGTERM, SIGHUP, SIGUSR2});
+                                })),
+                                _));
 
     mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
 }
@@ -597,7 +597,7 @@ TEST_F(TestPlatformUnixSftp, pwriteWritesAtOffset)
     ASSERT_NE(fd, -1);
 
     const std::string patch = "XXXXX";
-    auto w = MP_PLATFORM.pwrite(fd, const_cast<char*>(patch.data()), patch.size(), 7);
+    auto w = MP_PLATFORM.pwrite(fd, patch.data(), patch.size(), 7);
     EXPECT_EQ(w, 5);
 
     // Read back full file to verify
@@ -615,7 +615,7 @@ TEST_F(TestPlatformUnixSftp, pwriteDoesNotAdvanceFilePosition)
     ASSERT_NE(fd, -1);
 
     const std::string data = "AAAA";
-    EXPECT_NE(MP_PLATFORM.pwrite(fd, const_cast<char*>(data.data()), data.size(), 4), -1);
+    EXPECT_NE(MP_PLATFORM.pwrite(fd, data.data(), data.size(), 4), -1);
 
     // Position must still be 0 — reading from 0 gives original start bytes
     std::array<char, 4> buf{};
