@@ -183,7 +183,7 @@ mp::SshfsMount::SshfsMount(std::unique_ptr<SSHSession>&& session,
 mp::SshfsMount::~SshfsMount()
 {
     state.store(State::Stopped, std::memory_order_release);
-    stop();
+    top_catch_all(category, [this] { stop(); });
 }
 
 void mp::SshfsMount::stop()
