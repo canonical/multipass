@@ -281,10 +281,10 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const s
 
 void mp::BaseVirtualMachine::renew_ssh_session()
 {
-    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
     auto new_session = new_ssh_session();
 
     std::lock_guard lock{state_mutex};
+    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
     ssh_session = std::move(new_session);
 }
 
