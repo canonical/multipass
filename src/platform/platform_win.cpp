@@ -140,10 +140,10 @@ struct EaGet
 
 // Our metadata blob. `present` records which POSIX fields were actually set, so
 // a partial set (e.g. chown-only) never fabricates a mode=0 that get_ would read
-// back as 000. magic/version let future formats be detected and ignored cleanly.
+// back as 000. signature/version let future formats be detected and ignored cleanly.
 struct PosixEa
 {
-    uint32_t magic;
+    uint32_t signature;
     uint16_t version;
     uint16_t present; // bitmask: MODE | UID | GID
     uint32_t mode;    // POSIX permission bits
@@ -152,9 +152,9 @@ struct PosixEa
 };
 #pragma pack(pop)
 
-constexpr char kEaName[] = "$POSIX";      // NTFS stores EA names uppercased
-constexpr uint32_t kEaMagic = 0x49584F50; // 'POXI'
-constexpr uint16_t kEaVersion = 1;
+constexpr char kEaName[] = "$POSIX";                // NTFS stores EA names uppercased
+constexpr uint32_t POSIX_EA_SIGNATURE = 0x49584F50; // 'POXI' in ASCII
+constexpr uint16_t CURRENT_EA_VERSION = 1;
 constexpr uint16_t POSIX_EA_MODE = 1u << 0;
 constexpr uint16_t POSIX_EA_UID = 1u << 1;
 constexpr uint16_t POSIX_EA_GID = 1u << 2;
@@ -289,7 +289,7 @@ bool read_posix_ea(HANDLE handle, PosixEa& out)
     std::memcpy(&meta,
                 out_buf.data() + offsetof(EaFull, EaName) + ea->EaNameLength + 1,
                 sizeof(PosixEa));
-    if (meta.magic != kEaMagic || meta.version != kEaVersion)
+    if (meta.signature != POSIX_EA_SIGNATURE || meta.version != CURRENT_EA_VERSION)
         return false;
 
     out = meta;
@@ -304,8 +304,8 @@ bool set_posix_security(HANDLE handle, const PosixSecurity& posix_security)
     PosixEa meta{};
     if (!read_posix_ea(handle, meta)) // syscall #1 (read-modify-write read)
     {
-        meta.magic = kEaMagic;
-        meta.version = kEaVersion;
+        meta.signature = POSIX_EA_SIGNATURE;
+        meta.version = CURRENT_EA_VERSION;
         meta.present = 0;
         meta.mode = 0;
         meta.uid = mp::no_id_info_available;
