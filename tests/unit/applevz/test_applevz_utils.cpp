@@ -22,9 +22,9 @@
 #include "tests/unit/mock_process_factory.h"
 #include "tests/unit/temp_file.h"
 
+#include <QCoreApplication>
 #include <applevz/applevz_utils.h>
 #include <multipass/utils.h>
-#include <QCoreApplication>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
