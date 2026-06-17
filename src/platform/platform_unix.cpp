@@ -288,7 +288,7 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
 
 void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
 {
-    if (::shutdown(socket, SHUT_RDWR) == -1 && errno != ENOTCONN)
-        throw std::runtime_error(
-            fmt::format("Failed to shutdown socket: {}", std::strerror(errno)));
+    if (::shutdown(socket, SHUT_RDWR) == -1)
+        if (auto err = errno; err != ENOTCONN)
+            throw std::system_error(err, std::generic_category(), "Failed to shutdown socket");
 }
