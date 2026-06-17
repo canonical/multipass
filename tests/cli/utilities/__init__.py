@@ -25,6 +25,7 @@ from .threadutils import (
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
     wait_for_future,
+    run_detached_thread
 )
 from .functional import retry, wrap_call_if
 from .privutils import run_in_new_interpreter, run_in_new_interpreter_async, get_sudo_tool, sudo
