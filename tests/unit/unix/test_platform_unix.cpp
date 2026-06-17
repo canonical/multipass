@@ -15,20 +15,24 @@
  *
  */
 
+#include "mock_libc_functions.h"
+#include "mock_signal_wrapper.h"
+
 #include <tests/unit/common.h>
 #include <tests/unit/mock_environment_helpers.h>
 #include <tests/unit/mock_platform.h>
 #include <tests/unit/mock_utils.h>
 #include <tests/unit/temp_file.h>
 
-#include "mock_libc_functions.h"
-#include "mock_signal_wrapper.h"
-
 #include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
+#include <multipass/socket.h>
 
 #include <thread>
+
+#include <sys/socket.h>
+#include <unistd.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -160,6 +164,43 @@ TEST_F(TestPlatformUnix, multipassStorageLocationReturnsExpectedPath)
     auto storage_path = MP_PLATFORM.multipass_storage_location();
 
     EXPECT_EQ(storage_path, file.name());
+}
+
+TEST_F(TestPlatformUnix, shutdownSocketSucceeds)
+{
+    int fds[2];
+    ASSERT_EQ(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
+
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::shutdown_socket(fds[0]));
+
+    char buf;
+    EXPECT_EQ(recv(fds[0], &buf, 1, 0), 0);
+
+    close(fds[0]);
+    close(fds[1]);
+}
+
+TEST_F(TestPlatformUnix, shutdownSocketEnotconnDoesNotThrow)
+{
+    auto fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    ASSERT_GE(fd, 0);
+
+    EXPECT_NO_THROW(MP_PLATFORM.Platform::shutdown_socket(fd));
+
+    close(fd);
+}
+
+TEST_F(TestPlatformUnix, shutdownSocketOtherErrorThrows)
+{
+    auto fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    ASSERT_GE(fd, 0);
+
+    close(fd);
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.Platform::shutdown_socket(fd),
+                         std::system_error,
+                         AllOf(mpt::match_what(HasSubstr("Failed to shutdown socket")),
+                               Property(&std::system_error::code,
+                                        Eq(std::error_code(EBADF, std::generic_category())))));
 }
 
 TEST_F(TestPlatformUnix, multipassStorageLocationNotSetReturnsEmpty)
