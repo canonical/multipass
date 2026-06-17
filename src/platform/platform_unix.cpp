@@ -33,6 +33,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <system_error>
 
 namespace mp = multipass;
 
