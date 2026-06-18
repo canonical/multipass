@@ -22,7 +22,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
-#include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
