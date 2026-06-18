@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
@@ -15,6 +16,14 @@ void main() {
   const vmName = 'test-vm';
   late FakeGrpcClient fakeClient;
 
+  setUpAll(() async {
+    final fontLoader = FontLoader('Ubuntu')
+      ..addFont(rootBundle.load('assets/Ubuntu-R.ttf'))
+      ..addFont(rootBundle.load('assets/Ubuntu-B.ttf'))
+      ..addFont(rootBundle.load('assets/Ubuntu-L.ttf'));
+    await fontLoader.load();
+  });
+
   setUp(() => fakeClient = FakeGrpcClient());
 
   Widget buildApp({Status vmStatus = Status.RUNNING}) {
@@ -28,6 +37,7 @@ void main() {
         ),
       ],
       child: MaterialApp(
+        theme: ThemeData(fontFamily: 'Ubuntu'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -43,20 +53,7 @@ void main() {
   }
 
   group('VmActionButtons', () {
-    // VmActionButtons has a fixed-width (110px) container and the testing
-    // environment uses a different font then production code causing a
-    // layout overflow.
-    void suppressOverflowErrors() {
-      final original = FlutterError.onError;
-      FlutterError.onError = (details) {
-        if (details.exceptionAsString().contains('overflowed')) return;
-        original?.call(details);
-      };
-      addTearDown(() => FlutterError.onError = original);
-    }
-
     testWidgets('renders the "Actions" label', (tester) async {
-      suppressOverflowErrors();
       await tester.pumpWidget(buildApp());
       await tester.pump();
       expect(find.text(_l10n.vmActionsMenuTitle), findsOneWidget);
@@ -64,7 +61,6 @@ void main() {
 
     testWidgets('opening the menu shows Start, Stop, Suspend and Delete items',
         (tester) async {
-      suppressOverflowErrors();
       await tester.pumpWidget(buildApp());
       await tester.pump();
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
@@ -77,7 +73,6 @@ void main() {
 
     testWidgets('tapping Stop calls grpcClient.stop with the vm name',
         (tester) async {
-      suppressOverflowErrors();
       await tester.pumpWidget(buildApp(vmStatus: Status.RUNNING));
       await tester.pump();
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
@@ -93,7 +88,6 @@ void main() {
 
     testWidgets('tapping Start calls grpcClient.start with the vm name',
         (tester) async {
-      suppressOverflowErrors();
       await tester.pumpWidget(buildApp(vmStatus: Status.STOPPED));
       await tester.pump();
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
@@ -109,7 +103,6 @@ void main() {
 
     testWidgets('tapping Suspend calls grpcClient.suspend with the vm name',
         (tester) async {
-      suppressOverflowErrors();
       await tester.pumpWidget(buildApp(vmStatus: Status.RUNNING));
       await tester.pump();
       await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
@@ -155,7 +148,6 @@ void main() {
       testWidgets(
           'action enabled states are correct for a ${tc.status.name} vm',
           (tester) async {
-        suppressOverflowErrors();
         await tester.pumpWidget(buildApp(vmStatus: tc.status));
         await tester.pump();
         await tester.tap(find.byWidgetPredicate((w) => w is PopupMenuButton));
