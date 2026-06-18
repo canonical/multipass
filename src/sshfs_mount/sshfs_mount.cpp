@@ -193,10 +193,7 @@ void mp::SshfsMount::stop()
 {
     auto join_guard = sg::make_scope_guard([this]() noexcept {
         if (sftp_thread.joinable())
-        {
-            assert(sftp_thread.get_id() != std::this_thread::get_id());
             sftp_thread.join();
-        }
     });
 
     sftp_server->stop();
