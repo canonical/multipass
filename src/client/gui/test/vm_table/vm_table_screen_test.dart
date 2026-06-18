@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
@@ -25,6 +26,7 @@ Widget _buildScreen({List<DetailedInfoItem> vms = const []}) {
         allVmInfosProvider.overrideWith(() => _StaticVmInfosNotifier(vms)),
       ],
       child: MaterialApp(
+        theme: ThemeData(fontFamily: 'Ubuntu'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const VmTableScreen(),
@@ -34,6 +36,14 @@ Widget _buildScreen({List<DetailedInfoItem> vms = const []}) {
 }
 
 void main() {
+  setUpAll(() async {
+    final fontLoader = FontLoader('Ubuntu')
+      ..addFont(rootBundle.load('assets/Ubuntu-R.ttf'))
+      ..addFont(rootBundle.load('assets/Ubuntu-B.ttf'))
+      ..addFont(rootBundle.load('assets/Ubuntu-L.ttf'));
+    await fontLoader.load();
+  });
+
   group('VmTableScreen', () {
     testWidgets('shows NoVms widget when there are no VMs', (tester) async {
       await tester.pumpWidget(_buildScreen());
@@ -44,16 +54,6 @@ void main() {
     });
 
     testWidgets('shows Vms widget when at least one VM exists', (tester) async {
-      // Suppress layout overflow from the HeaderSelection widget's fixed-width Row
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (details) {
-        if (details.exception.toString().contains('A RenderFlex overflowed')) {
-          return;
-        }
-        originalOnError?.call(details);
-      };
-      addTearDown(() => FlutterError.onError = originalOnError);
-
       final vm = DetailedInfoItem(
         name: 'test-vm',
         instanceStatus: InstanceStatus(status: Status.RUNNING),
