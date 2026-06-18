@@ -19,12 +19,14 @@
 
 namespace multipass
 {
-/*
- * Helper class for classes that want to make a function publicly visible but
- * only callable privately and by friends. To use, inherit (publicly) using the
- * CRTP idiom. Then require a PrivatePass in the intended function, and provide
- * the only `pass` attribute privately to friends. Friends can then call the
- * method using the pass.
+/**
+ * Helper class to enable publicly visible functions to restrict calls to a type T.
+ *
+ * To use, inherit (publicly) using the CRTP idiom. Then require a PrivatePass in the intended
+ * function and call providing T's `pass`. T can choose to forward the pass to its own friends,
+ * extending callability selectively.
+ *
+ * @sa tests/unit/test_private_pass_provider.cpp
  */
 template <typename T>
 class PrivatePassProvider
