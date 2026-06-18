@@ -118,12 +118,6 @@ jobs:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
 
-    - name: Exclude GUI from unsupported arches
-      if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-noble-edge' || matrix.runs-on == 'self-hosted-linux-s390x-noble-edge' }}
-      run: |
-        cp packaging/gui-less/snap/snapcraft.yaml snap/snapcraft.yaml
-        yq -i '.parts.multipass.source = "."' snap/snapcraft.yaml
-
     - name: Determine build parameters
       id: build-params
       uses: ./.github/actions/build-params
@@ -131,16 +125,23 @@ jobs:
     - name: Read snapcraft.yml parameters
       uses: ./.github/actions/read-snapcraft-yml-params
 
+    - name: Install yq
+      run: |
+        sudo snap install yq
+
+    - name: Exclude GUI from unsupported arches
+      if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-noble-edge' || matrix.runs-on == 'self-hosted-linux-s390x-noble-edge' }}
+      run: |
+        cp packaging/gui-less/snap/snapcraft.yaml snap/snapcraft.yaml
+        yq -i '.parts.multipass.source = "." | .parts.glue.source = "snap-wrappers" | del(.parts.glue."source-type", .parts.glue."source-subdir")' snap/snapcraft.yaml
+
     - name: Apply snapcraft-ci-override.yaml
       env:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CMAKE_PRESET: ${{ matrix.cmake-preset }}
         MP_ALLOW_OPTIONAL_FEATURES: ${{ github.event_name == 'schedule' && 'OFF' || 'ON' }}
-
       run: |
-        sudo snap install yq
-
         # Substitute the environment variables in the snapcraft-ci-override.yaml
         envsubst < snap/local/snapcraft-ci-override.yaml.in | yq eval 'del(.. | select(. == null or . == "")) | del(.. | select((tag == "!!map" or tag == "!!seq") and length == 0))' -P > snap/local/snapcraft-ci-override.yaml
 
