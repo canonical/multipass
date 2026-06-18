@@ -584,11 +584,18 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 {
     std::string absolute{get_resolved_target(session, target)};
 
-    std::string existing =
-        MP_UTILS.run_in_ssh_session(session,
-                                    fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" "
-                                                "]; do P=\"${{P%/*}}\"; done; echo $P/'",
-                                                absolute));
+    // The path is user-controlled, so it may contain shell metacharacters (e.g. `$VAR`,
+    // backticks, globs). It must be escaped before being interpolated into the script that
+    // is forwarded to the remote shell, otherwise the remote shell will expand/interpret
+    // those characters before the actual command runs (issue #1495). Note that the script
+    // itself uses literal `$P` and `${P%/*}` that must NOT be escaped, hence we only
+    // escape the user-supplied `absolute` and embed it inside an unescaped script.
+    auto inner = fmt::format("P={}; while [ ! -d \"$P/\" ]; do P=\"${{P%/*}}\"; done; echo $P/",
+                             mp::utils::escape_for_shell(absolute));
+
+    std::string existing = MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo /bin/bash -c {}", mp::utils::escape_for_shell(inner)));
 
     return {existing,
             QDir(QString::fromStdString(existing))
@@ -601,9 +608,15 @@ void mp::utils::make_target_dir(mp::SSHSession& session,
                                 const std::string& root,
                                 const std::string& relative_target)
 {
+    // Escape user-controlled paths twice: once so the inner script sees them as literals,
+    // and once more so the outer login shell forwards the inner script to `bash -c`
+    // verbatim (issue #1495).
+    auto inner = fmt::format("cd {} && mkdir -p {}",
+                             mp::utils::escape_for_shell(root),
+                             mp::utils::escape_for_shell(relative_target));
     MP_UTILS.run_in_ssh_session(
         session,
-        fmt::format("sudo /bin/bash -c 'cd {:?} && mkdir -p {:?}'", root, relative_target));
+        fmt::format("sudo /bin/bash -c {}", mp::utils::escape_for_shell(inner)));
 }
 
 // Set ownership of all directories on a path starting on a given root.
@@ -614,13 +627,15 @@ void mp::utils::set_owner_for(mp::SSHSession& session,
                               int vm_user,
                               int vm_group)
 {
+    auto top_segment = relative_target.substr(0, relative_target.find_first_of('/'));
+    auto inner = fmt::format("cd {} && chown -R {}:{} {}",
+                             mp::utils::escape_for_shell(root),
+                             vm_user,
+                             vm_group,
+                             mp::utils::escape_for_shell(top_segment));
     MP_UTILS.run_in_ssh_session(
         session,
-        fmt::format("sudo /bin/bash -c 'cd {:?} && chown -R {}:{} {:?}'",
-                    root,
-                    vm_user,
-                    vm_group,
-                    relative_target.substr(0, relative_target.find_first_of('/'))));
+        fmt::format("sudo /bin/bash -c {}", mp::utils::escape_for_shell(inner)));
 }
 
 mp::Path mp::Utils::derive_instances_dir(const mp::Path& data_dir,
