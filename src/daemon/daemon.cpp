@@ -64,6 +64,7 @@
 
 #include <QDir>
 #include <QEventLoop>
+#include <QFile>
 #include <QFutureSynchronizer>
 #include <QStorageInfo>
 #include <QString>
@@ -71,6 +72,10 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include <algorithm>
+#include <fstream>
+#include <thread>
+
+#include <climits>
 #include <cassert>
 #include <functional>
 #include <optional>
@@ -483,6 +488,20 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     auto extra_interfaces =
         validate_extra_interfaces(request, *config->factory, nets_need_bridging, option_errors);
 
+    std::vector<mp::PassthroughDevice> passthrough_devices;
+    std::vector<std::string> devices_need_binding;
+
+    if (request->passthrough_devices_size() > 0)
+    {
+        std::vector<std::string> addresses;
+        for (const auto& dev : request->passthrough_devices())
+            addresses.push_back(dev.pci_address());
+
+        devices_need_binding = MP_PLATFORM.check_passthrough_devices(addresses);
+        for (const auto& addr : addresses)
+            passthrough_devices.push_back({addr});
+    }
+
     struct CheckedArguments
     {
         mp::MemorySize mem_size;
@@ -490,7 +509,9 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         std::string instance_name;
         std::string zone_name;
         std::vector<mp::NetworkInterface> extra_interfaces;
+        std::vector<mp::PassthroughDevice> passthrough_devices;
         std::vector<std::string> nets_need_bridging;
+        std::vector<std::string> devices_need_binding;
         mp::LaunchError option_errors;
     } ret{
         std::move(mem_size),
@@ -498,7 +519,9 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         std::move(instance_name),
         std::move(zone_name),
         std::move(extra_interfaces),
+        std::move(passthrough_devices),
         std::move(nets_need_bridging),
+        std::move(devices_need_binding),
         std::move(option_errors),
     };
     return ret;
@@ -1362,6 +1385,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec.zone,
                                               spec.default_mac_address,
                                               spec.extra_interfaces,
+                                              spec.passthrough_devices,
                                               spec.ssh_username,
                                               vm_image,
                                               cloud_init_iso,
@@ -3184,6 +3208,31 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                                       "Missing bridges",
                                                       create_error.SerializeAsString()});
     }
+    else if (auto& devices = checked_args.devices_need_binding;
+             !devices.empty() && !request->permission_to_bind_vfio())
+    {
+        CreateError create_error;
+        create_error.add_error_codes(CreateError::DEVICE_BINDING_REQUIRED);
+
+        CreateReply reply;
+        *reply.mutable_devices_need_binding() = {
+            std::make_move_iterator(devices.begin()),
+            std::make_move_iterator(devices.end())};
+        server->Write(reply);
+
+        return status_promise->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                                      "Device binding required",
+                                                      create_error.SerializeAsString()});
+    }
+
+    // Bind devices to vfio-pci if user authorized
+    if (request->permission_to_bind_vfio())
+    {
+        std::vector<std::string> addresses;
+        for (const auto& dev : checked_args.passthrough_devices)
+            addresses.push_back(dev.pci_address);
+        MP_PLATFORM.bind_passthrough_devices(addresses);
+    }
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
@@ -3232,6 +3281,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     vm_desc.disk_space,
                     vm_desc.default_mac_address,
                     vm_desc.extra_interfaces,
+                    vm_desc.passthrough_devices,
                     config->ssh_username,
                     VirtualMachine::State::off,
                     {},
@@ -3321,6 +3371,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 zone_name,
                 "",
                 {},
+                {},
                 config->ssh_username,
                 VMImage{},
                 "",
@@ -3396,6 +3447,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
+            vm_desc.passthrough_devices = checked_args.passthrough_devices;
 
             vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
             vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
@@ -3919,6 +3971,9 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
+
+    for (const auto& dev : vm_specs.passthrough_devices)
+        info->add_passthrough_devices(dev.pci_address);
 
     const auto created_time = QFileInfo{vm.instance_directory().path()}.birthTime();
     auto timestamp = instance_info->mutable_creation_timestamp();

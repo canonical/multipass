@@ -103,4 +103,19 @@ private:
 
     Terminal* term;
 };
+
+class DeviceBindingPrompter : private DisabledCopyMove
+{
+public:
+    explicit DeviceBindingPrompter(Terminal* term) : term(term){};
+
+    ~DeviceBindingPrompter() = default;
+
+    bool device_binding_prompt(const std::vector<std::string>& devices_need_binding) const;
+
+private:
+    DeviceBindingPrompter() = default;
+
+    Terminal* term;
+};
 } // namespace multipass

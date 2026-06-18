@@ -117,6 +117,7 @@ struct TestQemuSnapshot : public Test
             disk_space,
             "mac",
             extra_interfaces,
+            {},
             "",
             state,
             mounts,

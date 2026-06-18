@@ -29,13 +29,15 @@
 #include <scope_guard.hpp>
 
 #include <QCoreApplication>
-#include <QDBusMetaType>
-#include <QString>
+#include <QFile>
 #include <QtDBus/QtDBus>
 
 #include <cassert>
 #include <chrono>
+#include <cstring>
+#include <dirent.h>
 #include <exception>
+#include <fstream>
 #include <mutex>
 #include <random>
 #include <type_traits>
@@ -247,6 +249,144 @@ void mp::Backend::check_if_kvm_is_in_use()
             "starting a Multipass instance.");
 
     MP_LINUX_SYSCALLS.close(ret);
+}
+
+bool mp::Backend::is_iommu_enabled() const
+{
+    auto dir = opendir("/sys/kernel/iommu_groups");
+    if (!dir)
+        return false;
+
+    int count = 0;
+    while (readdir(dir))
+        ++count;
+
+    closedir(dir);
+    return count > 2; // . and .. always present; >2 means at least one iommu group
+}
+
+bool mp::Backend::is_bound_to_vfio(const std::string& pci_address) const
+{
+    auto driver_link = fmt::format("/sys/bus/pci/devices/{}/driver", pci_address);
+
+    char buf[256];
+    ssize_t len = readlink(driver_link.c_str(), buf, sizeof(buf) - 1);
+    if (len < 0)
+        return false;
+
+    buf[len] = '\0';
+    return strstr(buf, "vfio-pci") != nullptr;
+}
+
+void mp::Backend::check_vfio_bind_prerequisites(const std::string& pci_address) const
+{
+    namespace fs = std::filesystem;
+    const auto device_dir = fs::path("/sys/bus/pci/devices") / pci_address;
+
+    std::error_code ec;
+    if (!fs::exists(device_dir, ec))
+        throw std::runtime_error(
+            fmt::format("PCI device {} does not exist", pci_address));
+
+    auto driver_of = [](const fs::path& dev) -> std::string {
+        std::error_code e;
+        auto target = fs::read_symlink(dev / "driver", e);
+        return e ? std::string{} : target.filename().string();
+    };
+
+    auto require_free = [&](const fs::path& dev, std::string_view role) {
+        const auto drv = driver_of(dev);
+        // Empty   = unbound, fine.
+        // vfio-pci = already ours, fine.
+        // pcieport = PCIe bridge, on VFIO's allow-list, fine.
+        if (drv.empty() || drv == "vfio-pci" || drv == "pcieport")
+            return;
+        throw std::runtime_error(fmt::format(
+            "Cannot use {} for passthrough: {} is bound to driver '{}'. "
+            "Detach it from the host first — typically by claiming it "
+            "with vfio-pci at boot via /etc/modprobe.d/vfio.conf.",
+            pci_address, role, drv));
+    };
+
+    require_free(device_dir, fmt::format("device {}", pci_address));
+
+    const auto group_devices = device_dir / "iommu_group" / "devices";
+    if (!fs::exists(group_devices, ec))
+        throw std::runtime_error(fmt::format(
+            "PCI device {} has no IOMMU group — IOMMU is likely disabled. "
+            "Enable VT-d/AMD-Vi in firmware and add intel_iommu=on or "
+            "amd_iommu=on to the kernel command line.",
+            pci_address));
+
+    for (const auto& entry : fs::directory_iterator(group_devices, ec))
+    {
+        const auto sibling = entry.path().filename().string();
+        if (sibling == pci_address)
+            continue;
+        require_free(entry.path(),
+                     fmt::format("IOMMU group sibling {}", sibling));
+    }
+}
+
+void mp::Backend::bind_device_to_vfio(const std::string& pci_address) const
+{
+    check_vfio_bind_prerequisites(pci_address);
+    auto device_dir = fmt::format("/sys/bus/pci/devices/{}", pci_address);
+
+    // Ensure vfio-pci module is loaded so that /sys/bus/pci/drivers/vfio-pci exists
+    if (access("/sys/bus/pci/drivers/vfio-pci", F_OK) != 0)
+    {
+        if (!MP_UTILS.run_cmd_for_status("modprobe", {"vfio-pci"}))
+        {
+            throw std::runtime_error(
+                "The vfio-pci kernel module is not loaded and could not be loaded automatically. "
+                "Please ensure your kernel supports VFIO and load it manually with: sudo modprobe vfio-pci");
+        }
+    }
+
+    std::ifstream vendor_file(device_dir + "/vendor");
+    std::ifstream device_file(device_dir + "/device");
+
+    if (!vendor_file || !device_file)
+    {
+        throw std::runtime_error(fmt::format("Cannot read PCI device IDs for {}", pci_address));
+    }
+
+    std::string vendor, device;
+    vendor_file >> vendor;
+    device_file >> device;
+
+    // Unbind from current driver if bound
+    auto driver_link = device_dir + "/driver";
+    if (access(driver_link.c_str(), F_OK) == 0)
+    {
+        auto unbind_path = driver_link + "/unbind";
+        std::ofstream unbind_file(unbind_path);
+        if (unbind_file)
+        {
+            unbind_file << pci_address << std::flush;
+            if (!unbind_file)
+            {
+                throw std::runtime_error(
+                    fmt::format("Failed to unbind PCI device {} from its current driver", pci_address));
+            }
+        }
+    }
+
+    // Bind to vfio-pci
+    std::ofstream new_id_file("/sys/bus/pci/drivers/vfio-pci/new_id");
+    if (!new_id_file)
+    {
+        throw std::runtime_error(
+            fmt::format("Cannot open vfio-pci/new_id to bind device {}", pci_address));
+    }
+
+    new_id_file << vendor << " " << device << std::flush;
+    if (!new_id_file)
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to write to vfio-pci/new_id to bind device {}", pci_address));
+    }
 }
 
 mp::backend::CreateBridgeException::CreateBridgeException(const std::string& detail,

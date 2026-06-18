@@ -195,6 +195,14 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "Memory usage:",
                    to_usage(instance_details.memory_usage(), item.memory_total()));
 
+    if (item.passthrough_devices_size())
+    {
+        std::vector<std::string> devices;
+        for (const auto& dev : item.passthrough_devices())
+            devices.push_back(dev);
+        fmt::format_to(dest, "{:<16}{}\n", "Devices:", fmt::join(devices, ", "));
+    }
+
     const auto& mount_paths = item.mount_info().mount_paths();
     fmt::format_to(dest, "{:<16}{}", "Mounts:", mount_paths.empty() ? "--\n" : "");
 

@@ -77,6 +77,11 @@ message LaunchRequest {
     int32 timeout = 14;
     string password = 15;
     string zone = 16;
+    message PassthroughDevice {
+        string pci_address = 1;
+    }
+    repeated PassthroughDevice passthrough_devices = 17;
+    bool permission_to_bind_vfio = 18;
 }
 
 message LaunchError {
@@ -88,6 +93,7 @@ message LaunchError {
         INVALID_NETWORK = 4;
         INVALID_ZONE = 5;
         ZONE_UNAVAILABLE = 6;
+        DEVICE_BINDING_REQUIRED = 7;
     }
     repeated ErrorCodes error_codes = 1;
 }
@@ -130,6 +136,7 @@ message LaunchReply {
     repeated string workspaces_to_be_created = 11;
     bool password_requested = 12;
     string zone = 13;
+    repeated string devices_need_binding = 14;
 }
 
 message PurgeRequest {
@@ -254,6 +261,7 @@ message DetailedInfoItem {
     }
 
     Zone zone = 9;
+    repeated string passthrough_devices = 10;
 }
 
 message InfoReply {

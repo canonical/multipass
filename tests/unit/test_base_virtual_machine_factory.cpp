@@ -154,6 +154,7 @@ TEST_F(BaseFactory, createsCloudInitIsoImage)
                                           "zone1",
                                           "00:16:3e:fe:f2:b9",
                                           {},
+                                          {},
                                           "yoda",
                                           image,
                                           "",

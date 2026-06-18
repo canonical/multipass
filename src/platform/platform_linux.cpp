@@ -31,6 +31,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/qemu/qemu_virtual_machine_factory.h"
+#include "shared/linux/backend_utils.h"
 
 #ifdef VIRTUALBOX_ENABLED
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
@@ -54,7 +55,10 @@
 #include <QString>
 #include <QTextStream>
 
+#include <climits>
+#include <dirent.h>
 #include <errno.h>
+#include <fstream>
 #include <linux/if_arp.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -505,4 +509,98 @@ std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
                               : Path{"/usr/local/etc"};
 
     return base_dir / daemon_name;
+}
+
+std::vector<std::string>
+mp::platform::Platform::check_passthrough_devices(const std::vector<std::string>& pci_addresses) const
+{
+    std::vector<std::string> devices_need_binding;
+
+    if (!MP_BACKEND.is_iommu_enabled())
+    {
+        mpl::warn(category, "IOMMU is not enabled, but passthrough devices were requested");
+        // Still allow passthrough; caller will decide if this is fatal.
+    }
+
+    for (const auto& addr : pci_addresses)
+    {
+        auto device_dir = fmt::format("/sys/bus/pci/devices/{}", addr);
+        if (access(device_dir.c_str(), F_OK) != 0)
+        {
+            mpl::warn(category, "Invalid PCI device address: {}", addr);
+            continue;
+        }
+
+        // Warn if device is not a display controller
+        auto class_path = device_dir + "/class";
+        std::ifstream class_file(class_path);
+        if (class_file)
+        {
+            unsigned int pci_class = 0;
+            class_file >> std::hex >> pci_class;
+            if ((pci_class >> 16) != 0x03)
+                mpl::warn(category,
+                          "PCI device {} (class {:06x}) is not a display controller. "
+                          "Passthrough of non-display devices may cause host instability.",
+                          addr,
+                          pci_class);
+        }
+
+        // Check IOMMU group cohesion
+        auto group_link = device_dir + "/iommu_group";
+        char group_path[PATH_MAX]{};
+        auto len = readlink(group_link.c_str(), group_path, sizeof(group_path) - 1);
+        if (len > 0)
+        {
+            group_path[len] = '\0';
+            auto group_dir = fmt::format("{}/devices", group_path);
+            auto dir = opendir(group_dir.c_str());
+            if (dir)
+            {
+                struct dirent* entry;
+                while ((entry = readdir(dir)))
+                {
+                    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                        continue;
+                    if (std::find(pci_addresses.begin(), pci_addresses.end(), entry->d_name) ==
+                        pci_addresses.end())
+                    {
+                        mpl::warn(category,
+                                  "Device {} in the same IOMMU group as passthrough device {} is "
+                                  "not being passed through. The VM may fail to start.",
+                                  entry->d_name,
+                                  addr);
+                    }
+                }
+                closedir(dir);
+            }
+        }
+
+        if (!MP_BACKEND.is_bound_to_vfio(addr))
+            devices_need_binding.push_back(addr);
+    }
+
+    return devices_need_binding;
+}
+
+void mp::platform::Platform::bind_passthrough_devices(const std::vector<std::string>& pci_addresses) const
+{
+    for (const auto& addr : pci_addresses)
+    {
+        if (!MP_BACKEND.is_bound_to_vfio(addr))
+        {
+            MP_BACKEND.bind_device_to_vfio(addr);
+
+            // Verify binding took effect
+            using namespace std::chrono_literals;
+            std::this_thread::sleep_for(100ms);
+            if (!MP_BACKEND.is_bound_to_vfio(addr))
+            {
+                mpl::warn(category,
+                          "Device {} may not have been successfully bound to vfio-pci. "
+                          "The VM may fail to start.",
+                          addr);
+            }
+        }
+    }
 }

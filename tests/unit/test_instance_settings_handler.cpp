@@ -16,6 +16,8 @@
  */
 
 #include "common.h"
+#include "mock_backend_utils.h"
+#include "mock_singleton_helpers.h"
 #include "mock_virtual_machine.h"
 
 #include <multipass/constants.h>
@@ -143,7 +145,7 @@ struct TestInstanceSettingsHandler : public Test
     bool user_authorized = true;
     inline static constexpr std::array numeric_properties{"cpus", "disk", "memory"};
     inline static constexpr std::array boolean_properties{"bridged"};
-    inline static constexpr std::array properties{"cpus", "disk", "memory", "bridged"};
+    inline static constexpr std::array properties{"cpus", "disk", "memory", "bridged", "devices"};
 };
 
 QString make_key(const QString& instance_name, const QString& property)
@@ -258,6 +260,16 @@ TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
 
     EXPECT_EQ(handler.get(make_key(target_instance_name, "disk")), "12.1MiB");
     EXPECT_EQ(handler.get(make_key(target_instance_name, "memory")), "337.6KiB");
+}
+
+TEST_F(TestInstanceSettingsHandler, getFetchesInstanceDevices)
+{
+    constexpr auto target_instance_name = "gpu-node";
+    specs.insert({{"other", {}}, {target_instance_name, {}}});
+    specs[target_instance_name].passthrough_devices = {{"0000:01:00.0"}, {"0000:02:00.0"}};
+
+    auto got = make_handler().get(make_key(target_instance_name, "devices"));
+    EXPECT_EQ(got, "0000:01:00.0,0000:02:00.0");
 }
 
 struct TestBridgedInstanceSettings : public TestInstanceSettingsHandler,
@@ -786,4 +798,55 @@ INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
                          TestInstanceSettingsHandlerBadBooleanValues,
                          Combine(ValuesIn(TestInstanceSettingsHandler::boolean_properties),
                                  Values("apostrophe", "(')", "1974")));
+
+TEST_F(TestInstanceSettingsHandler, setRefusesBadDevicePciAddress)
+{
+    constexpr auto target_instance_name = "gpu-node";
+    specs.insert({{"other", {}}, {target_instance_name, {}}});
+    mock_vm(target_instance_name);
+
+    const auto original_specs = specs[target_instance_name];
+
+    MP_EXPECT_THROW_THAT(
+        make_handler().set(make_key(target_instance_name, "devices"), "bad-address"),
+        mp::InvalidSettingException,
+        mpt::match_what(HasSubstr("Invalid PCI address")));
+
+    EXPECT_EQ(original_specs, specs[target_instance_name]);
+}
+
+TEST_F(TestInstanceSettingsHandler, setRefusesDevicesNotBoundToVfio)
+{
+    constexpr auto target_instance_name = "gpu-node";
+    specs.insert({{"other", {}}, {target_instance_name, {}}});
+    mock_vm(target_instance_name);
+
+    const auto original_specs = specs[target_instance_name];
+
+    auto [mock_backend, guard] = mpt::MockBackend::inject();
+    EXPECT_CALL(*mock_backend, is_bound_to_vfio("0000:01:00.0")).WillOnce(Return(false));
+
+    MP_EXPECT_THROW_THAT(
+        make_handler().set(make_key(target_instance_name, "devices"), "0000:01:00.0"),
+        mp::InvalidSettingException,
+        mpt::match_what(HasSubstr("not bound to vfio-pci")));
+
+    EXPECT_EQ(original_specs, specs[target_instance_name]);
+}
+
+TEST_F(TestInstanceSettingsHandler, setAcceptsDevicesBoundToVfio)
+{
+    constexpr auto target_instance_name = "gpu-node";
+    specs.insert({{"other", {}}, {target_instance_name, {}}});
+    mock_vm(target_instance_name);
+
+    auto [mock_backend, guard] = mpt::MockBackend::inject();
+    EXPECT_CALL(*mock_backend, is_bound_to_vfio("0000:01:00.0")).WillOnce(Return(true));
+
+    EXPECT_NO_THROW(
+        make_handler().set(make_key(target_instance_name, "devices"), "0000:01:00.0"));
+
+    EXPECT_EQ(specs[target_instance_name].passthrough_devices.size(), 1u);
+    EXPECT_EQ(specs[target_instance_name].passthrough_devices[0].pci_address, "0000:01:00.0");
+}
 } // namespace

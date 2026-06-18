@@ -425,3 +425,13 @@ std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
     static const std::filesystem::path base_dir = "/usr/local/etc";
     return base_dir / daemon_name;
 }
+
+std::vector<std::string>
+mp::platform::Platform::check_passthrough_devices(const std::vector<std::string>&) const
+{
+    return {};
+}
+
+void mp::platform::Platform::bind_passthrough_devices(const std::vector<std::string>&) const
+{
+}

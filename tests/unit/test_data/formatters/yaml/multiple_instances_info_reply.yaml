@@ -23,6 +23,8 @@ bogus-instance:
       total: 1610612736
     ipv4:
       - 10.21.124.56
+    devices:
+      []
     mounts:
       source:
         uid_mappings:
@@ -48,5 +50,7 @@ bombastic:
       usage: ~
       total: ~
     ipv4:
+      []
+    devices:
       []
     mounts: ~
