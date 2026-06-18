@@ -40,15 +40,21 @@ jobs:
             "build-type": "Release",
             "cmake-preset": "ci-snap",
             "runs-on": "ubuntu-24.04-arm"
-          }, {
-            "build-type": "Release",
-            "cmake-preset": "ci-snap",
-            "runs-on": "self-hosted-linux-ppc64el-noble-edge"
-          }, {
-            "build-type": "Release",
-            "cmake-preset": "ci-snap",
-            "runs-on": "self-hosted-linux-s390x-noble-edge"
           });
+
+          if (context.eventName === 'schedule' &&
+              context.repo.owner === 'canonical' &&
+              context.repo.repo === 'multipass') {
+            matrix.include.push({
+              "build-type": "Release",
+              "cmake-preset": "ci-snap",
+              "runs-on": "self-hosted-linux-ppc64el-noble-edge"
+            }, {
+              "build-type": "Release",
+              "cmake-preset": "ci-snap",
+              "runs-on": "self-hosted-linux-s390x-noble-edge"
+            });
+          }
 
           if (context.eventName !== 'merge_group' &&
               context.eventName !== 'schedule' &&
