@@ -31,6 +31,7 @@ namespace
 {
 constexpr static auto log_category = "applevz-vm";
 } // namespace
+#include <multipass/utils.h>
 
 namespace multipass::applevz
 {
@@ -43,6 +44,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
       desc{desc},
       monitor{&monitor}
 {
+    expected_shutdown = utils::expects_shutdown_from_cloud_init(desc.user_data_config);
     initialize_vm_handle();
 }
 
@@ -360,8 +362,8 @@ void AppleVZVirtualMachine::fetch_ip(std::chrono::milliseconds timeout)
     auto action = [this] {
         detect_aborted_start();
         return ((management_ip = mp::backend::get_neighbour_ip(desc.default_mac_address)))
-                   ? mp::utils::TimeoutAction::done
-                   : mp::utils::TimeoutAction::retry;
+                 ? mp::utils::TimeoutAction::done
+                 : mp::utils::TimeoutAction::retry;
     };
 
     auto on_timeout = [this, &timeout] {

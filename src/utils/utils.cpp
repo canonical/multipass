@@ -692,11 +692,25 @@ auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& ne
                                  const std::string& bridge_type)
     -> std::optional<mp::NetworkInterfaceInfo>
 {
-    const auto it =
-        std::find_if(std::cbegin(networks),
-                     std::cend(networks),
-                     [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
-                         return info.type == bridge_type && info.has_link(target_network);
-                     });
+    const auto it = std::find_if(std::cbegin(networks),
+                                 std::cend(networks),
+                                 [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
+                                     return info.type == bridge_type &&
+                                            info.has_link(target_network);
+                                 });
     return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
+}
+
+bool mp::utils::expects_shutdown_from_cloud_init(const YAML::Node& user_data_config)
+{
+    if (user_data_config["power_state"])
+    {
+        auto ps = user_data_config["power_state"];
+        if (ps["mode"])
+        {
+            std::string mode = ps["mode"].as<std::string>();
+            return (mode == "poweroff" || mode == "halt");
+        }
+    }
+    return false;
 }
