@@ -29,6 +29,7 @@
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/ssh/ssh_session.h>
 
 #include <ssh/ssh_client_key_provider.h>
@@ -73,6 +74,9 @@ mp::id_mappings convert_id_mappings(const char* in)
 
 int main(int argc, char* argv[])
 {
+    // TODO: Remove static once we do not use exit() anymore
+    static multipass::LibsshScopeGuard libssh_guard;
+
     if (argc != 9)
     {
         cerr << "Incorrect arguments" << endl;
