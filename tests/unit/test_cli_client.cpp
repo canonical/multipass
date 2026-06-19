@@ -4494,9 +4494,11 @@ TEST_F(Client, zonesCmdFormatIsCorrectCSV)
     const auto reply_zone1 = reply.add_zones();
     reply_zone1->set_name("zone1");
     reply_zone1->set_available(true);
+    reply_zone1->set_subnet("192.168.1.0/24");
     const auto reply_zone2 = reply.add_zones();
     reply_zone2->set_name("zone2");
     reply_zone2->set_available(false);
+    reply_zone2->set_subnet("192.168.2.0/24");
 
     std::stringstream cout, cerr;
     mpt::MockTerminal term;
@@ -4508,7 +4510,9 @@ TEST_F(Client, zonesCmdFormatIsCorrectCSV)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, reply)));
     EXPECT_EQ(setup_client_and_run({"zones", "--format", "csv"}, term), mp::ReturnCode::Ok);
-    EXPECT_THAT(cout.str(), HasSubstr("Name,Available\nzone1,true\nzone2,false"));
+    EXPECT_THAT(
+        cout.str(),
+        HasSubstr("Name,Available,Subnet\nzone1,true,192.168.1.0/24\nzone2,false,192.168.2.0/24"));
 }
 
 // enable_zones tests

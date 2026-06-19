@@ -633,12 +633,16 @@ std::string mp::TableFormatter::format(const ZonesReply& reply) const
         [](const auto& zone) -> int { return zone.name().length(); },
         name_col_header.length());
 
-    constexpr auto row_format = "{:<{}}{:<}\n";
+    const std::string::size_type state_column_width = 14;
+
+    constexpr auto row_format = "{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
                    name_column_width,
-                   "State");
+                   "State",
+                   state_column_width,
+                   "Subnet");
 
     for (const auto& zone : zones)
     {
@@ -646,7 +650,9 @@ std::string mp::TableFormatter::format(const ZonesReply& reply) const
                        row_format,
                        zone.name(),
                        name_column_width,
-                       zone.available() ? "Available" : "Unavailable");
+                       zone.available() ? "Available" : "Unavailable",
+                       state_column_width,
+                       zone.subnet());
     }
 
     return fmt::to_string(buf);

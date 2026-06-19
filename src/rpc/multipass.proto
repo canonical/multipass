@@ -567,6 +567,7 @@ message WaitReadyReply {
 message Zone {
     string name = 1;
     bool available = 2;
+    string subnet = 3;
 }
 
 message ZonesRequest {

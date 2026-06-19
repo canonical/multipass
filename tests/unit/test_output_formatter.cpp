@@ -1443,10 +1443,12 @@ auto construct_zones_reply()
     auto zone_entry = zones_reply.add_zones();
     zone_entry->set_name("zone1");
     zone_entry->set_available(true);
+    zone_entry->set_subnet("192.168.1.0/24");
 
     zone_entry = zones_reply.add_zones();
     zone_entry->set_name("zone2");
     zone_entry->set_available(false);
+    zone_entry->set_subnet("192.168.2.0/24");
 
     return zones_reply;
 }
@@ -1455,9 +1457,9 @@ auto construct_zones_reply()
 TEST_F(BaseFormatterSuite, table_formatter_formats_zones_correctly)
 {
     const auto zones_reply = construct_zones_reply();
-    const std::string expected_output = "Name    State\n"
-                                        "zone1   Available\n"
-                                        "zone2   Unavailable\n";
+    const std::string expected_output = "Name    State         Subnet\n"
+                                        "zone1   Available     192.168.1.0/24\n"
+                                        "zone2   Unavailable   192.168.2.0/24\n";
 
     EXPECT_EQ(table_formatter.format(zones_reply), expected_output);
 }
@@ -1468,10 +1470,12 @@ TEST_F(BaseFormatterSuite, json_formatter_formats_zones_correctly)
     const auto zones_reply = construct_zones_reply();
     const std::string expected_output = "{\n"
                                         "    \"zone1\": {\n"
-                                        "        \"available\": true\n"
+                                        "        \"available\": true,\n"
+                                        "        \"subnet\": \"192.168.1.0/24\"\n"
                                         "    },\n"
                                         "    \"zone2\": {\n"
-                                        "        \"available\": false\n"
+                                        "        \"available\": false,\n"
+                                        "        \"subnet\": \"192.168.2.0/24\"\n"
                                         "    }\n"
                                         "}\n";
 
@@ -1484,8 +1488,10 @@ TEST_F(BaseFormatterSuite, yaml_formatter_formats_zones_correctly)
     const auto zones_reply = construct_zones_reply();
     const std::string expected_output = "zone1:\n"
                                         "  available: true\n"
+                                        "  subnet: 192.168.1.0/24\n"
                                         "zone2:\n"
-                                        "  available: false\n";
+                                        "  available: false\n"
+                                        "  subnet: 192.168.2.0/24\n";
 
     EXPECT_EQ(yaml_formatter.format(zones_reply), expected_output);
 }

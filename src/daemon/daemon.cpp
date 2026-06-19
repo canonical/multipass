@@ -3024,6 +3024,7 @@ try // clang-format on
     {
         const auto reply_zone = response.add_zones();
         reply_zone->set_name(zone.get().get_name());
+        reply_zone->set_subnet(zone.get().get_subnet().to_cidr());
         reply_zone->set_available(zone.get().is_available());
     }
 
