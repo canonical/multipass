@@ -141,5 +141,5 @@ jobs:
         run: exit 1
 
       - name: CLI tests failure check
-        if: ${{ needs.cli-tests.result == 'failure' || needs.cli-tests.result == 'cancelled' }}
+        if: ${{ needs.cli-tests-ut.result == 'failure' || needs.cli-tests-ut.result == 'cancelled' }}
         run: exit 1

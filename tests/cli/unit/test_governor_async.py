@@ -103,11 +103,22 @@ async def run_governor(controller, ready_fn=None, exit_fn=None):
             )
         )
         stack.enter_context(patch.object(governor, "_authenticate_client_cert"))
+
+        ready_side_effect = ready_fn or hang_forever
+        if not asyncio.iscoroutinefunction(ready_side_effect):
+            sync_ready = ready_side_effect
+
+            async def ready_side_effect(*args, **kwargs):
+                result = sync_ready(*args, **kwargs)
+                if asyncio.iscoroutine(result):
+                    return await result
+                return result
+
         stack.enter_context(
             patch.object(
                 governor,
                 "wait_for_multipassd_ready",
-                side_effect=ready_fn or hang_forever,
+                side_effect=ready_side_effect,
             )
         )
         stack.enter_context(
@@ -513,7 +524,7 @@ class TestGovernorConcurrentOperations:
                 )
             )
             stack.enter_context(
-                patch.object(governor, "on_monitor_exit", side_effect=lambda t: None)
+                patch.object(governor, "on_monitor_exit", new_callable=AsyncMock)
             )
             stack.enter_context(patch("cli.controller.multipassd_governor.Session"))
 
