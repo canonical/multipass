@@ -19,19 +19,20 @@
 """Helpers used while *seeding* upgrade VMs.
 
 Seeded VMs must outlive the test process and the package upgrade, so they are
-launched via the shared ``launch`` helper with ``autopurge=False``. These
-utilities cover the bits ``launch`` does not: making seeding idempotent, and
-providing a host mount source that both the daemon can read and the upgrade
-preserves.
+launched via ``seeded_vm`` -- a thin wrapper over the shared ``launch`` helper
+that pins the name and sets ``autopurge=False``. These utilities cover the bits
+``launch`` does not: making seeding idempotent, and providing a host mount
+source that both the daemon can read and the upgrade preserves.
 """
 
 import logging
 import shutil
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 from cli.config import cfg
-from cli.multipass import multipass, vm_exists
+from cli.multipass import launch, multipass, vm_exists
 from cli.utilities import run_in_new_interpreter
 from cli.utilities.temputils import get_snap_temp_root, make_test_tmp_dir_for_snap
 
@@ -47,6 +48,24 @@ def ensure_absent(name: str) -> None:
         return
     logging.info("upgrade-seed :: purging pre-existing `%s`", name)
     multipass("delete", name, "--purge")
+
+
+@contextmanager
+def seeded_vm(name: str, *, extra_args=None):
+    """Launch a persistent VM to seed, yielding the cli ``launch`` handle.
+
+    Wraps the shared ``launch`` helper with the two conventions every seed test
+    needs: make the name idempotent (``ensure_absent``) and keep the VM around
+    after the test process exits (``autopurge=False``) so it survives the
+    upgrade. ``extra_args`` are forwarded verbatim to ``launch`` (e.g.
+    ``--network`` or ``--cloud-init``).
+    """
+    ensure_absent(name)
+    override = {"name": name, "autopurge": False}
+    if extra_args:
+        override["extra_args"] = extra_args
+    with launch(cfg_override=override) as vm:
+        yield vm
 
 
 def daemon_readable_dir(label: str) -> Path:

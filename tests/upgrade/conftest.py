@@ -48,7 +48,6 @@ import pytest
 
 from cli.config import cfg
 from cli.multipass import get_multipass_version, vm_exists, multipass
-from cli.conftest import multipassd_impl
 
 # Reuse the whole cli test framework (options, fixtures, governor, session setup).
 pytest_plugins = ["cli.conftest"]
@@ -139,50 +138,33 @@ def _purge_marked(request):
         if vm_exists(name):
             multipass("delete", name, "--purge")
 
-def _has_mark(item, mark_name: str) -> bool:
-    return item.get_closest_marker(mark_name) is not None
 
 @pytest.fixture(scope="session", autouse=True)
-def multipassd_session_scoped():
-    with multipassd_impl() as daemon:
-        yield daemon
+def _daemon_running(multipassd_session_scoped):
+    """Keep the daemon up for the whole suite, reusing the cli framework's
+    session-scoped governor fixture."""
+    yield multipassd_session_scoped
+
 
 @pytest.hookimpl(trylast=True)
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(items):
+    """Guard the seed/verify split: a test belongs to one phase, and a single
+    pytest invocation must not mix the two (the package upgrade happens between
+    them, so they are always separate runs).
 
-    EXCLUSIVE_RUN_MARKS = ("seed", "verify")
-
-    selected_by_mark = {
-        mark: [item for item in items if _has_mark(item, mark)]
-        for mark in EXCLUSIVE_RUN_MARKS
-    }
-
-    # A single test must not be both seed and verify.
+    ``trylast`` so this runs after pytest's own ``-m`` deselection: when a phase
+    is selected, ``items`` holds only that phase and the guard stays quiet.
+    """
+    phases = {"seed", "verify"}
+    selected = set()
     for item in items:
-        present = [mark for mark in EXCLUSIVE_RUN_MARKS if _has_mark(item, mark)]
-        if len(present) > 1:
-            raise pytest.UsageError(
-                f"{item.nodeid} has mutually exclusive marks: {', '.join(present)}"
-            )
+        marks = phases & {mark.name for mark in item.iter_markers()}
+        if len(marks) > 1:
+            raise pytest.UsageError(f"{item.nodeid} is both seed and verify")
+        selected |= marks
 
-    # A single pytest invocation must not run both seed and verify tests.
-    active_marks = [
-        mark
-        for mark, marked_items in selected_by_mark.items()
-        if marked_items
-    ]
-
-    if len(active_marks) > 1:
-        examples = {
-            mark: selected_by_mark[mark][0].nodeid
-            for mark in active_marks
-        }
-
+    if len(selected) > 1:
         raise pytest.UsageError(
-            "seed and verify tests must be run separately.\n"
-            f"Selected marks: {', '.join(active_marks)}\n"
-            + "\n".join(
-                f"Example {mark} test: {nodeid}"
-                for mark, nodeid in examples.items()
-            )
+            "seed and verify tests must be run separately; "
+            "select a phase with `-m seed` or `-m verify`."
         )
