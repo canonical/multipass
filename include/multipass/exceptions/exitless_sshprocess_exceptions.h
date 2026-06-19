@@ -56,4 +56,11 @@ public:
     }
 };
 
+class EmptySSHProcessError : public ExitlessSSHProcessException
+{
+public:
+    EmptySSHProcessError() : ExitlessSSHProcessException{"(empty)", "Empty SSHProcess"}
+    {
+    }
+};
 } // namespace multipass
