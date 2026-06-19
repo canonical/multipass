@@ -21,21 +21,15 @@ an upgrade. This is the case most sensitive to on-disk format migrations."""
 
 import pytest
 
-from cli.config import cfg
-from cli.multipass import launch, multipass, state, snapshot_count, path_exists
+from cli.multipass import multipass, state, snapshot_count, path_exists
 from .helpers import make_sentinel, write_sentinel
-from .seedutils import ensure_absent
+from .seedutils import seeded_vm
 
 VM = "upg-snapshot"
 BASE = "snap-base"
 CHILD = "snap-child"
 BASE_COMMENT = "upgrade base snapshot"
 CHILD_COMMENT = "upgrade child snapshot"
-
-
-def _require_snapshots():
-    if cfg.driver in ("lxd", "applevz"):
-        pytest.skip(f"the `{cfg.driver}` driver does not support snapshots")
 
 
 def _snapshot(name, snapshot_name, comment):
@@ -45,10 +39,9 @@ def _snapshot(name, snapshot_name, comment):
 
 
 @pytest.mark.seed
+@pytest.mark.snapshot
 def test_snapshot_seed(seed_manifest):
-    _require_snapshots()
-    ensure_absent(VM)
-    with launch(cfg_override={"name": VM, "autopurge": False}):
+    with seeded_vm(VM):
         # Data captured by BASE only.
         base_only = make_sentinel("snapshot-base")
         base_only_path = write_sentinel(VM, "base-only", base_only)
@@ -79,9 +72,9 @@ def _list_snapshots(name):
 
 
 @pytest.mark.verify
+@pytest.mark.snapshot
 @pytest.mark.purge(VM)
 def test_snapshot_verify(verify_manifest):
-    _require_snapshots()
     recorded = verify_manifest[VM]
 
     assert state(VM) == "Stopped"
