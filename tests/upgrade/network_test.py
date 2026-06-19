@@ -36,9 +36,9 @@ import sys
 
 import pytest
 
-from cli.multipass import launch, multipass, state
+from cli.multipass import multipass, state
 from .helpers import guest_interface_macs, resume_seeded
-from .seedutils import ensure_absent
+from .seedutils import seeded_vm
 from .netutils import create_ephemeral_bridge, delete_ephemeral_bridge
 
 VM = "upg-network"
@@ -64,12 +64,7 @@ def ephemeral_bridge():
 @pytest.mark.seed
 @pytest.mark.usefixtures("ephemeral_bridge")
 def test_network_seed(seed_manifest):
-    ensure_absent(VM)
-    with launch(cfg_override={
-        "name": VM,
-        "autopurge": False,
-        "extra_args": ["--network", f"name={BRIDGE},mode=manual"],
-    }):
+    with seeded_vm(VM, extra_args=["--network", f"name={BRIDGE},mode=manual"]):
         macs = guest_interface_macs(VM)
         assert len(macs) >= 2, f"expected an extra interface, found MACs: {macs}"
         assert multipass("stop", VM)
