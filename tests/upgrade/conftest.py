@@ -41,6 +41,7 @@ suite via its own path (``pytest tests/upgrade``), not as part of a combined
 
 import json
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -123,20 +124,47 @@ def verify_manifest():
     yield document["scenarios"]
 
 
-@pytest.fixture(autouse=True)
-def _purge_marked(request):
-    """Purge the VMs named in a test's ``@pytest.mark.purge(...)`` once it finishes.
+@dataclass
+class Scenario:
+    """An upgrade concern's binding: its VM name and its slice of the manifest.
 
-    Runs in teardown, so the VM is removed even if the test fails -- the natural
-    way to keep verify tests clean without an inline delete at every return.
+    Seed tests fill ``record`` in; verify tests read it back. Tests name their VM
+    once with ``@pytest.mark.scenario("<vm-name>")`` and request the matching
+    fixture, instead of indexing the manifest by hand.
     """
-    yield
-    marker = request.node.get_closest_marker("purge")
-    if not marker:
-        return
-    for name in marker.args:
-        if vm_exists(name):
-            multipass("delete", name, "--purge")
+
+    vm: str
+    record: dict
+
+
+def _scenario_vm(request) -> str:
+    marker = request.node.get_closest_marker("scenario")
+    if marker is None or not marker.args:
+        raise pytest.UsageError(
+            f"{request.node.nodeid} must name its VM with "
+            "`@pytest.mark.scenario('<vm-name>')`"
+        )
+    return marker.args[0]
+
+
+@pytest.fixture
+def seed_scenario(request, seed_manifest):
+    """Bind a seed test to a fresh manifest slice, keyed by its scenario VM."""
+    vm = _scenario_vm(request)
+    return Scenario(vm, seed_manifest.setdefault(vm, {}))
+
+
+@pytest.fixture
+def verify_scenario(request, verify_manifest):
+    """Bind a verify test to its recorded slice and purge the VM afterwards.
+
+    The purge runs in teardown, so the VM is removed even if the test fails --
+    the natural way to keep verify tests clean with nothing to forget per test.
+    """
+    vm = _scenario_vm(request)
+    yield Scenario(vm, verify_manifest[vm])
+    if vm_exists(vm):
+        multipass("delete", vm, "--purge")
 
 
 @pytest.fixture(scope="session", autouse=True)

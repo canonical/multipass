@@ -57,6 +57,36 @@ def assert_sentinel(vm_name: str, path: str, expected: str) -> None:
     )
 
 
+def seed_sentinel(vm_name: str, label: str) -> dict:
+    """Write a fresh labelled sentinel into the guest and return its record.
+
+    Bundles the sentinel's path and content into one dict, so a seed test can
+    stash it under a single manifest key and the verify phase can replay it with
+    ``assert_sentinel_record``.
+    """
+    content = make_sentinel(label)
+    path = write_sentinel(vm_name, label, content)
+    return {"path": path, "content": content}
+
+
+def assert_sentinel_record(vm_name: str, record: dict) -> None:
+    """Assert the guest still holds the sentinel captured by ``seed_sentinel``."""
+    assert_sentinel(vm_name, record["path"], record["content"])
+
+
+def park_seeded(vm_name: str, how: str = "stop", expected: str = "Stopped") -> None:
+    """Drive a seeded VM into its parked state and confirm it landed there.
+
+    The inverse of ``resume_seeded``: seed tests end by parking the VM in a
+    precise ``Stopped`` (``how="stop"``) or ``Suspended`` (``how="suspend"``)
+    state, so the verify phase has a version-independent expectation.
+    """
+    assert multipass(how, vm_name), f"`multipass {how} {vm_name}` failed"
+    assert state(vm_name) == expected, (
+        f"`{vm_name}` did not reach `{expected}` after `{how}`"
+    )
+
+
 def resume_seeded(vm_name: str, expected_state: str = "Stopped") -> None:
     """Assert the VM came back in its expected post-seed state, then boot it.
 
