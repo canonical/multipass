@@ -3105,9 +3105,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         prepare_future_watcher,
         &QFutureWatcher<mp::VirtualMachineDescription>::finished,
         [this, server, context, name, timeout, start, prepare_future_watcher, log_level] {
-            mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level,
-                                                                 *config->logger,
-                                                                 server};
+            // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
             try
             {

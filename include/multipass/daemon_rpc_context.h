@@ -17,9 +17,8 @@
 
 #pragma once
 
+#include <multipass/disabled_copy_move.h>
 #include <multipass/logging/client_logger.h>
-
-#include <grpc/status.h>
 
 #include <future>
 #include <optional>
