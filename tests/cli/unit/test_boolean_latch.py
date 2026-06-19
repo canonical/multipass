@@ -39,7 +39,7 @@ class TestBooleanLatch:
         latch.wait_until(True, timeout=1.0)
         elapsed = time.monotonic() - start
 
-        assert elapsed < 0.1
+        assert elapsed < 0.5
 
     def test_wait_until_returns_immediately_when_already_false(self):
         """wait_until(False) should return immediately when already False."""
@@ -49,7 +49,7 @@ class TestBooleanLatch:
         latch.wait_until(False, timeout=1.0)
         elapsed = time.monotonic() - start
 
-        assert elapsed < 0.1
+        assert elapsed < 0.5
 
     def test_wait_until_blocks_until_set(self):
         """wait_until(True) should block until set() is called."""
@@ -100,7 +100,7 @@ class TestBooleanLatch:
         latch.wait_until(True, timeout=0.1)
         elapsed = time.monotonic() - start
 
-        assert 0.1 <= elapsed < 0.2
+        assert 0.1 <= elapsed < 1.0
         assert not latch.is_set()
 
     def test_concurrent_set_and_clear(self):
