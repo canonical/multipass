@@ -586,6 +586,10 @@ def multipassd_class_scoped(request):
         request.cls.multipassd = daemon
         yield daemon
 
+@pytest.fixture(scope="session")
+def multipassd_session_scoped(request):
+    with multipassd_impl() as daemon:
+        yield daemon
 
 @pytest.fixture
 def windows_privileged_mounts(multipassd):
