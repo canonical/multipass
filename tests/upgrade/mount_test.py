@@ -29,9 +29,9 @@ from pathlib import Path
 
 import pytest
 
-from cli.multipass import multipass, state, mounts, read_file, write_file, path_exists
+from cli.multipass import multipass, mounts, read_file, write_file, path_exists
 from cli.utilities import retry
-from .helpers import make_sentinel, resume_seeded
+from .helpers import make_sentinel, park_seeded, resume_seeded
 from .seedutils import seeded_vm, daemon_readable_dir
 
 VM = "upg-mount"
@@ -43,7 +43,8 @@ def _guest_target(source: Path) -> str:
 
 
 @pytest.mark.seed
-def test_mount_seed(seed_manifest):
+@pytest.mark.scenario(VM)
+def test_mount_seed(seed_scenario):
     source = daemon_readable_dir(VM)
     target = _guest_target(source)
 
@@ -68,21 +69,20 @@ def test_mount_seed(seed_manifest):
         assert (source / "guest.txt").read_text(encoding="utf-8").strip() == guest_content
 
         recorded_mounts = mounts(VM)
-        assert multipass("stop", VM)
-        assert state(VM) == "Stopped"
+        park_seeded(VM)
 
-    seed_manifest[VM] = {
+    seed_scenario.record.update({
         "target": target,
         "host_content": host_content,
         "guest_content": guest_content,
         "mounts": recorded_mounts,
-    }
+    })
 
 
 @pytest.mark.verify
-@pytest.mark.purge(VM)
-def test_mount_verify(verify_manifest):
-    recorded = verify_manifest[VM]
+@pytest.mark.scenario(VM)
+def test_mount_verify(verify_scenario):
+    recorded = verify_scenario.record
     target = recorded["target"]
 
     # The mount definition must have survived the upgrade.
