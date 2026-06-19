@@ -375,7 +375,8 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
         .WillOnce([&tap_name](auto& cmd, auto& opts, auto...) {
             tap_name = opts.last();
             return true;
-        });
+        })
+        .WillOnce(Return(true));
 
     EXPECT_CALL(*mock_utils,
                 run_cmd_for_status(QString("ip"),
