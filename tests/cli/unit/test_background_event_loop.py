@@ -37,12 +37,18 @@ class TestBackgroundEventLoop:
         """run_fn() should schedule a callable on the loop thread."""
         results = []
 
+        results = []
+        import threading
+
+        called = threading.Event()
+
         def callback():
             results.append("called")
+            called.set()
 
         with BackgroundEventLoop() as loop:
             loop.run_fn(callback)
-            time.sleep(0.1)
+            assert called.wait(timeout=1.0)
 
         assert results == ["called"]
 
