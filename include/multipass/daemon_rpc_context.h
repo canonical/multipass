@@ -48,14 +48,12 @@ struct DaemonRpcContextImpl : DaemonRpcContext, private multipass::DisabledCopyM
 
     void set_value(grpc::Status status) override
     {
-        {
-            std::lock_guard lock{mutex};
-            // Free any resources that depend on server here.
-            logger.reset();
-        }
-        // Set the value only after releasing the lock: doing so unblocks the gRPC
-        // thread, which may then destroy this context. The destructor waits on the
-        // same mutex, so it cannot run until we are done touching our members.
+        std::lock_guard lock{mutex};
+        // Free any resources that depend on server here.
+        logger.reset();
+
+        // Keep the mutex held while fulfilling the promise so the gRPC thread cannot
+        // destroy this context while set_value() is still running.
         promise.set_value(std::move(status));
     }
 

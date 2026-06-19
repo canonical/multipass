@@ -39,7 +39,6 @@
 #include "mock_vm_image_vault.h"
 #include "stub_availability_zone.h"
 #include "stub_availability_zone_manager.h"
-#include "stub_logger.h"
 #include "stub_virtual_machine.h"
 
 #include <src/daemon/default_vm_image_vault.h>
