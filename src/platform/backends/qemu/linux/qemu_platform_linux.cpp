@@ -52,9 +52,12 @@ void create_tap_device(const QString& tap_name, const QString& bridge_name)
     if (!MP_UTILS.run_cmd_for_status("ip", {"addr", "show", tap_name}))
     {
         MP_UTILS.run_cmd_for_status("ip", {"tuntap", "add", tap_name, "mode", "tap"});
-        MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "master", bridge_name});
-        MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "up"});
     }
+
+    // Ensure the device is linked to the bridge and up, regardless of its prior existence, since it
+    // may have been left in a broken state (e.g., attached to a stale bridge).
+    MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "master", bridge_name});
+    MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "up"});
 }
 
 void remove_tap_device(const QString& tap_device_name)
