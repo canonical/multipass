@@ -587,7 +587,7 @@ def multipassd_class_scoped(request):
         yield daemon
 
 @pytest.fixture(scope="session")
-def multipassd_session_scoped(request):
+def multipassd_session_scoped():
     with multipassd_impl() as daemon:
         yield daemon
 
