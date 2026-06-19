@@ -24,8 +24,8 @@ remain exactly as provisioned."""
 
 import pytest
 
-from cli.multipass import multipass, state, read_file, get_cloudinit_instance_id
-from .helpers import make_sentinel
+from cli.multipass import read_file, get_cloudinit_instance_id
+from .helpers import make_sentinel, assert_sentinel_record, park_seeded, resume_seeded
 from .seedutils import seeded_vm, daemon_readable_dir
 
 VM = "upg-cloudinit"
@@ -41,7 +41,8 @@ write_files:
 
 
 @pytest.mark.seed
-def test_cloudinit_seed(seed_manifest):
+@pytest.mark.scenario(VM)
+def test_cloudinit_seed(seed_scenario):
     content = make_sentinel("cloudinit")
 
     # The cloud-init file is read by the (confined) Multipass client at launch,
@@ -56,29 +57,23 @@ def test_cloudinit_seed(seed_manifest):
             "cloud-init marker was not provisioned as expected"
         )
         instance_id = get_cloudinit_instance_id(VM).strip()
-        assert multipass("stop", VM)
-        assert state(VM) == "Stopped"
+        park_seeded(VM)
 
-    seed_manifest[VM] = {
-        "marker_path": MARKER_PATH,
-        "marker_content": content,
+    seed_scenario.record.update({
+        "marker": {"path": MARKER_PATH, "content": content},
         "instance_id": instance_id,
-    }
+    })
 
 
 @pytest.mark.verify
-@pytest.mark.purge(VM)
-def test_cloudinit_verify(verify_manifest):
-    recorded = verify_manifest[VM]
+@pytest.mark.scenario(VM)
+def test_cloudinit_verify(verify_scenario):
+    recorded = verify_scenario.record
 
-    assert state(VM) == "Stopped"
-    assert multipass("start", VM)
-    assert state(VM) == "Running"
+    resume_seeded(VM, expected_state="Stopped")
 
     # The provisioned marker persists byte for byte...
-    assert read_file(VM, recorded["marker_path"]).strip() == recorded["marker_content"], (
-        "cloud-init marker changed or was lost across upgrade"
-    )
+    assert_sentinel_record(VM, recorded["marker"])
     # ...and the instance id is unchanged, proving cloud-init did not re-run.
     assert get_cloudinit_instance_id(VM).strip() == recorded["instance_id"], (
         "cloud-init instance id changed across upgrade (cloud-init re-ran?)"
