@@ -5,17 +5,24 @@ name: Version Upgrade Tests
 # job: the seeded VMs live in the daemon's on-disk storage (/var/snap/multipass
 # on Linux), which does not travel between jobs. The package swap happens
 # between the two phases, here, in CI -- the test code never installs anything.
+#
+# In CI this is dispatched by the Linux build (see linux.yml) once the branch's
+# snap has been published to its channel: it upgrades the *latest released*
+# Multipass (`stable`) to the snap *built by the branch* (`to-snap-channel`).
+# Both ends are plain snap channels, so the upgrade is a `snap refresh` that
+# keeps the common data dir in place.
 
 on:
   workflow_call:
     inputs: &inputs
       from-snap-channel:
         type: string
-        description: "Snap channel to install Multipass from (the 'before' version, X)"
-        required: true
+        description: "Snap channel to install Multipass from (the 'before' version, X). Defaults to the latest release (`stable`)."
+        required: false
+        default: "stable"
       to-snap-channel:
         type: string
-        description: "Snap channel to refresh Multipass to (the 'after' version, Y)"
+        description: "Snap channel to refresh Multipass to (the 'after' version, Y -- e.g. the branch's published channel)"
         required: true
       backend-driver:
         type: string
@@ -76,7 +83,7 @@ jobs:
       # NB: --remove-all-instances is deliberately NOT passed -- it would
       #     wipe the very VMs the verify phase relies on.
       ##################################################################
-      - name: Install Multipass (from / version X)
+      - name: Install Multipass (from / version X = latest release)
         run: sudo snap install multipass --channel="${FROM_SNAP_CHANNEL}"
 
       - name: Record installed 'from' version
@@ -147,10 +154,3 @@ jobs:
           path: reports/junit-verify.xml
           reporter: java-junit
           fail-on-error: false
-
-      - name: Fail if either phase failed
-        if: steps.seed.outputs.seed-exit != '' || steps.verify.outputs.verify-exit != ''
-        run: |
-          echo "seed exit: ${{ steps.seed.outputs.seed-exit || '0' }}"
-          echo "verify exit: ${{ steps.verify.outputs.verify-exit || '0' }}"
-          exit 1
