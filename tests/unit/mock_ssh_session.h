@@ -36,6 +36,8 @@ struct MockSSHSession : public SSHSession
                 (const std::string& cmd, bool whisper),
                 (override));
     MOCK_METHOD(bool, is_connected, (), (const, override));
+    MOCK_METHOD(bool, is_moved, (), (const, override));
+
     operator ssh_session() override
     {
         return nullptr;

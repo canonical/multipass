@@ -110,7 +110,7 @@ multipass::PlainSSHSession::~PlainSSHSession()
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
 {
     std::unique_lock lock{mut};
-    assert(session && "precondition - cannot call exec on null session");
+    assert(!is_moved() && "precondition - cannot call exec on a moved session");
 
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
     mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
@@ -200,8 +200,13 @@ void mp::PlainSSHSession::set_option(ssh_options_e type, const void* data)
     }
 }
 
-bool multipass::PlainSSHSession::is_connected() const
+bool mp::PlainSSHSession::is_connected() const
 {
     std::unique_lock lock{mut};
     return session && static_cast<bool>(ssh_is_connected(session.get()));
+}
+
+bool mp::PlainSSHSession::is_moved() const
+{
+    return !session;
 }
