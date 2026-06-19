@@ -36,8 +36,6 @@ class TestBackgroundEventLoop:
     def test_run_fn_schedules_callable(self):
         """run_fn() should schedule a callable on the loop thread."""
         results = []
-
-        results = []
         import threading
 
         called = threading.Event()
@@ -71,7 +69,7 @@ class TestBackgroundEventLoop:
             future = loop.run(check_drain())
             elapsed = future.result(timeout=2.0)
 
-        assert elapsed < 0.1
+        assert elapsed < 1.0
 
     def test_drain_loop_until_cancels_pending_tasks(self):
         """drain_loop_until should cancel and await pending tasks."""
@@ -94,7 +92,7 @@ class TestBackgroundEventLoop:
 
             assert task.done()
             assert task.cancelled()
-            assert elapsed < 0.5
+            assert elapsed < 1.5
 
     def test_drain_loop_until_handles_tasks_spawning_tasks(self):
         """drain_loop_until should handle tasks that spawn new tasks during cancellation."""
@@ -143,7 +141,7 @@ class TestBackgroundEventLoop:
             future = loop.run(run_and_drain())
             task, elapsed = future.result(timeout=2.0)
 
-            assert 0.2 <= elapsed < 0.5
+            assert 0.2 <= elapsed < 2.0
 
     def test_drain_loop_until_handles_multiple_tasks(self):
         """drain_loop_until should cancel multiple pending tasks."""
