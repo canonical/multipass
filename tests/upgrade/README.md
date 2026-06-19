@@ -84,10 +84,15 @@ Drop a `<concern>_test.py` in `tests/upgrade/` with a `seed`-marked test that re
 
 The upgrade suite has its own workflow at `.github/workflows/version-upgrade-tests.yml`, triggerable via `workflow_call` or `workflow_dispatch`. It installs the `from` channel, seeds, `snap refresh`es to the `to` channel, then verifies — all in one job, reporting both phases to GitHub Checks.
 
+**Automatic CI.** The Linux build (`linux.yml`) dispatches this workflow on every PR / merge-group / release build, once it has published the branch's snap to its channel. That run upgrades the **latest released** Multipass (`stable`) to the **snap built by the branch** (`edge/pr<N>`, `edge/ci<N>`, or `beta`), so each change is checked for upgrade safety. It runs only when a branch channel exists (it `needs` the publish job), and is Linux-only for now — GitHub-hosted Windows runners lack full Hyper-V and macOS runners can't nest-virtualize.
+
+Like the cli-tests workflow, it is **non-blocking**: seed/verify failures are surfaced as GitHub Checks (via `dorny/test-reporter`, `fail-on-error: false`) but do not fail the job, so an upgrade regression never fails the overall build. Inspect the "Upgrade seed/verify results" checks for the actual outcome.
+
+To trigger a one-off run manually (e.g. validating an arbitrary upgrade path):
+
 ```sh
-# Validate that VMs seeded on stable survive an upgrade to the candidate channel.
+# from-snap-channel defaults to `stable` (the latest release).
 gh workflow run "Version Upgrade Tests" \
-    -f from-snap-channel=stable \
     -f to-snap-channel=candidate
 ```
 
