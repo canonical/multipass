@@ -29,10 +29,10 @@ from pathlib import Path
 
 import pytest
 
-from cli.multipass import launch, multipass, state, mounts, read_file, write_file, path_exists
+from cli.multipass import multipass, state, mounts, read_file, write_file, path_exists
 from cli.utilities import retry
 from .helpers import make_sentinel, resume_seeded
-from .seedutils import ensure_absent, daemon_readable_dir
+from .seedutils import seeded_vm, daemon_readable_dir
 
 VM = "upg-mount"
 
@@ -50,8 +50,7 @@ def test_mount_seed(seed_manifest):
     host_content = make_sentinel("mount-host")
     (source / "host.txt").write_text(host_content, encoding="utf-8")
 
-    ensure_absent(VM)
-    with launch(cfg_override={"name": VM, "autopurge": False}):
+    with seeded_vm(VM):
         if sys.platform == "win32":
             multipass("set", "local.privileged-mounts=1")
 
