@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_ssh.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
@@ -41,24 +42,20 @@ struct SSHProcess : public Test
 
 TEST_F(SSHProcess, canRetrieveExitStatus)
 {
-    ssh_channel_callbacks callbacks{nullptr};
-    auto add_channel_cbs = [&callbacks](ssh_channel, ssh_channel_callbacks cb) {
-        callbacks = cb;
+    static constexpr int expected_status{42};
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
+    REPLACE(ssh_add_channel_callbacks, [](ssh_channel, ssh_channel_callbacks_struct* cb) {
+        cb->channel_exit_status_function(nullptr, nullptr, expected_status, cb->userdata);
         return SSH_OK;
-    };
-    REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
+    });
+    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_event_free, [](auto...) { return; });
+    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
-    int expected_status{42};
-    auto event_dopoll = [&callbacks, &expected_status](auto...) {
-        if (!callbacks)
-            return SSH_ERROR;
-        callbacks->channel_exit_status_function(nullptr,
-                                                nullptr,
-                                                expected_status,
-                                                callbacks->userdata);
-        return SSH_OK;
-    };
-    REPLACE(ssh_event_dopoll, event_dopoll);
     auto proc = session.exec("something");
     EXPECT_THAT(proc->exit_code(), Eq(expected_status));
 }
@@ -114,6 +111,9 @@ TEST_F(SSHProcess, readingFailureReturnsEmptyIfChannelClosed)
 
 TEST_F(SSHProcess, throwsOnReadErrors)
 {
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
     REPLACE(ssh_channel_read_timeout, [](auto...) { return -1; });
 
     auto proc = session.exec("something");
@@ -142,6 +142,9 @@ TEST_F(SSHProcess, canReadOutput)
         remaining -= num_to_copy;
         return num_to_copy;
     };
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
     REPLACE(ssh_channel_read_timeout, channel_read);
 
     auto proc = session.exec("something");

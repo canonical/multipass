@@ -376,6 +376,13 @@ TEST_P(IpExecution, getAllIpv4WorksWhenSshWorks)
         remaining -= num_to_copy;
         return num_to_copy;
     };
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
+    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_event_free, [](auto...) { return; });
+    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
     REPLACE(ssh_channel_read_timeout, channel_read);
 
     auto ip_list = vm.get_all_ipv4();

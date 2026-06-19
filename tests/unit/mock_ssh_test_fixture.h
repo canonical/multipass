@@ -38,7 +38,7 @@ struct MockSSHTestFixture // TODO@rewiressh remove
         is_eof.returnValue(true);
         get_exit_state.returnValue(SSH_OK);
         channel_is_open.returnValue(true);
-        channel_is_closed.returnValue(0);
+        channel_is_closed.returnValue(false);
         options_set.returnValue(SSH_OK);
     }
 

@@ -44,8 +44,13 @@ add_c_mocks(
   ssh_channel_change_pty_size
   ssh_channel_read_timeout
   ssh_channel_get_exit_state
+  ssh_channel_free
+  ssh_event_new
+  ssh_event_free
   ssh_event_dopoll
+  ssh_event_add_session
   ssh_add_channel_callbacks
+  ssh_remove_channel_callbacks
   sftp_server_new
   sftp_server_free
   sftp_reply_status
