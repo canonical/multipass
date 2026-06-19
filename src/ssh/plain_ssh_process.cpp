@@ -103,35 +103,6 @@ mp::PlainSSHProcess::PlainSSHProcess(ssh_session session,
     assert(this->session_lock.owns_lock() && session != nullptr);
 }
 
-mp::PlainSSHProcess::PlainSSHProcess(mp::PlainSSHProcess&& other)
-    : session_lock{std::move(other.session_lock)},
-      session{std::move(other.session)},
-      cmd{std::move(other.cmd)},
-      channel{std::move(other.channel)},
-      exit_result{std::move(other.exit_result)}
-{
-    // Moved-from object safety
-    other.session = nullptr; // libssh functions return SSH_ERROR
-    other.exit_result = std::make_exception_ptr(EmptySSHProcessError{});
-}
-
-mp::PlainSSHProcess& mp::PlainSSHProcess::operator=(mp::PlainSSHProcess&& other)
-{
-    if (this != &other)
-    {
-        session_lock = std::move(other.session_lock);
-        session = std::move(other.session);
-        cmd = std::move(other.cmd);
-        channel = std::move(other.channel);
-        exit_result = std::move(other.exit_result);
-        // Moved-from object safety
-        other.session = nullptr; // libssh functions return SSH_ERROR
-        other.exit_result = std::make_exception_ptr(EmptySSHProcessError{});
-    }
-
-    return *this;
-}
-
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 {
     rethrow_if_saved();
