@@ -69,7 +69,7 @@ TEST_F(TestPlainSSHSession, execThrowsOnADeadSession)
     mp::PlainSSHSession session = make_ssh_session();
 
     REPLACE(ssh_is_connected, [](auto...) { return false; });
-    EXPECT_THROW(session.exec("dummy"), std::runtime_error);
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
 TEST_F(TestPlainSSHSession, execThrowsIfSshIsDead)
@@ -79,7 +79,7 @@ TEST_F(TestPlainSSHSession, execThrowsIfSshIsDead)
     mp::PlainSSHSession session = make_ssh_session();
 
     REPLACE(ssh_is_connected, [](auto...) { return false; });
-    EXPECT_THROW(session.exec("dummy"), std::runtime_error);
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
 TEST_F(TestPlainSSHSession, execThrowsWhenUnableToOpenAChannelSession)
@@ -90,7 +90,7 @@ TEST_F(TestPlainSSHSession, execThrowsWhenUnableToOpenAChannelSession)
 
     REPLACE(ssh_is_connected, [](auto...) { return true; });
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
-    EXPECT_THROW(session.exec("dummy"), std::runtime_error);
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
 TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
@@ -102,7 +102,7 @@ TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
     REPLACE(ssh_is_connected, [](auto...) { return true; });
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
     REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_ERROR; });
-    EXPECT_THROW(session.exec("dummy"), std::runtime_error);
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
 TEST_F(TestPlainSSHSession, execSucceeds)
@@ -115,7 +115,7 @@ TEST_F(TestPlainSSHSession, execSucceeds)
     REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
     REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
 
-    EXPECT_NO_THROW(session.exec("dummy"));
+    EXPECT_NO_THROW(static_cast<void>(session.exec("dummy")));
 }
 
 TEST_F(TestPlainSSHSession, moveAssigns)

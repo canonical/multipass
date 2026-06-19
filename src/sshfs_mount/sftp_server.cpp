@@ -605,7 +605,8 @@ void mp::SftpServer::run()
 
                 if (!mount_path.empty())
                 {
-                    ssh_session->exec(fmt::format("sudo umount {}", mount_path));
+                    // TODO@sftp nodiscard
+                    (void)ssh_session->exec(fmt::format("sudo umount {}", mount_path));
                 }
 
                 sshfs_process = create_sshfs_process(*ssh_session,

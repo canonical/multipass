@@ -46,7 +46,8 @@ public:
      * @param whisper Whether to use trace rather than debug logging
      * @return An SSHProcess representing the remote process
      */
-    virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd, bool whisper = false) = 0;
+    [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
+                                                           bool whisper = false) = 0;
 
     /**
      * @return Whether this object represents a session that is currently connected
