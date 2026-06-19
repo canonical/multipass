@@ -78,7 +78,7 @@ Tests deliberately park VMs in a `Stopped` (or `Suspended`) state at the end of 
 
 ### Adding a test
 
-Drop a `<concern>_test.py` in `tests/upgrade/` with a `seed`-marked test that records into `seed_manifest` and a `verify`-marked test (plus `@pytest.mark.purge(...)`) that reads it back. Shared assertions live in `helpers.py`; `seedutils.py` has `ensure_absent` and `daemon_readable_dir` (a snap-readable, refresh-surviving host dir). Persistent seed VMs are launched with `launch(cfg_override={"name": ..., "autopurge": False, "extra_args": [...]})`.
+Drop a `<concern>_test.py` in `tests/upgrade/` with a `seed`-marked test that records into `seed_manifest` and a `verify`-marked test (plus `@pytest.mark.purge(...)`) that reads it back. Shared assertions live in `helpers.py`; `seedutils.py` has `seeded_vm` (the idempotent, persistent-VM launch wrapper), `ensure_absent`, and `daemon_readable_dir` (a snap-readable, refresh-surviving host dir). Launch persistent seed VMs with `seeded_vm("<vm-name>", extra_args=[...])`, which wraps the cli `launch` helper with `autopurge=False`. Driver-gated concerns reuse the cli framework's markers (e.g. `@pytest.mark.snapshot` is auto-skipped on drivers without snapshot support).
 
 ## Running in GitHub Actions
 

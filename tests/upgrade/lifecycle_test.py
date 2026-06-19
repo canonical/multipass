@@ -21,7 +21,7 @@
 import pytest
 
 from cli.config import cfg
-from cli.multipass import launch, multipass, state
+from cli.multipass import multipass, state
 from .helpers import (
     make_sentinel,
     write_sentinel,
@@ -30,18 +30,23 @@ from .helpers import (
     assert_fingerprint_unchanged,
     resume_seeded,
 )
-from .seedutils import ensure_absent
+from .seedutils import seeded_vm
 
 LIFECYCLE_VM = "upg-lifecycle"
 SUSPEND_VM = "upg-suspend"
+
+#: suspend/resume is not preserved across an upgrade on these drivers.
+requires_suspend = pytest.mark.skipif(
+    cfg.driver in ("lxd", "applevz"),
+    reason=f"suspend/resume is not supported on the `{cfg.driver}` driver",
+)
 
 
 # --- a stopped VM, its data and identity ---------------------------------------
 
 @pytest.mark.seed
 def test_lifecycle_seed(seed_manifest):
-    ensure_absent(LIFECYCLE_VM)
-    with launch(cfg_override={"name": LIFECYCLE_VM, "autopurge": False}):
+    with seeded_vm(LIFECYCLE_VM):
         content = make_sentinel("lifecycle")
         path = write_sentinel(LIFECYCLE_VM, "data", content)
         fingerprint = info_fingerprint(LIFECYCLE_VM)  # captured while running
@@ -68,16 +73,10 @@ def test_lifecycle_verify(verify_manifest):
 
 # --- a suspended VM ------------------------------------------------------------
 
-def _require_suspend():
-    if cfg.driver in ("lxd", "applevz"):
-        pytest.skip(f"suspend/resume is not supported on the `{cfg.driver}` driver")
-
-
 @pytest.mark.seed
+@requires_suspend
 def test_suspend_resume_seed(seed_manifest):
-    _require_suspend()
-    ensure_absent(SUSPEND_VM)
-    with launch(cfg_override={"name": SUSPEND_VM, "autopurge": False}):
+    with seeded_vm(SUSPEND_VM):
         content = make_sentinel("suspend")
         path = write_sentinel(SUSPEND_VM, "data", content)
         assert multipass("suspend", SUSPEND_VM)
@@ -90,9 +89,9 @@ def test_suspend_resume_seed(seed_manifest):
 
 
 @pytest.mark.verify
+@requires_suspend
 @pytest.mark.purge(SUSPEND_VM)
 def test_suspend_resume_verify(verify_manifest):
-    _require_suspend()
     recorded = verify_manifest[SUSPEND_VM]
 
     # The VM must come back still Suspended, then resume cleanly with its data.
