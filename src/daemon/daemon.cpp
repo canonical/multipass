@@ -3099,7 +3099,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     preparing_instances.insert(name);
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
-    auto log_level = mpl::level_from(request->verbosity_level());
 
     QObject::connect(prepare_future_watcher,
                      &QFutureWatcher<mp::VirtualMachineDescription>::finished,
@@ -3181,11 +3180,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          prepare_future_watcher->deleteLater();
                      });
 
-    auto make_vm_description =
-        [this, server, request, name, zone_name, checked_args, log_level]() mutable
+    auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
-        mpl::ClientLogger<CreateReply, CreateRequest> logger{log_level, *config->logger, server};
-
         try
         {
             CreateReply reply;
