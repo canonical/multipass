@@ -20,65 +20,52 @@
 
 What must survive the upgrade is the *instance's* NIC configuration -- the extra
 interface and its persisted MAC, stored in the instance record -- not the host
-bridge itself (host networking is expected to be rebuilt, and the user asked
-that it not survive a reboot). So the ephemeral host bridge is created and
-destroyed *within each phase* by a fixture: seed attaches a VM to it and records
-the MACs; verify re-creates the bridge, starts the VM, and confirms the same
-MACs came back. The bridge therefore never lingers between runs to perturb other
-tests or `multipass networks`. ``mode=manual`` keeps the guest from trying to
-DHCP on the isolated bridge.
-
-Linux only: the bridge is created with ``ip link``. The skip applies to both
-phases, so seed and verify stay consistent.
+network itself. The host network the VM attaches to is provided per-platform by
+the ``host_network`` fixture (see ``netutils``): a throwaway isolated bridge on
+Linux, an existing host network (Hyper-V switch / interface) on Windows/macOS.
+Seed attaches a VM and records the MACs; verify makes sure the same host network
+is present, starts the VM, and confirms the same MACs came back. ``mode=manual``
+keeps the guest from trying to DHCP on it.
 """
-
-import sys
 
 import pytest
 
 from .helpers import guest_interface_macs, park_seeded, resume_seeded
 from .seedutils import seeded_vm
-from .netutils import create_ephemeral_bridge, delete_ephemeral_bridge
+from .netutils import upgrade_network
 
 VM = "upg-network"
-BRIDGE = "mpupgtbr0"
-
-pytestmark = pytest.mark.skipif(
-    sys.platform != "linux", reason="ephemeral bridge networking is Linux-only"
-)
 
 
 @pytest.fixture
-def ephemeral_bridge():
-    """Create the runtime-only host bridge for one test; remove it afterwards.
+def host_network():
+    """A host network to attach to, for the duration of one test.
 
-    Used by both phases, so the bridge exists only for the duration of a single
-    test and is gone before any other test (or a later run) sees it.
+    On Linux it is a freshly-created isolated bridge, removed afterwards; on
+    Windows/macOS it is an existing host network that simply persists. Requested
+    by both phases so the network is in place whenever the VM is started.
     """
-    create_ephemeral_bridge(BRIDGE)
-    yield BRIDGE
-    delete_ephemeral_bridge(BRIDGE)
+    with upgrade_network() as name:
+        yield name
 
 
 @pytest.mark.seed
 @pytest.mark.scenario(VM)
-@pytest.mark.usefixtures("ephemeral_bridge")
-def test_network_seed(seed_scenario):
-    with seeded_vm(VM, extra_args=["--network", f"name={BRIDGE},mode=manual"]):
+def test_network_seed(seed_scenario, host_network):
+    with seeded_vm(VM, extra_args=["--network", f"name={host_network},mode=manual"]):
         macs = guest_interface_macs(VM)
         assert len(macs) >= 2, f"expected an extra interface, found MACs: {macs}"
         park_seeded(VM)
 
-    seed_scenario.record.update({"macs": macs, "bridge": BRIDGE})
+    seed_scenario.record.update({"macs": macs, "network": host_network})
 
 
 @pytest.mark.verify
 @pytest.mark.scenario(VM)
-@pytest.mark.usefixtures("ephemeral_bridge")
-def test_network_verify(verify_scenario):
+def test_network_verify(verify_scenario, host_network):
     recorded = verify_scenario.record
 
-    # The bridge is back (fixture), so the stored NIC config can re-attach.
+    # The host network is back (fixture), so the stored NIC config can re-attach.
     resume_seeded(VM, expected_state="Stopped")
     assert guest_interface_macs(VM) == recorded["macs"], (
         "guest interface MACs changed across upgrade"
