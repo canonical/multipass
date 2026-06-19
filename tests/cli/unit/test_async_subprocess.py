@@ -19,7 +19,7 @@ class TestAsyncSubprocess:
     @pytest.mark.asyncio
     async def test_normal_enter_exit(self):
         """Normal enter/exit should start and terminate process cleanly."""
-        async with AsyncSubprocess("sleep", "0.1") as proc:
+        async with AsyncSubprocess(sys.executable, "-c", "import time; time.sleep(0.1)") as proc:
             assert proc is not None
             assert proc.returncode is None
 
@@ -28,7 +28,7 @@ class TestAsyncSubprocess:
     @pytest.mark.asyncio
     async def test_process_already_exited_on_exit(self):
         """Process already exited on __aexit__ should not error."""
-        async with AsyncSubprocess("true") as proc:
+        async with AsyncSubprocess(sys.executable, "-c", "import sys; sys.exit(0)") as proc:
             await proc.wait()
             assert proc.returncode == 0
 
@@ -37,7 +37,7 @@ class TestAsyncSubprocess:
         """Cancellation during __aenter__ should spawn then terminate process."""
 
         async def cancellable_spawn():
-            async with AsyncSubprocess("sleep", "10") as proc:
+            async with AsyncSubprocess(sys.executable, "-c", "import time; time.sleep(10)") as proc:
                 await asyncio.sleep(3600)
 
         task = asyncio.create_task(cancellable_spawn())
@@ -54,7 +54,7 @@ class TestAsyncSubprocess:
         """Cancellation during __aexit__ should still clean up process."""
 
         async def cancellable_exit():
-            async with AsyncSubprocess("sleep", "10") as proc:
+            async with AsyncSubprocess(sys.executable, "-c", "import time; time.sleep(10)") as proc:
                 await asyncio.sleep(3600)
 
         task = asyncio.create_task(cancellable_exit())
@@ -69,7 +69,7 @@ class TestAsyncSubprocess:
     @pytest.mark.asyncio
     async def test_long_running_process_terminated_on_exit(self):
         """Long-running process should be terminated on context exit."""
-        async with AsyncSubprocess("sleep", "3600") as proc:
+        async with AsyncSubprocess(sys.executable, "-c", "import time; time.sleep(3600)") as proc:
             assert proc.returncode is None
 
         assert proc.returncode is not None
@@ -111,7 +111,7 @@ class TestStdoutAsyncSubprocess:
     @pytest.mark.asyncio
     async def test_captures_stdout(self):
         """StdoutAsyncSubprocess should capture stdout."""
-        async with StdoutAsyncSubprocess("echo", "hello") as proc:
+        async with StdoutAsyncSubprocess(sys.executable, "-c", "print('hello')") as proc:
             stdout, _ = await proc.communicate()
             assert b"hello" in stdout
 
@@ -134,7 +134,7 @@ class TestSilentAsyncSubprocess:
     @pytest.mark.asyncio
     async def test_suppresses_all_output(self):
         """SilentAsyncSubprocess should suppress all output."""
-        async with SilentAsyncSubprocess("echo", "hello") as proc:
+        async with SilentAsyncSubprocess(sys.executable, "-c", "print('hello')") as proc:
             await proc.communicate()
             assert proc.returncode == 0
 
