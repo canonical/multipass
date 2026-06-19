@@ -24,9 +24,9 @@ remain exactly as provisioned."""
 
 import pytest
 
-from cli.multipass import launch, multipass, state, read_file, get_cloudinit_instance_id
+from cli.multipass import multipass, state, read_file, get_cloudinit_instance_id
 from .helpers import make_sentinel
-from .seedutils import ensure_absent, daemon_readable_dir
+from .seedutils import seeded_vm, daemon_readable_dir
 
 VM = "upg-cloudinit"
 MARKER_PATH = "/etc/upgrade-cloudinit-marker"
@@ -51,12 +51,7 @@ def test_cloudinit_seed(seed_manifest):
         CLOUD_INIT_TEMPLATE.format(marker=MARKER_PATH, content=content), encoding="utf-8"
     )
 
-    ensure_absent(VM)
-    with launch(cfg_override={
-        "name": VM,
-        "autopurge": False,
-        "extra_args": ["--cloud-init", str(ci_path)],
-    }):
+    with seeded_vm(VM, extra_args=["--cloud-init", str(ci_path)]):
         assert read_file(VM, MARKER_PATH).strip() == content, (
             "cloud-init marker was not provisioned as expected"
         )
