@@ -515,6 +515,67 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
                   AllOf(HasSubstr(error_msg), HasSubstr("shutdown"), HasSubstr("start")))));
 }
 
+TEST_F(QemuBackend, resumeFailureFromIncompatibleStateGivesActionableError)
+{
+    // This is the kind of error QEMU emits when the firmware/QEMU version changed across an
+    // upgrade and the saved machine state can no longer be loaded (e.g. the OVMF firmware grew
+    // from 2 MB to 4 MB).
+    constexpr auto qemu_resume_error =
+        "qemu-system-x86_64: Size mismatch: pc.bios: 0x200000 != 0x400000: Invalid argument\n"
+        "qemu-system-x86_64: error while loading state for instance 0x0 of device 'ram'";
+
+    mpt::MockProcess* vmproc = nullptr;
+    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
+        // Have "qemu-img snapshot" report the suspend tag so the instance starts suspended.
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(fake_snapshot_list_with_suspend_tag));
+        }
+        else if (process->program().startsWith("qemu-system-") &&
+                 !process->arguments().contains("-dump-vmstate")) // the actual vm process
+        {
+            vmproc = process; // save this to control later
+            EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return(qemu_resume_error));
+        }
+    });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+
+    machine->start(); // resumes from the suspended state, connecting the Process signal handlers
+
+    ASSERT_TRUE(vmproc);
+    emit vmproc->ready_read_standard_error(); // fake QEMU reporting the resume failure
+    ON_CALL(*vmproc, running())
+        .WillByDefault(Return(false)); // simulate process not running anymore
+
+    mp::AutoJoinThread finishing_thread{[vmproc]() {
+        mp::ProcessState exit_state;
+        exit_state.exit_code = 1;
+        emit vmproc->finished(exit_state);
+    }};
+
+    using namespace std::chrono_literals;
+    while (machine->state != mp::VirtualMachine::State::off)
+        std::this_thread::sleep_for(1ms);
+
+    MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
+                         mp::StartException,
+                         AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
+                               mpt::match_what(AllOf(HasSubstr("incompatible"),
+                                                     HasSubstr("multipass stop --force")))));
+}
+
 TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {

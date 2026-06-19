@@ -116,6 +116,7 @@ private:
     MountArgs mount_args;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
+    bool incompatible_suspend_state{false};
     bool force_shutdown{false};
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};

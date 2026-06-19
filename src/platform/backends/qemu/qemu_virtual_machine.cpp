@@ -192,6 +192,16 @@ auto generate_metadata(const QStringList& platform_args,
                                {mount_data_key, mount_args_to_json(mount_args)}};
 }
 
+// QEMU fails to load a saved machine state when the firmware or QEMU version changed across an
+// upgrade (e.g. the OVMF firmware grew from 2 MB to 4 MB, changing the size of the migrated
+// `pc.bios` RAM block). Such a saved state cannot be restored against the new firmware.
+bool indicates_incompatible_suspend_state(const QByteArray& qemu_stderr)
+{
+    return qemu_stderr.contains("while loading VM state") ||
+           qemu_stderr.contains("error while loading state") ||
+           qemu_stderr.contains("Size mismatch");
+}
+
 QStringList extract_snapshot_tags(const QByteArray& snapshot_list_output_stream)
 {
     QStringList lines = QString{snapshot_list_output_stream}.split('\n');
@@ -271,6 +281,8 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
 void mp::QemuVirtualMachine::start()
 {
     initialize_vm_process();
+
+    incompatible_suspend_state = false;
 
     if (state == State::suspended)
     {
@@ -586,8 +598,24 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::ready_read_standard_error, [this]() {
         const auto error_buf = vm_process->read_all_standard_error(); // keep alive while using data
         const auto* error_data = error_buf.data();
-        save_error_msg(error_data);
         mpl::log_message(mpl::Level::warning, vm_name, error_data);
+
+        // When resuming, QEMU fails to load the saved machine state if the firmware/QEMU version
+        // changed across an upgrade. Surface an actionable message instead of the cryptic QEMU
+        // output, which would otherwise leave the instance permanently stuck in suspended state.
+        if (is_starting_from_suspend && indicates_incompatible_suspend_state(error_buf))
+            incompatible_suspend_state = true;
+
+        if (incompatible_suspend_state)
+            save_error_msg(fmt::format(
+                "the saved state of instance '{}' is incompatible with the current QEMU/firmware "
+                "version, which can happen after upgrading Multipass; run "
+                "`multipass stop --force {}` to discard the saved state and start the instance "
+                "again to recover (the suspended session will be lost)",
+                vm_name,
+                vm_name));
+        else
+            save_error_msg(error_data);
     });
 
     QObject::connect(
