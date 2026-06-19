@@ -19,6 +19,8 @@
 
 #include <multipass/ssh/ssh_process.h>
 
+#include <multipass/private_pass_provider.h>
+
 #include <libssh/libssh.h>
 
 #include <exception>
@@ -28,6 +30,8 @@
 
 namespace multipass
 {
+class PlainSftpServerSession;
+
 class PlainSSHProcess : public SSHProcess
 {
 public:
@@ -55,6 +59,10 @@ public:
     std::string read_std_output() override;
     std::string read_std_error() override;
     const std::string& get_cmd() const override;
+
+public:
+    // Returns a non-owning channel handle and releases the session lock; channel ownership stays.
+    ssh_channel borrow_channel(const PrivatePassProvider<PlainSftpServerSession>::PrivatePass&);
 
 private:
     enum class StreamType
