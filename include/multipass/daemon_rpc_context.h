@@ -21,6 +21,7 @@
 #include <multipass/logging/client_logger.h>
 
 #include <future>
+#include <mutex>
 #include <optional>
 
 namespace multipass
@@ -47,14 +48,28 @@ struct DaemonRpcContextImpl : DaemonRpcContext, private multipass::DisabledCopyM
 
     void set_value(grpc::Status status) override
     {
-        // Free any resources that depend on server here.
-        logger.reset();
+        {
+            std::lock_guard lock{mutex};
+            // Free any resources that depend on server here.
+            logger.reset();
+        }
+        // Set the value only after releasing the lock: doing so unblocks the gRPC
+        // thread, which may then destroy this context. The destructor waits on the
+        // same mutex, so it cannot run until we are done touching our members.
         promise.set_value(std::move(status));
+    }
+
+    ~DaemonRpcContextImpl() override
+    {
+        // Synchronize with set_value(), which runs on a different thread, so that
+        // the gRPC thread cannot destroy this context until that call has finished.
+        std::lock_guard lock{mutex};
     }
 
 private:
     std::promise<grpc::Status>& promise;
     std::optional<logging::ClientLogger<T, U>> logger;
+    std::mutex mutex;
 };
 
 } // namespace multipass
