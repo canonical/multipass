@@ -256,7 +256,14 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     return output.str();
 }
 
-ssh_channel mp::PlainSSHProcess::release_channel()
+ssh_channel mp::PlainSSHProcess::borrow_channel(
+    const PrivatePassProvider<PlainSftpServerSession>::PrivatePass&)
+{
+    auto local_lock = std::move(session_lock); // released at end; caller gets a non-owning handle
+    return channel.get();
+}
+
+ssh_channel mp::PlainSSHProcess::release_channel() // TODO@sftp remove entirely
 {
     // released at the end; callers are on their own to ensure thread safety
     auto local_lock = std::move(session_lock);
