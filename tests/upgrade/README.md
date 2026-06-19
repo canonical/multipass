@@ -63,7 +63,7 @@ It is attached as a CI artifact (`upgrade-manifest`) so a failed verify run can 
 
 ## The tests
 
-Each concern is a pair of ordinary pytest tests in `tests/upgrade/<concern>_test.py`: a `seed` test (marked `@pytest.mark.seed`) and a `verify` test (marked `@pytest.mark.verify`). The seed test launches a VM with a fixed name, drives it into a state, and stores what should survive in `seed_manifest[<vm-name>]`; the verify test reads `verify_manifest[<vm-name>]` and asserts. Verify tests carry `@pytest.mark.purge("<vm-name>")` so the VM is removed in teardown (even on failure).
+Each concern is a pair of ordinary pytest tests in `tests/upgrade/<concern>_test.py`: a `seed` test (marked `@pytest.mark.seed`) and a `verify` test (marked `@pytest.mark.verify`). Both name their VM once with `@pytest.mark.scenario("<vm-name>")` and request a fixture instead of indexing the manifest by hand: the seed test launches the VM, drives it into a state, and records what should survive into `seed_scenario.record`; the verify test reads `verify_scenario.record` and asserts. The `verify_scenario` fixture purges the VM in teardown (even on failure), so cleanup can't be forgotten.
 
 | Test | What it asserts survives |
 | ---- | ------------------------ |
@@ -78,7 +78,7 @@ Tests deliberately park VMs in a `Stopped` (or `Suspended`) state at the end of 
 
 ### Adding a test
 
-Drop a `<concern>_test.py` in `tests/upgrade/` with a `seed`-marked test that records into `seed_manifest` and a `verify`-marked test (plus `@pytest.mark.purge(...)`) that reads it back. Shared assertions live in `helpers.py`; `seedutils.py` has `seeded_vm` (the idempotent, persistent-VM launch wrapper), `ensure_absent`, and `daemon_readable_dir` (a snap-readable, refresh-surviving host dir). Launch persistent seed VMs with `seeded_vm("<vm-name>", extra_args=[...])`, which wraps the cli `launch` helper with `autopurge=False`. Driver-gated concerns reuse the cli framework's markers (e.g. `@pytest.mark.snapshot` is auto-skipped on drivers without snapshot support).
+Drop a `<concern>_test.py` in `tests/upgrade/` with a `seed`-marked test that records into `seed_scenario.record` and a `verify`-marked test that reads it back from `verify_scenario.record`; tag both with `@pytest.mark.scenario("<vm-name>")` (the `verify_scenario` fixture then purges the VM for you). Shared assertions live in `helpers.py` — including `park_seeded`/`resume_seeded` (the symmetric "park the VM at end of seed" / "bring it back in verify" pair) and `seed_sentinel`/`assert_sentinel_record` (write a labelled guest file and later compare it byte for byte). `seedutils.py` has `seeded_vm` (the idempotent, persistent-VM launch wrapper), `ensure_absent`, and `daemon_readable_dir` (a snap-readable, refresh-surviving host dir). Launch persistent seed VMs with `seeded_vm("<vm-name>", extra_args=[...])`, which wraps the cli `launch` helper with `autopurge=False`. Driver-gated concerns reuse the cli framework's markers (e.g. `@pytest.mark.snapshot` is auto-skipped on drivers without snapshot support).
 
 ## Running in GitHub Actions
 

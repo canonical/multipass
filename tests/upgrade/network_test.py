@@ -36,8 +36,7 @@ import sys
 
 import pytest
 
-from cli.multipass import multipass, state
-from .helpers import guest_interface_macs, resume_seeded
+from .helpers import guest_interface_macs, park_seeded, resume_seeded
 from .seedutils import seeded_vm
 from .netutils import create_ephemeral_bridge, delete_ephemeral_bridge
 
@@ -62,22 +61,22 @@ def ephemeral_bridge():
 
 
 @pytest.mark.seed
+@pytest.mark.scenario(VM)
 @pytest.mark.usefixtures("ephemeral_bridge")
-def test_network_seed(seed_manifest):
+def test_network_seed(seed_scenario):
     with seeded_vm(VM, extra_args=["--network", f"name={BRIDGE},mode=manual"]):
         macs = guest_interface_macs(VM)
         assert len(macs) >= 2, f"expected an extra interface, found MACs: {macs}"
-        assert multipass("stop", VM)
-        assert state(VM) == "Stopped"
+        park_seeded(VM)
 
-    seed_manifest[VM] = {"macs": macs, "bridge": BRIDGE}
+    seed_scenario.record.update({"macs": macs, "bridge": BRIDGE})
 
 
 @pytest.mark.verify
-@pytest.mark.purge(VM)
+@pytest.mark.scenario(VM)
 @pytest.mark.usefixtures("ephemeral_bridge")
-def test_network_verify(verify_manifest):
-    recorded = verify_manifest[VM]
+def test_network_verify(verify_scenario):
+    recorded = verify_scenario.record
 
     # The bridge is back (fixture), so the stored NIC config can re-attach.
     resume_seeded(VM, expected_state="Stopped")
