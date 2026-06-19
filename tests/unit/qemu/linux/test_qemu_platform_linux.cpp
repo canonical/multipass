@@ -389,26 +389,28 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
         .Times(0);
 
     // ...but the device must still be (re)linked to the bridge and brought up.
-    EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("link"),
-                                               QString("set"),
-                                               mpt::match_qstring(Truly([&tap_name](const std::string& s) {
-                                                   return s == tap_name.toStdString();
-                                               })),
-                                               QString("master"),
-                                               vswitch.bridge_name),
-                                   _))
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("ip"),
+                           ElementsAre(QString("link"),
+                                       QString("set"),
+                                       mpt::match_qstring(Truly([&tap_name](const std::string& s) {
+                                           return s == tap_name.toStdString();
+                                       })),
+                                       QString("master"),
+                                       vswitch.bridge_name),
+                           _))
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("link"),
-                                               QString("set"),
-                                               mpt::match_qstring(Truly([&tap_name](const std::string& s) {
-                                                   return s == tap_name.toStdString();
-                                               })),
-                                               QString("up")),
-                                   _))
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("ip"),
+                           ElementsAre(QString("link"),
+                                       QString("set"),
+                                       mpt::match_qstring(Truly([&tap_name](const std::string& s) {
+                                           return s == tap_name.toStdString();
+                                       })),
+                                       QString("up")),
+                           _))
         .WillOnce(Return(true));
 
     mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
