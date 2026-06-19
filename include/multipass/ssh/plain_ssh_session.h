@@ -51,6 +51,10 @@ public:
      * @copydoc SSHSession::exec
      */
     std::unique_ptr<SSHProcess> exec(const std::string& cmd, bool whisper = false) override;
+
+    /**
+     * @copydoc SSHSession::is_connected
+     */
     [[nodiscard]] bool is_connected() const override;
 
     /**

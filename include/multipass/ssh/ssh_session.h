@@ -48,6 +48,9 @@ public:
      */
     virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd, bool whisper = false) = 0;
 
+    /**
+     * @return Whether this object represents a session that is currently connected
+     */
     [[nodiscard]] virtual bool is_connected() const = 0;
 
     /**
