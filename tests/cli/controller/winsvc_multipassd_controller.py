@@ -39,7 +39,7 @@ from cli.utilities import (
     StdoutAsyncSubprocess,
     SilentAsyncSubprocess,
     sudo,
-    run_detached_thread
+    run_detached_thread,
 )
 from cli.config import cfg
 from .controller_exceptions import ControllerPrerequisiteError
@@ -147,22 +147,34 @@ class WindowsServiceMultipassdController:
                 except Exception as ex:
                     msg = f"<unformatted event>: {ex}"
 
-                # Hand off to asyncio loop
-                loop.call_soon_threadsafe(
-                    q.put_nowait, msg.replace("\r\n", "\n"))
+                # Hand off to asyncio loop. In-flight callbacks can outlive the
+                # async generator teardown, so re-check `closing` and guard the
+                # scheduling in case the loop is already closing.
+                if closing.is_set():
+                    return
+                with suppress(RuntimeError):
+                    loop.call_soon_threadsafe(
+                        q.put_nowait, msg.replace("\r\n", "\n"))
 
         signal_event = None  # you can pass a Windows event for shutdown if you want
         flags = win32evtlog.EvtSubscribeToFutureEvents
         channel = "Application"
         query = "*[System[Provider[@Name='Multipass']]]"
 
-        sub = win32evtlog.EvtSubscribe(
-            ChannelPath=channel,
-            SignalEvent=signal_event,
-            Query=query,
-            Callback=callback,
-            Flags=flags
-        )
+        try:
+            sub = win32evtlog.EvtSubscribe(
+                ChannelPath=channel,
+                SignalEvent=signal_event,
+                Query=query,
+                Callback=callback,
+                Flags=flags
+            )
+        except Exception:
+            # Avoid leaking the publisher metadata handle if the subscription
+            # creation fails (e.g., permissions/invalid query).
+            with suppress(Exception):
+                pubmeta.Close()
+            raise
 
         def close_eventlog_handles():
             # EvtClose() can block while Windows/pywin32 waits for in-flight callbacks.
