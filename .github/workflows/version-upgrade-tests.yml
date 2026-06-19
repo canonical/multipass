@@ -1,0 +1,156 @@
+name: Version Upgrade Tests
+
+# Validates that VMs and their state created on one Multipass version survive an
+# upgrade to another. The two pytest phases MUST run on the same runner in one
+# job: the seeded VMs live in the daemon's on-disk storage (/var/snap/multipass
+# on Linux), which does not travel between jobs. The package swap happens
+# between the two phases, here, in CI -- the test code never installs anything.
+
+on:
+  workflow_call:
+    inputs: &inputs
+      from-snap-channel:
+        type: string
+        description: "Snap channel to install Multipass from (the 'before' version, X)"
+        required: true
+      to-snap-channel:
+        type: string
+        description: "Snap channel to refresh Multipass to (the 'after' version, Y)"
+        required: true
+      backend-driver:
+        type: string
+        description: "Backend driver to use (e.g. qemu, lxd)"
+        required: false
+        default: "auto"
+      pytest-extra-args:
+        type: string
+        description: "Extra arguments appended to both pytest invocations"
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs: *inputs
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+env:
+  FROM_SNAP_CHANNEL: ${{ inputs['from-snap-channel'] }}
+  TO_SNAP_CHANNEL: ${{ inputs['to-snap-channel'] }}
+  BACKEND_DRIVER: ${{ inputs['backend-driver'] }}
+  PYTEST_EXTRA_ARGS: ${{ inputs['pytest-extra-args'] }}
+  MANIFEST: reports/upgrade-manifest.json
+
+jobs:
+  upgrade-tests:
+    name: Upgrade ${{ inputs['from-snap-channel'] }} -> ${{ inputs['to-snap-channel'] }} (Snap)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: upgrade-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+      cancel-in-progress: true
+    steps:
+      - name: Check out cli-tests
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          submodules: false
+          sparse-checkout: |
+            tests/cli
+            tests/upgrade
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Create and activate virtual environment
+        run: |
+          python3 -m venv .venv
+          echo "PATH=${GITHUB_WORKSPACE}/.venv/bin:$PATH" >> "$GITHUB_ENV"
+
+      - name: Install cli-tests dependencies
+        run: pip install -e ./tests/cli/
+
+      ##################################################################
+      # Phase 1: install the 'from' version and seed the VMs.
+      # NB: --remove-all-instances is deliberately NOT passed -- it would
+      #     wipe the very VMs the verify phase relies on.
+      ##################################################################
+      - name: Install Multipass (from / version X)
+        run: sudo snap install multipass --channel="${FROM_SNAP_CHANNEL}"
+
+      - name: Record installed 'from' version
+        run: multipass version
+
+      - name: Seed VMs (phase 1)
+        id: seed
+        shell: bash
+        run: |
+          pytest -s tests/upgrade \
+            -m seed \
+            --upgrade-manifest="${MANIFEST}" \
+            --daemon-controller=snap \
+            --driver="${BACKEND_DRIVER}" \
+            --print-all-output \
+            --junitxml=reports/junit-seed.xml \
+            ${PYTEST_EXTRA_ARGS} || echo "seed-exit=$?" >> "$GITHUB_OUTPUT"
+
+      ##################################################################
+      # The upgrade itself. `snap refresh` keeps the common data dir in
+      # place, so seeded instances persist across the binary swap.
+      ##################################################################
+      - name: Upgrade Multipass (to / version Y)
+        if: steps.seed.outputs.seed-exit == '' # only upgrade if seeding passed
+        run: |
+          sudo snap refresh multipass --channel="${TO_SNAP_CHANNEL}"
+          multipass version
+
+      ##################################################################
+      # Phase 2: validate the seeded VMs on the 'to' version.
+      ##################################################################
+      - name: Verify VMs after upgrade (phase 2)
+        id: verify
+        if: steps.seed.outputs.seed-exit == ''
+        shell: bash
+        run: |
+          pytest -s tests/upgrade \
+            -m verify \
+            --upgrade-manifest="${MANIFEST}" \
+            --daemon-controller=snap \
+            --driver="${BACKEND_DRIVER}" \
+            --print-all-output \
+            --junitxml=reports/junit-verify.xml \
+            ${PYTEST_EXTRA_ARGS} || echo "verify-exit=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Upload upgrade manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upgrade-manifest
+          path: ${{ env.MANIFEST }}
+          if-no-files-found: warn
+
+      - name: Report seed results
+        if: success() || failure()
+        uses: dorny/test-reporter@v3
+        with:
+          name: Upgrade seed results (X=${{ inputs['from-snap-channel'] }})
+          path: reports/junit-seed.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Report verify results
+        if: success() || failure()
+        uses: dorny/test-reporter@v3
+        with:
+          name: Upgrade verify results (Y=${{ inputs['to-snap-channel'] }})
+          path: reports/junit-verify.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Fail if either phase failed
+        if: steps.seed.outputs.seed-exit != '' || steps.verify.outputs.verify-exit != ''
+        run: |
+          echo "seed exit: ${{ steps.seed.outputs.seed-exit || '0' }}"
+          echo "verify exit: ${{ steps.verify.outputs.verify-exit || '0' }}"
+          exit 1
