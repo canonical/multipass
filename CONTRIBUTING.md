@@ -293,9 +293,8 @@ not use platform `#ifdef`s (or other platform-conditional logic) outside of thos
 **CPP12.** Declare generic constants in a dedicated header.<br>
 **CPP13.** Avoid compilation warnings.<br>
 **CPP14.** To mock free functions and external APIs, wrap them with `MockableSingleton`.<br>
-**CPP15.** Avoid unconstrained `auto` return types in publicly visible methods and functions,
-outside tests, the anonymous namespace, unnamed lambdas, and templates with dependent return
-types.<br>
+**CPP15.** Avoid unconstrained `auto` return types in publicly visible methods and functions (except in
+tests, the anonymous namespace, unnamed lambdas, and templates with dependent return types).<br>
 **CPP16.** Prefer exceptions for error handling.<br>
 
 ### Text
