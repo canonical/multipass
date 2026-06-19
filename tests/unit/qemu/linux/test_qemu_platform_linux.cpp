@@ -392,7 +392,9 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
                 run_cmd_for_status(QString("ip"),
                                    ElementsAre(QString("link"),
                                                QString("set"),
-                                               mpt::match_qstring(StartsWith("tap-")),
+                                               mpt::match_qstring(Truly([&tap_name](const std::string& s) {
+                                                   return s == tap_name.toStdString();
+                                               })),
                                                QString("master"),
                                                vswitch.bridge_name),
                                    _))
@@ -401,7 +403,9 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
                 run_cmd_for_status(QString("ip"),
                                    ElementsAre(QString("link"),
                                                QString("set"),
-                                               mpt::match_qstring(StartsWith("tap-")),
+                                               mpt::match_qstring(Truly([&tap_name](const std::string& s) {
+                                                   return s == tap_name.toStdString();
+                                               })),
                                                QString("up")),
                                    _))
         .WillOnce(Return(true));
