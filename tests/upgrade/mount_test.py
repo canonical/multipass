@@ -53,7 +53,7 @@ def test_mount_seed(seed_scenario):
 
     with seeded_vm(VM):
         if sys.platform == "win32":
-            multipass("set", "local.privileged-mounts=1")
+            assert multipass("set", "local.privileged-mounts=1")
 
         assert multipass("mount", "--type", "classic", str(source), VM), (
             f"failed to mount `{source}` into `{VM}`"

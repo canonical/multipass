@@ -279,4 +279,3 @@ The manual dispatch can be made through GitHub Web UI, GitHub API, or GitHub CLI
  # This will run the CLI tests against the Windows MSI package, and the macOS package.
  gh workflow run -r feature/cli-tests "CLI Tests" -f windows-pkg-url=https://multipass-ci.s3.amazonaws.com/pr4061/multipass-1.17.0-dev.550.pr4061%2Bg0239bc1f.win-win64.msi macos-pkg-url=https://multipass-ci.s3.amazonaws.com/pr4061/multipass-1.17.0-dev.550.pr4061%2Bg0239bc1f.mac-Darwin.pkg pytest-extra-args="--print-all-output"
 ```
-
