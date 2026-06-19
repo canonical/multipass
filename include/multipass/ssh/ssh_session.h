@@ -31,8 +31,21 @@ class SSHSession
 public:
     virtual ~SSHSession() = default;
 
-    // locks the session until the process is destroyed or exit_code is called!
-    // Precondition - session hasn't been moved
+    /**
+     * Execute a command in this SSH session.
+     *
+     * @pre !this->is_moved()
+     * @note This promises no more than a conservative approach to thread-safety, whereby process
+     * execution may be strictly sequenced, such that no two processes can execute simultaneously on
+     * the same session. In other words, a process may execute only after any previous processes
+     * have been destroyed or had exit_code called upon them.
+     *
+     * TODO@sftp make it such that exit_code releases only when the process exits (not on timeout).
+     *
+     * @param cmd The command to execute
+     * @param whisper Whether to use trace rather than debug logging
+     * @return An SSHProcess representing the remote process
+     */
     virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd, bool whisper = false) = 0;
 
     [[nodiscard]] virtual bool is_connected() const = 0;
