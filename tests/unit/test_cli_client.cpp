@@ -33,13 +33,11 @@
 #include "mock_stdcin.h"
 #include "mock_terminal.h"
 #include "mock_utils.h"
-#include "multipass/cli/return_codes.h"
 #include "path.h"
 #include "stub_cert_store.h"
 #include "stub_logger.h"
 #include "stub_terminal.h"
 
-#include <multipass.pb.h>
 #include <src/client/cli/client.h>
 #include <src/client/cli/cmd/remote_settings_handler.h>
 #include <src/daemon/daemon_rpc.h>
@@ -3899,20 +3897,19 @@ TEST_F(RestoreCommandClient, restoreCmdNotDestructiveNotLiveTermFails)
     EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(false));
 
     EXPECT_CALL(mock_daemon, restore(_, _)).WillOnce([](auto, auto* server) {
+        mp::RestoreRequest req;
+        EXPECT_TRUE(server->Read(&req));
         mp::RestoreReply reply;
         reply.set_confirm_destructive(true);
         server->Write(reply);
 
-        mp::RestoreRequest client_response;
-        server->Read(&client_response);
-        EXPECT_TRUE(client_response.abort());
-
-        return grpc::Status{};
+        EXPECT_FALSE(server->Read(&req));
+        return grpc::Status{grpc::StatusCode::CANCELLED, "dummy_msg"};
     });
 
     EXPECT_EQ(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal),
-                 mp::ReturnCode::Ok);
-    EXPECT_TRUE(cerr.tellp() > 0);
+              mp::ReturnCode::CommandFail);
+    EXPECT_NE(cerr.str().find("Unable to query client for confirmation"), std::string::npos);
 }
 
 // authenticate cli tests
