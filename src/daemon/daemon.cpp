@@ -2714,11 +2714,9 @@ try
 
             RestoreRequest client_response;
             if (!server->Read(&client_response))
-                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
-
-            if (client_response.abort())
                 return status_promise->set_value(
-                    grpc::Status{grpc::ABORTED, "Restore aborted by client."});
+                    grpc::Status(grpc::StatusCode::CANCELLED,
+                                 "Cannot get confirmation from client. Aborting..."));
 
             if (!client_response.destructive())
             {
