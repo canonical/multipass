@@ -58,18 +58,18 @@ mp::ReturnCodeVariant cmd::Restore::run(mp::ArgParser* parser)
         if (reply.confirm_destructive())
         {
             spinner.stop();
-            RestoreRequest client_response;
 
-            if (term->is_live())
-                client_response.set_destructive(confirm_destruction(request.instance()));
-            else
+            if (!term->is_live())
             {
                 spinner.print(cerr,
                               "Unable to query client for confirmation. Use '--destructive' to "
                               "automatically discard current machine state.\n");
-                client_response.set_abort(true);
+                client->WritesDone();
+                return;
             }
 
+            RestoreRequest client_response;
+            client_response.set_destructive(confirm_destruction(request.instance()));
             client->Write(client_response);
             spinner.start();
         }
