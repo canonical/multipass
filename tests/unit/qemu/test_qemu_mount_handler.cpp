@@ -250,6 +250,13 @@ TEST_F(QemuMountHandlerTest, recoverFromSuspended)
                     mount.get_source_path(),
                     default_target,
                     vm.get_name()));
+    EXPECT_CALL(vm, sync_mount_metadata).Times(0);
+    EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
+}
+
+TEST_F(QemuMountHandlerTest, ctorTriggersSyncMountMetadata)
+{
+    EXPECT_CALL(vm, sync_mount_metadata).Times(1);
     EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
 }
 

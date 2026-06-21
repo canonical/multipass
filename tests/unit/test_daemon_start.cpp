@@ -271,6 +271,7 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_vm, sync_mount_metadata).Times(1);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -293,4 +294,33 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
     EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonStart, createMissingMountsPrunesFailedMountAndSyncsMetadata)
+{
+    const std::string fake_target_path{"/home/user/path1"}, fake_source_path{"/home/user/path2"};
+    const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
+    const mp::VMMount mount{fake_source_path,
+                            gid_mappings,
+                            uid_mappings,
+                            mp::VMMount::MountType::Native};
+    std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    const auto [temp_dir, filename] =
+        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, make_native_mount_handler)
+        .WillOnce(Throw(std::runtime_error{"source unavailable"}));
+    EXPECT_CALL(*mock_vm, sync_mount_metadata).Times(1);
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    EXPECT_NO_THROW(mp::Daemon{config_builder.build()});
 }

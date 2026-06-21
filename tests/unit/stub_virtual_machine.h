@@ -130,6 +130,10 @@ struct StubVirtualMachine final : public multipass::VirtualMachine
         return std::make_unique<StubMountHandler>();
     }
 
+    void sync_mount_metadata() override
+    {
+    }
+
     SnapshotVista view_snapshots(SnapshotPredicate) const override
     {
         return {};

@@ -229,6 +229,43 @@ struct MockDaemon : public Daemon
 
         return is_bridged(instance_name);
     }
+
+    void test_update_metadata_for(const std::string& name,
+                                  const boost::json::object& metadata,
+                                  const bool persist)
+    {
+        update_metadata_for(name, metadata, persist);
+    }
+
+    void test_add_mount_spec(const std::string& name,
+                             const std::string& target,
+                             const VMMount& mount)
+    {
+        add_mount_spec(name, target, mount);
+    }
+
+    void test_remove_mount_spec(const std::string& name, const std::string& target)
+    {
+        remove_mount_spec(name, target);
+    }
+
+    bool test_has_mount_spec(const std::string& name, const std::string& target) const
+    {
+        const auto it = vm_instance_specs.find(name);
+        if (it == vm_instance_specs.end())
+            return false;
+        return it->second.mounts.find(target) != it->second.mounts.end();
+    }
+
+    void test_insert_operative_instance(const std::string& name, VirtualMachine::ShPtr vm)
+    {
+        operative_instances.insert({name, std::move(vm)});
+    }
+
+    boost::json::object test_retrieve_metadata_for(const std::string& name)
+    {
+        return retrieve_metadata_for(name);
+    }
 };
 } // namespace test
 } // namespace multipass

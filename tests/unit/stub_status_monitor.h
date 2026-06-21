@@ -32,7 +32,8 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
     void on_restart(const std::string& name) override{};
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override{};
     void update_metadata_for(const std::string& name,
-                             const boost::json::object& metadata) override{};
+                             const boost::json::object& metadata,
+                             const bool persist) override {};
     boost::json::object retrieve_metadata_for(const std::string& name) override
     {
         return {};

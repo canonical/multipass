@@ -361,6 +361,8 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
 
     ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
 
+    ON_CALL(*mock_factory_ptr, get_backend_directory_name()).WillByDefault(Return(QString()));
+
     ON_CALL(*mock_factory_ptr, networks())
         .WillByDefault(
             Return(std::vector<NetworkInterfaceInfo>{{"eth0", "ethernet", "wired adapter"},
