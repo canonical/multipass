@@ -291,7 +291,8 @@ void mp::QemuVirtualMachine::start()
 
         monitor->update_metadata_for(
             vm_name,
-            generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
+            generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args),
+            true);
     }
 
     vm_process->start();
