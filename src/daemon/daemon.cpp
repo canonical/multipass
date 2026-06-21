@@ -2029,8 +2029,7 @@ try
                 continue;
             }
         }
-
-        vm_instance_specs[name].mounts[target_path] = vm_mount;
+        add_mount_spec(name, target_path, vm_mount);
     }
 
     persist_instances();
@@ -2480,16 +2479,15 @@ try
             continue;
         }
 
-        auto& vm_spec_mounts = vm_instance_specs[name].mounts;
         auto& vm_mounts = mounts[name];
 
         auto do_unmount = [&](auto expiring_it) {
-            const auto& [target, mount] = *expiring_it;
+            const auto target = expiring_it->first;
             try
             {
-                mount->deactivate();
-                vm_spec_mounts.erase(target);
+                expiring_it->second->deactivate();
                 vm_mounts.erase(expiring_it);
+                remove_mount_spec(name, target);
             }
             catch (const std::runtime_error& e)
             {
@@ -2847,7 +2845,8 @@ try
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");
 
-        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
+        if (update_mounts(instance_name, vm_specs, mounts_it->second, vm_ptr) ||
+            vm_specs != old_specs)
             persist_instances();
 
         server->Write(reply);
@@ -3117,11 +3116,15 @@ void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine
     persist_instances();
 }
 
-void mp::Daemon::update_metadata_for(const std::string& name, const boost::json::object& metadata)
+void mp::Daemon::update_metadata_for(const std::string& name,
+                                     const boost::json::object& metadata,
+                                     const bool persist)
 {
     vm_instance_specs[name].metadata = metadata;
-
-    persist_instances();
+    if (persist)
+    {
+        persist_instances();
+    }
 }
 
 boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
@@ -3565,7 +3568,7 @@ void mp::Daemon::init_mounts(const std::string& name)
     auto& vm_mounts = mounts[name];
     auto& vm_spec_mounts = vm_instance_specs[name].mounts;
 
-    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
+    if (!create_missing_mounts(name, vm_spec_mounts, vm_mounts, operative_instances[name].get()))
         persist_instances();
 }
 
@@ -3580,16 +3583,34 @@ void mp::Daemon::stop_mounts(const std::string& name)
     }
 }
 
-bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
+bool mp::Daemon::update_mounts(const std::string& name,
+                               mp::VMSpecs& vm_specs,
                                std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
                                mp::VirtualMachine* vm)
 {
     auto& mount_specs = vm_specs.mounts;
     return prune_obsolete_mounts(mount_specs, vm_mounts) ||
-           !create_missing_mounts(mount_specs, vm_mounts, vm);
+           !create_missing_mounts(name, mount_specs, vm_mounts, vm);
+}
+
+void mp::Daemon::add_mount_spec(const std::string& name,
+                                const std::string& target,
+                                const VMMount& mount)
+{
+    vm_instance_specs[name].mounts[target] = mount;
+    if (auto it = operative_instances.find(name); it != operative_instances.end())
+        it->second->sync_mount_metadata();
+}
+
+void mp::Daemon::remove_mount_spec(const std::string& name, const std::string& target)
+{
+    vm_instance_specs[name].mounts.erase(target);
+    if (auto it = operative_instances.find(name); it != operative_instances.end())
+        it->second->sync_mount_metadata();
 }
 
 bool mp::Daemon::create_missing_mounts(
+    const std::string& name,
     std::unordered_map<std::string, VMMount>& mount_specs,
     std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
     mp::VirtualMachine* vm)
@@ -3619,7 +3640,13 @@ bool mp::Daemon::create_missing_mounts(
     });
 
     assert(mount_specs.size() <= initial_mount_count);
-    return mount_specs.size() != initial_mount_count;
+    auto mount_removed = mount_specs.size() != initial_mount_count;
+    if (mount_removed)
+    {
+        if (auto it = operative_instances.find(name); it != operative_instances.end())
+            it->second->sync_mount_metadata();
+    }
+    return !mount_removed;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
@@ -3713,11 +3740,10 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                     invalid_mounts.push_back(target);
                 }
 
-            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
             for (const auto& target : invalid_mounts)
             {
                 vm_mounts.erase(target);
-                vm_spec_mounts.erase(target);
+                remove_mount_spec(name, target);
             }
 
             if (server && warnings.size() > 0)

@@ -60,7 +60,9 @@ protected:
     void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
-    void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
+    void update_metadata_for(const std::string& name,
+                             const boost::json::object& metadata,
+                             const bool persist) override;
     boost::json::object retrieve_metadata_for(const std::string& name) override;
 
 public slots:
@@ -196,12 +198,14 @@ private:
     void stop_mounts(const std::string& name);
 
     // This returns whether any specs were updated (and need persisting)
-    bool update_mounts(VMSpecs& vm_specs,
+    bool update_mounts(const std::string& name,
+                       VMSpecs& vm_specs,
                        std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                        VirtualMachine* vm);
 
     // This returns whether all required mount handlers were successfully created
-    bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
+    bool create_missing_mounts(const std::string& name,
+                               std::unordered_map<std::string, VMMount>& mount_specs,
                                std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                                VirtualMachine* vm);
 
@@ -262,6 +266,9 @@ protected:
 
     bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);
+
+    void add_mount_spec(const std::string& name, const std::string& target, const VMMount& mount);
+    void remove_mount_spec(const std::string& name, const std::string& target);
 
 private:
     InstanceTable deleted_instances;
