@@ -69,6 +69,11 @@ public:
         throw NotImplementedOnThisBackendException("native mounts");
     }
 
+    void sync_mount_metadata() override
+    {
+        // No-op
+    }
+
     SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const override;
     int get_num_snapshots() const override;
 
