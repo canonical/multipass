@@ -44,7 +44,7 @@ def _guest_target(source: Path) -> str:
 
 @pytest.mark.seed
 @pytest.mark.scenario(VM)
-def test_mount_seed(seed_scenario):
+def test_mount_seed(scenario):
     source = daemon_readable_dir(VM)
     target = _guest_target(source)
 
@@ -71,7 +71,7 @@ def test_mount_seed(seed_scenario):
         recorded_mounts = mounts(VM)
         park_seeded(VM)
 
-    seed_scenario.record.update({
+    scenario.record.update({
         "target": target,
         "host_content": host_content,
         "guest_content": guest_content,
@@ -81,8 +81,8 @@ def test_mount_seed(seed_scenario):
 
 @pytest.mark.verify
 @pytest.mark.scenario(VM)
-def test_mount_verify(verify_scenario):
-    recorded = verify_scenario.record
+def test_mount_verify(scenario):
+    recorded = scenario.record
     target = recorded["target"]
 
     # The mount definition must have survived the upgrade.
