@@ -138,6 +138,11 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
     return std::make_unique<PlainSSHProcess>(*session.get(), cmd, std::move(lock));
 }
 
+std::unique_ptr<mp::SftpServerSession> mp::PlainSSHSession::make_sftp_server_session()
+{
+    return std::make_unique<SftpServerSession>();
+}
+
 void mp::PlainSSHSession::force_shutdown()
 {
     // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
@@ -230,9 +235,4 @@ bool mp::PlainSSHSession::is_connected() const
 bool mp::PlainSSHSession::is_moved() const
 {
     return !session;
-}
-
-std::unique_ptr<mp::SftpServerSession> mp::PlainSSHSession::make_sftp_server_session()
-{
-    return std::make_unique<SftpServerSession>();
 }
