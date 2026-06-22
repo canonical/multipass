@@ -52,6 +52,8 @@ public:
     [[nodiscard]] std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                    bool whisper = false) override;
 
+    std::unique_ptr<SftpServerSession> make_sftp_server_session() override;
+
     /**
      * @copydoc SSHSession::is_connected
      */
@@ -61,8 +63,6 @@ public:
      * @copydoc SSHSession::is_moved
      */
     [[nodiscard]] bool is_moved() const override;
-
-    std::unique_ptr<SftpServerSession> make_sftp_server_session() override;
 
     operator ssh_session() override;
     void force_shutdown() override; // TODO@sftp this should not be public
