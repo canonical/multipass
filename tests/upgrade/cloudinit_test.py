@@ -42,7 +42,7 @@ write_files:
 
 @pytest.mark.seed
 @pytest.mark.scenario(VM)
-def test_cloudinit_seed(seed_scenario):
+def test_cloudinit_seed(scenario):
     content = make_sentinel("cloudinit")
 
     # The cloud-init file is read by the (confined) Multipass client at launch,
@@ -59,7 +59,7 @@ def test_cloudinit_seed(seed_scenario):
         instance_id = get_cloudinit_instance_id(VM).strip()
         park_seeded(VM)
 
-    seed_scenario.record.update({
+    scenario.record.update({
         "marker": {"path": MARKER_PATH, "content": content},
         "instance_id": instance_id,
     })
@@ -67,8 +67,8 @@ def test_cloudinit_seed(seed_scenario):
 
 @pytest.mark.verify
 @pytest.mark.scenario(VM)
-def test_cloudinit_verify(verify_scenario):
-    recorded = verify_scenario.record
+def test_cloudinit_verify(scenario):
+    recorded = scenario.record
 
     resume_seeded(VM, expected_state="Stopped")
 
