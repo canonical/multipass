@@ -24,6 +24,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/sftp_utils.h>
+#include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
@@ -56,9 +57,9 @@ try
     mpl::info(category, "Installing cifs-utils in '{}'", name);
 
     auto proc = session.exec("sudo apt-get update && sudo apt-get install -y cifs-utils");
-    if (proc.exit_code(timeout) != 0)
+    if (proc->exit_code(timeout) != 0)
     {
-        auto error_msg = proc.read_std_error();
+        auto error_msg = proc->read_std_error();
         mpl::warn(category,
                   "Failed to install 'cifs-utils', error message: '{}'",
                   mp::utils::trim_end(error_msg));
@@ -301,12 +302,11 @@ bool SmbMountHandler::is_active()
 try
 {
     return active && smb_manager->share_exists(share_name) &&
-           !SSHSession{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider}
-                .exec(fmt::format("findmnt --type cifs | grep '{} //{}/{}'",
-                                  target,
-                                  QHostInfo::localHostName(),
-                                  share_name))
-                .exit_code();
+           !vm->ssh_exec_process(fmt::format("findmnt --type cifs | grep '{} //{}/{}'",
+                                             target,
+                                             QHostInfo::localHostName(),
+                                             share_name))
+                ->exit_code();
 }
 catch (const std::exception& e)
 {
@@ -321,15 +321,15 @@ catch (const std::exception& e)
 void SmbMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 try
 {
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
+    auto session = vm->new_ssh_session();
 
     const auto username = MP_PLATFORM.get_username();
     const auto user_id = QString::fromStdString(MP_UTILS.make_uuid(username.toStdString()));
     const auto iv_filename = user_id + ".iv";
     const auto cred_filename = user_id + ".cifs";
 
-    if (session.exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils")
-            .read_std_output() != "installed")
+    if (session->exec("dpkg-query --show --showformat='${db:Status-Status}' cifs-utils")
+            ->read_std_output() != "installed")
     {
         auto visitor = [](auto server) {
             if (server)
@@ -341,7 +341,7 @@ try
         };
 
         std::visit(visitor, server);
-        install_cifs_for(vm->get_name(), session, timeout);
+        install_cifs_for(vm->get_name(), *session, timeout);
     }
 
     const auto rtext = decrypt_credentials_from_file(cred_filename, iv_filename);
@@ -380,12 +380,12 @@ try
     smb_manager->create_share(share_name, source, username);
 
     // The following mkdir in the instance will be replaced with refactored code
-    auto mkdir_proc = session.exec(fmt::format("mkdir -p {}", target));
-    if (mkdir_proc.exit_code() != 0)
+    auto mkdir_proc = session->exec(fmt::format("mkdir -p {}", target));
+    if (mkdir_proc->exit_code() != 0)
         throw std::runtime_error(fmt::format("Cannot create \"{}\" in instance '{}': {}",
                                              target,
                                              vm->get_name(),
-                                             mkdir_proc.read_std_error()));
+                                             mkdir_proc->read_std_error()));
 
     auto smb_creds = fmt::format("username={}\npassword={}", username, password);
     const std::string credentials_path{"/tmp/.smb_credentials"};
@@ -397,21 +397,21 @@ try
     sftp_client->from_cin(creds_stringstream, credentials_path, false);
 
     auto hostname = QHostInfo::localHostName();
-    auto mount_proc = session.exec(
+    auto mount_proc = session->exec(
         fmt::format("sudo mount -t cifs //{}/{} {} -o credentials={},uid=$(id -u),gid=$(id -g)",
                     hostname,
                     share_name,
                     target,
                     credentials_path));
-    auto mount_exit_code = mount_proc.exit_code();
-    auto mount_error_msg = mount_proc.read_std_error();
+    auto mount_exit_code = mount_proc->exit_code();
+    auto mount_error_msg = mount_proc->read_std_error();
 
-    auto rm_proc = session.exec(fmt::format("sudo rm {}", credentials_path));
-    if (rm_proc.exit_code() != 0)
+    auto rm_proc = session->exec(fmt::format("sudo rm {}", credentials_path));
+    if (rm_proc->exit_code() != 0)
         mpl::warn(category,
                   "Failed deleting credentials file in \'{}\': {}",
                   vm->get_name(),
-                  rm_proc.read_std_error());
+                  rm_proc->read_std_error());
 
     if (mount_exit_code != 0)
     {
@@ -429,10 +429,7 @@ void SmbMountHandler::deactivate_impl(bool force)
 try
 {
     mpl::info(category, "Stopping native mount \"{}\" in instance '{}'", target, vm->get_name());
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    MP_UTILS.run_in_ssh_session(
-        session,
-        fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
+    vm->ssh_exec(fmt::format("if mountpoint -q {0}; then sudo umount {0}; else true; fi", target));
     smb_manager->remove_share(share_name);
 }
 catch (const std::exception& e)

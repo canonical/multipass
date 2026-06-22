@@ -22,44 +22,53 @@
 #include <libssh/libssh.h>
 
 #include <memory>
-#include <mutex>
 #include <string>
 
 namespace multipass
 {
-class SSHKeyProvider;
 class SSHSession
 {
 public:
-    SSHSession(const std::string& host,
-               int port,
-               const std::string& ssh_username,
-               const SSHKeyProvider& key_provider);
+    virtual ~SSHSession() = default;
 
-    // just being explicit (unique_ptr member already caused these to be deleted)
+    /**
+     * Execute a command in this SSH session.
+     *
+     * @pre !this->is_moved()
+     * @note This promises no more than a conservative approach to thread-safety, whereby process
+     * execution may be strictly sequenced, such that no two processes can execute simultaneously on
+     * the same session. In other words, a process may execute only after any previous processes
+     * have been destroyed or had exit_code called upon them.
+     *
+     * TODO@sftp make it such that exit_code releases only when the process exits (not on timeout).
+     *
+     * @param cmd The command to execute
+     * @param whisper Whether to use trace rather than debug logging
+     * @return An SSHProcess representing the remote process
+     */
+    [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
+                                                           bool whisper = false) = 0;
+
+    /**
+     * @return Whether this object represents a session that is currently connected
+     */
+    [[nodiscard]] virtual bool is_connected() const = 0;
+
+    /**
+     * @return Whether this object has been moved from since the last assignment (or was last
+     * assigned a moved object)
+     */
+    [[nodiscard]] virtual bool is_moved() const = 0;
+
+    virtual operator ssh_session() = 0; // careful, not thread safe // TODO@sftp drop this?
+    virtual void force_shutdown() = 0;  // careful, not thread safe
+
+protected:
+    SSHSession() = default;
+
     SSHSession(const SSHSession&) = delete;
     SSHSession& operator=(const SSHSession&) = delete;
-
-    // we should be able to move just fine though, but we need to lock
-    SSHSession(SSHSession&&);
-    SSHSession& operator=(SSHSession&&);
-
-    ~SSHSession();
-
-    SSHProcess exec(const std::string& cmd,
-                    bool whisper = false); /* locks the session until the process is destroyed
-                                              or exit_code is called! */
-    [[nodiscard]] bool is_connected() const;
-
-    operator ssh_session(); // careful, not thread safe
-    void force_shutdown();  // careful, not thread safe
-
-private:
-    SSHSession(SSHSession&&, std::unique_lock<std::mutex> lock);
-
-    void set_option(ssh_options_e type, const void* value);
-
-    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
-    mutable std::mutex mut;
+    SSHSession(SSHSession&&) = default;
+    SSHSession& operator=(SSHSession&&) = default;
 };
 } // namespace multipass

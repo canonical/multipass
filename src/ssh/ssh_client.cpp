@@ -16,6 +16,7 @@
  */
 
 #include <multipass/logging/log.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
@@ -43,6 +44,17 @@ mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 
     return channel;
 }
+
+std::unique_ptr<mp::PlainSSHSession> make_session(const std::string& host,
+                                                  int port,
+                                                  const std::string& username,
+                                                  const std::string& priv_key_blob)
+{
+    return std::make_unique<mp::PlainSSHSession>(host,
+                                                 port,
+                                                 username,
+                                                 mp::SSHClientKeyProvider(priv_key_blob));
+}
 } // namespace
 
 mp::SSHClient::SSHClient(const std::string& host,
@@ -50,11 +62,7 @@ mp::SSHClient::SSHClient(const std::string& host,
                          const std::string& username,
                          const std::string& priv_key_blob,
                          ConsoleCreator console_creator)
-    : SSHClient{std::make_unique<mp::SSHSession>(host,
-                                                 port,
-                                                 username,
-                                                 mp::SSHClientKeyProvider(priv_key_blob)),
-                console_creator}
+    : SSHClient{make_session(host, port, username, priv_key_blob), console_creator}
 {
 }
 

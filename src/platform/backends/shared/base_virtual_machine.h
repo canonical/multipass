@@ -22,6 +22,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/path.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -32,7 +33,6 @@
 
 namespace multipass
 {
-class SSHSession;
 class SSHKeyProvider;
 
 class BaseVirtualMachine : public VirtualMachine
@@ -49,7 +49,10 @@ public:
                        const Path& instance_dir);
     ~BaseVirtualMachine();
 
-    virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+    std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
+    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
+                                                 bool whisper = false) override;
+    [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override;
 
     void set_available(bool available) override;
 
@@ -102,6 +105,11 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
 
     virtual void drop_ssh_session(); // virtual to allow mocking
+
+    // TODO@rewiressh make SSHSession mockable instead and use it in tests
+    // TODO@rewiressh then, replace premock for SSH tests that become achievable with gmock
+    virtual std::unique_ptr<SSHProcess> make_ssh_process(const std::string& cmd, bool whisper);
+
     virtual bool unplugged();
 
     /**
@@ -115,6 +123,7 @@ protected:
     void renew_ssh_session();
     void detect_aborted_start();
     void save_error_msg(std::string error) noexcept;
+    IPAddress require_management_ipv4();
 
     virtual void add_extra_interface_to_instance_cloud_init(
         const std::string& default_mac_addr,
@@ -189,7 +198,7 @@ protected:
 
 private:
     std::string saved_error_msg = "";
-    std::optional<SSHSession> ssh_session = std::nullopt;
+    std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)

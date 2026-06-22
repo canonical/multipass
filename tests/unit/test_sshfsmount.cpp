@@ -26,7 +26,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
 #include <multipass/signal.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/utils.h>
 
 #include <algorithm>
@@ -47,8 +47,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 {
     mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
-        mp::SSHSession session{"a", 42, "ubuntu", key_provider};
-        return {std::move(session),
+        return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
                 default_source,
                 target.value_or(default_target),
                 default_mappings,

@@ -46,7 +46,7 @@ public:
     State current_state() override;
 
     int ssh_port() override;
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override;
+    std::string ssh_hostname() override;
     std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
 
@@ -66,7 +66,6 @@ public:
 private:
     void initialize_vm_handle();
     void set_state(applevz::AppleVMState vm_state);
-    void fetch_ip(std::chrono::milliseconds timeout);
 
 private:
     VirtualMachineDescription desc;

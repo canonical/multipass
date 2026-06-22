@@ -21,7 +21,6 @@
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
-#include <multipass/exceptions/internal_timeout_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
@@ -30,8 +29,9 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
+#include <multipass/ssh/plain_ssh_process.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
-#include <multipass/ssh/ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
@@ -229,6 +229,13 @@ void mp::BaseVirtualMachine::set_available(bool available)
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
+    auto proc = ssh_exec_process(cmd, whisper);
+    return MP_UTILS.reap_ssh_process(*proc);
+}
+
+std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const std::string& cmd,
+                                                                         bool whisper)
+{
     std::unique_lock lock{state_mutex};
 
     std::optional<std::string> log_details = std::nullopt;
@@ -250,7 +257,7 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
 
         try
         {
-            return MP_UTILS.run_in_ssh_session(*ssh_session, cmd, whisper);
+            return make_ssh_process(cmd, whisper);
         }
         catch (const SSHException& e)
         {
@@ -266,7 +273,22 @@ std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whispe
     assert(false && "we should never reach here");
 }
 
+std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const std::string& cmd,
+                                                                         bool whisper)
+{
+    return ssh_session->exec(cmd, whisper);
+}
+
 void mp::BaseVirtualMachine::renew_ssh_session()
+{
+    auto new_session = new_ssh_session();
+
+    std::lock_guard lock{state_mutex};
+    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
+    ssh_session = std::move(new_session);
+}
+
+std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_session()
 {
     {
         const std::unique_lock lock{state_mutex};
@@ -274,9 +296,13 @@ void mp::BaseVirtualMachine::renew_ssh_session()
             throw SSHVMNotRunning{"SSH unavailable on instance {}: not running", vm_name};
     }
 
-    mpl::debug(vm_name, "{} SSH session", ssh_session ? "Renewing cached" : "Caching new");
-    ssh_session.emplace(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    mpl::trace(vm_name, "New SSH session");
+    return std::make_unique<PlainSSHSession>(ssh_hostname(),
+                                             ssh_port(),
+                                             ssh_username(),
+                                             key_provider);
 }
+
 bool multipass::BaseVirtualMachine::unplugged()
 {
     auto st = current_state();
@@ -298,6 +324,16 @@ void mp::BaseVirtualMachine::detect_aborted_start()
         saved_error_msg.clear();
         throw StartException(vm_name, msg);
     }
+}
+
+mp::IPAddress mp::BaseVirtualMachine::require_management_ipv4()
+{
+    // TODO C++23
+    // return management_ipv4().or_else([] { throw IPUnavailableException{}; }).value();
+    if (auto ip = management_ipv4(); ip)
+        return *ip;
+
+    throw IPUnavailableException{};
 }
 
 void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
@@ -873,10 +909,6 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
         ssh_and_cross_to_running();
         return utils::TimeoutAction::done;
     }
-    catch (const InternalTimeoutException& e)
-    {
-        return log_and_retry(e, this);
-    }
     catch (const SSHException& e)
     {
         return log_and_retry(e, this);
@@ -889,10 +921,12 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    static constexpr auto wait_step = 1s;
-    ssh_session.emplace(ssh_hostname(wait_step), ssh_port(), ssh_username(), key_provider);
+    auto new_session =
+        std::make_unique<PlainSSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 
     std::lock_guard lock{state_mutex};
+    ssh_session = std::move(new_session);
+
     state = State::running;
     handle_state_update();
 }

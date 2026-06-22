@@ -17,22 +17,18 @@
 
 #pragma once
 
-#include <chrono>
-#include <stdexcept>
-#include <string>
+#include "common.h"
 
-#include <multipass/format.h>
+#include <multipass/ssh/ssh_process.h>
 
-namespace multipass
+namespace multipass::test
 {
-
-class InternalTimeoutException : public std::runtime_error
+struct MockSSHProcess : public SSHProcess
 {
-public:
-    InternalTimeoutException(const std::string& action, std::chrono::milliseconds timeout)
-        : std::runtime_error{fmt::format("Could not {} within {}ms", action, timeout.count())}
-    {
-    }
+    MOCK_METHOD(bool, exit_recognized, (std::chrono::milliseconds timeout), (override));
+    MOCK_METHOD(int, exit_code, (std::chrono::milliseconds timeout), (override));
+    MOCK_METHOD(std::string, read_std_output, (), (override));
+    MOCK_METHOD(std::string, read_std_error, (), (override));
+    MOCK_METHOD(const std::string&, get_cmd, (), (const, override));
 };
-
-} // namespace multipass
+} // namespace multipass::test
