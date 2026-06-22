@@ -35,19 +35,19 @@ LIFECYCLE_VM = "upg-lifecycle"
 
 @pytest.mark.seed
 @pytest.mark.scenario(LIFECYCLE_VM)
-def test_lifecycle_seed(seed_scenario):
+def test_lifecycle_seed(scenario):
     with seeded_vm(LIFECYCLE_VM):
         sentinel = seed_sentinel(LIFECYCLE_VM, "lifecycle")
         fingerprint = info_fingerprint(LIFECYCLE_VM)  # captured while running
         park_seeded(LIFECYCLE_VM)
 
-    seed_scenario.record.update({"sentinel": sentinel, "fingerprint": fingerprint})
+    scenario.record.update({"sentinel": sentinel, "fingerprint": fingerprint})
 
 
 @pytest.mark.verify
 @pytest.mark.scenario(LIFECYCLE_VM)
-def test_lifecycle_verify(verify_scenario):
-    recorded = verify_scenario.record
+def test_lifecycle_verify(scenario):
+    recorded = scenario.record
 
     resume_seeded(LIFECYCLE_VM, expected_state="Stopped")
     # cpu/memory are only reported while running, so check after the start.

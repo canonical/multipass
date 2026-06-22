@@ -38,19 +38,19 @@ requires_suspend = pytest.mark.skipif(
 @pytest.mark.seed
 @pytest.mark.scenario(SUSPEND_VM)
 @requires_suspend
-def test_suspend_resume_seed(seed_scenario):
+def test_suspend_resume_seed(scenario):
     with seeded_vm(SUSPEND_VM):
         sentinel = seed_sentinel(SUSPEND_VM, "suspend")
         park_seeded(SUSPEND_VM, how="suspend", expected="Suspended")
 
-    seed_scenario.record.update({"sentinel": sentinel})
+    scenario.record.update({"sentinel": sentinel})
 
 
 @pytest.mark.verify
 @pytest.mark.scenario(SUSPEND_VM)
 @requires_suspend
-def test_suspend_resume_verify(verify_scenario):
-    recorded = verify_scenario.record
+def test_suspend_resume_verify(scenario):
+    recorded = scenario.record
 
     # The VM must come back still Suspended, then resume cleanly with its data.
     resume_seeded(SUSPEND_VM, expected_state="Suspended")
