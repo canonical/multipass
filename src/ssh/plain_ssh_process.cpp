@@ -167,7 +167,7 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
         if (save_exception)
             exit_result = eptr;
 
-        rethrow_exception(eptr);
+        std::rethrow_exception(eptr);
     }
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
@@ -195,7 +195,7 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
         if (save_exception)
             exit_result = eptr;
 
-        rethrow_exception(eptr);
+        std::rethrow_exception(eptr);
     }
 }
 
