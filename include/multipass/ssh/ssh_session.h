@@ -51,6 +51,8 @@ public:
     [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                            bool whisper = false) = 0;
 
+    virtual std::unique_ptr<SftpServerSession> make_sftp_server_session() = 0;
+
     /**
      * @return Whether this object represents a session that is currently connected
      */
@@ -61,8 +63,6 @@ public:
      * assigned a moved object)
      */
     [[nodiscard]] virtual bool is_moved() const = 0;
-
-    virtual std::unique_ptr<SftpServerSession> make_sftp_server_session() = 0;
 
     virtual operator ssh_session() = 0; // careful, not thread safe // TODO@sftp drop this?
     virtual void force_shutdown() = 0;  // careful, not thread safe
