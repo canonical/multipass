@@ -48,6 +48,7 @@ jobs:
               - ".github/workflows/macos.yml"
               - ".github/workflows/windows.yml"
               - ".github/.codecov.yml"
+              - ".clang-tidy"
               - "3rd-party/**"
               - "completions/**"
               - "data/*"
