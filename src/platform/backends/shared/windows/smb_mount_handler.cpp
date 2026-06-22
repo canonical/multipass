@@ -25,6 +25,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/ssh_process.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
