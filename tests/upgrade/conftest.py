@@ -155,6 +155,24 @@ def seed_scenario(request, seed_manifest):
 
 
 @pytest.fixture
+def scenario(request):
+    """Bind a test to its manifest slice, dispatching on the seed/verify marker.
+
+    Lazily resolves only the matching phase fixture (via ``getfixturevalue``), so
+    the seed run never loads the verify manifest and the verify run never
+    instantiates -- and so overwrites -- the seed manifest.
+    """
+    if request.node.get_closest_marker("seed"):
+        return request.getfixturevalue("seed_scenario")
+    if request.node.get_closest_marker("verify"):
+        return request.getfixturevalue("verify_scenario")
+    raise pytest.UsageError(
+        f"{request.node.nodeid} requests `scenario` but is marked neither "
+        "`seed` nor `verify`"
+    )
+
+
+@pytest.fixture
 def verify_scenario(request, verify_manifest):
     """Bind a verify test to its recorded slice and purge the VM afterwards.
 

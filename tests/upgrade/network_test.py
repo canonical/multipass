@@ -51,19 +51,19 @@ def host_network():
 
 @pytest.mark.seed
 @pytest.mark.scenario(VM)
-def test_network_seed(seed_scenario, host_network):
+def test_network_seed(scenario, host_network):
     with seeded_vm(VM, extra_args=["--network", f"name={host_network},mode=manual"]):
         macs = guest_interface_macs(VM)
         assert len(macs) >= 2, f"expected an extra interface, found MACs: {macs}"
         park_seeded(VM)
 
-    seed_scenario.record.update({"macs": macs, "network": host_network})
+    scenario.record.update({"macs": macs, "network": host_network})
 
 
 @pytest.mark.verify
 @pytest.mark.scenario(VM)
-def test_network_verify(verify_scenario, host_network):
-    recorded = verify_scenario.record
+def test_network_verify(scenario, host_network):
+    recorded = scenario.record
 
     # The host network is back (fixture), so the stored NIC config can re-attach.
     resume_seeded(VM, expected_state="Stopped")
