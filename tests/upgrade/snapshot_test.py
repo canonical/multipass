@@ -41,7 +41,7 @@ def _snapshot(name, snapshot_name, comment):
 @pytest.mark.seed
 @pytest.mark.snapshot
 @pytest.mark.scenario(VM)
-def test_snapshot_seed(seed_scenario):
+def test_snapshot_seed(scenario):
     with seeded_vm(VM):
         # Data captured by BASE only.
         base_only = make_sentinel("snapshot-base")
@@ -55,7 +55,7 @@ def test_snapshot_seed(seed_scenario):
         _snapshot(VM, CHILD, CHILD_COMMENT)
         assert state(VM) == "Stopped"
 
-    seed_scenario.record.update({
+    scenario.record.update({
         "snapshot_count": snapshot_count(VM),
         "snapshots": {
             BASE: {"parent": "", "comment": BASE_COMMENT},
@@ -75,8 +75,8 @@ def _list_snapshots(name):
 @pytest.mark.verify
 @pytest.mark.snapshot
 @pytest.mark.scenario(VM)
-def test_snapshot_verify(verify_scenario):
-    recorded = verify_scenario.record
+def test_snapshot_verify(scenario):
+    recorded = scenario.record
 
     assert state(VM) == "Stopped"
     assert snapshot_count(VM) == recorded["snapshot_count"], "snapshot count changed"
