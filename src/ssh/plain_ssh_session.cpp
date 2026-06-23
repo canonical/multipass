@@ -22,10 +22,10 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/socket.h>
+#include <multipass/ssh/plain_sftp_server_session.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
-#include <multipass/sshfs_mount/sftp_server_session.h>
 #include <multipass/standard_paths.h>
 #include <multipass/top_catch_all.h>
 
