@@ -85,19 +85,17 @@ mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                         key_provider.private_key());
 }
 
-multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other)
+mp::PlainSSHSession::PlainSSHSession(PlainSSHSession&& other)
     : PlainSSHSession(std::move(other), std::unique_lock{other.mut})
 {
 }
 
-multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other,
-                                            std::unique_lock<std::mutex>)
+mp::PlainSSHSession::PlainSSHSession(PlainSSHSession&& other, std::unique_lock<std::mutex>)
     : session{std::move(other.session)}, mut{}
 {
 }
 
-multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
-    multipass::PlainSSHSession&& other)
+mp::PlainSSHSession& mp::PlainSSHSession::operator=(PlainSSHSession&& other)
 {
     if (this != &other)
     {
@@ -108,7 +106,7 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
     return *this;
 }
 
-multipass::PlainSSHSession::~PlainSSHSession()
+mp::PlainSSHSession::~PlainSSHSession()
 {
     top_catch_all(category, [this] {
         std::unique_lock lock{mut};
