@@ -119,10 +119,6 @@ jobs:
     - name: Read snapcraft.yml parameters
       uses: ./.github/actions/read-snapcraft-yml-params
 
-    - name: Install yq
-      run: |
-        sudo snap install yq
-
     - name: Exclude GUI from unsupported arches
       if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-noble-edge' || matrix.runs-on == 'self-hosted-linux-s390x-noble-edge' }}
       run: |
