@@ -22,10 +22,13 @@ namespace multipass
 class SftpServerSession
 {
 public:
-    SftpServerSession() = default; // TODO@sftp protect
     virtual ~SftpServerSession() = default;
 
+    // No copies
     SftpServerSession(const SftpServerSession&) = delete;
     SftpServerSession& operator=(const SftpServerSession&) = delete;
+
+protected:
+    SftpServerSession() = default;
 };
 } // namespace multipass
