@@ -66,17 +66,21 @@ jobs:
             const shortHash = str => crypto.createHash("sha256").update(str).digest("hex").slice(0, 12);
 
             if (SNAP_CHANNEL !== '<undefined>') {
-              matrix.include.push({
-                os: 'ubuntu-latest',
-                label: 'Snap',
-                'daemon-controller': 'snap',
-                'backend-driver': BACKEND_DRIVER,
-                'sudo-cmd': 'sudo',
-                'pkg-url': '',
-                'cmd-prologue': '',
-                'snap-channel': SNAP_CHANNEL,
-                'concurrency-key': shortHash(SNAP_CHANNEL)
-              });
+              for (const runner of [
+                'ubuntu-latest',
+                'self-hosted-linux-arm64-noble-edge']) {
+                matrix.include.push({
+                  os: runner,
+                  label: `Snap (${runner})`,
+                  'daemon-controller': 'snap',
+                  'backend-driver': BACKEND_DRIVER,
+                  'sudo-cmd': 'sudo',
+                  'pkg-url': '',
+                  'cmd-prologue': '',
+                  'snap-channel': SNAP_CHANNEL,
+                  'concurrency-key': shortHash(SNAP_CHANNEL + runner)
+                });
+              }
             }
 
             // macOS runs are disabled since GH macOS intel runners halt during execution

@@ -3,6 +3,14 @@ parts:
     plugin: nil
     override-pull: |
       # Based on https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt-sources.sh
+      # Mirrors only serve amd64/i386; skip on other architectures
+      # http://azure.archive.ubuntu.com/ubuntu/dists/noble/
+      arch="$(dpkg --print-architecture)"
+      if [ "$arch" != "amd64" ] && [ "$arch" != "i386" ]; then
+        echo "Skipping mirror injection (not amd64/i386)"
+        exit 0
+      fi
+
       echo "Injecting custom APT mirror priorities..."
 
       cat <<EOF > /etc/apt/apt-mirrors.txt
@@ -12,9 +20,9 @@ parts:
       EOF
 
       cat <<EOF > /etc/apt/sources.list
-      deb mirror+file:/etc/apt/apt-mirrors.txt jammy main restricted universe multiverse
-      deb mirror+file:/etc/apt/apt-mirrors.txt jammy-updates main restricted universe multiverse
-      deb mirror+file:/etc/apt/apt-mirrors.txt jammy-security main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble-updates main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble-security main restricted universe multiverse
       EOF
 
       apt-get update
