@@ -32,27 +32,21 @@ jobs:
             "build-type": "Debug",
             "cmake-preset": "ci-snap-debug",
             "runs-on": "ubuntu-latest"
-          }, {
-            "build-type": "Release",
-            "cmake-preset": "ci-snap",
-            "runs-on": "ubuntu-latest"
-          }, {
-            "build-type": "Release",
-            "cmake-preset": "ci-snap",
-            "runs-on": "ubuntu-24.04-arm"
           });
 
+          let runners = ["ubuntu-latest", "ubuntu-24.04-arm"];
           if (context.eventName === 'schedule' &&
               context.repo.owner === 'canonical' &&
               context.repo.repo === 'multipass') {
+            runners.push("self-hosted-linux-ppc64el-noble-edge",
+                         "self-hosted-linux-s390x-noble-edge");
+          }
+
+          for (const runner of runners) {
             matrix.include.push({
               "build-type": "Release",
               "cmake-preset": "ci-snap",
-              "runs-on": "self-hosted-linux-ppc64el-noble-edge"
-            }, {
-              "build-type": "Release",
-              "cmake-preset": "ci-snap",
-              "runs-on": "self-hosted-linux-s390x-noble-edge"
+              "runs-on": runner
             });
           }
 
