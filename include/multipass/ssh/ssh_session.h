@@ -33,6 +33,10 @@ class SSHSession
 public:
     virtual ~SSHSession() = default;
 
+    // Non-copyable (but movable by descendants, see below)
+    SSHSession(const SSHSession&) = delete;
+    SSHSession& operator=(const SSHSession&) = delete;
+
     /**
      * Execute a command in this SSH session.
      *
@@ -69,9 +73,6 @@ public:
 
 protected:
     SSHSession() = default;
-
-    SSHSession(const SSHSession&) = delete;
-    SSHSession& operator=(const SSHSession&) = delete;
     SSHSession(SSHSession&&) = default;
     SSHSession& operator=(SSHSession&&) = default;
 };
