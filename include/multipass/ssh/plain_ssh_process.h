@@ -37,13 +37,6 @@ public:
                     const std::string& cmd,
                     std::unique_lock<std::mutex> session_lock);
 
-    // just being explicit (unique_ptr member already caused these to be deleted)
-    PlainSSHProcess(const PlainSSHProcess&) = delete;
-    PlainSSHProcess& operator=(const PlainSSHProcess&) = delete;
-
-    PlainSSHProcess(PlainSSHProcess&&) = delete;
-    PlainSSHProcess& operator=(PlainSSHProcess&&) = delete;
-
     ~PlainSSHProcess() override = default; // releases session lock
 
     // Attempt to verify process completion within the given timeout. For this to return true, two

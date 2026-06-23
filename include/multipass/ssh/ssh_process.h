@@ -17,12 +17,14 @@
 
 #pragma once
 
+#include <multipass/disabled_copy_move.h>
+
 #include <chrono>
 #include <string>
 
 namespace multipass
 {
-class SSHProcess
+class SSHProcess : private DisabledCopyMove
 {
 public:
     virtual ~SSHProcess() = default;
@@ -52,11 +54,5 @@ public:
 
 protected:
     SSHProcess() = default;
-
-    // movable but not copyable
-    SSHProcess(const SSHProcess&) = delete;
-    SSHProcess& operator=(const SSHProcess&) = delete;
-    SSHProcess(SSHProcess&&) = default;
-    SSHProcess& operator=(SSHProcess&&) = default;
 };
 } // namespace multipass
