@@ -17,6 +17,8 @@
 
 #include "sftp_server.h"
 
+#include "multipass/ssh/plain_ssh_session.h"
+#include "multipass/ssh/ssh_key_provider.h" // TODO@sftp remove
 #include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
@@ -298,6 +300,25 @@ constexpr bool follows_symlinks(uint8_t type)
         return false; // Fail-safe default
     }
 }
+
+// TODO@sftp remove!
+struct EmptySSHKeyProvider : mp::SSHKeyProvider
+{
+    using SSHKeyProvider::SSHKeyProvider;
+
+    std::string private_key_as_base64() const override
+    {
+        return "";
+    }
+    std::string public_key_as_base64() const override
+    {
+        return "";
+    }
+    ssh_key private_key() const override
+    {
+        return nullptr;
+    }
+};
 } // namespace
 
 mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
@@ -308,14 +329,14 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            int default_uid,
                            int default_gid,
                            const std::string& sshfs_exec_line)
-    : ssh_session{std::move(session)},
+    : ssh_session{std::move(session)}, // TODO@sftp dump field
       sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
       raw_sftp_server_session{make_sftp_session(*ssh_session,
                                                 static_cast<PlainSSHProcess*>(sshfs_process.get())
                                                     ->release_channel())}, // TODO@rewiressh no cast
       sftp_server_session{
-          ssh_session
-              ->make_sftp_server_session()}, // TODO@sftp proper params; move and consume session
+          PlainSSHSession{"localGHost", 22, "me", EmptySSHKeyProvider{}}
+              .make_sftp_server_session()}, // TODO@sftp proper session, proper params
       source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{fs::path(target).lexically_normal()},
       gid_mappings{gid_mappings},
