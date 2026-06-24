@@ -97,6 +97,7 @@ add_executable(multipass_cpp_tests
   test_instance_settings_handler.cpp
   test_ip_address.cpp
   test_json_utils.cpp
+  test_libssh.cpp
   test_log.cpp
   test_log_location.cpp
   test_memory_size.cpp
@@ -151,14 +152,6 @@ target_include_directories(multipass_cpp_tests
 
 add_definitions(-DWITH_SERVER)
 target_compile_definitions(libssh_wrapper_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(ssh_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(sshfs_mount_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(sftp_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(ssh_client_test PRIVATE
   ${c_mock_defines})
 
 target_compile_definitions(utils_test PRIVATE
