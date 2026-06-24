@@ -300,11 +300,15 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 std::string mp::CSVFormatter::format(const ZonesReply& reply) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(std::back_inserter(buf), "Name,Available\n");
+    fmt::format_to(std::back_inserter(buf), "Name,Available,Subnet\n");
 
     for (const auto& zone : reply.zones())
     {
-        fmt::format_to(std::back_inserter(buf), "{},{}\n", zone.name(), zone.available());
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{}\n",
+                       zone.name(),
+                       zone.available(),
+                       zone.subnet());
     }
 
     return fmt::to_string(buf);

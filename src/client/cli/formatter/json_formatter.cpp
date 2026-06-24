@@ -319,7 +319,7 @@ std::string mp::JsonFormatter::format(const ZonesReply& reply) const
     boost::json::object root_object;
 
     for (const auto& zone : reply.zones())
-        root_object[zone.name()] = {{"available", zone.available()}};
+        root_object[zone.name()] = {{"available", zone.available()}, {"subnet", zone.subnet()}};
 
     return pretty_print(root_object);
 }

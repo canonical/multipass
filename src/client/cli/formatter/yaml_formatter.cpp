@@ -370,6 +370,7 @@ std::string mp::YamlFormatter::format(const mp::ZonesReply& reply) const
     {
         YAML::Node zone_node;
         zone_node["available"] = zone.available();
+        zone_node["subnet"] = zone.subnet();
         root_node[zone.name()] = zone_node;
     }
 

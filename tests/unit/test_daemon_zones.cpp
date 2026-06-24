@@ -59,6 +59,9 @@ struct TestDaemonZones : public mpt::DaemonTestFixture
     const std::string zone1_name = "zone1";
     const std::string zone2_name = "zone2";
 
+    const mp::Subnet zone1_subnet = {"192.168.1.0/24"};
+    const mp::Subnet zone2_subnet = {"192.168.2.0/24"};
+
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
 
@@ -223,9 +226,11 @@ TEST_F(TestDaemonZones, zonesCmdReturnsMultipleZones)
 {
     EXPECT_CALL(*zone1, get_name()).WillOnce(ReturnRef(zone1_name));
     EXPECT_CALL(*zone1, is_available()).WillOnce(Return(false));
+    EXPECT_CALL(*zone1, get_subnet()).WillOnce(ReturnRef(zone1_subnet));
 
     EXPECT_CALL(*zone2, get_name()).WillOnce(ReturnRef(zone2_name));
     EXPECT_CALL(*zone2, is_available()).WillOnce(Return(true));
+    EXPECT_CALL(*zone2, get_subnet()).WillOnce(ReturnRef(zone2_subnet));
 
     config_builder.az_manager = std::move(mock_az_manager);
     mp::Daemon daemon{config_builder.build()};
@@ -243,11 +248,14 @@ TEST_F(TestDaemonZones, zonesCmdReturnsMultipleZones)
     const auto status = call_daemon_slot(daemon, &mp::Daemon::zones, request, mock_server);
 
     ASSERT_TRUE(status.ok());
-    EXPECT_THAT(reply.zones(),
-                UnorderedElementsAre(AllOf(Property(&mp::Zone::available, IsFalse()),
-                                           Property(&mp::Zone::name, Eq(zone1_name))),
-                                     AllOf(Property(&mp::Zone::available, IsTrue()),
-                                           Property(&mp::Zone::name, Eq(zone2_name)))));
+    EXPECT_THAT(
+        reply.zones(),
+        UnorderedElementsAre(AllOf(Property(&mp::Zone::available, IsFalse()),
+                                   Property(&mp::Zone::name, Eq(zone1_name)),
+                                   Property(&mp::Zone::subnet, Eq(zone1_subnet.to_cidr()))),
+                             AllOf(Property(&mp::Zone::available, IsTrue()),
+                                   Property(&mp::Zone::name, Eq(zone2_name)),
+                                   Property(&mp::Zone::subnet, Eq(zone2_subnet.to_cidr())))));
 }
 
 TEST_F(TestDaemonZones, zonesCmdReturnsNoZones)
