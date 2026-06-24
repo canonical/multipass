@@ -33,9 +33,9 @@
     auto mp_##open(Args&&... args)                                                                 \
     {                                                                                              \
         return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,  \
-                               decltype(std::function{close})>{                                     \
-            MP_LIBSSH.open(std::forward<Args>(args)...),                                            \
-            [](auto* ptr) { return MP_LIBSSH.close(ptr); }};                                        \
+                               decltype(std::function{close})>{                                    \
+            MP_LIBSSH.open(std::forward<Args>(args)...),                                           \
+            [](auto* ptr) { return MP_LIBSSH.close(ptr); }};                                       \
     }
 
 // Variant for deleters that are not libssh functions (e.g. the C library `free`) and so
@@ -45,9 +45,9 @@
     auto mp_##open(Args&&... args)                                                                 \
     {                                                                                              \
         return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,  \
-                               decltype(std::function{close})>{                                     \
-            MP_LIBSSH.open(std::forward<Args>(args)...),                                            \
-            close};                                                                                 \
+                               decltype(std::function{close})>{                                    \
+            MP_LIBSSH.open(std::forward<Args>(args)...),                                           \
+            close};                                                                                \
     }
 
 namespace multipass
