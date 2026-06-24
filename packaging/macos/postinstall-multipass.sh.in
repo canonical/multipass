@@ -26,4 +26,4 @@ else
     echo "MacPorts is not installed"
 fi
 
-echo 0
+exit 0
