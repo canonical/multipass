@@ -20,7 +20,7 @@
 #include <multipass/cli/command.h>
 #include <multipass/ssh/sftp_client.h>
 
-#include "multipass/cli/return_codes.h"
+#include "multipass/return_codes.h"
 #include <filesystem>
 #include <string>
 #include <variant>
