@@ -26,6 +26,9 @@
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/utils/saturate_cast.h>
+#include <multipass/utils/types.h>
+
 #include <multipass/utils.h>
 
 #include <QDir>
@@ -894,7 +897,7 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     const auto result = MP_PLATFORM.pread(fd,
                                           buffer.data(),
                                           std::min(msg->len, max_packet_size),
-                                          msg->offset);
+                                          static_cast<mp::off_t>(msg->offset));
 
     if (result > 0)
         return MP_LIBSSH.sftp_reply_data(msg, buffer.data(), result);
@@ -1400,7 +1403,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
     auto len = MP_LIBSSH.ssh_string_len(msg->data);
     auto data_ptr = MP_LIBSSH.ssh_string_get_char(msg->data);
 
-    uint64_t current_offset = msg->offset;
+    mp::off_t current_offset = static_cast<mp::off_t>(msg->offset);
 
     while (len > 0)
     {

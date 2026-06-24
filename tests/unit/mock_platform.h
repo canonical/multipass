@@ -45,13 +45,10 @@ public:
     MOCK_METHOD(int, lstat_attr_from, (const char*, sftp_attributes_struct&), (const, override));
     MOCK_METHOD(int, stat_attr_from, (const char*, sftp_attributes_struct&), (const, override));
     MOCK_METHOD(int, fstat_attr_from, (int, sftp_attributes_struct&), (const, override));
-    MOCK_METHOD(int, ftruncate, (int, std::ptrdiff_t), (const, override));
+    MOCK_METHOD(int, ftruncate, (int, off_t), (const, override));
     MOCK_METHOD(int, futimes, (int, int, int), (const, override));
-    MOCK_METHOD(std::ptrdiff_t, pread, (int, void*, size_t, std::ptrdiff_t), (const, override));
-    MOCK_METHOD(std::ptrdiff_t,
-                pwrite,
-                (int, const void*, size_t, std::ptrdiff_t),
-                (const, override));
+    MOCK_METHOD(ssize_t, pread, (int, void*, size_t, off_t), (const, override));
+    MOCK_METHOD(ssize_t, pwrite, (int, const void*, size_t, off_t), (const, override));
     MOCK_METHOD(bool,
                 set_permissions,
                 (const std::filesystem::path&, std::filesystem::perms, bool),
