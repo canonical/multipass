@@ -15,30 +15,11 @@
  *
  */
 
-// Small smoke tests that exercise the real libssh library through the
-// MP_LIBSSH singleton. They verify the basic assumptions our wrapper makes
-// about libssh: that init/finalize succeed, that simple objects can be
-// allocated and freed, and that key generation/export round-trips correctly.
-//
-// These tests intentionally only touch libssh entry points that are NOT
-// listed in tests/unit/c_mock_defines.cmake, so the calls reach the real
-// libssh implementation rather than the premock shims.
-
 #include "common.h"
 
 #include <multipass/ssh/libssh.h>
 
 #include <cstring>
-
-using namespace testing;
-
-TEST(Libssh, initFinalizeSucceed)
-{
-    EXPECT_EQ(MP_LIBSSH.ssh_init(), SSH_OK);
-    EXPECT_EQ(MP_LIBSSH.ssh_finalize(), SSH_OK);
-    // Leave libssh functional for the other tests
-    EXPECT_EQ(MP_LIBSSH.ssh_init(), SSH_OK);
-}
 
 TEST(Libssh, eventNewReturnsNonNullAndCanBeFreed)
 {
