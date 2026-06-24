@@ -60,8 +60,10 @@ public:
     std::string read_std_error() override;
     const std::string& get_cmd() const override;
 
-public:
-    // Returns a non-owning channel handle and releases the session lock; channel ownership stays.
+public: // but restricted
+    // Obtain a non-owning libssh channel handle.
+    // The caller adopts thread-safety responsibility for the channel with respect to this
+    // SSHProcess and the SSHSession it belongs to.
     ssh_channel borrow_channel(const PrivatePassProvider<PlainSftpServerSession>::PrivatePass&);
 
 private:
