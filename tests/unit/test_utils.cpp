@@ -33,6 +33,7 @@
 #include <gtest/gtest-death-test.h>
 
 #include <algorithm>
+#include <cctype>
 #include <iterator>
 #include <sstream>
 #include <string>

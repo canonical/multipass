@@ -911,7 +911,7 @@ TEST_F(SftpServer, rmdirNonExistingFails)
     msg->filename = new_dir_name.data();
 
     int failure_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, failure_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -3098,16 +3098,16 @@ TEST_F(SftpServer, writeFailureFails)
 {
     mpt::TempDir temp_dir;
 
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto open_msg1 = make_msg(SFTP_OPEN);
-    auto folder = name_as_char_array(temp_dir.path().toStdString());
+    auto folder = name_as_char_array(path.string());
     open_msg1->filename = folder.data();
     auto write_msg = make_msg(SFTP_WRITE);
     auto data1 = make_data("The answer is ");
     write_msg->data = data1.get();
     write_msg->offset = 10;
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
     auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
     const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
@@ -3152,17 +3152,17 @@ TEST_F(SftpServer, writeFailureFails)
 TEST_F(SftpServer, handlesReads)
 {
     mpt::TempDir temp_dir;
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
 
     std::string given_data{"some text"};
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto open_msg1 = make_msg(SFTP_OPEN);
-    auto folder = name_as_char_array(temp_dir.path().toStdString());
+    auto folder = name_as_char_array(path.string());
     open_msg1->filename = folder.data();
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = given_data.size();
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
     auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
     const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
@@ -3221,17 +3221,17 @@ TEST_F(SftpServer, handlesReads)
 TEST_F(SftpServer, readReturnsFailureFails)
 {
     mpt::TempDir temp_dir;
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
 
     std::string given_data{"some text"};
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto open_msg1 = make_msg(SFTP_OPEN);
-    auto folder = name_as_char_array(temp_dir.path().toStdString());
+    auto folder = name_as_char_array(path.string());
     open_msg1->filename = folder.data();
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = given_data.size();
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
     auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
     const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
@@ -3281,16 +3281,16 @@ TEST_F(SftpServer, readReturnsFailureFails)
 TEST_F(SftpServer, readReturnsZeroEndOfFile)
 {
     mpt::TempDir temp_dir;
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
 
     auto init_msg = make_msg(SSH_FXP_INIT);
-    auto folder = name_as_char_array(temp_dir.path().toStdString());
+    auto file = name_as_char_array(path.string());
     auto open_msg1 = make_msg(SSH_FXP_OPEN);
-    open_msg1->filename = folder.data();
+    open_msg1->filename = file.data();
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = 10;
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
     auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
     const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 

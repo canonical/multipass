@@ -195,6 +195,7 @@ auto longname_from(const sftp_attributes_struct& file_attr, const std::string& f
     const auto timestamp = MP_UTILS.format_time_t(file_attr.mtime);
     fmt::format_to(std::back_inserter(out), " {} {}", timestamp, filename);
 
+    out.push_back('\0');
     return out;
 }
 
