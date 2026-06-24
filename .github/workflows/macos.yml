@@ -39,11 +39,11 @@ jobs:
           const matrix = { include: [] };
 
           matrix.include.push({
-            "name": "macOS Latest (Apple Silicon)",
-            "runs-on": "macos-latest"
+            "name": "macOS 26 (Apple Silicon)",
+            "runs-on": "macos-26",
           },{
-            "name": "macOS 15 Sequoia (Intel Silicon)",
-            "runs-on": "macos-15-intel",
+            "name": "macOS 26 Sequoia (Intel Silicon)",
+            "runs-on": "macos-26-intel",
           })
 
           core.setOutput('matrix', JSON.stringify(matrix));
@@ -63,11 +63,11 @@ jobs:
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
-      # Use artifacts from macos-15-intel and macos-latest in official package
-      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-15-intel-package-artifact-name }}
-      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
-      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
-      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
+      # Use artifacts from macos-26 and macos-26-intel in official package
+      mac-x86-package-artifact-name: ${{ steps.publish-data.outputs.macos-26-intel-package-artifact-name }}
+      mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-26-package-artifact-name }}
+      mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-26-intel-package-file-name }}
+      mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-26-package-file-name }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -369,7 +369,7 @@ jobs:
 
     needs: [BuildAndTest]
 
-    runs-on: macos-latest
+    runs-on: macos-26
 
     outputs:
       macos-pkg-url: ${{ steps.s3-upload.outputs.url }}
