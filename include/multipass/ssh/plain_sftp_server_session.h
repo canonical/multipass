@@ -28,6 +28,12 @@ class PlainSftpServerSession : public SftpServerSession,
 {
 public:
     explicit PlainSftpServerSession(PlainSSHSession&& ssh_session);
+    PlainSftpServerSession(const PlainSftpServerSession&) = delete;
+    PlainSftpServerSession& operator=(const PlainSftpServerSession&) = delete;
+
+    // TODO@sftp Make class final before enabling these
+    PlainSftpServerSession(PlainSftpServerSession&&) = delete;
+    PlainSftpServerSession& operator=(PlainSftpServerSession&&) = delete;
 
 private:
     PlainSSHSession ssh_session;
