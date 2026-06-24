@@ -14,6 +14,8 @@
 #
 
 function(add_ssh_target TARGET_NAME)
+  add_definitions(-DWITH_SERVER)
+
   add_library(${TARGET_NAME} STATIC
     libssh_scope_guard.cpp
     openssh_key_provider.cpp
