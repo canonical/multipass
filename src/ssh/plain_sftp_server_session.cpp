@@ -30,13 +30,10 @@ int sftp_reply_version(sftp_client_message msg);
 
 namespace mp = multipass;
 
-namespace
+mp::PlainSftpServerSession::SftpSessionUptr
+mp::PlainSftpServerSession::make_sftp_session(::ssh_session session, ssh_channel channel)
 {
-auto make_sftp_session(ssh_session session, ssh_channel channel)
-{
-    std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*> sftp_server_session{
-        sftp_server_new(session, channel),
-        sftp_server_free};
+    SftpSessionUptr sftp_server_session{sftp_server_new(session, channel), sftp_server_free};
     // The function sftp_server_init was expanded here to avoid deprecation warnings.
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
@@ -65,7 +62,6 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
 
     return sftp_server_session;
 }
-} // namespace
 
 mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& session)
     : ssh_session{std::move(session)},
