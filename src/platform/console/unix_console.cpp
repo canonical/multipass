@@ -21,6 +21,7 @@
 
 #include <sys/ioctl.h>
 
+#include <atomic>
 #include <cstdlib>
 
 namespace mp = multipass;
@@ -30,14 +31,17 @@ namespace
 mp::Console::ConsoleGeometry local_pty_size{0, 0};
 ssh_channel global_channel;
 int global_cout_fd;
+std::atomic<std::sig_atomic_t> pty_size_changed{0};
+static_assert(pty_size_changed.is_always_lock_free,
+              "Fatal: pty_size_changed is not lock-free! Unsafe for signal handlers.");
 
 bool update_local_pty_size(int cout_fd)
 {
     struct winsize win = {0, 0, 0, 0};
     ioctl(cout_fd, TIOCGWINSZ, &win);
 
-    bool local_pty_size_changed =
-        local_pty_size.rows != win.ws_row || local_pty_size.columns != win.ws_col;
+    bool local_pty_size_changed = local_pty_size.rows != win.ws_row ||
+                                  local_pty_size.columns != win.ws_col;
 
     if (local_pty_size_changed)
     {
@@ -52,12 +56,7 @@ static void sigwinch_handler(int sig)
 {
     if (sig == SIGWINCH)
     {
-        if (update_local_pty_size(global_cout_fd))
-        {
-            ssh_channel_change_pty_size(global_channel,
-                                        local_pty_size.columns,
-                                        local_pty_size.rows);
-        }
+        pty_size_changed.store(1, std::memory_order_relaxed);
     }
 }
 } // namespace
@@ -96,8 +95,13 @@ mp::UnixConsole::~UnixConsole()
     }
 }
 
-void mp::UnixConsole::setup_environment()
+void mp::UnixConsole::handle_runtime_events()
 {
+    if (pty_size_changed.exchange(0, std::memory_order_relaxed) == 1 &&
+        update_local_pty_size(global_cout_fd))
+    {
+        ssh_channel_change_pty_size(global_channel, local_pty_size.columns, local_pty_size.rows);
+    }
 }
 
 void mp::UnixConsole::setup_console()

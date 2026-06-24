@@ -42,7 +42,7 @@ public:
     virtual void write_console() = 0;
     virtual void exit_console() = 0;
 
-    static void setup_environment();
+    virtual void handle_runtime_events() = 0;
 
 protected:
     explicit Console() = default;

@@ -15,7 +15,6 @@
 
 function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
-    console.cpp
     terminal.cpp)
 
   if(MSVC)

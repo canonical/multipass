@@ -33,11 +33,11 @@ public:
     explicit UnixConsole(ssh_channel channel, UnixTerminal* term);
     ~UnixConsole();
 
-    void read_console() override{};
-    void write_console() override{};
-    void exit_console() override{};
+    void read_console() override {};
+    void write_console() override {};
+    void exit_console() override {};
 
-    static void setup_environment();
+    void handle_runtime_events() override;
 
 private:
     void setup_console();
