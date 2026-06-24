@@ -72,7 +72,10 @@ void mp::WindowsConsole::setup_console()
         GetConsoleMode(output_handle, &console_output_mode);
         SetConsoleMode(output_handle, console_output_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
-        MP_LIBSSH.ssh_channel_request_pty_size(channel, term_type, last_geometry.columns, last_geometry.rows);
+        MP_LIBSSH.ssh_channel_request_pty_size(channel,
+                                               term_type,
+                                               last_geometry.columns,
+                                               last_geometry.rows);
     }
 }
 
@@ -112,9 +115,10 @@ void mp::WindowsConsole::read_console()
         }
 
         std::lock_guard<std::mutex> lock(ssh_mutex);
-        MP_LIBSSH.ssh_channel_write(channel,
-                          text_buffer.data(),
-                          static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
+        MP_LIBSSH.ssh_channel_write(
+            channel,
+            text_buffer.data(),
+            static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
     }
 }
 

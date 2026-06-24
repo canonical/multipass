@@ -75,8 +75,8 @@ fs::path SFTPUtils::get_remote_file_target(sftp_session sftp,
         if (make_parent)
             mkdir_recursive(sftp, parent_path);
         return mp_sftp_stat(sftp, parent_path.c_str())
-                   ? target_full_path
-                   : throw SFTPError{"remote target does not exist"};
+                 ? target_full_path
+                 : throw SFTPError{"remote target does not exist"};
     }
 
     if (target_attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
@@ -173,7 +173,8 @@ void SFTPUtils::mkdir_recursive(sftp_session sftp, const fs::path& path)
             attr && attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
             throw SFTPError{"cannot overwrite remote non-directory {:?} with directory",
                             partial_path};
-        else if (!attr && MP_LIBSSH.sftp_mkdir(sftp, partial_path.string().c_str(), 0777) != SSH_FX_OK)
+        else if (!attr &&
+                 MP_LIBSSH.sftp_mkdir(sftp, partial_path.string().c_str(), 0777) != SSH_FX_OK)
             throw SFTPError{"cannot create remote directory {:?}: {}",
                             partial_path,
                             MP_LIBSSH.ssh_get_error(sftp->session)};
