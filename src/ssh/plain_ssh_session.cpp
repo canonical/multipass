@@ -152,6 +152,11 @@ void mp::PlainSSHSession::force_shutdown()
     if (auto socket = MP_LIBSSH.ssh_get_fd(session.get()); socket != -1)
         MP_PLATFORM.shutdown_socket(socket);
 }
+ssh_session multipass::PlainSSHSession::borrow_session(
+    const PrivatePassProvider<PlainSftpServerSession>::PrivatePass&) const
+{
+    return session.get();
+}
 
 mp::PlainSSHSession::operator ssh_session()
 {
