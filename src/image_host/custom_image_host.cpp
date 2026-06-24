@@ -62,7 +62,7 @@ auto map_aliases_to_vm_info(const std::vector<mp::VMImageInfo>& images)
     return map;
 }
 
-std::vector<mp::VMImageInfo> fetch_image_info(const QString& arch,
+std::vector<mp::VMImageInfo> fetch_image_info(const std::string& arch,
                                               mp::URLDownloader* url_downloader,
                                               bool force_update = false)
 {
@@ -74,7 +74,7 @@ std::vector<mp::VMImageInfo> fetch_image_info(const QString& arch,
         auto manifest = boost::json::parse(std::string_view(data)).as_object();
         mpl::log(mpl::Level::debug, category, "Found {} items", manifest.size());
 
-        mp::ArchContext context{arch.toStdString()};
+        mp::ArchContext context{arch};
         std::vector<mp::VMImageInfo> result;
         for (const auto& [distro_name, value] : manifest)
         {
@@ -115,7 +115,7 @@ mp::CustomManifest::CustomManifest(std::vector<VMImageInfo>&& images)
 
 mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
     : BaseVMImageHost{downloader},
-      arch{QSysInfo::currentCpuArchitecture()},
+      arch{QSysInfo::currentCpuArchitecture().toStdString()},
       manifest{},
       remote{no_remote}
 {
