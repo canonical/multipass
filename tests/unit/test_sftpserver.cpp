@@ -3010,7 +3010,7 @@ TEST_F(SftpServer, handlesWrites)
             return 0;
         });
     EXPECT_CALL(*platform, pwrite(_, _, _, _))
-        .WillRepeatedly([&stream](int, const void* buf, size_t nbytes, std::ptrdiff_t offset) {
+        .WillRepeatedly([&stream](int, const void* buf, size_t nbytes, mp::off_t offset) {
             stream.write((const char*)buf, nbytes);
             return nbytes;
         });
@@ -3072,8 +3072,7 @@ TEST_F(SftpServer, writeFailureFails)
             return 0;
         });
     EXPECT_CALL(*platform, pwrite(_, _, _, _))
-        .WillRepeatedly(
-            [](int, const void* buf, size_t nbytes, std::ptrdiff_t offset) { return -1; });
+        .WillRepeatedly([](int, const void* buf, size_t nbytes, mp::off_t offset) { return -1; });
 
     REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
     REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
@@ -3129,7 +3128,7 @@ TEST_F(SftpServer, handlesReads)
 
     EXPECT_CALL(*platform, pread(_, _, _, _))
         .WillRepeatedly(
-            [&given_data, r = 0](int, void* buf, size_t count, std::ptrdiff_t offset) mutable {
+            [&given_data, r = 0](int, void* buf, size_t count, mp::off_t offset) mutable {
                 ::memcpy(buf, given_data.c_str() + r, count);
                 r += count;
                 return count;
@@ -3197,7 +3196,7 @@ TEST_F(SftpServer, readReturnsFailureFails)
         });
 
     EXPECT_CALL(*platform, pread(_, _, _, _))
-        .WillRepeatedly([](int, void* buf, size_t count, std::ptrdiff_t offset) { return -1; });
+        .WillRepeatedly([](int, void* buf, size_t count, mp::off_t offset) { return -1; });
     REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
     REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -3256,7 +3255,7 @@ TEST_F(SftpServer, readReturnsZeroEndOfFile)
         });
 
     EXPECT_CALL(*platform, pread(_, _, _, _))
-        .WillOnce([](int, void* buf, size_t count, std::ptrdiff_t offset) { return 0; });
+        .WillOnce([](int, void* buf, size_t count, mp::off_t offset) { return 0; });
     REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
     REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
 

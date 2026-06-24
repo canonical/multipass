@@ -1445,14 +1445,13 @@ bool mp::platform::Platform::set_permissions_sftp(const std::filesystem::path& p
                                                   std::filesystem::perms permissions) const
 {
 
-    HANDLE file_handle =
-        CreateFileA(path.string().c_str(),
-                    READ_CONTROL | WRITE_DAC | WRITE_OWNER | FILE_READ_EA | FILE_WRITE_EA,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                    NULL,
-                    OPEN_EXISTING,
-                    FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
-                    NULL);
+    HANDLE file_handle = CreateFileA(path.string().c_str(),
+                                     FILE_READ_EA | FILE_WRITE_EA,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                     NULL,
+                                     OPEN_EXISTING,
+                                     FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+                                     NULL);
 
     if (file_handle == INVALID_HANDLE_VALUE)
     {
@@ -1781,10 +1780,10 @@ int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr
     return 0;
 }
 
-std::ptrdiff_t mp::platform::Platform::pread(int fd,
-                                             void* buffer,
-                                             size_t bytes_to_read,
-                                             std::ptrdiff_t offset) const
+mp::ssize_t mp::platform::Platform::pread(int fd,
+                                          void* buffer,
+                                          size_t bytes_to_read,
+                                          mp::off_t offset) const
 {
     HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
     if (file_handle == INVALID_HANDLE_VALUE)
@@ -1806,7 +1805,7 @@ std::ptrdiff_t mp::platform::Platform::pread(int fd,
 
     if (success)
     {
-        return static_cast<std::ptrdiff_t>(bytesRead);
+        return static_cast<mp::ssize_t>(bytesRead);
     }
 
     DWORD win_err = GetLastError();
@@ -1842,10 +1841,10 @@ std::ptrdiff_t mp::platform::Platform::pread(int fd,
     return -1;
 }
 
-std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
-                                              const void* buffer,
-                                              size_t bytes_to_write,
-                                              std::ptrdiff_t offset) const
+mp::ssize_t mp::platform::Platform::pwrite(int fd,
+                                           const void* buffer,
+                                           size_t bytes_to_write,
+                                           mp::off_t offset) const
 {
     HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
     if (file_handle == INVALID_HANDLE_VALUE)
@@ -1870,7 +1869,7 @@ std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
 
     if (success)
     {
-        return static_cast<std::ptrdiff_t>(bytesWritten);
+        return static_cast<mp::ssize_t>(bytesWritten);
     }
 
     DWORD win_err = GetLastError();
@@ -1898,7 +1897,7 @@ std::ptrdiff_t mp::platform::Platform::pwrite(int fd,
     return -1;
 }
 
-int mp::platform::Platform::ftruncate(int fd, std::ptrdiff_t length) const
+int mp::platform::Platform::ftruncate(int fd, mp::off_t length) const
 {
     return ::_chsize_s(fd, length);
 }
