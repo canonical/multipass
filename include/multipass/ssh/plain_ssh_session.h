@@ -19,6 +19,8 @@
 
 #include <multipass/ssh/ssh_session.h>
 
+#include <multipass/private_pass_provider.h>
+
 #include <libssh/libssh.h>
 
 #include <memory>
@@ -28,6 +30,8 @@
 namespace multipass
 {
 class SSHKeyProvider;
+class PlainSftpServerSession;
+
 class PlainSSHSession : public SSHSession
 {
 public:
@@ -64,8 +68,15 @@ public:
      */
     [[nodiscard]] bool is_moved() const override;
 
-    operator ssh_session() override;
+    operator ssh_session() override; // TODO@sftp remove
     void force_shutdown() override; // TODO@sftp this should not be public
+
+public: // but restricted
+    // Obtain a non-owning libssh session handle.
+    // The caller adopts thread-safety responsibility for the underlying session with respect to
+    // this SSHSession
+    ssh_session borrow_session(
+        const PrivatePassProvider<PlainSftpServerSession>::PrivatePass&) const;
 
 private:
     PlainSSHSession(PlainSSHSession&&, std::unique_lock<std::mutex> lock);
