@@ -36,7 +36,8 @@ namespace
 {
 mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 {
-    mp::SSHClient::ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(session), ssh_channel_free};
+    mp::SSHClient::ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(session),
+                                       [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
 
     mp::SSH::throw_on_error(channel,
                             session,
@@ -98,11 +99,13 @@ void mp::SSHClient::handle_ssh_events()
 {
 #ifndef MULTIPASS_PLATFORM_WINDOWS
     using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
-    std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{MP_LIBSSH.ssh_event_new(),
-                                                                 ssh_event_free};
+    std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{
+        MP_LIBSSH.ssh_event_new(),
+        [](ssh_event e) { MP_LIBSSH.ssh_event_free(e); }};
 
     // stdin
-    ConnectorUPtr connector_in{MP_LIBSSH.ssh_connector_new(*ssh_session), ssh_connector_free};
+    ConnectorUPtr connector_in{MP_LIBSSH.ssh_connector_new(*ssh_session),
+                               [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
     MP_LIBSSH.ssh_connector_set_out_channel(connector_in.get(),
                                             channel.get(),
                                             SSH_CONNECTOR_STDOUT);
@@ -110,7 +113,8 @@ void mp::SSHClient::handle_ssh_events()
     MP_LIBSSH.ssh_event_add_connector(event.get(), connector_in.get());
 
     // stdout
-    ConnectorUPtr connector_out{MP_LIBSSH.ssh_connector_new(*ssh_session), ssh_connector_free};
+    ConnectorUPtr connector_out{MP_LIBSSH.ssh_connector_new(*ssh_session),
+                                [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
     MP_LIBSSH.ssh_connector_set_out_fd(connector_out.get(), fileno(stdout));
     MP_LIBSSH.ssh_connector_set_in_channel(connector_out.get(),
                                            channel.get(),
@@ -118,7 +122,8 @@ void mp::SSHClient::handle_ssh_events()
     MP_LIBSSH.ssh_event_add_connector(event.get(), connector_out.get());
 
     // stderr
-    ConnectorUPtr connector_err{MP_LIBSSH.ssh_connector_new(*ssh_session), ssh_connector_free};
+    ConnectorUPtr connector_err{MP_LIBSSH.ssh_connector_new(*ssh_session),
+                                [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
     MP_LIBSSH.ssh_connector_set_out_fd(connector_err.get(), fileno(stderr));
     MP_LIBSSH.ssh_connector_set_in_channel(connector_err.get(),
                                            channel.get(),

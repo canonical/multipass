@@ -305,6 +305,11 @@ void mp::Libssh::ssh_key_free(ssh_key key) const
 }
 
 // --- strings ----------------------------------------------------------------
+void mp::Libssh::ssh_string_free(ssh_string str) const
+{
+    ::ssh_string_free(str);
+}
+
 void mp::Libssh::ssh_string_free_char(char* s) const
 {
     ::ssh_string_free_char(s);
@@ -429,10 +434,25 @@ sftp_limits_t mp::Libssh::sftp_limits(sftp_session sftp) const
     return ::sftp_limits(sftp);
 }
 
+void mp::Libssh::sftp_limits_free(sftp_limits_t limits) const
+{
+    ::sftp_limits_free(limits);
+}
+
 // --- sftp server ------------------------------------------------------------
 sftp_session mp::Libssh::sftp_server_new(ssh_session session, ssh_channel chan) const
 {
     return ::sftp_server_new(session, chan);
+}
+
+void mp::Libssh::sftp_server_free(sftp_session sftp) const
+{
+    ::sftp_server_free(sftp);
+}
+
+void mp::Libssh::sftp_client_message_free(sftp_client_message msg) const
+{
+    ::sftp_client_message_free(msg);
 }
 
 void* mp::Libssh::sftp_handle(sftp_session sftp, ssh_string handle) const

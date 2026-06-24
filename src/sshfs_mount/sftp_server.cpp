@@ -57,8 +57,9 @@ enum Permissions
 
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
-    mp::SftpServer::SftpSessionUptr sftp_server_session{MP_LIBSSH.sftp_server_new(session, channel),
-                                                        sftp_server_free};
+    mp::SftpServer::SftpSessionUptr sftp_server_session{
+        MP_LIBSSH.sftp_server_new(session, channel),
+        [](sftp_session s) { MP_LIBSSH.sftp_server_free(s); }};
     // The function sftp_server_init was expanded here to avoid deprecation warnings.
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
@@ -561,13 +562,12 @@ void mp::SftpServer::process_message(sftp_client_message msg)
 
 void mp::SftpServer::run()
 {
-    using MsgUPtr =
-        std::unique_ptr<sftp_client_message_struct, decltype(sftp_client_message_free)*>;
+    using MsgUPtr = std::unique_ptr<sftp_client_message_struct, void (*)(sftp_client_message)>;
 
     while (true)
     {
         MsgUPtr client_msg{MP_LIBSSH.sftp_get_client_message(sftp_server_session.get()),
-                           sftp_client_message_free};
+                           [](sftp_client_message m) { MP_LIBSSH.sftp_client_message_free(m); }};
         auto msg = client_msg.get();
         if (msg == nullptr)
         {
@@ -838,7 +838,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     SftpHandleUPtr sftp_handle{
         MP_LIBSSH.sftp_handle_alloc(sftp_server_session.get(), named_fd.get()),
-        ssh_string_free};
+        [](ssh_string s) { MP_LIBSSH.ssh_string_free(s); }};
     if (!sftp_handle)
     {
         mpl::trace(category, "Cannot allocate handle for open()");
@@ -884,7 +884,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
 
     SftpHandleUPtr sftp_handle{
         MP_LIBSSH.sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()),
-        ssh_string_free};
+        [](ssh_string s) { MP_LIBSSH.ssh_string_free(s); }};
     if (!sftp_handle)
     {
         mpl::trace(category, "Cannot allocate handle for opendir()");

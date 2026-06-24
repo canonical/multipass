@@ -34,20 +34,16 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-<<<<<<< HEAD
 namespace
 {
 constexpr auto category = "ssh session";
 }
 
-=======
-<<<<<<< HEAD:src/ssh/plain_ssh_session.cpp
->>>>>>> b620eb9f7 ([libssh] Add MP_LIBSSH to route libssh calls)
 mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
                                      const std::string& username,
                                      const SSHKeyProvider& key_provider)
-    : session{MP_LIBSSH.ssh_new(), ssh_free}, mut{}
+    : session{MP_LIBSSH.ssh_new(), [](ssh_session s) { MP_LIBSSH.ssh_free(s); }}, mut{}
 {
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
@@ -117,26 +113,17 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
 
 multipass::PlainSSHSession::~PlainSSHSession()
 {
-<<<<<<< HEAD
     top_catch_all(category, [this] {
         std::unique_lock lock{mut};
         if (session)
         {
             mpl::trace(category, "disconnecting SSH session");
 
-            ssh_disconnect(session.get());
+            MP_LIBSSH.ssh_disconnect(session.get());
             PlainSSHSession::force_shutdown(); // Shutdown I/O on manually open sockets.
                                                // The socket is still closed by libssh in ssh_free.
         }
     });
-=======
-    std::unique_lock lock{mut};
-    if (session)
-    {
-        MP_LIBSSH.ssh_disconnect(session.get());
-        PlainSSHSession::force_shutdown(); // do we really need this?
-    }
->>>>>>> b620eb9f7 ([libssh] Add MP_LIBSSH to route libssh calls)
 }
 
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
@@ -152,19 +139,13 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
 
 void mp::PlainSSHSession::force_shutdown()
 {
-<<<<<<< HEAD
     // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
     // with a lock acquired). Make it private instead. Provide public way to close the session
     // (probably just the dtor - let outside callers delete and deal with null session)
     if (!session)
         return;
-=======
-    if (session)
-    {
-        auto socket = MP_LIBSSH.ssh_get_fd(session.get());
->>>>>>> b620eb9f7 ([libssh] Add MP_LIBSSH to route libssh calls)
 
-    if (auto socket = ssh_get_fd(session.get()); socket != -1)
+    if (auto socket = MP_LIBSSH.ssh_get_fd(session.get()); socket != -1)
         MP_PLATFORM.shutdown_socket(socket);
 }
 

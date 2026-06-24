@@ -76,7 +76,9 @@ auto make_channel(ssh_session session, const std::string& cmd)
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    mp::PlainSSHProcess::ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(session), ssh_channel_free};
+    mp::PlainSSHProcess::ChannelUPtr channel{
+        MP_LIBSSH.ssh_channel_new(session),
+        [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] failed to open session channel",
@@ -149,9 +151,9 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
         std::rethrow_exception(eptr);
     }
     ExitStatusCallback cb{channel.get(), exit_result};
-    std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{MP_LIBSSH.ssh_event_new(),
-                                                                       ssh_event_free};
-    MP_LIBSSH.ssh_event_add_session(event.get(), session);
+    std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{
+        MP_LIBSSH.ssh_event_new(),
+        [](ssh_event e) { MP_LIBSSH.ssh_event_free(e); }};
 
     std::optional<std::string> err = std::nullopt;
     if (!event)
@@ -160,7 +162,7 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
         err = "could not register callback";
     else if ((MP_LIBSSH.ssh_event_add_session(event.get(), session) != SSH_OK))
     {
-        const auto raw_err = ssh_get_error(session);
+        const auto raw_err = MP_LIBSSH.ssh_get_error(session);
         err = fmt::format("could not add event to session: {}",
                           raw_err && *raw_err ? raw_err : "Empty error");
     }

@@ -172,6 +172,7 @@ public:
     MOCK_METHOD(void, ssh_key_free, (ssh_key key), (const, override));
 
     // --- strings -------------------------------------------------------------
+    MOCK_METHOD(void, ssh_string_free, (ssh_string str), (const, override));
     MOCK_METHOD(void, ssh_string_free_char, (char* s), (const, override));
     MOCK_METHOD(const char*, ssh_string_get_char, (ssh_string str), (const, override));
     MOCK_METHOD(size_t, ssh_string_len, (ssh_string str), (const, override));
@@ -225,12 +226,15 @@ public:
     MOCK_METHOD(int, sftp_get_error, (sftp_session sftp), (const, override));
     MOCK_METHOD(void, sftp_attributes_free, (sftp_attributes file), (const, override));
     MOCK_METHOD(sftp_limits_t, sftp_limits, (sftp_session sftp), (const, override));
+    MOCK_METHOD(void, sftp_limits_free, (sftp_limits_t limits), (const, override));
 
     // --- sftp server ---------------------------------------------------------
     MOCK_METHOD(sftp_session,
                 sftp_server_new,
                 (ssh_session session, ssh_channel chan),
                 (const, override));
+    MOCK_METHOD(void, sftp_server_free, (sftp_session sftp), (const, override));
+    MOCK_METHOD(void, sftp_client_message_free, (sftp_client_message msg), (const, override));
     MOCK_METHOD(void*, sftp_handle, (sftp_session sftp, ssh_string handle), (const, override));
     MOCK_METHOD(ssh_string, sftp_handle_alloc, (sftp_session sftp, void* info), (const, override));
     MOCK_METHOD(void, sftp_handle_remove, (sftp_session sftp, void* handle), (const, override));
