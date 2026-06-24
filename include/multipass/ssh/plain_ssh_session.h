@@ -32,7 +32,7 @@ namespace multipass
 class SSHKeyProvider;
 class PlainSftpServerSession;
 
-class PlainSSHSession : public SSHSession
+class PlainSSHSession final : public SSHSession // final to prevent chopping on move
 {
 public:
     PlainSSHSession(const std::string& host,
