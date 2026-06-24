@@ -17,11 +17,13 @@
 
 #pragma once
 
+#include <functional>
 #include <premock.hpp>
 
 #include <grp.h>
 #include <stdio.h>
 #include <termios.h>
+#include <unistd.h>
 
 DECL_MOCK(getgrnam);
 
@@ -34,3 +36,4 @@ extern "C" std::function<int(int)> mock_isatty;
 extern "C" std::function<int(FILE*)> mock_fileno;
 extern "C" std::function<int(int, struct termios*)> mock_tcgetattr;
 extern "C" std::function<int(int, int, const struct termios*)> mock_tcsetattr;
+extern "C" std::function<long(const char*, int)> mock_pathconf;
