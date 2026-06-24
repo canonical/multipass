@@ -18,7 +18,6 @@
 #include "mock_libc_functions.h"
 
 #include <stdio.h>
-#include <unistd.h>
 
 extern "C"
 {
@@ -43,6 +42,11 @@ int ut_tcsetattr(int fd, int optional_actions, const struct termios* termios_p)
 {
     return mock_tcsetattr(fd, optional_actions, termios_p);
 }
+
+long ut_pathconf(const char* path, int name)
+{
+    return mock_pathconf(path, name);
+}
 }
 
 // By default, call real functions
@@ -50,3 +54,4 @@ std::function<int(int)> mock_isatty = isatty;
 std::function<int(FILE*)> mock_fileno = fileno;
 std::function<int(int, struct termios*)> mock_tcgetattr = tcgetattr;
 std::function<int(int, int, const struct termios*)> mock_tcsetattr = tcsetattr;
+std::function<long(const char* path, int name)> mock_pathconf = pathconf;
