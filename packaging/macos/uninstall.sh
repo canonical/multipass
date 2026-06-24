@@ -53,6 +53,9 @@ rm -fv "$LAUNCH_AGENT_DEST"
 rm -fv /usr/local/bin/multipass
 rm -rfv /Applications/Multipass.app
 
+# DNS resolver entry
+rm -fv "/etc/resolver/multipass"
+
 rm -rfv "/Library/Application Support/com.canonical.multipass"
 rm -rfv "/var/root/Library/Caches/multipassd"
 
