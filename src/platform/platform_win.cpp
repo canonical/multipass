@@ -29,6 +29,7 @@
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/utils/permission_utils.h>
+#include <multipass/utils/saturate_cast.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
@@ -1062,7 +1063,7 @@ std::string mp::wchar_to_utf8(std::wstring_view input)
 
 multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
 {
-    // Set the parameter handler to do nothing. This will avoid invalid paramters in CRT functions
+    // Set the parameter handler to do nothing. This will avoid invalid parameters in CRT functions
     // from crashing the program.
     _set_invalid_parameter_handler(silent_invalid_parameter_handler);
 

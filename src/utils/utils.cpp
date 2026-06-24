@@ -45,6 +45,7 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <locale>
 #include <mutex>
 #include <optional>
 #include <random>
@@ -416,7 +417,10 @@ std::string mp::Utils::format_time_t(time_t mtime) const
 {
     std::tm time_struct{get_localtime(mtime)};
 
-    return fmt::format("{0:%b} {1} {0:%H:%M:%S %Y}", time_struct, time_struct.tm_mday);
+    return fmt::format(std::locale::classic(),
+                       "{0:%b} {1} {0:%H:%M:%S %Y}",
+                       time_struct,
+                       time_struct.tm_mday);
 }
 
 std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
