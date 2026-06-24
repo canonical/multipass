@@ -31,7 +31,7 @@ int sftp_reply_version(sftp_client_message msg);
 namespace mp = multipass;
 
 mp::PlainSftpServerSession::SftpSessionUptr
-mp::PlainSftpServerSession::make_sftp_session(::ssh_session session, ssh_channel channel)
+mp::PlainSftpServerSession::make_sftp_session(ssh_session session, ssh_channel channel)
 {
     SftpSessionUptr sftp_server_session{sftp_server_new(session, channel), sftp_server_free};
     // The function sftp_server_init was expanded here to avoid deprecation warnings.
@@ -64,8 +64,8 @@ mp::PlainSftpServerSession::make_sftp_session(::ssh_session session, ssh_channel
 }
 
 mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& session)
-    : ssh_session{std::move(session)},
-      sftp_session{make_sftp_session(ssh_session.borrow_session(pass), nullptr)}
+    : plain_ssh_session{std::move(session)},
+      sftp_session{make_sftp_session(plain_ssh_session.borrow_session(pass), nullptr)}
 // TODO@sftp sshfs process and channel
 {
 }
