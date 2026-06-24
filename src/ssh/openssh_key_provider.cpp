@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/ssh/libssh.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/utils.h>
 
@@ -32,16 +33,16 @@ namespace
 mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
 {
     ssh_key priv_key;
-    auto ret = ssh_pki_generate(SSH_KEYTYPE_RSA, 2048, &priv_key);
+    auto ret = MP_LIBSSH.ssh_pki_generate(SSH_KEYTYPE_RSA, 2048, &priv_key);
     if (ret != SSH_OK)
         throw std::runtime_error("unable to generate ssh key");
 
     mp::OpenSSHKeyProvider::KeyUPtr key{priv_key};
-    ret = ssh_pki_export_privkey_file(priv_key,
-                                      nullptr,
-                                      nullptr,
-                                      nullptr,
-                                      priv_key_path.toStdString().c_str());
+    ret = MP_LIBSSH.ssh_pki_export_privkey_file(priv_key,
+                                                nullptr,
+                                                nullptr,
+                                                nullptr,
+                                                priv_key_path.toStdString().c_str());
     if (ret != SSH_OK)
         throw std::runtime_error(
             fmt::format("failed to export ssh private key to file '{}'", priv_key_path));
@@ -56,11 +57,11 @@ mp::OpenSSHKeyProvider::KeyUPtr get_priv_key(const QDir& key_dir)
     if (QFile::exists(priv_key_path))
     {
         ssh_key priv_key;
-        auto imported = ssh_pki_import_privkey_file(priv_key_path.toStdString().c_str(),
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    &priv_key);
+        auto imported = MP_LIBSSH.ssh_pki_import_privkey_file(priv_key_path.toStdString().c_str(),
+                                                              nullptr,
+                                                              nullptr,
+                                                              nullptr,
+                                                              &priv_key);
         if (imported != SSH_OK)
             return create_priv_key(priv_key_path);
         return mp::OpenSSHKeyProvider::KeyUPtr{priv_key};
@@ -71,7 +72,7 @@ mp::OpenSSHKeyProvider::KeyUPtr get_priv_key(const QDir& key_dir)
 
 void mp::OpenSSHKeyProvider::KeyDeleter::operator()(ssh_key key)
 {
-    ssh_key_free(key);
+    MP_LIBSSH.ssh_key_free(key);
 }
 
 mp::OpenSSHKeyProvider::OpenSSHKeyProvider(const mp::Path& cache_dir)
@@ -95,7 +96,7 @@ std::string mp::OpenSSHKeyProvider::private_key_as_base64() const
 std::string mp::OpenSSHKeyProvider::public_key_as_base64() const
 {
     char* base64{nullptr};
-    auto ret = ssh_pki_export_pubkey_base64(priv_key.get(), &base64);
+    auto ret = MP_LIBSSH.ssh_pki_export_pubkey_base64(priv_key.get(), &base64);
     std::unique_ptr<char, decltype(std::free)*> base64_output{base64, std::free};
 
     if (ret != SSH_OK)

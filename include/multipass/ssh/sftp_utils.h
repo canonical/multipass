@@ -22,14 +22,16 @@
 
 #include <multipass/format.h>
 #include <multipass/singleton.h>
+#include <multipass/ssh/libssh.h>
 
 #define MP_SFTP_UNIQUE_PTR(open, close)                                                            \
     template <typename... Args>                                                                    \
     auto mp_##open(Args&&... args)                                                                 \
     {                                                                                              \
         return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,  \
-                               decltype(std::function{close})>{open(std::forward<Args>(args)...),  \
-                                                               close};                             \
+                               decltype(std::function{close})>{                                    \
+            MP_LIBSSH.open(std::forward<Args>(args)...),                                           \
+            close};                                                                                \
     }
 
 namespace multipass

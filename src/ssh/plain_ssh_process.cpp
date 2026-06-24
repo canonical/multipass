@@ -19,6 +19,7 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log_location.h>
+#include <multipass/ssh/libssh.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/throw_on_error.h>
 
@@ -45,12 +46,12 @@ public:
         ssh_callbacks_init(&cb);
         cb.channel_exit_status_function = channel_exit_status_cb;
         cb.userdata = &result_holder;
-        registered = ssh_add_channel_callbacks(channel, &cb);
+        registered = MP_LIBSSH.ssh_add_channel_callbacks(channel, &cb);
     }
     ~ExitStatusCallback()
     {
         if (is_registered())
-            ssh_remove_channel_callbacks(channel, &cb);
+            MP_LIBSSH.ssh_remove_channel_callbacks(channel, &cb);
     }
     bool is_registered() const
     {
@@ -70,21 +71,22 @@ private:
 
 auto make_channel(ssh_session session, const std::string& cmd)
 {
-    if (!ssh_is_connected(session))
+    if (!MP_LIBSSH.ssh_is_connected(session))
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    mp::PlainSSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+    mp::PlainSSHProcess::ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(session), ssh_channel_free};
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] failed to open session channel",
-                            ssh_channel_open_session);
-    mp::SSH::throw_on_error(channel,
-                            session,
-                            "[ssh proc] exec request failed",
-                            ssh_channel_request_exec,
-                            cmd.c_str());
+                            [](ssh_channel ch) { return MP_LIBSSH.ssh_channel_open_session(ch); });
+    mp::SSH::throw_on_error(
+        channel,
+        session,
+        "[ssh proc] exec request failed",
+        [](ssh_channel ch, const char* c) { return MP_LIBSSH.ssh_channel_request_exec(ch, c); },
+        cmd.c_str());
     return channel;
 }
 
@@ -147,15 +149,16 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
         std::rethrow_exception(eptr);
     }
     ExitStatusCallback cb{channel.get(), exit_result};
-    std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(),
+    std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{MP_LIBSSH.ssh_event_new(),
                                                                        ssh_event_free};
+    MP_LIBSSH.ssh_event_add_session(event.get(), session);
 
     std::optional<std::string> err = std::nullopt;
     if (!event)
         err = "could not allocate event";
     else if (!cb.is_registered())
         err = "could not register callback";
-    else if ((ssh_event_add_session(event.get(), session) != SSH_OK))
+    else if ((MP_LIBSSH.ssh_event_add_session(event.get(), session) != SSH_OK))
     {
         const auto raw_err = ssh_get_error(session);
         err = fmt::format("could not add event to session: {}",
@@ -175,7 +178,7 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
     while ((std::chrono::steady_clock::now() < deadline) && rc == SSH_OK &&
            !std::holds_alternative<int>(exit_result))
     {
-        rc = ssh_event_dopoll(event.get(), timeout.count());
+        rc = MP_LIBSSH.ssh_event_dopoll(event.get(), timeout.count());
     }
 
     if (!std::holds_alternative<int>(exit_result))
@@ -217,7 +220,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
     // If the channel is closed there's no output to read
-    if (!channel || ssh_channel_is_closed(channel.get())) // TODO@sftp
+    if (!channel || MP_LIBSSH.ssh_channel_is_closed(channel.get()))
     {
         mpl::trace_location(category, "{}", !channel ? "null channel" : "channel closed");
         return std::string();
@@ -229,17 +232,17 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     const bool is_std_err = type == StreamType::err;
     do
     {
-        num_bytes = ssh_channel_read_timeout(channel.get(),
-                                             buffer.data(),
-                                             buffer.size(),
-                                             is_std_err,
-                                             timeout);
+        num_bytes = MP_LIBSSH.ssh_channel_read_timeout(channel.get(),
+                                                       buffer.data(),
+                                                       buffer.size(),
+                                                       is_std_err,
+                                                       timeout);
         mpl::trace_location(category, "num_bytes = {}", num_bytes);
         if (num_bytes < 0)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
             // returning 0 bytes
-            if (ssh_channel_is_closed(channel.get()))
+            if (MP_LIBSSH.ssh_channel_is_closed(channel.get()))
             {
                 mpl::trace_location(category, "channel closed");
                 return output.str();

@@ -22,14 +22,10 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/libssh.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
-
-extern "C"
-{
-int sftp_reply_version(sftp_client_message msg);
-}
 
 #include <QDir>
 #include <QFile>
@@ -61,14 +57,14 @@ enum Permissions
 
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
-    mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
+    mp::SftpServer::SftpSessionUptr sftp_server_session{MP_LIBSSH.sftp_server_new(session, channel),
                                                         sftp_server_free};
     // The function sftp_server_init was expanded here to avoid deprecation warnings.
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
 
     /* handles setting the sftp->client_version */
-    sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
+    sftp_client_message msg{MP_LIBSSH.sftp_get_client_message(sftp_server_session.get())};
     if (msg == nullptr)
     {
         throw mp::SSHException("[sftp] server init failed: 'Null client message'");
@@ -83,7 +79,7 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
 
     // Optional: Log the SSH_FXP_INIT reception like libssh does with SSH_LOG but with mp::log
 
-    if (sftp_reply_version(msg) != SSH_OK)
+    if (MP_LIBSSH.sftp_reply_version(msg) != SSH_OK)
     {
         throw mp::SSHException(
             "[sftp] server init failed: 'FATAL: Failed to process the SSH_FXP_INIT message'");
@@ -94,29 +90,29 @@ auto make_sftp_session(ssh_session session, ssh_channel channel)
 
 int reply_ok(sftp_client_message msg)
 {
-    return sftp_reply_status(msg, SSH_FX_OK, nullptr);
+    return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_OK, nullptr);
 }
 
 int reply_failure(sftp_client_message msg)
 {
-    return sftp_reply_status(msg, SSH_FX_FAILURE, nullptr);
+    return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_FAILURE, nullptr);
 }
 
 int reply_perm_denied(sftp_client_message msg)
 {
-    return sftp_reply_status(msg, SSH_FX_PERMISSION_DENIED, "permission denied");
+    return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_PERMISSION_DENIED, "permission denied");
 }
 
 int reply_bad_handle(sftp_client_message msg, const char* type)
 {
-    return sftp_reply_status(msg,
-                             SSH_FX_BAD_MESSAGE,
-                             fmt::format("{}: invalid handle", type).c_str());
+    return MP_LIBSSH.sftp_reply_status(msg,
+                                       SSH_FX_BAD_MESSAGE,
+                                       fmt::format("{}: invalid handle", type).c_str());
 }
 
 int reply_unsupported(sftp_client_message msg)
 {
-    return sftp_reply_status(msg, SSH_FX_OP_UNSUPPORTED, "Unsupported message");
+    return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_OP_UNSUPPORTED, "Unsupported message");
 }
 
 fmt::memory_buffer& operator<<(fmt::memory_buffer& buf, const char* v)
@@ -465,8 +461,8 @@ fs::path mp::SftpServer::get_absolute_path(const char* path) const
 
 std::optional<fs::path> mp::SftpServer::get_validated_path(sftp_client_message msg) const
 {
-    bool follows{follows_symlinks(sftp_client_message_get_type(msg))};
-    const auto path = get_absolute_path(sftp_client_message_get_filename(msg));
+    bool follows{follows_symlinks(MP_LIBSSH.sftp_client_message_get_type(msg))};
+    const auto path = get_absolute_path(MP_LIBSSH.sftp_client_message_get_filename(msg));
     if (!validate_path(path, follows))
     {
         mpl::trace(category,
@@ -499,7 +495,7 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
 void mp::SftpServer::process_message(sftp_client_message msg)
 {
     int ret = 0;
-    const auto type = sftp_client_message_get_type(msg);
+    const auto type = MP_LIBSSH.sftp_client_message_get_type(msg);
     switch (type)
     {
     case SFTP_REALPATH:
@@ -570,7 +566,7 @@ void mp::SftpServer::run()
 
     while (true)
     {
-        MsgUPtr client_msg{sftp_get_client_message(sftp_server_session.get()),
+        MsgUPtr client_msg{MP_LIBSSH.sftp_get_client_message(sftp_server_session.get()),
                            sftp_client_message_free};
         auto msg = client_msg.get();
         if (msg == nullptr)
@@ -636,14 +632,14 @@ void mp::SftpServer::stop()
 
 int mp::SftpServer::handle_close(sftp_client_message msg)
 {
-    const auto id = sftp_handle(sftp_server_session.get(), msg->handle);
+    const auto id = MP_LIBSSH.sftp_handle(sftp_server_session.get(), msg->handle);
     if (!open_file_handles.erase(id) && !open_dir_handles.erase(id))
     {
         mpl::trace(category, "{}: bad handle requested", __FUNCTION__);
         return reply_bad_handle(msg, "close");
     }
 
-    sftp_handle_remove(sftp_server_session.get(), id);
+    MP_LIBSSH.sftp_handle_remove(sftp_server_session.get(), id);
     return reply_ok(msg);
 }
 
@@ -658,7 +654,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 
     const auto& [path, _] = *handle;
 
-    if (!validate_path(path, follows_symlinks(sftp_client_message_get_type(msg))))
+    if (!validate_path(path, follows_symlinks(MP_LIBSSH.sftp_client_message_get_type(msg))))
     {
         mpl::trace(category,
                    "{}: cannot validate target path \'{}\' against source \'{}\'",
@@ -674,7 +670,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
         file_info = QFileInfo(file_info.symLinkTarget());
 
     auto attr = attr_from(file_info);
-    return sftp_reply_attr(msg, &attr);
+    return MP_LIBSSH.sftp_reply_attr(msg, &attr);
 }
 
 int mp::SftpServer::handle_mkdir(sftp_client_message msg)
@@ -790,7 +786,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     }
 
     int mode = 0;
-    const auto flags = sftp_client_message_get_flags(msg);
+    const auto flags = MP_LIBSSH.sftp_client_message_get_flags(msg);
 
     if (flags & SSH_FXF_READ)
         mode |= O_RDONLY;
@@ -840,8 +836,9 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         }
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), named_fd.get()),
-                               ssh_string_free};
+    SftpHandleUPtr sftp_handle{
+        MP_LIBSSH.sftp_handle_alloc(sftp_server_session.get(), named_fd.get()),
+        ssh_string_free};
     if (!sftp_handle)
     {
         mpl::trace(category, "Cannot allocate handle for open()");
@@ -850,7 +847,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     open_file_handles.emplace(named_fd.get(), std::move(named_fd));
 
-    return sftp_reply_handle(msg, sftp_handle.get());
+    return MP_LIBSSH.sftp_reply_handle(msg, sftp_handle.get());
 }
 
 int mp::SftpServer::handle_opendir(sftp_client_message msg)
@@ -866,7 +863,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         err.value() == int(std::errc::no_such_process))
     {
         mpl::trace(category, "Cannot open directory '{}': {}", filename->string(), err.message());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
     }
 
     if (err.value() == int(std::errc::permission_denied))
@@ -885,8 +882,9 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()),
-                               ssh_string_free};
+    SftpHandleUPtr sftp_handle{
+        MP_LIBSSH.sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()),
+        ssh_string_free};
     if (!sftp_handle)
     {
         mpl::trace(category, "Cannot allocate handle for opendir()");
@@ -895,7 +893,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
 
     open_dir_handles.emplace(dir_iterator.get(), std::move(dir_iterator));
 
-    return sftp_reply_handle(msg, sftp_handle.get());
+    return MP_LIBSSH.sftp_reply_handle(msg, sftp_handle.get());
 }
 
 int mp::SftpServer::handle_read(sftp_client_message msg)
@@ -924,16 +922,16 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
 
     if (const auto r = MP_FILEOPS.read(file, buffer.data(), std::min(msg->len, max_packet_size));
         r > 0)
-        return sftp_reply_data(msg, buffer.data(), r);
+        return MP_LIBSSH.sftp_reply_data(msg, buffer.data(), r);
     else if (r == 0)
-        return sftp_reply_status(msg, SSH_FX_EOF, "End of file");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_EOF, "End of file");
 
     mpl::trace(category,
                "{}: read failed for '{}': {}",
                __FUNCTION__,
                path.string(),
                std::strerror(errno));
-    return sftp_reply_status(msg, SSH_FX_FAILURE, std::strerror(errno));
+    return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_FAILURE, std::strerror(errno));
 }
 
 int mp::SftpServer::handle_readdir(sftp_client_message msg)
@@ -948,7 +946,7 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
     auto& dir_iterator = *handle;
 
     if (!dir_iterator.hasNext())
-        return sftp_reply_status(msg, SSH_FX_EOF, nullptr);
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_EOF, nullptr);
 
     const auto max_num_entries_per_packet = 50ll;
     for (int i = 0; i < max_num_entries_per_packet && dir_iterator.hasNext(); i++)
@@ -968,10 +966,13 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
             attr = attr_from(file_info);
         }
         const auto longname = longname_from(file_info, entry.path().string());
-        sftp_reply_names_add(msg, entry.path().filename().string().c_str(), longname.data(), &attr);
+        MP_LIBSSH.sftp_reply_names_add(msg,
+                                       entry.path().filename().string().c_str(),
+                                       longname.data(),
+                                       &attr);
     }
 
-    return sftp_reply_names(msg);
+    return MP_LIBSSH.sftp_reply_names(msg);
 }
 
 int mp::SftpServer::handle_readlink(sftp_client_message msg)
@@ -986,7 +987,7 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     if (ec)
     {
         mpl::trace(category, "{}: invalid link for \'{}\'", __FUNCTION__, filename->string());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "invalid link");
     }
 
     QFileInfo file_info{*filename};
@@ -1000,8 +1001,11 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     }
 
     sftp_attributes_struct attr{};
-    sftp_reply_names_add(msg, raw_link.string().c_str(), raw_link.string().c_str(), &attr);
-    return sftp_reply_names(msg);
+    MP_LIBSSH.sftp_reply_names_add(msg,
+                                   raw_link.string().c_str(),
+                                   raw_link.string().c_str(),
+                                   &attr);
+    return MP_LIBSSH.sftp_reply_names(msg);
 }
 
 int mp::SftpServer::handle_realpath(sftp_client_message msg)
@@ -1022,7 +1026,7 @@ int mp::SftpServer::handle_realpath(sftp_client_message msg)
 
     // Path is already absolute from get_validated_path
     const auto guest_path = host_to_guest_path(*filename);
-    return sftp_reply_name(msg, guest_path.c_str(), nullptr);
+    return MP_LIBSSH.sftp_reply_name(msg, guest_path.c_str(), nullptr);
 }
 
 int mp::SftpServer::handle_remove(sftp_client_message msg)
@@ -1071,7 +1075,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
                    "{}: cannot rename \'{}\': no such file",
                    __FUNCTION__,
                    source->string());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
     if (!has_id_mappings_for(source_info))
@@ -1083,7 +1087,7 @@ int mp::SftpServer::handle_rename(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    const auto target = get_absolute_path(sftp_client_message_get_data(msg));
+    const auto target = get_absolute_path(MP_LIBSSH.sftp_client_message_get_data(msg));
     // Hardcode false: Renaming overwrites a target link, it does not follow it!
     if (!validate_path(target, false))
     {
@@ -1136,7 +1140,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 {
     fs::path filename;
 
-    if (sftp_client_message_get_type(msg) == SFTP_FSETSTAT)
+    if (MP_LIBSSH.sftp_client_message_get_type(msg) == SFTP_FSETSTAT)
     {
         const auto handle = get_handle<NamedFd>(msg);
         if (handle == nullptr)
@@ -1163,7 +1167,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
                        "{}: cannot setstat '{}': no such file",
                        __FUNCTION__,
                        filename.string());
-            return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+            return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
         }
     }
 
@@ -1251,7 +1255,7 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
                    "{}: cannot stat \'{}\': no such file",
                    __FUNCTION__,
                    filename->string());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such file");
     }
 
     sftp_attributes_struct attr{};
@@ -1270,14 +1274,14 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
         attr = attr_from(file_info);
     }
 
-    return sftp_reply_attr(msg, &attr);
+    return MP_LIBSSH.sftp_reply_attr(msg, &attr);
 }
 
 int mp::SftpServer::handle_symlink(sftp_client_message msg)
 {
     // 9pfs implementation - host only stores and retrieves symlink strings
     //  We do not check target (link can point anywhere), openat is sandboxed
-    const auto symlink_target = sftp_client_message_get_filename(msg);
+    const auto symlink_target = MP_LIBSSH.sftp_client_message_get_filename(msg);
     if (symlink_target == nullptr || *symlink_target == '\0')
     {
         mpl::trace(category, "{}: cannot create an empty symlink", __FUNCTION__);
@@ -1285,7 +1289,7 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
     }
 
     // The actual path of the link file must be validated
-    const auto link_path = get_absolute_path(sftp_client_message_get_data(msg));
+    const auto link_path = get_absolute_path(MP_LIBSSH.sftp_client_message_get_data(msg));
 
     // Hardcode false: We are CREATING/EDITING a link, so we must never follow it!
     if (!validate_path(link_path, false))
@@ -1345,8 +1349,8 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    auto len = ssh_string_len(msg->data);
-    auto data_ptr = ssh_string_get_char(msg->data);
+    auto len = MP_LIBSSH.ssh_string_len(msg->data);
+    auto data_ptr = MP_LIBSSH.ssh_string_get_char(msg->data);
 
     do
     {
@@ -1370,7 +1374,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
 
 int mp::SftpServer::handle_extended(sftp_client_message msg)
 {
-    const auto submessage = sftp_client_message_get_submessage(msg);
+    const auto submessage = MP_LIBSSH.sftp_client_message_get_submessage(msg);
     if (submessage == nullptr)
     {
         mpl::trace(category, "{}: invalid submesage requested", __FUNCTION__);
@@ -1383,9 +1387,9 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
         const auto old_name = get_validated_path(msg);
         if (!old_name.has_value())
             return reply_perm_denied(msg);
-        const auto new_name = get_absolute_path(sftp_client_message_get_data(msg));
+        const auto new_name = get_absolute_path(MP_LIBSSH.sftp_client_message_get_data(msg));
 
-        if (!validate_path(new_name, follows_symlinks(sftp_client_message_get_type(msg))))
+        if (!validate_path(new_name, follows_symlinks(MP_LIBSSH.sftp_client_message_get_type(msg))))
         {
             mpl::trace(category,
                        "{}: cannot validate path \'{}\' against source \'{}\'",
@@ -1431,5 +1435,5 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
 template <typename T>
 T* multipass::SftpServer::get_handle(sftp_client_message msg)
 {
-    return static_cast<T*>(sftp_handle(msg->sftp, msg->handle));
+    return static_cast<T*>(MP_LIBSSH.sftp_handle(msg->sftp, msg->handle));
 }
