@@ -25,6 +25,9 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/utils/saturate_cast.h>
+#include <multipass/utils/types.h>
+
 #include <multipass/utils.h>
 
 extern "C"
@@ -891,8 +894,10 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     // No array initialization. Memory does not leak because the message copy copies only the read
     // bytes.
     std::array<char, max_packet_size> buffer;
-    const auto result =
-        MP_PLATFORM.pread(fd, buffer.data(), std::min(msg->len, max_packet_size), msg->offset);
+    const auto result = MP_PLATFORM.pread(fd,
+                                          buffer.data(),
+                                          std::min(msg->len, max_packet_size),
+                                          static_cast<mp::off_t>(msg->offset));
 
     if (result > 0)
         return sftp_reply_data(msg, buffer.data(), result);
@@ -1392,7 +1397,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
     auto len = ssh_string_len(msg->data);
     auto data_ptr = ssh_string_get_char(msg->data);
 
-    uint64_t current_offset = msg->offset;
+    mp::off_t current_offset = static_cast<mp::off_t>(msg->offset);
 
     while (len > 0)
     {
