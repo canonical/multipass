@@ -52,8 +52,6 @@ public:
     MOCK_METHOD(bool, exists, (const QFileInfo&), (const, override));
     MOCK_METHOD(bool, isDir, (const QFileInfo&), (const, override));
     MOCK_METHOD(bool, isReadable, (const QFileInfo&), (const, override));
-    MOCK_METHOD(uint, ownerId, (const QFileInfo&), (const, override));
-    MOCK_METHOD(uint, groupId, (const QFileInfo&), (const, override));
 
     // QFile (and parent classes) mock methods
     MOCK_METHOD(bool, exists, (const QFile&), (const, override));

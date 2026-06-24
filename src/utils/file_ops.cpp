@@ -194,16 +194,6 @@ bool mp::FileOps::isReadable(const QFileInfo& file) const
     return file.isReadable();
 }
 
-uint mp::FileOps::ownerId(const QFileInfo& file) const
-{
-    return file.ownerId();
-}
-
-uint mp::FileOps::groupId(const QFileInfo& file) const
-{
-    return file.groupId();
-}
-
 bool mp::FileOps::exists(const QFile& file) const
 {
     return file.exists();

@@ -206,11 +206,6 @@ int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_st
     return 0;
 }
 
-int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
-{
-    return MP_PLATFORM.lstat_attr_from(path, *attr);
-}
-
 int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
     struct stat st{};

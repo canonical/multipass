@@ -1708,11 +1708,6 @@ int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_st
     return -1; // Standard lstat failure return code
 }
 
-int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
-{
-    return MP_PLATFORM.lstat_attr_from(path, *attr);
-}
-
 int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_struct& attr) const
 {
     HANDLE file_handle = CreateFileA(path,
