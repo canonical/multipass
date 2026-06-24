@@ -70,7 +70,9 @@ auto make_channel(ssh_session session, const std::string& cmd)
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    mp::PlainSSHProcess::ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(session), ssh_channel_free};
+    mp::PlainSSHProcess::ChannelUPtr channel{
+        MP_LIBSSH.ssh_channel_new(session),
+        [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] failed to open session channel",
@@ -134,8 +136,9 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
     assert(std::holds_alternative<std::monostate>(exit_result));
     ExitStatusCallback cb{channel.get(), exit_result};
 
-    std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{MP_LIBSSH.ssh_event_new(),
-                                                                       ssh_event_free};
+    std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{
+        MP_LIBSSH.ssh_event_new(),
+        [](ssh_event e) { MP_LIBSSH.ssh_event_free(e); }};
     MP_LIBSSH.ssh_event_add_session(event.get(), session);
 
     auto deadline = std::chrono::steady_clock::now() + timeout;

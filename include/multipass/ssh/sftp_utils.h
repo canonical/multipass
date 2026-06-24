@@ -24,14 +24,30 @@
 #include <multipass/singleton.h>
 #include <multipass/ssh/libssh.h>
 
+// Routes both the allocating call and the deleter through MP_LIBSSH so SFTP code paths
+// remain mockable. The deleter type stays a std::function (matching the libssh signature)
+// so the returned smart pointers remain interchangeable with the public type aliases.
+// `close` must be a libssh function exposed on the Libssh singleton.
 #define MP_SFTP_UNIQUE_PTR(open, close)                                                            \
     template <typename... Args>                                                                    \
     auto mp_##open(Args&&... args)                                                                 \
     {                                                                                              \
         return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,  \
-                               decltype(std::function{close})>{                                    \
-            MP_LIBSSH.open(std::forward<Args>(args)...),                                           \
-            close};                                                                                \
+                               decltype(std::function{close})>{                                     \
+            MP_LIBSSH.open(std::forward<Args>(args)...),                                            \
+            [](auto* ptr) { return MP_LIBSSH.close(ptr); }};                                        \
+    }
+
+// Variant for deleters that are not libssh functions (e.g. the C library `free`) and so
+// are not routed through MP_LIBSSH.
+#define MP_SFTP_UNIQUE_PTR_RAW(open, close)                                                        \
+    template <typename... Args>                                                                    \
+    auto mp_##open(Args&&... args)                                                                 \
+    {                                                                                              \
+        return std::unique_ptr<std::remove_pointer_t<decltype(std::function{open})::result_type>,  \
+                               decltype(std::function{close})>{                                     \
+            MP_LIBSSH.open(std::forward<Args>(args)...),                                            \
+            close};                                                                                 \
     }
 
 namespace multipass
@@ -52,7 +68,7 @@ MP_SFTP_UNIQUE_PTR(sftp_stat, sftp_attributes_free)
 MP_SFTP_UNIQUE_PTR(sftp_lstat, sftp_attributes_free)
 MP_SFTP_UNIQUE_PTR(sftp_opendir, sftp_closedir)
 MP_SFTP_UNIQUE_PTR(sftp_readdir, sftp_attributes_free)
-MP_SFTP_UNIQUE_PTR(sftp_readlink, free)
+MP_SFTP_UNIQUE_PTR_RAW(sftp_readlink, free)
 
 #define MP_SFTPUTILS multipass::SFTPUtils::instance()
 

@@ -82,7 +82,6 @@ public:
     virtual int ssh_channel_open_session(ssh_channel channel) const;
     virtual int ssh_channel_request_exec(ssh_channel channel, const char* cmd) const;
     virtual int ssh_channel_request_shell(ssh_channel channel) const;
-    // libssh >= 0.11
     virtual int ssh_channel_get_exit_state(ssh_channel channel,
                                            uint32_t* exit_code,
                                            char** exit_signal,
@@ -133,6 +132,7 @@ public:
     virtual void ssh_key_free(ssh_key key) const;
 
     // --- strings -------------------------------------------------------------
+    virtual void ssh_string_free(ssh_string str) const;
     virtual void ssh_string_free_char(char* s) const;
     virtual const char* ssh_string_get_char(ssh_string str) const;
     virtual size_t ssh_string_len(ssh_string str) const;
@@ -162,9 +162,13 @@ public:
     virtual int sftp_get_error(sftp_session sftp) const;
     virtual void sftp_attributes_free(sftp_attributes file) const;
     virtual sftp_limits_t sftp_limits(sftp_session sftp) const;
+    // libssh >= 0.11
+    virtual void sftp_limits_free(sftp_limits_t limits) const;
 
     // --- sftp server ---------------------------------------------------------
     virtual sftp_session sftp_server_new(ssh_session session, ssh_channel chan) const;
+    virtual void sftp_server_free(sftp_session sftp) const;
+    virtual void sftp_client_message_free(sftp_client_message msg) const;
     virtual void* sftp_handle(sftp_session sftp, ssh_string handle) const;
     virtual ssh_string sftp_handle_alloc(sftp_session sftp, void* info) const;
     virtual void sftp_handle_remove(sftp_session sftp, void* handle) const;

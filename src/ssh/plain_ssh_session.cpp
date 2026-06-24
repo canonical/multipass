@@ -31,12 +31,11 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
-<<<<<<< HEAD:src/ssh/plain_ssh_session.cpp
 mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
                                      const std::string& username,
                                      const SSHKeyProvider& key_provider)
-    : session{MP_LIBSSH.ssh_new(), ssh_free}, mut{}
+    : session{MP_LIBSSH.ssh_new(), [](ssh_session s) { MP_LIBSSH.ssh_free(s); }}, mut{}
 {
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
