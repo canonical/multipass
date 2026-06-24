@@ -36,6 +36,7 @@ class SSHProcess;
 
 class SftpServer
 {
+    // Implementation follows the v3 of the SFTP specs and follows the OpenSSH schism
 public:
     SftpServer(std::unique_ptr<SSHSession>&& ssh_session,
                const std::string& source,
@@ -56,7 +57,6 @@ public:
 
 private:
     void process_message(sftp_client_message msg);
-    sftp_attributes_struct attr_from(const QFileInfo& file_info);
     int mapped_uid_for(const int uid);
     int mapped_gid_for(const int gid);
     int reverse_uid_for(const int uid, const int default_id);
@@ -65,9 +65,11 @@ private:
     bool has_gid_mapping_for(const int gid);
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
-    bool has_id_mappings_for(const QFileInfo& file_info);
+    bool has_id_mappings_for(const sftp_attributes_struct& file_info);
+    bool has_reverse_id_mappings_for(const sftp_attributes_struct& file_info);
+    void convert_attr_ids(sftp_attributes_struct& attr);
+    void reverse_convert_attr_ids(sftp_attributes_struct& attr);
     bool validate_path(const fs::path& current_path, bool follows_symlinks) const;
-    std::string host_to_guest_path(const fs::path& host_path) const;
     fs::path get_absolute_path(const char* path) const;
     std::optional<fs::path> get_validated_path(sftp_client_message msg) const;
 
@@ -82,9 +84,10 @@ private:
     int handle_readlink(sftp_client_message msg);
     int handle_realpath(sftp_client_message msg);
     int handle_remove(sftp_client_message msg);
-    int handle_rename(sftp_client_message msg);
+    int handle_rename(sftp_client_message msg, const bool allow_overwrites);
     int handle_setstat(sftp_client_message msg);
-    int handle_stat(sftp_client_message msg, bool follow);
+    int handle_fsetstat(sftp_client_message msg);
+    int handle_stat(sftp_client_message msg, const bool follow);
     int handle_symlink(sftp_client_message msg);
     int handle_write(sftp_client_message msg);
     int handle_extended(sftp_client_message msg);
@@ -97,8 +100,7 @@ private:
     SftpSessionUptr sftp_server_session;
     const std::filesystem::path source_path;
     const std::filesystem::path target_path;
-    std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;
-    std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;
+    std::unordered_map<void*, SftpHandle> open_sftp_handles;
     const id_mappings gid_mappings;
     const id_mappings uid_mappings;
     const int default_uid;
