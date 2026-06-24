@@ -145,11 +145,10 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
 #ifdef AVAILABILITY_ZONES_FEATURE
-    fmt::format_to(
-        dest,
-        "{:<16}{}\n",
-        "Zone:",
-        fmt::format("{}({})", item.zone().name(), item.zone().available() ? "a" : "u/a"));
+    fmt::format_to(dest,
+                   "{:<16}{}\n",
+                   "Zone:",
+                   fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)"));
 #endif
 
     if (instance_details.has_num_snapshots())
@@ -307,7 +306,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 #ifdef AVAILABILITY_ZONES_FEATURE
                 ,
             image_column_width,
-            fmt::format("{}({})", instance.zone().name(), instance.zone().available() ? "a" : "u/a")
+            fmt::format("{}{}", instance.zone().name(), instance.zone().available() ? "" : "(n/a)")
 #endif
         );
 

@@ -1,6 +1,6 @@
 Name:           bogus-instance
 State:          Running
-Zone:           zone1(a)
+Zone:           zone1
 Snapshots:      2
 IPv4:           10.21.124.56
 Release:        Ubuntu 16.04.3 LTS
@@ -15,7 +15,7 @@ Mounts:         /home/user/source => source
 
 Name:           bombastic
 State:          Stopped
-Zone:           zone2(u/a)
+Zone:           zone2(n/a)
 Snapshots:      3
 IPv4:           --
 Release:        --
