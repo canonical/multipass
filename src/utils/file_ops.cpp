@@ -19,6 +19,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/posix.h>
+#include <multipass/utils/named_fd.h>
 
 #include <chrono>
 #include <random>
@@ -64,16 +65,6 @@ private:
 thread_local std::mt19937 BackoffTimer::rng(std::random_device{}());
 
 } // namespace
-
-mp::NamedFd::NamedFd(const fs::path& path, int fd) : path{path}, fd{fd}
-{
-}
-
-mp::NamedFd::~NamedFd()
-{
-    if (fd != -1)
-        ::close(fd);
-}
 
 mp::FileOps::FileOps(const Singleton<FileOps>::PrivatePass& pass) noexcept
     : Singleton<FileOps>::Singleton{pass}
@@ -303,7 +294,7 @@ bool mp::FileOps::tryLock(QLockFile& lock, std::chrono::milliseconds timeout) co
     return lock.tryLock(timeout);
 }
 
-std::unique_ptr<mp::NamedFd> mp::FileOps::open_fd(const fs::path& path, int flags, int perms) const
+mp::SftpHandle mp::FileOps::open_fd(const fs::path& path, int flags, int perms) const
 {
     const auto fd = ::open(path.string().c_str(), flags | O_BINARY, perms);
     return std::make_unique<mp::NamedFd>(path, fd);
@@ -383,9 +374,19 @@ void mp::FileOps::copy(const fs::path& src,
     fs::copy(src, dist, copy_options, ec);
 }
 
+void mp::FileOps::resize(const fs::path& path, std::uintmax_t new_size, std::error_code& ec) const
+{
+    fs::resize_file(path, new_size, ec);
+}
+
 void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p) const
 {
     fs::rename(old_p, new_p);
+}
+
+void mp::FileOps::rename(const fs::path& old_p, const fs::path& new_p, std::error_code& ec) const
+{
+    fs::rename(old_p, new_p, ec);
 }
 
 bool mp::FileOps::exists(const fs::path& path) const
@@ -456,8 +457,7 @@ mp::FileOps::recursive_dir_iterator(const fs::path& path, std::error_code& err) 
     return std::make_unique<mp::RecursiveDirIterator>(path, err);
 }
 
-std::unique_ptr<mp::DirIterator> mp::FileOps::dir_iterator(const fs::path& path,
-                                                           std::error_code& err) const
+mp::SftpHandle mp::FileOps::dir_iterator(const fs::path& path, std::error_code& err) const
 {
     return std::make_unique<mp::DirIterator>(path, err);
 }

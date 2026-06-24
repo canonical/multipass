@@ -22,6 +22,7 @@
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/posix.h>
 #include <multipass/process/process.h>
 #include <multipass/process/process_spec.h>
 #include <multipass/settings/setting_spec.h>
@@ -29,6 +30,7 @@
 #include <multipass/sshfs_server_config.h>
 #include <multipass/subnet.h>
 #include <multipass/update_prompt.h>
+#include <multipass/utils/types.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
 
@@ -54,10 +56,23 @@ public:
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
     virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
+    // OS stat calls
+    virtual int lstat_attr_from(const char* path, sftp_attributes_struct& attr) const;
+    virtual int stat_attr_from(const char* path, sftp_attributes_struct& attr) const;
+    virtual int fstat_attr_from(int fd, sftp_attributes_struct& attr) const;
+    // OS file calls
+    virtual ssize_t pread(int fd, void* buffer, size_t bytes_to_read, off_t offset) const;
+    virtual ssize_t pwrite(int fd, const void* buffer, size_t bytes_to_write, off_t offset) const;
+    // File property change OS calls
+    virtual int ftruncate(int fd, off_t length) const;
+    virtual int futimes(int fd, int atime, int mtime) const;
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
+    virtual int fchown(int fd, unsigned int uid, unsigned int gid) const;
     virtual bool set_permissions(const std::filesystem::path& path,
                                  std::filesystem::perms permissions,
                                  bool try_inherit = false) const;
+    virtual bool set_permissions_sftp(const std::filesystem::path& path,
+                                      std::filesystem::perms permissions) const;
     virtual bool take_ownership(const std::filesystem::path& path) const;
     virtual void setup_permission_inheritance(bool restricted = true) const;
     virtual bool link(const char* target, const char* link) const;
@@ -101,7 +116,6 @@ UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
 std::unique_ptr<Process> make_process(std::unique_ptr<ProcessSpec>&& process_spec);
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
-
 // Creates a function that will wait for signals or until the passed function returns false.
 // The passed function is checked every `period` milliseconds.
 // If a signal is received the optional contains it, otherwise the optional is empty.
@@ -117,10 +131,6 @@ std::string host_version();
 
 } // namespace platform
 } // namespace multipass
-
-inline multipass::platform::Platform::Platform(const PrivatePass& pass) noexcept : Singleton(pass)
-{
-}
 
 inline std::filesystem::path multipass::platform::Platform::get_root_cert_path() const
 {
