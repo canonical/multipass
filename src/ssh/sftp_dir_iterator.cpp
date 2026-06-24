@@ -16,6 +16,7 @@
  */
 
 #include <multipass/format.h>
+#include <multipass/ssh/libssh.h>
 #include <multipass/ssh/sftp_dir_iterator.h>
 #include <multipass/ssh/sftp_utils.h>
 
@@ -27,7 +28,7 @@ void SFTPDirIterator::push_dir(const std::string& path)
     if (!dir)
         throw SFTPError{"cannot open remote directory '{}': {}",
                         path,
-                        ssh_get_error(sftp->session)};
+                        MP_LIBSSH.ssh_get_error(sftp->session)};
 
     dirs.push(std::move(dir));
 }
@@ -64,13 +65,15 @@ SFTPAttributesUPtr SFTPDirIterator::next()
         return attr;
     }
 
-    if (sftp_dir_eof(dir))
+    if (MP_LIBSSH.sftp_dir_eof(dir))
     {
         dirs.pop();
         return next();
     }
 
-    SFTPError err{"cannot read remote directory '{}': {}", dir->name, ssh_get_error(sftp->session)};
+    SFTPError err{"cannot read remote directory '{}': {}",
+                  dir->name,
+                  MP_LIBSSH.ssh_get_error(sftp->session)};
     dirs.pop();
     throw err;
 }

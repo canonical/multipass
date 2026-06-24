@@ -16,6 +16,7 @@
 function(add_ssh_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     libssh_scope_guard.cpp
+    libssh.cpp
     openssh_key_provider.cpp
     plain_ssh_process.cpp
     plain_ssh_session.cpp
@@ -35,6 +36,7 @@ endif()
 
 function(add_sftp_client_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
+    libssh.cpp
     sftp_client.cpp
     sftp_dir_iterator.cpp
     sftp_utils.cpp
@@ -54,6 +56,7 @@ endif()
 
 function(add_ssh_client_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
+    libssh.cpp
     ssh_client.cpp
     plain_ssh_session.cpp)
 

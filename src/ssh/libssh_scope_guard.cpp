@@ -17,16 +17,16 @@
 
 #include <multipass/ssh/libssh_scope_guard.h>
 
-#include "libssh/libssh.h"
+#include <multipass/ssh/libssh.h>
 
 namespace mp = multipass;
 
 mp::LibsshScopeGuard::LibsshScopeGuard()
 {
-    ssh_init();
+    MP_LIBSSH.ssh_init();
 }
 
 mp::LibsshScopeGuard::~LibsshScopeGuard()
 {
-    ssh_finalize();
+    MP_LIBSSH.ssh_finalize();
 }

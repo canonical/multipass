@@ -16,6 +16,7 @@
  */
 
 #include <multipass/file_ops.h>
+#include <multipass/ssh/libssh.h>
 #include <multipass/ssh/sftp_utils.h>
 
 #include <fmt/std.h>
@@ -137,10 +138,10 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp,
     {
         if (make_parent)
             mkdir_recursive(sftp, target_path);
-        else if (sftp_mkdir(sftp, target_path_string.c_str(), 0777) != SSH_FX_OK)
+        else if (MP_LIBSSH.sftp_mkdir(sftp, target_path_string.c_str(), 0777) != SSH_FX_OK)
             throw SFTPError{"cannot create remote directory {}: {}",
                             target_path,
-                            ssh_get_error(sftp->session)};
+                            MP_LIBSSH.ssh_get_error(sftp->session)};
         return target_path;
     }
 
@@ -150,10 +151,10 @@ fs::path SFTPUtils::get_remote_dir_target(sftp_session sftp,
     if (child_info && child_info->type != SSH_FILEXFER_TYPE_DIRECTORY)
         throw SFTPError{"cannot overwrite remote non-directory {:?} with directory", child_path};
 
-    if (!child_info && sftp_mkdir(sftp, child_path_string.c_str(), 0777) != SSH_FX_OK)
+    if (!child_info && MP_LIBSSH.sftp_mkdir(sftp, child_path_string.c_str(), 0777) != SSH_FX_OK)
         throw SFTPError{"cannot create remote directory {:?}: {}",
                         child_path,
-                        ssh_get_error(sftp->session)};
+                        MP_LIBSSH.ssh_get_error(sftp->session)};
 
     return child_path;
 }
@@ -172,10 +173,10 @@ void SFTPUtils::mkdir_recursive(sftp_session sftp, const fs::path& path)
             attr && attr->type != SSH_FILEXFER_TYPE_DIRECTORY)
             throw SFTPError{"cannot overwrite remote non-directory {:?} with directory",
                             partial_path};
-        else if (!attr && sftp_mkdir(sftp, partial_path.string().c_str(), 0777) != SSH_FX_OK)
+        else if (!attr && MP_LIBSSH.sftp_mkdir(sftp, partial_path.string().c_str(), 0777) != SSH_FX_OK)
             throw SFTPError{"cannot create remote directory {:?}: {}",
                             partial_path,
-                            ssh_get_error(sftp->session)};
+                            MP_LIBSSH.ssh_get_error(sftp->session)};
 }
 
 std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const std::string& host,
