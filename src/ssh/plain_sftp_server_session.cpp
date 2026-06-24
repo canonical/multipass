@@ -17,13 +17,59 @@
 
 #include <multipass/ssh/plain_sftp_server_session.h>
 
+#include <multipass/exceptions/ssh_exception.h>
+
+#include <fmt/format.h>
+
 #include <utility>
+
+extern "C"
+{
+int sftp_reply_version(sftp_client_message msg);
+}
 
 namespace mp = multipass;
 
+namespace
+{
+auto make_sftp_session(ssh_session session, ssh_channel channel)
+{
+    std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*> sftp_server_session{
+        sftp_server_new(session, channel),
+        sftp_server_free};
+    // The function sftp_server_init was expanded here to avoid deprecation warnings.
+    // TODO: move to callback-based sftp implementations.
+    // https://github.com/canonical/multipass/issues/4445
+
+    /* handles setting the sftp->client_version */
+    sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
+    if (msg == nullptr)
+    {
+        throw mp::SSHException("[sftp] server init failed: 'Null client message'");
+    }
+
+    if (msg->type != SSH_FXP_INIT)
+    {
+        throw mp::SSHException(fmt::format(
+            "[sftp] server init failed: 'FATAL: Packet read of type {} instead of SSH_FXP_INIT'",
+            msg->type));
+    }
+
+    // Optional: Log the SSH_FXP_INIT reception like libssh does with SSH_LOG but with mp::log
+
+    if (sftp_reply_version(msg) != SSH_OK)
+    {
+        throw mp::SSHException(
+            "[sftp] server init failed: 'FATAL: Failed to process the SSH_FXP_INIT message'");
+    }
+
+    return sftp_server_session;
+}
+} // namespace
+
 mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& session)
     : ssh_session{std::move(session)},
-      sftp_session{sftp_server_new(ssh_session.borrow_session(pass), nullptr), sftp_server_free}
+      sftp_session{make_sftp_session(ssh_session.borrow_session(pass), nullptr)}
 // TODO@sftp sshfs process and channel
 {
 }
