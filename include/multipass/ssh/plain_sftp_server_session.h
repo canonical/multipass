@@ -40,6 +40,8 @@ public:
 private:
     using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
 
+    static SftpSessionUptr make_sftp_session(::ssh_session session, ssh_channel channel);
+
     PlainSSHSession ssh_session;
     SftpSessionUptr sftp_session;
 };
