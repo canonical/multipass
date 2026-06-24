@@ -29,6 +29,7 @@
 #include <multipass/sshfs_mount/sftp_server_session.h>
 #include <multipass/utils.h>
 
+// TODO@sftp dump
 extern "C"
 {
 int sftp_reply_version(sftp_client_message msg);
@@ -62,6 +63,7 @@ enum Permissions
     exec_other = 01
 };
 
+// TODO@sftp dump
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{sftp_server_new(session, channel),
