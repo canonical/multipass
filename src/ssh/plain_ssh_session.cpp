@@ -142,10 +142,10 @@ std::unique_ptr<mp::PlainSSHProcess> mp::PlainSSHSession::exec_plain(const std::
     return std::make_unique<PlainSSHProcess>(*raw_session.get(), cmd, std::move(lock));
 }
 
-std::unique_ptr<mp::SftpSession> mp::PlainSSHSession::make_sftp_session() &&
+std::unique_ptr<mp::SftpSession> mp::PlainSSHSession::make_sftp_session(
+    const std::string& sshfs_cmd) &&
 {
-    return std::make_unique<PlainSftpSession>(std::move(*this),
-                                              std::string{}); // TODO@sftp proper sshfs command
+    return std::make_unique<PlainSftpSession>(std::move(*this), sshfs_cmd);
 }
 
 void mp::PlainSSHSession::force_shutdown()
