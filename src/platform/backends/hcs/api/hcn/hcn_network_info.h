@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <hcs/api/hcn/hcn_dns.h>
+
 #include <fmt/xchar.h>
 
 #include <optional>
@@ -32,6 +34,11 @@ struct HcnNetworkInfo
     std::optional<std::string> network_adapter_name;
     // Interface GUID of the network's host vNIC (e.g. "vEthernet (Default Switch)"), if any.
     std::optional<std::string> host_interface_guid;
+
+    /**
+     * DNS settings (suffix, search list, servers) reported by the network.
+     */
+    std::optional<HcnDns> dns;
 };
 
 }; // namespace multipass::hyperv::hcn
