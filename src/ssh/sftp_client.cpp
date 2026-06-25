@@ -59,10 +59,10 @@ SFTPClient::SFTPClient(const std::string& host,
 {
 }
 
-SFTPClient::SFTPClient(SSHSessionUPtr ssh_session)
-    : ssh_session{std::move(ssh_session)}, sftp{make_sftp_session(*this->ssh_session)}
+SFTPClient::SFTPClient(SSHSessionUPtr ssh_session_obj)
+    : ssh_session_obj{std::move(ssh_session_obj)}, sftp{make_sftp_session(*this->ssh_session_obj)}
 {
-    SSH::throw_on_error(sftp, *this->ssh_session, "[sftp] init failed", sftp_init);
+    SSH::throw_on_error(sftp, *this->ssh_session_obj, "[sftp] init failed", sftp_init);
 }
 
 bool SFTPClient::is_remote_dir(const fs::path& path)
