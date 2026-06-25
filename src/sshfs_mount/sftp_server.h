@@ -37,7 +37,7 @@ class SSHProcess; // TODO@sftp remove
 class SftpServer
 {
 public:
-    SftpServer(std::unique_ptr<SSHSession>&& ssh_session,
+    SftpServer(std::unique_ptr<SSHSession>&& ssh_session_obj,
                const std::string& source,
                const std::string& target,
                const id_mappings& gid_mappings,
@@ -93,9 +93,9 @@ private:
     template <typename T>
     T* get_handle(sftp_client_message msg);
 
-    std::unique_ptr<SSHSession> ssh_session; // TODO@sftp probably remove (consume in session)
-    SSHFSProcUptr sshfs_process;             // TODO@sftp remove
-    SftpSessionUptr raw_sftp_server_session; // TODO@sftp remove
+    std::unique_ptr<SSHSession> ssh_session_obj; // TODO@sftp remove
+    SSHFSProcUptr sshfs_process;                 // TODO@sftp remove
+    SftpSessionUptr raw_sftp_session;            // TODO@sftp remove
     const std::filesystem::path source_path;
     const std::filesystem::path target_path;
     std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;

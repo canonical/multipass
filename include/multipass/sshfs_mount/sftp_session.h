@@ -19,16 +19,19 @@
 
 namespace multipass
 {
-class SftpServerSession
+/**
+ * A server-side SFTP session.
+ */
+class SftpSession
 {
 public:
-    virtual ~SftpServerSession() = default;
+    virtual ~SftpSession() = default;
 
     // No copies
-    SftpServerSession(const SftpServerSession&) = delete;
-    SftpServerSession& operator=(const SftpServerSession&) = delete;
+    SftpSession(const SftpSession&) = delete;
+    SftpSession& operator=(const SftpSession&) = delete;
 
 protected:
-    SftpServerSession() = default;
+    SftpSession() = default;
 };
 } // namespace multipass
