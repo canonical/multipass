@@ -19,6 +19,7 @@
 
 #include <multipass/private_pass_provider.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_process.h>
 #include <multipass/sshfs_mount/sftp_server_session.h>
 
 #include <libssh/sftp.h>
@@ -29,7 +30,7 @@ class PlainSftpServerSession : public SftpServerSession,
                                public PrivatePassProvider<PlainSftpServerSession>
 {
 public:
-    explicit PlainSftpServerSession(PlainSSHSession&& ssh_session);
+    PlainSftpServerSession(PlainSSHSession&& ssh_session, const std::string& sshfs_cmd);
     PlainSftpServerSession(const PlainSftpServerSession&) = delete;
     PlainSftpServerSession& operator=(const PlainSftpServerSession&) = delete;
 
@@ -43,6 +44,7 @@ private:
     static SftpSessionUptr make_sftp_session(ssh_session session, ssh_channel channel);
 
     PlainSSHSession plain_ssh_session;
+    std::unique_ptr<SSHProcess> sshfs_process;
     SftpSessionUptr sftp_session;
 };
 } // namespace multipass
