@@ -275,6 +275,83 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
 // ---------------------------------------------------------
 
 /**
+ * Success scenario: a network created with DNS settings includes the
+ * "Dns" object in the generated configuration.
+ */
+TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_dns)
+{
+    { // Verify that the dependencies are called with right data.
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
+            .WillOnce(DoAll(
+                [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
+                    constexpr auto expected_network_settings = LR"""(
+                    {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 2
+                        },
+                        "Name": "multipass-hyperv-api-hcn-create-test",
+                        "Type": "ICS",
+                        "Ipams": [
+                            {
+                                "Type": "static",
+                                "Subnets": [
+                                    {
+                                        "Policies": [],
+                                        "Routes": [],
+                                        "IpAddressPrefix": "172.50.224.0/20",
+                                        "IpSubnets": null
+                                    }
+                                ]
+                            }
+                        ],
+                        "Flags" : 0,
+                        "Policies": [],
+                        "Dns": {
+                            "Domain": "multipass.test",
+                            "Search": ["multipass.test","example.test"],
+                            "ServerList": ["172.50.224.1"],
+                            "Options": []
+                        }
+                    }
+                    )""";
+                    ASSERT_NE(nullptr, network);
+                    ASSERT_EQ(nullptr, *network);
+                    ASSERT_NE(nullptr, error_record);
+                    ASSERT_EQ(nullptr, *error_record);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
+                    *network = mock_network_object;
+                },
+                Return(NOERROR)));
+
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
+            .WillOnce(
+                DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
+    }
+
+    { // Verify the expected outcome.
+        hcn::CreateNetworkParameters params{};
+        params.name = "multipass-hyperv-api-hcn-create-test";
+        params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+        params.ipams = {
+            hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
+        params.dns = hcn::HcnDns{"multipass.test",
+                                 {"multipass.test", "example.test"},
+                                 {"172.50.224.1"},
+                                 {}};
+
+        const auto& [status, status_msg] = HCN().create_network(params);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+/**
  * Success scenario: Everything goes as expected.
  */
 TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
