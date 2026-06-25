@@ -79,7 +79,7 @@ public:
     [[nodiscard]] bool is_moved() const override;
 
     operator ssh_session() override; // TODO@sftp remove
-    void force_shutdown() override; // TODO@sftp this should not be public
+    void shutdown_custom_socket() override; // TODO@sftp this should not be public
 
 public: // but restricted
     // Obtain a non-owning libssh session handle.
