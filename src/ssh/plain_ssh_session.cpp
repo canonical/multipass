@@ -119,8 +119,9 @@ mp::PlainSSHSession::~PlainSSHSession()
             mpl::trace(category, "disconnecting SSH session");
 
             MP_LIBSSH.ssh_disconnect(raw_session.get());
-            PlainSSHSession::force_shutdown(); // Shutdown I/O on manually open sockets.
-                                               // The socket is still closed by libssh in ssh_free.
+            PlainSSHSession::shutdown_custom_socket(); // Shutdown I/O on manually open sockets.
+                                                       // The socket is still closed by libssh in
+                                                       // ssh_free.
         }
     });
 }
@@ -148,7 +149,7 @@ std::unique_ptr<mp::SftpSession> mp::PlainSSHSession::make_sftp_session(
     return std::make_unique<PlainSftpSession>(std::move(*this), sshfs_cmd);
 }
 
-void mp::PlainSSHSession::force_shutdown()
+void mp::PlainSSHSession::shutdown_custom_socket()
 {
     // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
     // with a lock acquired). Make it private instead. Provide public way to close the session
