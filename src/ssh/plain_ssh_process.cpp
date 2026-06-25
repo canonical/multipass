@@ -90,17 +90,17 @@ auto make_channel(ssh_session session, const std::string& cmd)
 
 } // namespace
 
-mp::PlainSSHProcess::PlainSSHProcess(ssh_session session,
+mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
     : session_lock{std::move(
           session_lock)}, // this is held until the exit code is requested or this is destroyed
-      session{session},
+      session{&session},
       cmd{cmd},
-      channel{make_channel(session, cmd)},
+      channel{make_channel(this->session, cmd)},
       exit_result{}
 {
-    assert(this->session_lock.owns_lock() && session != nullptr);
+    assert(this->session_lock.owns_lock());
 }
 
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
