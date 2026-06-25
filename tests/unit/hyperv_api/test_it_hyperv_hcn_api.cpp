@@ -227,6 +227,16 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix)
     }
 
     {
+        HcnNetworkInfo info{};
+        const auto result = HCN().query_network("b70c479d-f808-4053-aafa-705bc15b6d68", info);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(info.dns.has_value());
+        EXPECT_EQ(info.dns->domain, "multipass.test");
+        EXPECT_THAT(info.dns->search, ::testing::ElementsAre("multipass.test", "example.test"));
+        EXPECT_THAT(info.dns->server_list, ::testing::ElementsAre("172.50.224.1"));
+    }
+
+    {
         const auto& [status, error_msg] = HCN().delete_network(params.guid);
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
@@ -247,6 +257,14 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix_only
         const auto& [status, error_msg] = HCN().create_network(params);
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        HcnNetworkInfo info{};
+        const auto result = HCN().query_network("b70c479d-f808-4053-aafa-705bc15b6d68", info);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(info.dns.has_value());
+        EXPECT_EQ(info.dns->domain, "multipass.test");
     }
 
     {
