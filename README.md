@@ -116,10 +116,10 @@ Don't forget to logout (or Ctrl-D) or you may find yourself heading all the way 
 $ multipass exec dancing-chipmunk -- lsb_release -a
 
 No LSB modules are available.
-Distributor ID:Ubuntu
-Description:Ubuntu 26.04 LTS
-Release:26.04
-Codename:resolute
+Distributor ID: Ubuntu
+Description:    Ubuntu 26.04 LTS
+Release:        26.04
+Codename:       resolute
 ```
 
 ## Stop an instance to save resources
@@ -140,7 +140,7 @@ The instance will now show up as deleted:
 $ multipass list
 
 Name                    State             IPv4             Image
-dancing-chipmunk        Deleted           --               Ubuntu 24.04 LTS
+dancing-chipmunk        Deleted           --               Ubuntu 26.04 LTS
 ```
 
 If you want to completely get rid of it:
