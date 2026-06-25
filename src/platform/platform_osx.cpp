@@ -365,6 +365,11 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
+std::unique_ptr<mp::DNSResolver> mp::platform::make_dns_resolver(mp::DNSResolver::Resolver resolver)
+{
+    return nullptr;
+}
+
 bool mp::platform::Platform::link(const char* target, const char* link) const
 {
     QFileInfo file_info{target};

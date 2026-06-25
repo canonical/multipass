@@ -476,6 +476,11 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DisabledUpdatePrompt>();
 }
 
+std::unique_ptr<mp::DNSResolver> mp::platform::make_dns_resolver(mp::DNSResolver::Resolver)
+{
+    return nullptr;
+}
+
 mp::logging::Logger::UPtr mp::platform::make_logger(mp::logging::Level level)
 {
 #if MULTIPASS_JOURNALD_ENABLED
