@@ -1,0 +1,12 @@
+#cloud-config
+chpasswd:
+  list: |
+     root:password
+     alpine:password
+  expire: False
+# Stock Alpine's busybox udhcpc does not advertise the guest hostname (DHCP
+# option 12). The ICS DHCP/DNS proxy can only register a name it is told, so we
+# re-run udhcpc once networking is up, this time sending the hostname. This lets
+# the host resolve "<hostname>.<ics-domain>" to the guest's leased IP.
+runcmd:
+  - sh -c 'HN=$(cat /etc/hostname 2>/dev/null || hostname); for i in 1 2 3 4 5 6; do udhcpc -i eth0 -x hostname:$HN -n -q && break; sleep 3; done'
