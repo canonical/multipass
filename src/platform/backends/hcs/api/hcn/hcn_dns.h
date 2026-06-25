@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <boost/json/fwd.hpp>
 #include <fmt/format.h>
 #include <fmt/xchar.h>
 
@@ -53,6 +54,11 @@ struct HcnDns
      */
     std::vector<std::string> options{};
 };
+
+/**
+ * Deserialize the nested `Dns` object of the HCN schema v2.
+ */
+HcnDns tag_invoke(const boost::json::value_to_tag<HcnDns>&, const boost::json::value& json);
 
 } // namespace multipass::hyperv::hcn
 
