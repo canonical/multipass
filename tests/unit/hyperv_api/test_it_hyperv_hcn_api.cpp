@@ -207,4 +207,53 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_endpoint_explicit_mac)
     }
 }
 
+TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix)
+{
+    CreateNetworkParameters params{};
+    params.name = "multipass-hyperv-api-hcn-create-delete-dns-test";
+    params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+    params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
+    params.dns = HcnDns{/* domain */ "multipass.test",
+                        /* search */ {"multipass.test", "example.test"},
+                        /* server_list */ {"172.50.224.1"},
+                        /* options */ {}};
+
+    (void)HCN().delete_network(params.guid);
+
+    {
+        const auto& [status, error_msg] = HCN().create_network(params);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        const auto& [status, error_msg] = HCN().delete_network(params.guid);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(error_msg.empty());
+    }
+}
+
+TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix_only)
+{
+    CreateNetworkParameters params{};
+    params.name = "multipass-hyperv-api-hcn-create-delete-dns-suffix-only-test";
+    params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+    params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
+    params.dns = HcnDns{/* domain */ "multipass.test"};
+
+    (void)HCN().delete_network(params.guid);
+
+    {
+        const auto& [status, error_msg] = HCN().create_network(params);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        const auto& [status, error_msg] = HCN().delete_network(params.guid);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(error_msg.empty());
+    }
+}
+
 } // namespace multipass::test
