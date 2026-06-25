@@ -53,6 +53,7 @@ if(WIN32)
     api/hcn/hcn_endpoint_query.cpp
     api/hcn/hcn_network_info.cpp
     api/hcn/hcn_dns.cpp
+    api/dns/nrpt_rule.cpp
     api/hcs/hcs_wrapper.cpp
     api/hcs/hcs_event_type.cpp
     api/hcs/hcs_scsi_device.cpp
@@ -90,5 +91,7 @@ if(WIN32)
     computecore.lib
     computenetwork.lib
     virtdisk.lib
+    advapi32.lib
+    rpcrt4.lib
   )
 endif()
