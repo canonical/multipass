@@ -45,6 +45,9 @@ struct MockSSHSession : public SSHSession
     }
 
     MOCK_METHOD(void, force_shutdown, (), (override));
-    MOCK_METHOD(std::unique_ptr<SftpSession>, make_sftp_session, (), (ref(&&), override));
+    MOCK_METHOD(std::unique_ptr<SftpSession>,
+                make_sftp_session,
+                (const std::string& sshfs_cmd),
+                (ref(&&), override));
 };
 } // namespace multipass::test
