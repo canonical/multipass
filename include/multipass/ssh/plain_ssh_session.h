@@ -31,6 +31,7 @@ namespace multipass
 {
 class SSHKeyProvider;
 class PlainSftpServerSession;
+class PlainSSHProcess;
 
 class PlainSSHSession final : public SSHSession // final to prevent chopping on move
 {
@@ -52,9 +53,18 @@ public:
 
     /**
      * @copydoc SSHSession::exec
+     *
+     * The dynamic type is always a PlainSSHProcess; see exec_plain to obtain it statically.
      */
     [[nodiscard]] std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                    bool whisper = false) override;
+
+    /**
+     * TODO@sftp can we copydoc? partially
+     * Like exec, but statically typed to the concrete PlainSSHProcess this session produces.
+     */
+    [[nodiscard]] std::unique_ptr<PlainSSHProcess> exec_plain(const std::string& cmd,
+                                                              bool whisper = false);
 
     std::unique_ptr<SftpServerSession> make_sftp_server_session() && override;
 

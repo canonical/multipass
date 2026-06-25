@@ -49,9 +49,9 @@ void check_sshfs_status(mp::SSHProcess& sshfs_process)
     }
 }
 
-auto create_sshfs_process(mp::SSHSession& session, const std::string& sshfs_cmd)
+auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs_cmd)
 {
-    auto sshfs_process = session.exec(sshfs_cmd);
+    auto sshfs_process = session.exec_plain(sshfs_cmd);
 
     check_sshfs_status(*sshfs_process);
 
@@ -96,9 +96,7 @@ mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& session,
                                                    const std::string& sshfs_cmd)
     : plain_ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(plain_ssh_session, sshfs_cmd)},
-      sftp_session{make_sftp_session(
-          plain_ssh_session.borrow_session(pass),
-          static_cast<PlainSSHProcess*>(sshfs_process.get())->borrow_channel(pass))}
-// TODO@rewiressh no cast
+      sftp_session{make_sftp_session(plain_ssh_session.borrow_session(pass),
+                                     sshfs_process->borrow_channel(pass))}
 {
 }
