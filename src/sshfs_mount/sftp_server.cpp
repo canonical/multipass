@@ -338,8 +338,9 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
       raw_sftp_session{make_sftp_session(*ssh_session_obj,
                                          static_cast<PlainSSHProcess*>(sshfs_process.get())
                                              ->release_channel())}, // TODO@rewiressh no cast
-      sftp_session_obj{PlainSSHSession{"localGHost", 22, "me", EmptySSHKeyProvider{}}
-                           .make_sftp_session()}, // TODO@sftp proper session, proper params
+      sftp_session_obj{
+          PlainSSHSession{"localGHost", 22, "me", EmptySSHKeyProvider{}}.make_sftp_session(
+              sshfs_exec_line)}, // TODO@sftp proper session, proper params
       source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{fs::path(target).lexically_normal()},
       gid_mappings{gid_mappings},
