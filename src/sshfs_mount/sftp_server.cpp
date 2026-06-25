@@ -228,6 +228,7 @@ auto to_unix_permissions(QFile::Permissions perms)
     return out;
 }
 
+// TODO@sftp dump
 void check_sshfs_status(mp::SSHProcess& sshfs_process)
 {
     if (sshfs_process.exit_recognized(250ms))
@@ -239,6 +240,7 @@ void check_sshfs_status(mp::SSHProcess& sshfs_process)
     }
 }
 
+// TODO@sftp dump
 auto create_sshfs_process(mp::SSHSession& session,
                           const std::string& sshfs_exec_line,
                           const std::string& source,
