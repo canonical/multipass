@@ -45,6 +45,7 @@ if(WIN32)
     hcn/hyperv_hcn_api.cpp
     hcn/hyperv_hcn_route.cpp
     hcn/hyperv_hcn_subnet.cpp
+    hcn/hyperv_hcn_dns.cpp
     hcn/hyperv_hcn_ipam.cpp
     hcn/hyperv_hcn_network_policy.cpp
     hcn/hyperv_hcn_create_endpoint_params.cpp

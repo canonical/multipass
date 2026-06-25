@@ -20,6 +20,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_api.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_route.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_subnet.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_dns.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_ipam.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_network_policy.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_api.cpp
