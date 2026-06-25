@@ -434,6 +434,36 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
                     // JSON blob."
                     out_info.type = "NAT";
                 }
+
+                // On query, HCN flattens the DNS configuration into top-level,
+                // comma-separated string fields rather than echoing back the nested
+                // "Dns" object used on creation.
+                const auto* domain = obj.if_contains("DNSDomain");
+                const auto* suffix = obj.if_contains("DNSSuffix");
+                const auto* servers = obj.if_contains("DNSServerList");
+
+                if (domain || suffix || servers)
+                {
+                    // utils::split() returns { "" } for an empty input, so an empty field would
+                    // be reported as a one-element list containing an empty string. Treat empty
+                    // fields as an empty list instead.
+                    const auto split_csv =
+                        [](const boost::json::value& value) -> std::vector<std::string> {
+                        const std::string str = value.as_string().c_str();
+                        if (str.empty())
+                            return {};
+                        return multipass::utils::split(str, ",");
+                    };
+
+                    HcnDns dns{};
+                    if (domain)
+                        dns.domain = domain->as_string().c_str();
+                    if (suffix)
+                        dns.search = split_csv(*suffix);
+                    if (servers)
+                        dns.server_list = split_csv(*servers);
+                    out_info.dns = std::move(dns);
+                }
             }
             catch (const std::exception& ex)
             {
