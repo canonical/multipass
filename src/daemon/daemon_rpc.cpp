@@ -99,7 +99,7 @@ grpc::Status emit_signal_and_wait_for_result(OperationSignal operation_signal,
         if constexpr (HasVerbosityLevel<U>)
             return mpl::level_from(request->verbosity_level());
         else
-            return mpl::Level::info;
+            return mpl::Level::error;
     }();
 
     std::promise<grpc::Status> promise;
