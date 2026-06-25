@@ -337,6 +337,26 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
                     // JSON blob."
                     out_info.type = "NAT";
                 }
+
+                // On query, HCN flattens the DNS configuration into top-level,
+                // comma-separated string fields rather than echoing back the nested
+                // "Dns" object used on creation.
+                const auto* domain = obj.if_contains("DNSDomain");
+                const auto* suffix = obj.if_contains("DNSSuffix");
+                const auto* servers = obj.if_contains("DNSServerList");
+
+                if (domain || suffix || servers)
+                {
+                    HcnDns dns{};
+                    if (domain)
+                        dns.domain = domain->as_string().c_str();
+                    if (suffix)
+                        dns.search = multipass::utils::split(suffix->as_string().c_str(), ",");
+                    if (servers)
+                        dns.server_list =
+                            multipass::utils::split(servers->as_string().c_str(), ",");
+                    out_info.dns = std::move(dns);
+                }
             }
             catch (const std::exception& ex)
             {
