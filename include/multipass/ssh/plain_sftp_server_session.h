@@ -18,8 +18,8 @@
 #pragma once
 
 #include <multipass/private_pass_provider.h>
+#include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
-#include <multipass/ssh/ssh_process.h>
 #include <multipass/sshfs_mount/sftp_server_session.h>
 
 #include <libssh/sftp.h>
@@ -44,7 +44,7 @@ private:
     static SftpSessionUptr make_sftp_session(ssh_session session, ssh_channel channel);
 
     PlainSSHSession plain_ssh_session;
-    std::unique_ptr<SSHProcess> sshfs_process;
+    std::unique_ptr<PlainSSHProcess> sshfs_process;
     SftpSessionUptr sftp_session;
 };
 } // namespace multipass

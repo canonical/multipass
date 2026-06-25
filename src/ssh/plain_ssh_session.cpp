@@ -127,6 +127,12 @@ mp::PlainSSHSession::~PlainSSHSession()
 
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
 {
+    return exec_plain(cmd, whisper);
+}
+
+std::unique_ptr<mp::PlainSSHProcess> mp::PlainSSHSession::exec_plain(const std::string& cmd,
+                                                                     bool whisper)
+{
     std::unique_lock lock{mut};
     assert(!is_moved() && "precondition - cannot call exec on a moved session");
 
