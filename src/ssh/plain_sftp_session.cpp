@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/ssh/plain_sftp_server_session.h>
+#include <multipass/ssh/plain_sftp_session.h>
 
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/ssh/plain_ssh_process.h>
@@ -59,16 +59,16 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
 }
 } // namespace
 
-mp::PlainSftpServerSession::SftpSessionUptr
-mp::PlainSftpServerSession::make_sftp_session(ssh_session session, ssh_channel channel)
+mp::PlainSftpSession::RawSftpSessionUptr
+mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel channel)
 {
-    SftpSessionUptr sftp_server_session{sftp_server_new(session, channel), sftp_server_free};
+    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel), sftp_server_free};
     // The function sftp_server_init was expanded here to avoid deprecation warnings.
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
 
     /* handles setting the sftp->client_version */
-    sftp_client_message msg{sftp_get_client_message(sftp_server_session.get())};
+    sftp_client_message msg{sftp_get_client_message(raw_sftp_session.get())};
     if (msg == nullptr)
     {
         throw mp::SSHException("[sftp] server init failed: 'Null client message'");
@@ -89,14 +89,14 @@ mp::PlainSftpServerSession::make_sftp_session(ssh_session session, ssh_channel c
             "[sftp] server init failed: 'FATAL: Failed to process the SSH_FXP_INIT message'");
     }
 
-    return sftp_server_session;
+    return raw_sftp_session;
 }
 
-mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& session,
-                                                   const std::string& sshfs_cmd)
-    : plain_ssh_session{std::move(session)},
+mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
+                                       const std::string& sshfs_cmd)
+    : plain_ssh_session{std::move(ssh_session_obj)},
       sshfs_process{create_sshfs_process(plain_ssh_session, sshfs_cmd)},
-      sftp_session{make_sftp_session(plain_ssh_session.borrow_session(pass),
-                                     sshfs_process->borrow_channel(pass))}
+      raw_sftp_session{make_raw_sftp_session(plain_ssh_session.borrow_session(pass),
+                                             sshfs_process->borrow_channel(pass))}
 {
 }

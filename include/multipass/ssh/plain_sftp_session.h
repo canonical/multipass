@@ -20,31 +20,35 @@
 #include <multipass/private_pass_provider.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
-#include <multipass/sshfs_mount/sftp_server_session.h>
+#include <multipass/sshfs_mount/sftp_session.h>
 
 #include <libssh/sftp.h>
 
 namespace multipass
 {
-class PlainSftpServerSession : public SftpServerSession,
-                               public PrivatePassProvider<PlainSftpServerSession>
+
+/**
+ * A concrete SftpSession backed by an SSHFS mount: it serves the SFTP protocol over an SSH
+ * session to a remote sshfs client, which mounts it on the guest.
+ */
+class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
 public:
-    PlainSftpServerSession(PlainSSHSession&& ssh_session, const std::string& sshfs_cmd);
-    PlainSftpServerSession(const PlainSftpServerSession&) = delete;
-    PlainSftpServerSession& operator=(const PlainSftpServerSession&) = delete;
+    PlainSftpSession(PlainSSHSession&& ssh_session_obj, const std::string& sshfs_cmd);
+    PlainSftpSession(const PlainSftpSession&) = delete;
+    PlainSftpSession& operator=(const PlainSftpSession&) = delete;
 
     // TODO@sftp Make class final before enabling these
-    PlainSftpServerSession(PlainSftpServerSession&&) = delete;
-    PlainSftpServerSession& operator=(PlainSftpServerSession&&) = delete;
+    PlainSftpSession(PlainSftpSession&&) = delete;
+    PlainSftpSession& operator=(PlainSftpSession&&) = delete;
 
 private:
-    using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
+    using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
 
-    static SftpSessionUptr make_sftp_session(ssh_session session, ssh_channel channel);
+    static RawSftpSessionUptr make_raw_sftp_session(ssh_session raw_session, ssh_channel channel);
 
     PlainSSHSession plain_ssh_session;
     std::unique_ptr<PlainSSHProcess> sshfs_process;
-    SftpSessionUptr sftp_session;
+    RawSftpSessionUptr raw_sftp_session;
 };
 } // namespace multipass

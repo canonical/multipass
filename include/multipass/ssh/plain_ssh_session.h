@@ -30,7 +30,7 @@
 namespace multipass
 {
 class SSHKeyProvider;
-class PlainSftpServerSession;
+class PlainSftpSession;
 class PlainSSHProcess;
 
 class PlainSSHSession final : public SSHSession // final to prevent chopping on move
@@ -66,7 +66,7 @@ public:
     [[nodiscard]] std::unique_ptr<PlainSSHProcess> exec_plain(const std::string& cmd,
                                                               bool whisper = false);
 
-    std::unique_ptr<SftpServerSession> make_sftp_server_session() && override;
+    std::unique_ptr<SftpSession> make_sftp_session() && override;
 
     /**
      * @copydoc SSHSession::is_connected
@@ -85,15 +85,14 @@ public: // but restricted
     // Obtain a non-owning libssh session handle.
     // The caller adopts thread-safety responsibility for the underlying session with respect to
     // this SSHSession
-    ssh_session borrow_session(
-        const PrivatePassProvider<PlainSftpServerSession>::PrivatePass&) const;
+    ssh_session borrow_session(const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const;
 
 private:
     PlainSSHSession(PlainSSHSession&&, std::unique_lock<std::mutex> lock);
 
     void set_option(ssh_options_e type, const void* value);
 
-    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
+    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> raw_session;
     mutable std::mutex mut;
 };
 } // namespace multipass
