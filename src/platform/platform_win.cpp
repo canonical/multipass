@@ -194,20 +194,6 @@ size_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
     return (static_cast<uint64_t>(nFileSizeHigh) << 32) + nFileSizeLow;
 }
 
-// For ALLOW ACEs: full GENERIC_* mapping including standard rights
-ACCESS_MASK to_allow_mask(uint32_t rwx)
-{
-    ACCESS_MASK mask = 0;
-    if (rwx & 4)
-        mask |= FILE_READ_DATA | FILE_READ_EA | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE;
-    if (rwx & 2)
-        mask |= FILE_WRITE_DATA | FILE_WRITE_EA | FILE_WRITE_ATTRIBUTES | FILE_APPEND_DATA |
-                READ_CONTROL | SYNCHRONIZE;
-    if (rwx & 1)
-        mask |= FILE_EXECUTE | FILE_READ_ATTRIBUTES | READ_CONTROL | SYNCHRONIZE;
-    return mask;
-}
-
 inline bool nt_ok(NTSTATUS s)
 {
     return s >= 0; // NOTE: STATUS_PENDING (0x103)
