@@ -186,6 +186,45 @@ std::pair<OperationResult, UniqueHcnNetwork> open_network(const std::string& net
     return std::make_pair(result, std::move(network));
 }
 
+std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& endpoint_guid)
+{
+    mpl::trace(log_category, "open_endpoint(...) > endpoint_guid: {} ", endpoint_guid);
+
+    UniqueHcnEndpoint endpoint{};
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid), out_ptr(endpoint), rmsgbuf);
+    });
+
+    return std::make_pair(result, std::move(endpoint));
+}
+
+/**
+ * Parse the DNS configuration out of a queried HCN resource.
+ *
+ * On query, HCN flattens the DNS configuration into top-level, comma-separated
+ * string fields (DNSDomain/DNSSuffix/DNSServerList) rather than echoing back the
+ * nested "Dns" object used on creation. This holds for both networks and the
+ * endpoints that inherit their network's DNS settings.
+ */
+std::optional<HcnDns> parse_flattened_dns(const boost::json::object& obj)
+{
+    const auto* domain = obj.if_contains("DNSDomain");
+    const auto* suffix = obj.if_contains("DNSSuffix");
+    const auto* servers = obj.if_contains("DNSServerList");
+
+    if (!(domain || suffix || servers))
+        return std::nullopt;
+
+    HcnDns dns{};
+    if (domain)
+        dns.domain = domain->as_string().c_str();
+    if (suffix)
+        dns.search = multipass::utils::split(suffix->as_string().c_str(), ",");
+    if (servers)
+        dns.server_list = multipass::utils::split(servers->as_string().c_str(), ",");
+    return dns;
+}
+
 } // namespace
 
 // ---------------------------------------------------------
@@ -341,22 +380,7 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
                 // On query, HCN flattens the DNS configuration into top-level,
                 // comma-separated string fields rather than echoing back the nested
                 // "Dns" object used on creation.
-                const auto* domain = obj.if_contains("DNSDomain");
-                const auto* suffix = obj.if_contains("DNSSuffix");
-                const auto* servers = obj.if_contains("DNSServerList");
-
-                if (domain || suffix || servers)
-                {
-                    HcnDns dns{};
-                    if (domain)
-                        dns.domain = domain->as_string().c_str();
-                    if (suffix)
-                        dns.search = multipass::utils::split(suffix->as_string().c_str(), ",");
-                    if (servers)
-                        dns.server_list =
-                            multipass::utils::split(servers->as_string().c_str(), ",");
-                    out_info.dns = std::move(dns);
-                }
+                out_info.dns = parse_flattened_dns(obj);
             }
             catch (const std::exception& ex)
             {
@@ -371,6 +395,50 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
     }
     else
         return open_network_result;
+}
+
+OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
+                                           HcnEndpointInfo& out_info) const
+{
+    mpl::trace(log_category, "HCNWrapper::query_endpoint(...) > endpoint_guid: {}", endpoint_guid);
+
+    if (const auto& [open_endpoint_result, endpoint] = open_endpoint(endpoint_guid);
+        open_endpoint_result)
+    {
+        UniqueCotaskmemString query_result{}, result_msgbuf{};
+        const auto result = API().HcnQueryEndpointProperties(endpoint.get(),
+                                                             L"{}",
+                                                             out_ptr(query_result),
+                                                             out_ptr(result_msgbuf));
+        if (query_result)
+        {
+            try
+            {
+                const auto json_as_str = wchar_to_utf8(query_result.get());
+                mpl::trace(log_category, "query_endpoint result: {}", json_as_str);
+                const auto as_json = boost::json::parse(json_as_str);
+
+                const auto& obj = as_json.as_object();
+                out_info.guid = endpoint_guid;
+
+                if (const auto* value = obj.if_contains("VirtualNetwork"))
+                    out_info.network_guid = value->as_string().c_str();
+
+                out_info.dns = parse_flattened_dns(obj);
+            }
+            catch (const std::exception& ex)
+            {
+                mpl::error(log_category,
+                           "Could not process endpoint info for `{}`: `{}`, skipping!",
+                           endpoint_guid,
+                           ex.what());
+                return {E_UNEXPECTED, {L"Failed to process JSON returned from the API"}};
+            }
+        }
+        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    }
+    else
+        return open_endpoint_result;
 }
 
 OperationResult HCNWrapper::enumerate_networks(std::vector<std::string>& out_network_guids) const
