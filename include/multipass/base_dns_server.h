@@ -24,7 +24,7 @@
 
 namespace multipass
 {
-class DNSResolver
+class BaseDNSServer
 {
 public:
     // Maps instance name to its current IP address

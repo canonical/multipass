@@ -39,6 +39,7 @@
 #include "backends/applevz/applevz_virtual_machine_factory.h"
 #endif
 
+#include "shared/macos/dns_server.h"
 #include "shared/macos/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <daemon/default_vm_image_vault.h>
@@ -365,7 +366,8 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
-std::unique_ptr<mp::DNSResolver> mp::platform::make_dns_resolver(mp::DNSResolver::Resolver resolver)
+std::unique_ptr<mp::BaseDNSServer> mp::platform::make_dns_server(
+    mp::BaseDNSServer::Resolver resolver)
 {
     return nullptr;
 }

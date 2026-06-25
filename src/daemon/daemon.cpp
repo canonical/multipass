@@ -1502,7 +1502,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                 Qt::BlockingQueuedConnection);
             return ip;
         };
-        dns_resolver = mp::platform::make_dns_resolver(std::move(resolver));
+        dns_server = mp::platform::make_dns_server(std::move(resolver));
     });
 }
 

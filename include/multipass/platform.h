@@ -19,8 +19,8 @@
 
 #include <multipass/alias_definition.h>
 #include <multipass/availability_zone_manager.h>
+#include <multipass/base_dns_server.h>
 #include <multipass/days.h>
-#include <multipass/dns_resolver.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/process/process.h>
@@ -101,7 +101,7 @@ logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);
 std::unique_ptr<Process> make_process(std::unique_ptr<ProcessSpec>&& process_spec);
-std::unique_ptr<DNSResolver> make_dns_resolver(DNSResolver::Resolver resolver);
+std::unique_ptr<BaseDNSServer> make_dns_server(BaseDNSServer::Resolver resolver);
 
 int symlink_attr_from(const char* path, sftp_attributes_struct* attr);
 
