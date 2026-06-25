@@ -68,20 +68,20 @@ private:
     int registered{};
 };
 
-auto make_channel(ssh_session session, const std::string& cmd)
+auto make_channel(ssh_session raw_session, const std::string& cmd)
 {
-    if (!ssh_is_connected(session))
+    if (!ssh_is_connected(raw_session))
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    mp::PlainSSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+    mp::PlainSSHProcess::ChannelUPtr channel{ssh_channel_new(raw_session), ssh_channel_free};
     mp::SSH::throw_on_error(channel,
-                            session,
+                            raw_session,
                             "[ssh proc] failed to open session channel",
                             ssh_channel_open_session);
     mp::SSH::throw_on_error(channel,
-                            session,
+                            raw_session,
                             "[ssh proc] exec request failed",
                             ssh_channel_request_exec,
                             cmd.c_str());
@@ -90,14 +90,14 @@ auto make_channel(ssh_session session, const std::string& cmd)
 
 } // namespace
 
-mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
+mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& raw_session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
     : session_lock{std::move(
           session_lock)}, // this is held until the exit code is requested or this is destroyed
-      session{&session},
+      raw_session{&raw_session},
       cmd{cmd},
-      channel{make_channel(this->session, cmd)},
+      channel{make_channel(this->raw_session, cmd)},
       exit_result{}
 {
     assert(this->session_lock.owns_lock());
@@ -155,9 +155,9 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
         err = "could not allocate event";
     else if (!cb.is_registered())
         err = "could not register callback";
-    else if ((ssh_event_add_session(event.get(), session) != SSH_OK))
+    else if ((ssh_event_add_session(event.get(), raw_session) != SSH_OK))
     {
-        const auto raw_err = ssh_get_error(session);
+        const auto raw_err = ssh_get_error(raw_session);
         err = fmt::format("could not add event to session: {}",
                           raw_err && *raw_err ? raw_err : "Empty error");
     }
@@ -257,7 +257,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
 }
 
 ssh_channel mp::PlainSSHProcess::borrow_channel(
-    const PrivatePassProvider<PlainSftpServerSession>::PrivatePass&)
+    const PrivatePassProvider<PlainSftpSession>::PrivatePass&)
 {
     auto local_lock = std::move(session_lock); // released at end; caller gets a non-owning handle
     return channel.get();
