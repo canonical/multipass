@@ -224,7 +224,8 @@ linkcheck_ignore = [
     "http://www.straightrunning.com/XmingNotes/",
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
-    "https://www.freedesktop.org/*"
+    "https://www.freedesktop.org/*",
+    "https://asciinema.org/*"
 ]
 
 linkcheck_retries = 3
