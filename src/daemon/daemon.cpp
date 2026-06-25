@@ -1508,6 +1508,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
 mp::Daemon::~Daemon()
 {
+    // Stop and join the DNS server first, before any member it might read is destroyed.
+    dns_server.reset();
+
     mp::top_catch_all(category, [this] {
         MP_SETTINGS.unregister_handler(instance_mod_handler);
         MP_SETTINGS.unregister_handler(snapshot_mod_handler);

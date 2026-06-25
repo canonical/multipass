@@ -15,21 +15,19 @@
  *
  */
 
-#pragma once
+#include "dns_server.h"
 
-#include <multipass/ip_address.h>
+namespace mp = multipass;
 
-#include <functional>
-#include <optional>
-
-namespace multipass
+mp::MacDNSServer::MacDNSServer(const std::string& domain, std::uint16_t port, Resolver resolver)
+    : domain{domain}, resolver{std::move(resolver)}
 {
-class BaseDNSServer
-{
-public:
-    // Maps instance name to its current IP address
-    using Resolver = std::function<std::optional<IPAddress>(const std::string& hostname)>;
+}
 
-    virtual ~BaseDNSServer() = default;
-};
-} // namespace multipass
+mp::MacDNSServer::~MacDNSServer()
+{
+}
+
+void mp::MacDNSServer::run(std::stop_token stop_token) noexcept
+{
+}

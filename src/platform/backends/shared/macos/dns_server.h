@@ -36,12 +36,12 @@ class MacDNSServer : public BaseDNSServer, private DisabledCopyMove
 {
 public:
     MacDNSServer(const std::string& domain, std::uint16_t port, Resolver resolver);
+    ~MacDNSServer() override;
 
 private:
     void run(std::stop_token stop_token) noexcept;
 
     const std::string domain;
-    const std::uint16_t port;
     const Resolver resolver;
     int socket_fd{-1};
     std::jthread listener;
