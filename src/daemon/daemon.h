@@ -46,7 +46,7 @@ namespace multipass
 struct DaemonConfig;
 struct DaemonRpcContext;
 class SettingsHandler;
-class DNSResolver;
+class BaseDNSServer;
 
 class Daemon : public QObject, public multipass::VMStatusMonitor
 {
@@ -309,6 +309,6 @@ private:
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
-    std::unique_ptr<DNSResolver> dns_resolver;
+    std::unique_ptr<BaseDNSServer> dns_server;
 };
 } // namespace multipass
