@@ -66,7 +66,7 @@ public:
     [[nodiscard]] std::unique_ptr<PlainSSHProcess> exec_plain(const std::string& cmd,
                                                               bool whisper = false);
 
-    std::unique_ptr<SftpSession> make_sftp_session() && override;
+    std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && override;
 
     /**
      * @copydoc SSHSession::is_connected
