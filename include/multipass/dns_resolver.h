@@ -17,9 +17,17 @@
 
 #pragma once
 
+#include <multipass/ip_address.h>
+
+#include <functional>
+#include <optional>
+
 namespace multipass
 {
 class DNSResolver
 {
+public:
+    // Maps instance name to its current IP address
+    using Resolver = std::function<std::optional<IPAddress>(const std::string& hostname)>;
 };
 } // namespace multipass
