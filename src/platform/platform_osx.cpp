@@ -369,7 +369,8 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 std::unique_ptr<mp::BaseDNSServer> mp::platform::make_dns_server(
     mp::BaseDNSServer::Resolver resolver)
 {
-    return nullptr;
+    constexpr std::uint16_t hostname_port = 5380;
+    return std::make_unique<mp::MacDNSServer>("multipass", hostname_port, std::move(resolver));
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
