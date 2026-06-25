@@ -35,6 +35,7 @@ namespace mpt = multipass::test;
 namespace hcn = multipass::hyperv::hcn;
 
 using testing::DoAll;
+using testing::ElementsAre;
 using testing::Return;
 using testing::StrictMock;
 
@@ -830,7 +831,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
 TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
 {
     static wchar_t endpoint_properties[] =
-        LR"({"MacAddress":"52-54-00-E9-36-7E","IpConfigurations":[{"IpAddress":"172.20.1.2","PrefixLength":20},{"IpAddress":"fe80::1","PrefixLength":64}]})";
+        LR"({"HostComputeNetwork":"c08cb7b8-9b3c-408e-8e30-5e16a3aeb444","MacAddress":"52-54-00-E9-36-7E","IpConfigurations":[{"IpAddress":"172.20.1.2","PrefixLength":20},{"IpAddress":"fe80::1","PrefixLength":64}],"Dns":{"Domain":"multipass.test","Search":["multipass.test","example.test"],"ServerList":["172.20.1.1"]}})";
 
     expect_endpoint_query(endpoint_properties);
 
@@ -838,6 +839,12 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
     const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     ASSERT_TRUE(result);
+    EXPECT_EQ(endpoint_info.guid, "af3fb745-2f23-463c-8ded-443f876d9e81");
+    EXPECT_EQ(endpoint_info.network_guid, "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444");
+    ASSERT_TRUE(endpoint_info.dns);
+    EXPECT_EQ(endpoint_info.dns->domain, "multipass.test");
+    EXPECT_THAT(endpoint_info.dns->search, ElementsAre("multipass.test", "example.test"));
+    EXPECT_THAT(endpoint_info.dns->server_list, ElementsAre("172.20.1.1"));
     ASSERT_TRUE(endpoint_info.mac_address);
     EXPECT_EQ(*endpoint_info.mac_address, "52-54-00-E9-36-7E");
     ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);

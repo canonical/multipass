@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <hcs/api/hcn/hcn_dns.h>
+
 #include <boost/json.hpp>
 
 #include <optional>
@@ -27,6 +29,14 @@ namespace multipass::hyperv::hcn
 {
 struct HcnEndpointInfo
 {
+    std::string guid;
+    std::string network_guid;
+
+    /**
+     * DNS settings (suffix, search list, servers) the endpoint inherited
+     * from its network.
+     */
+    std::optional<HcnDns> dns;
     std::optional<std::string> mac_address;
     std::vector<std::string> ip_addresses;
 };

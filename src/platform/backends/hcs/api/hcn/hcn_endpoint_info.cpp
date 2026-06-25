@@ -25,6 +25,12 @@ HcnEndpointInfo tag_invoke(const boost::json::value_to_tag<HcnEndpointInfo>&,
     const auto& endpoint = json.as_object();
     HcnEndpointInfo info;
 
+    if (const auto* network = endpoint.if_contains("HostComputeNetwork"))
+        info.network_guid = boost::json::value_to<std::string>(*network);
+
+    if (const auto* dns = endpoint.if_contains("Dns"))
+        info.dns = boost::json::value_to<HcnDns>(*dns);
+
     if (const auto* mac_address = endpoint.if_contains("MacAddress"))
         info.mac_address = boost::json::value_to<std::string>(*mac_address);
 

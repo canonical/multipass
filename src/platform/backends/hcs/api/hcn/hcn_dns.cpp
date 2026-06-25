@@ -19,6 +19,8 @@
 
 #include <hcs/util/string_conversion.h>
 
+#include <boost/json.hpp>
+
 #include <type_traits>
 
 using namespace multipass::hyperv;
@@ -50,6 +52,26 @@ std::basic_string<Char> as_json_string_array(const std::vector<std::string>& val
     return result;
 }
 } // namespace
+
+HcnDns multipass::hyperv::hcn::tag_invoke(const boost::json::value_to_tag<HcnDns>&,
+                                          const boost::json::value& json)
+{
+    using string_list = std::vector<std::string>;
+
+    const auto& obj = json.as_object();
+    HcnDns dns{};
+
+    if (const auto* domain = obj.if_contains("Domain"))
+        dns.domain = boost::json::value_to<std::string>(*domain);
+    if (const auto* search = obj.if_contains("Search"))
+        dns.search = boost::json::value_to<string_list>(*search);
+    if (const auto* server_list = obj.if_contains("ServerList"))
+        dns.server_list = boost::json::value_to<string_list>(*server_list);
+    if (const auto* options = obj.if_contains("Options"))
+        dns.options = boost::json::value_to<string_list>(*options);
+
+    return dns;
+}
 
 template <typename Char>
 template <typename FormatContext>
