@@ -149,7 +149,7 @@ TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
-    session.force_shutdown();
+    session.shutdown_custom_socket();
 }
 
 TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
@@ -162,7 +162,7 @@ TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, shutdown_socket).Times(0);
-    session.force_shutdown();
+    session.shutdown_custom_socket();
 }
 
 TEST_F(TestPlainSSHSession, dtorCallsShutdownSocket)
