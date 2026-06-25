@@ -17,8 +17,11 @@
 
 #pragma once
 
+#include <hyperv_api/hcn/hyperv_hcn_dns.h>
+
 #include <fmt/xchar.h>
 
+#include <optional>
 #include <string>
 
 namespace multipass::hyperv::hcn
@@ -29,6 +32,11 @@ struct HcnNetworkInfo
     std::string name;
     std::string type;
     std::optional<std::string> network_adapter_name;
+
+    /**
+     * DNS settings (suffix, search list, servers) reported by the network.
+     */
+    std::optional<HcnDns> dns;
 };
 
 }; // namespace multipass::hyperv::hcn
