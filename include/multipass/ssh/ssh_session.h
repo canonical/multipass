@@ -69,7 +69,7 @@ public:
     [[nodiscard]] virtual bool is_moved() const = 0;
 
     virtual operator ssh_session() = 0; // careful, not thread safe // TODO@sftp drop this?
-    virtual void force_shutdown() = 0;  // careful, not thread safe
+    virtual void shutdown_custom_socket() = 0; // careful, not thread safe
 
 protected:
     SSHSession() = default;
