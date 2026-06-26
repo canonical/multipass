@@ -17,15 +17,53 @@
 
 #include "dns_server.h"
 
+#include <multipass/format.h>
+#include <multipass/logging/log.h>
+
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 namespace mp = multipass;
+namespace mpl = multipass::logging;
+
+namespace
+{
+constexpr auto category = "dns";
+}
 
 mp::MacDNSServer::MacDNSServer(const std::string& domain, std::uint16_t port, Resolver resolver)
     : domain{domain}, resolver{std::move(resolver)}
 {
+    socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (socket_fd < 0)
+        throw std::runtime_error{
+            fmt::format("failed to create DNS server socket: {}", std::strerror(errno))};
+
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    if (bind(socket_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr) > 0))
+    {
+        const auto err = std::strerror(errno);
+        close(socket_fd);
+        socket_fd = -1;
+        throw std::runtime_error{
+            fmt::format("failed to bind socket on 127.0.0.1:{}: {}", port, err)};
+    }
+
+    listener = std::jthread{[this](std::stop_token stop_token) { run(std::move(stop_token)); }};
+
+    mpl::info(category, "DNS resolver listening on 127.0.0.1:{} for *.{}", port, domain);
 }
 
 mp::MacDNSServer::~MacDNSServer()
 {
+    listener.request_stop();
+
+    if (socket_fd >= 0)
+        close(socket_fd);
 }
 
 void mp::MacDNSServer::run(std::stop_token stop_token) noexcept
