@@ -986,36 +986,6 @@ TEST_F(SftpServer, handlesReadlink)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, readlinkFailsWhenIdsAreNotMapped)
-{
-    mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    auto link_name = temp_dir.path() + "/test-link";
-    mpt::make_file_with_content(file_name);
-
-    ASSERT_TRUE(MP_PLATFORM.symlink(file_name.toStdString().c_str(),
-                                    link_name.toStdString().c_str(),
-                                    QFileInfo(file_name).isDir()));
-    ASSERT_TRUE(QFile::exists(link_name));
-    ASSERT_TRUE(QFile::exists(file_name));
-
-    auto init_msg = make_msg(SSH_FXP_INIT);
-    auto msg = make_msg(SFTP_READLINK);
-    auto name = name_as_char_array(link_name.toStdString());
-    msg->filename = name.data();
-
-    int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
-    sftp.run();
-
-    EXPECT_EQ(perm_denied_num_calls, 1);
-}
-
 TEST_F(SftpServer, handlesSymlink)
 {
     mpt::TempDir temp_dir;

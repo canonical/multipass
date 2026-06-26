@@ -935,8 +935,11 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
                        std::strerror(errno));
             return reply_failure(msg);
         }
-        const auto longname = longname_from(attr, path_string);
-        sftp_reply_names_add(msg, path.filename().string().c_str(), longname.data(), &attr);
+        convert_attr_ids(attr);
+        // Apparently longname is ignored by SSHFS...
+        const auto filename = path.filename().string();
+        const auto longname = longname_from(attr, filename);
+        sftp_reply_names_add(msg, filename.c_str(), longname.data(), &attr);
     }
 
     return sftp_reply_names(msg);
@@ -953,13 +956,6 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     {
         mpl::trace_location(category, "cannot access path '{}': no such file", filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "readlink");
-    }
-    if (!has_id_mappings_for(attr))
-    {
-        mpl::trace_location(category,
-                            "cannot access path '{}' without id mapping: permission denied",
-                            filename->string());
-        return reply_perm_denied(msg);
     }
 
     std::error_code ec;
@@ -1307,18 +1303,8 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
                             "stat failed for '{}': {}",
                             filename->string(),
                             std::strerror(errno));
-        // EACCES means they can't traverse the parent dir. Map to permission denied.
-        if (errno == EACCES)
-            return reply_perm_denied(msg);
-
+        // TODO@modernize deal with EACCES
         return reply_failure(msg);
-    }
-    if (!has_id_mappings_for(attr))
-    {
-        mpl::trace_location(category,
-                            "cannot access path '{}' without id mapping: permission denied",
-                            filename->string());
-        return reply_perm_denied(msg);
     }
     convert_attr_ids(attr);
     return sftp_reply_attr(msg, &attr);
