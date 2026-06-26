@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   run-scraper:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Generate GitHub App token

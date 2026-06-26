@@ -6,7 +6,7 @@ on:
 
 jobs:
   CheckCommits:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout repository

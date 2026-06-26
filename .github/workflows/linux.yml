@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   GetMatrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -430,7 +430,7 @@ jobs:
     needs: BuildAndTest
     if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
     - name: Report workflow failure
