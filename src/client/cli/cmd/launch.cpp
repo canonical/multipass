@@ -221,7 +221,8 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
     const auto valid_name_desc =
         QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
-                "letter, and must end with an alphanumeric character."};
+                "letter, must end with an alphanumeric character, and must not exceed the "
+                "filesystem's maximum file name length."};
     const auto name_option_desc =
         petenv_name.isEmpty()
             ? QString{"Name for the instance.\n%1"}.arg(valid_name_desc)
@@ -626,6 +627,16 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             else if (error == LaunchError::ZONE_UNAVAILABLE)
             {
                 error_details = fmt::format("Unavailable zone name supplied: {}", request.zone());
+            }
+            else if (error == LaunchError::INSTANCE_NAME_TOO_LONG)
+            {
+                if (launch_error.has_max_instance_name_len())
+                    error_details = fmt::format("Instance name too long ({} chars, max is {})",
+                                                request.instance_name().size(),
+                                                launch_error.max_instance_name_len());
+                else
+                    error_details = fmt::format("Instance name too long ({} chars)",
+                                                request.instance_name().size());
             }
         }
 
