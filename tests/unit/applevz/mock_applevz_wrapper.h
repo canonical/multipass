@@ -21,6 +21,7 @@
 #include "tests/unit/mock_singleton_helpers.h"
 
 #include <applevz/applevz_wrapper.h>
+#include <multipass/availability_zone.h>
 #include <multipass/network_interface_info.h>
 
 namespace multipass::test
@@ -32,6 +33,7 @@ public:
     MOCK_METHOD(applevz::CFError,
                 create_vm,
                 (const multipass::VirtualMachineDescription& desc,
+                 const multipass::AvailabilityZone& zone,
                  multipass::applevz::VMHandle& out_handle),
                 (const, override));
     MOCK_METHOD(applevz::CFError,

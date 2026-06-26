@@ -105,6 +105,7 @@ auto query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, Callable c
 namespace multipass::applevz
 {
 CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
+                                const multipass::AvailabilityZone& zone,
                                 VMHandle& out_handle)
 {
     @autoreleasepool
@@ -177,13 +178,12 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         config.entropyDevices = @[ entropy ];
 
         // Network devices
-        // Primary NAT interface
         NSMutableArray<VZNetworkDeviceConfiguration*>* networkDevices = [NSMutableArray array];
 
         VZVirtioNetworkDeviceConfiguration* netDevice =
             [[VZVirtioNetworkDeviceConfiguration alloc] init];
-        VZNATNetworkDeviceAttachment* natAttachment = [[VZNATNetworkDeviceAttachment alloc] init];
-        netDevice.attachment = natAttachment;
+        VmnetBridge zone_bridge{zone};
+        netDevice.attachment = zone_bridge.attachment;
 
         VZMACAddress* mac =
             [[VZMACAddress alloc] initWithString:nsstring_from_stdstring(desc.default_mac_address)];
@@ -194,7 +194,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         std::vector<VmnetRelayHandle> relays;
         for (const auto& extra : desc.extra_interfaces)
         {
-            VmnetBridge bridge = create_vmnet_bridge(extra.id);
+            VmnetBridge bridge{extra.id};
 
             VZVirtioNetworkDeviceConfiguration* bridgedDevice =
                 [[VZVirtioNetworkDeviceConfiguration alloc] init];
@@ -224,6 +224,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
 
         out_handle = std::make_shared<VirtualMachineHandle>();
         out_handle->relays = std::move(relays);
+        out_handle->relays.push_back(std::move(zone_bridge.relay));
         out_handle->id = vmIDCounter.fetch_add(1, std::memory_order_relaxed);
 
         // Create dispatch queue

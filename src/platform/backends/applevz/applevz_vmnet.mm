@@ -32,6 +32,7 @@
 
 #include <applevz/applevz_utils.h>
 #include <applevz/applevz_vmnet.h>
+#include <multipass/availability_zone.h>
 #include <multipass/logging/log.h>
 
 #include <fmt/format.h>
@@ -39,6 +40,7 @@
 #include <array>
 #include <chrono>
 #include <thread>
+#include <vector>
 
 #include <errno.h>
 #include <vmnet/vmnet.h>
@@ -144,41 +146,60 @@ struct VmnetRelay
     VmnetRelay& operator=(const VmnetRelay&) = delete;
 };
 
+void start_interface(VmnetRelay& relay, xpc_object_t opts, std::string_view description)
+{
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    __block vmnet_return_t vmnet_status = VMNET_FAILURE;
+
+    relay.iface =
+        vmnet_start_interface(opts, relay.queue, ^(vmnet_return_t status, xpc_object_t params) {
+          vmnet_status = status;
+          if (status == VMNET_SUCCESS)
+              relay.max_packet_bytes =
+                  (uint32_t)xpc_dictionary_get_uint64(params, vmnet_max_packet_size_key);
+          dispatch_semaphore_signal(sema);
+        });
+
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+
+    if (vmnet_status != VMNET_SUCCESS || !relay.iface)
+        throw std::runtime_error(fmt::format("vmnet_start_interface() failed (status {}) for '{}'",
+                                             static_cast<int>(vmnet_status),
+                                             description));
+
+    mpl::debug(category, "vmnet interface started for '{}'", description);
+}
+
 void start_vmnet_interface(VmnetRelay& relay, const std::string& physical_iface)
 {
     relay.queue = dispatch_queue_create(
         fmt::format("com.canonical.multipassd.vmnet.{}", physical_iface).c_str(),
         DISPATCH_QUEUE_SERIAL);
 
-    xpc_object_t iface_opts = xpc_dictionary_create(nullptr, nullptr, 0);
-    xpc_dictionary_set_uint64(iface_opts, vmnet_operation_mode_key, VMNET_BRIDGED_MODE);
-    xpc_dictionary_set_string(iface_opts, vmnet_shared_interface_name_key, physical_iface.c_str());
+    xpc_object_t opts = xpc_dictionary_create(nullptr, nullptr, 0);
+    // Bridged mode requires root
+    xpc_dictionary_set_uint64(opts, vmnet_operation_mode_key, VMNET_BRIDGED_MODE);
+    xpc_dictionary_set_string(opts, vmnet_shared_interface_name_key, physical_iface.c_str());
 
-    dispatch_semaphore_t vmnet_sema = dispatch_semaphore_create(0);
-    __block vmnet_return_t vmnet_status = VMNET_FAILURE;
+    start_interface(relay, opts, physical_iface);
+}
 
-    // Starting the vmnet interface requires root on macOS 15 and older
-    relay.iface = vmnet_start_interface(
-        iface_opts,
-        relay.queue,
-        ^(vmnet_return_t status, xpc_object_t params) {
-          vmnet_status = status;
-          if (status == VMNET_SUCCESS)
-              relay.max_packet_bytes =
-                  (uint32_t)xpc_dictionary_get_uint64(params, vmnet_max_packet_size_key);
-          dispatch_semaphore_signal(vmnet_sema);
-        });
+void start_vmnet_interface(VmnetRelay& relay, const multipass::Subnet& subnet)
+{
+    relay.queue = dispatch_queue_create(
+        fmt::format("com.canonical.multipassd.vmnet.zone.{}", subnet.to_cidr()).c_str(),
+        DISPATCH_QUEUE_SERIAL);
 
-    dispatch_semaphore_wait(vmnet_sema, DISPATCH_TIME_FOREVER);
+    xpc_object_t opts = xpc_dictionary_create(nullptr, nullptr, 0);
+    xpc_dictionary_set_uint64(opts, vmnet_operation_mode_key, VMNET_SHARED_MODE);
+    const auto start_addr = subnet.min_address().as_string();
+    const auto end_addr = subnet.max_address().as_string();
+    const auto mask = subnet.subnet_mask().as_string();
+    xpc_dictionary_set_string(opts, vmnet_start_address_key, start_addr.c_str());
+    xpc_dictionary_set_string(opts, vmnet_end_address_key, end_addr.c_str());
+    xpc_dictionary_set_string(opts, vmnet_subnet_mask_key, mask.c_str());
 
-    if (vmnet_status != VMNET_SUCCESS || !relay.iface)
-    {
-        throw std::runtime_error(fmt::format("vmnet_start_interface() failed (status {}) for '{}'",
-                                             static_cast<int>(vmnet_status),
-                                             physical_iface));
-    }
-
-    mpl::debug(category, "vmnet bridged interface started on '{}'", physical_iface);
+    start_interface(relay, opts, subnet.to_cidr());
 }
 
 // Forward one batch of packets from the socket to the vmnet interface.
@@ -345,15 +366,9 @@ std::array<int, 2> create_socket_pair()
 
     return fds;
 }
-} // namespace
-
-namespace multipass::applevz
+std::pair<VZFileHandleNetworkDeviceAttachment*, multipass::applevz::VmnetRelayHandle> connect_relay(
+    std::unique_ptr<VmnetRelay> relay)
 {
-VmnetBridge create_vmnet_bridge(const std::string& physical_iface)
-{
-    auto relay = std::make_unique<VmnetRelay>();
-    start_vmnet_interface(*relay, physical_iface);
-
     auto [vz_fd, relay_fd] = create_socket_pair();
 
     relay->fd = relay_fd;
@@ -364,9 +379,24 @@ VmnetBridge create_vmnet_bridge(const std::string& physical_iface)
 
     NSFileHandle* vz_handle = [[NSFileHandle alloc] initWithFileDescriptor:vz_fd
                                                             closeOnDealloc:YES];
-    VZFileHandleNetworkDeviceAttachment* attachment =
-        [[VZFileHandleNetworkDeviceAttachment alloc] initWithFileHandle:vz_handle];
+    auto* attachment = [[VZFileHandleNetworkDeviceAttachment alloc] initWithFileHandle:vz_handle];
+    return {attachment, std::move(relay)};
+}
+} // namespace
 
-    return VmnetBridge{attachment, std::move(relay)};
+namespace multipass::applevz
+{
+VmnetBridge::VmnetBridge(const std::string& physical_iface)
+{
+    auto relay = std::make_unique<VmnetRelay>();
+    start_vmnet_interface(*relay, physical_iface);
+    std::tie(this->attachment, this->relay) = connect_relay(std::move(relay));
+}
+
+VmnetBridge::VmnetBridge(const multipass::AvailabilityZone& zone)
+{
+    auto relay = std::make_unique<VmnetRelay>();
+    start_vmnet_interface(*relay, zone.get_subnet());
+    std::tie(this->attachment, this->relay) = connect_relay(std::move(relay));
 }
 } // namespace multipass::applevz
