@@ -78,7 +78,7 @@ mp::ReturnCodeVariant cmd::Mount::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    mp::AnimatedSpinner spinner{cout};
+    mp::AnimatedSpinner spinner{cout, term->cout_is_live()};
 
     auto on_success = [&spinner](mp::MountReply& reply) -> ReturnCodeVariant {
         spinner.stop();
