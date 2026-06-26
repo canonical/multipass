@@ -1651,6 +1651,7 @@ int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_st
                                      OPEN_EXISTING,
                                      FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
                                      NULL);
+    DWORD win_err = ERROR_SUCCESS;
     if (file_handle != INVALID_HANDLE_VALUE)
     {
         BY_HANDLE_FILE_INFORMATION file_info;
@@ -1664,10 +1665,13 @@ int mp::platform::Platform::lstat_attr_from(const char* path, sftp_attributes_st
             CloseHandle(file_handle);
             return 0;
         }
+        else
+            win_err = GetLastError();
 
         CloseHandle(file_handle);
     }
-    DWORD win_err = GetLastError();
+    else
+        win_err = GetLastError();
 
     // Map common Win32 errors to standard POSIX errno values
     switch (win_err)
@@ -1713,6 +1717,7 @@ int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_str
                                      OPEN_EXISTING,
                                      FILE_FLAG_BACKUP_SEMANTICS,
                                      NULL);
+    DWORD win_err = ERROR_SUCCESS;
     if (file_handle != INVALID_HANDLE_VALUE)
     {
         BY_HANDLE_FILE_INFORMATION file_info;
@@ -1726,10 +1731,13 @@ int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_str
             CloseHandle(file_handle);
             return 0;
         }
+        else
+            win_err = GetLastError();
 
         CloseHandle(file_handle);
     }
-    DWORD win_err = GetLastError();
+    else
+        win_err = GetLastError();
 
     // Map common Win32 errors to standard POSIX errno values
     switch (win_err)
