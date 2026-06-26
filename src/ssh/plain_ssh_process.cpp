@@ -137,7 +137,7 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
 {
     assert(std::holds_alternative<std::monostate>(exit_result));
     std::exception_ptr eptr;
-    if (!channel)
+    if (!channel) // TODO@sftp remove check
     {
         eptr = std::make_exception_ptr(SSHProcessExitError{cmd, "channel is null"});
 
@@ -219,7 +219,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
     // If the channel is closed there's no output to read
-    if (!channel || ssh_channel_is_closed(channel.get()))
+    if (!channel || ssh_channel_is_closed(channel.get())) // TODO@sftp
     {
         mpl::trace_location(category, "{}", !channel ? "null channel" : "channel closed");
         return std::string();
