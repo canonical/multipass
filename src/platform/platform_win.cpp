@@ -120,7 +120,7 @@ void silent_invalid_parameter_handler(const wchar_t* expression,
                                       uintptr_t reserved)
 {
     // Do nothing. Returning from this function tells the CRT to
-    // safely abort the current CRT call, return an error code (like -1),
+    // safely abort the current CRT call, return an error code,
     // and set errno appropriately.
 }
 
@@ -132,8 +132,7 @@ struct PosixSecurity
 };
 
 // FILE_FULL_EA_INFORMATION / FILE_GET_EA_INFORMATION live in ntifs.h (DDK), not
-// the user-mode SDK. Declared here with the documented packed layout under
-// distinct names so there's no clash if ntifs.h is ever pulled in.
+// the user-mode SDK. Remove if ntifs.h is brought in
 #pragma pack(push, 1)
 struct EaFull
 {
@@ -196,14 +195,13 @@ size_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
 
 inline bool nt_ok(NTSTATUS s)
 {
-    return s >= 0; // NOTE: STATUS_PENDING (0x103)
-                   //  also passes; safe only because these handles are synchronous
-                   //  (no FILE_FLAG_OVERLAPPED). Revisit if that ever changes.
+    return s >= 0;
+    // STATUS_PENDING (0x103) also passes; safe only because these handles are synchronous (no
+    // FILE_FLAG_OVERLAPPED). Revisit if that ever changes.
 }
 
 // NtSetEaFile / NtQueryEaFile are the native EA primitives, resolved from ntdll
-// once and cached. They operate directly on the HANDLE we hold and give precise
-// single-EA control (unlike BackupRead or the higher-level info classes).
+// once and cached.
 using NtSetEaFile_t = NTSTATUS(NTAPI*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG);
 using NtQueryEaFile_t = NTSTATUS(
     NTAPI*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, BOOLEAN, PVOID, ULONG, PULONG, BOOLEAN);
@@ -222,7 +220,6 @@ NtQueryEaFile_t nt_query_ea()
 }
 
 // Writes the $POSIX EA. Requires FILE_WRITE_EA on the handle.
-// Cost: 1 syscall (NtSetEaFile).
 bool write_posix_ea(HANDLE handle, const PosixEa& meta)
 {
     auto fn = nt_set_ea();
@@ -240,16 +237,14 @@ bool write_posix_ea(HANDLE handle, const PosixEa& meta)
     ea->Flags = 0;
     ea->EaNameLength = name_len;
     ea->EaValueLength = value_len;
-    std::memcpy(buf.data() + header, kEaName, name_len); // null slot already 0
+    std::memcpy(buf.data() + header, POSIX_EA_NAME, name_len); // null slot already 0
     std::memcpy(buf.data() + header + name_len + 1, &meta, value_len);
 
     IO_STATUS_BLOCK iosb{};
     return nt_ok(fn(handle, &iosb, buf.data(), static_cast<ULONG>(total)));
 }
 
-// Reads the $POSIX EA. Requires FILE_READ_EA. Returns false when the EA is
-// absent, the volume has no EA support, or the blob isn't our format/version.
-// Cost: 1 syscall (NtQueryEaFile).
+// Reads the $POSIX EA. Requires FILE_READ_EA.
 bool read_posix_ea(HANDLE handle, PosixEa& out)
 {
     auto fn = nt_query_ea();
@@ -278,7 +273,7 @@ bool read_posix_ea(HANDLE handle, PosixEa& out)
                      nullptr, // EaIndex
                      TRUE);   // RestartScan
     if (!nt_ok(st))
-        return false; // STATUS_NO_EAS_ON_FILE / NONEXISTENT_EA_ENTRY land here
+        return false;
 
     auto* ea = reinterpret_cast<EaFull*>(out_buf.data());
     if (ea->EaValueLength != sizeof(PosixEa))
@@ -300,7 +295,7 @@ bool set_posix_security(HANDLE handle, const PosixSecurity& posix_security)
         return true;
 
     PosixEa meta{};
-    if (!read_posix_ea(handle, meta)) // syscall #1 (read-modify-write read)
+    if (!read_posix_ea(handle, meta))
     {
         meta.signature = POSIX_EA_SIGNATURE;
         meta.version = CURRENT_EA_VERSION;
