@@ -150,23 +150,22 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(),
                                                                        ssh_event_free};
 
-    if (!event || !cb.is_registered() || (ssh_event_add_session(event.get(), session) != SSH_OK))
+    std::optional<std::string> err = std::nullopt;
+    if (!event)
+        err = "could not allocate event";
+    else if (!cb.is_registered())
+        err = "could not register callback";
+    else if ((ssh_event_add_session(event.get(), session) != SSH_OK))
     {
-        std::string cause;
-        if (!event)
-            cause = "could not allocate event";
-        else if (!cb.is_registered())
-            cause = "could not register callback";
-        else
-        {
-            const char* err = ssh_get_error(session);
-            cause = (err && *err) ? err : "could not add session to event";
-        }
-        eptr = std::make_exception_ptr(SSHProcessExitError{cmd, cause});
-
+        const auto raw_err = ssh_get_error(session);
+        err = fmt::format("could not add event to session: {}",
+                          raw_err && *raw_err ? raw_err : "Empty error");
+    }
+    if (err.has_value())
+    {
+        eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err.value()});
         if (save_exception)
             exit_result = eptr;
-
         std::rethrow_exception(eptr);
     }
 
@@ -183,9 +182,8 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
     {
         if (rc == SSH_ERROR)
         { // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
-            const char* err = ssh_get_error(session);
-            eptr = std::make_exception_ptr(
-                SSHProcessExitError{cmd, (err && *err) ? err : "ssh_event_dopoll failed"});
+            const auto err = fmt::format("ssh_event_dopoll failed: {}", std::strerror(errno));
+            eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err});
         }
         else
             eptr = std::make_exception_ptr(SSHProcessTimeoutException{cmd, timeout});
