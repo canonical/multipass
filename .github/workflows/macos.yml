@@ -85,15 +85,6 @@ jobs:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
 
-    # Use specific xcode version in macos-15. The reason is that protobuf 29 is not
-    # happy with the AppleClang-17, which is shipped with Xcode >= 16.3.
-    #
-    # https://github.com/protocolbuffers/protobuf/issues/21447
-    - uses: maxim-lobanov/setup-xcode@v1
-      if: ${{ contains(matrix.runs-on, 'macos-latest') }}
-      with:
-        xcode-version: '16.2'
-
     - name: Determine build parameters
       id: build-params
       uses: ./.github/actions/build-params
