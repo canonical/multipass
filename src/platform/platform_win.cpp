@@ -334,9 +334,6 @@ bool set_posix_security(HANDLE handle, const PosixSecurity& posix_security)
 
 bool get_posix_security(HANDLE handle, sftp_attributes_struct& attr)
 {
-
-    attr.uid = mp::no_id_info_available;
-    attr.gid = mp::no_id_info_available;
     PosixEa meta{};
     if (!read_posix_ea(handle, meta))
     {
@@ -353,6 +350,8 @@ bool get_posix_security(HANDLE handle, sftp_attributes_struct& attr)
     // Each field is reported only if its present-bit is set; otherwise the
     // sentinel. This keeps a chown-only or chmod-only file honest — an unset mode
     // is never reported as 000, an unset id is never reported as 0.
+    attr.uid = mp::no_id_info_available;
+    attr.gid = mp::no_id_info_available;
     // attr.uid = (meta.present & POSIX_EA_UID) ? meta.uid : mp::no_id_info_available;
     // attr.gid = (meta.present & POSIX_EA_GID) ? meta.gid : mp::no_id_info_available;
     // uid/gid retrieval is intentionally not wired up yet -> our own mapping
@@ -367,9 +366,6 @@ bool get_posix_security(HANDLE handle, sftp_attributes_struct& attr)
 sftp_attributes_struct stat_to_attr(const struct _stat64& file_data)
 {
     sftp_attributes_struct attr{};
-
-    attr.uid = -2;
-    attr.gid = -2;
 
     attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
                  SSH_FILEXFER_ATTR_ACMODTIME;
@@ -405,9 +401,6 @@ sftp_attributes_struct stat_to_attr(const BY_HANDLE_FILE_INFORMATION& file_data,
                                     const HANDLE file_handle)
 {
     sftp_attributes_struct attr{};
-
-    attr.uid = -2;
-    attr.gid = -2;
 
     attr.size = size_from(file_data.nFileSizeHigh, file_data.nFileSizeLow);
     attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
@@ -1486,7 +1479,9 @@ bool mp::platform::Platform::set_permissions_sftp(const std::filesystem::path& p
         return false;
     }
 
-    const PosixSecurity perms{static_cast<uint32_t>(permissions), std::nullopt, std::nullopt};
+    const PosixSecurity perms{static_cast<uint32_t>(permissions & fs::perms::mask),
+                              std::nullopt,
+                              std::nullopt};
     const bool ok = set_posix_security(file_handle, perms);
     CloseHandle(file_handle);
     return ok;
