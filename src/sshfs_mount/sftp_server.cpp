@@ -694,6 +694,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     sftp_attributes_struct attr{};
     if (MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) != 0)
     {
+        // TODO@security: Handle EACCES once server is not running as root
         mpl::trace_location(category, "rmdir failed for '{}': does not exist", filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
     }
@@ -1032,6 +1033,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     sftp_attributes_struct attr{};
     if (MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) != 0)
     {
+        // TODO@security: Handle EACCES once server is not running as root
         mpl::trace_location(category, "cannot remove '{}': Does not exist", filename->string());
         return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "No such file");
     }
