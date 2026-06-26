@@ -1780,7 +1780,13 @@ int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr
     struct _stat64 st{};
     if (_fstat64(fd, &st) != 0)
         return -1;
+
     attr = stat_to_attr(st);
+
+    const HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+    if (handle != INVALID_HANDLE_VALUE)
+        get_posix_security(handle, attr);
+
     return 0;
 }
 
