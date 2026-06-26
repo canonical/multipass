@@ -233,7 +233,7 @@ int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int defaul
         return id == p.first;
     });
 
-    return found == id_maps.cend() ? -1
+    return found == id_maps.cend() ? id // Return same id if no mapping is found
                                    : (found->second == mp::default_id ? default_id : found->second);
 }
 
