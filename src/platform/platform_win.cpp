@@ -188,7 +188,7 @@ FILETIME filetime_from(const time_t t)
     return ft;
 }
 
-size_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
+uint64_t size_from(DWORD nFileSizeHigh, DWORD nFileSizeLow)
 {
     return (static_cast<uint64_t>(nFileSizeHigh) << 32) + nFileSizeLow;
 }
