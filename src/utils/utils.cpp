@@ -43,6 +43,7 @@
 #include <array>
 #include <cassert>
 #include <cctype>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <locale>
