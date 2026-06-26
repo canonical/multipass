@@ -192,7 +192,7 @@ void start_vmnet_interface(VmnetRelay& relay, const multipass::Subnet& subnet)
 
     xpc_object_t opts = xpc_dictionary_create(nullptr, nullptr, 0);
     xpc_dictionary_set_uint64(opts, vmnet_operation_mode_key, VMNET_SHARED_MODE);
-    const auto start_addr = (subnet.min_address()).as_string();
+    const auto start_addr = subnet.min_address().as_string();
     const auto end_addr = subnet.max_address().as_string();
     const auto mask = subnet.subnet_mask().as_string();
     xpc_dictionary_set_string(opts, vmnet_start_address_key, start_addr.c_str());
