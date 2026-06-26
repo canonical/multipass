@@ -43,3 +43,4 @@ DECL_MOCK(ssh_event_dopoll);
 DECL_MOCK(ssh_add_channel_callbacks);
 DECL_MOCK(ssh_remove_channel_callbacks);
 DECL_MOCK(ssh_get_error);
+DECL_MOCK(ssh_get_fd);

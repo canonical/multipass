@@ -24,8 +24,6 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/ssh/throw_on_error.h>
-
 #include <multipass/utils.h>
 
 extern "C"
@@ -633,7 +631,7 @@ void mp::SftpServer::run()
 void mp::SftpServer::stop()
 {
     stop_invoked = true;
-    ssh_session->force_shutdown();
+    ssh_session->force_shutdown(); // TODO@sftp there should be a better way...
 }
 
 int mp::SftpServer::handle_close(sftp_client_message msg)

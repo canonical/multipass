@@ -88,4 +88,5 @@ add_c_mocks(
   sftp_dir_eof
   sftp_chmod
   ssh_get_error
+  ssh_get_fd
 )

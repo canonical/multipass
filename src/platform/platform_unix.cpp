@@ -18,16 +18,22 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/platform_unix.h>
-#include <multipass/snap_utils.h>
 #include <multipass/timer.h>
 #include <multipass/utils.h>
 
+#include <multipass/socket.h>
+
+#include <libssh/sftp.h>
+
 #include <grp.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <libssh/sftp.h>
+#include <cerrno>
+#include <cstring>
+#include <system_error>
 
 namespace mp = multipass;
 
@@ -279,4 +285,11 @@ std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) 
 QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
 {
     return QString::fromStdString(path.generic_string());
+}
+
+void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
+{
+    if (::shutdown(socket, SHUT_RDWR) == -1)
+        if (auto err = errno; err != ENOTCONN)
+            throw std::system_error(err, std::generic_category(), "Failed to shutdown socket");
 }

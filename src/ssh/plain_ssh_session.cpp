@@ -18,10 +18,13 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
+#include <multipass/socket.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
+#include <multipass/top_catch_all.h>
 
 #include <QDir>
 
@@ -29,6 +32,11 @@
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
+
+namespace
+{
+constexpr auto category = "ssh session";
+}
 
 mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
@@ -99,12 +107,17 @@ multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
 
 multipass::PlainSSHSession::~PlainSSHSession()
 {
-    std::unique_lock lock{mut};
-    if (session)
-    {
-        ssh_disconnect(session.get());
-        PlainSSHSession::force_shutdown(); // do we really need this?
-    }
+    top_catch_all(category, [this] {
+        std::unique_lock lock{mut};
+        if (session)
+        {
+            mpl::trace(category, "disconnecting SSH session");
+
+            ssh_disconnect(session.get());
+            PlainSSHSession::force_shutdown(); // Shutdown I/O on manually open sockets.
+                                               // The socket is still closed by libssh in ssh_free.
+        }
+    });
 }
 
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
@@ -113,20 +126,21 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
     assert(!is_moved() && "precondition - cannot call exec on a moved session");
 
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
-    mpl::log(lvl, "ssh session", "Executing '{}'", cmd);
+    mpl::log(lvl, category, "Executing '{}'", cmd);
 
     return std::make_unique<PlainSSHProcess>(*session.get(), cmd, std::move(lock));
 }
 
 void mp::PlainSSHSession::force_shutdown()
 {
-    if (session)
-    {
-        auto socket = ssh_get_fd(session.get());
+    // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
+    // with a lock acquired). Make it private instead. Provide public way to close the session
+    // (probably just the dtor - let outside callers delete and deal with null session)
+    if (!session)
+        return;
 
-        const int shutdown_read_and_writes = 2;
-        shutdown(socket, shutdown_read_and_writes);
-    }
+    if (auto socket = ssh_get_fd(session.get()); socket != -1)
+        MP_PLATFORM.shutdown_socket(socket);
 }
 
 mp::PlainSSHSession::operator ssh_session()

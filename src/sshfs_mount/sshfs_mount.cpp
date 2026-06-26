@@ -26,11 +26,14 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
-
 #include <multipass/utils/semver_compare.h>
+
+#include <scope_guard.hpp>
 
 #include <QDir>
 #include <QString>
+
+#include <cassert>
 #include <iostream>
 
 namespace mp = multipass;
@@ -183,14 +186,17 @@ mp::SshfsMount::SshfsMount(std::unique_ptr<SSHSession>&& session,
 mp::SshfsMount::~SshfsMount()
 {
     state.store(State::Stopped, std::memory_order_release);
-    stop();
+    top_catch_all(category, [this] { stop(); });
 }
 
 void mp::SshfsMount::stop()
 {
+    auto join_guard = sg::make_scope_guard([this]() noexcept {
+        if (sftp_thread.joinable())
+            sftp_thread.join();
+    });
+
     sftp_server->stop();
-    if (sftp_thread.joinable())
-        sftp_thread.join();
 }
 
 bool mp::SshfsMount::alive() const

@@ -123,6 +123,13 @@ struct SftpServer : public mp::test::SftpServerTest
         return reply_status;
     }
 
+    void screen_logs_trace()
+    {
+        logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+        EXPECT_CALL(*logger_scope.mock_logger, log(Eq(mpl::Level::trace), StrEq("ssh session"), _))
+            .Times(testing::AnyNumber());
+    }
+
     const mpt::StubSSHKeyProvider key_provider;
     mpt::ExitStatusMock exit_status_mock;
     std::queue<sftp_client_message> messages;
@@ -643,7 +650,7 @@ TEST_F(SftpServer, opendirNotReadableFails)
     REPLACE(sftp_reply_status,
             make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls));
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(
         *logger_scope.mock_logger,
         log(Eq(mpl::Level::trace),
@@ -687,7 +694,7 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
     int failure_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -790,7 +797,7 @@ TEST_F(SftpServer, mkdirOnExistingDirFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -839,7 +846,7 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -876,7 +883,7 @@ TEST_F(SftpServer, mkdirChownFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -956,7 +963,7 @@ TEST_F(SftpServer, rmdirNonExistingFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -997,7 +1004,7 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -1227,7 +1234,7 @@ TEST_F(SftpServer, symlinkFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -1349,7 +1356,7 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -1404,7 +1411,7 @@ TEST_F(SftpServer, renameFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -1468,7 +1475,7 @@ TEST_F(SftpServer, renameFailsWhenSourceFileIdsAreNotMapped)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(
         *logger_scope.mock_logger,
         log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(old_name.toStdString())));
@@ -1522,7 +1529,7 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(
         *logger_scope.mock_logger,
         log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(new_name.toStdString())));
@@ -1579,7 +1586,7 @@ TEST_F(SftpServer, removeNonExistingFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -2285,7 +2292,7 @@ TEST_F(SftpServer, setstatResizeFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -2343,7 +2350,7 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(
         *logger_scope.mock_logger,
         log(Eq(mpl::Level::trace),
@@ -2390,7 +2397,7 @@ TEST_F(SftpServer, setstatChownFailureFails)
                                 {{default_uid, -1}, {1001, 1001}},
                                 {{default_gid, -1}, {1001, 1001}});
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(
         *logger_scope.mock_logger,
         log(Eq(mpl::Level::trace),
@@ -2433,7 +2440,7 @@ TEST_F(SftpServer, setstatUtimeFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -2690,7 +2697,7 @@ TEST_F(SftpServer, readCannotSeekFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(mpl::Level::trace,
                     StrEq("sftp server"),
@@ -2728,7 +2735,7 @@ TEST_F(SftpServer, readReturnsFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
@@ -2855,7 +2862,7 @@ TEST_F(SftpServer, extendedLinkFailureFails)
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::trace);
+    screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
