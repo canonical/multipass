@@ -33,17 +33,9 @@ class PlainSSHProcess : public SSHProcess
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
 
-    PlainSSHProcess(ssh_session ssh_session,
+    PlainSSHProcess(ssh_session_struct& ssh_session,
                     const std::string& cmd,
                     std::unique_lock<std::mutex> session_lock);
-
-    // just being explicit (unique_ptr member already caused these to be deleted)
-    PlainSSHProcess(const PlainSSHProcess&) = delete;
-    PlainSSHProcess& operator=(const PlainSSHProcess&) = delete;
-
-    // we should be able to move just fine though
-    PlainSSHProcess(PlainSSHProcess&&) = default;
-    PlainSSHProcess& operator=(PlainSSHProcess&&) = default;
 
     ~PlainSSHProcess() override = default; // releases session lock
 

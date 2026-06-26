@@ -27,11 +27,16 @@ IMPL_MOCK_DEFAULT(1, ssh_channel_is_eof);
 IMPL_MOCK_DEFAULT(1, ssh_channel_is_closed);
 IMPL_MOCK_DEFAULT(1, ssh_channel_is_open);
 IMPL_MOCK_DEFAULT(1, ssh_channel_new);
+IMPL_MOCK_DEFAULT(1, ssh_channel_free);
 IMPL_MOCK_DEFAULT(1, ssh_channel_open_session);
 IMPL_MOCK_DEFAULT(2, ssh_channel_request_exec);
 IMPL_MOCK_DEFAULT(5, ssh_channel_read_timeout);
 IMPL_MOCK_DEFAULT(4, ssh_channel_get_exit_state);
+IMPL_MOCK_DEFAULT(2, ssh_event_add_session);
+IMPL_MOCK_DEFAULT(0, ssh_event_new);
+IMPL_MOCK_DEFAULT(1, ssh_event_free);
 IMPL_MOCK_DEFAULT(2, ssh_event_dopoll);
 IMPL_MOCK_DEFAULT(2, ssh_add_channel_callbacks);
+IMPL_MOCK_DEFAULT(2, ssh_remove_channel_callbacks);
 IMPL_MOCK_DEFAULT(1, ssh_get_error);
 }

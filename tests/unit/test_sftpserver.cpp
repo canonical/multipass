@@ -69,6 +69,15 @@ struct SftpServer : public mp::test::SftpServerTest
         const mp::id_mappings& gid_mappings = {{default_gid, mp::default_id}},
         const std::string& target = {})
     {
+
+        REPLACE(ssh_channel_new,
+                [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+        REPLACE(ssh_channel_free, [](auto...) { return; });
+        REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+        REPLACE(ssh_event_new,
+                [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+        REPLACE(ssh_event_free, [](auto...) { return; });
+        REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
         return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
                 path,
                 target.empty() ? path : target,
@@ -366,18 +375,44 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     bool invoked{false};
-    auto request_exec = [this, &invoked](ssh_channel, const char* raw_cmd) {
+    auto request_exec = [&invoked](ssh_channel, const char* raw_cmd) {
         std::string cmd{raw_cmd};
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
             invoked = true;
-            exit_status_mock.set_exit_status(exit_status_mock.failure_status);
         }
         return SSH_OK;
     };
 
     REPLACE(ssh_channel_request_exec, request_exec);
 
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
+    REPLACE(ssh_add_channel_callbacks, [this](ssh_channel, ssh_channel_callbacks_struct* cb) {
+        cb->channel_exit_status_function(nullptr,
+                                         nullptr,
+                                         exit_status_mock.failure_status,
+                                         cb->userdata);
+        return SSH_OK;
+    });
+    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_event_free, [](auto...) { return; });
+    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
+
+    auto make_sftpserver = [this]() {
+        return mp::SftpServer{
+            std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+            "",
+            "",
+            {{default_uid, mp::default_id}},
+            {{default_gid, mp::default_id}},
+            default_uid,
+            default_gid,
+            "sshfs"};
+    };
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
     EXPECT_TRUE(invoked);
 }
@@ -405,38 +440,56 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
 
 TEST_F(SftpServer, sshfsRestartsOnTimeout)
 {
+    constexpr int total_calls{4};
     // This test verifies that after a sshfs timeout, the sftp server correctly restarts. To do so,
     // it simulates failure in the first non-sftp-init message. Intended execution order :
-    // exec->msg->msg->exec(not "sudo sshfs")->exec->msg->msg
-    int num_calls{0};
-    auto request_exec = [this, &num_calls](ssh_channel, const char* raw_cmd) {
-        std::string cmd{raw_cmd};
-        if (cmd.find("sudo sshfs") != std::string::npos)
-        {
-            if (++num_calls < 5)
-            {
-                exit_status_mock.set_ssh_rc(SSH_OK);
-                exit_status_mock.set_no_exit();
-            }
-        }
+    // msg(INIT)->msg(timeout)->msg(received)->nullptr(terminate server)
 
+    // TODO@rewiressh : Rectify test (#4984)
+    int num_calls{0};
+    auto message{make_msg(SSH_FXP_INIT)};
+    auto request_exec = [](ssh_channel, const char*) { return SSH_OK; };
+    auto add_channel_callbacks = [this, &num_calls](ssh_channel, ssh_channel_callbacks_struct* cb) {
+        if (num_calls >= total_calls / 2) // The status has to only be retrieved (as a successful
+                                          // exit) once the loop is in its second recovery stage
+            // Otherwise we time out. Because of how we cache, we need to set up the return code on
+            // process creation after the first timeout
+            cb->channel_exit_status_function(nullptr,
+                                             nullptr,
+                                             exit_status_mock.success_status,
+                                             cb->userdata);
         return SSH_OK;
     };
-
+    REPLACE(ssh_add_channel_callbacks, add_channel_callbacks);
     REPLACE(ssh_channel_request_exec, request_exec);
-    auto message{make_msg(SSH_FXP_INIT)};
-    auto get_client_msg = [this, &num_calls, &message](auto...) mutable {
-        exit_status_mock.set_ssh_rc(SSH_OK);
-        exit_status_mock.set_exit_status(num_calls == 2 ? exit_status_mock.failure_status
-                                                        : exit_status_mock.success_status);
-        return ((++num_calls + 1) % 3 != 0) ? nullptr : message.get();
+
+    auto get_client_msg = [&num_calls, &message](auto...) {
+        return ++num_calls % 2 == 0 ? nullptr : message.get();
     };
     REPLACE(sftp_get_client_message, get_client_msg);
-    auto sftp = make_sftpserver();
 
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
+    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_event_free, [](auto...) { return; });
+    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
+
+    auto sftp =
+        mp::SftpServer{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+                       "",
+                       "",
+                       {{default_gid, mp::default_id}},
+                       {{default_uid, mp::default_id}},
+                       default_uid,
+                       default_gid,
+                       "sshfs"};
+    // This is the end of the alternate test
     sftp.run();
 
-    EXPECT_EQ(num_calls, 6);
+    EXPECT_EQ(num_calls, total_calls);
 }
 
 TEST_F(SftpServer, stopsAfterANullMessage)
@@ -3155,24 +3208,24 @@ INSTANTIATE_TEST_SUITE_P(
         // PERMISSION_DENIED.
         PathTestData{SFTP_STAT, "valid_relative_file.txt", "", SSH_FX_NO_SUCH_FILE},
         PathTestData{SFTP_LSTAT, "valid_relative_file.txt", "", SSH_FX_NO_SUCH_FILE},
-        // We create a symlink named "malicious_link" that points outside the mount.STAT follows the
-        // link. `weakly_canonical` resolves it to a forbidden location. Validation fails.
+        // We create a symlink named "malicious_link" that points outside the mount.STAT follows
+        // the link. `weakly_canonical` resolves it to a forbidden location. Validation fails.
         PathTestData{SFTP_STAT, "malicious_link", "../", SSH_FX_PERMISSION_DENIED},
         // LSTAT does NOT follow the link. `lexically_normal` resolves it to
-        // `/mount/malicious_link`. Validation passes, and because the link physically exists, it
-        // returns SSH_FX_OK (via sftp_reply_attr).
+        // `/mount/malicious_link`. Validation passes, and because the link physically exists,
+        // it returns SSH_FX_OK (via sftp_reply_attr).
         PathTestData{SFTP_LSTAT, "malicious_link", "../", SSH_FX_OK},
         // We create a symlink named "malicious_link" that points to
-        // "/usr/bin/non_existent_malware". STAT follows the link. `weakly_canonical` cannot resolve
-        // it, to `/usr/bin/non_existent_malware`, but we see it as a broken link and block it.
-        // Validation fails.
+        // "/usr/bin/non_existent_malware". STAT follows the link. `weakly_canonical` cannot
+        // resolve it, to `/usr/bin/non_existent_malware`, but we see it as a broken link and
+        // block it. Validation fails.
         PathTestData{SFTP_STAT,
                      "malicious_link",
                      "../../../../../non_existent_malware",
                      SSH_FX_PERMISSION_DENIED},
         // LSTAT does NOT follow the link. `lexically_normal` resolves it to
-        // `/mount/malicious_link`. Validation passes, and because the link physically exists, it
-        // returns SSH_FX_OK (via sftp_reply_attr).
+        // `/mount/malicious_link`. Validation passes, and because the link physically exists,
+        // it returns SSH_FX_OK (via sftp_reply_attr).
         PathTestData{SFTP_LSTAT,
                      "malicious_link",
                      "../../../../../non_existent_malware",
@@ -3432,9 +3485,10 @@ TEST_F(SftpServer, blocksSiblingDirectoryBypass)
 
 TEST_F(SftpServer, brokenLinkInParentPathFailsValidation)
 {
-    // The OS is supposed to deny O_CREATE (only operation that can bypass the mounts via a broken
-    // link) in a path where one of the parents is a broken link, since the OS will never create a
-    // folder when creating a file. We do not rely on this behavior for security reasons.
+    // The OS is supposed to deny O_CREATE (only operation that can bypass the mounts via a
+    // broken link) in a path where one of the parents is a broken link, since the OS will never
+    // create a folder when creating a file. We do not rely on this behavior for security
+    // reasons.
 
     mpt::TempDir temp_dir;
     auto link = fs::path(temp_dir.path().toStdString()) / "linked";

@@ -45,11 +45,16 @@ public:
         ssh_callbacks_init(&cb);
         cb.channel_exit_status_function = channel_exit_status_cb;
         cb.userdata = &result_holder;
-        ssh_add_channel_callbacks(channel, &cb);
+        registered = ssh_add_channel_callbacks(channel, &cb);
     }
     ~ExitStatusCallback()
     {
-        ssh_remove_channel_callbacks(channel, &cb);
+        if (is_registered())
+            ssh_remove_channel_callbacks(channel, &cb);
+    }
+    bool is_registered() const
+    {
+        return registered == SSH_OK;
     }
 
 private:
@@ -60,6 +65,7 @@ private:
     }
     ssh_channel channel;
     ssh_channel_callbacks_struct cb{};
+    int registered{};
 };
 
 auto make_channel(ssh_session session, const std::string& cmd)
@@ -84,14 +90,14 @@ auto make_channel(ssh_session session, const std::string& cmd)
 
 } // namespace
 
-mp::PlainSSHProcess::PlainSSHProcess(ssh_session session,
+mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
     : session_lock{std::move(
           session_lock)}, // this is held until the exit code is requested or this is destroyed
-      session{session},
+      session{&session},
       cmd{cmd},
-      channel{make_channel(session, cmd)},
+      channel{make_channel(this->session, cmd)},
       exit_result{}
 {
     assert(this->session_lock.owns_lock());
@@ -130,11 +136,38 @@ int mp::PlainSSHProcess::exit_code(std::chrono::milliseconds timeout)
 void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
 {
     assert(std::holds_alternative<std::monostate>(exit_result));
-    ExitStatusCallback cb{channel.get(), exit_result};
+    std::exception_ptr eptr;
+    if (!channel) // TODO@sftp remove check
+    {
+        eptr = std::make_exception_ptr(SSHProcessExitError{cmd, "channel is null"});
 
+        if (save_exception)
+            exit_result = eptr;
+
+        std::rethrow_exception(eptr);
+    }
+    ExitStatusCallback cb{channel.get(), exit_result};
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(),
                                                                        ssh_event_free};
-    ssh_event_add_session(event.get(), session);
+
+    std::optional<std::string> err = std::nullopt;
+    if (!event)
+        err = "could not allocate event";
+    else if (!cb.is_registered())
+        err = "could not register callback";
+    else if ((ssh_event_add_session(event.get(), session) != SSH_OK))
+    {
+        const auto raw_err = ssh_get_error(session);
+        err = fmt::format("could not add event to session: {}",
+                          raw_err && *raw_err ? raw_err : "Empty error");
+    }
+    if (err.has_value())
+    {
+        eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err.value()});
+        if (save_exception)
+            exit_result = eptr;
+        std::rethrow_exception(eptr);
+    }
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
@@ -147,18 +180,20 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
 
     if (!std::holds_alternative<int>(exit_result))
     {
-        std::exception_ptr eptr;
-        if (rc == SSH_ERROR) // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
-            eptr = std::make_exception_ptr(SSHProcessExitError{cmd, std::strerror(errno)});
+        if (rc == SSH_ERROR)
+        { // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+            const auto err = fmt::format("ssh_event_dopoll failed: {}", std::strerror(errno));
+            eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err});
+        }
         else
             eptr = std::make_exception_ptr(SSHProcessTimeoutException{cmd, timeout});
-        // note that make_exception_ptr takes by value; we repeat the call with the concrete types
-        // to avoid slicing
+        // note that make_exception_ptr takes by value; we repeat the call with the concrete
+        // types to avoid slicing
 
         if (save_exception)
             exit_result = eptr;
 
-        rethrow_exception(eptr);
+        std::rethrow_exception(eptr);
     }
 }
 
@@ -182,9 +217,9 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
     // If the channel is closed there's no output to read
-    if (ssh_channel_is_closed(channel.get()))
+    if (!channel || ssh_channel_is_closed(channel.get())) // TODO@sftp
     {
-        mpl::trace_location(category, "channel closed");
+        mpl::trace_location(category, "{}", !channel ? "null channel" : "channel closed");
         return std::string();
     }
 

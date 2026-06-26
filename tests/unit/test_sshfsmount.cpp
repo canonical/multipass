@@ -21,6 +21,7 @@
 #include "sftp_server_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
+#include <libssh/callbacks.h>
 #include <src/sshfs_mount/sshfs_mount.h>
 
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -182,6 +183,14 @@ struct SshfsMount : public mp::test::SftpServerTest
         auto remaining = output.size();
         CommandVector::const_iterator next_expected_cmd = commands.begin();
 
+        REPLACE(ssh_channel_new,
+                [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+        REPLACE(ssh_channel_free, [](auto...) { return; });
+        REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+        REPLACE(ssh_event_new,
+                [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+        REPLACE(ssh_event_free, [](auto...) { return; });
+        REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
         auto channel_read = make_channel_read_return(output, remaining, invoked);
         REPLACE(ssh_channel_read_timeout, channel_read);
 
@@ -273,6 +282,18 @@ TEST_P(SshfsMountFail, testFailedInvocation)
     std::string output;
     std::string::size_type remaining;
 
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
+    REPLACE(ssh_add_channel_callbacks, [](ssh_channel, ssh_channel_callbacks_struct* cb) {
+        cb->channel_exit_status_function(nullptr, nullptr, 0, cb->userdata);
+        return SSH_OK;
+    });
+    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_event_free, [](auto...) { return; });
+    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
     auto channel_read = make_channel_read_return(output, remaining, invoked_cmd);
     REPLACE(ssh_channel_read_timeout, channel_read);
 
