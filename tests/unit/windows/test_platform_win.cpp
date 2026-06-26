@@ -1115,7 +1115,7 @@ TEST_F(TestPlatformWinSftp, setPermissionsSftpOnNonExistentPathSetsEnoent)
 TEST_F(TestPlatformWinSftp, lstatAttrFromOnFileWithoutEaReturnsDefaultPermissions)
 {
     // A freshly created file has no $POSIX EA: the implementation must
-    // fall back to the default mode (0600 for files, 0700 for dirs).
+    // fall back to the default mode (0600 for files, 0700 for dirs, 0777 for symlinks).
     auto path = make_file("no-ea.txt");
     sftp_attributes_struct attr{};
 

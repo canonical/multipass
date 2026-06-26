@@ -163,7 +163,7 @@ struct PosixEa
 };
 #pragma pack(pop)
 
-constexpr char kEaName[] = "$POSIX";                // NTFS stores EA names uppercased
+constexpr char POSIX_EA_NAME[] = "$POSIX";          // NTFS stores EA names uppercased
 constexpr uint32_t POSIX_EA_SIGNATURE = 0x49584F50; // 'POXI' in ASCII
 constexpr uint16_t CURRENT_EA_VERSION = 1;
 constexpr uint16_t POSIX_EA_MODE = 1u << 0;
@@ -226,7 +226,7 @@ bool write_posix_ea(HANDLE handle, const PosixEa& meta)
     if (!fn)
         return false;
 
-    constexpr UCHAR name_len = sizeof(kEaName) - 1; // 6, no null
+    constexpr UCHAR name_len = sizeof(POSIX_EA_NAME) - 1; // no null
     constexpr USHORT value_len = sizeof(PosixEa);
     constexpr size_t header = offsetof(EaFull, EaName);
     const size_t total = header + name_len + 1 + value_len; // +1 = name's null
@@ -252,14 +252,14 @@ bool read_posix_ea(HANDLE handle, PosixEa& out)
         return false;
 
     // GET list naming our single EA.
-    constexpr UCHAR name_len = sizeof(kEaName) - 1;
+    constexpr UCHAR name_len = sizeof(POSIX_EA_NAME) - 1;
     constexpr size_t get_header = offsetof(EaGet, EaName);
     const size_t get_total = get_header + name_len + 1;
     std::vector<BYTE> get_buf(get_total, 0);
     auto* g = reinterpret_cast<EaGet*>(get_buf.data());
     g->NextEntryOffset = 0;
     g->EaNameLength = name_len;
-    std::memcpy(get_buf.data() + get_header, kEaName, name_len);
+    std::memcpy(get_buf.data() + get_header, POSIX_EA_NAME, name_len);
 
     std::vector<BYTE> out_buf(512, 0);
     IO_STATUS_BLOCK iosb{};
@@ -321,20 +321,21 @@ bool set_posix_security(HANDLE handle, const PosixSecurity& posix_security)
         meta.present |= POSIX_EA_GID;
     }
 
-    // The EA is the sole source of truth. If the volume can't store it, the
-    // round-trip guarantee is gone, so fail loud rather than silently dropping
-    // the metadata.
     return write_posix_ea(handle, meta);
 }
 
 bool get_posix_security(HANDLE handle, sftp_attributes_struct& attr)
 {
     PosixEa meta{};
+    attr.flags |= SSH_FILEXFER_ATTR_PERMISSIONS | SSH_FILEXFER_ATTR_UIDGID;
     if (!read_posix_ea(handle, meta))
     {
+        auto file_type = attr.permissions & SSH_S_IFMT;
         // EA-less file: request setting the defaults
-        if (attr.permissions & SSH_S_IFDIR)
+        if (file_type == SSH_S_IFDIR)
             attr.permissions |= default_dir_mode;
+        else if (file_type == SSH_S_IFLNK)
+            attr.permissions |= static_cast<uint32_t>(fs::perms::all);
         else
             attr.permissions |= default_file_mode;
         attr.uid = mp::no_id_info_available;
@@ -358,48 +359,13 @@ bool get_posix_security(HANDLE handle, sftp_attributes_struct& attr)
     return true;
 }
 
-sftp_attributes_struct stat_to_attr(const struct _stat64& file_data)
-{
-    sftp_attributes_struct attr{};
-
-    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
-                 SSH_FILEXFER_ATTR_ACMODTIME;
-
-    attr.atime = file_data.st_atime;
-    attr.mtime = file_data.st_mtime;
-
-    attr.size = file_data.st_size;
-
-    if ((file_data.st_mode & _S_IFREG) == _S_IFREG)
-        attr.permissions |= SSH_S_IFREG;
-    else if ((file_data.st_mode & _S_IFDIR) == _S_IFDIR)
-        attr.permissions |= SSH_S_IFDIR |
-                            static_cast<uint32_t>(fs::perms::others_exec | fs::perms::group_exec |
-                                                  fs::perms::owner_exec);
-    else // Symlink not a possibility in Windows CRT fstat or stat
-         // Keep the filetype flag if other
-        attr.permissions |= (file_data.st_mode & _S_IFMT);
-
-    if ((file_data.st_mode & _S_IREAD) == _S_IREAD)
-        attr.permissions |= static_cast<int32_t>(fs::perms::others_read | fs::perms::group_read |
-                                                 fs::perms::owner_read);
-    if ((file_data.st_mode & _S_IWRITE) == _S_IWRITE)
-        attr.permissions |= static_cast<int32_t>(fs::perms::owner_write); // Only user can write
-    if ((file_data.st_mode & _S_IEXEC) == _S_IEXEC)
-        attr.permissions |= static_cast<int32_t>(fs::perms::others_exec | fs::perms::group_exec |
-                                                 fs::perms::owner_exec);
-
-    return attr;
-}
-
 sftp_attributes_struct stat_to_attr(const BY_HANDLE_FILE_INFORMATION& file_data,
                                     const HANDLE file_handle)
 {
     sftp_attributes_struct attr{};
 
     attr.size = size_from(file_data.nFileSizeHigh, file_data.nFileSizeLow);
-    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
-                 SSH_FILEXFER_ATTR_ACMODTIME;
+    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_ACMODTIME;
 
     attr.atime = time_t_from(&(file_data.ftLastAccessTime));
     attr.mtime = time_t_from(&(file_data.ftLastWriteTime));
@@ -418,8 +384,7 @@ sftp_attributes_struct stat_to_attr(const BY_HANDLE_FILE_INFORMATION& file_data,
             // Strip prefix "\\?\"
             if (attr.size >= 4)
                 attr.size -= 4;
-            attr.permissions |= SSH_S_IFLNK | static_cast<uint32_t>(fs::perms::all); // Windows does
-            // not enforce symlink ACLs
+            attr.permissions |= SSH_S_IFLNK;
         }
     }
     else if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -1771,18 +1736,56 @@ int mp::platform::Platform::stat_attr_from(const char* path, sftp_attributes_str
 
 int mp::platform::Platform::fstat_attr_from(int fd, sftp_attributes_struct& attr) const
 {
-    // Check out _fstat documentation of Windows CRT
-    struct _stat64 st{};
-    if (_fstat64(fd, &st) != 0)
-        return -1;
+    const HANDLE file_handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+    DWORD win_err = ERROR_SUCCESS;
+    if (file_handle != INVALID_HANDLE_VALUE)
+    {
+        BY_HANDLE_FILE_INFORMATION file_info;
 
-    attr = stat_to_attr(st);
+        if (GetFileInformationByHandle(file_handle, &file_info) != 0)
+        // 0 signals failure
+        {
+            attr = stat_to_attr(file_info, file_handle);
+            get_posix_security(file_handle, attr);
 
-    const HANDLE handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
-    if (handle != INVALID_HANDLE_VALUE)
-        get_posix_security(handle, attr);
+            return 0;
+        }
+    }
+    win_err = GetLastError();
 
-    return 0;
+    // Map common Win32 errors to standard POSIX errno values
+    switch (win_err)
+    {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_NAME:
+    case ERROR_BAD_NETPATH:
+    case ERROR_BAD_PATHNAME:
+        errno = ENOENT;
+        break;
+
+    case ERROR_ACCESS_DENIED:
+    case ERROR_SHARING_VIOLATION:
+        errno = EACCES;
+        break;
+
+    case ERROR_OUTOFMEMORY:
+        errno = ENOMEM;
+        break;
+
+    case ERROR_INVALID_PARAMETER:
+        errno = EINVAL;
+        break;
+
+    case ERROR_TOO_MANY_OPEN_FILES:
+        errno = EMFILE;
+        break;
+
+    default:
+        errno = ENOENT;
+        break;
+    }
+    return -1; // Standard lstat failure return code
 }
 
 mp::ssize_t mp::platform::Platform::pread(int fd,
