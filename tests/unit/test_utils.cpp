@@ -19,8 +19,8 @@
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_openssl_syscalls.h"
-#include "mock_ssh_process.h"
 #include "mock_platform.h"
+#include "mock_ssh_process.h"
 #include "temp_dir.h"
 #include "temp_file.h"
 
