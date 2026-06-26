@@ -24,6 +24,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/libssh.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
@@ -62,7 +63,7 @@ try
 
     sockaddr_in addr{};
     int size = sizeof(addr);
-    auto socket = ssh_get_fd(session);
+    auto socket = MP_LIBSSH.ssh_get_fd(session);
     const auto failed = getpeername(socket, reinterpret_cast<sockaddr*>(&addr), &size);
 
     if (failed)

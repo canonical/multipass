@@ -21,6 +21,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/ssh/libssh.h>
 
 #include <winsock2.h>
 
@@ -54,7 +55,7 @@ mp::WindowsConsole::WindowsConsole(ssh_channel channel, WindowsTerminal* term)
       output_handle{term->cout_handle()},
       error_handle{term->cerr_handle()},
       channel{channel},
-      session_socket_fd{ssh_get_fd(ssh_channel_get_session(channel))},
+      session_socket_fd{MP_LIBSSH.ssh_get_fd(MP_LIBSSH.ssh_channel_get_session(channel))},
       last_geometry{get_console_size(output_handle)}
 {
     setup_console();
@@ -71,7 +72,10 @@ void mp::WindowsConsole::setup_console()
         GetConsoleMode(output_handle, &console_output_mode);
         SetConsoleMode(output_handle, console_output_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
-        ssh_channel_request_pty_size(channel, term_type, last_geometry.columns, last_geometry.rows);
+        MP_LIBSSH.ssh_channel_request_pty_size(channel,
+                                               term_type,
+                                               last_geometry.columns,
+                                               last_geometry.rows);
     }
 }
 
@@ -111,9 +115,10 @@ void mp::WindowsConsole::read_console()
         }
 
         std::lock_guard<std::mutex> lock(ssh_mutex);
-        ssh_channel_write(channel,
-                          text_buffer.data(),
-                          static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
+        MP_LIBSSH.ssh_channel_write(
+            channel,
+            text_buffer.data(),
+            static_cast<uint32_t>(text_buffer.size() * sizeof(text_buffer.front())));
     }
 }
 
@@ -133,12 +138,12 @@ void mp::WindowsConsole::write_console()
 
     {
         std::lock_guard<std::mutex> lock(ssh_mutex);
-        num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 0);
+        num_bytes = MP_LIBSSH.ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 0);
 
         // Try reading from stderr if nothing is returned from stdout
         if (num_bytes == 0)
         {
-            num_bytes = ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 1);
+            num_bytes = MP_LIBSSH.ssh_channel_read_nonblocking(channel, buffer.data(), chunk, 1);
             current_handle = error_handle;
         }
     }
@@ -147,7 +152,7 @@ void mp::WindowsConsole::write_console()
     {
         // Force the channel to close if EOF is detected from the channel_read
         if (num_bytes == SSH_EOF)
-            ssh_channel_close(channel);
+            MP_LIBSSH.ssh_channel_close(channel);
 
         return;
     }
@@ -187,6 +192,6 @@ void mp::WindowsConsole::update_ssh_pty_size()
         last_geometry.columns = columns;
         last_geometry.rows = rows;
         std::lock_guard<std::mutex> lock(ssh_mutex);
-        ssh_channel_change_pty_size(channel, columns, rows);
+        MP_LIBSSH.ssh_channel_change_pty_size(channel, columns, rows);
     }
 }

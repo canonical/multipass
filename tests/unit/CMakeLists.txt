@@ -22,11 +22,15 @@ find_package(premock CONFIG REQUIRED)
 
 ##############################################################################
 # FIXME: Move unit and integration tests to their separate sub folders
-add_executable(multipass_integration_tests)
+add_executable(multipass_integration_tests
+  test_libssh.cpp
+)
 target_link_libraries(multipass_integration_tests
   PRIVATE
   GTest::gmock_main
-  Qt6::Core fmt::fmt-header-only)
+  Qt6::Core fmt::fmt-header-only
+  libssh_wrapper
+)
 target_include_directories(multipass_integration_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src
@@ -154,13 +158,7 @@ target_include_directories(multipass_cpp_tests
 )
 
 add_definitions(-DWITH_SERVER)
-target_compile_definitions(ssh_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(sshfs_mount_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(sftp_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(ssh_client_test PRIVATE
+target_compile_definitions(libssh_wrapper_test PRIVATE
   ${c_mock_defines})
 
 target_compile_definitions(utils_test PRIVATE

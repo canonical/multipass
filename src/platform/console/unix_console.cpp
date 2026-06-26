@@ -18,6 +18,7 @@
 #include "unix_console.h"
 
 #include <multipass/platform_unix.h>
+#include <multipass/ssh/libssh.h>
 
 #include <sys/ioctl.h>
 
@@ -54,9 +55,9 @@ static void sigwinch_handler(int sig)
     {
         if (update_local_pty_size(global_cout_fd))
         {
-            ssh_channel_change_pty_size(global_channel,
-                                        local_pty_size.columns,
-                                        local_pty_size.rows);
+            MP_LIBSSH.ssh_channel_change_pty_size(global_channel,
+                                                  local_pty_size.columns,
+                                                  local_pty_size.rows);
         }
     }
 }
@@ -78,10 +79,10 @@ mp::UnixConsole::UnixConsole(ssh_channel channel, UnixTerminal* term) : term{ter
         term_type = (term_type == nullptr) ? "xterm" : term_type;
 
         update_local_pty_size(term->cout_fd());
-        ssh_channel_request_pty_size(channel,
-                                     term_type,
-                                     local_pty_size.columns,
-                                     local_pty_size.rows);
+        MP_LIBSSH.ssh_channel_request_pty_size(channel,
+                                               term_type,
+                                               local_pty_size.columns,
+                                               local_pty_size.rows);
 
         // set stdin to Raw Mode after libssh inherits sane settings from stdin.
         setup_console();
