@@ -176,6 +176,27 @@ void mp::MacDNSServer::run(std::stop_token stop_token) noexcept
             continue;
         }
 
+        std::optional<mp::IPAddress> ip;
+        if (query->qclass == qclass_in && query->qtype == qtype_a)
+        {
+            // Strip the trailing ".<domain>" to resolve the instance name.
+            const std::string suffix = "." + domain;
+            if (query->qname.size() > suffix.size() && query->qname.ends_with(suffix))
+            {
+                const auto instance_name =
+                    query->qname.substr(0, query->qname.size() - suffix.size());
+                try
+                {
+                    ip = resolver(instance_name);
+                }
+                catch (const std::exception& e)
+                    mpl::warn(category,
+                              "Unexpected error occured resolving an IP address for \"{}\": {}",
+                              instance_name,
+                              e.what());
+            }
+        }
+
         const auto resp = build_response();
 
         sendto(socket_fd,
