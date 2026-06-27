@@ -29,6 +29,17 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "dns";
+
+constexpr std::size_t max_udp_msg = 512; // As per RFC 1035
+
+void parse_msg(const unsigned char* msg, std::size_t len)
+{
+}
+
+std::vector<unsigned char> build_response()
+{
+    return {};
+}
 }
 
 mp::MacDNSServer::MacDNSServer(const std::string& domain, std::uint16_t port, Resolver resolver)
@@ -68,4 +79,36 @@ mp::MacDNSServer::~MacDNSServer()
 
 void mp::MacDNSServer::run(std::stop_token stop_token) noexcept
 {
+    std::array<unsigned char, max_udp_msg> buffer{};
+
+    // UDP socket communication loop
+    while (!stop_token.stop_requested())
+    {
+        sockaddr_in client{};
+        socklen_t client_len = sizeof(client);
+        const auto msg_len = recvfrom(socket_fd,
+                                      buffer.data(),
+                                      buffer.size(),
+                                      0,
+                                      reinterpret_cast<sockaddr*>(&client),
+                                      &client_len);
+
+        if (msg_len <= 0)
+        {
+            if (msg_len < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+                mpl::debug(category, "recvfrom failed: {}", std::strerror(errno));
+            continue;
+        }
+
+        parse_msg(buffer.data(), static_cast<std::size_t>(msg_len));
+
+        const auto resp = build_response();
+
+        sendto(socket_fd,
+               resp.data(),
+               resp.size(),
+               0,
+               reinterpret_cast<sockaddr*>(&client),
+               client_len);
+    }
 }
