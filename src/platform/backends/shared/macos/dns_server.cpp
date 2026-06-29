@@ -20,7 +20,9 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
+#include <fcntl.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 
 namespace mp = multipass;
@@ -184,7 +186,7 @@ mp::MacDNSServer::MacDNSServer(const std::string& domain, std::uint16_t port, Re
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    if (bind(socket_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr) > 0))
+    if (bind(socket_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
     {
         const auto err = std::strerror(errno);
         close(socket_fd);
@@ -192,6 +194,26 @@ mp::MacDNSServer::MacDNSServer(const std::string& domain, std::uint16_t port, Re
         throw std::runtime_error{
             fmt::format("failed to bind socket on 127.0.0.1:{}: {}", port, err)};
     }
+
+    // macOS does not interrupt a blocked recvfrom()/poll() via shutdown() on an unconnected
+    // datagram socket, so `stop_pipe_write` is used to signal the `run` loop to terminate from the
+    // destructor.
+    int pipe_fds[2];
+    if (pipe(pipe_fds) < 0)
+    {
+        const auto err = std::strerror(errno);
+        close(socket_fd);
+        socket_fd = -1;
+        throw std::runtime_error(fmt::format("failed to create DNS stop pipe: {}", err));
+    }
+
+    stop_pipe_read = pipe_fds[0];
+    stop_pipe_write = pipe_fds[1];
+
+    // Stop child processes from inheriting the pipe fds
+    if (fcntl(stop_pipe_read, F_SETFD, FD_CLOEXEC) < 0 ||
+        fcntl(stop_pipe_write, F_SETFD, FD_CLOEXEC) < 0)
+        mpl::warn(category, "failed to set FD_CLOEXEC on DNS self pipe: {}", std::strerror(errno));
 
     listener = std::jthread{[this](std::stop_token stop_token) { run(std::move(stop_token)); }};
 
@@ -202,9 +224,19 @@ mp::MacDNSServer::~MacDNSServer()
 {
     listener.request_stop();
 
+    if (stop_pipe_write >= 0)
+    {
+        const char wake = 'x';
+        write(stop_pipe_write, &wake, 1); // Unblock poll()
+    }
+
     if (listener.joinable())
         listener.join();
 
+    if (stop_pipe_write >= 0)
+        close(stop_pipe_write);
+    if (stop_pipe_read >= 0)
+        close(stop_pipe_read);
     if (socket_fd >= 0)
         close(socket_fd);
 }
@@ -216,6 +248,22 @@ void mp::MacDNSServer::run(std::stop_token stop_token) noexcept
     // UDP socket communication loop
     while (!stop_token.stop_requested())
     {
+        pollfd fds[2]{{.fd = socket_fd, .events = POLLIN},
+                      {.fd = stop_pipe_read, .events = POLLIN}};
+
+        // Wait for DNS socket or self-pipe
+        if (const auto ready = poll(fds, 2, -1); ready < 0)
+        {
+            if (errno != EINTR)
+                mpl::debug(category, "poll failed: {}", std::strerror(errno));
+            continue;
+        }
+
+        if (fds[1].revents & POLLIN) // Shutdown requested via self-pipe
+            break;
+        if (!(fds[0].revents & POLLIN))
+            continue;
+
         sockaddr_in client{};
         socklen_t client_len = sizeof(client);
         const auto msg_len = recvfrom(socket_fd,
