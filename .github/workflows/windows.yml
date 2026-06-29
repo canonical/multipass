@@ -138,7 +138,7 @@ jobs:
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: Restore sccache
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6
       with:
         path: ${{ env.SCCACHE_DIR }}
         key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
@@ -281,7 +281,7 @@ jobs:
         echo "${{ matrix.runs-on }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
 
     - name: Save sccache
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@v6
       if: ${{ github.ref == 'refs/heads/main' }}
       with:
         path: ${{ env.SCCACHE_DIR }}
