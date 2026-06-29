@@ -19,6 +19,7 @@
 
 #include <multipass/ssh/ssh_process.h>
 
+#include <libssh/callbacks.h>
 #include <libssh/libssh.h>
 
 #include <exception>
@@ -32,12 +33,13 @@ class PlainSSHProcess : public SSHProcess
 {
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
+    using ExitResultType = std::variant<std::monostate, int, std::exception_ptr>;
 
     PlainSSHProcess(ssh_session_struct& ssh_session,
                     const std::string& cmd,
                     std::unique_lock<std::mutex> session_lock);
 
-    ~PlainSSHProcess() override = default; // releases session lock
+    ~PlainSSHProcess() override; // releases session lock
 
     // Attempt to verify process completion within the given timeout. For this to return true, two
     // conditions are necessary:
@@ -72,8 +74,10 @@ private:
     std::unique_lock<std::mutex> session_lock; // do not attempt to re-lock, as this is moved from
     ssh_session session;
     std::string cmd;
+
+    ExitResultType exit_result{};
+    ssh_channel_callbacks_struct cb;
     ChannelUPtr channel;
-    std::variant<std::monostate, int, std::exception_ptr> exit_result;
 
     friend class SftpServer;
 };
