@@ -35,15 +35,17 @@ from cli.utilities import uuid4_str
 SENTINEL_DIR = "/home/ubuntu"
 
 
-def enable_privileged_mounts(governor, vm):
-    """Windows-only: enabling privileged mounts restarts the daemon, which
-    auto-starts the running `vm`. Wait for the restart, then `start` to join that
-    auto-start so `vm` reaches Running and is stoppable again."""
+def enable_privileged_mounts(governor):
+    """Windows-only, idempotent: the mount tests need privileged mounts on.
+    Enabling it restarts the daemon, so wait for it to come back. Call once at
+    session setup, before any VM is launched -- then the restart auto-starts
+    nothing, so there is no start race to handle."""
     if sys.platform != "win32":
+        return
+    if "true" in multipass("get", "local.privileged-mounts"):
         return
     assert multipass("set", "local.privileged-mounts=1")
     governor.wait_for_restart()
-    assert multipass("start", vm)
 
 
 def make_sentinel(label: str) -> str:

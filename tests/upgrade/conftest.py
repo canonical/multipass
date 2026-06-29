@@ -49,6 +49,7 @@ import pytest
 
 from cli.config import cfg
 from cli.multipass import get_multipass_version, vm_exists, multipass
+from .helpers import enable_privileged_mounts
 
 # Reuse the whole cli test framework (options, fixtures, governor, session setup).
 pytest_plugins = ["cli.conftest"]
@@ -206,6 +207,7 @@ def _daemon_running(environment_setup, multipassd_session_scoped):
     (macOS: the launchd swap whose ``bootout`` SIGTERMs the daemon) must be
     ordered before the governor explicitly.
     """
+    enable_privileged_mounts(multipassd_session_scoped)
     yield multipassd_session_scoped
 
 

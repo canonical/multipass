@@ -34,7 +34,7 @@ import pytest
 from cli.config import cfg
 from cli.multipass import multipass, mounts, read_file, write_file, path_exists
 from cli.utilities import retry
-from .helpers import make_sentinel, park_seeded, resume_seeded, enable_privileged_mounts
+from .helpers import make_sentinel, park_seeded, resume_seeded
 from .seedutils import seeded_vm, daemon_readable_dir
 
 CLASSIC_VM = "upg-mount"
@@ -60,15 +60,13 @@ def _guest_target(source: Path) -> str:
     return (Path("/home/ubuntu") / source.name).as_posix()
 
 
-def _seed(vm, mount_type, label, record, governor, park="stop", expected="Stopped"):
+def _seed(vm, mount_type, label, record, park="stop", expected="Stopped"):
     source = daemon_readable_dir(vm)
     target = _guest_target(source)
     host_content = make_sentinel(f"{label}-host")
     (source / "host.txt").write_text(host_content, encoding="utf-8")
 
     with seeded_vm(vm):
-        enable_privileged_mounts(governor, vm)
-
         # Native mounts attach to a stopped instance.
         assert multipass("stop", vm)
         assert multipass("mount", "--type", mount_type, str(source), vm), (
@@ -114,8 +112,8 @@ def _verify(vm, record):
 
 @pytest.mark.seed
 @pytest.mark.scenario(CLASSIC_VM)
-def test_mount_seed(scenario, multipassd_session_scoped):
-    _seed(CLASSIC_VM, "classic", "mount", scenario.record, multipassd_session_scoped)
+def test_mount_seed(scenario):
+    _seed(CLASSIC_VM, "classic", "mount", scenario.record)
 
 
 @pytest.mark.verify
@@ -127,8 +125,8 @@ def test_mount_verify(scenario):
 @pytest.mark.seed
 @pytest.mark.scenario(NATIVE_VM)
 @native_unsupported
-def test_native_mount_seed(scenario, multipassd_session_scoped):
-    _seed(NATIVE_VM, "native", "native-mount", scenario.record, multipassd_session_scoped)
+def test_native_mount_seed(scenario):
+    _seed(NATIVE_VM, "native", "native-mount", scenario.record)
 
 
 @pytest.mark.verify
@@ -141,8 +139,8 @@ def test_native_mount_verify(scenario):
 @pytest.mark.seed
 @pytest.mark.scenario(SUSPEND_VM)
 @unsupported
-def test_suspend_mount_seed(scenario, multipassd_session_scoped):
-    _seed(SUSPEND_VM, "classic", "suspmount", scenario.record, multipassd_session_scoped, park="suspend", expected="Suspended")
+def test_suspend_mount_seed(scenario):
+    _seed(SUSPEND_VM, "classic", "suspmount", scenario.record, park="suspend", expected="Suspended")
 
 
 @pytest.mark.verify
