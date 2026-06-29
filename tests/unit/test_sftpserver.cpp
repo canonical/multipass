@@ -38,6 +38,7 @@
 #include <multipass/ssh/plain_ssh_session.h>
 
 #include <algorithm>
+#include <fcntl.h>
 #include <queue>
 
 namespace mp = multipass;
@@ -171,11 +172,6 @@ struct WhenInvalidMessageReceived : public SftpServer,
 };
 
 struct PathValidation : public SftpServer, public ::testing::WithParamInterface<PathTestData>
-{
-};
-
-struct HostToGuestTranslation : public SftpServer,
-                                public ::testing::WithParamInterface<PathTestData>
 {
 };
 
@@ -322,37 +318,6 @@ enum class Permission
     Group,
     Other
 };
-bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permission perm_type)
-{
-    uint16_t qt_perm_mask{0u}, ssh_perm_mask{0u}, qt_bitshift{0u}, ssh_bitshift{0u};
-
-    // Comparing file permissions, sftp uses octal format: (aaabbbccc), QFileInfo uses hex format
-    // (aaaa----bbbbcccc)
-    switch (perm_type)
-    {
-    case Permission::Owner:
-        qt_perm_mask = 0x7000;
-        qt_bitshift = 12;
-        ssh_perm_mask = 0700;
-        ssh_bitshift = 6;
-        break;
-    case Permission::Group:
-        qt_perm_mask = 0x70;
-        qt_bitshift = 4;
-        ssh_perm_mask = 070;
-        ssh_bitshift = 3;
-        break;
-    case Permission::Other:
-        qt_perm_mask = 0x7;
-        qt_bitshift = 0;
-        ssh_perm_mask = 07;
-        ssh_bitshift = 0;
-        break;
-    }
-
-    return ((ssh_permissions & ssh_perm_mask) >> ssh_bitshift) ==
-           ((static_cast<uint32_t>(file.permissions()) & qt_perm_mask) >> qt_bitshift);
-}
 } // namespace
 
 TEST_F(SftpServer, throwsWhenMessageNull)
@@ -530,12 +495,14 @@ TEST_F(SftpServer, handlesRealpath)
     auto msg = make_msg(SFTP_REALPATH);
     msg->filename = file_name.data();
 
+    auto expected_path = fs::weakly_canonical(file_name.data()).string();
+
     bool invoked{false};
-    auto reply_name = [&msg, &invoked, &file_name](sftp_client_message cmsg,
-                                                   const char* name,
-                                                   sftp_attributes attr) {
+    auto reply_name = [&msg, &invoked, &expected_path](sftp_client_message cmsg,
+                                                       const char* name,
+                                                       sftp_attributes attr) {
         EXPECT_THAT(cmsg, Eq(msg.get()));
-        EXPECT_THAT(name, StrEq(file_name.data()));
+        EXPECT_THAT(name, StrEq(expected_path));
         invoked = true;
         return SSH_OK;
     };
@@ -577,19 +544,27 @@ TEST_F(SftpServer, handlesOpendir)
     msg->filename = dir_name.data();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, dir_iterator).WillOnce(Return(std::make_unique<mpt::MockDirIterator>()));
+    EXPECT_CALL(*file_ops, dir_iterator)
+        .WillOnce(Return(
+            ByMove(std::unique_ptr<mp::DirIterator>(std::make_unique<mpt::MockDirIterator>()))));
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
     EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
 
+    int num_calls{0};
+    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_OK, num_calls));
     REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     sftp.run();
+    EXPECT_EQ(num_calls, 0);
 }
 
 TEST_F(SftpServer, opendirNotExistingFails)
@@ -632,7 +607,7 @@ TEST_F(SftpServer, opendirNotReadableFails)
     msg->filename = dir_name.data();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, dir_iterator).WillOnce([](auto, std::error_code& err) {
+    EXPECT_CALL(*file_ops, dir_iterator).WillOnce([](auto, std::error_code& err) -> mp::SftpHandle {
         err = std::make_error_code(std::errc::permission_denied);
         return std::make_unique<mpt::MockDirIterator>();
     });
@@ -674,12 +649,6 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
     EXPECT_CALL(*file_ops, dir_iterator).WillOnce([&](const mp::fs::path&, std::error_code& err) {
         err.clear();
         return std::make_unique<mpt::MockDirIterator>();
-    });
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
@@ -740,26 +709,16 @@ TEST_F(SftpServer, handlesMkdir)
     msg->filename = new_dir_name.data();
     msg->attr = &attr;
 
-    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
 
-    EXPECT_CALL(*platform, set_permissions(A<const std::filesystem::path&>(), _, _))
+    EXPECT_CALL(*platform, set_permissions_sftp(A<const std::filesystem::path&>(), _))
         .WillOnce(Return(true));
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
-        return fs::exists(path);
-    });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
-        return fs::weakly_canonical(path);
-    });
-    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
-        return fs::is_symlink(path);
-    });
+    EXPECT_CALL(*platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     int num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_OK, num_calls));
@@ -814,24 +773,14 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
     auto new_dir_name = name_as_char_array(new_dir);
 
-    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*platform, set_permissions(_, _, _)).WillOnce(Return(false));
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
-        return fs::exists(path);
-    });
-    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
-        return fs::weakly_canonical(path);
-    });
-    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
-        return fs::is_symlink(path);
-    });
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     sftp_attributes_struct attr{};
     attr.permissions = 0777;
@@ -866,7 +815,13 @@ TEST_F(SftpServer, mkdirChownFailureFails)
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, chown(_, _, _)).WillOnce(Return(-1));
-    EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_MKDIR);
@@ -956,7 +911,7 @@ TEST_F(SftpServer, rmdirNonExistingFails)
     msg->filename = new_dir_name.data();
 
     int failure_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, failure_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -974,6 +929,30 @@ TEST_F(SftpServer, rmdirNonExistingFails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
+TEST_F(SftpServer, rmdirCannotRemoveFile)
+{
+    mpt::TempDir temp_dir;
+    auto new_file = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
+    auto new_file_name = name_as_char_array(new_file);
+    mpt::make_file_with_content(QString::fromStdString(new_file));
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_RMDIR);
+    msg->filename = new_file_name.data();
+
+    int failure_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
+    sftp.run();
+
+    EXPECT_EQ(failure_num_calls, 1);
+}
+
 TEST_F(SftpServer, rmdirUnableToRemoveFails)
 {
     mpt::TempDir temp_dir;
@@ -981,7 +960,15 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     auto new_dir_name = name_as_char_array(new_dir);
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    const auto [mock_platform, guard_p] = mpt::MockPlatform::inject();
 
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            attr.permissions = SSH_S_IFDIR;
+            return 0;
+        });
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
         .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
@@ -991,6 +978,8 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RMDIR);
@@ -1147,6 +1136,75 @@ TEST_F(SftpServer, handlesSymlink)
     EXPECT_THAT(info.symLinkTarget(), Eq(file_name));
 }
 
+TEST_F(SftpServer, symlinkFailsIfPathExists)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_SYMLINK);
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+    msg->attr->uid = 1000;
+    msg->attr->gid = 1000;
+
+    auto link_char_array = name.data();
+    REPLACE(sftp_client_message_get_data, [link_char_array](auto...) { return link_char_array; });
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
+
+    QFileInfo info(file_name);
+    EXPECT_FALSE(info.isSymLink());
+}
+
+TEST_F(SftpServer, symlinkFailsIfParentStatFails)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_SYMLINK);
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+    msg->attr->uid = 1000;
+    msg->attr->gid = 1000;
+
+    auto link_char_array = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data,
+            [&link_char_array](auto...) { return link_char_array.data(); });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _)).WillOnce(Return(-1));
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _)).WillOnce(Return(-1));
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
+}
+
 TEST_F(SftpServer, symlinkInInvalidDirFails)
 {
     mpt::TempDir temp_dir;
@@ -1225,6 +1283,14 @@ TEST_F(SftpServer, symlinkFailureFails)
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) { return -1; });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1250,11 +1316,8 @@ TEST_F(SftpServer, symlinkFailureFails)
 TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
 {
     mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
     auto new_target = temp_dir.path() + "/new-target";
     auto link_name = temp_dir.path() + "/test-link";
-    mpt::make_file_with_content(file_name);
-    MP_PLATFORM.symlink(file_name.toStdString().c_str(), link_name.toStdString().c_str(), false);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SYMLINK);
@@ -1279,9 +1342,6 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     sftp.run();
 
     ASSERT_THAT(perm_denied_num_calls, Eq(1));
-
-    QFileInfo info(link_name);
-    EXPECT_TRUE(info.symLinkTarget() == file_name);
 }
 
 TEST_F(SftpServer, handlesRename)
@@ -1312,7 +1372,7 @@ TEST_F(SftpServer, handlesRename)
     EXPECT_FALSE(QFile::exists(old_name));
 }
 
-TEST_F(SftpServer, renameCannotRemoveTargetFails)
+TEST_F(SftpServer, renameCannotRenameIfTargetExists)
 {
     mpt::TempDir temp_dir;
     auto old_name = temp_dir.path() + "/test-file";
@@ -1330,23 +1390,19 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, remove(A<QFile&>())).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
-    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
+    EXPECT_CALL(*mock_file_ops,
+                rename(A<const fs::path&>(), A<const fs::path&>(), A<std::error_code&>()))
+        .WillRepeatedly([](const fs::path& path, const fs::path& newpath, std::error_code& ec) {
+            return fs::rename(path, newpath, ec);
+        });
     EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& file) { return fs::exists(file); });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1360,9 +1416,9 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::trace),
                     StrEq("sftp server"),
-                    AllOf(HasSubstr("cannot remove"),
+                    AllOf(HasSubstr("rename target"),
                           HasSubstr(new_name.toStdString()),
-                          HasSubstr("for renaming"))));
+                          HasSubstr("already exists"))));
     sftp.run();
 
     EXPECT_EQ(failure_num_calls, 1);
@@ -1385,17 +1441,14 @@ TEST_F(SftpServer, renameFailureFails)
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
-    EXPECT_CALL(*mock_file_ops, rename(An<QFile&>(), _)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
+    EXPECT_CALL(*mock_file_ops,
+                rename(A<const fs::path&>(), A<const fs::path&>(), A<std::error_code&>()))
+        .WillOnce([](const fs::path& path, const fs::path& pathname, std::error_code& ec) {
+            ec.assign(1, std::generic_category());
+            return false;
+        });
     EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
+        .WillRepeatedly([](const fs::path& file) { return fs::exists(file); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -1493,25 +1546,16 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     auto old_name = temp_dir.path() + "/test-file";
     auto new_name = temp_dir.path() + "/test-renamed";
     mpt::make_file_with_content(old_name);
-    mpt::make_file_with_content(new_name);
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, ownerId(_))
-        .WillOnce([](const QFileInfo& file) { return file.ownerId(); })
-        .WillOnce([](const QFileInfo& file) { return file.ownerId() + 1; });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillOnce([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
-    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
     EXPECT_CALL(*mock_file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
+    EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
+        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_RENAME);
@@ -1527,18 +1571,17 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
 
     screen_logs_trace();
     EXPECT_CALL(
         *logger_scope.mock_logger,
-        log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(new_name.toStdString())));
+        log(Eq(mpl::Level::trace), StrEq("sftp server"), HasSubstr(old_name.toStdString())));
 
     sftp.run();
 
     EXPECT_EQ(perm_denied_num_calls, 1);
     EXPECT_TRUE(QFile::exists(old_name));
-    EXPECT_TRUE(QFile::exists(new_name));
 }
 
 TEST_F(SftpServer, handlesRemove)
@@ -1579,7 +1622,7 @@ TEST_F(SftpServer, removeNonExistingFails)
     msg->filename = name.data();
 
     int failure_num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, failure_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -1624,6 +1667,33 @@ TEST_F(SftpServer, removeFailsWhenIdsAreNotMapped)
     EXPECT_TRUE(QFile::exists(file_name));
 }
 
+TEST_F(SftpServer, removeFailsIfTargetIsFolder)
+{
+    mpt::TempDir temp_dir;
+    auto folder_name = temp_dir.path() + "/test-folder";
+    std::error_code ec;
+    MP_FILEOPS.create_directory(folder_name.toStdString(), ec);
+
+    ASSERT_TRUE(QFile::exists(folder_name));
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_REMOVE);
+    auto name = name_as_char_array(folder_name.toStdString());
+    msg->filename = name.data();
+
+    int perm_denied_num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, perm_denied_num_calls);
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    EXPECT_EQ(perm_denied_num_calls, 1);
+    EXPECT_TRUE(QFile::exists(folder_name));
+}
+
 TEST_F(SftpServer, openInWriteModeCreatesFile)
 {
     mpt::TempDir temp_dir;
@@ -1641,7 +1711,17 @@ TEST_F(SftpServer, openInWriteModeCreatesFile)
     msg->filename = name.data();
 
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*platform, chown).WillOnce(Return(0));
+    EXPECT_CALL(*platform, fchown).WillOnce(Return(0));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            errno = ENOENT;
+            return -1;
+        })
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     bool reply_handle_invoked{false};
     auto reply_handle = [&reply_handle_invoked](auto...) {
@@ -1706,19 +1786,9 @@ TEST_F(SftpServer, openUnableToOpenFails)
     msg->filename = name.data();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, symlink_status).WillOnce([](auto, std::error_code& err) {
-        err.clear();
-        return mp::fs::file_status{mp::fs::file_type::regular};
-    });
     EXPECT_CALL(*file_ops, open_fd).WillOnce([](auto path, auto...) {
         errno = EACCES;
         return std::make_unique<mp::NamedFd>(path, -1);
-    });
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
     });
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
@@ -1764,11 +1834,11 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
     msg->filename = name.data();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    EXPECT_CALL(*file_ops, symlink_status).WillOnce([](auto, std::error_code& err) {
-        err = std::make_error_code(std::errc::permission_denied);
-        return mp::fs::file_status{mp::fs::file_type::unknown};
-    });
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) { return -1; });
+
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -1803,7 +1873,17 @@ TEST_F(SftpServer, openChownFailureFails)
 
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    EXPECT_CALL(*mock_platform, chown(_, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(*mock_platform, fchown(_, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            errno = ENOENT;
+            return -1;
+        })
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPEN);
@@ -1835,7 +1915,17 @@ TEST_F(SftpServer, openChownFailureFails)
 TEST_F(SftpServer, openNoHandleAllocatedFails)
 {
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            errno = ENOENT;
+            return -1;
+        })
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1936,39 +2026,57 @@ TEST_F(SftpServer, handlesReaddir)
                                     QFileInfo(test_file).isDir()));
 
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto opendir_msg = make_msg(SFTP_OPENDIR);
+    auto folder = name_as_char_array(temp_dir.path().toStdString());
+    opendir_msg->filename = folder.data();
     auto readdir_msg = make_msg(SFTP_READDIR);
     auto readdir_msg_final = make_msg(SFTP_READDIR);
 
-    std::vector<mp::fs::path> expected_entries = {".",
-                                                  "..",
-                                                  "test-dir-entry",
-                                                  "test-file",
-                                                  "test-link"};
+    std::vector<mp::fs::path> expected_entries = {
+        temp_dir.path().toStdString() + QDir::separator().toLatin1() + ".",
+        temp_dir.path().toStdString() + QDir::separator().toLatin1() + "..",
+        test_dir.toStdString(),
+        test_file.toStdString(),
+        test_link.toStdString()};
     auto entries_read = 0ul;
-
+    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
     auto directory_entry = mpt::MockDirectoryEntry{};
     EXPECT_CALL(directory_entry, path).WillRepeatedly([&]() -> const mp::fs::path& {
         return expected_entries[entries_read - 1];
     });
     EXPECT_CALL(directory_entry, is_symlink()).WillRepeatedly([&]() {
-        return expected_entries[entries_read - 1] == "test-link";
+        return expected_entries[entries_read - 1] == test_link.toStdString();
     });
-    auto dir_iterator = mpt::MockDirIterator{};
-    EXPECT_CALL(dir_iterator, hasNext).WillRepeatedly([&] {
+    auto dir_iterator = std::make_unique<mpt::MockDirIterator>();
+    auto* dir_iterator_ptr = dir_iterator.get();
+    EXPECT_CALL(*dir_iterator, hasNext).WillRepeatedly([&] {
         return entries_read != expected_entries.size();
     });
-    EXPECT_CALL(dir_iterator, next)
+    EXPECT_CALL(*dir_iterator, next)
         .WillRepeatedly(DoAll([&] { entries_read++; }, ReturnRef(directory_entry)));
-
-    REPLACE(sftp_handle, [&dir_iterator](auto...) { return &dir_iterator; });
+    EXPECT_CALL(*file_ops, dir_iterator).WillOnce([&](auto&&...) {
+        return std::move(dir_iterator);
+    });
+    REPLACE(sftp_handle, [&dir_iterator_ptr](auto...) { return dir_iterator_ptr; });
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_get_client_message, make_msg_handler());
-    int eof_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(readdir_msg_final.get(), SSH_FX_EOF, eof_num_calls));
+    int num_calls{0};
+    auto handler = make_reply_status(readdir_msg_final.get(), SSH_FX_EOF, num_calls);
+    REPLACE(sftp_reply_status, handler);
 
     std::vector<mp::fs::path> given_entries;
-    auto reply_names_add = [&given_entries](auto, const char* file, auto, auto) {
-        given_entries.push_back(file);
+    auto reply_names_add = [&given_entries, &temp_dir](auto, const char* file, auto, auto) {
+        given_entries.push_back(temp_dir.path().toStdString() + QDir::separator().toLatin1() +
+                                file);
         return SSH_OK;
     };
     REPLACE(sftp_reply_names_add, reply_names_add);
@@ -1977,7 +2085,7 @@ TEST_F(SftpServer, handlesReaddir)
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
-    EXPECT_EQ(eof_num_calls, 1);
+    EXPECT_EQ(num_calls, 1);
     EXPECT_THAT(given_entries, ContainerEq(expected_entries));
 }
 
@@ -1990,11 +2098,14 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
     auto test_file = temp_dir.path() + "/" + test_file_name;
     mpt::make_file_with_content(test_file, "some content for the file to give it non-zero size");
 
-    QFileDevice::Permissions expected_permissions = QFileDevice::WriteOwner |
-                                                    QFileDevice::ExeGroup | QFileDevice::ReadOther;
-    QFile::setPermissions(test_file, expected_permissions);
+    fs::perms expected_permissions = fs::perms::owner_write | fs::perms::group_exec |
+                                     fs::perms::others_read;
+    MP_PLATFORM.set_permissions_sftp(test_file.toStdString(), expected_permissions);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto opendir_msg = make_msg(SFTP_OPENDIR);
+    auto folder = name_as_char_array(temp_dir.path().toStdString());
+    opendir_msg->filename = folder.data();
     auto readdir_msg = make_msg(SFTP_READDIR);
     auto readdir_msg_final = make_msg(SFTP_READDIR);
 
@@ -2004,18 +2115,33 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
                                                   temp_dir_path / "test-file"};
     auto entries_read = 0ul;
 
+    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
     auto directory_entry = mpt::MockDirectoryEntry{};
     EXPECT_CALL(directory_entry, path).WillRepeatedly([&]() -> const mp::fs::path& {
         return expected_entries[entries_read - 1];
     });
-    auto dir_iterator = mpt::MockDirIterator{};
-    EXPECT_CALL(dir_iterator, hasNext).WillRepeatedly([&] {
+    auto dir_iterator = std::make_unique<mpt::MockDirIterator>();
+    auto* dir_iterator_ptr = dir_iterator.get();
+    EXPECT_CALL(*dir_iterator, hasNext).WillRepeatedly([&] {
         return entries_read != expected_entries.size();
     });
-    EXPECT_CALL(dir_iterator, next)
+    EXPECT_CALL(*dir_iterator, next)
         .WillRepeatedly(DoAll([&] { entries_read++; }, ReturnRef(directory_entry)));
+    EXPECT_CALL(*file_ops, dir_iterator).WillOnce([&](auto&&...) {
+        return std::move(dir_iterator);
+    });
 
-    REPLACE(sftp_handle, [&dir_iterator](auto...) { return &dir_iterator; });
+    REPLACE(sftp_handle, [&dir_iterator_ptr](auto...) { return dir_iterator_ptr; });
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_get_client_message, make_msg_handler());
     int eof_num_calls{0};
     REPLACE(sftp_reply_status,
@@ -2045,9 +2171,7 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
         test_file_attrs.mtime,
         (uint32_t)test_file_info.lastModified().toSecsSinceEpoch()); // atime64 is zero, expected?
 
-    EXPECT_TRUE(compare_permission(test_file_attrs.permissions, test_file_info, Permission::Owner));
-    EXPECT_TRUE(compare_permission(test_file_attrs.permissions, test_file_info, Permission::Group));
-    EXPECT_TRUE(compare_permission(test_file_attrs.permissions, test_file_info, Permission::Other));
+    EXPECT_EQ(test_file_attrs.permissions & 0777, static_cast<uint32_t>(expected_permissions));
 }
 
 TEST_F(SftpServer, handlesClose)
@@ -2129,9 +2253,6 @@ TEST_F(SftpServer, handlesFstat)
 
 TEST_F(SftpServer, handlesFsetstat)
 {
-    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
-
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
 
@@ -2160,6 +2281,16 @@ TEST_F(SftpServer, handlesFsetstat)
     int num_calls{0};
     auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_OK, num_calls);
 
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*platform, ftruncate, mp::platform::Platform);
+
     REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
     REPLACE(sftp_handle_alloc, handle_alloc);
     REPLACE(sftp_handle, [&id](auto...) { return id; });
@@ -2175,11 +2306,379 @@ TEST_F(SftpServer, handlesFsetstat)
     EXPECT_THAT(file.size(), Eq(expected_size));
 }
 
+TEST_F(SftpServer, fsetstatBadHandleFails)
+{
+
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg = make_msg(SFTP_OPEN);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    const int expected_size = 7777;
+    attr.size = expected_size;
+    attr.flags = SSH_FILEXFER_ATTR_SIZE;
+    attr.permissions = 0777;
+
+    open_msg->filename = name.data();
+    open_msg->attr = &attr;
+    open_msg->flags |= SSH_FXF_WRITE | SSH_FXF_TRUNC | SSH_FXF_CREAT;
+
+    auto fsetstat_msg = make_msg(SFTP_FSETSTAT);
+    fsetstat_msg->attr = &attr;
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return ssh_string_new(4);
+    };
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+
+    int num_calls{0};
+
+    auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_BAD_MESSAGE, num_calls);
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return static_cast<char*>(id) + 1; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    QFile file(file_name);
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(file.exists());
+    EXPECT_THAT(file.size(), Eq(0));
+}
+
+TEST_F(SftpServer, fsetstatResizeFailure)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg = make_msg(SFTP_OPEN);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    const int expected_size = 7777;
+    attr.size = expected_size;
+    attr.flags = SSH_FILEXFER_ATTR_SIZE;
+    attr.permissions = 0777;
+
+    open_msg->filename = name.data();
+    open_msg->attr = &attr;
+    open_msg->flags |= SSH_FXF_WRITE | SSH_FXF_TRUNC | SSH_FXF_CREAT;
+
+    auto fsetstat_msg = make_msg(SFTP_FSETSTAT);
+    fsetstat_msg->attr = &attr;
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return ssh_string_new(4);
+    };
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_FAILURE, num_calls);
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+    EXPECT_CALL(*platform, ftruncate).WillOnce(Return(-1));
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return id; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    QFile file(file_name);
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(file.exists());
+    EXPECT_THAT(file.size(), Eq(0));
+}
+
+TEST_F(SftpServer, fsetstatSetPermissionsFailure)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg = make_msg(SFTP_OPEN);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_PERMISSIONS;
+    attr.permissions = 0777;
+
+    open_msg->filename = name.data();
+    open_msg->attr = &attr;
+    open_msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
+
+    auto fsetstat_msg = make_msg(SFTP_FSETSTAT);
+    fsetstat_msg->attr = &attr;
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return ssh_string_new(4);
+    };
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_FAILURE, num_calls);
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return id; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    QFile file(file_name);
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(file.exists());
+}
+
+TEST_F(SftpServer, fsetstatUtimeFailure)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg = make_msg(SFTP_OPEN);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_ACMODTIME;
+
+    open_msg->filename = name.data();
+    open_msg->attr = &attr;
+    open_msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
+
+    auto fsetstat_msg = make_msg(SFTP_FSETSTAT);
+    fsetstat_msg->attr = &attr;
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return ssh_string_new(4);
+    };
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_FAILURE, num_calls);
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, futimes(_, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return id; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    QFile file(file_name);
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(file.exists());
+}
+
+TEST_F(SftpServer, fsetstatChownNoReverseMappingFails)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg = make_msg(SFTP_OPEN);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+    constexpr int bad_id{-3};
+
+    open_msg->filename = name.data();
+    open_msg->attr = &attr;
+    open_msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
+
+    auto fsetstat_msg = make_msg(SFTP_FSETSTAT);
+    fsetstat_msg->attr = &attr;
+    attr.uid = bad_id;
+    attr.gid = bad_id;
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return ssh_string_new(4);
+    };
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return id; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    QFile file(file_name);
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(file.exists());
+}
+
+TEST_F(SftpServer, fsetstatChownHonorsReverseMapping)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg = make_msg(SFTP_OPEN);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+
+    open_msg->filename = name.data();
+    open_msg->attr = &attr;
+    open_msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
+
+    auto fsetstat_msg = make_msg(SFTP_FSETSTAT);
+    fsetstat_msg->attr = &attr;
+    attr.uid = mp::default_id;
+    attr.gid = mp::default_id;
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return ssh_string_new(4);
+    };
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_OK, num_calls);
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+    EXPECT_CALL(*platform, fchown(_, _, _)).WillOnce([](int, int uid, int gid) {
+        EXPECT_EQ(uid, default_uid);
+        EXPECT_EQ(gid, default_gid);
+        return 0;
+    });
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return id; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    QFile file(file_name);
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(file.exists());
+}
+
+TEST_F(SftpServer, fsetstatChownFailure)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg = make_msg(SFTP_OPEN);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+    attr.uid = mp::default_id;
+    attr.gid = mp::default_id;
+
+    open_msg->filename = name.data();
+    open_msg->attr = &attr;
+    open_msg->flags |= SSH_FXF_WRITE | SSH_FXF_CREAT;
+
+    auto fsetstat_msg = make_msg(SFTP_FSETSTAT);
+    fsetstat_msg->attr = &attr;
+
+    void* id{nullptr};
+    auto handle_alloc = [&id](sftp_session, void* info) {
+        id = info;
+        return ssh_string_new(4);
+    };
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_FAILURE, num_calls);
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, fchown).WillOnce(Return(-1));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+
+    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle_alloc, handle_alloc);
+    REPLACE(sftp_handle, [&id](auto...) { return id; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+    REPLACE(sftp_reply_status, reply_status);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    QFile file(file_name);
+    ASSERT_THAT(num_calls, Eq(1));
+    EXPECT_TRUE(file.exists());
+}
+
 TEST_F(SftpServer, handlesSetstat)
 {
-    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
-    EXPECT_CALL(*platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
-
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
     mpt::make_file_with_content(file_name);
@@ -2199,6 +2698,15 @@ TEST_F(SftpServer, handlesSetstat)
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
+
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -2266,17 +2774,12 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     msg->flags = SSH_FXF_WRITE;
 
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, resize(_, _)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*mock_file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*mock_file_ops, exists(A<const QFileInfo&>()))
-        .WillRepeatedly([](const QFileInfo& file) { return file.exists(); });
+    EXPECT_CALL(*mock_file_ops, resize(_, _, _))
+        .WillOnce([](const fs::path&, std::uintmax_t, std::error_code& ec) {
+            ec.assign(1, std::generic_category());
+        });
     EXPECT_CALL(*mock_file_ops, exists(A<const fs::path&>()))
-        .WillRepeatedly([](const fs::path& path) { return fs::exists(path); });
+        .WillRepeatedly([](const fs::path& file) { return fs::exists(file); });
     EXPECT_CALL(*mock_file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
     });
@@ -2323,16 +2826,10 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
-    EXPECT_CALL(*file_ops, resize).WillOnce(Return(true));
-    EXPECT_CALL(*platform, set_permissions(_, _, _)).WillOnce(Return(false));
-    EXPECT_CALL(*file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.ownerId();
-    });
-    EXPECT_CALL(*file_ops, groupId(_)).WillRepeatedly([](const QFileInfo& file) {
-        return file.groupId();
-    });
-    EXPECT_CALL(*file_ops, exists(A<const QFileInfo&>())).WillRepeatedly([](const QFileInfo& file) {
-        return file.exists();
+    EXPECT_CALL(*file_ops, resize(A<const fs::path&>(), _, _)).WillOnce(Return());
+    EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& file) {
+        return fs::exists(file);
     });
     EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
         return fs::exists(path);
@@ -2343,6 +2840,12 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
     EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
         return fs::is_symlink(path);
     });
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     int failure_num_calls{0};
@@ -2385,6 +2888,7 @@ TEST_F(SftpServer, setstatChownFailureFails)
 
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_platform, stat_attr_from, mp::platform::Platform);
     EXPECT_CALL(*mock_platform, chown(_, _, _)).WillOnce(Return(-1));
 
     int failure_num_calls{0};
@@ -2431,6 +2935,7 @@ TEST_F(SftpServer, setstatUtimeFailureFails)
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, utime(_, _, _)).WillOnce(Return(-1));
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_platform, stat_attr_from, mp::platform::Platform);
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -2524,7 +3029,11 @@ TEST_F(SftpServer, handlesWrites)
 {
     mpt::TempDir temp_dir;
 
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg1 = make_msg(SFTP_OPEN);
+    auto file_chararr = name_as_char_array(path.string());
+    open_msg1->filename = file_chararr.data();
     auto write_msg1 = make_msg(SFTP_WRITE);
     auto data1 = make_data("The answer is ");
     write_msg1->data = data1.get();
@@ -2535,21 +3044,39 @@ TEST_F(SftpServer, handlesWrites)
     write_msg2->data = data2.get();
     write_msg2->offset = ssh_string_len(data1.get());
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
-    const auto fd = 123;
-    const auto named_fd = std::make_pair(path, fd);
+    auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
+    const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
     std::stringstream stream;
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, lseek).WillRepeatedly(Return(true));
-    EXPECT_CALL(*file_ops, write(fd, _, _))
-        .WillRepeatedly([&stream](int, const void* buf, size_t nbytes) {
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
+    EXPECT_CALL(*file_ops, open_fd).WillOnce([&named_fd_handle](auto&&...) {
+        return std::move(named_fd_handle);
+    });
+    const auto [platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+    EXPECT_CALL(*platform, pwrite(_, _, _, _))
+        .WillRepeatedly([&stream](int, const void* buf, size_t nbytes, mp::off_t offset) {
             stream.write((const char*)buf, nbytes);
             return nbytes;
         });
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
+    REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     int num_calls{0};
@@ -2567,54 +3094,49 @@ TEST_F(SftpServer, handlesWrites)
     EXPECT_EQ(stream.str(), "The answer is always 42");
 }
 
-TEST_F(SftpServer, writeCannotSeekFails)
-{
-    mpt::TempDir temp_dir;
-
-    auto init_msg = make_msg(SSH_FXP_INIT);
-    auto write_msg = make_msg(SFTP_WRITE);
-    auto data1 = make_data("The answer is ");
-    write_msg->data = data1.get();
-    write_msg->offset = 10;
-
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
-    const auto fd = 123;
-    const auto named_fd = std::make_pair(path, fd);
-
-    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(-1));
-
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    int failure_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(write_msg.get(), SSH_FX_FAILURE, failure_num_calls));
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-    sftp.run();
-
-    EXPECT_EQ(failure_num_calls, 1);
-}
-
 TEST_F(SftpServer, writeFailureFails)
 {
     mpt::TempDir temp_dir;
 
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg1 = make_msg(SFTP_OPEN);
+    auto folder = name_as_char_array(path.string());
+    open_msg1->filename = folder.data();
     auto write_msg = make_msg(SFTP_WRITE);
     auto data1 = make_data("The answer is ");
     write_msg->data = data1.get();
     write_msg->offset = 10;
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
-    const auto fd = 123;
-    const auto named_fd = std::make_pair(path, fd);
+    auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
+    const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(true));
-    EXPECT_CALL(*file_ops, write(fd, _, _)).WillRepeatedly(Return(-1));
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
+    EXPECT_CALL(*file_ops, open_fd).WillRepeatedly([&named_fd_handle](auto&&...) {
+        return std::move(named_fd_handle);
+    });
+    const auto [platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+    EXPECT_CALL(*platform, pwrite(_, _, _, _))
+        .WillRepeatedly([](int, const void* buf, size_t nbytes, mp::off_t offset) { return -1; });
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
+    REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
+
     REPLACE(sftp_get_client_message, make_msg_handler());
     int failure_num_calls{0};
     REPLACE(sftp_reply_status,
@@ -2629,27 +3151,51 @@ TEST_F(SftpServer, writeFailureFails)
 TEST_F(SftpServer, handlesReads)
 {
     mpt::TempDir temp_dir;
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
 
     std::string given_data{"some text"};
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg1 = make_msg(SFTP_OPEN);
+    auto folder = name_as_char_array(path.string());
+    open_msg1->filename = folder.data();
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = given_data.size();
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
-    const auto fd = 123;
-    const auto named_fd = std::make_pair(path, fd);
+    auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
+    const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(true));
-    EXPECT_CALL(*file_ops, read(fd, _, _))
-        .WillRepeatedly([&given_data, r = 0](int, void* buf, size_t count) mutable {
-            ::memcpy(buf, given_data.c_str() + r, count);
-            r += count;
-            return count;
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
+    EXPECT_CALL(*file_ops, open_fd).WillRepeatedly([&named_fd_handle](auto&&...) {
+        return std::move(named_fd_handle);
+    });
+    const auto [platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
         });
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
+    EXPECT_CALL(*platform, pread(_, _, _, _))
+        .WillRepeatedly(
+            [&given_data, r = 0](int, void* buf, size_t count, mp::off_t offset) mutable {
+                ::memcpy(buf, given_data.c_str() + r, count);
+                r += count;
+                return count;
+            });
+    REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
+
     REPLACE(sftp_get_client_message, make_msg_handler());
 
     int num_calls{0};
@@ -2671,63 +3217,48 @@ TEST_F(SftpServer, handlesReads)
     ASSERT_EQ(num_calls, 1);
 }
 
-TEST_F(SftpServer, readCannotSeekFails)
-{
-    mpt::TempDir temp_dir;
-
-    std::string given_data{"some text"};
-    const int seek_pos{10};
-    auto init_msg = make_msg(SSH_FXP_INIT);
-    auto read_msg = make_msg(SFTP_READ);
-    read_msg->offset = seek_pos;
-    read_msg->len = given_data.size();
-
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
-    const auto fd = 123;
-    const auto named_fd = std::make_pair(path, fd);
-
-    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(-1));
-
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    int failure_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-
-    screen_logs_trace();
-    EXPECT_CALL(*logger_scope.mock_logger,
-                log(mpl::Level::trace,
-                    StrEq("sftp server"),
-                    AllOf(HasSubstr(fmt::format("cannot seek to position {} in", seek_pos)),
-                          HasSubstr(path.string()))));
-
-    sftp.run();
-
-    EXPECT_EQ(failure_num_calls, 1);
-}
-
 TEST_F(SftpServer, readReturnsFailureFails)
 {
     mpt::TempDir temp_dir;
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
 
     std::string given_data{"some text"};
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto open_msg1 = make_msg(SFTP_OPEN);
+    auto folder = name_as_char_array(path.string());
+    open_msg1->filename = folder.data();
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = given_data.size();
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
-    const auto fd = 123;
-    const auto named_fd = std::make_pair(path, fd);
+    auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
+    const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(true));
-    EXPECT_CALL(*file_ops, read(fd, _, _)).WillOnce(Return(-1));
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
+    EXPECT_CALL(*file_ops, open_fd).WillRepeatedly([&named_fd_handle](auto&&...) {
+        return std::move(named_fd_handle);
+    });
+    const auto [platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
+    EXPECT_CALL(*platform, pread(_, _, _, _))
+        .WillRepeatedly([](int, void* buf, size_t count, mp::off_t offset) { return -1; });
+    REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
     int failure_num_calls{0};
     REPLACE(sftp_reply_status,
@@ -2749,21 +3280,45 @@ TEST_F(SftpServer, readReturnsFailureFails)
 TEST_F(SftpServer, readReturnsZeroEndOfFile)
 {
     mpt::TempDir temp_dir;
+    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
 
     auto init_msg = make_msg(SSH_FXP_INIT);
+    auto file = name_as_char_array(path.string());
+    auto open_msg1 = make_msg(SSH_FXP_OPEN);
+    open_msg1->filename = file.data();
     auto read_msg = make_msg(SFTP_READ);
     read_msg->offset = 0;
     read_msg->len = 10;
 
-    const auto path = mp::fs::path{temp_dir.path().toStdString()} / "test-file";
-    const auto fd = 123;
-    const auto named_fd = std::make_pair(path, fd);
+    auto named_fd_handle = MP_FILEOPS.open_fd(path, O_CREAT | O_RDONLY | O_BINARY, 0);
+    const auto* fd_ptr = std::get<std::unique_ptr<mp::NamedFd>>(named_fd_handle).get();
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(true));
-    EXPECT_CALL(*file_ops, read(fd, _, _)).WillOnce(Return(0));
+    EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
+        return fs::weakly_canonical(path);
+    });
+    EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
+        return fs::is_symlink(path);
+    });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
+    EXPECT_CALL(*file_ops, open_fd).WillRepeatedly([&named_fd_handle](auto&&...) {
+        return std::move(named_fd_handle);
+    });
+    const auto [platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
+    EXPECT_CALL(*platform, pread(_, _, _, _))
+        .WillOnce([](int, void* buf, size_t count, mp::off_t offset) { return 0; });
+    REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
+    REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
+
     REPLACE(sftp_get_client_message, make_msg_handler());
     int eof_num_calls{0};
     REPLACE(sftp_reply_status, make_reply_status(read_msg.get(), SSH_FX_EOF, eof_num_calls));
@@ -2804,6 +3359,111 @@ TEST_F(SftpServer, handleExtendedLink)
     QFileInfo info(link_name);
     EXPECT_TRUE(QFile::exists(link_name));
     EXPECT_TRUE(content_match(link_name, "this is a test file"));
+}
+
+TEST_F(SftpServer, hardlinkFailsIfTargetPathExists)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("hardlink@openssh.com");
+    msg->submessage = submessage.data();
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    REPLACE(sftp_client_message_get_data, [&name](auto...) { return name.data(); });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _)).WillOnce(Return(0));
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
+}
+
+TEST_F(SftpServer, hardlinkFailsWhenParentStatFails)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("hardlink@openssh.com");
+    msg->submessage = submessage.data();
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_platform, lstat_attr_from, mp::platform::Platform);
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _)).WillOnce(Return(-1));
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
+}
+
+TEST_F(SftpServer, hardlinkFailsWhenParentHasNoIdMapping)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+    constexpr int bad_id{-3};
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_EXTENDED);
+    auto submessage = name_as_char_array("hardlink@openssh.com");
+    msg->submessage = submessage.data();
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+
+    auto target_name = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_platform, lstat_attr_from, mp::platform::Platform);
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = bad_id;
+            attr.gid = bad_id;
+            return 0;
+        });
+
+    int num_calls{0};
+    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
+    REPLACE(sftp_reply_status, reply_status);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    ASSERT_THAT(num_calls, Eq(1));
 }
 
 TEST_F(SftpServer, extendedLinkInInvalidDirFails)
@@ -2852,6 +3512,14 @@ TEST_F(SftpServer, extendedLinkFailureFails)
 
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) { return -1; });
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
     EXPECT_CALL(*mock_platform, link(_, _)).WillOnce(Return(false));
 
     int failure_num_calls{0};
@@ -3248,6 +3916,7 @@ TEST_P(AbsolutePath, normalizesToAbsolutePath)
     auto expected_path = host_path / params.expected_path;
     if (!expected_path.has_filename())
         expected_path = expected_path.parent_path();
+    expected_path = fs::weakly_canonical(expected_path);
     auto full_host_path = host_path / params.input_path;
 
     if (params.expected_status == SSH_FX_OK && !params.input_path.empty() &&
@@ -3278,7 +3947,7 @@ TEST_P(AbsolutePath, normalizesToAbsolutePath)
                                                                  const char* returned_name,
                                                                  sftp_attributes) {
         EXPECT_THAT(cmsg, Eq(msg.get()));
-        EXPECT_THAT(std::string(returned_name), Eq(expected_path.generic_string()));
+        EXPECT_THAT(std::string(returned_name), Eq(expected_path.string()));
         EXPECT_THAT(expected_status,
                     Eq(SSH_FX_OK)); // We only expect this if SSH_FX_OK was the goal
         ++num_name_calls;
@@ -3299,87 +3968,6 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(PathTestData{SFTP_REALPATH, ".", "", SSH_FX_OK},
                       PathTestData{SFTP_REALPATH, "./dir/../file.txt", "file.txt", SSH_FX_OK},
                       PathTestData{SFTP_REALPATH, "file.txt", "file.txt", SSH_FX_OK}),
-    string_for_pathdata);
-
-TEST_P(HostToGuestTranslation, translatesCorrectly)
-{
-    mpt::TempDir temp_dir;
-    mpt::TempDir temp_dir2;
-    auto params = GetParam();
-
-    const std::string full_host_path =
-        (fs::path{temp_dir.path().toStdString()} / params.input_path).make_preferred().string();
-
-    if (params.expected_status == SSH_FX_OK && !params.input_path.empty() &&
-        params.input_path != ".")
-    {
-        // Ensure parent directories exist
-        QDir().mkpath(QFileInfo(QString::fromStdString(full_host_path)).path());
-
-        mpt::make_file_with_content(QString::fromStdString(full_host_path));
-    }
-    auto init_msg = make_msg(SSH_FXP_INIT);
-    auto msg = make_msg(params.message_type);
-    auto name = name_as_char_array(params.input_path);
-    msg->filename = name.data();
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-
-    int num_name_calls{0};
-    int num_status_calls{0};
-
-    auto expected_path = fs::path{temp_dir2.path().toStdString()} / params.expected_path;
-    if (!expected_path.has_filename())
-        expected_path = expected_path.parent_path();
-    auto expected_string = expected_path.generic_string();
-    // We expect sftp_reply_name to be called with the translated guest path (temp2)
-    // if within allowed mount path
-    auto reply_name = [&num_name_calls,
-                       &msg,
-                       &expected_string,
-                       expected_status = params.expected_status](sftp_client_message cmsg,
-                                                                 const char* returned_name,
-                                                                 sftp_attributes) {
-        EXPECT_THAT(cmsg, Eq(msg.get()));
-        EXPECT_THAT(std::string(returned_name), Eq(expected_string));
-        EXPECT_THAT(expected_status,
-                    Eq(SSH_FX_OK)); // We only expect this if SSH_FX_OK was the goal
-        ++num_name_calls;
-        return SSH_OK;
-    };
-    REPLACE(sftp_reply_name, reply_name);
-
-    // Otherwise, we expect an error
-    auto reply_status = make_reply_status(msg.get(), params.expected_status, num_status_calls);
-    REPLACE(sftp_reply_status, reply_status);
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString(),
-                                {{default_uid, mp::default_id}},
-                                {{default_gid, mp::default_id}},
-                                temp_dir2.path().toStdString());
-    sftp.run();
-
-    if (params.expected_status == SSH_FX_OK)
-    {
-        EXPECT_THAT(num_name_calls, Eq(1));
-        EXPECT_THAT(num_status_calls, Eq(0));
-    }
-    else
-    {
-        EXPECT_THAT(num_status_calls, Eq(1));
-        EXPECT_THAT(num_name_calls, Eq(0));
-    }
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    SftpServer,
-    HostToGuestTranslation,
-    ::testing::Values(
-        PathTestData{SFTP_REALPATH, "sub/dir/file.txt", "sub/dir/file.txt", SSH_FX_OK},
-        PathTestData{SFTP_REALPATH, ".", "", SSH_FX_OK},
-        PathTestData{SFTP_REALPATH, "../../../etc/passwd", "", SSH_FX_PERMISSION_DENIED},
-        PathTestData{SFTP_REALPATH, "/etc/passwd", "", SSH_FX_PERMISSION_DENIED},
-        PathTestData{SFTP_REALPATH, "valid_file.txt", "valid_file.txt", SSH_FX_OK}),
     string_for_pathdata);
 
 TEST_F(SftpServer, allowsPathWithinMount)
@@ -3413,7 +4001,7 @@ TEST_F(SftpServer, symlinkInPathResolved)
     mpt::TempDir temp_dir;
     auto link = fs::path(temp_dir.path().toStdString()) / "linked";
     auto true_path = fs::path(temp_dir.path().toStdString()) / "real";
-    auto expected_filename = (true_path / "file.txt").generic_string();
+    auto expected_filename = fs::weakly_canonical(true_path / "file.txt").string();
 
     QDir().mkpath(QFileInfo(QString::fromStdString(true_path.string())).path());
     MP_PLATFORM.symlink((true_path / "").string().c_str(), link.string().c_str(), true);
@@ -3577,36 +4165,9 @@ TEST_F(SftpServer, canonicalErrorPermissionDenied)
             throw fs::filesystem_error(std::string{}, std::error_code{});
             return fs::path();
         });
-
-    int num_calls{0};
-    auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
-    sftp.run();
-
-    EXPECT_THAT(num_calls, Eq(1));
-}
-
-TEST_F(SftpServer, relativeErrorPermissionDenied)
-{
-    mpt::TempDir temp_dir;
-
-    std::string traversal_path = temp_dir.path().toStdString();
-    auto file_name = name_as_char_array(traversal_path);
-
-    auto init_msg = make_msg(SSH_FXP_INIT);
-    auto msg = make_msg(SSH_FXP_OPENDIR);
-    msg->filename = file_name.data();
-
-    REPLACE(sftp_get_client_message, make_msg_handler());
-
-    const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*file_ops, relative)
-        .WillRepeatedly([](const fs::path& path, const fs::path& path2, std::error_code& ec) {
-            throw fs::filesystem_error(std::string{}, std::error_code{});
-            return fs::relative(path, path2, ec);
-        });
+    EXPECT_CALL(*file_ops, exists(A<const fs::path&>())).WillRepeatedly([](const fs::path& path) {
+        return fs::exists(path);
+    });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
@@ -3646,7 +4207,13 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
 
     EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
-    EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();
@@ -3673,7 +4240,13 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
     QFileInfo parent_dir(temp_dir.path());
 
     EXPECT_CALL(*mock_platform, chown(_, parent_dir.ownerId(), parent_dir.groupId())).Times(1);
-    EXPECT_CALL(*mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3706,8 +4279,18 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
 
     REPLACE(sftp_get_client_message, make_msg_handler());
 
-    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).WillOnce(Return(-1));
-    EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
+    EXPECT_CALL(*mock_platform, fchown(_, host_uid, host_gid)).WillOnce(Return(-1));
+    EXPECT_CALL(*mock_platform, fchown(_, sftp_uid, sftp_gid)).Times(0);
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            errno = ENOENT;
+            return -1;
+        })
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();
@@ -3746,6 +4329,12 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
+    EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
+        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+            attr.uid = default_uid;
+            attr.gid = default_gid;
+            return 0;
+        });
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);

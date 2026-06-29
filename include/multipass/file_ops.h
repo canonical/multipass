@@ -19,6 +19,7 @@
 
 #include "recursive_dir_iterator.h"
 #include "singleton.h"
+#include "utils/named_fd.h"
 
 #include <QByteArray>
 #include <QByteArrayView>
@@ -32,22 +33,16 @@
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string_view>
+#include <variant>
 
 #define MP_FILEOPS multipass::FileOps::instance()
 
 namespace multipass
 {
 namespace fs = std::filesystem;
-
-struct NamedFd
-{
-    NamedFd(const fs::path& path, int fd);
-    ~NamedFd();
-
-    fs::path path;
-    int fd;
-};
+using SftpHandle = std::variant<std::unique_ptr<NamedFd>, std::unique_ptr<DirIterator>>;
 
 class FileOps : public Singleton<FileOps>
 {
@@ -73,8 +68,6 @@ public:
     virtual bool exists(const QFileInfo& file) const;
     virtual bool isDir(const QFileInfo& file) const;
     virtual bool isReadable(const QFileInfo& file) const;
-    virtual uint ownerId(const QFileInfo& file) const;
-    virtual uint groupId(const QFileInfo& file) const;
 
     // QFile (and parent classes) operations
     virtual bool exists(const QFile& file) const;
@@ -103,7 +96,7 @@ public:
     virtual bool tryLock(QLockFile& lock, std::chrono::milliseconds timeout) const;
 
     // posix operations
-    virtual std::unique_ptr<NamedFd> open_fd(const fs::path& path, int flags, int perms) const;
+    virtual SftpHandle open_fd(const fs::path& path, int flags, int perms) const;
     virtual int read(int fd, void* buf, size_t nbytes) const;
     virtual int write(int fd, const void* buf, size_t nbytes) const;
     virtual off_t lseek(int fd, off_t offset, int whence) const;
@@ -125,7 +118,9 @@ public:
                       const fs::path& dist,
                       fs::copy_options copy_options,
                       std::error_code& ec) const;
+    virtual void resize(const fs::path& path, std::uintmax_t new_size, std::error_code& ec) const;
     virtual void rename(const fs::path& old_p, const fs::path& new_p) const;
+    virtual void rename(const fs::path& old_p, const fs::path& new_p, std::error_code& ec) const;
     virtual bool exists(const fs::path& path) const;
     virtual bool is_symlink(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
@@ -153,8 +148,7 @@ public:
     virtual std::unique_ptr<RecursiveDirIterator>
     recursive_dir_iterator(const fs::path& path, std::error_code& err) const;
     //[[deprecated("Use non-std::error_code overload instead!")]]
-    virtual std::unique_ptr<DirIterator> dir_iterator(const fs::path& path,
-                                                      std::error_code& err) const;
+    virtual SftpHandle dir_iterator(const fs::path& path, std::error_code& err) const;
     virtual fs::path weakly_canonical(const fs::path& path) const;
     virtual fs::path relative(const fs::path& path,
                               const fs::path& base,

@@ -19,15 +19,22 @@
 #include "mock_signal_wrapper.h"
 
 #include <tests/unit/common.h>
+#include <tests/unit/file_operations.h>
 #include <tests/unit/mock_environment_helpers.h>
 #include <tests/unit/mock_platform.h>
 #include <tests/unit/mock_utils.h>
+#include <tests/unit/temp_dir.h>
 #include <tests/unit/temp_file.h>
 
 #include <multipass/constants.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/socket.h>
+
+#include <libssh/sftp.h>
+
+#include <fcntl.h>
 
 #include <thread>
 
@@ -307,13 +314,13 @@ TEST_F(TestPlatformUnix, makeQuitWatchdogBlocksSignals)
 {
     auto [mock_signals, guard] = mpt::MockPosixSignal::inject<StrictMock>();
 
-    EXPECT_CALL(
-        *mock_signals,
-        pthread_sigmask(SIG_BLOCK,
-                        Pointee(Truly([](const auto& set) {
-                            return test_sigset_has(set, {SIGQUIT, SIGTERM, SIGHUP, SIGUSR2});
-                        })),
-                        _));
+    EXPECT_CALL(*mock_signals,
+                pthread_sigmask(SIG_BLOCK,
+                                Pointee(Truly([](const auto& set) {
+                                    return test_sigset_has(set,
+                                                           {SIGQUIT, SIGTERM, SIGHUP, SIGUSR2});
+                                })),
+                                _));
 
     mp::platform::make_quit_watchdog(std::chrono::milliseconds{1});
 }
@@ -406,4 +413,288 @@ TEST_F(TestPlatformUnix, test_qstr_path_conversion)
     // Spaces and special filesystem characters
     QString special = QStringLiteral("/path with spaces/file (1).txt");
     EXPECT_EQ(MP_PLATFORM.path_to_qstr(MP_PLATFORM.qstr_to_path(special)), special);
+}
+
+struct TestPlatformUnixSftp : public Test
+{
+    mpt::TempDir temp_dir;
+
+    std::string make_file(const std::string& name, const std::string& content = "data")
+    {
+        auto path = temp_dir.path().toStdString() + "/" + name;
+        mpt::make_file_with_content(QString::fromStdString(path), content);
+        return path;
+    }
+
+    std::string make_dir(const std::string& name)
+    {
+        auto path = temp_dir.path().toStdString() + "/" + name;
+        ::mkdir(path.c_str(), 0755);
+        return path;
+    }
+};
+
+// ── lstat_attr_from ──────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, lstatAttrFromRegularFileReturnsCorrectType)
+{
+    auto path = make_file("regular");
+    sftp_attributes_struct attr{};
+
+    EXPECT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    EXPECT_TRUE((attr.permissions & SSH_S_IFMT) == SSH_S_IFREG);
+}
+
+TEST_F(TestPlatformUnixSftp, lstatAttrFromDirectoryReturnsCorrectType)
+{
+    auto path = make_dir("mydir");
+    sftp_attributes_struct attr{};
+
+    EXPECT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    EXPECT_TRUE((attr.permissions & SSH_S_IFMT) == SSH_S_IFDIR);
+}
+
+TEST_F(TestPlatformUnixSftp, lstatAttrFromSymlinkReturnsSymlinkType)
+{
+    auto target = make_file("target");
+    auto link = temp_dir.path().toStdString() + "/link";
+    ASSERT_EQ(::symlink(target.c_str(), link.c_str()), 0);
+
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.lstat_attr_from(link.c_str(), attr), 0);
+    // lstat must NOT follow the symlink
+    EXPECT_TRUE((attr.permissions & SSH_S_IFMT) == SSH_S_IFLNK);
+}
+
+TEST_F(TestPlatformUnixSftp, lstatAttrFromMissingFileReturnsMinus1AndSetsEnoent)
+{
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.lstat_attr_from("/this/does/not/exist", attr), -1);
+    EXPECT_EQ(errno, ENOENT);
+}
+
+TEST_F(TestPlatformUnixSftp, lstatAttrFromFillsTimestampsAndSize)
+{
+    auto path = make_file("ts-file", "hello");
+    sftp_attributes_struct attr{};
+
+    ASSERT_EQ(MP_PLATFORM.lstat_attr_from(path.c_str(), attr), 0);
+    EXPECT_GT(attr.mtime, 0u);
+    EXPECT_GT(attr.atime, 0u);
+    EXPECT_EQ(attr.size, 5u); // "hello"
+}
+
+// ── stat_attr_from ───────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, statAttrFromFollowsSymlink)
+{
+    auto target = make_file("target");
+    auto link = temp_dir.path().toStdString() + "/link";
+    ASSERT_EQ(::symlink(target.c_str(), link.c_str()), 0);
+
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.stat_attr_from(link.c_str(), attr), 0);
+    // stat must follow the symlink → result is a regular file
+    EXPECT_TRUE((attr.permissions & SSH_S_IFMT) == SSH_S_IFREG);
+}
+
+TEST_F(TestPlatformUnixSftp, statAttrFromMissingFileReturnsMinus1AndSetsEnoent)
+{
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.stat_attr_from("/this/does/not/exist", attr), -1);
+    EXPECT_EQ(errno, ENOENT);
+}
+
+// ── fstat_attr_from ──────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, fstatAttrFromOpenFdReturnsCorrectType)
+{
+    auto path = make_file("fstat-file");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.fstat_attr_from(fd, attr), 0);
+    EXPECT_TRUE((attr.permissions & SSH_S_IFMT) == SSH_S_IFREG);
+}
+
+TEST_F(TestPlatformUnixSftp, fstatAttrFromBadFdReturnsMinus1)
+{
+    sftp_attributes_struct attr{};
+    EXPECT_EQ(MP_PLATFORM.fstat_attr_from(-1, attr), -1);
+}
+
+TEST_F(TestPlatformUnixSftp, fstatAttrFromFillsSizeAndTimestamps)
+{
+    auto path = make_file("fstat-sz", "abcde");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    sftp_attributes_struct attr{};
+    ASSERT_EQ(MP_PLATFORM.fstat_attr_from(fd, attr), 0);
+    EXPECT_EQ(attr.size, 5u);
+    EXPECT_GT(attr.mtime, 0u);
+}
+
+// ── pread ────────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, preadReadsAtOffset)
+{
+    auto path = make_file("pread-file", "Hello, World!");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    std::array<char, 5> buf{};
+    // Read "World" starting at offset 7
+    auto r = MP_PLATFORM.pread(fd, buf.data(), buf.size(), 7);
+    EXPECT_EQ(r, 5);
+    EXPECT_EQ(std::string(buf.data(), buf.size()), "World");
+}
+
+TEST_F(TestPlatformUnixSftp, preadDoesNotAdvanceFilePosition)
+{
+    auto path = make_file("pread-pos", "ABCDEFGH");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    std::array<char, 4> buf{};
+    MP_PLATFORM.pread(fd, buf.data(), buf.size(), 4); // read at offset 4
+
+    // File position must still be 0 — a second pread at 0 gives the start
+    MP_PLATFORM.pread(fd, buf.data(), buf.size(), 0);
+    EXPECT_EQ(std::string(buf.data(), buf.size()), "ABCD");
+}
+
+TEST_F(TestPlatformUnixSftp, preadAtEofReturnsZero)
+{
+    auto path = make_file("pread-eof", "hi");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    std::array<char, 4> buf{};
+    auto r = MP_PLATFORM.pread(fd, buf.data(), buf.size(), 100); // past EOF
+    EXPECT_EQ(r, 0);
+}
+
+// ── pwrite ───────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, pwriteWritesAtOffset)
+{
+    auto path = make_file("pwrite-file", "Hello, World!");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    const std::string patch = "XXXXX";
+    auto w = MP_PLATFORM.pwrite(fd, patch.data(), patch.size(), 7);
+    EXPECT_EQ(w, 5);
+
+    // Read back full file to verify
+    std::array<char, 13> result{};
+    ::pread(fd, result.data(), result.size(), 0);
+    EXPECT_EQ(std::string(result.data(), result.size()), "Hello, XXXXX!");
+}
+
+TEST_F(TestPlatformUnixSftp, pwriteDoesNotAdvanceFilePosition)
+{
+    auto path = make_file("pwrite-pos", "00000000");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    const std::string data = "AAAA";
+    EXPECT_NE(MP_PLATFORM.pwrite(fd, data.data(), data.size(), 4), -1);
+
+    // Position must still be 0 — reading from 0 gives original start bytes
+    std::array<char, 4> buf{};
+    ::pread(fd, buf.data(), buf.size(), 0);
+    EXPECT_EQ(std::string(buf.data(), buf.size()), "0000");
+}
+
+// ── ftruncate ────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, ftruncateShrinksTruncatesFile)
+{
+    auto path = make_file("trunc-file", "Hello, World!");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    EXPECT_EQ(MP_PLATFORM.ftruncate(fd, 5), 0);
+
+    struct stat st{};
+    ::fstat(fd, &st);
+    EXPECT_EQ(st.st_size, 5);
+}
+
+TEST_F(TestPlatformUnixSftp, ftruncateBadFdReturnsMinus1)
+{
+    EXPECT_NE(MP_PLATFORM.ftruncate(-1, 0), 0);
+}
+
+// ── futimes ──────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, futimesSetsModificationTime)
+{
+    auto path = make_file("utime-file");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    constexpr int set_timestamp = 1'000'000;
+    EXPECT_EQ(MP_PLATFORM.futimes(fd, set_timestamp, set_timestamp), 0);
+
+    struct stat st{};
+    ::fstat(fd, &st);
+    EXPECT_EQ(static_cast<int>(st.st_mtime), set_timestamp);
+}
+
+// ── fchown ───────────────────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, fchownWithCurrentOwnerSucceeds)
+{
+    // Calling fchown with the process's own uid/gid must succeed for a
+    // file we own (non-root cannot chown to other users, but self-chown is a no-op)
+    auto path = make_file("fchown-file");
+    auto handle =
+        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    int fd = handle->fd;
+    ASSERT_NE(fd, -1);
+
+    EXPECT_EQ(MP_PLATFORM.fchown(fd, ::getuid(), ::getgid()), 0);
+}
+
+// ── set_permissions_sftp ─────────────────────────────────────────────────
+
+TEST_F(TestPlatformUnixSftp, setPermissionsSftpSetsPermissions)
+{
+    namespace fs = std::filesystem;
+    auto path = make_file("perms-file");
+
+    const auto perms = fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read;
+    EXPECT_TRUE(MP_PLATFORM.set_permissions_sftp(path, perms));
+
+    auto actual = fs::status(path).permissions();
+    // Mask to the three groups — ignore sticky/setuid bits
+    EXPECT_EQ(actual & fs::perms::mask, perms);
+}
+
+TEST_F(TestPlatformUnixSftp, setPermissionsSftpOnNonExistentPathReturnsFalse)
+{
+    namespace fs = std::filesystem;
+    EXPECT_FALSE(MP_PLATFORM.set_permissions_sftp("/does/not/exist", fs::perms::owner_read));
 }
