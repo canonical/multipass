@@ -199,9 +199,13 @@ def verify_scenario(request, verify_manifest):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _daemon_running(multipassd_session_scoped):
-    """Keep the daemon up for the whole suite, reusing the cli framework's
-    session-scoped governor fixture."""
+def _daemon_running(environment_setup, multipassd_session_scoped):
+    """Keep the daemon up for the whole suite via the cli session governor.
+
+    ``environment_setup`` first: both are session-scoped, so the controller env
+    (macOS: the launchd swap whose ``bootout`` SIGTERMs the daemon) must be
+    ordered before the governor explicitly.
+    """
     yield multipassd_session_scoped
 
 
