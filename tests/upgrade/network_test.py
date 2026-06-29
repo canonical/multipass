@@ -29,13 +29,10 @@ the VM back, and checks the MACs returned. ``mode=manual`` keeps the guest from
 DHCP-ing on it. The bridged case points ``local.bridged-network`` at the same
 host network. The suspend pair is skipped where suspend/resume isn't kept."""
 
-import asyncio
-
 import pytest
 
 from cli.config import cfg
 from cli.multipass import multipass
-from cli.controller.multipassd_governor import MultipassdGovernor
 from .helpers import guest_interface_macs, park_seeded, resume_seeded
 from .seedutils import seeded_vm
 from .netutils import upgrade_network
@@ -99,13 +96,18 @@ def test_network_suspend_verify(scenario, host_network):
 
 @pytest.mark.seed
 @pytest.mark.scenario(BRIDGED_VM)
-def test_bridged_seed(scenario, host_network, request):
-    request.addfinalizer(lambda: multipass("set", "local.bridged-network="))
+def test_bridged_seed(scenario, host_network, request, multipassd_session_scoped):
+    # Both setting and clearing local.bridged-network bounce the daemon; each
+    # time we must wait for the restart to actually complete (a bare readiness
+    # probe races the still-answering, about-to-die daemon and returns early,
+    # leaving the next test to hit a dead socket).
+    def _reset():
+        multipass("set", "local.bridged-network=")
+        multipassd_session_scoped.wait_for_restart()
+
+    request.addfinalizer(_reset)
     assert multipass("set", f"local.bridged-network={host_network}")
-    # Setting bridged-network bounces the daemon; wait for it to be ready again.
-    assert asyncio.run(MultipassdGovernor.wait_for_multipassd_ready()), (
-        "daemon not ready after setting bridged-network"
-    )
+    multipassd_session_scoped.wait_for_restart()
 
     with seeded_vm(BRIDGED_VM, extra_args=["--bridged"]):
         macs = guest_interface_macs(BRIDGED_VM)
