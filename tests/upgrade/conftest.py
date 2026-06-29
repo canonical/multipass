@@ -206,7 +206,7 @@ def _daemon_running(multipassd_session_scoped):
 
 
 @pytest.hookimpl(trylast=True)
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(config, items):
     """Guard the seed/verify split: a test belongs to one phase, and a single
     pytest invocation must not mix the two (the package upgrade happens between
     them, so they are always separate runs).
@@ -214,6 +214,9 @@ def pytest_collection_modifyitems(items):
     ``trylast`` so this runs after pytest's own ``-m`` deselection: when a phase
     is selected, ``items`` holds only that phase and the guard stays quiet.
     """
+    if config.option.collectonly:
+        return
+
     phases = {"seed", "verify"}
     selected = set()
     for item in items:
