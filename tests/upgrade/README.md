@@ -67,7 +67,7 @@ Each concern is a pair of ordinary pytest tests in `tests/upgrade/<concern>_test
 
 | Test | What it asserts survives |
 | ---- | ------------------------ |
-| `lifecycle` | A stopped VM's on-disk data and host-reported identity (cpu count, memory total, image release); it still boots. |
+| `lifecycle` | A stopped default-image VM's on-disk data and host-reported identity (cpu count, memory total, image release); plus a focal VM (suspended) and a debian VM (stopped) keeping their data and release across the upgrade. Suspended case skipped on `lxd`/`applevz`. |
 | `suspend_resume` | A VM **suspended** during seeding comes back `Suspended` and resumes cleanly with its data. Skipped on `lxd`/`applevz`. |
 | `snapshot` | A branched snapshot tree (BASE with two children): metadata (names, parents, comments, count), captured data, and captured cpu/memory/disk. Restoring `base` reveals base-only data, hides child-only data, and rolls resources back. Skipped on `lxd`/`applevz`. |
 | `mount` | A classic (SSHFS) and a native (9p) mount each survive a stopped upgrade, plus a classic mount across a suspended upgrade: definition still listed, host data visible in guest, guest-written data on host and re-exposed on restart. Native/suspend skipped on `lxd`/`applevz`. |
