@@ -17,28 +17,25 @@
 
 #pragma once
 
-#include <QString>
-#include <QStringList>
+#include <string>
+#include <vector>
 
 #include <boost/json.hpp>
-
-#include <multipass/exceptions/unsupported_arch_exception.h>
-#include <multipass/json_utils.h>
 
 namespace multipass
 {
 struct VMImageInfo
 {
-    QStringList aliases;
-    QString os;
-    QString release;
-    QString release_title;
-    QString release_codename;
+    std::vector<std::string> aliases;
+    std::string os;
+    std::string release;
+    std::string release_title;
+    std::string release_codename;
     bool supported;
-    QString image_location;
-    QString id;
-    QString stream_location;
-    QString version;
+    std::string image_location;
+    std::string id;
+    std::string stream_location;
+    std::string version;
     int64_t size;
     bool verify;
 
@@ -50,29 +47,10 @@ struct ArchContext
     std::string arch;
 };
 
-inline VMImageInfo tag_invoke(const boost::json::value_to_tag<VMImageInfo>&,
-                              const boost::json::value& json,
-                              const ArchContext& arch)
-{
-    const auto arch_json = json.at("items").try_at(arch.arch);
-    if (arch_json.has_error())
-        throw UnsupportedArchException(arch.arch);
+VMImageInfo tag_invoke(const boost::json::value_to_tag<VMImageInfo>&,
+                       const boost::json::value& json,
+                       const ArchContext& arch);
 
-    QStringList aliases = value_to<QString>(json.at("aliases")).split(",", Qt::SkipEmptyParts);
-    for (QString& alias : aliases)
-        alias = alias.trimmed();
-
-    return {aliases,
-            value_to<QString>(json.at("os")),
-            value_to<QString>(json.at("release")),
-            value_to<QString>(json.at("release_codename")),
-            value_to<QString>(json.at("release_title")),
-            true,
-            value_to<QString>(arch_json->at("image_location")),
-            value_to<QString>(arch_json->at("id")),
-            "",
-            value_to<QString>(arch_json->at("version")),
-            lookup_or<int>(*arch_json, "size", -1),
-            true};
-}
+std::unordered_map<std::string, const VMImageInfo*> map_aliases_to_vm_info(
+    const std::vector<VMImageInfo>& images);
 } // namespace multipass

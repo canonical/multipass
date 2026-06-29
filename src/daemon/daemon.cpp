@@ -1124,13 +1124,13 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* co
         auto entry = container->Add();
         for (const auto& alias : info.aliases)
         {
-            entry->add_aliases(alias.toStdString());
+            entry->add_aliases(alias);
         }
 
-        entry->set_os(info.os.toStdString());
-        entry->set_release(info.release_title.toStdString());
-        entry->set_version(info.version.toStdString());
-        entry->set_codename(info.release_codename.toStdString());
+        entry->set_os(info.os);
+        entry->set_release(info.release_title);
+        entry->set_version(info.version);
+        entry->set_codename(info.release_codename);
         entry->set_remote_name(remote_name);
     }
 }
@@ -1639,10 +1639,11 @@ try
 
         for (auto& [remote, info] : vm_images_info)
         {
-            if (info.aliases.contains(QString::fromStdString(request->search_string())))
-                info.aliases = QStringList({QString::fromStdString(request->search_string())});
+            // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
+            if (std::ranges::find(info.aliases, request->search_string()) != info.aliases.end())
+                info.aliases = {request->search_string()};
             else
-                info.aliases = QStringList({info.id.left(12)});
+                info.aliases = {info.id.substr(0, 12)};
 
             auto remote_name = (!request->remote_name().empty() ||
                                 (request->remote_name().empty() && vm_images_info.size() > 1 &&
@@ -1664,10 +1665,10 @@ try
                                                               const mp::VMImageInfo& info) {
                 if (remote != mp::snapcraft_remote &&
                     (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                    images_found.find(info.release_title.toStdString()) == images_found.end())
+                    images_found.find(info.release_title) == images_found.end())
                 {
                     add_aliases(response.mutable_images_info(), remote, info);
-                    images_found.insert(info.release_title.toStdString());
+                    images_found.insert(info.release_title);
                 }
             };
 
@@ -1826,7 +1827,7 @@ try
             try
             {
                 auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
-                current_release = vm_image_info.release_title.toStdString();
+                current_release = vm_image_info.release_title;
             }
             catch (const std::exception& e)
             {
@@ -3774,7 +3775,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
         try
         {
             auto vm_image_info = config->image_hosts.back()->info_for_full_hash(vm_image.id);
-            original_release = vm_image_info.release_title.toStdString();
+            original_release = vm_image_info.release_title;
         }
         catch (const std::exception& e)
         {
