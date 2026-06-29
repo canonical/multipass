@@ -81,6 +81,9 @@ std::string mp::format::status_string_for(const mp::InstanceStatus& status)
     case mp::InstanceStatus::SUSPENDED:
         status_val = "Suspended";
         break;
+    case mp::InstanceStatus::UNAVAILABLE:
+        status_val = "Unavailable";
+        break;
     default:
         status_val = "Unknown";
         break;

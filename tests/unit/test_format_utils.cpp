@@ -77,6 +77,15 @@ TEST(InstanceStatusString, restartingStatusReturnsRestarting)
     EXPECT_THAT(status_string, Eq("Restarting"));
 }
 
+TEST(InstanceStatusString, unavailableStatusReturnsUnavailable)
+{
+    mp::InstanceStatus status;
+    status.set_status(mp::InstanceStatus::UNAVAILABLE);
+    auto status_string = mp::format::status_string_for(status);
+
+    EXPECT_THAT(status_string, Eq("Unavailable"));
+}
+
 TEST(InstanceStatusString, bogusStatusReturnsUnknown)
 {
     mp::InstanceStatus status;
