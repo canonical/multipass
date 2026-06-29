@@ -69,10 +69,17 @@ Each concern is a pair of ordinary pytest tests in `tests/upgrade/<concern>_test
 | ---- | ------------------------ |
 | `lifecycle` | A stopped VM's on-disk data and host-reported identity (cpu count, memory total, image release); it still boots. |
 | `suspend_resume` | A VM **suspended** during seeding comes back `Suspended` and resumes cleanly with its data. Skipped on `lxd`/`applevz`. |
-| `snapshot` | A two-level snapshot tree: its metadata (names, parents, comments, count) and the data captured in each snapshot (restoring `base` reveals exactly the state live when it was taken). Skipped on `lxd`/`applevz`. |
-| `mount` | A classic mount: the definition (still listed in `info`), host-written data visible in the guest, and guest-written data still on the host and re-exposed once the VM restarts. |
+| `snapshot` | A branched snapshot tree (BASE with two children): metadata (names, parents, comments, count), captured data, and captured cpu/memory/disk. Restoring `base` reveals base-only data, hides child-only data, and rolls resources back. Skipped on `lxd`/`applevz`. |
+| `mount` | A classic (SSHFS) and a native (9p) mount each survive a stopped upgrade, plus a classic mount across a suspended upgrade: definition still listed, host data visible in guest, guest-written data on host and re-exposed on restart. Native/suspend skipped on `lxd`/`applevz`. |
 | `cloudinit` | State applied by a custom `--cloud-init` at first boot: the provisioned file persists byte-for-byte and the cloud-init instance id is unchanged (proving it did not re-run). |
-| `network` | An extra `--network` interface: the guest still presents it with the same persisted MAC. Each phase stands up its own isolated, runtime-only host network and tears it down afterwards (privilege escalated via `sudo`/`gsudo`): a **bridge** on Linux (`ip link`), a **private Hyper-V vSwitch** on Windows (`New-VMSwitch -SwitchType Private`). It is re-created with the same fixed name each phase, so the instance's persisted NIC (MAC + network reference) re-attaches by name on verify. **Skipped** where no isolated ephemeral network can be created: macOS (both backends only bridge onto physical NICs), and Windows on a non-Hyper-V backend or where `New-VMSwitch` is absent (e.g. **Windows Home**). |
+| `network` | An extra `--network` interface survives, parked both **stopped** and **suspended** (suspend variant skipped on `lxd`/`applevz`): the guest still presents it with the same persisted MAC. Each phase stands up its own isolated, runtime-only host network and tears it down afterwards (privilege escalated via `sudo`/`gsudo`): a **bridge** on Linux (`ip link`), a **private Hyper-V vSwitch** on Windows (`New-VMSwitch -SwitchType Private`). It is re-created with the same fixed name each phase, so the instance's persisted NIC (MAC + network reference) re-attaches by name on verify. **Skipped** where no isolated ephemeral network can be created: macOS (both backends only bridge onto physical NICs), and Windows on a non-Hyper-V backend or where `New-VMSwitch` is absent (e.g. **Windows Home**). |
+| `multi_mount` | A classic and a native mount on one VM both survive. Skipped on `lxd`/`applevz`. |
+| `mount_mappings` | A classic mount's `--uid-map`/`--gid-map` mappings are preserved in `info`. |
+| `snapshot_contents` | A snapshot restore brings back files and instance resources (cpu/memory/disk) after they were mutated. Skipped on `lxd`/`applevz`. |
+| `clone` | A stopped VM clones cleanly post-upgrade; source and clone share the seeded data. |
+| `delete_restore` | A deleted-but-not-purged VM recovers with its data. |
+| `alias` | A seeded alias is still defined and runnable. |
+| `settings` | A custom client setting persists. |
 
 Tests deliberately park VMs in a `Stopped` (or `Suspended`) state at the end of seeding so the verify phase has a precise expectation rather than a version-dependent one (whether a *running* VM is re-attached or stopped by a refresh is daemon/version specific).
 
@@ -97,5 +104,3 @@ gh workflow run "Version Upgrade Tests" \
 ```
 
 The `backend-driver` and `pytest-extra-args` inputs are forwarded to both phases.
-
-## TODO: Add deleted vm
