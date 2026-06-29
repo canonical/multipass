@@ -16,10 +16,14 @@
 #
 #
 
-"""A stopped VM's data and identity should survive an upgrade."""
+"""A VM's data and reported identity should survive an upgrade. Covered for the
+default image (stopped), a non-default LTS (focal, suspended) and a non-Ubuntu
+image (debian, stopped); the suspended case skips where unsupported."""
 
 import pytest
 
+from cli.config import cfg
+from cli.multipass.feature_versions import requires_multipass
 from .helpers import (
     seed_sentinel,
     assert_sentinel_record,
@@ -30,26 +34,61 @@ from .helpers import (
 )
 from .seedutils import seeded_vm
 
-LIFECYCLE_VM = "upg-lifecycle"
+requires_suspend = pytest.mark.skipif(
+    cfg.driver in ("lxd", "applevz"),
+    reason=f"suspend is not supported on the `{cfg.driver}` driver",
+)
+
+
+def _seed(vm, image, how, expected, record):
+    with seeded_vm(vm, image=image) if image else seeded_vm(vm):
+        sentinel = seed_sentinel(vm, vm)
+        fingerprint = info_fingerprint(vm)  # cpu/memory only reported while running
+        park_seeded(vm, how=how, expected=expected)
+    record.update({"sentinel": sentinel, "fingerprint": fingerprint, "expected": expected})
+
+
+def _verify(vm, record):
+    resume_seeded(vm, expected_state=record["expected"])
+    assert_fingerprint_unchanged(vm, record["fingerprint"])
+    assert_sentinel_record(vm, record["sentinel"])
 
 
 @pytest.mark.seed
-@pytest.mark.scenario(LIFECYCLE_VM)
+@pytest.mark.scenario("upg-lifecycle")
 def test_lifecycle_seed(scenario):
-    with seeded_vm(LIFECYCLE_VM):
-        sentinel = seed_sentinel(LIFECYCLE_VM, "lifecycle")
-        fingerprint = info_fingerprint(LIFECYCLE_VM)  # captured while running
-        park_seeded(LIFECYCLE_VM)
-
-    scenario.record.update({"sentinel": sentinel, "fingerprint": fingerprint})
+    _seed("upg-lifecycle", None, "stop", "Stopped", scenario.record)
 
 
 @pytest.mark.verify
-@pytest.mark.scenario(LIFECYCLE_VM)
+@pytest.mark.scenario("upg-lifecycle")
 def test_lifecycle_verify(scenario):
-    recorded = scenario.record
+    _verify("upg-lifecycle", scenario.record)
 
-    resume_seeded(LIFECYCLE_VM, expected_state="Stopped")
-    # cpu/memory are only reported while running, so check after the start.
-    assert_fingerprint_unchanged(LIFECYCLE_VM, recorded["fingerprint"])
-    assert_sentinel_record(LIFECYCLE_VM, recorded["sentinel"])
+
+@pytest.mark.seed
+@pytest.mark.scenario("upg-focal")
+@requires_suspend
+def test_focal_seed(scenario):
+    _seed("upg-focal", "focal", "suspend", "Suspended", scenario.record)
+
+
+@pytest.mark.verify
+@pytest.mark.scenario("upg-focal")
+@requires_suspend
+def test_focal_verify(scenario):
+    _verify("upg-focal", scenario.record)
+
+
+@pytest.mark.seed
+@pytest.mark.scenario("upg-debian")
+@requires_multipass(">=1.17")
+def test_debian_seed(scenario):
+    _seed("upg-debian", "debian", "stop", "Stopped", scenario.record)
+
+
+@pytest.mark.verify
+@pytest.mark.scenario("upg-debian")
+@requires_multipass(">=1.17")
+def test_debian_verify(scenario):
+    _verify("upg-debian", scenario.record)
