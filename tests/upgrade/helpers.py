@@ -18,6 +18,8 @@
 
 """Assertions and small building blocks shared by the upgrade tests."""
 
+import sys
+
 from cli.multipass import (
     info,
     multipass,
@@ -31,6 +33,15 @@ from cli.utilities import uuid4_str
 
 #: Sentinel files live in the guest home, which survives reboots and snapshots.
 SENTINEL_DIR = "/home/ubuntu"
+
+
+def enable_privileged_mounts(governor):
+    """On Windows, mounts need privileged mounts enabled. The setting restarts
+    the daemon, so wait for it to come back (cf. network_test)."""
+    if sys.platform != "win32":
+        return
+    assert multipass("set", "local.privileged-mounts=1")
+    governor.wait_for_restart()
 
 
 def make_sentinel(label: str) -> str:
