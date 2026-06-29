@@ -265,5 +265,5 @@ inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message
                        "        multipass exec <instance> -- sudo resize2fs "
                        "/dev/<disk_device><partition_number>\n\n"
                        "Check the resize status with the command below:\n\n"
-                       "         multipass info <instance>\n");
+                       "        multipass info <instance>\n");
 }

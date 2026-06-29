@@ -409,8 +409,8 @@ TEST_P(TestSettingSetOtherExceptions, setThrowsOtherExceptionsFromAnyHandler)
             expectation.WillOnce(WithoutArgs([&thrower, e = &except] {
                 std::visit(thrower, *e);
                 return mp::Annotated<void>{};
-            })); /* lambda capture
-with initializer works around forbidden capture of structured binding */
+            })); /* lambda capture with initializer works around forbidden capture of structured
+                    binding */
         else if (i > thrower_idx)
             expectation.Times(0);
 
