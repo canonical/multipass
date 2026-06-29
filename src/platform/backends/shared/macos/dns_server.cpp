@@ -30,10 +30,17 @@ namespace
 {
 constexpr auto category = "dns";
 
+// RFC 1035 constants
+constexpr std::uint16_t qtype_a = 1;
 constexpr std::uint16_t qclass_in = 1;
-constexpr std::size_t max_udp_msg = 512; // As per RFC 1035
+constexpr std::size_t max_udp_msg = 512;
 constexpr std::size_t dns_header_len = 12;
-constexpr std::uint16_t qr_mask = 0x8000; // Header bit mask
+constexpr std::uint32_t answer_ttl = 0; // Do not let client cache IPs
+
+// Header flags/masks
+constexpr std::uint16_t qr_mask = 0x8000;            // Header bit mask
+constexpr std::uint16_t authoritative_flag = 0x0400; // AA = 1
+constexpr std::uint16_t rcode_nxdomain = 0x0003;     // RCODE = 3
 
 // Decoded DNS query message as described in RFC 1035
 // Only the required header and the question are parsed
@@ -52,7 +59,25 @@ std::uint16_t read_u16(std::span<const unsigned char> p)
     return static_cast<std::uint16_t>((p[0] << 8) | p[1]);
 }
 
-std::optional<Query> parse_msg(std::spane<const unsigned char> msg)
+void append_u16(std::vector<unsigned char>& out, std::uint16_t val)
+{
+    out.push_back(static_cast<unsigned char>(val >> 8));
+    out.push_back(static_cast<unsigned char>(val & 0xff));
+}
+
+void append_u32(std::vector<unsigned char>& out, std::uint32_t val)
+{
+    out.push_back(static_cast<unsigned char>((val >> 24) & 0xff));
+    out.push_back(static_cast<unsigned char>((val >> 16) & 0xff));
+    out.push_back(static_cast<unsigned char>((val >> 8) & 0xff));
+    out.push_back(static_cast<unsigned char>(val & 0xff));
+}
+
+// Parses a raw DNS message into a Query object
+//
+// We put extra care into verifying the message form because this comes from a UDP socket that is
+// connectionless and spoofable
+std::optional<Query> parse_msg(std::span<const unsigned char> msg)
 {
     const auto len = msg.size();
     if (len < dns_header_len) // Invalid length for DNS header
@@ -65,7 +90,7 @@ std::optional<Query> parse_msg(std::spane<const unsigned char> msg)
 
     // msg type is query (0) and verify only one question
     // https://www.ietf.org/archive/id/draft-bellis-dnsop-qdcount-is-one-00.html#name-updates-to-rfc-1035
-    if ((q.flags & qr_mask != 0) || qdcount != 1)
+    if ((q.flags & qr_mask) != 0 || qdcount != 1)
         return std::nullopt;
 
     // Parse the labels in the message
@@ -104,9 +129,45 @@ std::optional<Query> parse_msg(std::spane<const unsigned char> msg)
     return q;
 }
 
-std::vector<unsigned char> build_response()
+// Build a DNS response message for the given parsed query
+//
+// The response always echoes back the original question section verbatim so the client can match
+// the reply to its question
+std::vector<unsigned char> build_response(std::span<const unsigned char> query,
+                                          const Query& q,
+                                          const std::optional<mp::IPAddress>& ip)
 {
-    return {};
+    std::vector<unsigned char> retval;
+    retval.reserve(q.question_end + 16); // Answer record is 16 bytes long
+
+    const bool resolved = ip.has_value();
+    std::uint16_t flags = qr_mask | authoritative_flag | (q.flags & 0x0100); // preserve RD
+    if (!resolved)
+        flags |= rcode_nxdomain;
+
+    append_u16(retval, q.id);
+    append_u16(retval, flags);
+    append_u16(retval, 1);                // QDCOUNT
+    append_u16(retval, resolved ? 1 : 0); // ANCOUNT
+    append_u16(retval, 0);                // NSCOUNT
+    append_u16(retval, 0);                // ARCOUNT
+
+    // Echo the question section verbatim
+    retval.insert(retval.end(), query.begin() + dns_header_len, query.begin() + q.question_end);
+
+    if (resolved)
+    {
+        append_u16(retval, 0xc00c);     // NAME: internal pointer to the question name at offset 12
+        append_u16(retval, qtype_a);    // TYPE: A
+        append_u16(retval, qclass_in);  // CLASS: IN
+        append_u32(retval, answer_ttl); // TTL
+        append_u16(retval, 4);          // RDLENGTH
+
+        // insert IP address octets
+        retval.insert(retval.end(), ip->octets.begin(), ip->octets.end());
+    }
+
+    return retval;
 }
 }
 
@@ -141,6 +202,9 @@ mp::MacDNSServer::~MacDNSServer()
 {
     listener.request_stop();
 
+    if (listener.joinable())
+        listener.join();
+
     if (socket_fd >= 0)
         close(socket_fd);
 }
@@ -168,8 +232,8 @@ void mp::MacDNSServer::run(std::stop_token stop_token) noexcept
             continue;
         }
 
-        const auto datagram = std::span{buffer}.first(static_cast<std::size_t>(received));
-        const auto query = parse_msg(buffer.data(), static_cast<std::size_t>(msg_len));
+        const auto datagram = std::span{buffer}.first(static_cast<std::size_t>(msg_len));
+        const auto query = parse_msg(datagram);
         if (!query)
         {
             mpl::debug(category, "Failed to parse message");
@@ -190,14 +254,16 @@ void mp::MacDNSServer::run(std::stop_token stop_token) noexcept
                     ip = resolver(instance_name);
                 }
                 catch (const std::exception& e)
+                {
                     mpl::warn(category,
                               "Unexpected error occured resolving an IP address for \"{}\": {}",
                               instance_name,
                               e.what());
+                }
             }
         }
 
-        const auto resp = build_response();
+        const auto resp = build_response(datagram, *query, ip);
 
         sendto(socket_fd,
                resp.data(),
