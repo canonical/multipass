@@ -36,12 +36,6 @@ namespace
 {
 constexpr auto category = "ssh process";
 
-static void channel_exit_status_cb(ssh_session, ssh_channel, int exit_status, void* userdata)
-{
-    auto exit_code = static_cast<mp::PlainSSHProcess::ExitResultType*>(userdata);
-    *exit_code = exit_status;
-}
-
 auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callbacks cb)
 {
     if (!MP_LIBSSH.ssh_is_connected(session))
@@ -73,15 +67,6 @@ auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callb
     return channel;
 }
 
-auto make_channel_callbacks(mp::PlainSSHProcess::ExitResultType& exit_result)
-{
-    ssh_channel_callbacks_struct local_cb{};
-    ssh_callbacks_init(&local_cb);
-    local_cb.channel_exit_status_function = channel_exit_status_cb;
-    local_cb.userdata = &exit_result;
-    return local_cb;
-}
-
 } // namespace
 
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
@@ -91,7 +76,7 @@ mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
           session_lock)}, // this is held until the exit code is requested or this is destroyed
       session{&session},
       cmd{cmd},
-      cb{make_channel_callbacks(exit_result)},
+      cb{make_channel_callbacks()},
       channel{make_channel(this->session, cmd, &cb)}
 {
     assert(this->session_lock.owns_lock());
@@ -101,6 +86,56 @@ mp::PlainSSHProcess::~PlainSSHProcess()
 {
     if (channel) // TODO@sftp remove
         ssh_remove_channel_callbacks(channel.get(), &cb);
+}
+
+ssh_channel_callbacks_struct mp::PlainSSHProcess::make_channel_callbacks()
+{
+    ssh_channel_callbacks_struct local_cb{};
+    ssh_callbacks_init(&local_cb);
+    local_cb.channel_exit_status_function = &PlainSSHProcess::channel_exit_status_cb;
+    local_cb.channel_exit_signal_function = &PlainSSHProcess::channel_exit_signal_cb;
+    local_cb.channel_eof_function = &PlainSSHProcess::channel_eof_cb;
+    local_cb.channel_close_function = &PlainSSHProcess::channel_close_cb;
+
+    local_cb.userdata = this;
+    return local_cb;
+}
+
+void mp::PlainSSHProcess::channel_exit_status_cb(ssh_session,
+                                                 ssh_channel,
+                                                 int exit_status,
+                                                 void* userdata)
+{
+    auto* process = reinterpret_cast<mp::PlainSSHProcess*>(userdata);
+    process->exit_result = exit_status;
+}
+
+void mp::PlainSSHProcess::channel_exit_signal_cb(ssh_session,
+                                                 ssh_channel,
+                                                 const char* signal,
+                                                 int,
+                                                 const char*,
+                                                 const char*,
+                                                 void* userdata)
+{
+    auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
+    std::string sig_name = signal ? signal : "UNKNOWN";
+
+    process->exit_result = std::make_exception_ptr(
+        SSHProcessExitError{process->cmd, "Process terminated by remote signal: SIG" + sig_name});
+}
+
+void mp::PlainSSHProcess::channel_eof_cb(ssh_session, ssh_channel, void* userdata)
+{
+    auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
+    process->remote_eof = true;
+}
+
+void mp::PlainSSHProcess::channel_close_cb(ssh_session, ssh_channel, void* userdata)
+{
+    auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
+    process->remote_closed = true;
+    process->remote_eof = true;
 }
 
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
@@ -146,26 +181,8 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
 
         std::rethrow_exception(eptr);
     }
-    std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{
-        MP_LIBSSH.ssh_event_new(),
-        [](ssh_event e) { MP_LIBSSH.ssh_event_free(e); }};
 
-    std::optional<std::string> err = std::nullopt;
-    if (!event)
-        err = "could not allocate event";
-    else if (MP_LIBSSH.ssh_event_add_session(event.get(), session) != SSH_OK)
-    {
-        const auto raw_err = MP_LIBSSH.ssh_get_error(session);
-        err = fmt::format("could not add event to session: {}",
-                          raw_err && *raw_err ? raw_err : "Empty error");
-    }
-    if (err.has_value())
-    {
-        eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err.value()});
-        if (save_exception)
-            exit_result = eptr;
-        std::rethrow_exception(eptr);
-    }
+    auto event = get_event_in_session(save_exception);
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
@@ -268,4 +285,29 @@ void multipass::PlainSSHProcess::rethrow_if_saved() const
         assert(!session_lock.owns_lock());
         std::rethrow_exception(*eptrptr);
     }
+}
+
+mp::PlainSSHProcess::EventUPtr mp::PlainSSHProcess::get_event_in_session(bool save_exception)
+{
+
+    mp::PlainSSHProcess::EventUPtr event{MP_LIBSSH.ssh_event_new(),
+                                         [](ssh_event e) { MP_LIBSSH.ssh_event_free(e); }};
+
+    std::optional<std::string> err = std::nullopt;
+    if (!event)
+        err = "could not allocate event";
+    else if (MP_LIBSSH.ssh_event_add_session(event.get(), session) != SSH_OK)
+    {
+        const auto raw_err = ssh_get_error(session);
+        err = fmt::format("could not add event to session: {}",
+                          raw_err && *raw_err ? raw_err : "Empty error");
+    }
+    if (err.has_value())
+    {
+        std::exception_ptr eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err.value()});
+        if (save_exception)
+            exit_result = eptr;
+        std::rethrow_exception(eptr);
+    }
+    return event;
 }
