@@ -57,7 +57,7 @@ def test_multi_mount_seed(scenario, multipassd_session_scoped):
     (native_source / "host.txt").write_text(native_host_content, encoding="utf-8")
 
     with seeded_vm(VM):
-        enable_privileged_mounts(multipassd_session_scoped)
+        enable_privileged_mounts(multipassd_session_scoped, VM)
 
         assert multipass("stop", VM)
         assert multipass("mount", "--type", "classic", str(classic_source), VM)
