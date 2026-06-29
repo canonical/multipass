@@ -34,6 +34,7 @@ class PlainSSHProcess : public SSHProcess
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
     using ExitResultType = std::variant<std::monostate, int, std::exception_ptr>;
+    using EventUPtr = std::unique_ptr<ssh_event_struct, void (*)(ssh_event)>;
 
     PlainSSHProcess(ssh_session_struct& ssh_session,
                     const std::string& cmd,
@@ -70,14 +71,33 @@ private:
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel(); // releases the lock on the session; callers are on their own to
                                    // ensure thread safety
+    EventUPtr get_event_in_session(bool save_exception);
+
+    static void channel_exit_status_cb(ssh_session session,
+                                       ssh_channel channel,
+                                       int exit_status,
+                                       void* userdata);
+    static void channel_exit_signal_cb(ssh_session session,
+                                       ssh_channel channel,
+                                       const char* signal,
+                                       int core,
+                                       const char* errmsg,
+                                       const char* lang,
+                                       void* userdata);
+    static void channel_eof_cb(ssh_session session, ssh_channel channel, void* userdata);
+    static void channel_close_cb(ssh_session session, ssh_channel channel, void* userdata);
+    ssh_channel_callbacks_struct make_channel_callbacks();
 
     std::unique_lock<std::mutex> session_lock; // do not attempt to re-lock, as this is moved from
     ssh_session session;
     std::string cmd;
 
-    ExitResultType exit_result{};
     ssh_channel_callbacks_struct cb;
     ChannelUPtr channel;
+
+    ExitResultType exit_result{};
+    bool remote_eof{false};
+    bool remote_closed{false};
 
     friend class SftpServer;
 };
