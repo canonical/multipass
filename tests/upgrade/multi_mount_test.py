@@ -18,7 +18,6 @@
 
 """Classic and native mounts should both survive an upgrade."""
 
-import sys
 from pathlib import Path
 
 import pytest
@@ -26,7 +25,7 @@ import pytest
 from cli.config import cfg
 from cli.multipass import multipass, mounts, read_file, write_file, path_exists
 from cli.utilities import retry
-from .helpers import make_sentinel, park_seeded, resume_seeded
+from .helpers import make_sentinel, park_seeded, resume_seeded, enable_privileged_mounts
 from .seedutils import seeded_vm, daemon_readable_dir
 
 VM = "upg-multimount"
@@ -46,7 +45,7 @@ def _guest_target(source: Path) -> str:
 @pytest.mark.seed
 @pytest.mark.scenario(VM)
 @requires_native_mount
-def test_multi_mount_seed(scenario):
+def test_multi_mount_seed(scenario, multipassd_session_scoped):
     classic_source = daemon_readable_dir(f"{VM}-classic")
     native_source = daemon_readable_dir(f"{VM}-native")
     classic_target = _guest_target(classic_source)
@@ -58,8 +57,7 @@ def test_multi_mount_seed(scenario):
     (native_source / "host.txt").write_text(native_host_content, encoding="utf-8")
 
     with seeded_vm(VM):
-        if sys.platform == "win32":
-            assert multipass("set", "local.privileged-mounts=1")
+        enable_privileged_mounts(multipassd_session_scoped)
 
         assert multipass("stop", VM)
         assert multipass("mount", "--type", "classic", str(classic_source), VM)
