@@ -29,6 +29,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_virtdisk_snapshot.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hcs_virtual_machine.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hcs_virtual_machine_factory.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_ut_nrpt_rule.cpp
     )
 
     target_sources(multipass_integration_tests
@@ -38,6 +39,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_it_virtdisk.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_it_virtdisk_snapshot.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_bb_cit_hyperv.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_it_nrpt_rule.cpp
     )
 
     target_link_libraries(multipass_cpp_tests hcs_backend)

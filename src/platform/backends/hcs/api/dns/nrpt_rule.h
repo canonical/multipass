@@ -24,6 +24,13 @@ namespace multipass::hyperv::dns
 {
 
 /**
+ * Encode a list of DNS namespaces as a REG_MULTI_SZ payload: each entry is NUL-terminated and
+ * the list is terminated by a trailing empty string (double NUL). Empty entries are skipped.
+ * Exposed for testing the multi-suffix encoding without touching the registry.
+ */
+std::wstring make_namespace_multi_sz(const std::vector<std::string>& dns_namespaces);
+
+/**
  * RAII wrapper around a single local Windows Name Resolution Policy Table (NRPT) rule.
  *
  * An NRPT rule routes DNS queries for a namespace (e.g. ".multipass.test") to a
@@ -41,7 +48,7 @@ class NrptRule
 {
 public:
     /**
-     * Create and apply an NRPT rule.
+     * Create and apply an NRPT rule for a single namespace.
      *
      * @param dns_namespace The namespace to match, including the leading dot
      *                      (e.g. ".multipass.test").
@@ -49,6 +56,20 @@ public:
      * @throws std::runtime_error if the rule could not be written to the registry.
      */
     NrptRule(const std::string& dns_namespace, const std::vector<std::string>& name_servers);
+
+    /**
+     * Create and apply an NRPT rule for multiple namespaces.
+     *
+     * A single rule can match more than one DNS suffix (e.g. ".multipass.zone1" and
+     * ".multipass.zone2"), all routed to the same override resolvers. This maps onto the
+     * REG_MULTI_SZ "Name" value the NRPT supports natively.
+     *
+     * @param dns_namespaces The namespaces to match, each including the leading dot.
+     * @param name_servers   The DNS server IPs to route the namespaces to.
+     * @throws std::runtime_error if the rule could not be written to the registry.
+     */
+    NrptRule(const std::vector<std::string>& dns_namespaces,
+             const std::vector<std::string>& name_servers);
 
     ~NrptRule();
 
