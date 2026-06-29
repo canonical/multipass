@@ -50,7 +50,9 @@ def info(name):
     """
     Get 'multipass info' JSON for instance.
     """
-    with multipass("info", "--format=json", f"{name}").json() as output:
+    # The guest's ssh connection might bounce during the launch/start.
+    # `retry` is here to alleviate that.
+    with multipass("info", "--format=json", f"{name}", retry=5).json() as output:
         assert output, f"info({name}) failed ({output.exitstatus}): {str(output)}"
         assert (
             "info" in output
