@@ -31,12 +31,15 @@ import asyncio
 import re
 import sys
 import subprocess
+import threading
+from contextlib import suppress
 from typing import AsyncIterator, Optional
 
 from cli.utilities import (
     StdoutAsyncSubprocess,
     SilentAsyncSubprocess,
-    sudo
+    sudo,
+    run_detached_thread,
 )
 from cli.config import cfg
 from .controller_exceptions import ControllerPrerequisiteError
@@ -124,12 +127,16 @@ class WindowsServiceMultipassdController:
 
         loop = asyncio.get_running_loop()
         q: asyncio.Queue[str] = asyncio.Queue()
+        closing = threading.Event()
 
         pubmeta = win32evtlog.EvtOpenPublisherMetadata(
             "Multipass",          # provider name
         )
 
         def callback(action, _, handle):
+            if closing.is_set():
+                return
+
             # action is one of the EVT_SUBSCRIBE_NOTIFY_* values.
             # We only care about new events.
             if action == win32evtlog.EvtSubscribeActionDeliver:
@@ -140,29 +147,54 @@ class WindowsServiceMultipassdController:
                 except Exception as ex:
                     msg = f"<unformatted event>: {ex}"
 
-                # Hand off to asyncio loop
-                loop.call_soon_threadsafe(
-                    q.put_nowait, msg.replace("\r\n", "\n"))
+                # Hand off to asyncio loop. In-flight callbacks can outlive the
+                # async generator teardown, so re-check `closing` and guard the
+                # scheduling in case the loop is already closing.
+                if closing.is_set():
+                    return
+                with suppress(RuntimeError):
+                    loop.call_soon_threadsafe(
+                        q.put_nowait, msg.replace("\r\n", "\n"))
 
         signal_event = None  # you can pass a Windows event for shutdown if you want
         flags = win32evtlog.EvtSubscribeToFutureEvents
         channel = "Application"
         query = "*[System[Provider[@Name='Multipass']]]"
 
-        sub = win32evtlog.EvtSubscribe(
-            ChannelPath=channel,
-            SignalEvent=signal_event,
-            Query=query,
-            Callback=callback,
-            Flags=flags
-        )
+        try:
+            sub = win32evtlog.EvtSubscribe(
+                ChannelPath=channel,
+                SignalEvent=signal_event,
+                Query=query,
+                Callback=callback,
+                Flags=flags
+            )
+        except Exception:
+            # Avoid leaking the publisher metadata handle if the subscription
+            # creation fails (e.g., permissions/invalid query).
+            with suppress(Exception):
+                pubmeta.Close()
+            raise
+
+        def close_eventlog_handles():
+            # EvtClose() can block while Windows/pywin32 waits for in-flight callbacks.
+            # Keep that native wait off the asyncio loop thread. The thread is daemonized
+            # so a stuck EvtClose() cannot keep pytest alive.
+            with suppress(Exception):
+                sub.Close()
+
+            # Close publisher metadata only after the subscription close returns,
+            # because callbacks may still use it while EvtClose() drains.
+            with suppress(Exception):
+                pubmeta.Close()
 
         try:
             while True:
                 msg = await q.get()
                 yield msg
         finally:
-            sub.Close()
+            closing.set()
+            run_detached_thread("close-multipass-eventlog-subscription", close_eventlog_handles)
 
     async def is_active(self) -> bool:
         return await self._get_state() == "RUNNING"

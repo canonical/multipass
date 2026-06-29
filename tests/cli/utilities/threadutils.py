@@ -20,7 +20,7 @@ import threading
 import asyncio
 import time
 from concurrent.futures import Future
-from typing import Callable
+from typing import Callable, Any
 from contextlib import suppress
 
 
@@ -260,3 +260,17 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
         raise TimeoutError(f"Operation timed out after {timeout} seconds")
 
     return fut.result()
+
+def run_detached_thread(name: str, target: Callable[[], Any]) -> threading.Thread:
+    """Run a synchronous callable on a detached daemon thread.
+
+    Intended for best-effort cleanup of blocking native calls where waiting for
+    completion would risk hanging pytest teardown.
+    """
+    thread = threading.Thread(
+        target=target,
+        name=name,
+        daemon=True,
+    )
+    thread.start()
+    return thread
