@@ -111,17 +111,53 @@ std::string resolve_via(const std::string& dns_server, const std::string& name)
 
 // Returns the IPv4 address the host sees for the given MAC address (i.e. the guest's leased
 // address, as recorded in the host neighbor/ARP table). Empty if not yet present.
-std::string neighbor_ip_for_mac(const std::string& mac_dashed)
+std::string neighbor_ip_for_mac(const std::string& mac_dashed, const std::string& subnet_glob = "172.50.*")
 {
     return run_powershell(
         fmt::format("(Get-NetNeighbor -ErrorAction SilentlyContinue | Where-Object {{ "
-                    "$_.LinkLayerAddress -eq '{}' -and $_.IPAddress -like '172.50.*' }} | "
+                    "$_.LinkLayerAddress -eq '{}' -and $_.IPAddress -like '{}' }} | "
                     "Select-Object -First 1).IPAddress",
-                    mac_dashed));
+                    mac_dashed,
+                    subnet_glob));
 }
 
 // PowerShell-style registry path of the DNS client parameters (suffix append, NRPT lives below).
 constexpr auto dnscache_key = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters";
+
+// Bring up one network + endpoint + guest on a given subnet/gateway, advertising a dotted hostname.
+// vhdx/iso must already exist and outlive the VM. Returns the started VM handle.
+hyperv::hcs::HcsSystemHandle boot_guest(const std::string& net_guid,
+                                        const std::string& ep_guid,
+                                        const std::string& vm_name,
+                                        const std::string& mac,
+                                        const std::string& subnet_cidr,
+                                        const std::string& gateway,
+                                        const std::filesystem::path& vhdx,
+                                        const std::filesystem::path& iso)
+{
+    hyperv::hcn::CreateNetworkParameters net{};
+    net.name = vm_name + "-net";
+    net.guid = net_guid;
+    net.flags = hyperv::hcn::HcnNetworkFlags::enable_dns_proxy | hyperv::hcn::HcnNetworkFlags::enable_dhcp_server;
+    net.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+        {hyperv::hcn::HcnSubnet{subnet_cidr, {hyperv::hcn::HcnRoute{gateway, "0.0.0.0/0", 0}}}}}};
+    hyperv::hcn::CreateEndpointParameters ep{}; ep.network_guid = net_guid; ep.endpoint_guid = ep_guid;
+    (void)HCN().delete_endpoint(ep_guid); (void)HCN().delete_network(net_guid);
+    EXPECT_TRUE(bool(HCN().create_network(net)));
+    EXPECT_TRUE(bool(HCN().create_endpoint(ep)));
+
+    hyperv::hcs::CreateComputeSystemParameters vm{};
+    vm.name = vm_name; vm.processor_count = 1; vm.memory_size_mb = 512;
+    hyperv::hcs::HcsNetworkAdapter na{}; na.endpoint_guid = ep_guid; na.mac_address = mac;
+    vm.network_adapters.push_back(na);
+    vm.scsi_devices = {hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), .name = "Primary disk", .path = vhdx},
+                       hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::Iso(), .name = "Cloud-init ISO", .path = iso, .read_only = true}};
+    hyperv::hcs::HcsSystemHandle h{nullptr};
+    EXPECT_TRUE(bool(HCS().create_compute_system(vm, h)));
+    EXPECT_TRUE(HCS().grant_vm_access(vm_name, vhdx)); EXPECT_TRUE(HCS().grant_vm_access(vm_name, iso));
+    EXPECT_TRUE(bool(HCS().start_compute_system(h)));
+    return h;
+}
 } // namespace
 
 // Component level big bang integration tests for Hyper-V HCN/HCS + virtdisk API's.
@@ -1107,6 +1143,87 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_multi_zone_resolution)
     EXPECT_TRUE(HCN().delete_endpoint(ep1.endpoint_guid));
     EXPECT_TRUE(HCN().delete_endpoint(ep2.endpoint_guid));
     EXPECT_TRUE(HCN().delete_network(net.guid));
+}
+
+// Two separate ICS networks, each owning a DIFFERENT suffix: a single multi-suffix NrptRule
+// routes ".zone1.mshome.net" -> gw1 and ".zone2.mshome.net" -> gw2 (GenericDNSServers list). Each
+// guest resolves to its own network's lease, proving multi-suffix works ACROSS networks.
+TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_two_networks_distinct_zones)
+{
+    constexpr auto gw1 = "172.50.224.1";
+    constexpr auto gw2 = "172.60.224.1";
+    const auto rng = [] { std::mt19937_64 r{std::random_device{}()}; return static_cast<std::uint32_t>(r()); };
+    const auto host1 = fmt::format("mp-na-{:08x}.zone1", rng());
+    const auto host2 = fmt::format("mp-nb-{:08x}.zone2", rng());
+
+    const auto saved_suffix = run_powershell("(Get-DnsClientGlobalSetting).SuffixSearchList -join ','");
+    (void)run_powershell(fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList @('mshome.net'); "
+        "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord", dnscache_key));
+    struct G { std::string s; ~G(){ (void)run_powershell(s.empty()?std::string{"Set-DnsClientGlobalSetting -SuffixSearchList @()"}:fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')",s)); (void)run_powershell("Clear-DnsClientCache"); } } g{saved_suffix};
+
+    // ONE rule, two suffixes, two gateways (one per network).
+    hyperv::dns::NrptRule nrpt{std::vector<std::string>{".zone1.mshome.net", ".zone2.mshome.net"}, {gw1, gw2}};
+    (void)run_powershell("Clear-DnsClientCache");
+
+    const auto v1=make_tempfile_path(".vhdx"),v2=make_tempfile_path(".vhdx"),i1=make_tempfile_path(".iso"),i2=make_tempfile_path(".iso");
+    reassemble_alpine_vhdx(v1); reassemble_alpine_vhdx(v2);
+    const auto mk=[&](const std::string&h,const std::filesystem::path&i){return run_powershell(fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' --hostname '{}' --output '{}' 2>&1",test_data_path,h,i.string()));};
+    const auto o1=mk(host1,i1); ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i1)))<<o1;
+    const auto o2=mk(host2,i2); ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i2)))<<o2;
+
+    auto h1=boot_guest("b4d77a0e-2507-45f0-99aa-c638f3e47495","aee79cf9-54d1-4653-81fb-8110db970331","mp-net1-vm","00-15-5D-9D-CF-91","172.50.224.0/20",gw1,v1,i1);
+    auto h2=boot_guest("b4d77a0e-2507-45f0-99aa-c638f3e47496","aee79cf9-54d1-4653-81fb-8110db970332","mp-net2-vm","00-15-5D-9D-CF-92","172.60.224.0/20",gw2,v2,i2);
+
+    const auto resolve=[](const std::string&n){return run_powershell(fmt::format("(Resolve-DnsName -Name {} -Type A -QuickTimeout -EA SilentlyContinue | Where-Object {{ $_.Type -eq 'A' }}).IPAddress -join ','",n));};
+    std::string l1,l2,r1,r2; const auto dl=std::chrono::steady_clock::now()+std::chrono::seconds(180);
+    while(std::chrono::steady_clock::now()<dl){ l1=neighbor_ip_for_mac("00-15-5D-9D-CF-91","172.50.*"); l2=neighbor_ip_for_mac("00-15-5D-9D-CF-92","172.60.*"); if(!l1.empty()&&!l2.empty()){(void)run_powershell("Clear-DnsClientCache"); r1=resolve(host1); r2=resolve(host2); if(r1==l1&&r2==l2)break;} std::this_thread::sleep_for(std::chrono::seconds(5)); }
+    GTEST_LOG_(INFO)<<host1<<"->'"<<r1<<"'(net1 '"<<l1<<"'); "<<host2<<"->'"<<r2<<"'(net2 '"<<l2<<"')";
+    EXPECT_FALSE(l1.empty()); EXPECT_FALSE(l2.empty());
+    EXPECT_EQ(r1,l1)<<host1<<" did not resolve to net1 guest."; EXPECT_EQ(r2,l2)<<host2<<" did not resolve to net2 guest.";
+    (void)HCS().terminate_compute_system(h1); h1.reset(); (void)HCS().terminate_compute_system(h2); h2.reset();
+    EXPECT_TRUE(HCN().delete_endpoint("aee79cf9-54d1-4653-81fb-8110db970331")); EXPECT_TRUE(HCN().delete_endpoint("aee79cf9-54d1-4653-81fb-8110db970332"));
+    EXPECT_TRUE(HCN().delete_network("b4d77a0e-2507-45f0-99aa-c638f3e47495")); EXPECT_TRUE(HCN().delete_network("b4d77a0e-2507-45f0-99aa-c638f3e47496"));
+}
+
+// ONE domain assigned to TWO networks at once: both guests advertise ".zone1" on separate networks
+// and a single rule routes ".zone1.mshome.net" to BOTH gateways. Both resolve simultaneously --
+// the suffix is not bound to a single network.
+TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_one_zone_two_networks)
+{
+    constexpr auto gw1 = "172.50.224.1";
+    constexpr auto gw2 = "172.60.224.1";
+    const auto rng = [] { std::mt19937_64 r{std::random_device{}()}; return static_cast<std::uint32_t>(r()); };
+    const auto host1 = fmt::format("mp-sa-{:08x}.zone1", rng());
+    const auto host2 = fmt::format("mp-sb-{:08x}.zone1", rng());
+
+    const auto saved_suffix = run_powershell("(Get-DnsClientGlobalSetting).SuffixSearchList -join ','");
+    (void)run_powershell(fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList @('mshome.net'); "
+        "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord", dnscache_key));
+    struct G { std::string s; ~G(){ (void)run_powershell(s.empty()?std::string{"Set-DnsClientGlobalSetting -SuffixSearchList @()"}:fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')",s)); (void)run_powershell("Clear-DnsClientCache"); } } g{saved_suffix};
+
+    // ONE suffix routed to BOTH gateways -- the same domain spans both networks.
+    hyperv::dns::NrptRule nrpt{".zone1.mshome.net", {gw1, gw2}};
+    (void)run_powershell("Clear-DnsClientCache");
+
+    const auto v1=make_tempfile_path(".vhdx"),v2=make_tempfile_path(".vhdx"),i1=make_tempfile_path(".iso"),i2=make_tempfile_path(".iso");
+    reassemble_alpine_vhdx(v1); reassemble_alpine_vhdx(v2);
+    const auto mk=[&](const std::string&h,const std::filesystem::path&i){return run_powershell(fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' --hostname '{}' --output '{}' 2>&1",test_data_path,h,i.string()));};
+    const auto o1=mk(host1,i1); ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i1)))<<o1;
+    const auto o2=mk(host2,i2); ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i2)))<<o2;
+
+    auto h1=boot_guest("b4d77a0e-2507-45f0-99aa-c638f3e47497","aee79cf9-54d1-4653-81fb-8110db970341","mp-zn1-vm","00-15-5D-9D-CF-A1","172.50.224.0/20",gw1,v1,i1);
+    auto h2=boot_guest("b4d77a0e-2507-45f0-99aa-c638f3e47498","aee79cf9-54d1-4653-81fb-8110db970342","mp-zn2-vm","00-15-5D-9D-CF-A2","172.60.224.0/20",gw2,v2,i2);
+
+    const auto resolve=[](const std::string&n){return run_powershell(fmt::format("(Resolve-DnsName -Name {} -Type A -QuickTimeout -EA SilentlyContinue | Where-Object {{ $_.Type -eq 'A' }}).IPAddress -join ','",n));};
+    std::string l1,l2,r1,r2; const auto dl=std::chrono::steady_clock::now()+std::chrono::seconds(180);
+    while(std::chrono::steady_clock::now()<dl){ l1=neighbor_ip_for_mac("00-15-5D-9D-CF-A1","172.50.*"); l2=neighbor_ip_for_mac("00-15-5D-9D-CF-A2","172.60.*"); if(!l1.empty()&&!l2.empty()){(void)run_powershell("Clear-DnsClientCache"); r1=resolve(host1); r2=resolve(host2); if(r1==l1&&r2==l2)break;} std::this_thread::sleep_for(std::chrono::seconds(5)); }
+    GTEST_LOG_(INFO)<<host1<<"->'"<<r1<<"'(net1 '"<<l1<<"'); "<<host2<<"->'"<<r2<<"'(net2 '"<<l2<<"')";
+    EXPECT_FALSE(l1.empty()); EXPECT_FALSE(l2.empty());
+    EXPECT_EQ(r1,l1)<<host1<<" (.zone1 on net1) did not resolve."; EXPECT_EQ(r2,l2)<<host2<<" (.zone1 on net2) did not resolve.";
+    EXPECT_NE(l1,l2)<<"guests on different networks must hold distinct leases.";
+    (void)HCS().terminate_compute_system(h1); h1.reset(); (void)HCS().terminate_compute_system(h2); h2.reset();
+    EXPECT_TRUE(HCN().delete_endpoint("aee79cf9-54d1-4653-81fb-8110db970341")); EXPECT_TRUE(HCN().delete_endpoint("aee79cf9-54d1-4653-81fb-8110db970342"));
+    EXPECT_TRUE(HCN().delete_network("b4d77a0e-2507-45f0-99aa-c638f3e47497")); EXPECT_TRUE(HCN().delete_network("b4d77a0e-2507-45f0-99aa-c638f3e47498"));
 }
 
 } // namespace multipass::test
