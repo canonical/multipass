@@ -85,13 +85,26 @@ def seed_manifest():
     """Dict the seed tests fill in; written to disk once at session end.
 
     Only instantiated when seed tests run (``-m seed``), so the verify run never
-    overwrites the manifest.
+    overwrites the manifest. Pre-existing scenarios are loaded first so a partial
+    re-seed (e.g. ``--lf``) updates the failed scenarios without dropping the
+    rest. Delete the manifest to start over.
     """
-    document = {"schema": SCHEMA, "seed": _env_meta(), "scenarios": {}}
+    meta = _env_meta()
+    document = {"schema": SCHEMA, "seed": meta, "scenarios": {}}
+
+    path = Path(cfg.upgrade.manifest)
+    if path.exists():
+        prior = json.loads(path.read_text(encoding="utf-8"))
+        if prior.get("schema") == SCHEMA:
+            scenarios = prior.get("scenarios", {})
+            logging.info(
+                "upgrade :: merging into existing manifest %s (%d scenario(s); "
+                "delete it to start fresh)", path, len(scenarios)
+            )
+            document["scenarios"].update(scenarios)
 
     yield document["scenarios"]
 
-    path = Path(cfg.upgrade.manifest)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(document, indent=2, sort_keys=True), encoding="utf-8")
