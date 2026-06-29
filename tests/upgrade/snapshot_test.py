@@ -16,12 +16,15 @@
 #
 #
 
-"""A snapshot tree -- its metadata and the data captured in it -- should survive
-an upgrade. This is the case most sensitive to on-disk format migrations."""
+"""A snapshot tree -- metadata, captured data, and captured resources -- should
+survive an upgrade. This is the case most sensitive to on-disk format migrations.
+
+Restoring BASE must reveal base-only data, hide child-only data, and roll cpu /
+memory / disk back to what they were when BASE was taken."""
 
 import pytest
 
-from cli.multipass import multipass, state, snapshot_count, path_exists
+from cli.multipass import info, multipass, state, snapshot_count, path_exists
 from .helpers import make_sentinel, write_sentinel
 from .seedutils import seeded_vm
 
@@ -30,6 +33,8 @@ BASE = "snap-base"
 CHILD = "snap-child"
 BASE_COMMENT = "upgrade base snapshot"
 CHILD_COMMENT = "upgrade child snapshot"
+FORK = "snap-fork"
+FORK_COMMENT = "upgrade fork snapshot"
 
 
 def _snapshot(name, snapshot_name, comment):
@@ -38,21 +43,45 @@ def _snapshot(name, snapshot_name, comment):
         assert out, f"Failed to snapshot `{name}` as `{snapshot_name}`: {out}"
 
 
+def _resources(name):
+    fields = info(name)[name]
+    disks = fields.get("disks", {})
+    disk = next(iter(disks.values()), {})
+    return {
+        "cpu_count": fields.get("cpu_count"),
+        "disk_total": disk.get("total"),
+        "memory_total": fields.get("memory", {}).get("total"),
+    }
+
+
 @pytest.mark.seed
 @pytest.mark.snapshot
 @pytest.mark.scenario(VM)
 def test_snapshot_seed(scenario):
-    with seeded_vm(VM):
-        # Data captured by BASE only.
+    with seeded_vm(VM, cpus="2", memory="1G", disk="6G"):
+        # Data + resources captured by BASE only.
         base_only = make_sentinel("snapshot-base")
         base_only_path = write_sentinel(VM, "base-only", base_only)
+        base_resources = _resources(VM)
         _snapshot(VM, BASE, BASE_COMMENT)
 
-        # Data added after BASE -- present in CHILD, gone if we roll back to BASE.
+        # Data added and resources bumped after BASE -- present in CHILD, gone on rollback.
         assert multipass("start", VM)
         child_only = make_sentinel("snapshot-child")
         child_only_path = write_sentinel(VM, "child-only", child_only)
+        assert multipass("stop", VM)
+        assert multipass("set", f"local.{VM}.cpus=3")
+        assert multipass("set", f"local.{VM}.memory=2G")
         _snapshot(VM, CHILD, CHILD_COMMENT)
+        assert state(VM) == "Stopped"
+
+        # Branch off BASE again -- BASE now has two children. fork-only data lands
+        # on a sibling of CHILD, not its descendant.
+        assert multipass("restore", f"{VM}.{BASE}", "--destructive")
+        assert multipass("start", VM)
+        fork_only = make_sentinel("snapshot-fork")
+        fork_only_path = write_sentinel(VM, "fork-only", fork_only)
+        _snapshot(VM, FORK, FORK_COMMENT)
         assert state(VM) == "Stopped"
 
     scenario.record.update({
@@ -60,9 +89,12 @@ def test_snapshot_seed(scenario):
         "snapshots": {
             BASE: {"parent": "", "comment": BASE_COMMENT},
             CHILD: {"parent": BASE, "comment": CHILD_COMMENT},
+            FORK: {"parent": BASE, "comment": FORK_COMMENT},
         },
         "base_only_path": base_only_path,
         "child_only_path": child_only_path,
+        "fork_only_path": fork_only_path,
+        "base_resources": base_resources,
     })
 
 
@@ -88,8 +120,25 @@ def test_snapshot_verify(scenario):
         assert present[snap]["parent"] == meta["parent"], f"parent of `{snap}` changed"
         assert present[snap]["comment"] == meta["comment"], f"comment of `{snap}` changed"
 
-    # Contents: restoring BASE reveals base-only data and hides child-only data.
+    # Contents + resources: restoring BASE reveals base-only data, hides child-only
+    # data, and rolls cpu/memory back to the BASE values.
     assert multipass("restore", f"{VM}.{BASE}", "--destructive")
     assert multipass("start", VM)
     assert path_exists(VM, recorded["base_only_path"]), "base-only data lost after restore"
     assert not path_exists(VM, recorded["child_only_path"]), "child-only data leaked into base"
+    assert _resources(VM) == recorded["base_resources"], "resources not restored to BASE"
+
+    # FORK is a sibling of CHILD: restoring it shows fork data, not child data.
+    assert multipass("stop", VM)
+    assert multipass("restore", f"{VM}.{FORK}", "--destructive")
+    assert multipass("start", VM)
+    assert path_exists(VM, recorded["fork_only_path"]), "fork-only data lost after restore"
+    assert not path_exists(VM, recorded["child_only_path"]), "child-only data leaked into fork"
+
+    # CHILD descends from BASE: its base + child data are present, fork data is not.
+    assert multipass("stop", VM)
+    assert multipass("restore", f"{VM}.{CHILD}", "--destructive")
+    assert multipass("start", VM)
+    assert path_exists(VM, recorded["base_only_path"]), "base-only data lost in child"
+    assert path_exists(VM, recorded["child_only_path"]), "child-only data lost after restore"
+    assert not path_exists(VM, recorded["fork_only_path"]), "fork-only data leaked into child"
