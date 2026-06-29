@@ -45,5 +45,9 @@ private:
     const Resolver resolver;
     int socket_fd{-1};
     std::jthread listener;
+
+    // Self-pipe
+    int stop_pipe_read{-1};
+    int stop_pipe_write{-1};
 };
 } // namespace multipass
