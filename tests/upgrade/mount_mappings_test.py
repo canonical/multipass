@@ -32,7 +32,7 @@ from cli.multipass import (
     exec as guest_exec, default_mount_uid, default_mount_gid,
 )
 from cli.utilities import retry
-from .helpers import make_sentinel, park_seeded, resume_seeded, enable_privileged_mounts
+from .helpers import make_sentinel, park_seeded, resume_seeded
 from .seedutils import seeded_vm, daemon_readable_dir
 
 CLASSIC_VM = "upg-mapmount"
@@ -64,15 +64,13 @@ def _guest_target(source: Path) -> str:
     return (Path("/home/ubuntu") / source.name).as_posix()
 
 
-def _seed(vm, mount_type, label, record, governor):
+def _seed(vm, mount_type, label, record):
     source = daemon_readable_dir(vm)
     target = _guest_target(source)
     host_content = make_sentinel(f"{label}-host")
     (source / "host.txt").write_text(host_content, encoding="utf-8")
 
     with seeded_vm(vm):
-        enable_privileged_mounts(governor, vm)
-
         # Native mounts attach to a stopped instance.
         assert multipass("stop", vm)
         assert multipass(
@@ -140,8 +138,8 @@ def _verify(vm, record):
 
 @pytest.mark.seed
 @pytest.mark.scenario(CLASSIC_VM)
-def test_mount_mappings_seed(scenario, multipassd_session_scoped):
-    _seed(CLASSIC_VM, "classic", "mapmount", scenario.record, multipassd_session_scoped)
+def test_mount_mappings_seed(scenario):
+    _seed(CLASSIC_VM, "classic", "mapmount", scenario.record)
 
 
 @pytest.mark.verify
@@ -153,8 +151,8 @@ def test_mount_mappings_verify(scenario):
 @pytest.mark.seed
 @pytest.mark.scenario(NATIVE_VM)
 @qemu_native_only
-def test_native_mount_mappings_seed(scenario, multipassd_session_scoped):
-    _seed(NATIVE_VM, "native", "mapmount-native", scenario.record, multipassd_session_scoped)
+def test_native_mount_mappings_seed(scenario):
+    _seed(NATIVE_VM, "native", "mapmount-native", scenario.record)
 
 
 @pytest.mark.verify
