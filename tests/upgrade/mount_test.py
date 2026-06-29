@@ -27,6 +27,8 @@ unsupported."""
 
 from pathlib import Path
 
+import sys
+
 import pytest
 
 from cli.config import cfg
@@ -42,6 +44,14 @@ SUSPEND_VM = "upg-suspmount"
 unsupported = pytest.mark.skipif(
     cfg.driver in ("lxd", "applevz"),
     reason=f"native mounts and suspend are not supported on the `{cfg.driver}` driver",
+)
+
+# Native (SMB) mounts on Windows need an interactive password the harness can't
+# supply, so they are skipped there too (cf. the cli suite).
+native_unsupported = pytest.mark.skipif(
+    cfg.driver in ("lxd", "applevz") or sys.platform == "win32",
+    reason=f"native mounts are unavailable here "
+    f"(driver `{cfg.driver}`, platform `{sys.platform}`)",
 )
 
 
@@ -116,14 +126,14 @@ def test_mount_verify(scenario):
 
 @pytest.mark.seed
 @pytest.mark.scenario(NATIVE_VM)
-@unsupported
+@native_unsupported
 def test_native_mount_seed(scenario, multipassd_session_scoped):
     _seed(NATIVE_VM, "native", "native-mount", scenario.record, multipassd_session_scoped)
 
 
 @pytest.mark.verify
 @pytest.mark.scenario(NATIVE_VM)
-@unsupported
+@native_unsupported
 def test_native_mount_verify(scenario):
     _verify(NATIVE_VM, scenario.record)
 
