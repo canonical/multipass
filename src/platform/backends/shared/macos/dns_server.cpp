@@ -86,7 +86,7 @@ std::optional<Query> parse_msg(std::span<const unsigned char> msg)
         return std::nullopt;
 
     Query q{};
-    q.id = read_u16(msg);        // first byte
+    q.id = read_u16(msg);               // first byte
     q.flags = read_u16(msg.subspan(2)); // next 2 bytes
     const auto qdcount = read_u16(msg.subspan(4));
 
@@ -171,7 +171,7 @@ std::vector<unsigned char> build_response(std::span<const unsigned char> query,
 
     return retval;
 }
-}
+} // namespace
 
 mp::MacDNSServer::MacDNSServer(const std::string& domain, std::uint16_t port, Resolver resolver)
     : domain{domain}, resolver{std::move(resolver)}

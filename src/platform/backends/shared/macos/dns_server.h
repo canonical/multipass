@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include <multipass/disabled_copy_move.h>
 #include <multipass/base_dns_server.h>
+#include <multipass/disabled_copy_move.h>
 
 #include <cstdint>
 #include <optional>
