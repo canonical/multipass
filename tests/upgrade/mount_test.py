@@ -57,7 +57,7 @@ def _seed(vm, mount_type, label, record, governor, park="stop", expected="Stoppe
     (source / "host.txt").write_text(host_content, encoding="utf-8")
 
     with seeded_vm(vm):
-        enable_privileged_mounts(governor)
+        enable_privileged_mounts(governor, vm)
 
         # Native mounts attach to a stopped instance.
         assert multipass("stop", vm)
