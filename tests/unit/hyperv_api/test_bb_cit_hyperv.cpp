@@ -119,6 +119,9 @@ std::string neighbor_ip_for_mac(const std::string& mac_dashed)
                     "Select-Object -First 1).IPAddress",
                     mac_dashed));
 }
+
+// PowerShell-style registry path of the DNS client parameters (suffix append, NRPT lives below).
+constexpr auto dnscache_key = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters";
 } // namespace
 
 // Component level big bang integration tests for Hyper-V HCN/HCS + virtdisk API's.
@@ -771,8 +774,6 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_fqdn_append_resolution)
 
     constexpr auto global_ics_key =
         "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters";
-    constexpr auto dnscache_key =
-        "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters";
 
     // Capture the global ICSDomain up-front; this test must NOT change it.
     const auto global_ics_before = run_powershell(fmt::format(
@@ -976,6 +977,136 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_fqdn_append_resolution)
     }
     EXPECT_TRUE(HCN().delete_endpoint(endpoint_parameters.endpoint_guid));
     EXPECT_TRUE(HCN().delete_network(network_parameters.guid));
+}
+
+// Multi-domain end-to-end proof: a SINGLE NRPT rule matching two suffixes (".zone1.mshome.net"
+// and ".zone2.mshome.net") routes to the ICS proxy, and two guests -- each advertising a dotted
+// hostname under a DIFFERENT zone -- resolve via the host's system resolver to their own leases.
+//
+// One network/proxy; both guests register as "<host>.<zone>.mshome.net". SuffixSearchList appends
+// "mshome.net" so a typed "<host>.zoneN" becomes "<host>.zoneN.mshome.net" -> NRPT -> proxy. This
+// proves the multi-suffix NrptRule (REG_MULTI_SZ) actually serves several domains at once.
+TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_multi_zone_resolution)
+{
+    constexpr auto gateway_ip = "172.50.224.1"; // single ICS proxy for both guests
+    constexpr auto mac1 = "00-15-5D-9D-CF-81";
+    constexpr auto mac2 = "00-15-5D-9D-CF-82";
+    const auto rng = [] { std::mt19937_64 r{std::random_device{}()}; return static_cast<std::uint32_t>(r()); };
+    const auto host1 = fmt::format("mp-z1-{:08x}.zone1", rng());
+    const auto host2 = fmt::format("mp-z2-{:08x}.zone2", rng());
+
+    const auto saved_suffix_list = run_powershell("(Get-DnsClientGlobalSetting).SuffixSearchList -join ','");
+    (void)run_powershell(fmt::format(
+        "Set-DnsClientGlobalSetting -SuffixSearchList @('mshome.net'); "
+        "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord",
+        dnscache_key));
+    struct DnsClientGuard
+    {
+        std::string key, saved;
+        ~DnsClientGuard()
+        {
+            (void)run_powershell(saved.empty()
+                ? std::string{"Set-DnsClientGlobalSetting -SuffixSearchList @()"}
+                : fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')", saved));
+            (void)run_powershell("Clear-DnsClientCache");
+        }
+    } dns_guard{dnscache_key, saved_suffix_list};
+
+    // A SINGLE rule, two suffixes -> the ICS proxy (the multi-suffix NrptRule under test).
+    hyperv::dns::NrptRule nrpt_rule{std::vector<std::string>{".zone1.mshome.net", ".zone2.mshome.net"},
+                                   {gateway_ip}};
+    (void)run_powershell("Clear-DnsClientCache");
+
+    auto net = []() {
+        hyperv::hcn::CreateNetworkParameters n{};
+        n.name = "multipass-hyperv-cit-multizone";
+        n.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47494";
+        n.flags = hyperv::hcn::HcnNetworkFlags::enable_dns_proxy | hyperv::hcn::HcnNetworkFlags::enable_dhcp_server;
+        n.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+            {hyperv::hcn::HcnSubnet{"172.50.224.0/20", {hyperv::hcn::HcnRoute{gateway_ip, "0.0.0.0/0", 0}}}}}};
+        return n;
+    }();
+
+    auto make_ep = [&](const char* guid) {
+        hyperv::hcn::CreateEndpointParameters e{};
+        e.network_guid = net.guid;
+        e.endpoint_guid = guid;
+        return e;
+    };
+    const auto ep1 = make_ep("aee79cf9-54d1-4653-81fb-8110db970321");
+    const auto ep2 = make_ep("aee79cf9-54d1-4653-81fb-8110db970322");
+
+    const auto vhdx1 = make_tempfile_path(".vhdx"), vhdx2 = make_tempfile_path(".vhdx");
+    reassemble_alpine_vhdx(vhdx1);
+    reassemble_alpine_vhdx(vhdx2);
+    const auto iso1 = make_tempfile_path(".iso"), iso2 = make_tempfile_path(".iso");
+    const auto build_iso = [&](const std::string& host, const std::filesystem::path& iso) {
+        return run_powershell(fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' --hostname '{}' --output '{}' 2>&1",
+                                          test_data_path, host, iso.string()));
+    };
+    const auto build_out1 = build_iso(host1, iso1);
+    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(iso1))) << build_out1;
+    const auto build_out2 = build_iso(host2, iso2);
+    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(iso2))) << build_out2;
+
+    auto make_vm = [&](const char* name, const char* mac, const char* ep_guid,
+                       const std::filesystem::path& vhdx, const std::filesystem::path& iso) {
+        hyperv::hcs::CreateComputeSystemParameters vm{};
+        vm.name = name; vm.processor_count = 1; vm.memory_size_mb = 512;
+        hyperv::hcs::HcsNetworkAdapter na{}; na.endpoint_guid = ep_guid; na.mac_address = mac;
+        vm.network_adapters.push_back(na);
+        vm.scsi_devices = {hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), .name = "Primary disk", .path = vhdx},
+                           hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::Iso(), .name = "Cloud-init ISO", .path = iso, .read_only = true}};
+        return vm;
+    };
+    const char* vm1n = "multipass-hyperv-cit-mz-vm1";
+    const char* vm2n = "multipass-hyperv-cit-mz-vm2";
+
+    (void)HCN().delete_endpoint(ep1.endpoint_guid);
+    (void)HCN().delete_endpoint(ep2.endpoint_guid);
+    (void)HCN().delete_network(net.guid);
+    ASSERT_TRUE(bool(HCN().create_network(net)));
+    ASSERT_TRUE(bool(HCN().create_endpoint(ep1)));
+    ASSERT_TRUE(bool(HCN().create_endpoint(ep2)));
+
+    hyperv::hcs::HcsSystemHandle h1{nullptr}, h2{nullptr};
+    ASSERT_TRUE(bool(HCS().create_compute_system(make_vm(vm1n, mac1, ep1.endpoint_guid.c_str(), vhdx1, iso1), h1)));
+    ASSERT_TRUE(bool(HCS().create_compute_system(make_vm(vm2n, mac2, ep2.endpoint_guid.c_str(), vhdx2, iso2), h2)));
+    ASSERT_TRUE(HCS().grant_vm_access(vm1n, vhdx1)); ASSERT_TRUE(HCS().grant_vm_access(vm1n, iso1));
+    ASSERT_TRUE(HCS().grant_vm_access(vm2n, vhdx2)); ASSERT_TRUE(HCS().grant_vm_access(vm2n, iso2));
+    ASSERT_TRUE(bool(HCS().start_compute_system(h1)));
+    ASSERT_TRUE(bool(HCS().start_compute_system(h2)));
+
+    const auto resolve_system = [](const std::string& name) {
+        return run_powershell(fmt::format("(Resolve-DnsName -Name {} -Type A -QuickTimeout "
+            "-ErrorAction SilentlyContinue | Where-Object {{ $_.Type -eq 'A' }}).IPAddress -join ','", name));
+    };
+    std::string lease1, lease2, r1, r2;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(180);
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        lease1 = neighbor_ip_for_mac(mac1); lease2 = neighbor_ip_for_mac(mac2);
+        if (!lease1.empty() && !lease2.empty())
+        {
+            (void)run_powershell("Clear-DnsClientCache");
+            r1 = resolve_system(host1); r2 = resolve_system(host2);
+            if (r1 == lease1 && r2 == lease2)
+                break;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+    GTEST_LOG_(INFO) << host1 << "->'" << r1 << "' (lease '" << lease1 << "'); " << host2 << "->'" << r2 << "' (lease '" << lease2 << "')";
+
+    EXPECT_FALSE(lease1.empty()); EXPECT_FALSE(lease2.empty());
+    EXPECT_EQ(r1, lease1) << host1 << " did not resolve to its VM via the .zone1 suffix.";
+    EXPECT_EQ(r2, lease2) << host2 << " did not resolve to its VM via the .zone2 suffix.";
+    EXPECT_NE(lease1, lease2) << "distinct VMs must hold distinct leases.";
+
+    (void)HCS().terminate_compute_system(h1); h1.reset();
+    (void)HCS().terminate_compute_system(h2); h2.reset();
+    EXPECT_TRUE(HCN().delete_endpoint(ep1.endpoint_guid));
+    EXPECT_TRUE(HCN().delete_endpoint(ep2.endpoint_guid));
+    EXPECT_TRUE(HCN().delete_network(net.guid));
 }
 
 } // namespace multipass::test
