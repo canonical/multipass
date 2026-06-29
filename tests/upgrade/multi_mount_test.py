@@ -20,6 +20,8 @@
 
 from pathlib import Path
 
+import sys
+
 import pytest
 
 from cli.config import cfg
@@ -30,10 +32,13 @@ from .seedutils import seeded_vm, daemon_readable_dir
 
 VM = "upg-multimount"
 
-# Native mounts are unavailable/unsuitable for this upgrade check on these drivers.
+# Native mounts are unavailable/unsuitable for this upgrade check on these drivers,
+# and on Windows native (SMB) mounts need an interactive password the harness can't
+# supply (cf. the cli suite), so skip the whole multi-mount check there.
 requires_native_mount = pytest.mark.skipif(
-    cfg.driver in ("lxd", "applevz"),
-    reason=f"native mounts are not supported on the `{cfg.driver}` driver",
+    cfg.driver in ("lxd", "applevz") or sys.platform == "win32",
+    reason=f"native mounts are not supported here "
+    f"(driver `{cfg.driver}`, platform `{sys.platform}`)",
 )
 
 
