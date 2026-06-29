@@ -785,7 +785,7 @@ bool multipass::QemuVirtualMachine::unplugged()
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<QemuSnapshot>(filename, *this, desc);
+    return std::make_shared<QemuSnapshot>(MP_PLATFORM.qstr_to_path(filename), *this, desc);
 }
 
 

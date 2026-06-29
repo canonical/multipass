@@ -19,8 +19,6 @@
 
 #include <shared/base_snapshot.h>
 
-#include <QString>
-
 namespace multipass
 {
 class HyperVVirtualMachine;
@@ -34,10 +32,10 @@ public:
                    const std::string& cloud_init_instance_id,
                    const VMSpecs& specs,
                    std::shared_ptr<Snapshot> parent,
-                   const QString& vm_name,
+                   const std::string& vm_name,
                    HyperVVirtualMachine& vm,
                    PowerShell& power_shell);
-    HyperVSnapshot(const QString& filename,
+    HyperVSnapshot(const std::filesystem::path& filename,
                    HyperVVirtualMachine& vm,
                    const VirtualMachineDescription& desc,
                    PowerShell& power_shell);
@@ -48,8 +46,8 @@ protected:
     void apply_impl() override;
 
 private:
-    const QString quoted_id;
-    const QString vm_name;
+    const std::string quoted_id;
+    const std::string vm_name;
     PowerShell& power_shell;
 };
 

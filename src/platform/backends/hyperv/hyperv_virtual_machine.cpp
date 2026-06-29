@@ -545,7 +545,7 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
                                             instance_id,
                                             specs,
                                             std::move(parent),
-                                            name,
+                                            name.toStdString(),
                                             *this,
                                             *power_shell);
 }
@@ -553,5 +553,8 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<HyperVSnapshot>(filename, *this, desc, *power_shell);
+    return std::make_shared<HyperVSnapshot>(MP_PLATFORM.qstr_to_path(filename),
+                                            *this,
+                                            desc,
+                                            *power_shell);
 }
