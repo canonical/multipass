@@ -22,8 +22,6 @@
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/throw_on_error.h>
 
-#include <libssh/callbacks.h>
-
 #include <array>
 #include <cerrno>
 #include <cstring>
@@ -36,39 +34,13 @@ namespace
 {
 constexpr auto category = "ssh process";
 
-template <typename T>
-class ExitStatusCallback
+static void channel_exit_status_cb(ssh_session, ssh_channel, int exit_status, void* userdata)
 {
-public:
-    ExitStatusCallback(ssh_channel channel, T& result_holder) : channel{channel}
-    {
-        ssh_callbacks_init(&cb);
-        cb.channel_exit_status_function = channel_exit_status_cb;
-        cb.userdata = &result_holder;
-        registered = ssh_add_channel_callbacks(channel, &cb);
-    }
-    ~ExitStatusCallback()
-    {
-        if (is_registered())
-            ssh_remove_channel_callbacks(channel, &cb);
-    }
-    bool is_registered() const
-    {
-        return registered == SSH_OK;
-    }
+    auto exit_code = static_cast<mp::PlainSSHProcess::ExitResultType*>(userdata);
+    *exit_code = exit_status;
+}
 
-private:
-    static void channel_exit_status_cb(ssh_session, ssh_channel, int exit_status, void* userdata)
-    {
-        auto exit_code = reinterpret_cast<T*>(userdata);
-        *exit_code = exit_status;
-    }
-    ssh_channel channel;
-    ssh_channel_callbacks_struct cb{};
-    int registered{};
-};
-
-auto make_channel(ssh_session session, const std::string& cmd)
+auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callbacks cb)
 {
     if (!ssh_is_connected(session))
         throw mp::SSHException(fmt::format(
@@ -76,6 +48,13 @@ auto make_channel(ssh_session session, const std::string& cmd)
             cmd));
 
     mp::PlainSSHProcess::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+
+    // Add callbacks before traffic is open
+    mp::SSH::throw_on_error(channel,
+                            session,
+                            fmt::format("[{}] failed to add channel callbacks", category).c_str(),
+                            ssh_add_channel_callbacks,
+                            cb);
     mp::SSH::throw_on_error(channel,
                             session,
                             "[ssh proc] failed to open session channel",
@@ -88,6 +67,15 @@ auto make_channel(ssh_session session, const std::string& cmd)
     return channel;
 }
 
+auto make_channel_callbacks(mp::PlainSSHProcess::ExitResultType& exit_result)
+{
+    ssh_channel_callbacks_struct local_cb{};
+    ssh_callbacks_init(&local_cb);
+    local_cb.channel_exit_status_function = channel_exit_status_cb;
+    local_cb.userdata = &exit_result;
+    return local_cb;
+}
+
 } // namespace
 
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
@@ -97,10 +85,16 @@ mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
           session_lock)}, // this is held until the exit code is requested or this is destroyed
       session{&session},
       cmd{cmd},
-      channel{make_channel(this->session, cmd)},
-      exit_result{}
+      cb{make_channel_callbacks(exit_result)},
+      channel{make_channel(this->session, cmd, &cb)}
 {
     assert(this->session_lock.owns_lock());
+}
+
+mp::PlainSSHProcess::~PlainSSHProcess()
+{
+    if (channel) // TODO@sftp remove
+        ssh_remove_channel_callbacks(channel.get(), &cb);
 }
 
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
@@ -146,15 +140,12 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
 
         std::rethrow_exception(eptr);
     }
-    ExitStatusCallback cb{channel.get(), exit_result};
     std::unique_ptr<ssh_event_struct, decltype(ssh_event_free)*> event{ssh_event_new(),
                                                                        ssh_event_free};
 
     std::optional<std::string> err = std::nullopt;
     if (!event)
         err = "could not allocate event";
-    else if (!cb.is_registered())
-        err = "could not register callback";
     else if ((ssh_event_add_session(event.get(), session) != SSH_OK))
     {
         const auto raw_err = ssh_get_error(session);
