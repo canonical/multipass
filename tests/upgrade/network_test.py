@@ -17,7 +17,7 @@
 #
 
 """An extra (``--network``) interface should survive an upgrade, parked either
-stopped or suspended.
+stopped or suspended; a ``--bridged`` interface should too.
 
 What must survive is the *instance's* NIC configuration -- the extra interface
 and its persisted MAC, stored in the instance record -- not the host network
@@ -26,17 +26,23 @@ fixture (see ``netutils``): a throwaway isolated bridge on Linux, an existing
 host network (Hyper-V switch / interface) on Windows/macOS. Seed attaches a VM
 and records the MACs; verify confirms the same host network is present, brings
 the VM back, and checks the MACs returned. ``mode=manual`` keeps the guest from
-DHCP-ing on it. The suspend pair is skipped where suspend/resume isn't kept."""
+DHCP-ing on it. The bridged case points ``local.bridged-network`` at the same
+host network. The suspend pair is skipped where suspend/resume isn't kept."""
+
+import asyncio
 
 import pytest
 
 from cli.config import cfg
+from cli.multipass import multipass
+from cli.controller.multipassd_governor import MultipassdGovernor
 from .helpers import guest_interface_macs, park_seeded, resume_seeded
 from .seedutils import seeded_vm
 from .netutils import upgrade_network
 
 STOP_VM = "upg-network"
 SUSPEND_VM = "upg-net-susp"
+BRIDGED_VM = "upg-bridged"
 
 requires_suspend = pytest.mark.skipif(
     cfg.driver in ("lxd", "applevz"),
@@ -89,3 +95,26 @@ def test_network_suspend_seed(scenario, host_network):
 @requires_suspend
 def test_network_suspend_verify(scenario, host_network):
     _verify(SUSPEND_VM, scenario.record, expected="Suspended")
+
+
+@pytest.mark.seed
+@pytest.mark.scenario(BRIDGED_VM)
+def test_bridged_seed(scenario, host_network, request):
+    request.addfinalizer(lambda: multipass("set", "local.bridged-network="))
+    assert multipass("set", f"local.bridged-network={host_network}")
+    # Setting bridged-network bounces the daemon; wait for it to be ready again.
+    assert asyncio.run(MultipassdGovernor.wait_for_multipassd_ready()), (
+        "daemon not ready after setting bridged-network"
+    )
+
+    with seeded_vm(BRIDGED_VM, extra_args=["--bridged"]):
+        macs = guest_interface_macs(BRIDGED_VM)
+        assert len(macs) >= 2, f"expected a bridged interface, found MACs: {macs}"
+        park_seeded(BRIDGED_VM)
+    scenario.record.update({"macs": macs, "network": host_network})
+
+
+@pytest.mark.verify
+@pytest.mark.scenario(BRIDGED_VM)
+def test_bridged_verify(scenario, host_network):
+    _verify(BRIDGED_VM, scenario.record)
