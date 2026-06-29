@@ -142,6 +142,7 @@ public:
                 remove,
                 (const fs::path& path, std::error_code& err),
                 (override, const, noexcept));
+    MOCK_METHOD(bool, remove_all, (const fs::path& path), (override, const));
     MOCK_METHOD(void,
                 create_symlink,
                 (const fs::path& to, const fs::path& path, std::error_code& err),
