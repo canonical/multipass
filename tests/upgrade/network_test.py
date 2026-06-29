@@ -16,57 +16,76 @@
 #
 #
 
-"""An extra (``--network``) interface should survive an upgrade.
+"""An extra (``--network``) interface should survive an upgrade, parked either
+stopped or suspended.
 
-What must survive the upgrade is the *instance's* NIC configuration -- the extra
-interface and its persisted MAC, stored in the instance record -- not the host
-network itself. The host network the VM attaches to is provided per-platform by
-the ``host_network`` fixture (see ``netutils``): a throwaway isolated bridge on
-Linux, an existing host network (Hyper-V switch / interface) on Windows/macOS.
-Seed attaches a VM and records the MACs; verify makes sure the same host network
-is present, starts the VM, and confirms the same MACs came back. ``mode=manual``
-keeps the guest from trying to DHCP on it.
-"""
+What must survive is the *instance's* NIC configuration -- the extra interface
+and its persisted MAC, stored in the instance record -- not the host network
+itself. The host network is provided per-platform by the ``host_network``
+fixture (see ``netutils``): a throwaway isolated bridge on Linux, an existing
+host network (Hyper-V switch / interface) on Windows/macOS. Seed attaches a VM
+and records the MACs; verify confirms the same host network is present, brings
+the VM back, and checks the MACs returned. ``mode=manual`` keeps the guest from
+DHCP-ing on it. The suspend pair is skipped where suspend/resume isn't kept."""
 
 import pytest
 
+from cli.config import cfg
 from .helpers import guest_interface_macs, park_seeded, resume_seeded
 from .seedutils import seeded_vm
 from .netutils import upgrade_network
 
-VM = "upg-network"
+STOP_VM = "upg-network"
+SUSPEND_VM = "upg-net-susp"
+
+requires_suspend = pytest.mark.skipif(
+    cfg.driver in ("lxd", "applevz"),
+    reason=f"suspend/resume is not supported on the `{cfg.driver}` driver",
+)
 
 
 @pytest.fixture
 def host_network():
-    """A host network to attach to, for the duration of one test.
-
-    On Linux it is a freshly-created isolated bridge, removed afterwards; on
-    Windows/macOS it is an existing host network that simply persists. Requested
-    by both phases so the network is in place whenever the VM is started.
-    """
     with upgrade_network() as name:
         yield name
 
 
-@pytest.mark.seed
-@pytest.mark.scenario(VM)
-def test_network_seed(scenario, host_network):
-    with seeded_vm(VM, extra_args=["--network", f"name={host_network},mode=manual"]):
-        macs = guest_interface_macs(VM)
+def _seed(vm, host_network, record, how="stop", expected="Stopped"):
+    with seeded_vm(vm, extra_args=["--network", f"name={host_network},mode=manual"]):
+        macs = guest_interface_macs(vm)
         assert len(macs) >= 2, f"expected an extra interface, found MACs: {macs}"
-        park_seeded(VM)
+        park_seeded(vm, how=how, expected=expected)
+    record.update({"macs": macs, "network": host_network})
 
-    scenario.record.update({"macs": macs, "network": host_network})
+
+def _verify(vm, record, expected="Stopped"):
+    resume_seeded(vm, expected_state=expected)
+    assert guest_interface_macs(vm) == record["macs"], (
+        "guest interface MACs changed across upgrade"
+    )
+
+
+@pytest.mark.seed
+@pytest.mark.scenario(STOP_VM)
+def test_network_seed(scenario, host_network):
+    _seed(STOP_VM, host_network, scenario.record)
 
 
 @pytest.mark.verify
-@pytest.mark.scenario(VM)
+@pytest.mark.scenario(STOP_VM)
 def test_network_verify(scenario, host_network):
-    recorded = scenario.record
+    _verify(STOP_VM, scenario.record)
 
-    # The host network is back (fixture), so the stored NIC config can re-attach.
-    resume_seeded(VM, expected_state="Stopped")
-    assert guest_interface_macs(VM) == recorded["macs"], (
-        "guest interface MACs changed across upgrade"
-    )
+
+@pytest.mark.seed
+@pytest.mark.scenario(SUSPEND_VM)
+@requires_suspend
+def test_network_suspend_seed(scenario, host_network):
+    _seed(SUSPEND_VM, host_network, scenario.record, how="suspend", expected="Suspended")
+
+
+@pytest.mark.verify
+@pytest.mark.scenario(SUSPEND_VM)
+@requires_suspend
+def test_network_suspend_verify(scenario, host_network):
+    _verify(SUSPEND_VM, scenario.record, expected="Suspended")
