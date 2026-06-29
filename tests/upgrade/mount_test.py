@@ -21,8 +21,9 @@
 The mount definition lives in the instance record and is re-established when the
 VM next starts, so after an upgrade we expect: the mount still listed; host data
 still visible in the guest; and guest-written data still on the host and
-re-exposed. Covered for both classic (SSHFS) and native (qemu 9p) mounts; the
-native pair is skipped where unsupported."""
+re-exposed. Covered for classic (SSHFS) and native (qemu 9p) mounts on a stopped
+VM, and for a classic mount on a suspended VM; native/suspend pairs skip where
+unsupported."""
 
 import sys
 from pathlib import Path
@@ -37,10 +38,11 @@ from .seedutils import seeded_vm, daemon_readable_dir
 
 CLASSIC_VM = "upg-mount"
 NATIVE_VM = "upg-mount-native"
+SUSPEND_VM = "upg-suspmount"
 
-requires_native = pytest.mark.skipif(
+unsupported = pytest.mark.skipif(
     cfg.driver in ("lxd", "applevz"),
-    reason=f"native mounts are not supported on the `{cfg.driver}` driver",
+    reason=f"native mounts and suspend are not supported on the `{cfg.driver}` driver",
 )
 
 
@@ -49,7 +51,7 @@ def _guest_target(source: Path) -> str:
     return (Path("/home/ubuntu") / source.name).as_posix()
 
 
-def _seed(vm, mount_type, label, record):
+def _seed(vm, mount_type, label, record, park="stop", expected="Stopped"):
     source = daemon_readable_dir(vm)
     target = _guest_target(source)
     host_content = make_sentinel(f"{label}-host")
@@ -74,13 +76,14 @@ def _seed(vm, mount_type, label, record):
         assert (source / "guest.txt").read_text(encoding="utf-8").strip() == guest_content
 
         recorded_mounts = mounts(vm)
-        park_seeded(vm)
+        park_seeded(vm, how=park, expected=expected)
 
     record.update({
         "target": target,
         "host_content": host_content,
         "guest_content": guest_content,
         "mounts": recorded_mounts,
+        "expected": expected,
     })
 
 
@@ -88,7 +91,7 @@ def _verify(vm, record):
     target = record["target"]
     assert mounts(vm) == record["mounts"], "mount definition changed across upgrade"
 
-    resume_seeded(vm, expected_state="Stopped")
+    resume_seeded(vm, expected_state=record["expected"])
 
     @retry(retries=12, delay=5.0)
     def mount_is_live():
@@ -115,13 +118,27 @@ def test_mount_verify(scenario):
 
 @pytest.mark.seed
 @pytest.mark.scenario(NATIVE_VM)
-@requires_native
+@unsupported
 def test_native_mount_seed(scenario):
     _seed(NATIVE_VM, "native", "native-mount", scenario.record)
 
 
 @pytest.mark.verify
 @pytest.mark.scenario(NATIVE_VM)
-@requires_native
+@unsupported
 def test_native_mount_verify(scenario):
     _verify(NATIVE_VM, scenario.record)
+
+
+@pytest.mark.seed
+@pytest.mark.scenario(SUSPEND_VM)
+@unsupported
+def test_suspend_mount_seed(scenario):
+    _seed(SUSPEND_VM, "classic", "suspmount", scenario.record, park="suspend", expected="Suspended")
+
+
+@pytest.mark.verify
+@pytest.mark.scenario(SUSPEND_VM)
+@unsupported
+def test_suspend_mount_verify(scenario):
+    _verify(SUSPEND_VM, scenario.record)
