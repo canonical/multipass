@@ -72,7 +72,29 @@ std::wstring rule_key_path(const std::string& guid)
 }
 } // namespace
 
+std::wstring make_namespace_multi_sz(const std::vector<std::string>& dns_namespaces)
+{
+    std::wstring multi;
+    for (const auto& ns : dns_namespaces)
+    {
+        if (ns.empty())
+            continue;
+        multi += widen(ns);
+        multi.push_back(L'\0'); // terminate this entry
+    }
+    if (multi.empty())
+        multi.push_back(L'\0'); // empty list still needs one terminator before the final one
+    multi.push_back(L'\0');     // terminate the list
+    return multi;
+}
+
 NrptRule::NrptRule(const std::string& dns_namespace, const std::vector<std::string>& name_servers)
+    : NrptRule{std::vector<std::string>{dns_namespace}, name_servers}
+{
+}
+
+NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
+                   const std::vector<std::string>& name_servers)
     : rule_guid{generate_rule_guid()}
 {
     HKEY key = nullptr;
@@ -113,9 +135,7 @@ NrptRule::NrptRule(const std::string& dns_namespace, const std::vector<std::stri
 
     // Name (REG_MULTI_SZ): the matched namespace(s), each with a leading dot.
     {
-        std::wstring multi = widen(dns_namespace);
-        multi.push_back(L'\0'); // terminate the single entry
-        multi.push_back(L'\0'); // terminate the list
+        const std::wstring multi = make_namespace_multi_sz(dns_namespaces);
         if (const auto s = ::RegSetValueExW(
                 key,
                 L"Name",
