@@ -38,8 +38,14 @@ from .seedutils import seeded_vm, daemon_readable_dir
 CLASSIC_VM = "upg-mapmount"
 NATIVE_VM = "upg-mapmount-native"
 # Map the host id onto guest root so the translation is observable (not identity).
-UID_MAP = f"{default_mount_uid()}:0"
-GID_MAP = f"{default_mount_gid()}:0"
+# default_mount_uid/gid() return -2 on Windows -- the daemon's default, not a valid
+# --uid-map input (mount.cpp rejects negatives). SMB ignores maps there anyway, so
+# a concrete id just lets us check the mapping is recorded and survives the upgrade.
+if sys.platform == "win32":
+    UID_MAP = GID_MAP = "1000:0"
+else:
+    UID_MAP = f"{default_mount_uid()}:0"
+    GID_MAP = f"{default_mount_gid()}:0"
 GUEST_OWNER = "0:0"
 
 
