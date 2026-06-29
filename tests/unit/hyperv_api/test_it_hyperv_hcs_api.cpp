@@ -72,7 +72,7 @@ struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
                 }));
 
             const auto d_result = HCS().terminate_compute_system(handle);
-            ASSERT_TRUE(d_result);
+            EXPECT_TRUE(d_result);
             std::wprintf(L"%s\n\n", d_result.status_msg.c_str());
 
             // The SystemExited notification is delivered asynchronously on an HCS worker
