@@ -58,9 +58,13 @@ def info(name, runtime_info=True):
     skipped, so the call doesn't need SSH to be reachable.
     """
     args = ["info", "--format=json", f"{name}"]
+
     if not runtime_info:
         args.append("--no-runtime-information")
-    with multipass(*args).json() as output:
+
+    # The guest's ssh connection might bounce during the launch/start.
+    # `retry` is here to alleviate that.
+    with multipass(*args, retry=5).json() as output:
         assert output, f"info({name}) failed ({output.exitstatus}): {str(output)}"
         assert (
             "info" in output
