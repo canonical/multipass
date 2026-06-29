@@ -16,25 +16,32 @@
 #
 #
 
-"""A classic mount, and the data flowing through it, should survive an upgrade.
+"""A mount, and the data flowing through it, should survive an upgrade.
 
 The mount definition lives in the instance record and is re-established when the
 VM next starts, so after an upgrade we expect: the mount still listed; host data
 still visible in the guest; and guest-written data still on the host and
-re-exposed. A classic (SSHFS) mount is used so it works without the native-mount
-restrictions."""
+re-exposed. Covered for both classic (SSHFS) and native (qemu 9p) mounts; the
+native pair is skipped where unsupported."""
 
 import sys
 from pathlib import Path
 
 import pytest
 
+from cli.config import cfg
 from cli.multipass import multipass, mounts, read_file, write_file, path_exists
 from cli.utilities import retry
 from .helpers import make_sentinel, park_seeded, resume_seeded
 from .seedutils import seeded_vm, daemon_readable_dir
 
-VM = "upg-mount"
+CLASSIC_VM = "upg-mount"
+NATIVE_VM = "upg-mount-native"
+
+requires_native = pytest.mark.skipif(
+    cfg.driver in ("lxd", "applevz"),
+    reason=f"native mounts are not supported on the `{cfg.driver}` driver",
+)
 
 
 def _guest_target(source: Path) -> str:
@@ -42,36 +49,34 @@ def _guest_target(source: Path) -> str:
     return (Path("/home/ubuntu") / source.name).as_posix()
 
 
-@pytest.mark.seed
-@pytest.mark.scenario(VM)
-def test_mount_seed(scenario):
-    source = daemon_readable_dir(VM)
+def _seed(vm, mount_type, label, record):
+    source = daemon_readable_dir(vm)
     target = _guest_target(source)
-
-    host_content = make_sentinel("mount-host")
+    host_content = make_sentinel(f"{label}-host")
     (source / "host.txt").write_text(host_content, encoding="utf-8")
 
-    with seeded_vm(VM):
+    with seeded_vm(vm):
         if sys.platform == "win32":
             assert multipass("set", "local.privileged-mounts=1")
 
-        assert multipass("mount", "--type", "classic", str(source), VM), (
-            f"failed to mount `{source}` into `{VM}`"
+        # Native mounts attach to a stopped instance.
+        assert multipass("stop", vm)
+        assert multipass("mount", "--type", mount_type, str(source), vm), (
+            f"failed to mount `{source}` into `{vm}`"
         )
+        assert multipass("start", vm)
 
-        # Host -> guest payload visible...
-        assert path_exists(VM, f"{target}/host.txt")
-        assert read_file(VM, f"{target}/host.txt").strip() == host_content
+        assert path_exists(vm, f"{target}/host.txt")
+        assert read_file(vm, f"{target}/host.txt").strip() == host_content
 
-        # ...and a guest-written file lands on the host.
-        guest_content = make_sentinel("mount-guest")
-        assert write_file(VM, f"{target}/guest.txt", guest_content)
+        guest_content = make_sentinel(f"{label}-guest")
+        assert write_file(vm, f"{target}/guest.txt", guest_content)
         assert (source / "guest.txt").read_text(encoding="utf-8").strip() == guest_content
 
-        recorded_mounts = mounts(VM)
-        park_seeded(VM)
+        recorded_mounts = mounts(vm)
+        park_seeded(vm)
 
-    scenario.record.update({
+    record.update({
         "target": target,
         "host_content": host_content,
         "guest_content": guest_content,
@@ -79,25 +84,44 @@ def test_mount_seed(scenario):
     })
 
 
-@pytest.mark.verify
-@pytest.mark.scenario(VM)
-def test_mount_verify(scenario):
-    recorded = scenario.record
-    target = recorded["target"]
+def _verify(vm, record):
+    target = record["target"]
+    assert mounts(vm) == record["mounts"], "mount definition changed across upgrade"
 
-    # The mount definition must have survived the upgrade.
-    assert mounts(VM) == recorded["mounts"], "mount definition changed across upgrade"
+    resume_seeded(vm, expected_state="Stopped")
 
-    resume_seeded(VM, expected_state="Stopped")
-
-    # The mount is re-established asynchronously on boot; give it a moment.
     @retry(retries=12, delay=5.0)
     def mount_is_live():
-        return path_exists(VM, f"{target}/host.txt")
+        return path_exists(vm, f"{target}/host.txt")
 
     assert mount_is_live(), f"mount `{target}` not re-established after upgrade"
-    assert read_file(VM, f"{target}/host.txt").strip() == recorded["host_content"]
-    assert path_exists(VM, f"{target}/guest.txt")
-    assert read_file(VM, f"{target}/guest.txt").strip() == recorded["guest_content"]
+    assert read_file(vm, f"{target}/host.txt").strip() == record["host_content"]
+    assert path_exists(vm, f"{target}/guest.txt")
+    assert read_file(vm, f"{target}/guest.txt").strip() == record["guest_content"]
+    assert multipass("umount", vm)
 
-    assert multipass("umount", VM)
+
+@pytest.mark.seed
+@pytest.mark.scenario(CLASSIC_VM)
+def test_mount_seed(scenario):
+    _seed(CLASSIC_VM, "classic", "mount", scenario.record)
+
+
+@pytest.mark.verify
+@pytest.mark.scenario(CLASSIC_VM)
+def test_mount_verify(scenario):
+    _verify(CLASSIC_VM, scenario.record)
+
+
+@pytest.mark.seed
+@pytest.mark.scenario(NATIVE_VM)
+@requires_native
+def test_native_mount_seed(scenario):
+    _seed(NATIVE_VM, "native", "native-mount", scenario.record)
+
+
+@pytest.mark.verify
+@pytest.mark.scenario(NATIVE_VM)
+@requires_native
+def test_native_mount_verify(scenario):
+    _verify(NATIVE_VM, scenario.record)
