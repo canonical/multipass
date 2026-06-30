@@ -529,9 +529,9 @@ You have created and deleted quite a few instances. It is time to run `multipass
 ```{code-block} text
 $ multipass list
 Name                    State             IPv4             Image
-primary                 Running           192.168.64.5     Ubuntu 26.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
 coherent-trumpetfish    Deleted           --               Not Available
-ltsInstance             Running           192.168.64.3     Ubuntu 26.04 LTS
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
@@ -539,8 +539,8 @@ The result shows that you have two instances running, the "primary" instance and
 ```{code-block} text
 $ multipass list
 Name                    State             IPv4             Image
-primary                 Running           192.168.64.5     Ubuntu 26.04 LTS
-ltsInstance             Running           192.168.64.3     Ubuntu 26.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
 ````
