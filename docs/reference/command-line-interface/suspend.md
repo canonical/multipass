@@ -14,7 +14,7 @@ multipass stop boisterous-tortoise
 multipass suspend boisterous-tortoise
 ```
 
-If check your instances with `multipass list`, you'll see that its status is now set to `Suspended`:
+If you check your instances with `multipass list`, you'll see that its status is now set to `Suspended`:
 
 ```{code-block} text
 Name                    State             IPv4             Image
