@@ -72,9 +72,14 @@ struct ResizeDiskException : public FormattedExceptionBase<>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-struct CreateBridgeException : public FormattedExceptionBase<>
+struct CreateNetworkException : public FormattedExceptionBase<>
 {
     using FormattedExceptionBase::FormattedExceptionBase;
+};
+
+struct CreateBridgeException : public CreateNetworkException
+{
+    using CreateNetworkException::CreateNetworkException;
 };
 
 struct WindowsFeatureNotEnabledException : public FormattedExceptionBase<>
