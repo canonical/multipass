@@ -162,7 +162,7 @@ Click on the Multipass icon and select **Open Shell**.
 Clicking this button does many things in the background:
 
 * It creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU.
-* It installs the most recent Ubuntu LTS release on that instance. 
+* It installs the most recent Ubuntu LTS release on that instance.
 * It mounts your `$HOME` directory in the instance.
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
@@ -256,8 +256,8 @@ Click on the Multipass icon and select **Open Shell**.
 -->
 
 Clicking this button does many things in the background:
-* First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU. 
-* Then, it installs the most recent Ubuntu LTS release on that instance. 
+* First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU.
+* Then, it installs the most recent Ubuntu LTS release on that instance.
 * Last, it opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
 You can see elements of this in the printout below:
