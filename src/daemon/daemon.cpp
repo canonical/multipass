@@ -2368,7 +2368,16 @@ try
                 if (!all || !purge) // if we're not purging the instance, we need to delete
                                     // specified snapshots
                     for (const auto& snapshot_name : pick)
+                    {
+                        if (vm_it->second->current_state() == mp::VirtualMachine::State::running)
+                        {
+                            status_promise->set_value(grpc::Status{
+                                grpc::StatusCode::FAILED_PRECONDITION,
+                                fmt::format("Instance '{}' must be stopped before deleting a snapshot.", instance_name)});
+                            return;
+                        }
                         vm_it->second->delete_snapshot(snapshot_name);
+                    }
 
                 if (all) // we're asked to delete the VM
                     instances_dirty |= delete_vm(vm_it, purge, response);

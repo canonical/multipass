@@ -72,13 +72,14 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
-        // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
-        return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
-                   ? standard_failure_handler_for(name(),
-                                                  cerr,
-                                                  status,
-                                                  "Use --purge to forcefully delete it.")
-                   : standard_failure_handler_for(name(), cerr, status);
+        if (status.error_code() == grpc::StatusCode::FAILED_PRECONDITION)
+        {
+            const auto& msg = status.error_message();
+            if (msg.find("snapshot") != std::string::npos)
+                return standard_failure_handler_for(name(), cerr, status);
+            return standard_failure_handler_for(name(), cerr, status, "Use --purge to forcefully delete it.");
+        }
+        return standard_failure_handler_for(name(), cerr, status);
     };
 
     using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
