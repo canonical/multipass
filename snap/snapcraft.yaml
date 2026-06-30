@@ -41,7 +41,7 @@ apps:
     command: bin/launch-multipassd
     environment:
       LD_LIBRARY_PATH: &library-path
-        $SNAP/lib:$SNAP/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$SNAP/usr/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+        $SNAP/bin/bundle/lib:$SNAP/lib:$SNAP/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$SNAP/usr/lib:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$SNAP/gpu-2404/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
       PATH: &path
         $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH
       QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins
@@ -82,6 +82,8 @@ apps:
     autostart: multipass.gui.autostart.desktop
     extensions: [ gnome ]
     environment:
+      LD_LIBRARY_PATH: *library-path
+      PATH: *path
       XDG_DATA_HOME: $SNAP_USER_DATA
       XDG_DATA_DIRS: $SNAP/usr/share
     command: bin/bundle/multipass_gui
@@ -152,6 +154,7 @@ parts:
     - automake # libxcrypt
     - libtool # libxcrypt
     - python3-pip
+    - python3-venv
     - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
 
     stage-packages:
@@ -166,10 +169,12 @@ parts:
     - libgtkmm-3.0-1t64
     - libglibmm-2.4-1t64
     - libpangomm-1.4-1v5
+
     stage:
     - -**/glvnd
     - -**/X11
     - -usr/bin/aa-*
+    - -usr/bin/update-mime-database
     - -usr/include
     - -usr/lib/cmake
     - -usr/lib/*/libEGL_mesa.so.*
@@ -196,6 +201,10 @@ parts:
     - -usr/lib/*/dri
     - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libcolordprivate.so.*
     - -usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libdconf.so.*
+    - -usr/lib/*/libgtk-3-0t64/gtk-query-immodules-3.0
+    - -usr/lib/*/libcolord.so*
+    - -usr/lib/*/libcups.so*
+    - -usr/lib/*/libgiomm-2.4.so*
     - -usr/share/apport
     - -usr/share/bug
     - -usr/share/doc*
@@ -213,8 +222,10 @@ parts:
     - -usr/share/mime
     - -usr/share/pkgconfig
     - -usr/share/thumbnailers
+    
     prime:
     - -protobuf
+
     source: .
     source-type: git
     override-pull: |
@@ -251,6 +262,15 @@ parts:
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -type f \( -name 'LICENSE*' -o -path '*/LICENSE*/*' \) -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
 
+    override-prime: |
+      craftctl default
+
+      cd "$CRAFT_PRIME"
+      # Symlink the Resources/qemu to qemu for backward compatibility
+      test -d Resources/qemu
+      rm qemu || true
+      ln -s Resources/qemu qemu
+
   kvm-support:
     plugin: nil
     override-pull: ""
@@ -263,3 +283,23 @@ parts:
   glue:
     plugin: dump
     source: snap-wrappers
+
+# The Flutter GUI libraries depend on GUI components which are provided by the GNOME
+# extension. The extension is attached at runtime, so the linter incorrectly flags
+# the libraries as "missing dependencies".
+lint:
+  ignore:
+    - library:
+      - bin/bundle/**
+      - usr/lib/*/gtk-3.0/**
+      - usr/lib/*/gtk-3.0/**
+      - usr/lib/*/libX*.so*
+      - usr/lib/*/libxcb*.so*
+      - usr/lib/*/libgtk*.so*
+      - usr/lib/*/libgdk*.so*
+      - usr/lib/*/libcairo*.so*
+      - usr/lib/*/libpango*.so*
+      - usr/lib/*/libatk*.so*
+      - usr/lib/*/libatspi*.so*
+      - usr/lib/*/libkeybinder*.so*
+
