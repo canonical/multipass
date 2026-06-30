@@ -22,6 +22,7 @@
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/throw_on_error.h>
+#include <multipass/top_catch_all.h>
 
 #include <array>
 #include <cerrno>
@@ -67,6 +68,35 @@ auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callb
     return channel;
 }
 
+auto signal_to_exit_code(const char* sig)
+{
+    constexpr auto base_signal_code{128};
+    std::string signal{sig};
+    if (signal == "HUP")
+        return base_signal_code + 1;
+    if (signal == "INT")
+        return base_signal_code + 2;
+    if (signal == "QUIT")
+        return base_signal_code + 3;
+    if (signal == "ILL")
+        return base_signal_code + 4;
+    if (signal == "ABRT")
+        return base_signal_code + 6;
+    if (signal == "FPE")
+        return base_signal_code + 8;
+    if (signal == "KILL")
+        return base_signal_code + 9;
+    if (signal == "SEGV")
+        return base_signal_code + 11;
+    if (signal == "PIPE")
+        return base_signal_code + 13;
+    if (signal == "ALRM")
+        return base_signal_code + 14;
+    if (signal == "TERM")
+        return base_signal_code + 15;
+    return base_signal_code;
+}
+
 } // namespace
 
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
@@ -106,7 +136,7 @@ void mp::PlainSSHProcess::channel_exit_status_cb(ssh_session,
                                                  int exit_status,
                                                  void* userdata)
 {
-    auto* process = reinterpret_cast<mp::PlainSSHProcess*>(userdata);
+    auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
     process->exit_result = exit_status;
 }
 
@@ -119,10 +149,15 @@ void mp::PlainSSHProcess::channel_exit_signal_cb(ssh_session,
                                                  void* userdata)
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
-    std::string sig_name = signal ? signal : "UNKNOWN";
+    mp::top_catch_all(category, [process, signal] {
+        mpl::error(category,
+                   "{}: Process terminated by remote signal: SIG{}",
+                   process->cmd,
+                   signal ? signal : "UNKNOWN");
 
-    process->exit_result = std::make_exception_ptr(
-        SSHProcessExitError{process->cmd, "Process terminated by remote signal: SIG" + sig_name});
+        auto sig_code{signal_to_exit_code(signal)};
+        process->exit_result = sig_code;
+    });
 }
 
 void mp::PlainSSHProcess::channel_eof_cb(ssh_session, ssh_channel, void* userdata)
@@ -140,13 +175,12 @@ void mp::PlainSSHProcess::channel_close_cb(ssh_session, ssh_channel, void* userd
 
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 {
-    rethrow_if_saved();
-    if (std::holds_alternative<int>(exit_result))
+    if (exit_result.has_value())
         return true;
 
     try
     {
-        read_exit_code(timeout, /* save_exception = */ false);
+        read_exit_code(timeout);
         return true;
     }
     catch (SSHProcessTimeoutException&)
@@ -157,58 +191,43 @@ bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 
 int mp::PlainSSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
-    rethrow_if_saved();
-    if (auto exit_status = std::get_if<int>(&exit_result))
-        return *exit_status;
+    if (exit_result.has_value())
+        return *exit_result;
 
     auto local_lock = std::move(session_lock); // unlock at the end
-    read_exit_code(timeout, /* save_exception = */ true);
+    read_exit_code(timeout);
 
-    assert(std::holds_alternative<int>(exit_result));
-    return std::get<int>(exit_result);
+    assert(exit_result.has_value()); // TODO: remove assert or exit_code must be called only if
+    // exit_recognized returned true
+    return *exit_result;
 }
 
-void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool save_exception)
+void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout)
 {
-    assert(std::holds_alternative<std::monostate>(exit_result));
-    std::exception_ptr eptr;
+    assert(!exit_result.has_value());
     if (!channel) // TODO@sftp remove check
-    {
-        eptr = std::make_exception_ptr(SSHProcessExitError{cmd, "channel is null"});
+        throw SSHProcessExitError{cmd, "channel is null"};
 
-        if (save_exception)
-            exit_result = eptr;
-
-        std::rethrow_exception(eptr);
-    }
-
-    auto event = get_event_in_session(save_exception);
+    auto event = get_event_in_session();
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
     int rc{SSH_OK};
     while ((std::chrono::steady_clock::now() < deadline) && rc == SSH_OK &&
-           !std::holds_alternative<int>(exit_result))
+           !exit_result.has_value())
     {
         rc = MP_LIBSSH.ssh_event_dopoll(event.get(), timeout.count());
     }
 
-    if (!std::holds_alternative<int>(exit_result))
+    if (!exit_result.has_value())
     {
         if (rc == SSH_ERROR)
         { // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
             const auto err = fmt::format("ssh_event_dopoll failed: {}", std::strerror(errno));
-            eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err});
+            throw SSHProcessExitError{cmd, err};
         }
         else
-            eptr = std::make_exception_ptr(SSHProcessTimeoutException{cmd, timeout});
-        // note that make_exception_ptr takes by value; we repeat the call with the concrete
-        // types to avoid slicing
-
-        if (save_exception)
-            exit_result = eptr;
-
-        std::rethrow_exception(eptr);
+            throw SSHProcessTimeoutException{cmd, timeout};
     }
 }
 
@@ -232,7 +251,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
     // If the channel is closed there's no output to read
-    if (!channel || MP_LIBSSH.ssh_channel_is_closed(channel.get())) // TODO@sftp
+    if (!channel || remote_closed) // TODO@sftp
     {
         mpl::trace_location(category, "{}", !channel ? "null channel" : "channel closed");
         return std::string();
@@ -254,7 +273,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
             // returning 0 bytes
-            if (MP_LIBSSH.ssh_channel_is_closed(channel.get()))
+            if (remote_closed)
             {
                 mpl::trace_location(category, "channel closed");
                 return output.str();
@@ -278,16 +297,7 @@ ssh_channel mp::PlainSSHProcess::release_channel()
     return channel.release();
 }
 
-void multipass::PlainSSHProcess::rethrow_if_saved() const
-{
-    if (auto eptrptr = std::get_if<std::exception_ptr>(&exit_result))
-    {
-        assert(!session_lock.owns_lock());
-        std::rethrow_exception(*eptrptr);
-    }
-}
-
-mp::PlainSSHProcess::EventUPtr mp::PlainSSHProcess::get_event_in_session(bool save_exception)
+mp::PlainSSHProcess::EventUPtr mp::PlainSSHProcess::get_event_in_session()
 {
 
     mp::PlainSSHProcess::EventUPtr event{MP_LIBSSH.ssh_event_new(),
@@ -304,10 +314,7 @@ mp::PlainSSHProcess::EventUPtr mp::PlainSSHProcess::get_event_in_session(bool sa
     }
     if (err.has_value())
     {
-        std::exception_ptr eptr = std::make_exception_ptr(SSHProcessExitError{cmd, err.value()});
-        if (save_exception)
-            exit_result = eptr;
-        std::rethrow_exception(eptr);
+        throw SSHProcessExitError{cmd, err.value()};
     }
     return event;
 }
