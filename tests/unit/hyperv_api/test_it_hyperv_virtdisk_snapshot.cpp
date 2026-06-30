@@ -73,7 +73,6 @@ struct VirtDiskSnapshotErase : public ::testing::Test
                       .mounts = {},
                       .deleted = false,
                       .metadata = {}};
-        ++counter;
         auto ss = std::make_shared<VirtDiskSnapshot>(name,
                                                      "",
                                                      "test-id",
@@ -83,6 +82,7 @@ struct VirtDiskSnapshotErase : public ::testing::Test
                                                      desc);
         snapshots.push_back(ss);
         ss->capture();
+        ++counter;
         return ss;
     }
 
