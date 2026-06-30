@@ -57,7 +57,6 @@ Click on the Multipass icon and select **Open Shell**.
 
 Clicking this button does many things in the background:
 * It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: {ref}`primary-instance`
-
 * It installs the most recent Ubuntu LTS release on that instance.
 * It mounts your `$HOME` directory in the instance.
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
@@ -163,7 +162,8 @@ Click on the Multipass icon and select **Open Shell**.
 Clicking this button does many things in the background:
 
 * It creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU.
-* It installs the most recent Ubuntu LTS release on that instance. Last, it mounts your `$HOME` directory in the instance.
+* It installs the most recent Ubuntu LTS release on that instance. 
+* It mounts your `$HOME` directory in the instance.
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
 You can see elements of this in the printout below:
@@ -255,7 +255,10 @@ Click on the Multipass icon and select **Open Shell**.
 ![|423x241](https://assets.ubuntu.com/v1/33a6bf4d-mp-windows-3.png)
 -->
 
-Clicking this button does many things in the background. First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU. Then, it installs the most recent Ubuntu LTS release on that instance. Last, it opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
+Clicking this button does many things in the background:
+* First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU. 
+* Then, it installs the most recent Ubuntu LTS release on that instance. 
+* Last, it opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
 You can see elements of this in the printout below:
 
@@ -300,7 +303,6 @@ tmpfs               462900       0     462900   0% /dev/shm
 tmpfs                 5120       0       5120   0% /run/lock
 /dev/sda15          106858    5329     101529   5% /boot/efi
 tmpfs                92580       4      92576   1% /run/user/1000
-:C:/Users/Scott 1048576000       0 1048576000   0% /home/ubuntu/Home
 ```
 
 ````
