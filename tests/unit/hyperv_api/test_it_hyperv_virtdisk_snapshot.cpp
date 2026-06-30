@@ -103,7 +103,7 @@ struct VirtDiskSnapshotErase : public ::testing::Test
     }
     Path snapshot_path(const Snapshot& ss) const
     {
-        return base().parent_path() / fmt::format("{}.avhdx", ss.get_name());
+        return base().parent_path() / fmt::format("{}.avhdx", ss.get_index());
     }
 
     void expect_chain(const Path& disk, const std::vector<Path>& expected)
