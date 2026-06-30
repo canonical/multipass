@@ -475,7 +475,7 @@ jobs:
       uses: mattermost/action-mattermost-notify@master
       with:
         MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
-        MATTERMOST_CHANNEL: multipass
+        MATTERMOST_CHANNEL: multipass-notifications
         TEXT: |
           :red_circle: @mp
           Scheduled [MacOS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
