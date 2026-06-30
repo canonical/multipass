@@ -2360,14 +2360,6 @@ try
             {
                 const auto& instance_name = vm_it->first;
 
-                if (vm_it->second->current_state() == VirtualMachine::State::unavailable)
-                {
-                    mpl::log(mpl::Level::info,
-                             instance_name,
-                             "Ignoring delete since instance is unavailable.");
-                    continue;
-                }
-
                 auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
                 const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
                                             ? SnapshotPick{{}, true}

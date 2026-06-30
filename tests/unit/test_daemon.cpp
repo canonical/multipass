@@ -1733,6 +1733,32 @@ TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
                   fmt::format("name=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
 }
 
+TEST_F(Daemon, deleteRemovesUnavailableInstances)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.name = "vm1";
+    vm_props.state = multipass::VirtualMachine::State::unavailable;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
+    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(vm_props.state));
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
+    EXPECT_CALL(*mock_vm, shutdown).Times(1);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"delete", "vm1"});
+}
+
 TEST_F(Daemon, launchesWithBridged)
 {
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
