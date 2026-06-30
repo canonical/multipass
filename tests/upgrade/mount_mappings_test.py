@@ -37,15 +37,20 @@ from .seedutils import seeded_vm, daemon_readable_dir
 
 CLASSIC_VM = "upg-mapmount"
 NATIVE_VM = "upg-mapmount-native"
+
+# Non-default uid/gid mappings are not expressible on Windows: a host file is always
+# owned by id -2 (Windows has no Unix uids), which is the only value the daemon's sftp
+# open-check (`has_id_mappings_for`) will accept, yet the mount CLI rejects -2 as a
+# --uid-map input. So a concrete host->guest mapping can neither be set nor read back
+# there. (The native pair is additionally qemu-only.)
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="host files carry no mappable uid on Windows (always -2; the CLI rejects it)",
+)
+
 # Map the host id onto guest root so the translation is observable (not identity).
-# default_mount_uid/gid() return -2 on Windows -- the daemon's default, not a valid
-# --uid-map input (mount.cpp rejects negatives). SMB ignores maps there anyway, so
-# a concrete id just lets us check the mapping is recorded and survives the upgrade.
-if sys.platform == "win32":
-    UID_MAP = GID_MAP = "1000:0"
-else:
-    UID_MAP = f"{default_mount_uid()}:0"
-    GID_MAP = f"{default_mount_gid()}:0"
+UID_MAP = f"{default_mount_uid()}:0"
+GID_MAP = f"{default_mount_gid()}:0"
 GUEST_OWNER = "0:0"
 
 
@@ -82,10 +87,9 @@ def _seed(vm, mount_type, label, record):
         assert path_exists(vm, f"{target}/host.txt")
         assert read_file(vm, f"{target}/host.txt").strip() == host_content
         # The host id was mapped onto guest root: the file must show as 0:0.
-        if sys.platform != "win32":
-            assert guest_owner(vm, f"{target}/host.txt") == GUEST_OWNER, (
-                f"mapping not applied: `{target}/host.txt` owner mismatch"
-            )
+        assert guest_owner(vm, f"{target}/host.txt") == GUEST_OWNER, (
+            f"mapping not applied: `{target}/host.txt` owner mismatch"
+        )
 
         guest_content = None
         # Native (qemu 9p, security_model=passthrough) maps a single uid/gid pair
@@ -126,10 +130,9 @@ def _verify(vm, record):
     assert mount_is_live(), f"mount `{target}` not re-established after upgrade"
     assert read_file(vm, f"{target}/host.txt").strip() == record["host_content"]
     # The mapping must still translate host id -> guest root after the upgrade.
-    if sys.platform != "win32":
-        assert guest_owner(vm, f"{target}/host.txt") == GUEST_OWNER, (
-            "mapping no longer applied after upgrade"
-        )
+    assert guest_owner(vm, f"{target}/host.txt") == GUEST_OWNER, (
+        "mapping no longer applied after upgrade"
+    )
     if record["guest_content"] is not None:
         assert path_exists(vm, f"{target}/guest.txt")
         assert read_file(vm, f"{target}/guest.txt").strip() == record["guest_content"]
