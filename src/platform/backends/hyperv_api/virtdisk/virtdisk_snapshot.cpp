@@ -71,7 +71,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::filesystem::path& filename,
 
 std::string VirtDiskSnapshot::make_snapshot_filename(const Snapshot& ss)
 {
-    return fmt::format("{}.avhdx", ss.get_name());
+    return fmt::format("{}.avhdx", ss.get_index());
 }
 
 std::filesystem::path VirtDiskSnapshot::make_snapshot_path(const Snapshot& ss) const
