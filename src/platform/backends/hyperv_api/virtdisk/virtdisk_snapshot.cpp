@@ -62,7 +62,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
 {
 }
 
-VirtDiskSnapshot::VirtDiskSnapshot(const QString& filename,
+VirtDiskSnapshot::VirtDiskSnapshot(const std::filesystem::path& filename,
                                    VirtualMachine& vm,
                                    const VirtualMachineDescription& desc)
     : BaseSnapshot(filename, vm, desc), base_vhdx_path{desc.image.image_path}, vm{vm}

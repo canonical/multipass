@@ -42,7 +42,7 @@ public:
                      const VMSpecs& specs,
                      const VirtualMachine& vm,
                      const VirtualMachineDescription& desc);
-    VirtDiskSnapshot(const QString& filename,
+    VirtDiskSnapshot(const std::filesystem::path& filename,
                      VirtualMachine& vm,
                      const VirtualMachineDescription& desc);
     [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
