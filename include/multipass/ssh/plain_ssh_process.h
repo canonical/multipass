@@ -22,10 +22,8 @@
 #include <libssh/callbacks.h>
 #include <libssh/libssh.h>
 
-#include <exception>
 #include <memory>
 #include <mutex>
-#include <variant>
 
 namespace multipass
 {
@@ -33,7 +31,7 @@ class PlainSSHProcess : public SSHProcess
 {
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
-    using ExitResultType = std::variant<std::monostate, int, std::exception_ptr>;
+    using ExitResultType = std::optional<int>;
     using EventUPtr = std::unique_ptr<ssh_event_struct, void (*)(ssh_event)>;
 
     PlainSSHProcess(ssh_session_struct& ssh_session,
@@ -66,12 +64,11 @@ private:
         err
     };
 
-    void rethrow_if_saved() const;
-    void read_exit_code(std::chrono::milliseconds timeout, bool save_exception);
+    void read_exit_code(std::chrono::milliseconds timeout);
     std::string read_stream(StreamType type, int timeout = -1);
     ssh_channel release_channel(); // releases the lock on the session; callers are on their own to
                                    // ensure thread safety
-    EventUPtr get_event_in_session(bool save_exception);
+    EventUPtr get_event_in_session();
 
     static void channel_exit_status_cb(ssh_session session,
                                        ssh_channel channel,
