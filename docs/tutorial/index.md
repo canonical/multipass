@@ -368,7 +368,7 @@ Release:          26.04
 Codename:         resolute
 ```
 
-This tells multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
+This tells Multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
 
 Now, launch another instance, setting its name and specific memory, disk, and CPUs by running this command:
 
