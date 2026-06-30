@@ -45,13 +45,11 @@ public:
     VirtDiskSnapshot(const std::filesystem::path& filename,
                      VirtualMachine& vm,
                      const VirtualMachineDescription& desc);
-    [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
-    [[nodiscard]] std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
+
     [[nodiscard]] static constexpr std::string_view head_disk_name() noexcept
     {
         return "head.avhdx";
     }
-    [[nodiscard]] std::filesystem::path make_head_disk_path() const;
 
 protected:
     void capture_impl() override;
@@ -60,6 +58,10 @@ protected:
 
 private:
     using SnapshotsMap = std::map<std::filesystem::path, std::shared_ptr<const Snapshot>>;
+
+    [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
+    [[nodiscard]] std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
+    [[nodiscard]] std::filesystem::path make_head_disk_path() const;
 
     /**
      * Create a new differencing child disk from the parent
