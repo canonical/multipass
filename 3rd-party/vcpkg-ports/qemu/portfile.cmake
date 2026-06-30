@@ -83,6 +83,9 @@ if(VCPKG_TARGET_IS_WINDOWS)
     ###########################################################################
     # Windows: QEMU requires GCC/MinGW. Bootstrap a full MSYS2 environment.
     #
+    # The Windows build is deliberately limited to qemu-img (the only QEMU tool
+    # Multipass uses on Windows). The system emulator is not built here.
+    #
     # NOTE: MinGW packages are fetched via pacman and are not version-pinned.
     # Builds are not fully hermetic on Windows. The MSYS2 base tarball is
     # pinned to limit variance. pacman requires network access, which is
@@ -91,6 +94,10 @@ if(VCPKG_TARGET_IS_WINDOWS)
 
     if(NOT VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
         message(FATAL_ERROR "Windows QEMU build currently only supports x64")
+    endif()
+
+    if("system" IN_LIST FEATURES)
+        message(FATAL_ERROR "The 'system' feature (QEMU system emulator) is not supported on Windows; only qemu-img is built")
     endif()
 
     function(to_msys_path WIN_PATH OUT_VAR)
@@ -103,13 +110,15 @@ if(VCPKG_TARGET_IS_WINDOWS)
         set(${OUT_VAR} "${_p}" PARENT_SCOPE)
     endfunction()
 
-    vcpkg_acquire_msys(MSYS_ROOT)
-
     set(MSYS2_DIR "${CURRENT_BUILDTREES_DIR}/msys2-full/msys64")
     set(MSYS2_BASH "${MSYS2_DIR}/usr/bin/bash.exe")
     set(MINGW_SHELL "${MSYS2_BASH}" -lc)
-    set(MINGW_ENV "export MSYSTEM=MINGW64 && source /etc/profile")
     set(MSYS2_SETUP_STAMP "${MSYS2_DIR}/.qemu-vcpkg-setup-complete")
+
+    # Select the MinGW64 toolchain for the login shell. With MSYSTEM set in the
+    # environment, `bash -lc` sources /etc/profile already configured for
+    # MinGW64, so individual commands don't need to export it and re-source.
+    set(ENV{MSYSTEM} "MINGW64")
 
     macro(msys2_exec COMMAND_STRING LOGNAME_SUFFIX)
         vcpkg_execute_required_process(
@@ -125,19 +134,22 @@ if(VCPKG_TARGET_IS_WINDOWS)
         SHA512 34267856d189ba21de9aba265c866dd0590a078784193161467387aa9f4f9e97c7a0119788955e95d54d4ab2346869852f8e35e006eaec80bf452bad51b213fa
     )
 
+    # CMake's bundled libarchive handles .tar.zst, so extract directly instead
+    # of acquiring a separate MSYS2 just to run `tar`.
     if(NOT EXISTS "${MSYS2_DIR}/usr/bin/pacman.exe")
-        file(MAKE_DIRECTORY "${CURRENT_BUILDTREES_DIR}/msys2-full")
-        vcpkg_execute_required_process(
-            COMMAND "${MSYS_ROOT}/usr/bin/bash.exe" -lc "cd '${CURRENT_BUILDTREES_DIR}/msys2-full' && tar xf '${MSYS2_ARCHIVE}'"
-            WORKING_DIRECTORY "${CURRENT_BUILDTREES_DIR}/msys2-full"
-            LOGNAME extract-msys2-${TARGET_TRIPLET}
+        file(ARCHIVE_EXTRACT
+            INPUT "${MSYS2_ARCHIVE}"
+            DESTINATION "${CURRENT_BUILDTREES_DIR}/msys2-full"
         )
     endif()
 
+    # Minimal toolchain/deps to build qemu-img: gcc, glib2 (pulls zlib/iconv),
+    # zstd (qcow2 zstd compression), plus the meson/ninja/pkgconf build tools.
+    # pixman is intentionally omitted: it is only used by display/SPICE/GTK/VNC,
+    # none of which qemu-img links against.
     set(MINGW_PACKAGES
         mingw-w64-x86_64-gcc
         mingw-w64-x86_64-glib2
-        mingw-w64-x86_64-pixman
         mingw-w64-x86_64-zstd
         mingw-w64-x86_64-python
         mingw-w64-x86_64-ninja
@@ -146,29 +158,31 @@ if(VCPKG_TARGET_IS_WINDOWS)
     list(JOIN MINGW_PACKAGES " " MINGW_PACKAGES_STRING)
 
     to_msys_path("${SOURCE_PATH}" SOURCE_PATH_UNIX)
-    to_msys_path("${CURRENT_PACKAGES_DIR}" INSTALL_PREFIX_UNIX)
     set(BUILD_DIR "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel")
     file(MAKE_DIRECTORY "${BUILD_DIR}")
     to_msys_path("${BUILD_DIR}" BUILD_DIR_UNIX)
+    to_msys_path("${CURRENT_PACKAGES_DIR}" INSTALL_PREFIX_UNIX)
 
     if(NOT EXISTS "${MSYS2_SETUP_STAMP}")
         msys2_exec("true" msys2-init)
         msys2_exec("pacman -Rdd --noconfirm mingw-w64-x86_64-pkg-config || true && pacman -Sy --noconfirm && pacman -S --noconfirm --needed ${MINGW_PACKAGES_STRING}" msys2-packages)
-        msys2_exec("${MINGW_ENV} && rm -f /mingw64/lib/python3.*/EXTERNALLY-MANAGED && python -m ensurepip && python -m pip install distlib '${SOURCE_PATH_UNIX}'/python/wheels/*.whl" msys2-python-deps)
+        msys2_exec("rm -f /mingw64/lib/python3.*/EXTERNALLY-MANAGED && python -m ensurepip && python -m pip install distlib '${SOURCE_PATH_UNIX}'/python/wheels/*.whl" msys2-python-deps)
         file(TOUCH "${MSYS2_SETUP_STAMP}")
     endif()
 
-    msys2_exec("${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && '${SOURCE_PATH_UNIX}/configure' --static --enable-tools --target-list='${QEMU_TARGET_LIST}' --prefix='${INSTALL_PREFIX_UNIX}' --extra-cflags='-UNDEBUG' --extra-ldflags='-liconv'" configure)
-    msys2_exec("${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && ninja -j${VCPKG_CONCURRENCY}" build)
-    msys2_exec("${MINGW_ENV} && cd '${BUILD_DIR_UNIX}' && ninja install" install)
+    # --enable-tools is required for the qemu-img target to exist, but we build
+    # only that single ninja target (not qemu-io/nbd/storage-daemon/edid) and
+    # skip `ninja install` entirely. The binary is copied straight from the
+    # build tree. --disable-system avoids building any system emulator; pixman
+    # is force-disabled and zstd force-enabled so features don't depend on
+    # autodetection of whatever MSYS2 provides. A --prefix is still required:
+    # meson validates it at configure time even though we never install.
+    msys2_exec("cd '${BUILD_DIR_UNIX}' && '${SOURCE_PATH_UNIX}/configure' --static --enable-tools --disable-system --disable-pixman --enable-zstd --prefix='${INSTALL_PREFIX_UNIX}' --extra-cflags='-UNDEBUG' --extra-ldflags='-liconv'" configure)
+    msys2_exec("cd '${BUILD_DIR_UNIX}' && ninja -j${VCPKG_CONCURRENCY} qemu-img.exe" build)
 
-    # ninja install puts binaries in the prefix root; move to bin/
+    # Copy just qemu-img.exe from the build tree (no install step ran).
     file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/bin")
-    file(GLOB QEMU_EXES "${CURRENT_PACKAGES_DIR}/*.exe")
-    foreach(exe IN LISTS QEMU_EXES)
-        get_filename_component(name "${exe}" NAME)
-        file(RENAME "${exe}" "${CURRENT_PACKAGES_DIR}/bin/${name}")
-    endforeach()
+    file(COPY "${BUILD_DIR}/qemu-img.exe" DESTINATION "${CURRENT_PACKAGES_DIR}/bin")
 
 else()
     ###########################################################################
@@ -221,29 +235,32 @@ foreach(tool IN LISTS TOOLS)
     endif()
 endforeach()
 
-# Firmware
-if(QEMU_ARCH STREQUAL "aarch64")
-    set(FIRMWARE "edk2-aarch64-code.fd")
-elseif(QEMU_ARCH STREQUAL "x86_64")
-    set(FIRMWARE "edk2-x86_64-code.fd")
-elseif(QEMU_ARCH STREQUAL "ppc64")
-    set(FIRMWARE "slof.bin")
-elseif(QEMU_ARCH STREQUAL "s390x")
-    set(FIRMWARE "s390-ccw.img")
-endif()
-
-file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/Resources/qemu")
-foreach(fw IN LISTS FIRMWARE)
-    if(EXISTS "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}")
-        file(RENAME
-            "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}"
-            "${CURRENT_PACKAGES_DIR}/Resources/qemu/${fw}")
-    else()
-        message(WARNING "Firmware file not found: ${fw}")
+# Firmware and UEFI assets are only needed by the system emulator. Windows
+# builds qemu-img only, so skip all of this there.
+if(NOT VCPKG_TARGET_IS_WINDOWS)
+    if(QEMU_ARCH STREQUAL "aarch64")
+        set(FIRMWARE "edk2-aarch64-code.fd")
+    elseif(QEMU_ARCH STREQUAL "x86_64")
+        set(FIRMWARE "edk2-x86_64-code.fd")
+    elseif(QEMU_ARCH STREQUAL "ppc64")
+        set(FIRMWARE "slof.bin")
+    elseif(QEMU_ARCH STREQUAL "s390x")
+        set(FIRMWARE "s390-ccw.img")
     endif()
-endforeach()
 
-file(COPY "${CMAKE_CURRENT_LIST_DIR}/OVMF.fd" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    foreach(fw IN LISTS FIRMWARE)
+        if(EXISTS "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}")
+            file(RENAME
+                "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}"
+                "${CURRENT_PACKAGES_DIR}/Resources/qemu/${fw}")
+        else()
+            message(WARNING "Firmware file not found: ${fw}")
+        endif()
+    endforeach()
+
+    file(COPY "${CMAKE_CURRENT_LIST_DIR}/OVMF.fd" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+endif()
 
 if("system" IN_LIST FEATURES)
     file(COPY "${SOURCE_PATH}/pc-bios/kvmvapic.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
@@ -268,4 +285,8 @@ file(REMOVE_RECURSE
 )
 
 set(VCPKG_POLICY_EMPTY_INCLUDE_FOLDER enabled)
+# QEMU ships application executables (e.g. qemu-img) in bin/, which is expected
+# even for static-linkage triplets.
+set(VCPKG_POLICY_ALLOW_EXES_IN_BIN enabled)
+set(VCPKG_POLICY_DLLS_IN_STATIC_LIBRARY enabled)
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING")
