@@ -30,6 +30,7 @@ from cli.multipass import (
     get_mac_addr_of,
 )
 from cli.utilities import uuid4_str
+from cli.utilities.mathutils import is_within_tolerance
 
 #: Sentinel files live in the guest home, which survives reboots and snapshots.
 SENTINEL_DIR = "/home/ubuntu"
@@ -133,9 +134,15 @@ def info_fingerprint(vm_name: str) -> dict:
 
 def assert_fingerprint_unchanged(vm_name: str, recorded: dict) -> None:
     current = info_fingerprint(vm_name)
-    assert current == recorded, (
+    # memory_total wobbles a few KB across kernels; compare with tolerance
+    mem_now, mem_rec = current.pop("memory_total"), recorded.get("memory_total")
+    assert is_within_tolerance(mem_now, mem_rec), (
+        f"memory_total for `{vm_name}` moved too much: {mem_rec} -> {mem_now}"
+    )
+    rest = {k: v for k, v in recorded.items() if k != "memory_total"}
+    assert current == rest, (
         f"Instance fingerprint for `{vm_name}` changed across upgrade: "
-        f"recorded {recorded}, now {current}"
+        f"recorded {rest}, now {current}"
     )
 
 
