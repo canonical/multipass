@@ -22,6 +22,8 @@
 
 #include <fmt/format.h>
 
+#include <libssh/sftp.h>
+
 #include <chrono>
 #include <stdexcept>
 #include <utility>
@@ -59,10 +61,15 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
 }
 } // namespace
 
+void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session msg) const
+{
+    sftp_server_free(msg);
+}
+
 mp::PlainSftpSession::RawSftpSessionUptr
 mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel channel)
 {
-    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel), sftp_server_free};
+    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel)};
     // The function sftp_server_init was expanded here to avoid deprecation warnings.
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445

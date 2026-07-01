@@ -22,10 +22,10 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_session.h>
 
-#include <libssh/sftp.h>
-
 #include <atomic>
 #include <chrono>
+
+struct sftp_session_struct;
 
 namespace multipass
 {
@@ -50,7 +50,11 @@ public:
     void request_stop() override;
 
 private:
-    using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
+    struct RawSftpSessionDeleter
+    {
+        void operator()(sftp_session_struct* message) const;
+    };
+    using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, RawSftpSessionDeleter>;
 
     static RawSftpSessionUptr make_raw_sftp_session(ssh_session raw_session, ssh_channel channel);
 
