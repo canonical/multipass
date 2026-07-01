@@ -34,9 +34,7 @@ mp::ReturnCodeVariant cmd::Authenticate::run(ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](AuthenticateReply&) -> ReturnCodeVariant {
-        return ReturnCode::Ok;
-    };
+    auto on_success = [](AuthenticateReply&) -> ReturnCodeVariant { return ReturnCode::Ok; };
 
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         return standard_failure_handler_for(name(), cerr, status);

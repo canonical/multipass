@@ -75,8 +75,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
                                                             true}}};
     }
 
-    void clone(const std::string& /*src*/,
-               const std::string& /*dst*/) override
+    void clone(const std::string& /*src*/, const std::string& /*dst*/) override
     {
     }
 

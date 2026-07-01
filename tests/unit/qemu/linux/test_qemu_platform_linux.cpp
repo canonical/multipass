@@ -302,10 +302,11 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
                                    ElementsAre(QString("addr"), QString("show"), saved_opts.last()),
                                    _))
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("link"), QString("delete"), saved_opts.last()),
-                                   _))
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("ip"),
+                           ElementsAre(QString("link"), QString("delete"), saved_opts.last()),
+                           _))
         .WillOnce(Return(true));
 
     qemu_platform_linux.remove_resources_for(vswitch.name);
@@ -341,10 +342,11 @@ TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
                                    ElementsAre(QString("addr"), QString("show"), saved_opts.last()),
                                    _))
         .WillOnce(Return(true));
-    EXPECT_CALL(*mock_utils,
-                run_cmd_for_status(QString("ip"),
-                                   ElementsAre(QString("link"), QString("delete"), saved_opts.last()),
-                                   _))
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("ip"),
+                           ElementsAre(QString("link"), QString("delete"), saved_opts.last()),
+                           _))
         .WillOnce(Return(true));
 }
 

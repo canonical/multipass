@@ -147,17 +147,17 @@ protected:
         using Arg0Type =
             typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = std::decay_t<Arg0Type>;
-        return dispatch(rpc_func,
-                        request,
-                        on_success,
-                        on_failure,
-                        [this](ReplyType& reply,
-                               grpc::ClientReaderWriterInterface<Request, ReplyType>*) {
-                            if (!reply.log_line().empty())
-                            {
-                                cerr << reply.log_line();
-                            }
-                        });
+        return dispatch(
+            rpc_func,
+            request,
+            on_success,
+            on_failure,
+            [this](ReplyType& reply, grpc::ClientReaderWriterInterface<Request, ReplyType>*) {
+                if (!reply.log_line().empty())
+                {
+                    cerr << reply.log_line();
+                }
+            });
     }
 
     Rpc::StubInterface* stub;

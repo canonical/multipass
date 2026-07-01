@@ -67,11 +67,10 @@ mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
 {
 }
 
-mp::UbuntuVMImageRemote::UbuntuVMImageRemote(
-    std::string official_host,
-    std::string uri,
-    std::function<bool(VMImageInfo&)> custom_image_mutator,
-    std::optional<std::string> mirror_key)
+mp::UbuntuVMImageRemote::UbuntuVMImageRemote(std::string official_host,
+                                             std::string uri,
+                                             std::function<bool(VMImageInfo&)> custom_image_mutator,
+                                             std::optional<std::string> mirror_key)
     : official_host(std::move(official_host)),
       uri(std::move(uri)),
       image_mutator{custom_image_mutator},

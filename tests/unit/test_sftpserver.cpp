@@ -531,14 +531,13 @@ TEST_F(SftpServer, handlesRealpath)
     msg->filename = file_name.data();
 
     bool invoked{false};
-    auto reply_name = [&msg, &invoked, &file_name](sftp_client_message cmsg,
-                                                   const char* name,
-                                                   sftp_attributes) {
-        EXPECT_THAT(cmsg, Eq(msg.get()));
-        EXPECT_THAT(name, StrEq(file_name.data()));
-        invoked = true;
-        return SSH_OK;
-    };
+    auto reply_name =
+        [&msg, &invoked, &file_name](sftp_client_message cmsg, const char* name, sftp_attributes) {
+            EXPECT_THAT(cmsg, Eq(msg.get()));
+            EXPECT_THAT(name, StrEq(file_name.data()));
+            invoked = true;
+            return SSH_OK;
+        };
     REPLACE(sftp_reply_name, reply_name);
     REPLACE(sftp_get_client_message, make_msg_handler());
 

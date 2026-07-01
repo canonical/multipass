@@ -587,8 +587,7 @@ LinearInstanceSelection select_all(InstanceTable& instances)
 }
 
 // careful to keep the original `name` around while the provided `selection` is in use!
-void rank_instance(const InstanceTrail& trail,
-                   InstanceSelectionReport& selection)
+void rank_instance(const InstanceTrail& trail, InstanceSelectionReport& selection)
 {
     switch (trail.index())
     {
@@ -1299,9 +1298,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           [this] { persist_instances(); },
           [this](const std::string& n) { return is_bridged(n); },
           [this](const std::string& n) { return add_bridged_interface(n); })},
-      snapshot_mod_handler{register_snapshot_mod(operative_instances,
-                                                 deleted_instances,
-                                                 preparing_instances)}
+      snapshot_mod_handler{
+          register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
 {
     using e_state = VirtualMachine::State;
 
@@ -2856,10 +2854,9 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::wait_ready(
-    const WaitReadyRequest*,
-    grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>*,
-    DaemonRpcContext* context)
+void mp::Daemon::wait_ready(const WaitReadyRequest*,
+                            grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>*,
+                            DaemonRpcContext* context)
 try
 {
     WaitReadyReply response;
@@ -2912,10 +2909,9 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::zones_state(
-    const ZonesStateRequest* request,
-    grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>*,
-    DaemonRpcContext* context) // clang-format off
+void mp::Daemon::zones_state(const ZonesStateRequest* request,
+                             grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>*,
+                             DaemonRpcContext* context) // clang-format off
 try // clang-format on
 {
     auto& az_manager = *config->az_manager;

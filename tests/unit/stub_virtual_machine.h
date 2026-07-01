@@ -98,7 +98,8 @@ struct StubVirtualMachine final : public VirtualMachine
         return {};
     }
 
-    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string&/*cmd*/, bool /*whisper*/ = false) override
+    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& /*cmd*/,
+                                                 bool /*whisper*/ = false) override
     {
         return nullptr;
     }
