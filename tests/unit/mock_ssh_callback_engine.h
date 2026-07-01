@@ -86,8 +86,13 @@ public:
             cb_state.pop();
     }
 
-    static constexpr int success_status = 0;
-    static constexpr int failure_status = 42;
+    static constexpr int success_code = 0;
+    static constexpr int failure_code = 42;
+
+    static constexpr CallbackState process_exit_success{};
+    static constexpr CallbackState process_exit_failure{SSH_OK, true, true, failure_code};
+    static constexpr CallbackState process_noexit{SSH_ERROR, true, true, std::nullopt};
+    static constexpr CallbackState process_running{SSH_AGAIN, false, false, std::nullopt};
 
 private:
     decltype(mock_ssh_add_channel_callbacks)& add_channel_cbs{mock_ssh_add_channel_callbacks};
