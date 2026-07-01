@@ -19,7 +19,7 @@ The following scenarios describe commonly encountered Multipass networking probl
 
 - [An instance won't start, and you see `Unable to determine IP address`](#tn2-macos-launch).
 - [`multipass shell` doesn't respond or fails to connect](#tn2-macos-routing).
-- [Your instance starts, but it can't connect to the internet](#tn2-macos-dns).
+- [Your instance can reach IP addresses, but not domain names](#tn2-macos-dns).
 - [Extra IP addresses aren't reachable between instances](#tn2-macos-arp).
 - [Networking stopped working right after a macOS update](#tn2-macos-update).
 
@@ -127,11 +127,11 @@ If you change the range and launch an instance, it will get an address from the 
 ```
 
 (tn2-macos-dns)=
-### Your instance can't connect to the internet
+### Your instance can reach IP addresses, but not domain names
 
-> I can open a shell in my instance, but it can't connect to the internet.
+> I can open a shell in my instance, but commands that use domain names don't connect.
 
-**Step 1: Can the instance reach the internet at all?**
+**Step 1: Can the instance reach an IP address?**
 
 Inside the instance, try to reach an address by its numbers:
 
@@ -157,7 +157,7 @@ The macOS firewall can block the test messages that `ping` uses, which makes thi
    :alt: Security & Privacy
 ```
 
-With Stealth Mode off, a working connection looks like this:
+With Stealth Mode off, a working IP connection looks like this:
 
 ```{code-block} text
 PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
@@ -169,7 +169,9 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 2143ms
 ```
 
-If this works, the instance can reach the internet, but **DNS resolution** is broken. Continue below.
+If the test still fails, stop here: the DNS checks below apply only when the instance can reach an IP address.
+
+If this works, the instance can reach IP addresses, but **DNS resolution** is broken. Continue below.
 
 **Step 2: Is name resolution broken?**
 
