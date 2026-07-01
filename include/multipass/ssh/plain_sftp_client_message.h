@@ -45,7 +45,7 @@ public:
 private:
     struct RawMsgDeleter
     {
-        void operator()(sftp_client_message_struct* message) const;
+        void operator()(sftp_client_message_struct* message) const noexcept;
     };
     using RawSftpMsgUptr = std::unique_ptr<sftp_client_message_struct, RawMsgDeleter>;
 

@@ -63,7 +63,7 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
 }
 } // namespace
 
-void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session msg) const
+void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session msg) const noexcept
 {
     sftp_server_free(msg);
 }
