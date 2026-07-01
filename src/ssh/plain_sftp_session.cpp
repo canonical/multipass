@@ -22,6 +22,8 @@
 
 #include <fmt/format.h>
 
+#include <libssh/sftp.h>
+
 #include <chrono>
 #include <stdexcept>
 #include <utility>
@@ -59,6 +61,11 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
 }
 } // namespace
 
+void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session msg) const
+{
+    sftp_server_free(msg);
+}
+
 mp::PlainSftpSession::RawSftpSessionUptr
 mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel channel)
 {
@@ -67,7 +74,7 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
     // https://github.com/canonical/multipass/issues/4445
 
     // TODO@sftp go through MP_LIBSSH
-    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel), sftp_server_free};
+    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel)};
     if (!raw_sftp_session)
         throw SSHException(
             fmt::format("[sftp] server init failed: could not create a new sftp_server."));
