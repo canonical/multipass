@@ -82,12 +82,6 @@ Work through these one at a time, trying to launch again after each:
 
 > The instance is running, but `multipass shell` doesn't respond or won't connect.
 
-**What you'll see**
-
-```{code-block} text
-observation to be inserted later
-```
-
 **What's happening**
 
 Your computer can't route traffic to the instance's network. This is most often caused by VPN software that takes control of the routing table.
@@ -277,12 +271,6 @@ Try these in order (see [issue #2387](https://github.com/canonical/multipass/iss
 ### Instances won't start or keep timing out
 
 > New instances fail to launch, or existing ones hang and time out when starting, and the problem survives a reboot.
-
-**What you'll see**
-
-```{code-block} text
-observation to be inserted later
-```
 
 **What's happening**
 
