@@ -29,21 +29,20 @@ The following scenarios describe commonly encountered Multipass networking probl
 - [Connectivity is unreliable and you run anti-virus or security software](#tn2-windows-av).
 - [Upload speeds over Wi-Fi are very slow](#tn2-windows-wifi).
 
----
 
 (tn2-interfering-apps)=
 ## Apps that commonly interfere
 
 Before troubleshooting a specific symptom, check whether you're running any of the following. These are the most common cause of Multipass networking problems, and quitting them often fixes the issue outright:
 
-- **VPN software** can redirect Multipass's private network range through the VPN instead of keeping it on your computer. Known culprits: OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, and Juniper Junos Pulse / Pulse Secure. (Tunnelblick is known to be fine.)
-- **Cisco Umbrella Roaming Client** takes over the name-resolution port (port 53) and breaks your instance's DNS.
-- **dnscrypt-proxy, dnscrypt-wrapper, or cloudflared-proxy** do the same by default.
-- **A second `dnsmasq` process**, or a **custom DHCP server**, can also clash. On macOS, check what is using the DHCP port with `sudo lsof -iUDP:67 -n -P`; you should only see `launchd` and `bootpd`.
+- **VPN software** may route the `192.168.64.*` subnet through the VPN interface instead of keeping it locally available. Possible culprits include OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, and Juniper Junos Pulse / Pulse Secure. (`Tunnelblick` is known not to cause this problem.)
+- **Cisco Umbrella Roaming Client** can bind to localhost port 53, which clashes with Internet Sharing and breaks your instance's DNS.
+- **dnscrypt-proxy, dnscrypt-wrapper, or cloudflared-proxy** can also bind to localhost port 53 by default.
+- **Another `dnsmasq` process** bound to localhost port 53 can clash with Internet Sharing.
+- **A custom DHCP server** bound to port 67 can also clash. On macOS, check what is using the DHCP port with `sudo lsof -iUDP:67 -n -P`; you should only see `launchd` and `bootpd`.
 
 If you use any of these, try quitting it and reproducing your problem before going further.
 
----
 
 ## On macOS
 
