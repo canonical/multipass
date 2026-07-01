@@ -17,7 +17,7 @@
 
 #include "common.h"
 #include "mock_logger.h"
-#include "mock_ssh_process_exit_status.h"
+#include "mock_ssh_callback_engine.h"
 #include "sftp_server_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
@@ -65,7 +65,8 @@ struct SshfsMount : public mp::test::SftpServerTest
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {
                     invoked = true;
-                    exit_status_mock.set_exit_status(exit_status_mock.failure_status);
+                    callback_mock_engine.push_state(callback_mock_engine.process_exit_failure);
+                    callback_mock_engine.pop_state();
                 }
             }
             return SSH_OK;
@@ -99,6 +100,8 @@ struct SshfsMount : public mp::test::SftpServerTest
             invoked = false;
 
             std::string cmd{raw_cmd};
+            mpt::CallbackState cb{};
+            cb.closed = false;
 
             if (fail_cmd && cmd.find(*fail_cmd) != std::string::npos)
             {
@@ -106,7 +109,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 {
                     *fail_invoked = true;
                 }
-                exit_status_mock.set_exit_status(exit_status_mock.failure_status);
+                cb.exit_code = callback_mock_engine.failure_code;
             }
             else if (next_expected_cmd != commands.end())
             {
@@ -121,19 +124,23 @@ struct SshfsMount : public mp::test::SftpServerTest
                 {
                     invoked = true;
                     output = next_expected_cmd->second;
+                    cb.exit_code = callback_mock_engine.success_code;
                     remaining = output.size();
                     ++next_expected_cmd;
 
+                    callback_mock_engine.push_state(cb);
                     return SSH_OK;
                 }
                 else if (found_cmd != commands.end())
                 {
                     output = found_cmd->second;
+                    cb.exit_code = callback_mock_engine.success_code;
                     remaining = output.size();
                     ADD_FAILURE() << "\"" << (found_cmd->first)
                                   << "\" executed out of order; expected \""
                                   << next_expected_cmd->first << "\"";
 
+                    callback_mock_engine.push_state(cb);
                     return SSH_OK;
                 }
             }
@@ -147,7 +154,10 @@ struct SshfsMount : public mp::test::SftpServerTest
                 remaining = output.size();
                 invoked = true;
             }
-
+            // Process completed and channel is done
+            cb.exit_code = callback_mock_engine.success_code;
+            cb.eof = true;
+            callback_mock_engine.push_state(cb);
             return SSH_OK;
         };
 
@@ -186,7 +196,6 @@ struct SshfsMount : public mp::test::SftpServerTest
         REPLACE(ssh_channel_new,
                 [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
         REPLACE(ssh_channel_free, [](auto...) { return; });
-        REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
         REPLACE(ssh_event_new,
                 [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
         REPLACE(ssh_event_free, [](auto...) { return; });
@@ -221,7 +230,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         return [message](sftp_session) mutable { return std::exchange(message, nullptr); };
     }
 
-    mpt::ExitStatusMock exit_status_mock;
+    mpt::CallbackEngineMock callback_mock_engine;
 
     std::string default_source{"source"};
     std::string default_target{"target"};
@@ -285,15 +294,9 @@ TEST_P(SshfsMountFail, testFailedInvocation)
     REPLACE(ssh_channel_new,
             [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_add_channel_callbacks, [](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        cb->channel_exit_status_function(nullptr, nullptr, 0, cb->userdata);
-        return SSH_OK;
-    });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
     REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_event_free, [](auto...) { return; });
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
     auto channel_read = make_channel_read_return(output, remaining, invoked_cmd);
     REPLACE(ssh_channel_read_timeout, channel_read);
 

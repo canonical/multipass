@@ -27,8 +27,8 @@ namespace multipass::test
 struct CallbackState
 {
     int ssh_rc{SSH_OK};
-    bool eof{false};
-    bool closed{false};
+    bool eof{true};
+    bool closed{true};
     std::optional<int> exit_code{0};
 };
 
@@ -46,8 +46,7 @@ public:
             // Explicit copy
             CallbackState cb_s{cb_state.front()};
 
-            if (cb_state.size() > 1)
-                cb_state.pop();
+            this->pop_state();
 
             if (channel_cbs == nullptr)
                 return SSH_ERROR;
@@ -90,6 +89,11 @@ public:
     static constexpr int success_code = 0;
     static constexpr int failure_code = 42;
 
+    static constexpr CallbackState process_exit_success{};
+    static constexpr CallbackState process_exit_failure{SSH_OK, true, true, failure_code};
+    static constexpr CallbackState process_noexit{SSH_ERROR, true, true, std::nullopt};
+    static constexpr CallbackState process_running{SSH_AGAIN, false, false, std::nullopt};
+
 private:
     decltype(mock_ssh_add_channel_callbacks)& add_channel_cbs{mock_ssh_add_channel_callbacks};
     decltype(mock_ssh_add_channel_callbacks) old_add_channel_cbs{
@@ -103,6 +107,6 @@ private:
 
     ssh_channel_callbacks channel_cbs{nullptr};
     // By default it behaves like the previous implementation
-    std::queue<CallbackState> cb_state{{}};
+    std::queue<CallbackState> cb_state{};
 };
 } // namespace multipass::test
