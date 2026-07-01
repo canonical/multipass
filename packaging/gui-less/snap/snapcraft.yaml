@@ -286,4 +286,3 @@ lint:
     - usr/lib/*/libatk*.so*
     - usr/lib/*/libatspi*.so*
     - usr/lib/*/libkeybinder*.so*
-
