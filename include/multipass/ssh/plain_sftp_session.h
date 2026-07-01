@@ -37,6 +37,9 @@ namespace multipass
 class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
 public:
+    /**
+     * Interval at which #next_message polls for new messages while waiting for one to arrive.
+     */
     constexpr static std::chrono::duration<int, std::milli> poll_interval{250};
 
     PlainSftpSession(PlainSSHSession&& ssh_session_obj, const std::string& sshfs_cmd);
@@ -47,7 +50,19 @@ public:
     PlainSftpSession(PlainSftpSession&&) = delete;
     PlainSftpSession& operator=(PlainSftpSession&&) = delete;
 
+    /**
+     * @copydoc SftpSession::request_stop
+     *
+     * This will typically take up to #poll_interval to take effect, but it can take longer if:
+     * @li reading a single SFTP message takes longer, e.g. because it arrives in chunks that are
+     * slow to complete
+     * @li the reading thread is delayed in being scheduled
+     */
     void request_stop() override;
+
+    /**
+     * @copydoc SftpSession::next_message
+     */
     std::unique_ptr<SftpMessage> next_message() override;
 
 private:
