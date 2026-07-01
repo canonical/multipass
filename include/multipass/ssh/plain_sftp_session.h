@@ -37,7 +37,7 @@ namespace multipass
 class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
 public:
-    constexpr static std::chrono::milliseconds poll_interval{250};
+    constexpr static std::chrono::duration<int, std::milli> poll_interval{250};
 
     PlainSftpSession(PlainSSHSession&& ssh_session_obj, const std::string& sshfs_cmd);
     PlainSftpSession(const PlainSftpSession&) = delete;
@@ -48,6 +48,7 @@ public:
     PlainSftpSession& operator=(PlainSftpSession&&) = delete;
 
     void request_stop() override;
+    std::unique_ptr<SftpMessage> next_message() override;
 
 private:
     struct RawSftpSessionDeleter

@@ -17,8 +17,12 @@
 
 #pragma once
 
+#include <memory>
+
 namespace multipass
 {
+class SftpMessage;
+
 /**
  * A server-side SFTP session.
  */
@@ -38,6 +42,14 @@ public:
      * threads) at the next occasion.
      */
     virtual void request_stop() = 0;
+
+    /**
+     * Poll for and return the next client message.
+     *
+     * Returns `nullptr` either when the connection drops or when @ref request_stop() was called.
+     * Callers can tell the two apart by checking whether they themselves requested a stop.
+     */
+    virtual std::unique_ptr<SftpMessage> next_message() = 0;
 
 protected:
     SftpSession() = default;
