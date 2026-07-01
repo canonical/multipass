@@ -68,7 +68,7 @@ public:
 private:
     struct RawSftpSessionDeleter
     {
-        void operator()(sftp_session_struct* message) const;
+        void operator()(sftp_session_struct* message) const noexcept;
     };
     using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, RawSftpSessionDeleter>;
 
