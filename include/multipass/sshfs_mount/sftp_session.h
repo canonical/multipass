@@ -41,7 +41,7 @@ public:
      * Call this method to cancel in-progress #next_message() calls on the same object (in other
      * threads) at the next occasion.
      */
-    virtual void request_stop() = 0;
+    virtual void request_stop() noexcept = 0;
 
     /**
      * Poll for and return the next client message.

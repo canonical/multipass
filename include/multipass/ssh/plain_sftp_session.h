@@ -58,7 +58,7 @@ public:
      * slow to complete
      * @li the reading thread is delayed in being scheduled
      */
-    void request_stop() override;
+    void request_stop() noexcept override;
 
     /**
      * @copydoc SftpSession::next_message
