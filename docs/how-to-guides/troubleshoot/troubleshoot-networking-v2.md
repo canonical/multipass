@@ -49,7 +49,7 @@ If you use any of these, try quitting it and reproducing your problem before goi
 (tn2-macos-launch)=
 ### An instance won't start on macOS
 
-> **I try running `multipass launch` and it fails. The error mentions it can't determine an IP address.**
+> I try running `multipass launch` and it fails. The error mentions it can't determine an IP address.
 
 **What you'll see**
 
@@ -245,6 +245,10 @@ You can point the instance at a public resolver instead:
 On macOS, the Multipass network only allows through the single IP address it originally assigned to each instance. If you add another address (an "IP alias"), requests for it get out but the replies are filtered, so the address never answers.
 
 This means tools that depend on extra IP addresses, such as [MetalLB](https://metallb.universe.tf/) under [MicroK8s](https://microk8s.io/), won't work on macOS.
+
+**What to do**
+
+There is no documented Multipass fix for additional IP addresses on macOS. Avoid relying on additional IP addresses for macOS instances.
 
 (tn2-macos-update)=
 ### Networking stopped after a macOS update
