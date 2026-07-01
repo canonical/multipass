@@ -222,7 +222,7 @@ parts:
     - -usr/share/mime
     - -usr/share/pkgconfig
     - -usr/share/thumbnailers
-    
+
     prime:
     - -protobuf
 
@@ -302,4 +302,3 @@ lint:
       - usr/lib/*/libatk*.so*
       - usr/lib/*/libatspi*.so*
       - usr/lib/*/libkeybinder*.so*
-
