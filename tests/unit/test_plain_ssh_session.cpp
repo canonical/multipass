@@ -18,6 +18,7 @@
 #include "common.h"
 #include "mock_platform.h"
 #include "mock_ssh.h"
+#include "mock_ssh_callback_engine.h"
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/socket.h>
@@ -110,6 +111,7 @@ TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
 
 TEST_F(TestPlainSSHSession, execSucceeds)
 {
+    mpt::CallbackEngineMock cb_engine;
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
     REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
     mp::PlainSSHSession session = make_ssh_session();
