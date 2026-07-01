@@ -65,9 +65,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {
                     invoked = true;
-                    mpt::CallbackState cb{};
-                    cb.exit_code = callback_mock_engine.failure_status;
-                    callback_mock_engine.push_state(cb);
+                    callback_mock_engine.push_state(callback_mock_engine.process_exit_failure);
                     callback_mock_engine.pop_state();
                 }
             }
@@ -112,7 +110,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 {
                     *fail_invoked = true;
                 }
-                cb.exit_code = callback_mock_engine.failure_status;
+                cb.exit_code = callback_mock_engine.failure_code;
             }
             else if (next_expected_cmd != commands.end())
             {
@@ -127,7 +125,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 {
                     invoked = true;
                     output = next_expected_cmd->second;
-                    cb.exit_code = callback_mock_engine.success_status;
+                    cb.exit_code = callback_mock_engine.success_code;
                     remaining = output.size();
                     ++next_expected_cmd;
 
@@ -138,7 +136,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 else if (found_cmd != commands.end())
                 {
                     output = found_cmd->second;
-                    cb.exit_code = callback_mock_engine.success_status;
+                    cb.exit_code = callback_mock_engine.success_code;
                     remaining = output.size();
                     ADD_FAILURE() << "\"" << (found_cmd->first)
                                   << "\" executed out of order; expected \""
