@@ -116,7 +116,7 @@ mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
 {
 }
 
-void mp::PlainSftpSession::request_stop()
+void mp::PlainSftpSession::request_stop() noexcept
 {
     stop_requested.store(true);
 }
