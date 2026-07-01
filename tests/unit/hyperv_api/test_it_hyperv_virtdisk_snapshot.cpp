@@ -24,6 +24,8 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
+#include <QDir>
+
 namespace multipass::test
 {
 
