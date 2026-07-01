@@ -22,6 +22,7 @@
 #include "tests/unit/mock_process_factory.h"
 #include "tests/unit/temp_file.h"
 
+#include <QCoreApplication>
 #include <applevz/applevz_utils.h>
 #include <multipass/utils.h>
 
@@ -32,6 +33,12 @@ using namespace testing;
 
 namespace
 {
+
+auto expected_qemu_img_path()
+{
+    return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
+}
+
 struct AppleVZUtils_UnitTests : public testing::Test
 {
     AppleVZUtils_UnitTests()
@@ -64,7 +71,7 @@ TEST_F(AppleVZUtils_UnitTests, convertUsesRawFormatOnPreMacOS26)
     EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(false));
 
     process_factory_scope->register_callback([](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
@@ -86,7 +93,7 @@ TEST_F(AppleVZUtils_UnitTests, convertIsNoOpWhenAlreadyRaw)
     EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(false));
 
     process_factory_scope->register_callback([](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
@@ -124,7 +131,7 @@ TEST_F(AppleVZUtils_UnitTests, nonAsifBytesTriggerConversionOnMacOS26)
 
     bool asif_created = false;
     process_factory_scope->register_callback([&asif_created](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
@@ -152,7 +159,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionKeepsRawFileWhenNonDestructive)
     MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
 
     process_factory_scope->register_callback([](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
@@ -175,7 +182,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionRemovesAsifOnFailure)
 
     QString asif_path;
     process_factory_scope->register_callback([&asif_path](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
@@ -209,7 +216,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionKeepsRawOnNonDestructiveFailure)
 
     QString asif_path;
     process_factory_scope->register_callback([&asif_path](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
@@ -322,7 +329,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionDeletesIntermediateRawOnSuccess)
 
     QString raw_path;
     process_factory_scope->register_callback([&raw_path](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
@@ -354,7 +361,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionDeletesFilesOnFailure)
     QString raw_path;
     QString asif_path;
     process_factory_scope->register_callback([&raw_path, &asif_path](mpt::MockProcess* process) {
-        if (process->program() == "qemu-img")
+        if (process->program() == expected_qemu_img_path())
         {
             const auto args = process->arguments();
             if (args.contains("info"))
