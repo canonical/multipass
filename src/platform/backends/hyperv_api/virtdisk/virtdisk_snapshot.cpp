@@ -53,6 +53,26 @@ static std::filesystem::path get_parent_disk_of(const std::filesystem::path& dis
     throw CreateVirtdiskSnapshotError{list_r, "Could not determine parent disk of `{}`", disk};
 }
 
+// Best-effort rename for use inside noexcept rollback guards: MP_FILEOPS.rename has
+// no error_code overload, so a failure during cleanup is caught and logged rather
+// than allowed to escape (and mask) the original error.
+static void try_rename(const std::filesystem::path& from,
+                       const std::filesystem::path& to) noexcept
+{
+    try
+    {
+        MP_FILEOPS.rename(from, to);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::error(log_category,
+                   "Failed to restore `{}` -> `{}` during rollback: {}",
+                   from,
+                   to,
+                   e.what());
+    }
+}
+
 VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
                                    const std::string& comment,
                                    const std::string& instance_id,
@@ -214,55 +234,78 @@ void VirtDiskSnapshot::erase_impl()
     if (is_head_attached_to_this())
         children.insert({head_path, nullptr});
 
-    auto self_temp_path = self_path;
-    self_temp_path += ".tmp";
-    MP_FILEOPS.rename(self_path, self_temp_path);
+    // Move self aside as the pristine backup; self_path is recreated as merge
+    // scratch for each child below.
+    auto self_backup = self_path;
+    self_backup += ".tmp";
+    MP_FILEOPS.rename(self_path, self_backup);
 
-    // Pass 1: merge each child into a copy, stash the result as child.new
-    // No original files are modified. If anything fails, we clean up and bail.
-    std::vector<std::pair<std::filesystem::path, std::filesystem::path>>
-        staged; // {child, child.new}
+    // {child, staged("<child>.new")} for every child we have processed.
+    std::vector<std::pair<std::filesystem::path, std::filesystem::path>> staged;
+    staged.reserve(children.size());
 
-    auto rollback = [&] {
-        for (const auto& [original, stashed] : staged)
+    // Restore the exact pre-erase state on any failure. Existence-driven so it is
+    // correct no matter how far Pass 1/Pass 2 got, and noexcept so it never masks
+    // the original error nor throws out of the guard.
+    auto rollback = sg::make_scope_guard([&]() noexcept {
+        std::error_code ec{};
+        for (const auto& [child_path, staged_path] : staged)
         {
-            std::error_code ec;
-            MP_FILEOPS.remove(stashed, ec);
+            auto backup_path = child_path;
+            backup_path += ".old";
+            if (MP_FILEOPS.exists(backup_path, ec)) // Pass 2 had started for this child
+            {
+                MP_FILEOPS.remove(child_path, ec);   // drop merged/partial content
+                try_rename(backup_path, child_path); // restore the original
+            }
+            MP_FILEOPS.remove(staged_path, ec); // drop the staged .new if still present
         }
-        // Restore the snapshot file
-        MP_FILEOPS.remove(self_path);
-        MP_FILEOPS.rename(self_temp_path, self_path);
-    };
+        MP_FILEOPS.remove(self_path, ec);   // drop leftover merge scratch
+        try_rename(self_backup, self_path); // restore pristine self
+    });
 
+    // Pass 1: merge each child into a fresh copy of self and stash the result as
+    // <child>.new. No original files are modified.
     for (const auto& [child_path, snapshot_ptr] : children)
     {
-        MP_FILEOPS.copy(self_temp_path, self_path, {});
+        auto staged_path = child_path;
+        staged_path += ".new";
+
+        MP_FILEOPS.copy(self_backup, self_path, {}); // fresh parent for this merge
 
         if (auto merge_r = VirtDisk().merge_virtual_disk_into_parent(child_path); !merge_r)
-        {
-            rollback();
             throw CreateVirtdiskSnapshotError{merge_r,
                                               "Could not merge child disk `{}` into `{}`",
                                               child_path,
                                               self_path};
-        }
 
-        // Stash merged result. Original child_path is untouched.
-        auto stash_path = child_path;
-        stash_path += ".new";
-        MP_FILEOPS.rename(self_path, stash_path);
-        staged.emplace_back(child_path, stash_path);
+        MP_FILEOPS.rename(self_path, staged_path); // stash merged result
+        staged.emplace_back(child_path, staged_path);
     }
 
-    // Pass 2: all merges succeeded. Commit by swapping originals with results.
-    // This is a series of renames, which are atomic per-file on NTFS.
-    for (const auto& [child_path, stash_path] : staged)
+    // Pass 2: commit. Preserve each original as <child>.old, then swap the merged
+    // result in. Keeping the originals until the end lets the guard restore them if
+    // a later swap fails.
+    for (const auto& [child_path, staged_path] : staged)
     {
-        MP_FILEOPS.remove(child_path);
-        MP_FILEOPS.rename(stash_path, child_path);
+        auto backup_path = child_path;
+        backup_path += ".old";
+        MP_FILEOPS.rename(child_path, backup_path); // preserve original
+        MP_FILEOPS.rename(staged_path, child_path); // put merged result in place
     }
 
-    MP_FILEOPS.remove(self_temp_path);
+    rollback.dismiss();
+
+    // Success: drop the preserved originals and the self backup. Best-effort;
+    // nothing references them anymore.
+    std::error_code ec{};
+    for (const auto& [child_path, staged_path] : staged)
+    {
+        auto backup_path = child_path;
+        backup_path += ".old";
+        MP_FILEOPS.remove(backup_path, ec);
+    }
+    MP_FILEOPS.remove(self_backup, ec);
 }
 
 void VirtDiskSnapshot::apply_impl()
