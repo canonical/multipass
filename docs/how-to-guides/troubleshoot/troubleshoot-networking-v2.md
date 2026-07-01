@@ -49,9 +49,7 @@ If you use any of these, try quitting it and reproducing your problem before goi
 (tn2-macos-launch)=
 ### An instance won't start on macOS
 
-**Problem**
-
-> I try running `multipass launch` and it fails. The error mentions it can't determine an IP address
+> **I try running `multipass launch` and it fails. The error mentions it can't determine an IP address.**
 
 **What you'll see**
 
