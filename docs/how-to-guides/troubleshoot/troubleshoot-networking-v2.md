@@ -31,7 +31,7 @@ The following scenarios describe commonly encountered Multipass networking probl
 
 
 (tn2-interfering-apps)=
-## Apps that commonly interfere
+## Apps that commonly interfere with Multipass
 
 Before troubleshooting a specific symptom, check whether you're running any of the following. These are the most common cause of Multipass networking problems, and quitting them often fixes the issue outright:
 
@@ -72,7 +72,7 @@ This usually means some networking configuration is incompatible, or there is in
 Work through these one at a time, trying to launch again after each:
 
 1. **Check your firewall.** Open **System Preferences > Security & Privacy > Firewall**. The firewall can be on, but it must **not** be set to "Block all incoming connections", which stops the local service that gives your instance an address. (It is fine to block incoming connections specifically to `multipassd`.)
-2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that are known to interfere](#tn2-interfering-apps).
+2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
 3. **Check Little Snitch** (or any similar per-app firewall). Its defaults are usually fine, but make sure it allows `mDNSResponder` and `bootpd`. If image downloads fail or you see `Unknown error` when running `multipass launch -vvv`, Little Snitch may be blocking `multipassd`'s network access (see [issue #1169](https://github.com/canonical/multipass/issues/1169)).
 
 (tn2-macos-routing)=
@@ -220,7 +220,7 @@ The built-in resolver, `mDNSResponder`, listens on port 53. If another program h
     mDNSRespo 191 _mdnsresponder   55u  IPv6 0xa89d451b9e2e200f  	0t0  TCP *:53 (LISTEN)
     ```
 
-    If no instance is running and Internet Sharing is off, the command returns nothing. **Any other program in this list** is conflicting with Internet Sharing and breaking your instance's DNS; quit it. See [Apps that are known to interfere](#tn2-interfering-apps).
+    If no instance is running and Internet Sharing is off, the command returns nothing. **Any other program in this list** is conflicting with Internet Sharing and breaking your instance's DNS; quit it. See [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
 
 **If you can't remove the conflicting program**
 
