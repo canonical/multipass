@@ -39,6 +39,8 @@ public:
     void write_console() override;
     void exit_console() override;
 
+    void handle_runtime_events() override {};
+
 private:
     void setup_console();
     void restore_console();

@@ -120,6 +120,7 @@ void mp::SSHClient::handle_ssh_events()
     while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
     {
         ssh_event_dopoll(event.get(), 60000);
+        console->handle_runtime_events();
     }
 
     ssh_event_remove_connector(event.get(), connector_in.get());
