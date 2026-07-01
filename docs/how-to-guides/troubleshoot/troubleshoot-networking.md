@@ -8,8 +8,8 @@ This guide helps you troubleshoot known Multipass networking issues on macOS and
 
 Before troubleshooting a specific symptom, review these quick checks:
 
-- [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
-- [How Multipass networking works](#tn2-networking-background), if you need more context.
+- [Apps that commonly interfere with Multipass](#networking-interfering-apps).
+- [How Multipass networking works](#networking-background), if you need more context.
 
 ## Which problem do you have?
 
@@ -17,20 +17,20 @@ The following scenarios describe commonly encountered Multipass networking probl
 
 ### macOS
 
-- [An instance won't start, and you see `Unable to determine IP address`](#tn2-macos-launch).
-- [`multipass shell` doesn't respond or fails to connect](#tn2-macos-routing).
-- [Your instance can reach IP addresses, but not domain names](#tn2-macos-dns).
-- [Extra IP addresses aren't reachable between instances](#tn2-macos-arp).
-- [Networking stopped working right after a macOS update](#tn2-macos-update).
+- [An instance won't start, and you see `Unable to determine IP address`](#networking-macos-launch).
+- [`multipass shell` doesn't respond or fails to connect](#networking-macos-routing).
+- [Your instance can reach IP addresses, but not domain names](#networking-macos-dns).
+- [Extra IP addresses aren't reachable between instances](#networking-macos-extra-ips).
+- [Networking stopped working right after a macOS update](#networking-macos-update).
 
 ### Windows
 
-- [Instances won't start or keep timing out](#tn2-windows-switch).
-- [Connectivity is unreliable and you run anti-virus or security software](#tn2-windows-av).
-- [Upload speeds over Wi-Fi are very slow](#tn2-windows-wifi).
+- [Instances won't start or keep timing out](#networking-windows-switch).
+- [Connectivity is unreliable and you run anti-virus or security software](#networking-windows-security-software).
+- [Upload speeds over Wi-Fi are very slow](#networking-windows-wifi).
 
 
-(tn2-interfering-apps)=
+(networking-interfering-apps)=
 ## Apps that commonly interfere with Multipass
 
 Before troubleshooting a specific symptom, check whether you're running any of the following tools known to interfere with Multipass networking:
@@ -46,7 +46,7 @@ If you use any of these, try quitting it and reproducing your problem before goi
 
 ## On macOS
 
-(tn2-macos-launch)=
+(networking-macos-launch)=
 ### An instance won't start on macOS
 
 > I try running `multipass launch` and it fails. The error mentions it can't determine an IP address.
@@ -72,10 +72,10 @@ This usually means some networking configuration is incompatible, or there is in
 Work through these one at a time, trying to launch again after each:
 
 1. **Check your firewall.** Open **System Preferences > Security & Privacy > Firewall**. The firewall can be on, but it must **not** be set to "Block all incoming connections", which stops the local service that gives your instance an address. (It is fine to block incoming connections specifically to `multipassd`.)
-2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
+2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that commonly interfere with Multipass](#networking-interfering-apps).
 3. **Check Little Snitch** (or any similar per-app firewall). Its defaults are usually fine, but make sure it allows `mDNSResponder` and `bootpd`. If image downloads fail or you see `Unknown error` when running `multipass launch -vvv`, Little Snitch may be blocking `multipassd`'s network access (see [issue #1169](https://github.com/canonical/multipass/issues/1169)).
 
-(tn2-macos-routing)=
+(networking-macos-routing)=
 ### You can't open a shell in your instance
 
 > The instance is running, but `multipass shell` doesn't respond or won't connect.
@@ -126,7 +126,7 @@ If the `192.168.64.*` range clashes with your network, you can change it. Edit `
 If you change the range and launch an instance, it will get an address from the new range. Changing it back, however, is reverted the next time an instance starts: the DHCP service reads the last address in `/var/db/dhcpd_leases`, works out the range from it, and resets `Shared_Net_Address` to match. To truly revert the change, edit or delete `/var/db/dhcpd_leases`.
 ```
 
-(tn2-macos-dns)=
+(networking-macos-dns)=
 ### Your instance can reach IP addresses, but not domain names
 
 > I can open a shell in my instance, but commands that use domain names don't connect.
@@ -220,7 +220,7 @@ The built-in resolver, `mDNSResponder`, listens on port 53. If another program h
     mDNSRespo 191 _mdnsresponder   55u  IPv6 0xa89d451b9e2e200f  	0t0  TCP *:53 (LISTEN)
     ```
 
-    If no instance is running and Internet Sharing is off, the command returns nothing. **Any other program in this list** is conflicting with Internet Sharing and breaking your instance's DNS; quit it. See [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
+    If no instance is running and Internet Sharing is off, the command returns nothing. **Any other program in this list** is conflicting with Internet Sharing and breaking your instance's DNS; quit it. See [Apps that commonly interfere with Multipass](#networking-interfering-apps).
 
 **If you can't remove the conflicting program**
 
@@ -235,7 +235,7 @@ You can point the instance at a public resolver instead:
     (`1.1.1.1` is a free resolver from Cloudflare; use any you prefer.)
 2. To make this automatic on every new instance, use a [custom cloud-init file that sets `/etc/resolv.conf`](https://cloudinit.readthedocs.io/en/latest/reference/yaml_examples/resolv_conf.html) at first boot.
 
-(tn2-macos-arp)=
+(networking-macos-extra-ips)=
 ### Extra IP addresses aren't reachable
 
 > I added an extra IP address to my instance, but nothing on the network can reach it.
@@ -250,7 +250,7 @@ This means tools that depend on extra IP addresses, such as [MetalLB](https://me
 
 There is no documented Multipass fix for additional IP addresses on macOS. Avoid relying on additional IP addresses for macOS instances.
 
-(tn2-macos-update)=
+(networking-macos-update)=
 ### Networking stopped after a macOS update
 
 > Everything worked before. I updated macOS, and now my instances can't connect.
@@ -271,7 +271,7 @@ Try these in order (see [issue #2387](https://github.com/canonical/multipass/iss
 
 ## On Windows
 
-(tn2-windows-switch)=
+(networking-windows-switch)=
 ### Instances won't start or keep timing out
 
 > New instances fail to launch, or existing ones hang and time out when starting, and the problem survives a reboot.
@@ -296,7 +296,7 @@ Restart-Computer
 
 Hyper-V recreates the switch automatically on the next boot.
 
-(tn2-windows-av)=
+(networking-windows-security-software)=
 ### Your security software is blocking instances
 
 > My connectivity is unreliable, and I run anti-virus or network security software.
@@ -309,7 +309,7 @@ Anti-virus and network security tools aren't always aware of virtual machines an
 
 If you're having connectivity issues, temporarily disabling this software to test can result in a positive outcome.
 
-(tn2-windows-wifi)=
+(networking-windows-wifi)=
 ### Slow Wi-Fi upload speeds
 
 > I created an External Switch on my Wi-Fi adapter in Hyper-V, and now my upload speed has dropped to around 1 Mbit/s.
@@ -332,12 +332,12 @@ This is a long-standing Windows networking limitation: certain network "offload"
 
 ---
 
-(tn2-networking-background)=
+(networking-background)=
 ## How Multipass networking works
 
 This background information can help if you need to understand why the previous troubleshooting steps mention specific host services, address ranges, or switches.
 
-(tn2-macos-networking-background)=
+(networking-macos-background)=
 ### macOS
 
 On macOS, Multipass uses Apple's built-in **Internet Sharing** feature to give your instances a network. When you create an instance, macOS:
@@ -347,7 +347,7 @@ On macOS, Multipass uses Apple's built-in **Internet Sharing** feature to give y
 
 In **System Preferences > Sharing**, **Internet Sharing** may appear switched off. That's normal; it still runs in the background for your instances.
 
-(tn2-windows-networking-background)=
+(networking-windows-background)=
 ### Windows
 
 On Windows, Multipass uses the built-in **Hyper-V** virtualization platform and its **Default Switch**. That switch uses Windows **Internet Sharing** to give your instances their IP addresses and name resolution.
