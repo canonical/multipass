@@ -24,6 +24,9 @@
 
 #include <libssh/sftp.h>
 
+#include <atomic>
+#include <chrono>
+
 namespace multipass
 {
 
@@ -34,6 +37,8 @@ namespace multipass
 class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
 public:
+    constexpr static std::chrono::milliseconds poll_interval{250};
+
     PlainSftpSession(PlainSSHSession&& ssh_session_obj, const std::string& sshfs_cmd);
     PlainSftpSession(const PlainSftpSession&) = delete;
     PlainSftpSession& operator=(const PlainSftpSession&) = delete;
@@ -41,6 +46,8 @@ public:
     // TODO@sftp Make class final before enabling these
     PlainSftpSession(PlainSftpSession&&) = delete;
     PlainSftpSession& operator=(PlainSftpSession&&) = delete;
+
+    void request_stop() override;
 
 private:
     using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
@@ -50,5 +57,6 @@ private:
     PlainSSHSession plain_ssh_session;
     std::unique_ptr<PlainSSHProcess> sshfs_process;
     RawSftpSessionUptr raw_sftp_session;
+    std::atomic<bool> stop_requested{false};
 };
 } // namespace multipass

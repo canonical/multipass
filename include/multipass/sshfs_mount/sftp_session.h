@@ -31,6 +31,14 @@ public:
     SftpSession(const SftpSession&) = delete;
     SftpSession& operator=(const SftpSession&) = delete;
 
+    /**
+     * Request cooperative cancellation of this session.
+     *
+     * Call this method to cancel in-progress @ref next_message() calls on the same object (in other
+     * threads) at the next occasion.
+     */
+    virtual void request_stop() = 0;
+
 protected:
     SftpSession() = default;
 };
