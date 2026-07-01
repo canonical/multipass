@@ -157,14 +157,14 @@ void mp::PlainSSHProcess::channel_exit_signal_cb(ssh_session,
 void mp::PlainSSHProcess::channel_eof_cb(ssh_session, ssh_channel, void* userdata)
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
-    process->remote_eof = true;
+    process->channel_eof = true;
 }
 
 void mp::PlainSSHProcess::channel_close_cb(ssh_session, ssh_channel, void* userdata)
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
-    process->remote_closed = true;
-    process->remote_eof = true;
+    process->channel_closed = true;
+    process->channel_eof = true;
 }
 
 bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
@@ -198,7 +198,6 @@ int mp::PlainSSHProcess::exit_code(std::chrono::milliseconds timeout)
 
 void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout)
 {
-    assert(!exit_result.has_value());
     if (!channel) // TODO@sftp remove check
         throw SSHProcessExitError{cmd, "channel is null"};
 
@@ -208,19 +207,23 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout)
 
     int rc{SSH_OK};
     while ((std::chrono::steady_clock::now() < deadline) && rc == SSH_OK &&
-           !exit_result.has_value())
+           !exit_result.has_value() && !channel_closed && !channel_eof)
     {
         rc = ssh_event_dopoll(event.get(), timeout.count());
     }
 
     if (!exit_result.has_value())
     {
-        if (rc == SSH_ERROR)
-        { // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+        if (channel_closed || channel_eof)
+            throw SSHProcessExitError{cmd, "channel is closed with no exit status"};
+        else if (rc == SSH_ERROR)
+        { // SSH_ERROR with no closed or eof means that poll returned <0. Further polling will fail
+          // (unless the error was EINTR). Not setting the closed or eof.
+
             const auto err = fmt::format("ssh_event_dopoll failed: {}", std::strerror(errno));
             throw SSHProcessExitError{cmd, err};
         }
-        else
+        else // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
             throw SSHProcessTimeoutException{cmd, timeout};
     }
 }
@@ -245,7 +248,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
     // If the channel is closed there's no output to read
-    if (!channel || remote_closed) // TODO@sftp
+    if (!channel || channel_closed) // TODO@sftp
     {
         mpl::trace_location(category, "{}", !channel ? "null channel" : "channel closed");
         return std::string();
@@ -267,7 +270,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
         {
             // Latest libssh now returns an error if the channel has been closed instead of
             // returning 0 bytes
-            if (remote_closed)
+            if (channel_closed)
             {
                 mpl::trace_location(category, "channel closed");
                 return output.str();
