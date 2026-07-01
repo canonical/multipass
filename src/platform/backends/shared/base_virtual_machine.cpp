@@ -95,21 +95,28 @@ mpu::TimeoutAction log_and_retry(const ExceptionT& e,
 } // namespace
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
+                                           const VirtualMachineDescription& vm_desc,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : vm_name{vm_name}, key_provider{key_provider}, zone{zone}, instance_dir{instance_dir}
+    : vm_name{vm_name},
+      desc{vm_desc},
+      key_provider{key_provider},
+      zone{zone},
+      instance_dir{instance_dir}
 {
     zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            const std::string& vm_name,
+                                           const VirtualMachineDescription& vm_desc,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
     : VirtualMachine{state},
       vm_name{vm_name},
+      desc{vm_desc},
       key_provider{key_provider},
       zone{zone},
       instance_dir{instance_dir}
@@ -377,6 +384,15 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
         throw std::runtime_error("timed out waiting for initialization to complete");
     };
     mpu::try_action_for(on_timeout, timeout, action);
+}
+
+mp::Annotated<void> mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size)
+{
+    resize_disk_impl(new_size);
+    if (is_core())
+        return {core_image_disk_resize_message()};
+    else
+        return {};
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
@@ -848,8 +864,8 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     specs.num_cores = snapshot->get_num_cores();
     specs.mem_size = snapshot->get_mem_size();
     specs.disk_space = snapshot->get_disk_space();
-    const bool are_extra_interfaces_different =
-        specs.extra_interfaces != snapshot->get_extra_interfaces();
+    const bool are_extra_interfaces_different = specs.extra_interfaces !=
+                                                snapshot->get_extra_interfaces();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();

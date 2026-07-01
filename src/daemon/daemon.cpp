@@ -52,6 +52,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/utils/grpc_utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -2518,7 +2519,9 @@ try
     });
 
     mpl::trace(category, "Trying to set {}={}", key, val);
-    MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+    auto&& [message_bag] =
+        MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+    mpu::send_messages(server, std::move(message_bag));
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
     context->set_value(grpc::Status::OK);
@@ -2541,9 +2544,12 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
     {
         user_authorized_bridges.insert(get_bridged_interface_name());
 
-        MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+        auto&& [message_bag] =
+            MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
 
         user_authorized_bridges.erase(get_bridged_interface_name());
+
+        mpu::send_messages(server, std::move(message_bag));
 
         mpl::debug(category, "Succeeded setting {}={}", key, val);
 

@@ -230,10 +230,10 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                              ? State::suspended
                              : State::off,
                          desc.vm_name,
+                         desc,
                          key_provider,
                          zone,
                          instance_dir},
-      desc{desc},
       qemu_platform{qemu_platform},
       monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
@@ -599,8 +599,8 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                          // out any scary error messages for this state
                          if (update_shutdown_status)
                          {
-                             const auto log_level =
-                                 force_shutdown ? mpl::Level::info : mpl::Level::error;
+                             const auto log_level = force_shutdown ? mpl::Level::info
+                                                                   : mpl::Level::error;
                              mpl::log(log_level,
                                       vm_name,
                                       "process error occurred {} {}",
@@ -722,7 +722,7 @@ void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
     desc.mem_size = new_size;
 }
 
-void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
+void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     assert(new_size > desc.disk_space);
 
@@ -787,7 +787,6 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
 {
     return std::make_shared<QemuSnapshot>(MP_PLATFORM.qstr_to_path(filename), *this, desc);
 }
-
 
 void mp::QemuVirtualMachine::refresh_start()
 {

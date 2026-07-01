@@ -25,6 +25,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <memory>
 #include <mutex>
@@ -40,10 +41,12 @@ class BaseVirtualMachine : public VirtualMachine
 public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
+                       const VirtualMachineDescription& vm_desc,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
+                       const VirtualMachineDescription& vm_desc,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
@@ -59,6 +62,7 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
+    Annotated<void> resize_disk(const MemorySize& new_size) override;
     std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
@@ -112,6 +116,9 @@ protected:
 
     virtual bool unplugged();
 
+    bool is_core() const;
+    std::string core_image_disk_resize_message() const;
+    virtual void resize_disk_impl(const MemorySize& new_size) = 0;
     /**
      * Refresh the VM, if possible, when the startup appears stuck.
      *
@@ -190,6 +197,7 @@ private:
 
 protected:
     const std::string vm_name;
+    VirtualMachineDescription desc;
     const SSHKeyProvider& key_provider;
     AvailabilityZone& zone;
     const QDir instance_dir;
@@ -242,4 +250,22 @@ inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noe
 inline void multipass::BaseVirtualMachine::refresh_start()
 {
     // nothing to do in the general case
+}
+
+inline bool multipass::BaseVirtualMachine::is_core() const
+{
+    return desc.image.original_release.find("Core") != std::string::npos;
+}
+
+inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message() const
+{
+    return std::string("Disk resized. To make the new space available on this Ubuntu Core "
+                       "instance, use lsblk to find the /writable partition and run the "
+                       "following commands:\n\n"
+                       "        multipass exec <instance> -- sudo growpart /dev/<disk_device> "
+                       "<partition_number>\n"
+                       "        multipass exec <instance> -- sudo resize2fs "
+                       "/dev/<disk_device><partition_number>\n\n"
+                       "Check the resize status with the command below:\n\n"
+                       "        multipass info <instance>\n");
 }

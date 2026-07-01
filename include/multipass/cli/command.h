@@ -21,6 +21,7 @@
 #include <multipass/cli/return_codes.h>
 #include <multipass/disabled_copy_move.h>
 #include <multipass/format.h>
+#include <multipass/reply_concepts.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 #include <multipass/utils.h>
@@ -139,6 +140,8 @@ protected:
               typename Request,
               typename SuccessCallable,
               typename FailureCallable>
+        requires LogReply<std::decay_t<
+            typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>>
     ReturnCodeVariant dispatch(RpcFunc&& rpc_func,
                                const Request& request,
                                SuccessCallable&& on_success,
