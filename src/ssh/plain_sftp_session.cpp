@@ -100,3 +100,8 @@ mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
                                              sshfs_process->borrow_channel(pass))}
 {
 }
+
+void mp::PlainSftpSession::request_stop()
+{
+    stop_requested.store(true);
+}
