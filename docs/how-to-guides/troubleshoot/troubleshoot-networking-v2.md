@@ -9,11 +9,11 @@ This guide is organised around what you actually see when something goes wrong. 
 
 On **macOS**:
 
-- An instance won't start, and you see `Unable to determine IP address`. See [An instance won't start on macOS](#tn2-macos-launch).
-- `multipass shell` hangs or fails to connect. See [You can't open a shell in your instance](#tn2-macos-routing).
-- Your instance starts, but it can't connect to the internet. See [Your instance can't connect to the internet](#tn2-macos-dns).
-- Extra IP addresses aren't reachable between instances. See [Extra IP addresses aren't reachable](#tn2-macos-arp).
-- Networking stopped working right after a macOS update. See [Networking stopped after a macOS update](#tn2-macos-update).
+- [An instance won't start, and you see `Unable to determine IP address`](#tn2-macos-launch).
+- [`multipass shell` doesn't respond or fails to connect](#tn2-macos-routing).
+- [Your instance starts, but it can't connect to the internet](#tn2-macos-dns).
+- [Extra IP addresses aren't reachable between instances](#tn2-macos-arp).
+- [Networking stopped working right after a macOS update](#tn2-macos-update).
 
 On **Windows**:
 
@@ -80,7 +80,7 @@ Work through these one at a time, trying to launch again after each:
 (tn2-macos-routing)=
 ### You can't open a shell in your instance
 
-> The instance is running, but `multipass shell` hangs or won't connect.
+> The instance is running, but `multipass shell` doesn't respond or won't connect.
 
 **What you'll see**
 
