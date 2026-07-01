@@ -1888,7 +1888,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::networks(const NetworksRequest* request,
+void mp::Daemon::networks(const NetworksRequest*,
                           grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
                           DaemonRpcContext* context)
 try
@@ -2017,7 +2017,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::recover(const RecoverRequest* request,
-                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*,
                          DaemonRpcContext* context)
 try
 {
@@ -2180,7 +2180,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::stop(const StopRequest* request,
-                      grpc::ServerReaderWriterInterface<StopReply, StopRequest>* server,
+                      grpc::ServerReaderWriterInterface<StopReply, StopRequest>*,
                       DaemonRpcContext* context)
 try
 {
@@ -2220,7 +2220,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
-                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*,
                          DaemonRpcContext* context)
 try
 {
@@ -2386,7 +2386,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::umount(const UmountRequest* request,
-                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
+                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>*,
                         DaemonRpcContext* context)
 try
 {
@@ -2454,7 +2454,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::version(const VersionRequest* request,
+void mp::Daemon::version(const VersionRequest*,
                          grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>* server,
                          DaemonRpcContext* context)
 {
@@ -2571,7 +2571,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
-void mp::Daemon::keys(const mp::KeysRequest* request,
+void mp::Daemon::keys(const mp::KeysRequest*,
                       grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>* server,
                       DaemonRpcContext* context)
 try
@@ -2593,7 +2593,7 @@ catch (const std::exception& e)
 
 void mp::Daemon::authenticate(
     const AuthenticateRequest* request,
-    grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,
+    grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>*,
     DaemonRpcContext* context)
 try
 {
@@ -2835,7 +2835,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::daemon_info(
-    const DaemonInfoRequest* request,
+    const DaemonInfoRequest*,
     grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
     DaemonRpcContext* context)
 try
@@ -2857,8 +2857,8 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::wait_ready(
-    const WaitReadyRequest* request,
-    grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
+    const WaitReadyRequest*,
+    grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>*,
     DaemonRpcContext* context)
 try
 {
@@ -2889,7 +2889,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::zones(const ZonesRequest* request,
+void mp::Daemon::zones(const ZonesRequest*,
                        grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
                        DaemonRpcContext* context) // clang-format off
 try // clang-format on
@@ -2914,7 +2914,7 @@ catch (const std::exception& e)
 
 void mp::Daemon::zones_state(
     const ZonesStateRequest* request,
-    grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
+    grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>*,
     DaemonRpcContext* context) // clang-format off
 try // clang-format on
 {
