@@ -112,7 +112,7 @@ parts:
     plugin: cmake
     build-snaps:
     - cmake
-    - rustup
+    - rustup/stable
     build-environment:
     - PATH: /snap/bin:$PATH
     - PYTHON: /usr/bin/python3

@@ -94,7 +94,7 @@ parts:
     after: [qt-ssl-plugin]
     plugin: cmake
     build-snaps:
-    - rustup
+    - rustup/stable
     build-environment:
     - PATH: /snap/bin:$PATH
     - PYTHON: /usr/bin/python3
