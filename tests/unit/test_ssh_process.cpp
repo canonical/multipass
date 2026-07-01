@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_ssh.h"
+#include "mock_ssh_callback_engine.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
@@ -37,6 +38,7 @@ struct SSHProcess : public Test
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
+    mpt::CallbackEngineMock callback_mock_engine;
 };
 } // namespace
 
@@ -46,15 +48,12 @@ TEST_F(SSHProcess, canRetrieveExitStatus)
     REPLACE(ssh_channel_new,
             [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_add_channel_callbacks, [](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        cb->channel_exit_status_function(nullptr, nullptr, expected_status, cb->userdata);
-        return SSH_OK;
-    });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+    mpt::CallbackState cb_state{};
+    cb_state.exit_code = expected_status;
+    callback_mock_engine.push_state(cb_state);
     REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_event_free, [](auto...) { return; });
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
     auto proc = session.exec("something");
     EXPECT_THAT(proc->exit_code(), Eq(expected_status));
