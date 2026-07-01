@@ -10,6 +10,7 @@ Hyperkit
 IPs
 Junos
 Kaspersky
+Malwarebytes
 misconfiguration
 multipassd
 NIC
@@ -19,6 +20,7 @@ passwordless
 Portainer
 Symantec
 teardown
+Tunnelblick
 unmount
 unmounts
 vcpkg
