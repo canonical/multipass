@@ -19,8 +19,6 @@
 
 #include <shared/base_snapshot.h>
 
-#include <QString>
-
 #include <filesystem>
 
 namespace multipass::hyperv::virtdisk
