@@ -25,6 +25,8 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <scope_guard.hpp>
+
 namespace
 {
 constexpr auto log_category = "virtdisk-snapshot";
@@ -45,7 +47,7 @@ static std::filesystem::path get_parent_disk_of(const std::filesystem::path& dis
     constexpr auto depth = 2;
     const auto list_r = VirtDisk().list_virtual_disk_chain(disk, chain, depth);
 
-    if (chain.size() == depth)
+    if (list_r && chain.size() == depth)
         return chain[1];
 
     throw CreateVirtdiskSnapshotError{list_r, "Could not determine parent disk of `{}`", disk};
@@ -95,20 +97,48 @@ void VirtDiskSnapshot::capture_impl()
                head_path,
                snapshot_path);
 
-    // Check if head disk already exists. The head disk may not exist for a VM
-    // that has no snapshots yet.
-    if (!MP_FILEOPS.exists(head_path))
+    const bool head_preexisted = MP_FILEOPS.exists(head_path);
+    bool head_became_snapshot = false;
+
+    // Undo partial work on failure so a failed capture leaves no trace. Fires on
+    // exception, dismissed on success; never throws so the original error wins.
+    auto rollback = sg::make_scope_guard([&]() noexcept {
+        std::error_code ec{};
+        if (head_became_snapshot) // the live head was renamed away; put it back
+        {
+            MP_FILEOPS.remove(head_path, ec);
+            try
+            {
+                MP_FILEOPS.rename(snapshot_path, head_path);
+            }
+            catch (const std::exception& e)
+            {
+                mpl::error(log_category, "capture_impl() rollback failed: {}", e.what());
+            }
+        }
+        else if (!head_preexisted) // nothing pre-existed; drop whatever we made
+        {
+            MP_FILEOPS.remove(head_path, ec);
+            MP_FILEOPS.remove(snapshot_path, ec);
+        }
+    });
+
+    if (head_preexisted)
+    {
+        MP_FILEOPS.rename(head_path, snapshot_path);
+        head_became_snapshot = true;
+    }
+    else
     {
         const auto parent = get_parent();
         const auto target = parent ? make_snapshot_path(*parent) : base_vhdx_path;
-        create_new_child_disk(target, head_path);
+        create_new_child_disk(target, snapshot_path);
     }
 
-    // Step 1: Rename current head to snapshot name
-    MP_FILEOPS.rename(head_path, snapshot_path);
-
-    // Step 2: Create a new head from the snapshot
+    // Create a new head from the snapshot
     create_new_child_disk(snapshot_path, head_path);
+
+    rollback.dismiss();
 }
 
 void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent,
