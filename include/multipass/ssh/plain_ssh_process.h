@@ -24,6 +24,7 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 
 namespace multipass
 {
@@ -93,8 +94,8 @@ private:
     ChannelUPtr channel;
 
     ExitResultType exit_result{};
-    bool remote_eof{false};
-    bool remote_closed{false};
+    bool channel_eof{false};
+    bool channel_closed{false};
 
     friend class SftpServer;
 };
