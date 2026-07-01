@@ -20,6 +20,8 @@
 #include <shared/base_snapshot.h>
 
 #include <filesystem>
+#include <map>
+#include <string_view>
 
 namespace multipass::hyperv::virtdisk
 {
