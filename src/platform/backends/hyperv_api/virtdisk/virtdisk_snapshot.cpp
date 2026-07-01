@@ -267,16 +267,26 @@ void VirtDiskSnapshot::erase_impl()
 
 void VirtDiskSnapshot::apply_impl()
 {
-    const auto& head_path = base_vhdx_path.parent_path() / head_disk_name();
-    const auto& snapshot_path = make_snapshot_path(*this);
+    const auto head_path = make_head_disk_path();
+    const auto snapshot_path = make_snapshot_path(*this);
 
-    // Restoring a snapshot means we're discarding the head state.
+    // Applying a snapshot discards the current head state. Build the replacement
+    // head from the snapshot beside the live one first, so that if creation fails
+    // the existing head stays intact (the VM remains bootable) instead of being
+    // left with no head and silently falling back to the base disk. The temporary
+    // name keeps the ".avhdx" extension because the VirtDisk API selects its
+    // storage provider from the file extension.
+    auto new_head_path = head_path;
+    new_head_path.replace_extension(".new.avhdx"); // "head.avhdx" -> "head.new.avhdx"
+
     std::error_code ec{};
-    MP_FILEOPS.remove(head_path, ec);
-    mpl::debug(log_category, "apply_impl() -> {} remove: {}", head_path, ec);
+    MP_FILEOPS.remove(new_head_path, ec); // clear any leftover from a prior failed apply
+    create_new_child_disk(snapshot_path, new_head_path); // throws here => old head untouched
 
-    // Create a new head from the snapshot
-    create_new_child_disk(snapshot_path, head_path);
+    // Swap the freshly built head in for the old one. rename() replaces the
+    // destination atomically, so there is never a moment with no head.
+    MP_FILEOPS.rename(new_head_path, head_path);
+    mpl::debug(log_category, "apply_impl() -> new head from {} -> {}", snapshot_path, head_path);
 }
 
 } // namespace multipass::hyperv::virtdisk
