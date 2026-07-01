@@ -55,7 +55,7 @@ debian                      trixie               20260601         Debian Trixie
 fedora                                           20260422         Fedora 44
 ```
 
-To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch resolute`:
+To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch noble` to get an Ubuntu 24.04 instance:
 
 ```{code-block} text
 ...
@@ -69,13 +69,13 @@ Name:           tenacious-mink
 State:          Running
 Zone:           zone1
 Snapshots:      0
-IPv4:           10.97.0.76
-Release:        Ubuntu 26.04 LTS
-Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
+IPv4:           10.97.0.239
+Release:        Ubuntu 24.04.4 LTS
+Image hash:     5fa5b05e5ec2 (Ubuntu 24.04 LTS)
 CPU(s):         1
-Load:           0.16 0.09 0.08
-Disk usage:     2.2GiB out of 4.8GiB
-Memory usage:   169.8MiB out of 950.4MiB
+Load:           0.35 0.12 0.04
+Disk usage:     1.9GiB out of 4.8GiB
+Memory usage:   327.7MiB out of 955.5MiB
 Mounts:         --
 ```
 
