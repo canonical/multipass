@@ -27,7 +27,7 @@ mp::PlainSftpMessage::PlainSftpMessage(sftp_client_message_struct* message) : me
 {
 }
 
-void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const
+void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
 {
     sftp_client_message_free(msg);
 }
