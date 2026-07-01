@@ -1,20 +1,19 @@
 (how-to-guides-troubleshoot-troubleshoot-networking-v2)=
 # Troubleshoot networking
 
-Multipass relies on your computer's own networking to give each instance an IP address, an internet connection, and name resolution (turning addresses like `ubuntu.com` into numbers). Most networking problems happen because something else on your computer, such as a VPN, a firewall, or security software, gets in the way.
+This guide helps you troubleshoot known Multipass networking issues on macOS and Windows.
 
 
 ## Before you start
 
-Check whether any apps that interfere with Multipass are running:
+Before troubleshooting a specific symptom, review these quick checks:
 
-- [Apps that commonly interfere](#tn2-interfering-apps).
+- [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
+- [How Multipass networking works](#tn2-networking-background), if you need more context.
 
 ## Which problem do you have?
 
-Use this section as a navigation guide. Start with your operating system, then choose the closest symptom.
-
-Before changing settings, note the command you ran, the exact error text, your operating system, and whether VPN, firewall, anti-virus, or other security software is running.
+The following scenarios describe commonly encountered Multipass networking problems. Choose the one that matches what you see.
 
 ### macOS
 
@@ -48,21 +47,12 @@ If you use any of these, try quitting it and reproducing your problem before goi
 
 ## On macOS
 
-### How Multipass networking works on macOS
-
-You don't need to know this to fix a problem, but it helps to understand what's involved.
-
-On macOS, Multipass uses Apple's built-in **Internet Sharing** feature to give your instances a network. When you create an instance, macOS:
-
-1. Creates a private network and connects each instance to it, using the address range `192.168.64.*`.
-2. Hands out IP addresses and resolves names on that network from `192.168.64.1`, using Apple's own `bootpd` and `mDNSResponder` services.
-
-In **System Preferences > Sharing**, **Internet Sharing** may appear switched off. That's normal; it still runs in the background for your instances.
-
 (tn2-macos-launch)=
 ### An instance won't start on macOS
 
-> I run `multipass launch` and it fails. The error mentions it can't determine an IP address.
+**Problem**
+
+> I try running `multipass launch` and it fails. The error mentions it can't determine an IP address
 
 **What you'll see**
 
@@ -76,7 +66,9 @@ Unable to determine IP address
 
 This usually means some networking configuration is incompatible, or there is interference from a firewall or VPN.
 
-> See also: [How to troubleshoot launch/start issues](/how-to-guides/troubleshoot/troubleshoot-launch-start-issues).
+```{seealso}
+[How to troubleshoot launch/start issues](/how-to-guides/troubleshoot/troubleshoot-launch-start-issues).
+```
 
 **How to fix it**
 
@@ -282,10 +274,6 @@ Try these in order (see [issue #2387](https://github.com/canonical/multipass/iss
 
 ## On Windows
 
-### How Multipass networking works on Windows
-
-Multipass uses the built-in **Hyper-V** virtualisation platform and its **Default Switch**. That switch uses Windows **Internet Sharing** to give your instances their IP addresses and name resolution.
-
 (tn2-windows-switch)=
 ### Instances won't start or keep timing out
 
@@ -350,3 +338,25 @@ This is a long-standing Windows networking limitation: certain network "offload"
    - **Large Send Offload v2 (IPv4)**
    - **Large Send Offload v2 (IPv6)**
 7. Click **OK**, then restart your networking or your machine if needed.
+
+---
+
+(tn2-networking-background)=
+## How Multipass networking works
+
+This background information can help if you need to understand why the previous troubleshooting steps mention specific host services, address ranges, or switches.
+
+(tn2-macos-networking-background)=
+### macOS
+
+On macOS, Multipass uses Apple's built-in **Internet Sharing** feature to give your instances a network. When you create an instance, macOS:
+
+1. Creates a private network and connects each instance to it, using the address range `192.168.64.*`.
+2. Hands out IP addresses and resolves names on that network from `192.168.64.1`, using Apple's own `bootpd` and `mDNSResponder` services.
+
+In **System Preferences > Sharing**, **Internet Sharing** may appear switched off. That's normal; it still runs in the background for your instances.
+
+(tn2-windows-networking-background)=
+### Windows
+
+On Windows, Multipass uses the built-in **Hyper-V** virtualization platform and its **Default Switch**. That switch uses Windows **Internet Sharing** to give your instances their IP addresses and name resolution.
