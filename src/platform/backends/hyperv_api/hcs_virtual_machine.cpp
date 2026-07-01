@@ -725,7 +725,7 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
 {
-    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdString(), *this, description);
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(), *this, description);
 }
 
 } // namespace multipass::hyperv

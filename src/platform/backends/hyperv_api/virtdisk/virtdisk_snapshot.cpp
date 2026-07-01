@@ -21,12 +21,14 @@
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/file_ops.h>
+#include <multipass/logging/log.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
 namespace
 {
 constexpr auto log_category = "virtdisk-snapshot";
+namespace mpl = multipass::logging;
 } // namespace
 
 namespace multipass::hyperv::virtdisk
