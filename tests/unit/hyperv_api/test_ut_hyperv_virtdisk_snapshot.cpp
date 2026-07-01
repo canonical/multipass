@@ -15,6 +15,7 @@
  *
  */
 
+#include "../mock_file_ops.h"
 #include "../mock_virtual_machine.h"
 #include "mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/common.h"
@@ -215,6 +216,158 @@ TEST_F(VirtDiskSnapshotApply, apply_swaps_in_new_head)
 
     EXPECT_TRUE(fs::exists(head())) << "the swapped-in head must be present";
     EXPECT_FALSE(fs::exists(new_head())) << "the temporary head must be renamed away";
+}
+
+// These tests exercise VirtDiskSnapshot::erase_impl()'s transactional behaviour.
+// The simplest child set is used: this snapshot with the VM's head attached to it
+// and no snapshot children (so view_snapshots is empty). The snapshot is first
+// captured (creating real self + head files on disk and marking it "captured"),
+// then erased. The VirtDisk wrapper is mocked so merges succeed/fail on demand.
+struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
+{
+    void SetUp() override
+    {
+        VirtDiskSnapshotTest::SetUp();
+
+        // No snapshot children: get_children() iterates this and finds nothing, so
+        // the head (added via is_head_attached_to_this) is the only child.
+        ON_CALL(vm, view_snapshots(_)).WillByDefault(Return(VirtualMachine::SnapshotVista{}));
+
+        // Report every disk as parented on self, so is_head_attached_to_this() sees
+        // the head attached to this snapshot.
+        ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
+            .WillByDefault([this](const fs::path& p,
+                                  std::vector<fs::path>& chain,
+                                  std::optional<std::size_t>) {
+                chain.clear();
+                chain.push_back(p);
+                chain.push_back(snapshot_path(1)); // parent = self
+                return op_ok();
+            });
+
+        // Used only by capture() to lay down real stub files for self and head.
+        ON_CALL(mock_virtdisk, create_virtual_disk(_))
+            .WillByDefault([](const CreateVirtualDiskParameters& params) {
+                touch(params.path);
+                return op_ok();
+            });
+    }
+
+    // Capture the snapshot: creates real self (1.avhdx) + head files and puts the
+    // snapshot into the "captured" state so it can be erased.
+    std::shared_ptr<VirtDiskSnapshot> take_captured()
+    {
+        touch(base()); // capture layers the first snapshot on the base disk
+        auto ss = make_snapshot();
+        ss->capture();
+        return ss;
+    }
+
+    fs::path self_tmp() const
+    {
+        auto p = snapshot_path(1);
+        p += ".tmp";
+        return p;
+    }
+    fs::path head_new() const
+    {
+        auto p = head();
+        p += ".new";
+        return p;
+    }
+    fs::path head_old() const
+    {
+        auto p = head();
+        p += ".old";
+        return p;
+    }
+};
+
+// A merge fails during Pass 1. Nothing has been committed, so the pre-erase state
+// must be fully restored: self back in place, head untouched, no sidecar files.
+TEST_F(VirtDiskSnapshotErase, rolls_back_when_merge_fails)
+{
+    auto ss = take_captured();
+
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_fail()));
+
+    EXPECT_THROW(ss->erase(), std::exception);
+
+    EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must be restored";
+    EXPECT_TRUE(fs::exists(head())) << "the head must be left untouched";
+    EXPECT_FALSE(fs::exists(self_tmp()));
+    EXPECT_FALSE(fs::exists(head_new()));
+    EXPECT_FALSE(fs::exists(head_old()));
+}
+
+// The happy path: the head is merged forward and committed. Self is gone and no
+// sidecar files (.tmp / .new / .old) are left behind.
+TEST_F(VirtDiskSnapshotErase, commits_and_cleans_up)
+{
+    auto ss = take_captured();
+
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_ok()));
+
+    EXPECT_NO_THROW(ss->erase());
+
+    EXPECT_FALSE(fs::exists(snapshot_path(1))) << "the erased snapshot must be gone";
+    EXPECT_TRUE(fs::exists(head())) << "the reparented head must be present";
+    EXPECT_FALSE(fs::exists(self_tmp()));
+    EXPECT_FALSE(fs::exists(head_new()));
+    EXPECT_FALSE(fs::exists(head_old()));
+}
+
+// A file operation fails mid-commit (Pass 2). Everything except the final swap-in
+// of the new head is delegated to the real filesystem; that one rename is forced
+// to throw. The original head must be restored from its ".old" backup and self
+// restored, with no stragglers.
+TEST_F(VirtDiskSnapshotErase, rolls_back_when_commit_fails)
+{
+    auto ss = take_captured();
+
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_ok()));
+
+    auto fops_injection = MockFileOps::inject<NiceMock>();
+    auto& fops = *fops_injection.first;
+
+    ON_CALL(fops, exists(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::exists(p);
+    });
+    ON_CALL(fops, exists(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
+        return std::filesystem::exists(p, ec);
+    });
+    ON_CALL(fops, remove(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::remove(p);
+    });
+    ON_CALL(fops, remove(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
+        return std::filesystem::remove(p, ec);
+    });
+    ON_CALL(fops, copy(_, _, _))
+        .WillByDefault([](const fs::path& s, const fs::path& d, fs::copy_options o) {
+            std::filesystem::copy(s, d, o);
+        });
+    ON_CALL(fops, weakly_canonical(_)).WillByDefault([](const fs::path& p) {
+        return std::filesystem::weakly_canonical(p);
+    });
+
+    // Delegate every rename to the real filesystem, except the swap-in of the new
+    // head, which fails mid-commit (after the original was moved aside to .old).
+    EXPECT_CALL(fops, rename(A<const fs::path&>(), A<const fs::path&>()))
+        .Times(AnyNumber())
+        .WillRepeatedly(
+            [](const fs::path& a, const fs::path& b) { std::filesystem::rename(a, b); });
+    EXPECT_CALL(fops, rename(head_new(), head()))
+        .WillOnce(Throw(std::filesystem::filesystem_error{
+            "forced failure",
+            std::make_error_code(std::errc::permission_denied)}));
+
+    EXPECT_THROW(ss->erase(), std::exception);
+
+    EXPECT_TRUE(fs::exists(head())) << "the head must be restored from its .old backup";
+    EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must be restored";
+    EXPECT_FALSE(fs::exists(self_tmp()));
+    EXPECT_FALSE(fs::exists(head_new()));
+    EXPECT_FALSE(fs::exists(head_old()));
 }
 
 } // namespace multipass::test
