@@ -103,6 +103,7 @@ public:
                                        const NetworkInterface& extra_interface) = 0;
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
+    virtual void sync_mount_metadata() = 0;
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
                                                                         // confusion with C++ views

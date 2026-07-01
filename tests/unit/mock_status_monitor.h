@@ -37,7 +37,7 @@ struct MockVMStatusMonitor : public VMStatusMonitor
                 (override));
     MOCK_METHOD(void,
                 update_metadata_for,
-                (const std::string&, const boost::json::object&),
+                (const std::string&, const boost::json::object&, const bool),
                 (override));
     MOCK_METHOD(boost::json::object, retrieve_metadata_for, (const std::string&), (override));
 };
