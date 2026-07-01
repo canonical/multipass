@@ -18,12 +18,14 @@
 #include <multipass/ssh/plain_sftp_session.h>
 
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/ssh/plain_sftp_client_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
 
 #include <fmt/format.h>
 
 #include <libssh/sftp.h>
 
+#include <cassert>
 #include <chrono>
 #include <stdexcept>
 #include <utility>
@@ -111,4 +113,32 @@ mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
 void mp::PlainSftpSession::request_stop()
 {
     stop_requested.store(true);
+}
+
+std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
+{
+    while (!stop_requested.load())
+    {
+        int not_stderr = 0;
+        int poll_result =
+            ssh_channel_poll_timeout(raw_sftp_session->channel, poll_interval.count(), not_stderr);
+
+        if (poll_result < 0)
+        {
+            assert((poll_result == SSH_ERROR || poll_result == SSH_EOF) &&
+                   "contract includes no other negative numbers");
+            return nullptr; // connection drop or malfunction
+        }
+
+        if (poll_result == 0)
+            continue; // nothing to read yet; recheck the stop flag
+
+        sftp_client_message raw_msg{sftp_get_client_message(raw_sftp_session.get())};
+        if (raw_msg == nullptr)
+            return nullptr; // connection dropped
+
+        return std::make_unique<PlainSftpMessage>(raw_msg);
+    }
+
+    return nullptr; // stop requested
 }
