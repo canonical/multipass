@@ -115,6 +115,11 @@ parts:
     - rustup
     build-environment:
     - PATH: /snap/bin:$PATH
+    # The gnome extension injects an LD_LIBRARY_PATH pointing at the
+    # gnome-46-2404-sdk content snap. Classic snaps such as rustup then load
+    # that SDK's incompatible libc (undefined symbol: __nptl_change_stack_perm)
+    # and crash. Clear it for this part, as already done for the qemu part.
+    - LD_LIBRARY_PATH: ""
     - PYTHON: /usr/bin/python3
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
