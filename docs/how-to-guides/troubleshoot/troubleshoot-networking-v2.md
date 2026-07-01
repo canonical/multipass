@@ -3,11 +3,20 @@
 
 Multipass relies on your computer's own networking to give each instance an IP address, an internet connection, and name resolution (turning addresses like `ubuntu.com` into numbers). Most networking problems happen because something else on your computer, such as a VPN, a firewall, or security software, gets in the way.
 
-This guide is organised around what you actually see when something goes wrong. Find the description that matches your situation, then follow the steps for your operating system.
+
+## Before you start
+
+Check whether any apps that interfere with Multipass are running:
+
+- [Apps that commonly interfere](#tn2-interfering-apps).
 
 ## Which problem do you have?
 
-On **macOS**:
+Use this section as a navigation guide. Start with your operating system, then choose the closest symptom.
+
+Before changing settings, note the command you ran, the exact error text, your operating system, and whether VPN, firewall, anti-virus, or other security software is running.
+
+### macOS
 
 - [An instance won't start, and you see `Unable to determine IP address`](#tn2-macos-launch).
 - [`multipass shell` doesn't respond or fails to connect](#tn2-macos-routing).
@@ -15,15 +24,15 @@ On **macOS**:
 - [Extra IP addresses aren't reachable between instances](#tn2-macos-arp).
 - [Networking stopped working right after a macOS update](#tn2-macos-update).
 
-On **Windows**:
+### Windows
 
-- Instances won't start or keep timing out. See [Instances won't start or keep timing out](#tn2-windows-switch).
-- Connectivity is unreliable and you run anti-virus or security software. See [Your security software is blocking instances](#tn2-windows-av).
-- Upload speeds over Wi-Fi are very slow. See [Slow Wi-Fi upload speeds](#tn2-windows-wifi).
+- [Instances won't start or keep timing out](#tn2-windows-switch).
+- [Connectivity is unreliable and you run anti-virus or security software](#tn2-windows-av).
+- [Upload speeds over Wi-Fi are very slow](#tn2-windows-wifi).
 
 ---
 
-(tn2-macos-interfering-apps)=
+(tn2-interfering-apps)=
 ## Apps that commonly interfere
 
 Before troubleshooting a specific symptom, check whether you're running any of the following. These are the most common cause of Multipass networking problems, and quitting them often fixes the issue outright:
@@ -74,7 +83,7 @@ This usually means some networking configuration is incompatible, or there is in
 Work through these one at a time, trying to launch again after each:
 
 1. **Check your firewall.** Open **System Preferences > Security & Privacy > Firewall**. The firewall can be on, but it must **not** be set to "Block all incoming connections", which stops the local service that gives your instance an address. (It is fine to block incoming connections specifically to `multipassd`.)
-2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that are known to interfere](#tn2-macos-interfering-apps).
+2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that are known to interfere](#tn2-interfering-apps).
 3. **Check Little Snitch** (or any similar per-app firewall). Its defaults are usually fine, but make sure it allows `mDNSResponder` and `bootpd`. If image downloads fail or you see `Unknown error` when running `multipass launch -vvv`, Little Snitch may be blocking `multipassd`'s network access (see [issue #1169](https://github.com/canonical/multipass/issues/1169)).
 
 (tn2-macos-routing)=
@@ -226,7 +235,7 @@ The built-in resolver, `mDNSResponder`, listens on port 53. If another program h
     mDNSRespo 191 _mdnsresponder   55u  IPv6 0xa89d451b9e2e200f  	0t0  TCP *:53 (LISTEN)
     ```
 
-    If no instance is running and Internet Sharing is off, the command returns nothing. **Any other program in this list** is conflicting with Internet Sharing and breaking your instance's DNS; quit it. See [Apps that are known to interfere](#tn2-macos-interfering-apps).
+    If no instance is running and Internet Sharing is off, the command returns nothing. **Any other program in this list** is conflicting with Internet Sharing and breaking your instance's DNS; quit it. See [Apps that are known to interfere](#tn2-interfering-apps).
 
 **If you can't remove the conflicting program**
 
