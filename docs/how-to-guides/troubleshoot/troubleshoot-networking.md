@@ -1,131 +1,145 @@
 (how-to-guides-troubleshoot-troubleshoot-networking)=
 # Troubleshoot networking
 
-<!-- This document combines:
-- https://discourse.ubuntu.com/t/how-to-troubleshoot-networking-on-macos/12901
-- https://discourse.ubuntu.com/t/how-to-troubleshoot-networking-on-windows/13694
--->
+This guide helps you troubleshoot known Multipass networking issues on macOS and Windows.
 
-This document demonstrates how to troubleshoot various known Multipass networking issues on macOS and Windows.
 
-## Troubleshoot networking on macOS
+## Before you start
 
-### Architecture
+Before troubleshooting a specific symptom, review these quick checks:
 
-On macOS, the QEMU driver employs the Hypervisor.framework. This framework manages the networking stack for the instances.
+- [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
+- [How Multipass networking works](#tn2-networking-background), if you need more context.
 
-On creation of an instance, the Hypervisor framework on the host uses macOS's **Internet Sharing** mechanism to:
+## Which problem do you have?
 
-1. Create a virtual switch and connect each instance to it (subnet 192.168.64.*).
-2. Provide DHCP and DNS resolution on this switch at 192.168.64.1 (via `bootpd` & `mDNSResponder` services running on the host). This is configured by an auto-generated file (`/etc/bootpd.plist`), but editing this is pointless as macOS regenerates it as it desires.
+The following scenarios describe commonly encountered Multipass networking problems. Choose the one that matches what you see.
 
-Note that, according to **System Preferences > Sharing**, the **Internet Sharing** service can appear disabled. This is fine---in the background, it will still be enabled to support instances.
+### macOS
 
-### Tools known to interfere with Multipass
+- [An instance won't start, and you see `Unable to determine IP address`](#tn2-macos-launch).
+- [`multipass shell` doesn't respond or fails to connect](#tn2-macos-routing).
+- [Your instance can reach IP addresses, but not domain names](#tn2-macos-dns).
+- [Extra IP addresses aren't reachable between instances](#tn2-macos-arp).
+- [Networking stopped working right after a macOS update](#tn2-macos-update).
 
-* VPN software can be aggressive at managing routes and may route 192.168.64 subnet through the VPN interface, instead of keeping it locally available.
-    * Possible culprits: OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, Jupiter Junos Pulse / Pulse Secure.
-    * `Tunnelblick` doesn’t cause problems.
-* Cisco Umbrella Roaming Client it binds to localhost:53 which clashes with Internet Sharing, breaking the instance’s DNS.
-<!-- THIS LINK IS BROKEN
-(see [Umbrella Roaming Client OS X and Internet Sharing](https://support.umbrella.com/hc/en-us/articles/230561007-Umbrella-Roaming-Client-OS-X-and-Internet-Sharing)) -->
-* dnscrypt-proxy/dnscrypt-wrapper/cloudflared-proxy \
-The default configuration binds to localhost port 53, clashing with Internet Sharing.
-* Another `dnsmasq` process bound to localhost port 53
-* Custom DHCP server bound to port 67? (`sudo lsof -iUDP:67 -n -P` should show `launchd` & `bootpd` only)
-* macOS updates can make changes to the firewall and leave instances in unknown state; see {ref}`troubleshoot-networking-issues-caused-by-macos-update` below.
+### Windows
 
-### Problem class
+- [Instances won't start or keep timing out](#tn2-windows-switch).
+- [Connectivity is unreliable and you run anti-virus or security software](#tn2-windows-av).
+- [Upload speeds over Wi-Fi are very slow](#tn2-windows-wifi).
 
-* `multipass launch` fails
-  * see {ref}`troubleshoot-networking-generic-networking-problems`
-* `multipass shell <instance>` fails
-  * see {ref}`troubleshoot-networking-routing-problems`
-* `multipass shell <instance>` works but the instance cannot connect to the internet
-  * see {ref}`troubleshoot-networking-dns-problems`
-* extra IPs not reachable between instances
-  * see {ref}`troubleshoot-networking-arp-problems`
 
-(troubleshoot-networking-generic-networking-problems)=
-#### Generic networking problems
+(tn2-interfering-apps)=
+## Apps that commonly interfere with Multipass
 
-`Unable to determine IP address` usually implies some networking configuration is incompatible, or there is interference from a Firewall or VPN.
+Before troubleshooting a specific symptom, check whether you're running any of the following tools known to interfere with Multipass networking:
 
-> See also: [How to troubleshoot launch/start issues](/how-to-guides/troubleshoot/troubleshoot-launch-start-issues).
+- **VPN software** may route the `192.168.64.*` subnet through the VPN interface instead of keeping it locally available. Possible culprits include OpenVPN, F5, Dell SonicWall, Cisco AnyConnect, Citrix/Netscaler Gateway, and Juniper Junos Pulse / Pulse Secure. (`Tunnelblick` is known not to cause this problem.)
+- **Cisco Umbrella Roaming Client** can bind to localhost port 53, which clashes with Internet Sharing and breaks your instance's DNS.
+- **dnscrypt-proxy, dnscrypt-wrapper, or cloudflared-proxy** can also bind to localhost port 53 by default.
+- **Another `dnsmasq` process** bound to localhost port 53 can clash with Internet Sharing.
+- **A custom DHCP server** bound to port 67 can also clash. On macOS, check what is using the DHCP port with `sudo lsof -iUDP:67 -n -P`; you should only see `launchd` and `bootpd`.
 
-##### Troubleshooting
+If you use any of these, try quitting it and reproducing your problem before going further.
 
-1. Firewall
-    1. Is Firewall enabled?
-    1. If so it must not "Block all incoming connections"
-       * Blocking all incoming connections prevents a DHCP server from running locally, to give an IP to the instance.
-       * It’s OK to block incoming connections to `"multipassd"` however.
-1. VPN
-1. Little Snitch - defaults are good, it should permit `mDNSResponder` and `bootpd` access to BPF
-If you're having trouble downloading images and/or see `Unknown error`s when trying to `multipass launch -vvv`, Little Snitch may be interfering with `multipassd`'s network access (ref. [#1169](https://github.com/canonical/multipass/issues/1169))
-1. Internet Sharing - doesn’t usually clash
 
-(troubleshoot-networking-routing-problems)=
-#### Network routing problems
+## On macOS
 
-You could try:
+(tn2-macos-launch)=
+### An instance won't start on macOS
+
+> I try running `multipass launch` and it fails. The error mentions it can't determine an IP address.
+
+**What you'll see**
+
+A launch that fails with a message containing:
 
 ```{code-block} text
-sudo route -nv add -net 192.168.64.0/24 -interface bridge100
+Unable to determine IP address
 ```
 
-If you get a "File exists" error, maybe delete and retry?
+**What's happening**
 
-```{code-block} text
-sudo route -nv delete -net 192.168.64.0/24
-sudo route -nv add -net 192.168.64.0/24 -interface bridge100
+This usually means some networking configuration is incompatible, or there is interference from a firewall or VPN.
+
+```{seealso}
+[How to troubleshoot launch/start issues](/how-to-guides/troubleshoot/troubleshoot-launch-start-issues).
 ```
 
-Maybe `-static` route helps?
+**How to fix it**
 
-If using Cisco AnyConnect, try using OpenConnect (`brew install openconnect`) instead as it messes with routes less (but your company sysadmin/policy may not permit/authorise this).
+Work through these one at a time, trying to launch again after each:
 
-*   It monitors the routing table so may prevent any customisation. Here is [a very handy but non-standard workaround](https://unix.stackexchange.com/questions/106304/route-add-no-longer-works-when-i-connected-to-vpn-via-cisco-anyconnect-client/501094#501094).
+1. **Check your firewall.** Open **System Preferences > Security & Privacy > Firewall**. The firewall can be on, but it must **not** be set to "Block all incoming connections", which stops the local service that gives your instance an address. (It is fine to block incoming connections specifically to `multipassd`.)
+2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
+3. **Check Little Snitch** (or any similar per-app firewall). Its defaults are usually fine, but make sure it allows `mDNSResponder` and `bootpd`. If image downloads fail or you see `Unknown error` when running `multipass launch -vvv`, Little Snitch may be blocking `multipassd`'s network access (see [issue #1169](https://github.com/canonical/multipass/issues/1169)).
 
-Does your VPN software provide a "split connection" option, where VPN sysadmin can designate a range of IP addresses to **not** be routed through the VPN?
-*   Cisco does
-*   Pulse Secure / Jupiter Junos Pulse do
+(tn2-macos-routing)=
+### You can't open a shell in your instance
 
-#### Potential workaround for VPN conflicts
+> The instance is running, but `multipass shell` doesn't respond or won't connect.
 
-This was reported on GitHub (issue [#495](https://github.com/canonical/multipass/issues/495#issuecomment-448461250)).
+**What's happening**
 
-After the `nat ...` line (if there is one, otherwise at the end) in `/etc/pf.conf`, add this line:
+Your computer can't route traffic to the instance's network. This is most often caused by VPN software that takes control of the routing table.
+
+**How to fix it**
+
+1. Add a route to the instance network by hand:
+
+    ```{code-block} text
+    sudo route -nv add -net 192.168.64.0/24 -interface bridge100
+    ```
+
+2. If you get a `File exists` error, delete the existing route first and add it again:
+
+    ```{code-block} text
+    sudo route -nv delete -net 192.168.64.0/24
+    sudo route -nv add -net 192.168.64.0/24 -interface bridge100
+    ```
+
+If you use **Cisco AnyConnect**, it actively monitors the routing table and may undo your changes. Two options:
+
+- Use **OpenConnect** instead (`brew install openconnect`), which interferes with routes far less. Check with your IT department first, as your company policy may not allow it. There is also a [non-standard workaround](https://unix.stackexchange.com/questions/106304/route-add-no-longer-works-when-i-connected-to-vpn-via-cisco-anyconnect-client/501094#501094) if you must stay on AnyConnect.
+- Ask whether your VPN offers a **split tunnel** option, where your VPN administrator can mark a range of addresses to be excluded from the VPN. Cisco and Pulse Secure / Juniper Junos Pulse both support this.
+
+#### A workaround for VPN conflicts
+
+This was reported in [issue #495](https://github.com/canonical/multipass/issues/495#issuecomment-448461250). Add the following line to `/etc/pf.conf`, after the `nat ...` line if there is one, otherwise at the end:
 
 ```{code-block} text
 nat on utun1 from bridge100:network to any -> (utun1)
 ```
 
-and reload PF with the command:
+Then reload the firewall rules:
 
 ```{code-block} text
 sudo pfctl -f /etc/pf.conf
 ```
 
-#### Configure Multipass to use a different subnet
+#### Use a different network range
 
-Edit `/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist` to change the `"Shared_Net_Address"` value to something other than `192.168.64.1  -`.
-*   it works if you edit the `plist` file and stay inside 192.168 range, as Multipass hard-coded for this
+If the `192.168.64.*` range clashes with your network, you can change it. Edit `/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist` and change the `Shared_Net_Address` value. Stay within the `192.168.*` range, as Multipass relies on it.
 
 ```{note}
-If you change the subnet and launch an instance, it will get an IP from that new subnet. But if you try changing it back, the change is reverted on next instance start. It appears that the DHCP server reads the last IP in `/var/db/dhcpd_leases`, decides the subnet from that, and updates `Shared_Net_Address` to match. So, the only way to really revert this change is to edit or delete `/var/db/dhcpd_leases`.
+If you change the range and launch an instance, it will get an address from the new range. Changing it back, however, is reverted the next time an instance starts: the DHCP service reads the last address in `/var/db/dhcpd_leases`, works out the range from it, and resets `Shared_Net_Address` to match. To truly revert the change, edit or delete `/var/db/dhcpd_leases`.
 ```
 
-(troubleshoot-networking-dns-problems)=
-#### DNS problems
+(tn2-macos-dns)=
+### Your instance can reach IP addresses, but not domain names
 
-Can you ping IP addresses?
+> I can open a shell in my instance, but commands that use domain names don't connect.
+
+**Step 1: Can the instance reach an IP address?**
+
+Inside the instance, try to reach an address by its numbers:
 
 ```{code-block} text
 ping 1.1.1.1
 ```
 
-If not, the output will be similar to the following:
+If there's no connection, you'll see every packet lost:
 
 ```{code-block} text
 PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
@@ -134,24 +148,16 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 3 packets transmitted, 0 received, 100% packet loss, time 2030ms
 ```
 
-Note that macOS's firewall can block the ICMP packets that `ping` uses, which will interfere with this test. Make sure you disable **Stealth Mode** in **System Preferences > Security & Privacy > Firewall** just for this test.
+```{note}
+The macOS firewall can block the test messages that `ping` uses, which makes this test misleading. Just for this test, turn off **Stealth Mode** in **System Preferences > Security & Privacy > Firewall**.
+```
 
 ```{figure} /images/multipass-security-privacy.jpg
    :width: 690px
    :alt: Security & Privacy
 ```
 
-<!-- Original image on the Asset Manager
-![Security & Privacy|690x605](https://assets.ubuntu.com/v1/a4c00e5f-multipass-security-privacy.jpg)
--->
-
-If you try again, it should work:
-
-```{code-block} text
-ping 1.1.1.1
-```
-
-The output will be similar to the following:
+With Stealth Mode off, a working IP connection looks like this:
 
 ```{code-block} text
 PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
@@ -161,16 +167,21 @@ PING 1.1.1.1 (1.1.1.1) 56(84) bytes of data.
 ^C
 --- 1.1.1.1 ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 2143ms
-rtt min/avg/max/mdev = 5.124/6.020/7.022/0.781 ms
 ```
 
-This means the instance can indeed connect to the internet, but DNS resolution is broken. You can test DNS resolution using the `dig` tool:
+If the test still fails, stop here: the DNS checks below apply only when the instance can reach an IP address.
+
+If this works, the instance can reach IP addresses, but **DNS resolution** is broken. Continue below.
+
+**Step 2: Is name resolution broken?**
+
+Still inside the instance, ask the built-in resolver to look up a name:
 
 ```{code-block} text
 dig @192.168.64.1 google.ie
 ```
 
-If broken, the output will be similar to:
+If it's broken, the request times out:
 
 ```{code-block} text
 ; <<>> DiG 9.10.3-P4-Ubuntu <<>> google.ie
@@ -178,177 +189,165 @@ If broken, the output will be similar to:
 ;; connection timed out; no servers could be reached
 ```
 
-On the other hand, if it works correctly the output will be similar to:
-
-```{code-block} text
-; <<>> DiG 9.10.3-P4-Ubuntu <<>> google.ie
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 48163
-;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
-
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 4096
-;; QUESTION SECTION:
-;google.ie.   		 IN    A
-
-;; ANSWER SECTION:
-google.ie.   	 15    IN    A    74.125.193.94
-
-;; Query time: 0 msec
-;; SERVER: 192.168.64.1#53(192.168.64.1)
-;; WHEN: Thu Aug 01 15:17:04 IST 2019
-;; MSG SIZE  rcvd: 54
-```
-
-To test further, try supplying an explicit DNS server:
+To confirm the problem is the built-in resolver and not the wider internet, ask a public resolver directly:
 
 ```{code-block} text
 dig @1.1.1.1 google.ie
 ```
 
-If it works correctly, the output will be similar to:
+If that one succeeds (you get an `ANSWER SECTION` with an address), then your instance's connection is fine and the macOS **Internet Sharing** name resolver is the culprit.
 
-```{code-block} text
-; <<>> DiG 9.10.3-P4-Ubuntu <<>> @1.1.1.1 google.ie
-; (1 server found)
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 11472
-;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+**What's happening**
 
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 1452
-;; QUESTION SECTION:
-;google.ie.   		 IN    A
+The built-in resolver, `mDNSResponder`, listens on port 53. If another program has taken that port, name resolution inside your instance breaks.
 
-;; ANSWER SECTION:
-google.ie.   	 39    IN    A    74.125.193.94
+**How to fix it**
 
-;; Query time: 6 msec
-;; SERVER: 1.1.1.1#53(1.1.1.1)
-;; WHEN: Thu Aug 01 15:16:27 IST 2019
-;; MSG SIZE  rcvd: 54
-```
+1. If you use Little Snitch or a similar per-app firewall, make sure `mDNSResponder` is allowed to make outgoing connections. The built-in macOS firewall should not block it.
+2. Check what is using port 53 on your computer:
 
-This implies the problem is with the macOS **Internet Sharing** feature---for some reason, its built-in DNS server is broken.
+    ```{code-block} text
+    sudo lsof -iTCP:53 -iUDP:53 -n -P
+    ```
 
-The built-in DNS server should be `"mDNSResponder"`, which binds to localhost on port 53.
+    While an instance is running, you should see **only** `mDNSResponder`:
 
-If using Little Snitch or another per-process firewall, ensure `mDNSResponder` can establish outgoing connections. The macOS’s built-in firewall should not interfere with it.
+    ```{code-block} text
+    COMMAND   PID       	USER   FD   TYPE         	DEVICE SIZE/OFF NODE NAME
+    mDNSRespo 191 _mdnsresponder   17u  IPv4 0xa89d451b9ea11d87  	0t0  UDP *:53
+    mDNSRespo 191 _mdnsresponder   25u  IPv6 0xa89d451b9ea1203f  	0t0  UDP *:53
+    mDNSRespo 191 _mdnsresponder   50u  IPv4 0xa89d451b9ea8b8cf  	0t0  TCP *:53 (LISTEN)
+    mDNSRespo 191 _mdnsresponder   55u  IPv6 0xa89d451b9e2e200f  	0t0  TCP *:53 (LISTEN)
+    ```
 
-Check what is bound to that port on the host with:
+    If no instance is running and Internet Sharing is off, the command returns nothing. **Any other program in this list** is conflicting with Internet Sharing and breaking your instance's DNS; quit it. See [Apps that commonly interfere with Multipass](#tn2-interfering-apps).
 
-```{code-block} text
-sudo lsof -iTCP:53 -iUDP:53 -n -P
-```
+**If you can't remove the conflicting program**
 
-The sample output below shows the correct state while a instance is running:
+You can point the instance at a public resolver instead:
 
-```{code-block} text
-sudo lsof -iTCP:53 -iUDP:53 -n -P
-COMMAND   PID       	USER   FD   TYPE         	DEVICE SIZE/OFF NODE NAME
-mDNSRespo 191 _mdnsresponder   17u  IPv4 0xa89d451b9ea11d87  	0t0  UDP *:53
-mDNSRespo 191 _mdnsresponder   25u  IPv6 0xa89d451b9ea1203f  	0t0  UDP *:53
-mDNSRespo 191 _mdnsresponder   50u  IPv4 0xa89d451b9ea8b8cf  	0t0  TCP *:53 (LISTEN)
-mDNSRespo 191 _mdnsresponder   55u  IPv6 0xa89d451b9e2e200f  	0t0  TCP *:53 (LISTEN)
-```
-
-If no instance is running (and **Internet Sharing** is disabled in **System Preferences**), the command should return nothing.
-
-Any other command appearing in that output means a process is conflicting with **Internet Sharing** and thus will break DNS in the instance.
-
-##### Possible workarounds
-
-1. Configure DNS inside the instance to use an external working DNS server. Can do so by appending this line to /etc/resolv.conf manually:
+1. Inside the instance, add this line to `/etc/resolv.conf`:
 
     ```{code-block} text
     nameserver 1.1.1.1
     ```
 
-    "1.1.1.1" is a free DNS service provided by CloudFlare, but you can use your own.
-2. Use a [custom cloud-init to set /etc/resolv.conf](https://cloudinit.readthedocs.io/en/latest/reference/yaml_examples/resolv_conf.html) for you on first boot.
+    (`1.1.1.1` is a free resolver from Cloudflare; use any you prefer.)
+2. To make this automatic on every new instance, use a [custom cloud-init file that sets `/etc/resolv.conf`](https://cloudinit.readthedocs.io/en/latest/reference/yaml_examples/resolv_conf.html) at first boot.
 
-(troubleshoot-networking-arp-problems)=
-#### ARP problems
+(tn2-macos-arp)=
+### Extra IP addresses aren't reachable
 
-The macOS bridge by Multipass filters packets so that only the IP address originally assigned to the VM is allowed through. If you add an additional address (e.g. an IP alias) to the VM, the ARP broadcast will get through but the ARP response will be filtered out.
+> I added an extra IP address to my instance, but nothing on the network can reach it.
 
-This means that applications that rely on additional IP addresses, such as [metallb](https://metallb.universe.tf/) under [microk8s](https://microk8s.io/), will not work.
+**What's happening**
 
-(troubleshoot-networking-issues-caused-by-macos-update)=
-#### Issues caused by macOS update
+On macOS, the Multipass network only allows through the single IP address it originally assigned to each instance. If you add another address (an "IP alias"), requests for it get out but the replies are filtered, so the address never answers.
 
-When upgrading macOS to 12.4 (this might happen however also when upgrading to other versions), macOS makes changes to the firewall. If the instances are not stopped before the update, it is possible the connection to the instances are blocked by the macOS firewall. We cannot know what is exactly the change introduced to the firewall, it seems the Apple's `bootpd` stops replying DHCP requests.
+This means tools that depend on extra IP addresses, such as [MetalLB](https://metallb.universe.tf/) under [MicroK8s](https://microk8s.io/), won't work on macOS.
 
-There are some procedures that can help to overcome this issue (see [issue #2387](https://github.com/canonical/multipass/issues/2387) on the Multipass GitHub repository for a discussion on this and some alternative solutions). First, you can try to:
+**What to do**
 
-* Reboot the computer.
-* Disable and then re-enable Internet sharing and/or the firewall.
-* Configure the driver (QEMU) and Multipass in the firewall to allow incoming connections.
+There is no documented Multipass fix for additional IP addresses on macOS. Avoid relying on additional IP addresses for macOS instances.
 
-## Troubleshoot networking on Windows
+(tn2-macos-update)=
+### Networking stopped after a macOS update
 
-This sections contains troubleshooting considerations that are specific to Windows systems.
+> Everything worked before. I updated macOS, and now my instances can't connect.
 
-### Architecture
+**What's happening**
 
-Multipass uses the native "Hyper-V" hypervisor on Windows, along with the "Default Switch" created for it. That, in turn, uses the "Internet Sharing" functionality, providing DHCP (IP addresses) and DNS (domain name resolution) to the instances.
+A macOS update (this was first seen with 12.4, but can happen on other versions too) changes the firewall. If instances were still running during the update, the firewall can end up blocking them: Apple's `bootpd` service appears to stop answering address requests.
 
-### Known issues
+**How to fix it**
 
-Here you can find more details on known issues affecting Windows systems.
+Try these in order (see [issue #2387](https://github.com/canonical/multipass/issues/2387) for the full discussion):
 
-#### Default switch going awry
+1. Restart your computer.
+2. Turn Internet Sharing and/or the firewall off and then on again.
+3. In the firewall settings, allow incoming connections for the driver (QEMU) and for Multipass.
 
-Unfortunately the default switch is known to be quirky and Windows updates often put it in a weird state. This may result in new instances failing to launch and existing ones timing out to start.
+---
 
-The broken state also persists over reboots. The one approach that has helped is removing the network sharing from the default switch:
+## On Windows
+
+(tn2-windows-switch)=
+### Instances won't start or keep timing out
+
+> New instances fail to launch, or existing ones hang and time out when starting, and the problem survives a reboot.
+
+**What's happening**
+
+The Hyper-V Default Switch is known to be unreliable, and Windows updates often leave it in a broken state. Because the broken state persists across reboots, restarting alone won't fix it.
+
+**How to fix it**
+
+Reset the Default Switch by removing its network sharing. In a PowerShell window with administrator rights:
 
 ```{code-block} powershell
 Get-HNSNetwork | ? Name -Like "Default Switch" | Remove-HNSNetwork
 ```
 
-and then rebooting the system:
+Then restart your computer:
 
 ```{code-block} powershell
 Restart-Computer
 ```
 
-Hyper-V will recreate it on next boot.
+Hyper-V recreates the switch automatically on the next boot.
 
-<!-- This content has been moved to troubleshoot-launch-start-issues.md
-#### Stale Internet connection sharing lease
+(tn2-windows-av)=
+### Your security software is blocking instances
 
-Another reason for instance timeouts may be that a "stale" IP address for a particular instance name is stored in the `Internet Connection Sharing` hosts file.
+> My connectivity is unreliable, and I run anti-virus or network security software.
 
-Using Administrator privileges, edit the file `C:\WINDOWS\System32\drivers\etc\hosts.ics` and look for any entries that have your instance name in it. If there is more than one entry, remove any of them except for the first listed. Save the file and try again.
--->
+**What's happening**
 
-#### Anti-virus / security software blocking instances
+Anti-virus and network security tools aren't always aware of virtual machines and can block their traffic. Known examples include Symantec, ESET, Kaspersky, and Malwarebytes.
 
-Anti-virus and network security software are not necessarily virtualisation-aware. If you’re having issues with connectivity, temporarily disabling this software to test can result in a positive outcome. Examples of this software are Symantec, ESET, Kaspersky and Malware Bytes.
+**How to fix it**
 
+If you're having connectivity issues, temporarily disabling this software to test can result in a positive outcome.
 
-#### Wi-Fi upload speed degrading when using external switch with Hyper-V
+(tn2-windows-wifi)=
+### Slow Wi-Fi upload speeds
 
-If you're using Multipass on Windows and have created an External Switch connected to your Wi-Fi adapter in Hyper-V, you may notice your upload speeds degrade severely, often dropping to around 1 Mbit/s. This issue is due to a long-standing limitation in Windows networking, where certain offload features interfere with Hyper-V’s virtual networking performance. Fortunately, there’s a reliable workaround to restore your original speeds.
+> I created an External Switch on my Wi-Fi adapter in Hyper-V, and now my upload speed has dropped to around 1 Mbit/s.
 
-##### Workaround
+**What's happening**
 
-The following steps will help you disable the Large Send Offload feature for the Hyper-V virtual ethernet adapter, which should resolve the upload speed issue:
+This is a long-standing Windows networking limitation: certain network "offload" features interfere with Hyper-V's virtual networking and cripple upload speed. The fix is to switch off those features for the virtual adapter.
 
-1. Open Device Manager.
-2. Expand Network Adapters.
-3. Find the entry named Hyper-V Virtual Ethernet Adapter #N (Where “N” is the one connected to Wi-Fi).
-4. Right-click > Properties.
-5. Go to the Advanced tab.
-6. Locate and disable both of the following:
-   * Large Send Offload v2 (IPv4)
-   * Large Send Offload v2 (IPv6)
-7. Click OK and restart your networking or your machine if needed
+**How to fix it**
 
+1. Open **Device Manager**.
+2. Expand **Network Adapters**.
+3. Find **Hyper-V Virtual Ethernet Adapter #N** (where *N* is the one connected to Wi-Fi).
+4. Right-click it and choose **Properties**.
+5. Go to the **Advanced** tab.
+6. Find and disable both of these:
+   - **Large Send Offload v2 (IPv4)**
+   - **Large Send Offload v2 (IPv6)**
+7. Click **OK**, then restart your networking or your machine if needed.
 
-<!-- Discourse contributors
-<small>**Contributors:** @saviq , @townsend , @sowasred2012 , @ya-bo-ng , @candlerb , @sergiusens , @nhart , @andreitoterman , @tmihoc , @luisp , @ricab , @gzanchi , @naynayu , @QuantumLibet </small>
--->
+---
+
+(tn2-networking-background)=
+## How Multipass networking works
+
+This background information can help if you need to understand why the previous troubleshooting steps mention specific host services, address ranges, or switches.
+
+(tn2-macos-networking-background)=
+### macOS
+
+On macOS, Multipass uses Apple's built-in **Internet Sharing** feature to give your instances a network. When you create an instance, macOS:
+
+1. Creates a private network and connects each instance to it, using the address range `192.168.64.*`.
+2. Hands out IP addresses and resolves names on that network from `192.168.64.1`, using Apple's own `bootpd` and `mDNSResponder` services.
+
+In **System Preferences > Sharing**, **Internet Sharing** may appear switched off. That's normal; it still runs in the background for your instances.
+
+(tn2-windows-networking-background)=
+### Windows
+
+On Windows, Multipass uses the built-in **Hyper-V** virtualization platform and its **Default Switch**. That switch uses Windows **Internet Sharing** to give your instances their IP addresses and name resolution.

@@ -7,7 +7,6 @@ The following guides provide step-by-step instructions on how to troubleshoot is
 - [Mount an encrypted home folder](mount-an-encrypted-home-folder)
 - [Troubleshoot launch/start issues](troubleshoot-launch-start-issues)
 - [Troubleshoot networking](troubleshoot-networking)
-- [Troubleshoot networking (v2 draft)](troubleshoot-networking-v2)
 
 ```{toctree}
 :hidden:
@@ -19,5 +18,4 @@ access-logs
 mount-an-encrypted-home-folder
 troubleshoot-launch-start-issues
 troubleshoot-networking
-troubleshoot-networking-v2
 ```
