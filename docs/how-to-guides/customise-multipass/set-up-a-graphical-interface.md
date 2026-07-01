@@ -82,7 +82,7 @@ Sample output:
 ```{code-block} text
 Name:           headbanging-squid
 State:          Running
-Zone:           zone1(a)
+Zone:           zone1
 Snapshots:      0
 IPv4:           10.49.93.209
 Release:        Ubuntu 26.04 LTS

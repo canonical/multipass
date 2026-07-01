@@ -21,7 +21,7 @@ In particular, when we run `multipass info keen-yak`, we find out that it is an 
 ```{code-block} text
 Name:           keen-yak
 State:          Running
-Zone:           zone1(a)
+Zone:           zone1
 Snapshots:      0
 IPv4:           10.97.0.76
 Release:        Ubuntu 26.04 LTS
@@ -67,7 +67,7 @@ Launched: tenacious-mink
 ```{code-block} text
 Name:           tenacious-mink
 State:          Running
-Zone:           zone1(a)
+Zone:           zone1
 Snapshots:      0
 IPv4:           10.97.0.76
 Release:        Ubuntu 26.04 LTS

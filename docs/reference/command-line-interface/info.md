@@ -8,7 +8,7 @@ For example, `multipass info calm-squirrel`:
 ```{code-block} text
 Name:           calm-squirrel
 State:          Running
-Zone:           zone1(a)
+Zone:           zone1
 Snapshots:      0
 IPv4:           10.97.0.76
 Release:        Ubuntu 26.04 LTS
