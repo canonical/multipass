@@ -23,7 +23,8 @@ namespace mp = multipass;
 
 mp::PlainSftpMessage::~PlainSftpMessage() = default;
 
-mp::PlainSftpMessage::PlainSftpMessage(sftp_client_message_struct* message) : message{message}
+mp::PlainSftpMessage::PlainSftpMessage(sftp_client_message_struct* message) noexcept
+    : message{message}
 {
 }
 
