@@ -48,7 +48,7 @@ The full `multipass help find` output explains the available options:
 ```{code-block} text
 Usage: multipass find [options] [<remote:>][<string>]
 Lists available images matching <string> for creating instances from.
-With no search string, lists all aliases for supported Ubuntu releases.
+With no search string, lists all aliases for supported releases.
 
 Options:
   -h, --help          Displays help on commandline options
@@ -65,6 +65,6 @@ Arguments:
                       format, where <remote> can be either ‘release’ or ‘daily’.
                       If <remote> is omitted, it will search ‘release‘ first,
                       and if no matches are found, it will then search ‘daily‘.
-                      <string> can be a partial image hash or an Ubuntu release
-                      version, codename or alias.
+                      <string> can be a partial image hash or a release version,
+                      codename or alias.
 ```
