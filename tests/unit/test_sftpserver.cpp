@@ -406,7 +406,7 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
 
     mpt::CallbackState cb{};
-    cb.exit_code = callback_mock_engine.failure_status;
+    cb.exit_code = callback_mock_engine.failure_code;
     callback_mock_engine.push_state(cb);
     callback_mock_engine.pop_state(); // Remove default state
 
@@ -432,11 +432,8 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
         std::string cmd{raw_cmd};
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
-            mpt::CallbackState cb{};
             invoked = true;
-            cb.ssh_rc = SSH_ERROR;
-            cb.exit_code.reset();
-            callback_mock_engine.push_state(cb);
+            callback_mock_engine.push_state(callback_mock_engine.process_noexit);
             callback_mock_engine.pop_state();
         }
 
@@ -461,14 +458,8 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     auto message{make_msg(SSH_FXP_INIT)};
     auto request_exec = [](ssh_channel, const char*) { return SSH_OK; };
 
-    mpt::CallbackState cb{};
-    cb.exit_code.reset();
-    cb.eof = false;
-    cb.closed = false;
-    cb.ssh_rc = SSH_AGAIN;
-    callback_mock_engine.push_state(cb);
-    cb.exit_code = callback_mock_engine.success_status;
-    callback_mock_engine.push_state(cb);
+    callback_mock_engine.push_state(callback_mock_engine.process_running);
+    callback_mock_engine.push_state(callback_mock_engine.process_exit_success);
     callback_mock_engine.pop_state();
 
     REPLACE(ssh_channel_request_exec, request_exec);
