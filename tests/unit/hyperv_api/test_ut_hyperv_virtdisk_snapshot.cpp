@@ -57,11 +57,11 @@ void touch(const fs::path& p)
 }
 } // namespace
 
-// These tests exercise the failure/rollback path of VirtDiskSnapshot::capture_impl().
-// The VirtDisk wrapper is mocked so a disk-creation failure can be triggered
-// deterministically, while the snapshot files themselves are real files in a
-// temporary directory so the rollback's on-disk effects are actually verified.
-struct VirtDiskSnapshotCapture : public ::testing::Test
+// These tests exercise the failure/rollback path of VirtDiskSnapshot::capture_impl()
+// and apply_impl(). The VirtDisk wrapper is mocked so a disk-creation failure can
+// be triggered deterministically, while the snapshot files themselves are real
+// files in a temporary directory so the on-disk effects are actually verified.
+struct VirtDiskSnapshotTest : public ::testing::Test
 {
     MockVirtDiskWrapper::GuardedMock virtdisk_injection =
         MockVirtDiskWrapper::inject<NiceMock>();
@@ -116,6 +116,20 @@ struct VirtDiskSnapshotCapture : public ::testing::Test
     }
 };
 
+struct VirtDiskSnapshotCapture : public VirtDiskSnapshotTest
+{
+};
+
+struct VirtDiskSnapshotApply : public VirtDiskSnapshotTest
+{
+    fs::path new_head() const
+    {
+        auto p = head();
+        p.replace_extension(".new.avhdx");
+        return p;
+    }
+};
+
 // A pre-existing head is renamed into the snapshot file, then creating the new
 // head fails. The original head must be restored and the snapshot file removed.
 TEST_F(VirtDiskSnapshotCapture, rolls_back_when_new_head_creation_fails)
@@ -150,6 +164,57 @@ TEST_F(VirtDiskSnapshotCapture, rolls_back_when_no_preexisting_head)
 
     EXPECT_FALSE(fs::exists(head())) << "no head should remain after a failed first capture";
     EXPECT_FALSE(fs::exists(snapshot_path(1))) << "no snapshot file should remain";
+}
+
+// The snapshot file to restore is missing, so building the replacement head
+// fails before it starts. The live head must be left untouched (the VM stays
+// bootable) and no temporary ".new" head should be left behind.
+TEST_F(VirtDiskSnapshotApply, apply_keeps_head_when_snapshot_missing)
+{
+    touch(head()); // the VM's current head disk
+    // note: snapshot_path(1) is intentionally absent
+
+    auto ss = make_snapshot();
+    EXPECT_THROW(ss->apply(), std::exception);
+
+    EXPECT_TRUE(fs::exists(head())) << "the existing head must remain intact";
+    EXPECT_FALSE(fs::exists(new_head())) << "no temporary head should be left behind";
+}
+
+// Building the replacement head fails (VirtDisk API error). Because the new head
+// is built before the old one is swapped out, the existing head must survive.
+TEST_F(VirtDiskSnapshotApply, apply_keeps_head_when_new_head_creation_fails)
+{
+    touch(head());
+    touch(snapshot_path(1)); // snapshot to restore exists
+
+    EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).WillOnce(Return(op_fail()));
+
+    auto ss = make_snapshot();
+    EXPECT_THROW(ss->apply(), std::exception);
+
+    EXPECT_TRUE(fs::exists(head())) << "the existing head must remain intact";
+    EXPECT_FALSE(fs::exists(new_head())) << "no temporary head should be left behind";
+}
+
+// The happy path: the replacement head is built from the snapshot and swapped in
+// for the old head. No throw, a head remains, and no temporary ".new" head lingers.
+TEST_F(VirtDiskSnapshotApply, apply_swaps_in_new_head)
+{
+    touch(head());
+    touch(snapshot_path(1));
+
+    EXPECT_CALL(mock_virtdisk, create_virtual_disk(_))
+        .WillOnce([](const CreateVirtualDiskParameters& params) {
+            touch(params.path); // simulate the new head disk being created
+            return op_ok();
+        });
+
+    auto ss = make_snapshot();
+    EXPECT_NO_THROW(ss->apply());
+
+    EXPECT_TRUE(fs::exists(head())) << "the swapped-in head must be present";
+    EXPECT_FALSE(fs::exists(new_head())) << "the temporary head must be renamed away";
 }
 
 } // namespace multipass::test
