@@ -87,7 +87,7 @@ Boot failures are often caused by VM image corruption, which can happen when the
 Here are some options to attempt recovery:
 
 - If you took a [snapshot](/explanation/snapshot) before incurring this issue, you could try to restore it. However, snapshots are typically stored layers against an original image file, so they may not be enough.
-- **Run [`fsck`](https://manpages.ubuntu.com/manpages/oracular/en/man8/fsck.8.html) in the Serial Console:**
+- **Run [`fsck`](https://manpages.ubuntu.com/manpages/questing/en/man8/fsck.8.html) in the Serial Console:**
 
   The `fsck` tool (short for "file system consistency check") is used to scan the file system for errors and attempt repairs.
 
