@@ -1,4 +1,0 @@
-foo:
-  - snapshot1:
-      - parent: ~
-        comment: This is a sample comment

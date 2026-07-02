@@ -1255,7 +1255,6 @@ TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageHttpOk))
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-#ifdef AVAILABILITY_ZONES_FEATURE
 TEST_F(Client, launchCmdWithZoneOk)
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
@@ -1296,7 +1295,6 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
     EXPECT_THAT(send_command({"launch", "--zone", "unavailable_zone"}),
                 Eq(mp::ReturnCode::CommandFail));
 }
-#endif
 
 TEST_F(Client, launchCmdWithTimer)
 {
@@ -4447,7 +4445,6 @@ TEST_F(ClientAlias, aliasRefusesCreationRpcError)
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map,default*\n");
 }
 
-#ifdef AVAILABILITY_ZONES_FEATURE
 // zones cli tests
 TEST_F(Client, zonesCmdNoArgsOk)
 {
@@ -4688,8 +4685,6 @@ TEST_F(Client, disableZonesCmdReasksConfirmation)
     EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::Ok);
     EXPECT_THAT(cout_stream.str(), HasSubstr("Please answer (Yes/no):"));
 }
-
-#endif // AVAILABILITY_ZONES_FEATURE
 
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
 {
