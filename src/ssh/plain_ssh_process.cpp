@@ -70,31 +70,36 @@ private:
     int registered{};
 };
 
-auto make_channel(ssh_session raw_session, const std::string& cmd)
+} // namespace
+
+void mp::PlainSSHProcess::ChannelDeleter::operator()(ssh_channel_struct* channel) const noexcept
+{
+    MP_LIBSSH.ssh_channel_free(channel);
+}
+
+mp::PlainSSHProcess::ChannelUPtr mp::PlainSSHProcess::make_channel(ssh_session raw_session,
+                                                                   const std::string& cmd)
 {
     if (!MP_LIBSSH.ssh_is_connected(raw_session))
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    mp::PlainSSHProcess::ChannelUPtr channel{
-        MP_LIBSSH.ssh_channel_new(raw_session),
-        [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
-    mp::SSH::throw_on_error(
+    ChannelUPtr channel{
+        MP_LIBSSH.ssh_channel_new(raw_session)};
+    SSH::throw_on_error(
         channel,
         raw_session,
         "[ssh proc] failed to open session channel",
-        std::bind_front(&mp::Libssh::ssh_channel_open_session, &mp::Libssh::instance()));
-    mp::SSH::throw_on_error(
+        std::bind_front(&Libssh::ssh_channel_open_session, &Libssh::instance()));
+    SSH::throw_on_error(
         channel,
         raw_session,
         "[ssh proc] exec request failed",
-        std::bind_front(&mp::Libssh::ssh_channel_request_exec, &mp::Libssh::instance()),
+        std::bind_front(&Libssh::ssh_channel_request_exec, &Libssh::instance()),
         cmd.c_str());
     return channel;
 }
-
-} // namespace
 
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& raw_session,
                                      const std::string& cmd,
