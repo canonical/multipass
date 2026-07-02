@@ -68,14 +68,22 @@ private:
     int registered{};
 };
 
-auto make_channel(ssh_session raw_session, const std::string& cmd)
+} // namespace
+
+void mp::PlainSSHProcess::ChannelDeleter::operator()(ssh_channel_struct* channel) const noexcept
+{
+    ssh_channel_free(channel);
+}
+
+mp::PlainSSHProcess::ChannelUPtr mp::PlainSSHProcess::make_channel(ssh_session raw_session,
+                                                                   const std::string& cmd)
 {
     if (!ssh_is_connected(raw_session))
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    mp::PlainSSHProcess::ChannelUPtr channel{ssh_channel_new(raw_session), ssh_channel_free};
+    ChannelUPtr channel{ssh_channel_new(raw_session)};
     mp::SSH::throw_on_error(channel,
                             raw_session,
                             "[ssh proc] failed to open session channel",
@@ -87,8 +95,6 @@ auto make_channel(ssh_session raw_session, const std::string& cmd)
                             cmd.c_str());
     return channel;
 }
-
-} // namespace
 
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& raw_session,
                                      const std::string& cmd,
