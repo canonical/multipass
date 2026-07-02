@@ -47,13 +47,8 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return std::make_unique<StubVirtualMachine>();
     }
 
-    void remove_resources_for_impl(const std::string& name) override
+    void remove_resources_for_impl(const std::string&) override
     {
-    }
-
-    multipass::FetchType fetch_type() override
-    {
-        return multipass::FetchType::ImageOnly;
     }
 
     multipass::VMImage prepare_source_image(const multipass::VMImage& source_image) override
@@ -61,8 +56,8 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return source_image;
     }
 
-    void prepare_instance_image(const multipass::VMImage& instance_image,
-                                const multipass::VirtualMachineDescription& vm_desc) override
+    void prepare_instance_image(const multipass::VMImage&,
+                                const multipass::VirtualMachineDescription&) override
     {
     }
 
@@ -75,7 +70,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return {};
     }
 
-    QString get_instance_directory(const std::string& name) const override
+    QString get_instance_directory(const std::string&) const override
     {
         return tmp_dir->path();
     }
@@ -85,11 +80,11 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return "stub-5678";
     }
 
-    multipass::VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
-                                                     URLDownloader* downloader,
-                                                     const Path& cache_dir_path,
-                                                     const Path& data_dir_path,
-                                                     const days& days_to_expire) override
+    multipass::VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> /*image_hosts*/,
+                                                     URLDownloader* /*downloader*/,
+                                                     const Path& /*cache_dir_path*/,
+                                                     const Path& /*data_dir_path*/,
+                                                     const days& /*days_to_expire*/) override
     {
         return std::make_unique<StubVMImageVault>();
     }

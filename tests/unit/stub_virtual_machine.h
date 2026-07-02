@@ -93,12 +93,13 @@ struct StubVirtualMachine final : public VirtualMachine
         return {IPAddress{"192.168.2.123"}};
     }
 
-    std::string ssh_exec(const std::string&, bool = false) override
+    std::string ssh_exec(const std::string& /*cmd*/, bool /*whisper*/ = false) override
     {
         return {};
     }
 
-    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string&, bool = false) override
+    std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& /*cmd*/,
+                                                 bool /*whisper*/ = false) override
     {
         return nullptr;
     }
@@ -112,7 +113,7 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void wait_for_cloud_init(std::chrono::milliseconds timeout) override
+    void wait_for_cloud_init(std::chrono::milliseconds /*timeout*/) override
     {
     }
 
@@ -120,7 +121,7 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void update_cpus(int num_cores) override
+    void update_cpus(int /*num_cores*/) override
     {
     }
 
@@ -179,7 +180,7 @@ struct StubVirtualMachine final : public VirtualMachine
         return {};
     }
 
-    void rename_snapshot(const std::string&, const std::string&) override
+    void rename_snapshot(const std::string& /*old_name*/, const std::string& /*new_name*/) override
     {
     }
 
@@ -187,7 +188,7 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void restore_snapshot(const std::string&, VMSpecs&) override
+    void restore_snapshot(const std::string& /*name*/, VMSpecs& /*specs*/) override
     {
     }
 

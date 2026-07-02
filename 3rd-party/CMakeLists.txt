@@ -25,7 +25,10 @@ target_link_libraries(gRPC INTERFACE
   protobuf::libprotobuf)
 
 if (NOT MSVC)
-  target_compile_options(gRPC INTERFACE "-Wno-unused-parameter" "-Wno-non-virtual-dtor" "-Wno-pedantic")
+  target_compile_options(gRPC INTERFACE
+    "-Wno-unused-parameter"
+    "-Wno-non-virtual-dtor"
+    "-Wno-pedantic")
 endif ()
 
 include(ExternalProject)

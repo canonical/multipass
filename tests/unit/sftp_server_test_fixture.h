@@ -29,7 +29,7 @@ struct SftpServerTest : public testing::Test
 {
     SftpServerTest()
         : sftp_server_new{mock_sftp_server_new,
-                          [](ssh_session session, ssh_channel chan) -> sftp_session {
+                          [](ssh_session, ssh_channel) -> sftp_session {
                               auto sftp = static_cast<sftp_session_struct*>(
                                   std::calloc(1, sizeof(struct sftp_session_struct)));
                               return sftp;

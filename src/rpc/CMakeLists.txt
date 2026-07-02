@@ -16,9 +16,7 @@ get_filename_component(MULTIPASS_PROTOCOL_SPEC_ABS_PATH multipass.proto ABSOLUTE
 set(GRPC_GENERATED_SOURCE_DIR ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/rpc)
 file(MAKE_DIRECTORY ${GRPC_GENERATED_SOURCE_DIR})
 
-if(NOT MSVC)
-  add_compile_options(-Wno-error=pedantic)
-else()
+if(MSVC)
   add_compile_options(/bigobj)
 endif()
 
@@ -45,4 +43,4 @@ protobuf_generate(
 # Mark the generated folder  as SYSTEM so the linters and other
 # tooling won't complain.
 target_include_directories(rpc SYSTEM PUBLIC ${GRPC_GENERATED_SOURCE_DIR})
-target_link_libraries(rpc gRPC)
+target_link_libraries(rpc PRIVATE gRPC)

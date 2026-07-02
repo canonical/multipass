@@ -82,7 +82,7 @@ public:
 
         auto streaming_callback =
             [this](mp::CreateReply& reply,
-                   grpc::ClientReaderWriterInterface<mp::CreateRequest, mp::CreateReply>* client) {
+                   grpc::ClientReaderWriterInterface<mp::CreateRequest, mp::CreateReply>*) {
                 cout << reply.create_message() << std::endl;
             };
 
@@ -352,8 +352,6 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
 {
     auto mock_factory = std::make_unique<NiceMock<MockVirtualMachineFactory>>();
     auto mock_factory_ptr = mock_factory.get();
-
-    ON_CALL(*mock_factory_ptr, fetch_type()).WillByDefault(Return(FetchType::ImageOnly));
 
     ON_CALL(*mock_factory_ptr, create_virtual_machine).WillByDefault([](auto&&...) {
         return std::make_unique<StubVirtualMachine>();

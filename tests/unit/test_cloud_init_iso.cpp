@@ -277,8 +277,9 @@ TEST_F(CloudInitIso, readsIsoFileFailedToCheckRootDirRecordData)
 
     // default buffer values makes the buffer[0] not 34_u8 which causes root directory record data
     // checking fail
-    auto read_return_default_buffer =
-        [](std::ifstream& file, char* buffer, std::streamsize) -> std::ifstream& { return file; };
+    auto read_return_default_buffer = [](std::ifstream& file,
+                                         char* /*buffer*/,
+                                         std::streamsize) -> std::ifstream& { return file; };
 
     EXPECT_CALL(*mock_file_ops, read(An<std::ifstream&>(), A<char*>(), A<std::streamsize>()))
         .WillOnce(read_return_default_buffer);

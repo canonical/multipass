@@ -159,7 +159,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         state = St::running;
     }
 
-    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override
+    void shutdown(ShutdownPolicy = ShutdownPolicy::Powerdown) override
     {
         state = St::off;
     }
@@ -202,7 +202,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     {
     }
 
-    void update_cpus(int num_cores) override
+    void update_cpus(int /*num_cores*/) override
     {
     }
 
@@ -358,7 +358,7 @@ TEST_P(IpExecution, getAllIpv4WorksWhenSshWorks)
     };
     REPLACE(ssh_add_channel_callbacks, add_channel_cbs);
 
-    auto event_dopoll = [&callbacks, &test_params](ssh_event, int timeout) {
+    auto event_dopoll = [&callbacks, &test_params](ssh_event, int /*timeout*/) {
         EXPECT_TRUE(callbacks);
         callbacks->channel_exit_status_function(nullptr,
                                                 nullptr,
@@ -369,7 +369,7 @@ TEST_P(IpExecution, getAllIpv4WorksWhenSshWorks)
     REPLACE(ssh_event_dopoll, event_dopoll);
 
     auto channel_read = [&test_params,
-                         &remaining](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+                         &remaining](ssh_channel, void* dest, uint32_t count, int, int) {
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
         const auto begin = test_params.output.begin() + test_params.output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
@@ -531,21 +531,21 @@ TEST_F(BaseVM, providesSnapshotsView)
 
     {
         // Select nothing
-        auto snapshots = vm.view_snapshots([&](const auto& snapshot) { return false; });
+        auto snapshots = vm.view_snapshots([](const auto&) { return false; });
 
         EXPECT_THAT(snapshots, SizeIs(0));
     }
 
     {
         // Select everything
-        auto snapshots = vm.view_snapshots([&](const auto& snapshot) { return true; });
+        auto snapshots = vm.view_snapshots([](const auto&) { return true; });
 
         EXPECT_THAT(snapshots, SizeIs(4));
     }
 
     {
         // Select index 2 and 5
-        auto snapshots = vm.view_snapshots([&](const multipass::Snapshot& snapshot) {
+        auto snapshots = vm.view_snapshots([](const multipass::Snapshot& snapshot) {
             return snapshot.get_index() == 2 || snapshot.get_index() == 5;
         });
 

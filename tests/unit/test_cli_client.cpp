@@ -1850,7 +1850,7 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
             });
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
-            [&response](grpc::ServerContext* context,
+            [&response](grpc::ServerContext*,
                         grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
                 server->Write(response);
                 return grpc::Status{};
@@ -1876,7 +1876,7 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
             });
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
-            [&response](grpc::ServerContext* context,
+            [&response](grpc::ServerContext*,
                         grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
                 server->Write(response);
                 return grpc::Status{};
@@ -1911,7 +1911,7 @@ TEST_F(Client, execCmdWithDirPrependsCd)
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
-            [&response](grpc::ServerContext* context,
+            [&response](grpc::ServerContext*,
                         grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
                 server->Write(response);
                 return grpc::Status{};
@@ -1950,7 +1950,7 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
-            [&response](grpc::ServerContext* context,
+            [&response](grpc::ServerContext*,
                         grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
                 server->Write(response);
                 return grpc::Status{};
@@ -1968,7 +1968,7 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
     std::string dir{"/home/ubuntu/"};
     std::string cmd{"pwd"};
 
-    REPLACE(ssh_channel_request_exec, ([](ssh_channel, const char* raw_cmd) {
+    REPLACE(ssh_channel_request_exec, ([](ssh_channel, const char*) {
                 throw mp::SSHException("some exception");
                 return SSH_OK;
             }));
@@ -1980,7 +1980,7 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
-            [&response](grpc::ServerContext* context,
+            [&response](grpc::ServerContext*,
                         grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
                 server->Write(response);
                 return grpc::Status{};
@@ -4064,8 +4064,8 @@ struct TimeoutSuite : Client, WithParamInterface<std::string>
     }
 
     template <typename RequestType, typename ReplyType>
-    static grpc::Status request_sleeper(grpc::ServerContext* context,
-                                        grpc::ServerReaderWriter<ReplyType, RequestType>* response)
+    static grpc::Status request_sleeper(grpc::ServerContext*,
+                                        grpc::ServerReaderWriter<ReplyType, RequestType>*)
     {
         std::this_thread::sleep_for(std::chrono::seconds(2));
         return grpc::Status::OK;
@@ -4945,7 +4945,7 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce([&ssh_info_response](
-                      grpc::ServerContext* context,
+                      grpc::ServerContext*,
                       grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             server->Write(ssh_info_response);
 
@@ -4998,7 +4998,7 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce([&ssh_info_response](
-                      grpc::ServerContext* context,
+                      grpc::ServerContext*,
                       grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             server->Write(ssh_info_response);
 

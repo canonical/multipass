@@ -152,7 +152,7 @@ void simulate_qemuimg_amend(const mpt::MockProcess* process,
 
 template <class Matcher>
 void test_image_resizing(const char* img,
-                         const mp::MemorySize& img_virtual_size,
+                         const mp::MemorySize& /*img_virtual_size*/,
                          const mp::MemorySize& requested_size,
                          const mp::ProcessState& qemuimg_resize_result,
                          std::optional<Matcher> throw_msg_matcher)

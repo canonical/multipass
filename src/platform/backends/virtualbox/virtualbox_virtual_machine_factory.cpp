@@ -269,8 +269,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     return networks;
 }
 
-void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(
-    std::vector<NetworkInterface>& vector)
+void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>&)
 {
     // Nothing to do here, VirtualBox takes host interfaces directly
 }
