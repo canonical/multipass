@@ -10,7 +10,7 @@ Only instances in `Running` status can be suspended.
 For example:
 
 ```{code-block} text
-multipass stop boisterous-tortoise
+multipass start boisterous-tortoise
 multipass suspend boisterous-tortoise
 ```
 
