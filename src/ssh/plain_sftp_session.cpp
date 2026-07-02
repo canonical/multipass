@@ -18,7 +18,7 @@
 #include <multipass/ssh/plain_sftp_session.h>
 
 #include <multipass/exceptions/ssh_exception.h>
-#include <multipass/ssh/plain_sftp_client_message.h>
+#include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
 
 #include <fmt/format.h>
