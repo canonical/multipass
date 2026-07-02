@@ -1490,10 +1490,32 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
     });
     source_images_maintenance_task.start(config->image_refresh_timer);
+
+    mp::top_catch_all(category, [this] {
+        auto resolver = [this](const std::string& name) -> std::optional<mp::IPAddress> {
+            std::optional<mp::IPAddress> ip;
+            QMetaObject::invokeMethod(
+                this,
+                [this, &name, &ip] {
+                    if (auto it = operative_instances.find(name); it != operative_instances.end())
+                    {
+                        auto& vm = *it->second;
+                        if (MP_UTILS.is_running(vm.current_state()))
+                            ip = vm.management_ipv4();
+                    }
+                },
+                Qt::BlockingQueuedConnection);
+            return ip;
+        };
+        dns_server = mp::platform::make_dns_server(std::move(resolver));
+    });
 }
 
 mp::Daemon::~Daemon()
 {
+    // Stop and join the DNS server first, before any member it might read is destroyed.
+    dns_server.reset();
+
     mp::top_catch_all(category, [this] {
         MP_SETTINGS.unregister_handler(instance_mod_handler);
         MP_SETTINGS.unregister_handler(snapshot_mod_handler);
