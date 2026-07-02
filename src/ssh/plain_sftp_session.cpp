@@ -73,9 +73,9 @@ int poll_aux(ssh_channel channel, int timeout)
 }
 } // namespace
 
-void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session msg) const noexcept
+void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session session) const noexcept
 {
-    sftp_server_free(msg);
+    sftp_server_free(session);
 }
 
 mp::PlainSftpSession::RawSftpSessionUptr
