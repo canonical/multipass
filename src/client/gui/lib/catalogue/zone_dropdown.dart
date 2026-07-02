@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 
 class ZoneDropdown extends ConsumerWidget {
@@ -18,6 +19,7 @@ class ZoneDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final zones = ref.watch(zonesProvider);
     final hasAvailableZones = zones.any((z) => z.available);
 
@@ -39,9 +41,9 @@ class ZoneDropdown extends ConsumerWidget {
 
     String? errorText;
     if (!hasAvailableZones) {
-      errorText = 'All zones are unavailable';
+      errorText = l10n.zoneDropdownAllZonesUnavailableError;
     } else if (!zones.any((z) => z.name == value && z.available)) {
-      errorText = '$value is unavailable';
+      errorText = l10n.zoneDropdownSelectedZoneUnavailableError(value);
     }
 
     return Column(
@@ -49,11 +51,10 @@ class ZoneDropdown extends ConsumerWidget {
       children: [
         Row(
           children: [
-            const Text('Zone'),
+            Text(l10n.zoneDropdownTitle),
             const SizedBox(width: 4),
             Tooltip(
-              message:
-                  'Zones simulate availability zones in public clouds\nand allow for testing resilience against real-world incidents',
+              message: l10n.zoneDropdownTooltip,
               child: Icon(
                 Icons.info_outline,
                 size: 16,
@@ -69,8 +70,9 @@ class ZoneDropdown extends ConsumerWidget {
           onChanged: onChanged,
           items: {
             for (final zone in zones)
-              zone.name:
-                  '${zone.name}${zone.available ? '' : ' (unavailable)'}',
+              zone.name: zone.available
+                  ? zone.name
+                  : l10n.zoneDropdownUnavailableZone(zone.name),
           },
           errorText: errorText,
         ),
