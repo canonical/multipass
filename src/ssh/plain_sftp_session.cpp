@@ -143,20 +143,17 @@ void mp::PlainSftpSession::request_stop() noexcept
 
 std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
 {
+    sftp_client_message raw_msg = nullptr;
     while (!stop_requested.load())
     {
-        if (int poll_result = poll_aux(raw_sftp_session->channel, poll_interval.count());
-            poll_result == 0)
-            continue; // nothing to read yet; recheck the stop flag
-        else if (poll_result < 0)
-            return nullptr; // connection drop or malfunction
+        int poll_result = poll_aux(raw_sftp_session->channel, poll_interval.count());
+        if (poll_result > 0)
+            raw_msg = sftp_get_client_message(raw_sftp_session.get());
+        else if (poll_result == 0)
+            continue; // nothing to read yet
 
-        sftp_client_message raw_msg{sftp_get_client_message(raw_sftp_session.get())};
-        if (raw_msg == nullptr)
-            return nullptr; // connection dropped or desynced
-
-        return std::make_unique<PlainSftpMessage>(*raw_msg);
+        break; // at this point, we either have a message or a connection drop/desync/malfunction
     }
 
-    return nullptr; // stop requested
+    return raw_msg ? std::make_unique<PlainSftpMessage>(*raw_msg) : nullptr;
 }
