@@ -56,6 +56,10 @@ public:
     // Get information on the network interfaces that are seen by the platform, indexed by name
     virtual std::map<std::string, NetworkInterfaceInfo> get_network_interfaces_info() const;
     virtual bool is_backend_supported(const QString& backend) const; // temporary (?)
+    /**
+     * Use get_errno() if the error would not be stored in errno in windows (non-POSIX API)
+     */
+    virtual int get_errno() const;
     virtual int chown(const char* path, unsigned int uid, unsigned int gid) const;
     virtual bool set_permissions(const std::filesystem::path& path,
                                  std::filesystem::perms permissions,

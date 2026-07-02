@@ -56,7 +56,7 @@ TEST_F(SSHProcess, canRetrieveExitStatus)
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
 
     auto proc = session.exec("something");
-    EXPECT_THAT(proc->exit_code(), Eq(expected_status));
+    EXPECT_THAT(proc->get_exit_code(), Eq(expected_status));
 }
 
 TEST_F(SSHProcess, exitCodeTimesOut)
@@ -66,7 +66,7 @@ TEST_F(SSHProcess, exitCodeTimesOut)
         return SSH_OK;
     });
     auto proc = session.exec("something");
-    EXPECT_THROW(proc->exit_code(std::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_THROW(proc->get_exit_code(std::chrono::milliseconds(1)), std::runtime_error);
 }
 
 TEST_F(SSHProcess, specifiesStderrCorrectly)

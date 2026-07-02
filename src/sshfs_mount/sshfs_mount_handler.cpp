@@ -60,7 +60,7 @@ void start_and_block_until_connected(mp::Process* process)
 bool has_sshfs(const std::string& name, mp::SSHSession& session)
 {
     // Check if snap support is installed in the instance
-    if (session.exec("which snap")->exit_code() != 0)
+    if (session.exec("which snap")->get_exit_code() != 0)
     {
         mpl::warn(category, "Snap support is not installed in '{}'", name);
         throw std::runtime_error(fmt::format(
@@ -74,14 +74,15 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
     }
 
     // Check if multipass-sshfs is already installed
-    if (session.exec("sudo snap list multipass-sshfs")->exit_code(std::chrono::seconds(15)) == 0)
+    if (session.exec("sudo snap list multipass-sshfs")->get_exit_code(std::chrono::seconds(15)) ==
+        0)
     {
         mpl::debug(category, "The multipass-sshfs snap is already installed on '{}'", name);
         return true;
     }
 
     // Check if /snap exists for "classic" snap support
-    if (session.exec("[ -e /snap ]")->exit_code() != 0)
+    if (session.exec("[ -e /snap ]")->get_exit_code() != 0)
     {
         mpl::warn(category, "Classic snap support symlink is needed in '{}'", name);
         throw std::runtime_error(
@@ -101,7 +102,7 @@ try
 {
     mpl::info(category, "Installing the multipass-sshfs snap in '{}'", name);
     auto proc = session.exec("sudo snap install multipass-sshfs");
-    if (proc->exit_code(timeout) != 0)
+    if (proc->get_exit_code(timeout) != 0)
     {
         auto error_msg = proc->read_std_error();
         mpl::error(category, "Failed to install 'multipass-sshfs': {}", mpu::trim_end(error_msg));

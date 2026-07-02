@@ -67,6 +67,11 @@ int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned i
     return ::lchown(path, uid, gid);
 }
 
+int mp::platform::Platform::get_errno() const
+{
+    return errno;
+}
+
 bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
                                              std::filesystem::perms permissions,
                                              bool) const
