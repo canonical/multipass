@@ -24,7 +24,7 @@ env:
 
 jobs:
   GetMatrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     if: ${{ !cancelled() }}
 
     outputs:
@@ -453,7 +453,7 @@ jobs:
 
     needs: [BuildAndTest, CombineAndPublishMacOSPackage]
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
     - name: Delete unused artifacts from github
@@ -468,7 +468,7 @@ jobs:
     needs: [BuildAndTest, CombineAndPublishMacOSPackage]
     if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
     - name: Report workflow failure
