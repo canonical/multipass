@@ -135,7 +135,7 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
 
         sftp_client_message raw_msg{sftp_get_client_message(raw_sftp_session.get())};
         if (raw_msg == nullptr)
-            return nullptr; // connection dropped
+            return nullptr; // connection dropped or desynced
 
         return std::make_unique<PlainSftpMessage>(raw_msg);
     }
