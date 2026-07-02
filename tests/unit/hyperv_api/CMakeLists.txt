@@ -20,6 +20,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_api.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_route.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_subnet.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_dns.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_ipam.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcn_network_policy.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_api.cpp
@@ -27,6 +28,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_virtdisk.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_virtual_machine.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_hcs_virtual_machine_factory.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_ut_hyperv_nrpt_rule.cpp
     )
 
     target_sources(multipass_integration_tests
@@ -35,6 +37,7 @@ if(WIN32)
         ${CMAKE_CURRENT_LIST_DIR}/test_it_hyperv_hcs_api.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_it_hyperv_virtdisk.cpp
         ${CMAKE_CURRENT_LIST_DIR}/test_bb_cit_hyperv.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/test_it_hyperv_nrpt_rule.cpp
     )
 
     target_link_libraries(multipass_cpp_tests hyperv_api_backend)
