@@ -575,7 +575,7 @@ You've now seen a few ways to create, customise, and delete an instance. It is t
 
 ## Put your instances to use: Run a simple web server
 
-Let's see a practical example of what you can do with your Multipass instances: One way to put a Multipass instance to use is by running a local web server in it.
+Let's see a practical example of what you can do with your Multipass instances. One way to put a Multipass instance to use is by running a local web server in it.
 
 Return to your customised LTS instance. Take note of its IP address, which was revealed when you ran `multipass list`. Then run `multipass shell ltsInstance` to open a shell in the instance.
 
