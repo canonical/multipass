@@ -62,7 +62,7 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
     return sshfs_process;
 }
 
-int poll_aux(ssh_channel channel, int timeout)
+int poll_stdout(ssh_channel channel, int timeout)
 {
     int poll_result = ssh_channel_poll_timeout(channel, timeout, /* is_stderr = */ 0);
     if (poll_result < 0)
@@ -88,7 +88,7 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
 
     constexpr static int init_timeout_ms = 5000;
     constexpr static auto init_error_prefix = "[sftp] server init failed:";
-    if (int poll_result = poll_aux(raw_sftp_session->channel, init_timeout_ms); poll_result <= 0)
+    if (int poll_result = poll_stdout(raw_sftp_session->channel, init_timeout_ms); poll_result <= 0)
     {
         const auto err_detail = poll_result < 0
                                   ? "connection drop or malfunction"
@@ -140,7 +140,7 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
     sftp_client_message raw_msg = nullptr;
     while (!stop_requested.load())
     {
-        int poll_result = poll_aux(raw_sftp_session->channel, poll_interval.count());
+        int poll_result = poll_stdout(raw_sftp_session->channel, poll_interval.count());
         if (poll_result > 0)
             raw_msg = sftp_get_client_message(raw_sftp_session.get());
         else if (poll_result == 0)
