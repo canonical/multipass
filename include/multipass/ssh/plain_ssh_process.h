@@ -35,8 +35,6 @@ class PlainSftpSession;
 class PlainSSHProcess : public SSHProcess
 {
 public:
-    using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
-
     PlainSSHProcess(ssh_session_struct& raw_session,
                     const std::string& cmd,
                     std::unique_lock<std::mutex> session_lock);
@@ -67,11 +65,19 @@ public: // but restricted
     ssh_channel borrow_channel(const PrivatePassProvider<PlainSftpSession>::PrivatePass&);
 
 private:
+    struct ChannelDeleter
+    {
+        void operator()(ssh_channel_struct* channel) const noexcept;
+    };
+    using ChannelUPtr = std::unique_ptr<ssh_channel_struct, ChannelDeleter>;
+
     enum class StreamType
     {
         out,
         err
     };
+
+    static ChannelUPtr make_channel(ssh_session raw_session, const std::string& cmd);
 
     void rethrow_if_saved() const;
     void read_exit_code(std::chrono::milliseconds timeout, bool save_exception);
