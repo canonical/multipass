@@ -36,7 +36,7 @@ function(add_ssh_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
     libssh_scope_guard.cpp
     openssh_key_provider.cpp
-    plain_sftp_client_message.cpp
+    plain_sftp_message.cpp
     plain_sftp_session.cpp
     plain_ssh_process.cpp
     plain_ssh_session.cpp

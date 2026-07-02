@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/ssh/plain_sftp_client_message.h>
+#include <multipass/ssh/plain_sftp_message.h>
 
 #include <libssh/sftp.h>
 
