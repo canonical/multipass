@@ -81,6 +81,26 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
         throw SSHException(
             fmt::format("[sftp] server init failed: could not create a new sftp_server."));
 
+    constexpr static int init_timeout_ms = 5000;
+    constexpr static auto init_error_prefix = "[sftp] server init failed:";
+    int poll_result = ssh_channel_poll_timeout(raw_sftp_session->channel,
+                                               init_timeout_ms,
+                                               /* is_stderr = */ 0);
+    if (poll_result <= 0)
+    {
+        std::string init_error_detail{""};
+        if (poll_result < 0)
+        {
+            assert((poll_result == SSH_ERROR || poll_result == SSH_EOF) &&
+                   "contract includes no other negative numbers");
+            init_error_detail = "connection drop or malfunction";
+        }
+        else
+            init_error_detail = "timed out waiting for the initial client message";
+
+        throw SSHException{fmt::format("{}: {}", init_error_prefix, init_error_detail)};
+    }
+
     /* handles setting the sftp->client_version */
     // TODO@sftp no leak plz - use SftpMessage
     sftp_client_message msg{sftp_get_client_message(raw_sftp_session.get())};
