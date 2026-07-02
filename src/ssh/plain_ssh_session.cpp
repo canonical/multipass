@@ -30,6 +30,8 @@
 #include <multipass/standard_paths.h>
 #include <multipass/top_catch_all.h>
 
+#include <libssh/libssh.h>
+
 #include <QDir>
 
 #include <functional>
@@ -43,11 +45,16 @@ namespace
 constexpr auto category = "ssh session";
 }
 
+void mp::PlainSSHSession::RawSSHSessionDeleter::operator()(ssh_session session) const noexcept
+{
+    MP_LIBSSH.ssh_free(session);
+}
+
 mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
                                      const std::string& username,
                                      const SSHKeyProvider& key_provider)
-    : raw_session{MP_LIBSSH.ssh_new(), [](ssh_session s) { MP_LIBSSH.ssh_free(s); }}, mut{}
+    : raw_session{MP_LIBSSH.ssh_new()}, mut{}
 {
     if (raw_session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
