@@ -122,3 +122,43 @@ function(determine_version_components VERSION_STRING SEMANTIC_VERSION BUILD_NUMB
   set(${SEMANTIC_VERSION} ${MULTIPASS_SEMANTIC_VERSION} PARENT_SCOPE)
   set(${BUILD_NUMBER} ${MULTIPASS_BUILD_NUMBER} PARENT_SCOPE)
 endfunction()
+
+# Helper function to prepare a Windows VERSIONINFO resource source file.
+# Usage: prepare_windows_version_resource(
+#          output_var
+#          target_basename
+#          file_description
+#          internal_name
+#          original_filename
+#        )
+function(prepare_windows_version_resource OUTPUT_VAR TARGET_BASENAME FILE_DESCRIPTION INTERNAL_NAME ORIGINAL_FILENAME)
+  if(NOT MSVC)
+    set(${OUTPUT_VAR} "" PARENT_SCOPE)
+    return()
+  endif()
+
+  if(NOT DEFINED MULTIPASS_VERSION_MAJOR OR NOT DEFINED MULTIPASS_VERSION_MINOR OR NOT DEFINED MULTIPASS_VERSION_PATCH)
+    message(FATAL_ERROR "Missing version components; expected MULTIPASS_VERSION_MAJOR/MINOR/PATCH")
+  endif()
+
+  # Windows VERSIONINFO numeric fields are 16-bit WORD components.
+  if(DEFINED MULTIPASS_BUILD_NUMBER)
+    math(EXPR VERSION_BUILD "${MULTIPASS_BUILD_NUMBER} % 65536")
+  else()
+    set(VERSION_BUILD 0)
+  endif()
+
+  set(VERSION_MAJOR "${MULTIPASS_VERSION_MAJOR}")
+  set(VERSION_MINOR "${MULTIPASS_VERSION_MINOR}")
+  set(VERSION_PATCH "${MULTIPASS_VERSION_PATCH}")
+  set(VERSION_STRING "${MULTIPASS_VERSION}")
+  set(RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BASENAME}_version.rc")
+
+  configure_file(
+    ${CMAKE_SOURCE_DIR}/packaging/windows/multipass_version.rc.in
+    ${RC_OUTPUT}
+    @ONLY
+  )
+  set_source_files_properties(${RC_OUTPUT} PROPERTIES LANGUAGE RC)
+  set(${OUTPUT_VAR} ${RC_OUTPUT} PARENT_SCOPE)
+endfunction()

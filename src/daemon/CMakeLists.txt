@@ -58,7 +58,14 @@ target_link_libraries(delayed_shutdown
 )
 
 if(MSVC)
-  add_executable(multipassd daemon_main_win.cpp)
+  prepare_windows_version_resource(
+    MULTIPASSD_RC_SOURCE
+    multipassd
+    "Multipass Daemon"
+    "multipassd"
+    "multipassd.exe"
+  )
+  add_executable(multipassd daemon_main_win.cpp ${MULTIPASSD_RC_SOURCE})
   qt6_disable_unicode_defines(multipassd)
 else()
   add_executable(multipassd daemon_main.cpp)
