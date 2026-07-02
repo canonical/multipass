@@ -34,7 +34,13 @@ class PlainSftpMessage final : public SftpMessage
 public:
     ~PlainSftpMessage() override;
 
-    explicit PlainSftpMessage(sftp_client_message_struct* message) noexcept;
+    /**
+     * C'tor taking ownership of a raw libssh SFTP message
+     *
+     * @param message A reference to the the raw libssh SFTP message whose ownership is to be
+     * adopted by this PlainSftpMessage
+     */
+    explicit PlainSftpMessage(sftp_client_message_struct& message) noexcept;
     PlainSftpMessage(const PlainSftpMessage&) = delete;
     PlainSftpMessage& operator=(const PlainSftpMessage&) = delete;
 
