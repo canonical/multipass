@@ -92,6 +92,8 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
                                gid_arg,
                                source,
                                tag))}};
+
+    vm->sync_mount_metadata();
 }
 
 bool QemuMountHandler::is_active()

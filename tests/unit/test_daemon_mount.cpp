@@ -237,6 +237,7 @@ TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_vm, sync_mount_metadata).Times(1);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -272,6 +273,7 @@ TEST_F(TestDaemonMount, mountFailsErrorMounting)
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_vm, sync_mount_metadata).Times(0);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 

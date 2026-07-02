@@ -20,10 +20,24 @@
 #include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
+#include "mock_process_factory.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
+#include "mock_status_monitor.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "qemu/mock_qemu_platform.h"
+#include "stub_availability_zone_manager.h"
+#include "stub_ssh_key_provider.h"
+#include "temp_file.h"
+
+#include <src/platform/backends/qemu/qemu_mount_handler.h>
+#include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
+
+#include <multipass/memory_size.h>
+#include <multipass/virtual_machine_description.h>
+
+#include <boost/json.hpp>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -61,6 +75,42 @@ struct TestDaemonUmount : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+};
+
+struct TestDaemonUmountOrdering : public TestDaemonUmount
+{
+    std::unique_ptr<mpt::MockProcessFactory::Scope> process_factory{
+        mpt::MockProcessFactory::Inject()};
+
+    mpt::MockQemuPlatformFactory::GuardedMock qemu_platform_factory_attr{
+        mpt::MockQemuPlatformFactory::inject<NiceMock>()};
+    mpt::MockQemuPlatformFactory* mock_qemu_platform_factory{qemu_platform_factory_attr.first};
+
+    std::unique_ptr<mpt::MockQemuPlatform> mock_qemu_platform{
+        std::make_unique<mpt::MockQemuPlatform>()};
+
+    mpt::TempFile dummy_image;
+    mpt::TempFile dummy_cloud_init_iso;
+
+    mp::VirtualMachineDescription default_description{2,
+                                                      mp::MemorySize{"3M"},
+                                                      mp::MemorySize{}, // not used
+                                                      mock_instance_name,
+                                                      "zone1",
+                                                      "",
+                                                      {},
+                                                      "",
+                                                      {dummy_image.path(), "", "", "", "", {}, {}},
+                                                      dummy_cloud_init_iso.name(),
+                                                      {},
+                                                      {},
+                                                      {},
+                                                      {}};
+
+    mpt::StubAvailabilityZoneManager az_manager{};
+    mpt::StubSSHKeyProvider key_provider{};
+
+    const std::string target{"unmount-order-target"};
 };
 } // namespace
 
@@ -246,4 +296,66 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
                                       fake_target_path,
                                       mock_instance_name,
                                       error)));
+}
+
+TEST_F(TestDaemonUmountOrdering, unmountOrderingClearsStaleMountData)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray{}));
+        }
+    };
+    process_factory->register_callback(callback);
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(
+            boost::json::object{{"machine_type", "pc"}, {"arguments", {}}, {"mount_data", {}}}));
+
+    std::vector<boost::json::object> writes;
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _, _))
+        .WillRepeatedly([&writes](const std::string&, const boost::json::object& md, bool) {
+            writes.push_back(md);
+        });
+
+    mp::QemuVirtualMachineFactory qemu_backend{data_dir.path(), az_manager};
+    auto machine =
+        qemu_backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    const std::unordered_map<std::string, mp::VMMount> mounts{
+        {target, {data_dir.path().toStdString(), {}, {}, mp::VMMount::MountType::Native}}};
+
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(mac_addr, {}, mounts));
+    config_builder.data_directory = temp_dir->path();
+
+    ON_CALL(*mock_factory, create_virtual_machine)
+        .WillByDefault(Return(ByMove(std::move(machine))));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::UmountRequest request;
+    auto entry = request.add_target_paths();
+    entry->set_instance_name(mock_instance_name);
+
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::umount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+
+    EXPECT_TRUE(status.ok());
+
+    const auto tag = mp::QemuMountHandler::make_tag(target);
+    ASSERT_FALSE(writes.empty());
+    const auto& final_metadata = writes.back();
+    ASSERT_TRUE(final_metadata.contains("mount_data"));
+    EXPECT_FALSE(final_metadata.at("mount_data").as_object().contains(tag));
 }

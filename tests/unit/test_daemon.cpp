@@ -52,6 +52,7 @@
 #include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include <boost/json.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include <scope_guard.hpp>
@@ -1545,7 +1546,6 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         .Times(0);
 
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
-        .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
             EXPECT_THAT(data.toByteArray().toStdString(),
                         AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
@@ -2333,8 +2333,6 @@ TEST_F(Daemon, purgePersistsInstances)
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
-        .WillOnce(Return())
-        .WillOnce(Return())
         .WillOnce(WithArg<1>([&name1, &name2](const QByteArrayView& data) {
             EXPECT_THAT(data.toByteArray().toStdString(),
                         AllOf(HasSubstr(name1), HasSubstr(name2)));
@@ -2409,6 +2407,88 @@ TEST_F(Daemon, setsUpPermissionInheritance)
     EXPECT_CALL(mock_platform, setup_permission_inheritance(true));
 
     config_builder.build();
+}
+
+TEST_F(Daemon, updateMetadataForWithPersistWritesToFile)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write_transactionally).Times(1);
+
+    mpt::MockDaemon daemon{config_builder.build()};
+
+    const std::string instance_name{"test-instance"};
+    daemon.test_update_metadata_for(instance_name, boost::json::object{{"key", "value"}}, true);
+}
+
+TEST_F(Daemon, updateMetadataForWithoutPersistDoesNotWriteToFile)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write_transactionally).Times(0);
+
+    mpt::MockDaemon daemon{config_builder.build()};
+
+    const std::string instance_name{"test-instance"};
+    daemon.test_update_metadata_for(instance_name, boost::json::object{{"key", "value"}}, false);
+}
+
+TEST_F(Daemon, updateMetadataForStoresMetadataRegardlessOfPersist)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+
+    mpt::MockDaemon daemon{config_builder.build()};
+
+    const std::string instance_name{"test-instance"};
+    daemon.test_update_metadata_for(instance_name, boost::json::object{{"foo", "bar"}}, false);
+
+    EXPECT_EQ(daemon.test_retrieve_metadata_for(instance_name),
+              (boost::json::object{{"foo", "bar"}}));
+}
+
+TEST_F(Daemon, removeMountSpecCallsSyncMountMetadataOnOperativeVM)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+
+    const std::string instance_name{"test-instance"};
+    const std::string target{"/some/target"};
+    const mp::VMMount mount_spec{"source", {}, {}, mp::VMMount::MountType::Native};
+
+    mpt::MockDaemon daemon{config_builder.build()};
+
+    daemon.test_add_mount_spec(instance_name, target, mount_spec);
+    EXPECT_TRUE(daemon.test_has_mount_spec(instance_name, target));
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(instance_name));
+    EXPECT_CALL(*mock_vm, sync_mount_metadata).Times(1);
+    daemon.test_insert_operative_instance(instance_name, std::move(mock_vm));
+
+    daemon.test_remove_mount_spec(instance_name, target);
+
+    EXPECT_FALSE(daemon.test_has_mount_spec(instance_name, target));
+}
+
+TEST_F(Daemon, addMountSpecCallsSyncMountMetadataOnOperativeVM)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+
+    const std::string instance_name{"test-instance"};
+    const std::string target{"/some/target"};
+    const mp::VMMount mount_spec{"source", {}, {}, mp::VMMount::MountType::Native};
+
+    mpt::MockDaemon daemon{config_builder.build()};
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(instance_name));
+    EXPECT_CALL(*mock_vm, sync_mount_metadata).Times(1);
+    daemon.test_insert_operative_instance(instance_name, std::move(mock_vm));
+
+    daemon.test_add_mount_spec(instance_name, target, mount_spec);
+
+    EXPECT_TRUE(daemon.test_has_mount_spec(instance_name, target));
 }
 
 } // namespace

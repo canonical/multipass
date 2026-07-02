@@ -289,7 +289,8 @@ void mp::QemuVirtualMachine::start()
 
         monitor->update_metadata_for(
             vm_name,
-            generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
+            generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args),
+            true);
     }
 
     vm_process->start();
@@ -758,6 +759,13 @@ void mp::QemuVirtualMachine::remove_snapshots_from_backend() const
 mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args()
 {
     return mount_args;
+}
+
+void mp::QemuVirtualMachine::sync_mount_metadata()
+{
+    auto metadata = monitor->retrieve_metadata_for(vm_name);
+    metadata[mount_data_key] = mount_args_to_json(mount_args);
+    monitor->update_metadata_for(vm_name, metadata);
 }
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,

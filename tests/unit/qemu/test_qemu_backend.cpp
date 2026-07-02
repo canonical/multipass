@@ -36,6 +36,7 @@
 #include "tests/unit/temp_file.h"
 #include "tests/unit/test_with_mocked_bin_path.h"
 
+#include <src/platform/backends/qemu/qemu_mount_handler.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine.h>
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
@@ -898,6 +899,29 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     EXPECT_TRUE(qemu->arguments.contains(machine_type));
 }
 
+TEST_F(QemuBackend, suspendedStartDoesNotPersistMetadata)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    process_factory->register_callback(handle_external_process_calls);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(boost::json::object{{"machine_type", "pc"},
+                                                   {"arguments", boost::json::array{}},
+                                                   {"mount_data", boost::json::object{}}}));
+    // Suspended branch must not invoke update_metadata_for with persist=true
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _, true)).Times(0);
+    // Suspended branch is also expected to stay free of any other metadata updates
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _, _)).Times(0);
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    machine->start();
+}
+
 TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
@@ -940,6 +964,145 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     EXPECT_TRUE(qemu->arguments.contains("-hi_there"));
     EXPECT_TRUE(qemu->arguments.contains("-hows_it_going"));
     EXPECT_TRUE(qemu->arguments.contains("-mount_arg"));
+}
+
+TEST_F(QemuBackend, mountLifecycleUpdatesPersistedMetadata)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray{}));
+        }
+    };
+    process_factory->register_callback(callback);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(
+            boost::json::object{{"machine_type", "pc"}, {"arguments", {}}, {"mount_data", {}}}));
+
+    std::vector<boost::json::object> writes;
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _, _))
+        .WillRepeatedly([&writes](const std::string&, const boost::json::object& md, bool) {
+            writes.push_back(md);
+        });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto* qemu_vm = static_cast<mp::QemuVirtualMachine*>(machine.get());
+
+    mpt::TempDir source_dir;
+    const auto target = std::string{"some-target"};
+    const auto tag = mp::QemuMountHandler::make_tag(target);
+    const mp::VMMount mount_spec{source_dir.path().toStdString(),
+                                 {},
+                                 {},
+                                 mp::VMMount::MountType::Native};
+
+    auto handler = qemu_vm->make_native_mount_handler(target, mount_spec);
+
+    ASSERT_FALSE(writes.empty());
+    const auto& after_ctor = writes.back();
+    ASSERT_TRUE(after_ctor.contains("mount_data"));
+    EXPECT_TRUE(after_ctor.at("mount_data").as_object().contains(tag))
+        << "mount handler ctor must write its tag into persisted mount_data";
+
+    const auto writes_after_ctor = writes.size();
+    handler.reset(); // trigger dtor
+
+    EXPECT_EQ(writes.size(), writes_after_ctor)
+        << "mount handler dtor must not write to persisted metadata";
+
+    qemu_vm->sync_mount_metadata();
+    ASSERT_GT(writes.size(), writes_after_ctor);
+    const auto& after_explicit_sync = writes.back();
+    ASSERT_TRUE(after_explicit_sync.contains("mount_data"));
+    EXPECT_TRUE(after_explicit_sync.at("mount_data").as_object().empty());
+}
+
+TEST_F(QemuBackend, syncMountMetadataWritesCurrentMountArgs)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output())
+                .WillOnce(Return(fake_snapshot_list_with_suspend_tag));
+        }
+    };
+    process_factory->register_callback(callback);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(
+            boost::json::object{{"machine_type", "pc"}, {"arguments", {}}, {"mount_data", {}}}));
+
+    boost::json::object written;
+    bool persist_seen = true;
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _, _))
+        .WillOnce([&written,
+                   &persist_seen](const std::string&, const boost::json::object& md, bool persist) {
+            persist_seen = persist;
+            written = md;
+        });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto* qemu_vm = static_cast<mp::QemuVirtualMachine*>(machine.get());
+
+    const QStringList args{"-virtfs", "local,path=src,mount_tag=my-tag"};
+    qemu_vm->modifiable_mount_args()["my-tag"] = {"src", args};
+
+    qemu_vm->sync_mount_metadata();
+
+    ASSERT_TRUE(written.contains("mount_data"));
+    const auto& mount_data = written.at("mount_data").as_object();
+    ASSERT_TRUE(mount_data.contains("my-tag"));
+    EXPECT_EQ(mount_data.at("my-tag").at("source").as_string(), "src");
+    EXPECT_EQ(value_to<QStringList>(mount_data.at("my-tag").at("arguments")), args);
+    EXPECT_FALSE(persist_seen) << "sync_mount_metadata must defer persistence to the caller";
+}
+
+TEST_F(QemuBackend, startNonSuspendedPersistsMetadata)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+            EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(QByteArray{}));
+        }
+    };
+    process_factory->register_callback(callback);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(
+            boost::json::object{{"machine_type", "pc"}, {"arguments", {}}, {"mount_data", {}}}));
+
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _, true)).Times(1);
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    machine->start();
 }
 
 TEST_F(QemuBackend, returnsVersionString)
