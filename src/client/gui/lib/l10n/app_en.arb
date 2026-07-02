@@ -747,6 +747,42 @@
     "@vmTableAllInstances": {
         "description": "Page heading above the VM table"
     },
+    "vmTableZonesButtonTitle": "Zones",
+    "@vmTableZonesButtonTitle": {
+        "description": "Title label for zones button in the VM table"
+    },
+    "vmTableZonesButtonTooltip": "Change zone availability",
+    "@vmTableZonesButtonTooltip": {
+        "description": "Tooltip for zones button in the VM table"
+    },
+    "vmTableZonesPopupTitle": "Enable/disable zones",
+    "@vmTableZonesPopupTitle": {
+        "description": "Title label for zones popup in the VM table"
+    },
+    "vmTableZonesRunningInstanceCount": "{count} running {count, plural, =1{instance} other{instances}}",
+    "@vmTableZonesRunningInstanceCount": {
+        "description": "Refers to number of running VM instances in zones popup in the VM table",
+        "placeholders": {
+            "count": {
+                "type": "int",
+                "description": "Number of running VM instances"
+            }
+        }
+    },
+    "vmTableZonesUnavailableLabel": "{unavailable} out of {total} zones {unavailable, plural, =1{is} other{are}} unavailable",
+    "@vmTableZonesUnavailableLabel": {
+        "description": "Label to indicate that some zones are unavailable in the VM table",
+        "placeholders": {
+            "unavailable": {
+                "type": "int",
+                "description": "Number of unavailable zones"
+            },
+            "total": {
+                "type": "int",
+                "description": "Number of total zones"
+            }
+        }
+    },
     "commonLaunch": "Launch",
     "@commonLaunch": {
         "description": "Button label that opens the catalogue to launch a new instance"
@@ -915,9 +951,68 @@
     "@launchFormNameErrorDeletedInUse": {
         "description": "Validation error when instance name belongs to a deleted instance"
     },
+    "launchFormEnableZoneLabel": "Enable zone",
+    "@launchFormEnableZoneLabel": {
+        "description": "Button label to enable a zone"
+    },
+    "launchFormEnableZoneSuccess": "{zone} enabled",
+    "@launchFormEnableZoneSuccess": {
+        "description": "Success message when enabling a zone",
+        "placeholders": {
+            "zone": {
+                "type": "String"
+            }
+        }
+    },
+    "launchFormEnableAllZonesLabel": "Enable all zones",
+    "@launchFormEnableAllZonesLabel": {
+        "description": "Button label to enable all zones"
+    },
+    "launchFormEnableAllZonesSuccess": "All zones enabled",
+    "@launchFormEnableAllZonesSuccess": {
+        "description": "Success message when enabling all zones"
+    },
+    "launchFormAllZonesUnavailableTooltip": "All zones are unavailable",
+    "@launchFormAllZonesUnavailableTooltip": {
+        "description": "Launch button tooltip when all zones are unavailable"
+    },
+    "launchFormSelectedZoneUnavailableTooltip": "Enable selected zone to launch",
+    "@launchFormSelectedZoneUnavailableTooltip": {
+        "description": "Launch button tooltip when selected zone is unavailable"
+    },
     "trayToggleWindow": "Toggle window",
     "@trayToggleWindow": {
         "description": "Tray menu item label to show or hide the main window"
+    },
+    "zoneDropdownTitle": "Zone",
+    "@zoneDropdownTitle": {
+        "description": "Title for zone dropdown"
+    },
+    "zoneDropdownTooltip": "Zones simulate availability zones in public clouds\nand allow for testing resilience against real-world incidents",
+    "@zoneDropdownTooltip": {
+        "description": "Tooltip for zone dropdown"
+    },
+    "zoneDropdownUnavailableZone": "{zone} (unavailable)",
+    "@zoneDropdownUnavailableZone": {
+        "description": "Dropdown entry for unavailable zone",
+        "placeholders": {
+            "zone": {
+                "type": "String"
+            }
+        }
+    },
+    "zoneDropdownAllZonesUnavailableError": "All zones are unavailable",
+    "@zoneDropdownAllZonesUnavailableError": {
+        "description": "Error when all zones are unavailable"
+    },
+    "zoneDropdownSelectedZoneUnavailableError": "{zone} is unavailable",
+    "@zoneDropdownSelectedZoneUnavailableError": {
+        "description": "Error when selected zone is unavailable",
+        "placeholders": {
+            "zone": {
+                "type": "String"
+            }
+        }
     },
     "trayMultipassVersion": "multipass version: {version}",
     "@trayMultipassVersion": {

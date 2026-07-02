@@ -338,13 +338,14 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                                 updateZoneAvailability();
                                 ref.read(notificationsProvider.notifier).add(
                                       SuccessNotification(
-                                        child: Text('$zone enabled'),
+                                        child: Text(l10n
+                                            .launchFormEnableZoneSuccess(zone)),
                                       ),
                                     );
                               });
                             },
                             child: Text(
-                              'Enable zone',
+                              l10n.launchFormEnableZoneLabel,
                               style: TextStyle(
                                 color: Colors.blue[700],
                                 decoration: TextDecoration.underline,
@@ -370,13 +371,14 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                                 updateZoneAvailability();
                                 ref.read(notificationsProvider.notifier).add(
                                       SuccessNotification(
-                                        child: Text('All zones enabled'),
+                                        child: Text(l10n
+                                            .launchFormEnableAllZonesSuccess),
                                       ),
                                     );
                               });
                             },
                             child: Text(
-                              'Enable all zones',
+                              l10n.launchFormEnableAllZonesLabel,
                               style: TextStyle(
                                 color: Colors.blue[700],
                                 decoration: TextDecoration.underline,
@@ -431,8 +433,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     if (!selectedZoneAvailable) {
       final zones = ref.read(zonesProvider);
       tooltipMessage = !zones.any((z) => z.available)
-          ? 'All zones are unavailable'
-          : 'Enable selected zone to launch';
+          ? l10n.launchFormAllZonesUnavailableTooltip
+          : l10n.launchFormSelectedZoneUnavailableTooltip;
     }
 
     final launchButton = Tooltip(

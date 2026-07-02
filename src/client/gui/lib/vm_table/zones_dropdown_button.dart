@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../switch.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 
 class ZonesDropdownButton extends ConsumerWidget {
@@ -10,13 +11,14 @@ class ZonesDropdownButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final zones = ref.watch(zonesProvider);
     final unavailableZones = zones.where((z) => !z.available).length;
 
     return Row(
       children: [
         PopupMenuButton(
-          tooltip: 'Change zone availability',
+          tooltip: l10n.vmTableZonesButtonTooltip,
           position: PopupMenuPosition.under,
           constraints: const BoxConstraints(
             minWidth: 400, // Set minimum width for the popup menu
@@ -29,8 +31,8 @@ class ZonesDropdownButton extends ConsumerWidget {
                 width: double.infinity, // Take full width of the popup
                 padding: const EdgeInsets.only(
                     left: 8, right: 16, top: 16, bottom: 12),
-                child: const Text(
-                  'Enable/disable zones',
+                child: Text(
+                  l10n.vmTableZonesPopupTitle,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
@@ -73,7 +75,8 @@ class ZonesDropdownButton extends ConsumerWidget {
               children: [
                 SvgPicture.asset('assets/zones.svg'),
                 const SizedBox(width: 8),
-                const Text('Zones', style: TextStyle(color: Colors.black)),
+                Text(l10n.vmTableZonesButtonTitle,
+                    style: TextStyle(color: Colors.black)),
                 const SizedBox(width: 4),
                 const Icon(Icons.expand_more, color: Colors.black, size: 20),
               ],
@@ -85,7 +88,7 @@ class ZonesDropdownButton extends ConsumerWidget {
           Icon(Icons.warning_rounded, color: Color(0xFFCC7701), size: 24),
           const SizedBox(width: 4),
           Text(
-            '$unavailableZones out of ${zones.length} zones ${unavailableZones == 1 ? 'is' : 'are'} unavailable',
+            l10n.vmTableZonesUnavailableLabel(unavailableZones, zones.length),
             style: TextStyle(color: Colors.black),
           ),
         ],
@@ -101,6 +104,7 @@ class _ZoneToggleRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final client = ref.watch(grpcClientProvider);
 
     final available = ref.watch(zonesProvider.select((zones) {
@@ -139,7 +143,7 @@ class _ZoneToggleRow extends ConsumerWidget {
           ],
         ),
         Text(
-          '${instanceCount == 0 ? 'no' : instanceCount} running instance${instanceCount == 1 ? '' : 's'}',
+          l10n.vmTableZonesRunningInstanceCount(instanceCount),
           style: TextStyle(fontSize: 16, height: 1.5, color: Colors.black),
         ),
       ],
