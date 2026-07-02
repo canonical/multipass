@@ -39,6 +39,7 @@ class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSft
 public:
     /**
      * Interval at which #next_message polls for new messages while waiting for one to arrive.
+     * Using int underneath: that is perfectly enough for intent and it is what libssh expects.
      */
     constexpr static std::chrono::duration<int, std::milli> poll_interval{250};
 
