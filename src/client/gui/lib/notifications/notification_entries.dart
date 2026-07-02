@@ -250,7 +250,7 @@ class LaunchingNotification extends ConsumerWidget {
           switch (l.whichCreateOneof()) {
             case LaunchReply_CreateOneof.launchProgress:
               final progressType = l.launchProgress.type;
-              if (progressType == LaunchProgress_ProgressTypes.VERIFY) {
+              if (progressType == LaunchProgress_ProgressType.VERIFY) {
                 return (l10n.launchVerifyingImage, false);
               }
 
