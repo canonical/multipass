@@ -21,11 +21,11 @@
 
 #include <multipass/private_pass_provider.h>
 
-#include <libssh/libssh.h>
-
 #include <memory>
 #include <mutex>
 #include <string>
+
+struct ssh_session_struct;
 
 namespace multipass
 {
@@ -88,11 +88,17 @@ public: // but restricted
     ssh_session borrow_session(const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const;
 
 private:
+    struct RawSSHSessionDeleter
+    {
+        void operator()(ssh_session_struct* message) const noexcept;
+    };
+    using RawSSHSessionUptr = std::unique_ptr<ssh_session_struct, RawSSHSessionDeleter>;
+
     PlainSSHSession(PlainSSHSession&&, std::unique_lock<std::mutex> lock);
 
     void set_option(ssh_options_e type, const void* value);
 
-    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> raw_session;
+    RawSSHSessionUptr raw_session;
     mutable std::mutex mut;
 };
 } // namespace multipass
