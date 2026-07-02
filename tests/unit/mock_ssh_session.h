@@ -21,6 +21,7 @@
 #include "mock_ssh_process.h"
 
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/sshfs_mount/sftp_session.h>
 
 namespace multipass::test
 {
@@ -42,6 +43,11 @@ struct MockSSHSession : public SSHSession
     {
         return nullptr;
     }
-    MOCK_METHOD(void, force_shutdown, (), (override));
+
+    MOCK_METHOD(void, shutdown_custom_socket, (), (override));
+    MOCK_METHOD(std::unique_ptr<SftpSession>,
+                make_sftp_session,
+                (const std::string& sshfs_cmd),
+                (ref(&&), override));
 };
 } // namespace multipass::test

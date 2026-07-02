@@ -17,8 +17,9 @@
 
 #pragma once
 
-#include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
+
+#include <multipass/private_pass_provider.h>
 
 #include <libssh/libssh.h>
 
@@ -29,7 +30,10 @@
 namespace multipass
 {
 class SSHKeyProvider;
-class PlainSSHSession : public SSHSession
+class PlainSftpSession;
+class PlainSSHProcess;
+
+class PlainSSHSession final : public SSHSession // final to prevent chopping on move
 {
 public:
     PlainSSHSession(const std::string& host,
@@ -49,9 +53,20 @@ public:
 
     /**
      * @copydoc SSHSession::exec
+     *
+     * The dynamic type is always a PlainSSHProcess; see exec_plain to obtain it statically.
      */
     [[nodiscard]] std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                    bool whisper = false) override;
+
+    /**
+     * TODO@sftp can we copydoc? partially
+     * Like exec, but statically typed to the concrete PlainSSHProcess this session produces.
+     */
+    [[nodiscard]] std::unique_ptr<PlainSSHProcess> exec_plain(const std::string& cmd,
+                                                              bool whisper = false);
+
+    std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && override;
 
     /**
      * @copydoc SSHSession::is_connected
@@ -63,15 +78,21 @@ public:
      */
     [[nodiscard]] bool is_moved() const override;
 
-    operator ssh_session() override;
-    void force_shutdown() override; // TODO@sftp this should not be public
+    operator ssh_session() override; // TODO@sftp remove
+    void shutdown_custom_socket() override; // TODO@sftp this should not be public
+
+public: // but restricted
+    // Obtain a non-owning libssh session handle.
+    // The caller adopts thread-safety responsibility for the underlying session with respect to
+    // this SSHSession
+    ssh_session borrow_session(const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const;
 
 private:
     PlainSSHSession(PlainSSHSession&&, std::unique_lock<std::mutex> lock);
 
     void set_option(ssh_options_e type, const void* value);
 
-    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> session;
+    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> raw_session;
     mutable std::mutex mut;
 };
 } // namespace multipass

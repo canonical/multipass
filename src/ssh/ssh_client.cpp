@@ -66,9 +66,9 @@ mp::SSHClient::SSHClient(const std::string& host,
 {
 }
 
-mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_creator)
-    : ssh_session{std::move(ssh_session)},
-      channel{make_channel(*this->ssh_session)},
+mp::SSHClient::SSHClient(SSHSessionUPtr ssh_session_obj, ConsoleCreator console_creator)
+    : ssh_session_obj{std::move(ssh_session_obj)},
+      channel{make_channel(*this->ssh_session_obj)},
       console{console_creator(channel.get())}
 {
 }
@@ -100,19 +100,19 @@ void mp::SSHClient::handle_ssh_events()
     std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};
 
     // stdin
-    ConnectorUPtr connector_in{ssh_connector_new(*ssh_session), ssh_connector_free};
+    ConnectorUPtr connector_in{ssh_connector_new(*ssh_session_obj), ssh_connector_free};
     ssh_connector_set_out_channel(connector_in.get(), channel.get(), SSH_CONNECTOR_STDOUT);
     ssh_connector_set_in_fd(connector_in.get(), fileno(stdin));
     ssh_event_add_connector(event.get(), connector_in.get());
 
     // stdout
-    ConnectorUPtr connector_out{ssh_connector_new(*ssh_session), ssh_connector_free};
+    ConnectorUPtr connector_out{ssh_connector_new(*ssh_session_obj), ssh_connector_free};
     ssh_connector_set_out_fd(connector_out.get(), fileno(stdout));
     ssh_connector_set_in_channel(connector_out.get(), channel.get(), SSH_CONNECTOR_STDOUT);
     ssh_event_add_connector(event.get(), connector_out.get());
 
     // stderr
-    ConnectorUPtr connector_err{ssh_connector_new(*ssh_session), ssh_connector_free};
+    ConnectorUPtr connector_err{ssh_connector_new(*ssh_session_obj), ssh_connector_free};
     ssh_connector_set_out_fd(connector_err.get(), fileno(stderr));
     ssh_connector_set_in_channel(connector_err.get(), channel.get(), SSH_CONNECTOR_STDERR);
     ssh_event_add_connector(event.get(), connector_err.get());
@@ -149,12 +149,12 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
     // All returned ints from this function can be considered to be VMReturnCodes
     if (cmd_line.empty())
         SSH::throw_on_error(channel,
-                            *ssh_session,
+                            *ssh_session_obj,
                             "[ssh client] shell request failed",
                             ssh_channel_request_shell);
     else
         SSH::throw_on_error(channel,
-                            *ssh_session,
+                            *ssh_session_obj,
                             "[ssh client] exec request failed",
                             ssh_channel_request_exec,
                             cmd_line.c_str());
@@ -171,7 +171,7 @@ int mp::SSHClient::get_ssh_exit_code()
     int core_dumped = 0;
 
     SSH::throw_on_error(channel,
-                        *ssh_session,
+                        *ssh_session_obj,
                         "[ssh client] could not obtain exit state",
                         ssh_channel_get_exit_state,
                         &exit_status,
