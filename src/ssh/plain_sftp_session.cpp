@@ -61,6 +61,16 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
 
     return sshfs_process;
 }
+
+int poll_aux(ssh_channel channel, int timeout)
+{
+    int poll_result = ssh_channel_poll_timeout(channel, timeout, /* is_stderr = */ 0);
+    if (poll_result < 0)
+        assert((poll_result == SSH_ERROR || poll_result == SSH_EOF) &&
+               "contract includes no other negative numbers");
+
+    return poll_result;
+}
 } // namespace
 
 void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session msg) const noexcept
@@ -78,22 +88,12 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
 
     constexpr static int init_timeout_ms = 5000;
     constexpr static auto init_error_prefix = "[sftp] server init failed:";
-    int poll_result = ssh_channel_poll_timeout(raw_sftp_session->channel,
-                                               init_timeout_ms,
-                                               /* is_stderr = */ 0);
-    if (poll_result <= 0)
+    if (int poll_result = poll_aux(raw_sftp_session->channel, init_timeout_ms); poll_result <= 0)
     {
-        std::string init_error_detail{""};
-        if (poll_result < 0)
-        {
-            assert((poll_result == SSH_ERROR || poll_result == SSH_EOF) &&
-                   "contract includes no other negative numbers");
-            init_error_detail = "connection drop or malfunction";
-        }
-        else
-            init_error_detail = "timed out waiting for the initial client message";
-
-        throw SSHException{fmt::format("{}: {}", init_error_prefix, init_error_detail)};
+        const auto err_detail = poll_result < 0
+                                  ? "connection drop or malfunction"
+                                  : "timed out waiting for the initial client message";
+        throw SSHException{fmt::format("{}: {}", init_error_prefix, err_detail)};
     }
 
     /* handles setting the sftp->client_version */
@@ -139,19 +139,11 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
 {
     while (!stop_requested.load())
     {
-        int not_stderr = 0;
-        int poll_result =
-            ssh_channel_poll_timeout(raw_sftp_session->channel, poll_interval.count(), not_stderr);
-
-        if (poll_result < 0)
-        {
-            assert((poll_result == SSH_ERROR || poll_result == SSH_EOF) &&
-                   "contract includes no other negative numbers");
-            return nullptr; // connection drop or malfunction
-        }
-
-        if (poll_result == 0)
+        if (int poll_result = poll_aux(raw_sftp_session->channel, poll_interval.count());
+            poll_result == 0)
             continue; // nothing to read yet; recheck the stop flag
+        else if (poll_result < 0)
+            return nullptr; // connection drop or malfunction
 
         sftp_client_message raw_msg{sftp_get_client_message(raw_sftp_session.get())};
         if (raw_msg == nullptr)
