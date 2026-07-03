@@ -116,6 +116,11 @@ def resume_seeded(vm_name: str, expected_state: str = "Stopped") -> None:
     assert multipass("start", vm_name)
     assert state(vm_name) == "Running"
 
+    # `state()` only confirms the daemon's view; `exec` can still fail transiently
+    # while the guest SSH service is coming up.
+    assert multipass("exec", vm_name, "--", "true", retry=5), (
+        f"`{vm_name}` did not become exec-ready after start"
+    )
 
 def info_fingerprint(vm_name: str) -> dict:
     """Host-reported instance facts that must be stable across an upgrade.
