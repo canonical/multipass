@@ -93,7 +93,7 @@ struct DNSMasqServer : public mpt::TestWithMockedBinPath
     const mp::Subnet error_subnet{
         "0.0.0.0/24"}; // This forces the mock dnsmasq process to exit with error
     const std::string hw_addr{"00:01:02:03:04:05"};
-    const mp::IPAddress expected_ip{"10.177.224.22"};
+    const mp::IPAddress expected_ip{"192.168.64.22"}; // within default_subnet (192.168.64.0/24)
 
     [[nodiscard]] static mp::BridgeSubnetList make_subnets(const QString& bridge,
                                                            const mp::Subnet& subnet)
@@ -139,6 +139,108 @@ TEST_F(DNSMasqServer, returnsNullIpWhenLeasesFileDoesNotExist)
     auto ip = dns.get_ip_for(hw_addr);
 
     EXPECT_FALSE(ip);
+}
+
+TEST_F(DNSMasqServer, getIpForSkipsStaleLeaseAndReturnsLiveOne)
+{
+    // Regression (MULTI-2701 follow-up): a version upgrade can change the served subnet, leaving a
+    // stale lease pointing at an unreachable old-subnet address ahead of the current one for a MAC.
+    // get_ip_for must skip the out-of-subnet lease and resolve the reachable address instead.
+    const mp::IPAddress live_ip{"192.168.64.60"}; // within default_subnet (192.168.64.0/24)
+    mpt::make_file_with_content(
+        QDir{data_dir.path()}.filePath("dnsmasq.leases"),
+        fmt::format("0 {} 10.130.128.252 old_name *\n0 {} {} upg-lifecycle *\n",
+                    hw_addr,
+                    hw_addr,
+                    live_ip.as_string()));
+
+    auto dns = make_default_dnsmasq_server();
+
+    auto ip = dns.get_ip_for(hw_addr);
+    ASSERT_TRUE(ip);
+    EXPECT_EQ(ip.value(), live_ip);
+}
+
+TEST_F(DNSMasqServer, getIpForReturnsNullWhenOnlyStaleLeaseExists)
+{
+    // The sole lease for this MAC is outside every served subnet, so there is no reachable address
+    // to hand back.
+    mpt::make_file_with_content(QDir{data_dir.path()}.filePath("dnsmasq.leases"),
+                                fmt::format("0 {} 10.130.128.252 old_name *\n", hw_addr));
+
+    auto dns = make_default_dnsmasq_server();
+
+    EXPECT_FALSE(dns.get_ip_for(hw_addr));
+}
+
+TEST_F(DNSMasqServer, getIpForResolvesLeasesAtSubnetBoundaries)
+{
+    // Legitimate leases at the first and last usable addresses of the served subnet must resolve -
+    // the subnet-membership check must not exclude its own boundaries.
+    const std::string other_hw{"00:aa:bb:cc:dd:ee"};
+    const mp::IPAddress first_ip{"192.168.64.1"};
+    const mp::IPAddress last_ip{"192.168.64.254"};
+    mpt::make_file_with_content(QDir{data_dir.path()}.filePath("dnsmasq.leases"),
+                                fmt::format("0 {} {} vm-low *\n0 {} {} vm-high *\n",
+                                            hw_addr,
+                                            first_ip.as_string(),
+                                            other_hw,
+                                            last_ip.as_string()));
+
+    auto dns = make_default_dnsmasq_server();
+
+    auto low = dns.get_ip_for(hw_addr);
+    ASSERT_TRUE(low);
+    EXPECT_EQ(low.value(), first_ip);
+
+    auto high = dns.get_ip_for(other_hw);
+    ASSERT_TRUE(high);
+    EXPECT_EQ(high.value(), last_ip);
+}
+
+TEST_F(DNSMasqServer, getIpForResolvesLeaseInAnyServedSubnet)
+{
+    // With several served subnets, a lease is legitimate if it belongs to *any* of them; the same
+    // lease is filtered out once that subnet is no longer served.
+    const mp::Subnet second_subnet{"192.168.65.0/24"};
+    const mp::IPAddress ip_in_second{"192.168.65.40"};
+    mpt::make_file_with_content(
+        QDir{data_dir.path()}.filePath("dnsmasq.leases"),
+        fmt::format("0 {} {} vm-second *\n", hw_addr, ip_in_second.as_string()));
+
+    mp::DNSMasqServer serving_both{
+        data_dir.path(),
+        {{dummy_bridge, default_subnet}, {QStringLiteral("second-bridge"), second_subnet}}};
+    auto resolved = serving_both.get_ip_for(hw_addr);
+    ASSERT_TRUE(resolved);
+    EXPECT_EQ(resolved.value(), ip_in_second);
+
+    auto dns_default = make_default_dnsmasq_server(); // no longer serves 192.168.65.0/24
+    EXPECT_FALSE(dns_default.get_ip_for(hw_addr));
+}
+
+TEST_F(DNSMasqServer, getIpForIgnoresNonIpv4AndMalformedLines)
+{
+    // A real leases file can start with a duid line and hold IPv6 entries or truncated/garbled
+    // lines. None of these should crash the lookup, and a valid in-subnet lease elsewhere in the
+    // file must still resolve. A matching MAC whose address field is unparseable is skipped, not
+    // fatal.
+    const mp::IPAddress live_ip{"192.168.64.70"};
+    mpt::make_file_with_content(QDir{data_dir.path()}.filePath("dnsmasq.leases"),
+                                fmt::format("duid 00:01:00:01:29:6c:5e:0e:52:54:00:12:34:56\n"
+                                            "1700000000 123456 fdaa::1234 vm-v6 00:01:00:01:29:6c\n"
+                                            "garbage\n"
+                                            "0 {} not-an-ip broken *\n"
+                                            "0 {} {} vm-live *\n",
+                                            hw_addr,
+                                            hw_addr,
+                                            live_ip.as_string()));
+
+    auto dns = make_default_dnsmasq_server();
+
+    auto ip = dns.get_ip_for(hw_addr);
+    ASSERT_TRUE(ip);
+    EXPECT_EQ(ip.value(), live_ip);
 }
 
 TEST_F(DNSMasqServer, releaseMacReleasesIp)

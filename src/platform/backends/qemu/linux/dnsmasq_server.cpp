@@ -26,6 +26,7 @@
 
 #include <QDir>
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 
@@ -43,10 +44,19 @@ auto make_dnsmasq_process(const mp::Path& data_dir,
     auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, subnets, conf_file_path);
     return MP_PROCFACTORY.create_process(std::move(process_spec));
 }
+
+bool ip_in_served_subnets(const mp::BridgeSubnetList& subnets, const mp::IPAddress& ip)
+{
+    return std::ranges::any_of(subnets, [&ip](const auto& bridge_subnet) {
+        return bridge_subnet.second.contains(ip);
+    });
+}
 } // namespace
 
 mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const BridgeSubnetList& subnets)
-    : data_dir{data_dir}, conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
+    : data_dir{data_dir},
+      subnets{subnets},
+      conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
     if (!conf_file.open())
         throw std::runtime_error("unable to create temporary dnsmasq conf file");
@@ -105,7 +115,20 @@ std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw
     {
         const auto fields = mp::utils::split(line, delimiter);
         if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
-            return IPAddress{fields[ipv4_idx]};
+        {
+            try
+            {
+                const IPAddress ip{fields[ipv4_idx]};
+                // Ignore leases outside the subnets we currently serve. A version upgrade that
+                // changes the bridge layout can leave an old lease pointing at an unreachable
+                // address; skip it so we resolve the current, reachable one instead.
+                if (ip_in_served_subnets(subnets, ip))
+                    return ip;
+            }
+            catch (const std::exception&) // unparseable address -> skip this line
+            {
+            }
+        }
     }
     return std::nullopt;
 }
