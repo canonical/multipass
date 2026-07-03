@@ -23,6 +23,7 @@
 #include <multipass/ssh/throw_on_error.h>
 
 #include <libssh/callbacks.h>
+#include <libssh/libssh.h>
 
 #include <array>
 #include <cerrno>
