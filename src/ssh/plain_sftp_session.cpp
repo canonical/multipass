@@ -81,7 +81,7 @@ void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session sessio
 mp::PlainSftpSession::RawSftpSessionUptr
 mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel channel)
 {
-    // The function sftp_server_init was expanded here to avoid deprecation warnings.
+    // libssh internals used in sftp_server_init are expanded here to avoid deprecation warnings.
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
 
@@ -91,13 +91,20 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
         throw SSHException(
             fmt::format("[sftp] server init failed: could not create a new sftp_server."));
 
-    constexpr static int init_timeout_ms = 5000;
+    constexpr static long give_up_timeout_secs = 5; // libssh reads SSH_OPTIONS_TIMEOUT as long
     constexpr static auto init_error_prefix = "[sftp] server init failed:";
-    if (int poll_result = poll_stdout(raw_sftp_session->channel, init_timeout_ms); poll_result <= 0)
+
+    // Bound reads/writes to avoid indefinite blocks in mid-message reads, within next_message().
+    if (ssh_options_set(raw_session, SSH_OPTIONS_TIMEOUT, &give_up_timeout_secs) != SSH_OK)
+        throw SSHException{fmt::format("{}: could not set session timeout: '{}'",
+                                       init_error_prefix,
+                                       ssh_get_error(raw_session))};
+
+    int res = poll_stdout(raw_sftp_session->channel, static_cast<int>(give_up_timeout_secs * 1000));
+    if (res <= 0)
     {
-        const auto err_detail = poll_result < 0
-                                  ? "connection drop or malfunction"
-                                  : "timed out waiting for the initial client message";
+        const auto err_detail = res < 0 ? "connection drop or malfunction"
+                                        : "timed out waiting for the initial client message";
         throw SSHException{fmt::format("{}: {}", init_error_prefix, err_detail)};
     }
 
@@ -148,7 +155,7 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
     {
         int poll_result = poll_stdout(raw_sftp_session->channel, poll_interval.count());
         if (poll_result > 0)
-            raw_msg = sftp_get_client_message(raw_sftp_session.get());
+            raw_msg = sftp_get_client_message(raw_sftp_session.get()); // bounded by session timeout
         else if (poll_result == 0)
             continue; // nothing to read yet
 
