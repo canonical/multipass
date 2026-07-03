@@ -103,7 +103,7 @@ def test_bridged_seed(scenario, host_network, request, multipassd_session_scoped
     # probe races the still-answering, about-to-die daemon and returns early,
     # leaving the next test to hit a dead socket).
     def _reset():
-        multipass("set", "local.bridged-network=")
+        assert multipass("set", "local.bridged-network=")
         multipassd_session_scoped.wait_for_restart()
 
     request.addfinalizer(_reset)
