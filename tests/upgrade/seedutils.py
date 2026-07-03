@@ -47,7 +47,8 @@ def ensure_absent(name: str) -> None:
     if not vm_exists(name):
         return
     logging.info("upgrade-seed :: purging pre-existing `%s`", name)
-    multipass("delete", name, "--purge")
+    assert multipass("delete", name, "--purge"), f"Failed to purge pre-existing `{name}`"
+    assert not vm_exists(name), f"Pre-existing `{name}` still exists after purge"
 
 
 @contextmanager

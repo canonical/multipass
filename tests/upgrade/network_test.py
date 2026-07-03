@@ -22,12 +22,13 @@ stopped or suspended; a ``--bridged`` interface should too.
 What must survive is the *instance's* NIC configuration -- the extra interface
 and its persisted MAC, stored in the instance record -- not the host network
 itself. The host network is provided per-platform by the ``host_network``
-fixture (see ``netutils``): a throwaway isolated bridge on Linux, an existing
-host network (Hyper-V switch / interface) on Windows/macOS. Seed attaches a VM
-and records the MACs; verify confirms the same host network is present, brings
-the VM back, and checks the MACs returned. ``mode=manual`` keeps the guest from
-DHCP-ing on it. The bridged case points ``local.bridged-network`` at the same
-host network. The suspend pair is skipped where suspend/resume isn't kept."""
+fixture (see ``netutils``): a throwaway isolated bridge on Linux and a private
+Hyper-V vSwitch on Windows (when running on a Hyper-V backend). The test is
+skipped on macOS where no isolated ephemeral network can be created. Seed
+attaches a VM and records the MACs; verify resumes the VM and checks the same
+MACs are still reported. ``mode=manual`` keeps the guest from DHCP-ing on it.
+The bridged case points ``local.bridged-network`` at the same host network. The
+suspend pair is skipped where suspend/resume isn't kept.
 
 import pytest
 
