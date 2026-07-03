@@ -130,6 +130,11 @@ def verify_manifest():
         f"(this harness speaks `{SCHEMA}`)."
     )
     seeded = document.get("seed", {})
+    if seeded.get("driver") != cfg.driver or seeded.get("controller") != cfg.daemon_controller:
+        pytest.fail(
+            f"Upgrade manifest was seeded with driver={seeded.get('driver')} controller={seeded.get('controller')}, "
+            f"but verify is running with driver={cfg.driver} controller={cfg.daemon_controller}."
+        )
     logging.info(
         "upgrade :: verifying upgrade %s -> %s (driver=%s, controller=%s)",
         seeded.get("version"), get_multipass_version(),
@@ -194,9 +199,11 @@ def verify_scenario(request, verify_manifest):
     the natural way to keep verify tests clean with nothing to forget per test.
     """
     vm = _scenario_vm(request)
+    if vm not in verify_manifest:
+        pytest.fail(f"Scenario `{vm}` not present in upgrade manifest; re-run the seed phase.")
     yield Scenario(vm, verify_manifest[vm])
     if vm_exists(vm):
-        multipass("delete", vm, "--purge")
+        assert multipass("delete", vm, "--purge"), f"Failed to purge `{vm}` after verify"
 
 
 @pytest.fixture(scope="session", autouse=True)

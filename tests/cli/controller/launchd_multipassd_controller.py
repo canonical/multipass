@@ -152,7 +152,10 @@ def _bootout_and_wait(label: str, timeout: float = 30.0) -> None:
     deadline = time.monotonic() + timeout
     while _service_loaded(label) and time.monotonic() < deadline:
         time.sleep(0.5)
-
+    if _service_loaded(label):
+        raise RuntimeError(
+            f"launchctl service `system/{label}` still loaded after bootout (timeout={timeout}s)"
+        )
 
 def _bootstrap(domain: str, plist: str, retries: int = 5) -> tuple[int, str]:
     """bootstrap, retrying the transient EIO that launchd returns while a prior
