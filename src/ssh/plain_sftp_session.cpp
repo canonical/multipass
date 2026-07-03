@@ -41,6 +41,18 @@ namespace
 {
 using namespace std::literals::chrono_literals;
 
+class SftpInitException : public mp::SSHException
+{
+public:
+    SftpInitException(const std::string& detail)
+        : SSHException{fmt::format("{}: {}", init_error_prefix, detail)}
+    {
+    }
+
+private:
+    constexpr static auto init_error_prefix = "[sftp] server init failed:"; // TODO square brackets?
+};
+
 void check_sshfs_status(mp::SSHProcess& sshfs_process)
 {
     if (sshfs_process.exit_recognized(250ms))
@@ -85,50 +97,44 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
 
+    constexpr static long give_up_timeout_secs = 5; // libssh reads SSH_OPTIONS_TIMEOUT as long
+
     // TODO@sftp go through MP_LIBSSH
     RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel)};
     if (!raw_sftp_session)
         throw SSHException(
             fmt::format("[sftp] server init failed: could not create a new sftp_server."));
 
-    constexpr static long give_up_timeout_secs = 5; // libssh reads SSH_OPTIONS_TIMEOUT as long
-    constexpr static auto init_error_prefix = "[sftp] server init failed:";
-
     // Bound reads/writes to avoid indefinite blocks in mid-message reads, within next_message().
     if (ssh_options_set(raw_session, SSH_OPTIONS_TIMEOUT, &give_up_timeout_secs) != SSH_OK)
-        throw SSHException{fmt::format("{}: could not set session timeout: '{}'",
-                                       init_error_prefix,
-                                       ssh_get_error(raw_session))};
+    {
+        const auto raw_error = ssh_get_error(raw_session);
+        throw SftpInitException{fmt::format("could not set session timeout: '{}'", raw_error)};
+    }
 
     int res = poll_stdout(raw_sftp_session->channel, static_cast<int>(give_up_timeout_secs * 1000));
     if (res <= 0)
     {
         const auto err_detail = res < 0 ? "connection drop or malfunction"
                                         : "timed out waiting for the initial client message";
-        throw SSHException{fmt::format("{}: {}", init_error_prefix, err_detail)};
+        throw SftpInitException{err_detail};
     }
 
     /* handles setting the sftp->client_version */
     // TODO@sftp no leak plz - use SftpMessage
     sftp_client_message msg{sftp_get_client_message(raw_sftp_session.get())};
     if (msg == nullptr)
-    {
-        throw mp::SSHException("[sftp] server init failed: 'Null client message'");
-    }
+        throw SftpInitException{"Null client message"};
 
     if (msg->type != SSH_FXP_INIT)
-    {
-        throw mp::SSHException(fmt::format(
-            "[sftp] server init failed: 'FATAL: Packet read of type {} instead of SSH_FXP_INIT'",
-            msg->type));
-    }
+        throw SftpInitException{
+            fmt::format("FATAL: Packet read of type {} instead of SSH_FXP_INIT", msg->type)};
 
     // Optional: Log the SSH_FXP_INIT reception like libssh does with SSH_LOG but with mp::log
 
     if (sftp_reply_version(msg) != SSH_OK)
     {
-        throw mp::SSHException(
-            "[sftp] server init failed: 'FATAL: Failed to process the SSH_FXP_INIT message'");
+        throw SftpInitException{"FATAL: Failed to process the SSH_FXP_INIT message"};
     }
 
     return raw_sftp_session;
