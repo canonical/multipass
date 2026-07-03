@@ -223,7 +223,7 @@ auto to_unix_permissions(QFile::Permissions perms)
     return out;
 }
 
-void check_sshfs_status(mp::SSHSession& session, mp::SSHProcess& sshfs_process)
+void check_sshfs_status(mp::SSHProcess& sshfs_process)
 {
     if (sshfs_process.exit_recognized(250ms))
     {
@@ -242,7 +242,7 @@ auto create_sshfs_process(mp::SSHSession& session,
     auto sshfs_process =
         session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
 
-    check_sshfs_status(session, *sshfs_process);
+    check_sshfs_status(*sshfs_process);
 
     return sshfs_process;
 }

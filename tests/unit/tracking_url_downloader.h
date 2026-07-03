@@ -38,8 +38,8 @@ struct TrackingURLDownloader : public URLDownloader
 
     void download_to(const QUrl& url,
                      const QString& file_name,
-                     int64_t size,
-                     const int download_type,
+                     int64_t /*size*/,
+                     const int /*progress_type*/,
                      const ProgressMonitor&) override
     {
         make_file_with_content(file_name, content);
@@ -47,12 +47,12 @@ struct TrackingURLDownloader : public URLDownloader
         downloaded_files << file_name;
     }
 
-    QByteArray download(const QUrl& url) override
+    QByteArray download(const QUrl&) override
     {
         return {};
     }
 
-    QDateTime last_modified(const QUrl& url) override
+    QDateTime last_modified(const QUrl&) override
     {
         return QDateTime::currentDateTime();
     }

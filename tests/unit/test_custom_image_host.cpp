@@ -80,7 +80,7 @@ TEST_F(CustomImageHost, iteratesOverAllEntries)
     host.update_manifests(false);
 
     std::unordered_set<std::string> ids;
-    auto action = [&ids](const std::string& remote, const mp::VMImageInfo& info) {
+    auto action = [&ids](const std::string& /*remote*/, const mp::VMImageInfo& info) {
         ids.insert(info.id);
     };
     host.for_each_entry_do(action);

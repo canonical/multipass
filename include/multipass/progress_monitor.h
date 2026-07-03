@@ -23,5 +23,5 @@
 
 namespace multipass
 {
-using ProgressMonitor = std::function<bool(int download_type, int progress)>;
+using ProgressMonitor = std::function<bool(int progress_type, int progress)>;
 }

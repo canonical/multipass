@@ -281,12 +281,11 @@ auto fetch_image_for(const std::string& name,
                      mp::VMImageVault& vault)
 {
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
-    auto stub_progress = [](int download_type, int progress) { return true; };
+    auto stub_progress = [](int /*progress_type*/, int /*progress*/) { return true; };
 
     mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
 
-    return vault.fetch_image(factory.fetch_type(),
-                             query,
+    return vault.fetch_image(query,
                              stub_prepare,
                              stub_progress,
                              std::nullopt,
@@ -588,9 +587,7 @@ LinearInstanceSelection select_all(InstanceTable& instances)
 }
 
 // careful to keep the original `name` around while the provided `selection` is in use!
-void rank_instance(const std::string& name,
-                   const InstanceTrail& trail,
-                   InstanceSelectionReport& selection)
+void rank_instance(const InstanceTrail& trail, InstanceSelectionReport& selection)
 {
     switch (trail.index())
     {
@@ -637,7 +634,7 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances,
             if (seen_instances.insert(*vm_name).second)
             {
                 auto trail = find_instance(operative_instances, deleted_instances, *vm_name);
-                rank_instance(*vm_name, trail, ret);
+                rank_instance(trail, ret);
             }
         }
     }
@@ -1165,8 +1162,7 @@ mp::SettingsHandler* register_instance_mod(
 mp::SettingsHandler* register_snapshot_mod(
     std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted_instances,
-    const std::unordered_set<std::string>& preparing_instances,
-    const mp::VirtualMachineFactory& vm_factory)
+    const std::unordered_set<std::string>& preparing_instances)
 {
     try
     {
@@ -1302,10 +1298,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
           [this] { persist_instances(); },
           [this](const std::string& n) { return is_bridged(n); },
           [this](const std::string& n) { return add_bridged_interface(n); })},
-      snapshot_mod_handler{register_snapshot_mod(operative_instances,
-                                                 deleted_instances,
-                                                 preparing_instances,
-                                                 *config->factory)}
+      snapshot_mod_handler{
+          register_snapshot_mod(operative_instances, deleted_instances, preparing_instances)}
 {
     using e_state = VirtualMachine::State;
 
@@ -1461,7 +1455,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     return config->factory->prepare_source_image(source_image);
                 };
 
-                auto download_monitor = [](int download_type, int percentage) {
+                auto download_monitor = [](int /*progress_type*/, int percentage) {
                     static int last_percentage_logged = -1;
                     if (percentage % 10 == 0)
                     {
@@ -1478,9 +1472,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
                 try
                 {
-                    config->vault->update_images(config->factory->fetch_type(),
-                                                 prepare_action,
-                                                 download_monitor);
+                    config->vault->update_images(prepare_action, download_monitor);
                 }
                 catch (const std::exception& e)
                 {
@@ -1570,7 +1562,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::purge(const PurgeRequest* request,
+void mp::Daemon::purge(const PurgeRequest*,
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
                        DaemonRpcContext* context)
 try
@@ -1894,7 +1886,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::networks(const NetworksRequest* request,
+void mp::Daemon::networks(const NetworksRequest*,
                           grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
                           DaemonRpcContext* context)
 try
@@ -2023,7 +2015,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::recover(const RecoverRequest* request,
-                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*,
                          DaemonRpcContext* context)
 try
 {
@@ -2186,7 +2178,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::stop(const StopRequest* request,
-                      grpc::ServerReaderWriterInterface<StopReply, StopRequest>* server,
+                      grpc::ServerReaderWriterInterface<StopReply, StopRequest>*,
                       DaemonRpcContext* context)
 try
 {
@@ -2226,7 +2218,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
-                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*,
                          DaemonRpcContext* context)
 try
 {
@@ -2392,7 +2384,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::umount(const UmountRequest* request,
-                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
+                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>*,
                         DaemonRpcContext* context)
 try
 {
@@ -2460,7 +2452,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::version(const VersionRequest* request,
+void mp::Daemon::version(const VersionRequest*,
                          grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>* server,
                          DaemonRpcContext* context)
 {
@@ -2577,7 +2569,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
-void mp::Daemon::keys(const mp::KeysRequest* request,
+void mp::Daemon::keys(const mp::KeysRequest*,
                       grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>* server,
                       DaemonRpcContext* context)
 try
@@ -2599,7 +2591,7 @@ catch (const std::exception& e)
 
 void mp::Daemon::authenticate(
     const AuthenticateRequest* request,
-    grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,
+    grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>*,
     DaemonRpcContext* context)
 try
 {
@@ -2841,7 +2833,7 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::daemon_info(
-    const DaemonInfoRequest* request,
+    const DaemonInfoRequest*,
     grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
     DaemonRpcContext* context)
 try
@@ -2862,10 +2854,9 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::wait_ready(
-    const WaitReadyRequest* request,
-    grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
-    DaemonRpcContext* context)
+void mp::Daemon::wait_ready(const WaitReadyRequest*,
+                            grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>*,
+                            DaemonRpcContext* context)
 try
 {
     WaitReadyReply response;
@@ -2895,7 +2886,7 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::zones(const ZonesRequest* request,
+void mp::Daemon::zones(const ZonesRequest*,
                        grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
                        DaemonRpcContext* context) // clang-format off
 try // clang-format on
@@ -2918,10 +2909,9 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::zones_state(
-    const ZonesStateRequest* request,
-    grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
-    DaemonRpcContext* context) // clang-format off
+void mp::Daemon::zones_state(const ZonesStateRequest* request,
+                             grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>*,
+                             DaemonRpcContext* context) // clang-format off
 try // clang-format on
 {
     auto& az_manager = *config->az_manager;
@@ -3214,7 +3204,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 create_reply.mutable_launch_progress()->set_percent_complete(
                     std::to_string(percentage));
                 create_reply.mutable_launch_progress()->set_type(
-                    (CreateProgress::ProgressTypes)progress_type);
+                    (CreateProgress::ProgressType)progress_type);
                 return server->Write(create_reply);
             };
 
@@ -3226,19 +3216,16 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 return config->factory->prepare_source_image(source_image);
             };
 
-            auto fetch_type = config->factory->fetch_type();
-
             std::optional<std::string> checksum;
             if (!vm_desc.image.id.empty())
                 checksum = vm_desc.image.id;
 
-            auto vm_image =
-                config->vault->fetch_image(fetch_type,
-                                           query,
-                                           prepare_action,
-                                           progress_monitor,
-                                           checksum,
-                                           config->factory->get_instance_directory(name));
+            auto vm_image = config->vault->fetch_image(
+                query,
+                prepare_action,
+                progress_monitor,
+                checksum,
+                config->factory->get_instance_directory(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(

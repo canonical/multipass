@@ -106,7 +106,7 @@ void mp::platform::Platform::setup_permission_inheritance(bool restricted) const
     }
 }
 
-bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
+bool mp::platform::Platform::symlink(const char* target, const char* link, bool /*is_dir*/) const
 {
     return ::symlink(target, link) == 0;
 }

@@ -28,10 +28,10 @@ mpt::MischievousURLDownloader::MischievousURLDownloader(std::chrono::millisecond
 void mpt::MischievousURLDownloader::download_to(const QUrl& url,
                                                 const QString& file_name,
                                                 int64_t size,
-                                                const int download_type,
+                                                const int progress_type,
                                                 const mp::ProgressMonitor& monitor)
 {
-    URLDownloader::download_to(choose_url(url), file_name, size, download_type, monitor);
+    URLDownloader::download_to(choose_url(url), file_name, size, progress_type, monitor);
 }
 
 QByteArray mpt::MischievousURLDownloader::download(const QUrl& url)

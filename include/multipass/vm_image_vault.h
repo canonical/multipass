@@ -18,7 +18,6 @@
 #pragma once
 
 #include "disabled_copy_move.h"
-#include "fetch_type.h"
 #include "memory_size.h"
 #include "path.h"
 #include "progress_monitor.h"
@@ -70,8 +69,7 @@ public:
     using PrepareAction = std::function<VMImage(const VMImage&)>;
 
     virtual ~VMImageVault() = default;
-    virtual VMImage fetch_image(const FetchType& fetch_type,
-                                const Query& query,
+    virtual VMImage fetch_image(const Query& query,
                                 const PrepareAction& prepare,
                                 const ProgressMonitor& monitor,
                                 const std::optional<std::string>& checksum,
@@ -79,9 +77,7 @@ public:
     virtual void remove(const std::string& name) = 0;
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;
-    virtual void update_images(const FetchType& fetch_type,
-                               const PrepareAction& prepare,
-                               const ProgressMonitor& monitor) = 0;
+    virtual void update_images(const PrepareAction& prepare, const ProgressMonitor& monitor) = 0;
     virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
     virtual void clone(const std::string& source_instance_name,
                        const std::string& destination_instance_name) = 0;

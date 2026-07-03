@@ -31,9 +31,7 @@ mp::ReturnCodeVariant cmd::Recover::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [](mp::RecoverReply& reply) -> ReturnCodeVariant {
-        return mp::ReturnCode::Ok;
-    };
+    auto on_success = [](RecoverReply&) -> ReturnCodeVariant { return mp::ReturnCode::Ok; };
 
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         return standard_failure_handler_for(name(), cerr, status);

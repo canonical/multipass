@@ -147,17 +147,17 @@ protected:
         using Arg0Type =
             typename multipass::callable_traits<SuccessCallable>::template arg<0>::type;
         using ReplyType = std::decay_t<Arg0Type>;
-        return dispatch(rpc_func,
-                        request,
-                        on_success,
-                        on_failure,
-                        [this](ReplyType& reply,
-                               grpc::ClientReaderWriterInterface<Request, ReplyType>* client) {
-                            if (!reply.log_line().empty())
-                            {
-                                cerr << reply.log_line();
-                            }
-                        });
+        return dispatch(
+            rpc_func,
+            request,
+            on_success,
+            on_failure,
+            [this](ReplyType& reply, grpc::ClientReaderWriterInterface<Request, ReplyType>*) {
+                if (!reply.log_line().empty())
+                {
+                    cerr << reply.log_line();
+                }
+            });
     }
 
     Rpc::StubInterface* stub;
@@ -167,10 +167,10 @@ protected:
 
 private:
     template <typename SuccessCallable, typename FailureCallable>
-    void check_return_callables(SuccessCallable&& on_success, FailureCallable&& on_failure)
+    void check_return_callables(SuccessCallable&&, FailureCallable&&)
     {
-        using SuccessCallableTraits = multipass::callable_traits<SuccessCallable>;
-        using FailureCallableTraits = multipass::callable_traits<FailureCallable>;
+        using SuccessCallableTraits = callable_traits<SuccessCallable>;
+        using FailureCallableTraits = callable_traits<FailureCallable>;
         using SuccessCallableArg0Type =
             std::remove_reference_t<typename SuccessCallableTraits::template arg<0>::type>;
         using FailureCallableArg0Type =
@@ -206,7 +206,7 @@ private:
         return [&on_failure, &reply](grpc::Status status) {
             (void)reply; // suppress unhelpful warning in clang:
                          // https://bugs.llvm.org/show_bug.cgi?id=35450
-            if constexpr (multipass::callable_traits<FailureCallable>::num_args == 2)
+            if constexpr (callable_traits<FailureCallable>::num_args == 2)
                 return on_failure(status, reply);
             else
                 return on_failure(status);

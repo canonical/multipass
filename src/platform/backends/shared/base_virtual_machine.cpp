@@ -61,7 +61,7 @@ constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
 constexpr auto yes_overwrite = true;
 
-void assert_vm_stopped(St state)
+void assert_vm_stopped([[maybe_unused]] St state)
 {
     assert(state == St::off || state == St::stopped);
 }

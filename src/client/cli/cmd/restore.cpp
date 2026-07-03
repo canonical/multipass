@@ -33,7 +33,7 @@ mp::ReturnCodeVariant cmd::Restore::run(mp::ArgParser* parser)
 
     AnimatedSpinner spinner{cout};
 
-    auto on_success = [this, &spinner](mp::RestoreReply& reply) -> ReturnCodeVariant {
+    auto on_success = [this, &spinner](RestoreReply&) -> ReturnCodeVariant {
         spinner.stop();
         fmt::print(cout, "Snapshot restored: {}.{}\n", request.instance(), request.snapshot());
         return ReturnCode::Ok;

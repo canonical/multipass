@@ -90,13 +90,6 @@ struct BaseFactory : public Test
     mpt::StubAvailabilityZoneManager az_manager{};
 };
 
-TEST_F(BaseFactory, returnsImageOnlyFetchType)
-{
-    MockBaseFactory factory{az_manager};
-
-    EXPECT_EQ(factory.fetch_type(), mp::FetchType::ImageOnly);
-}
-
 TEST_F(BaseFactory, dirNameReturnsEmptyString)
 {
     MockBaseFactory factory{az_manager};
