@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -88,24 +91,156 @@ class VmDetailsHeader extends ConsumerWidget {
       ],
     );
 
-    final list = [
-      Expanded(
-        child: CopyableText(
-          name.nonBreaking,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w300),
-        ),
-      ),
-      locationButtons,
-      cpu,
-      memory,
-      disk,
-      VmActionButtons(name),
-    ];
+    final title = CopyableText(
+      name.nonBreaking,
+      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w300),
+    );
+
+    final usages = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [cpu, memory, disk].gap(width: _headerGap).toList(),
+    );
 
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Row(children: list.gap(width: 40).toList()),
+      child: _HeaderLayout(
+        children: [title, locationButtons, usages, VmActionButtons(name)],
+      ),
     );
+  }
+}
+
+const double _headerGap = 40;
+const double _headerRowSpacing = 20;
+const double _nameMinWidth = 150;
+
+/// Arranges the header's name, tabs, usages and actions over one to three rows.
+class _HeaderLayout extends MultiChildRenderObjectWidget {
+  const _HeaderLayout({required super.children});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderHeaderLayout();
+}
+
+class _HeaderParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderHeaderLayout extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _HeaderParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _HeaderParentData> {
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _HeaderParentData) {
+      child.parentData = _HeaderParentData();
+    }
+  }
+
+  @override
+  void performLayout() {
+    assert(constraints.hasBoundedWidth);
+    final width = constraints.maxWidth;
+    final [name, tabs, usages, actions] = getChildrenAsList();
+
+    for (final group in [tabs, usages, actions]) {
+      group.layout(const BoxConstraints(), parentUsesSize: true);
+    }
+    name.layout(const BoxConstraints(), parentUsesSize: true);
+    final t = tabs.size.width;
+    final u = usages.size.width;
+    final a = actions.size.width;
+    // Never truncate the name below this, unless it is naturally shorter.
+    final nameReserve = min(name.size.width, _nameMinWidth);
+
+    final List<List<RenderBox>> rows;
+    if (nameReserve + t + u + a + 3 * _headerGap <= width) {
+      rows = [
+        [name, tabs, usages, actions],
+      ];
+    } else if (nameReserve + t + u + 2 * _headerGap <= width) {
+      rows = [
+        [name, tabs, usages],
+        [actions],
+      ];
+    } else if (u + a + _headerGap <= width) {
+      rows = [
+        [name, tabs],
+        [usages, actions],
+      ];
+    } else {
+      rows = [
+        [name, tabs],
+        [usages],
+        [actions],
+      ];
+    }
+
+    var top = 0.0;
+    for (final row in rows) {
+      if (row != rows.first) top += _headerRowSpacing;
+      top += identical(row.first, name)
+          ? _placeNameRow(row, name, width, top)
+          : _placeRow(row, actions, width, top);
+    }
+    size = Size(width, top);
+  }
+
+  double _placeNameRow(
+    List<RenderBox> row,
+    RenderBox name,
+    double width,
+    double top,
+  ) {
+    final tail = row.sublist(1);
+    final tailWidth = tail.fold<double>(0, (sum, b) => sum + b.size.width) +
+        _headerGap * (tail.length - 1);
+    final available = width - tailWidth - _headerGap;
+    name.layout(
+      BoxConstraints.tightFor(width: max(available, 0)),
+      parentUsesSize: true,
+    );
+
+    final rowHeight = row.map((b) => b.size.height).reduce(max);
+    _placeAt(name, 0, top, rowHeight);
+    var x = width - tailWidth;
+    for (final box in tail) {
+      _placeAt(box, x, top, rowHeight);
+      x += box.size.width + _headerGap;
+    }
+    return rowHeight;
+  }
+
+  double _placeRow(
+    List<RenderBox> row,
+    RenderBox actions,
+    double width,
+    double top,
+  ) {
+    final rowHeight = row.map((b) => b.size.height).reduce(max);
+    if (row.length > 1) {
+      _placeAt(row.first, 0, top, rowHeight);
+      _placeAt(row.last, width - row.last.size.width, top, rowHeight);
+    } else {
+      final only = row.first;
+      final x = identical(only, actions) ? width - only.size.width : 0.0;
+      _placeAt(only, x, top, rowHeight);
+    }
+    return rowHeight;
+  }
+
+  void _placeAt(RenderBox child, double x, double top, double rowHeight) {
+    final data = child.parentData as _HeaderParentData;
+    data.offset = Offset(x, top + (rowHeight - child.size.height) / 2);
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    defaultPaint(context, offset);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    return defaultHitTestChildren(result, position: position);
   }
 }
 
