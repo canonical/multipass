@@ -94,6 +94,12 @@ public:
     virtual void* handle() const noexcept = 0;
 
     /**
+     * Unregister the protocol handle carried by the request, undoing #reply_handle's registration
+     * (e.g. when serving a close request). No effect if the handle is absent or unknown.
+     */
+    virtual void remove_handle() noexcept = 0;
+
+    /**
      * Reply with a status code.
      *
      * @param status The status code to reply with.
@@ -130,6 +136,18 @@ public:
      * @return True if the reply was successfully sent.
      */
     virtual bool reply_data(const void* data, size_t len) = 0;
+
+    /**
+     * Register @p id and reply with a new protocol handle referring to it (e.g. to open/opendir
+     * requests). The remote client is expected to carry that handle in follow-up requests,
+     * where #handle resolves it back to @p id.
+     *
+     * @param id The native handle to register.
+     * @return True if the reply was successfully sent; false if registration failed (e.g. @p id
+     * was already registered) or sending failed, in which case nothing may have been sent and the
+     * caller can still reply otherwise.
+     */
+    virtual bool reply_handle(void* id) = 0;
 
 protected:
     SftpMessage() = default;

@@ -95,6 +95,11 @@ public:
      */
     void* handle() const noexcept override;
 
+    /**
+     * @copydoc SftpMessage::remove_handle
+     */
+    void remove_handle() noexcept override;
+
     using SftpMessage::reply_status;
 
     /**
@@ -111,6 +116,11 @@ public:
      * @copydoc SftpMessage::reply_data
      */
     bool reply_data(const void* data, size_t len) override;
+
+    /**
+     * @copydoc SftpMessage::reply_handle
+     */
+    bool reply_handle(void* id) override;
 
 private:
     struct RawMsgDeleter
