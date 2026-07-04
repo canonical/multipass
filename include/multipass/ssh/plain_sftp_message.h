@@ -107,6 +107,11 @@ public:
      */
     bool reply_attributes(const SftpAttributes& attributes) override;
 
+    /**
+     * @copydoc SftpMessage::reply_data
+     */
+    bool reply_data(const void* data, size_t len) override;
+
 private:
     struct RawMsgDeleter
     {
