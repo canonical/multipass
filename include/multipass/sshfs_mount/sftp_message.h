@@ -122,6 +122,15 @@ public:
      */
     virtual bool reply_attributes(const SftpAttributes& attributes) = 0;
 
+    /**
+     * Reply with raw data (i.e. to read requests).
+     *
+     * @param data The data to reply with.
+     * @param len The number of bytes to reply with.
+     * @return True if the reply was successfully sent.
+     */
+    virtual bool reply_data(const void* data, size_t len) = 0;
+
 protected:
     SftpMessage() = default;
 };
