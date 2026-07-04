@@ -28,6 +28,8 @@ namespace multipass
 
 /**
  * A concrete SftpMessage backed by a raw libssh message
+ *
+ * @copydoc SftpMessage
  */
 class PlainSftpMessage final : public SftpMessage
 {
@@ -47,6 +49,41 @@ public:
     // TODO@sftp Make class final before enabling these
     PlainSftpMessage(PlainSftpMessage&&) = delete;
     PlainSftpMessage& operator=(PlainSftpMessage&&) = delete;
+
+    /**
+     * @copydoc SftpMessage::type
+     */
+    SftpMessageType type() const noexcept override;
+
+    /**
+     * @copydoc SftpMessage::filename
+     */
+    std::string_view filename() const noexcept override;
+
+    /**
+     * @copydoc SftpMessage::data
+     */
+    std::string_view data() const noexcept override;
+
+    /**
+     * @copydoc SftpMessage::submessage
+     */
+    std::optional<std::string_view> submessage() const noexcept override;
+
+    /**
+     * @copydoc SftpMessage::flags
+     */
+    uint32_t flags() const noexcept override;
+
+    /**
+     * @copydoc SftpMessage::offset
+     */
+    uint64_t offset() const noexcept override;
+
+    /**
+     * @copydoc SftpMessage::length
+     */
+    uint32_t length() const noexcept override;
 
 private:
     struct RawMsgDeleter
