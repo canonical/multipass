@@ -85,6 +85,11 @@ public:
      */
     uint32_t length() const noexcept override;
 
+    /**
+     * @copydoc SftpMessage::attributes
+     */
+    std::optional<SftpAttributes> attributes() const override;
+
 private:
     struct RawMsgDeleter
     {
