@@ -88,7 +88,7 @@ uint32_t mp::PlainSftpMessage::length() const noexcept
     return message->len;
 }
 
-std::optional<mp::SftpAttributes> mp::PlainSftpMessage::attributes() const
+std::optional<mp::SftpAttributes> mp::PlainSftpMessage::attributes() const noexcept
 {
     const auto* raw = message->attr;
     if (!raw)
