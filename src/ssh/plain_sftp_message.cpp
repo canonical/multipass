@@ -67,6 +67,22 @@ uint32_t mp::PlainSftpMessage::length() const noexcept
 {
     return message->len;
 }
+
+std::optional<mp::SftpAttributes> mp::PlainSftpMessage::attributes() const
+{
+    const auto* raw = message->attr;
+    if (!raw)
+        return std::nullopt;
+
+    return SftpAttributes{raw->flags,
+                          raw->size,
+                          raw->uid,
+                          raw->gid,
+                          raw->permissions,
+                          raw->atime,
+                          raw->mtime};
+}
+
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
 {
     sftp_client_message_free(msg);
