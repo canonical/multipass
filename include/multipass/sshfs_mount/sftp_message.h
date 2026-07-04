@@ -138,6 +138,13 @@ public:
     virtual bool reply_data(const void* data, size_t len) = 0;
 
     /**
+     * Reply with a single file name (i.e. to realpath requests).
+     *
+     * @return True if the reply was successfully sent.
+     */
+    virtual bool reply_name(const std::string& name) = 0;
+
+    /**
      * Register @p id and reply with a new protocol handle referring to it (e.g. to open/opendir
      * requests). The remote client is expected to carry that handle in follow-up requests,
      * where #handle resolves it back to @p id.
@@ -148,6 +155,26 @@ public:
      * caller can still reply otherwise.
      */
     virtual bool reply_handle(void* id) = 0;
+
+    /**
+     * Add a name entry to the pending name-list reply, to be sent with #reply_names (e.g. when
+     * serving readdir requests).
+     *
+     * @param file The file name of the entry.
+     * @param longname The long ("ls -l" style) name of the entry.
+     * @param attributes The attributes of the entry.
+     * @return True on success.
+     */
+    virtual bool reply_names_add(const std::string& file,
+                                 const std::string& longname,
+                                 const SftpAttributes& attributes) = 0;
+
+    /**
+     * Reply with the name list accumulated with #reply_names_add.
+     *
+     * @return True if the reply was successfully sent.
+     */
+    virtual bool reply_names() = 0;
 
 protected:
     SftpMessage() = default;

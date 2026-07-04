@@ -132,6 +132,11 @@ bool mp::PlainSftpMessage::reply_data(const void* data, size_t len)
     return sftp_reply_data(message.get(), data, static_cast<int>(len)) == SSH_OK;
 }
 
+bool mp::PlainSftpMessage::reply_name(const std::string& name)
+{
+    return sftp_reply_name(message.get(), name.c_str(), nullptr) == SSH_OK;
+}
+
 bool mp::PlainSftpMessage::reply_handle(void* id)
 {
     using Del = decltype([](ssh_string_struct* handle) noexcept { ssh_string_free(handle); });
@@ -142,6 +147,19 @@ bool mp::PlainSftpMessage::reply_handle(void* id)
         return false;
 
     return sftp_reply_handle(message.get(), raw_handle.get()) == SSH_OK;
+}
+
+bool mp::PlainSftpMessage::reply_names_add(const std::string& file,
+                                           const std::string& longname,
+                                           const SftpAttributes& attributes)
+{
+    auto raw = to_raw_attributes(attributes);
+    return sftp_reply_names_add(message.get(), file.c_str(), longname.c_str(), &raw) == SSH_OK;
+}
+
+bool mp::PlainSftpMessage::reply_names()
+{
+    return sftp_reply_names(message.get()) == SSH_OK;
 }
 
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
