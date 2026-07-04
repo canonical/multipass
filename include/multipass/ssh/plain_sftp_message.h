@@ -118,9 +118,26 @@ public:
     bool reply_data(const void* data, size_t len) override;
 
     /**
+     * @copydoc SftpMessage::reply_name
+     */
+    bool reply_name(const std::string& name) override;
+
+    /**
      * @copydoc SftpMessage::reply_handle
      */
     bool reply_handle(void* id) override;
+
+    /**
+     * @copydoc SftpMessage::reply_names_add
+     */
+    bool reply_names_add(const std::string& file,
+                         const std::string& longname,
+                         const SftpAttributes& attributes) override;
+
+    /**
+     * @copydoc SftpMessage::reply_names
+     */
+    bool reply_names() override;
 
 private:
     struct RawMsgDeleter
