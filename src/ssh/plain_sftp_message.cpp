@@ -116,6 +116,7 @@ void mp::PlainSftpMessage::remove_handle() noexcept
 
 bool mp::PlainSftpMessage::reply_status(SftpStatus status, const std::string& msg)
 {
+    // TODO@C++23 Convert cast to std::to_underlying
     return sftp_reply_status(message.get(), static_cast<uint32_t>(status), msg.c_str()) == SSH_OK;
 }
 
