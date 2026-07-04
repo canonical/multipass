@@ -21,6 +21,23 @@
 
 namespace mp = multipass;
 
+namespace
+{
+sftp_attributes_struct to_raw_attributes(const mp::SftpAttributes& attributes) noexcept
+{
+    sftp_attributes_struct raw{};
+    raw.flags = attributes.flags;
+    raw.size = attributes.size;
+    raw.uid = attributes.uid;
+    raw.gid = attributes.gid;
+    raw.permissions = attributes.permissions;
+    raw.atime = attributes.atime;
+    raw.mtime = attributes.mtime;
+
+    return raw;
+}
+} // namespace
+
 mp::PlainSftpMessage::~PlainSftpMessage() = default;
 
 mp::PlainSftpMessage::PlainSftpMessage(sftp_client_message_struct& message) noexcept
@@ -91,6 +108,12 @@ void* mp::PlainSftpMessage::handle() const noexcept
 bool mp::PlainSftpMessage::reply_status(SftpStatus status, const std::string& msg)
 {
     return sftp_reply_status(message.get(), static_cast<uint32_t>(status), msg.c_str()) == SSH_OK;
+}
+
+bool mp::PlainSftpMessage::reply_attributes(const SftpAttributes& attributes)
+{
+    auto raw = to_raw_attributes(attributes);
+    return sftp_reply_attr(message.get(), &raw) == SSH_OK;
 }
 
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
