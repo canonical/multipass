@@ -68,14 +68,7 @@ public:
 
     std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && override;
 
-    /**
-     * @copydoc SSHSession::is_connected
-     */
     [[nodiscard]] bool is_connected() const override;
-
-    /**
-     * @copydoc SSHSession::is_moved
-     */
     [[nodiscard]] bool is_moved() const override;
 
     operator ssh_session() override; // TODO@sftp remove
