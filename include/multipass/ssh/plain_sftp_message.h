@@ -102,6 +102,11 @@ public:
      */
     bool reply_status(SftpStatus status, const std::string& message) override;
 
+    /**
+     * @copydoc SftpMessage::reply_attributes
+     */
+    bool reply_attributes(const SftpAttributes& attributes) override;
+
 private:
     struct RawMsgDeleter
     {

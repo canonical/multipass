@@ -114,6 +114,14 @@ public:
         return reply_status(status, {});
     }
 
+    /**
+     * Reply with file attributes (e.g. to stat requests).
+     *
+     * @param attributes Stat attributes to reply with
+     * @return True if the reply was successfully sent.
+     */
+    virtual bool reply_attributes(const SftpAttributes& attributes) = 0;
+
 protected:
     SftpMessage() = default;
 };
