@@ -126,7 +126,17 @@ def test_snapshot_verify(scenario):
     assert multipass("start", VM)
     assert path_exists(VM, recorded["base_only_path"]), "base-only data lost after restore"
     assert not path_exists(VM, recorded["child_only_path"]), "child-only data leaked into base"
-    assert _resources(VM) == recorded["base_resources"], "resources not restored to BASE"
+    current = _resources(VM)
+    expected = recorded["base_resources"]
+
+    # memory_total can wobble a few KB across kernels/versions
+    from cli.utilities.mathutils import is_within_tolerance
+
+    assert current["cpu_count"] == expected["cpu_count"], "cpu count not restored to BASE"
+    assert current["disk_total"] == expected["disk_total"], "disk size not restored to BASE"
+    assert is_within_tolerance(current["memory_total"], expected["memory_total"]), (
+        "memory not restored to BASE within tolerance"
+    )
 
     # FORK is a sibling of CHILD: restoring it shows fork data, not child data.
     assert multipass("stop", VM)
