@@ -57,7 +57,7 @@ public:
     uint32_t flags() const noexcept override;
     uint64_t offset() const noexcept override;
     uint32_t length() const noexcept override;
-    std::optional<SftpAttributes> attributes() const override;
+    std::optional<SftpAttributes> attributes() const noexcept override;
     void* handle() const noexcept override;
     void remove_handle() noexcept override;
 
