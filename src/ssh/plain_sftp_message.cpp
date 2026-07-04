@@ -28,6 +28,45 @@ mp::PlainSftpMessage::PlainSftpMessage(sftp_client_message_struct& message) noex
 {
 }
 
+mp::SftpMessageType mp::PlainSftpMessage::type() const noexcept
+{
+    return static_cast<SftpMessageType>(sftp_client_message_get_type(message.get()));
+}
+
+std::string_view mp::PlainSftpMessage::filename() const noexcept
+{
+    const auto* raw = sftp_client_message_get_filename(message.get());
+    return raw ? std::string_view{raw} : std::string_view{};
+}
+
+std::string_view mp::PlainSftpMessage::data() const noexcept
+{
+    if (auto* raw = message->data) // ssh_string carries a length, so this is binary safe
+        return {ssh_string_get_char(raw), ssh_string_len(raw)};
+
+    return {};
+}
+
+std::optional<std::string_view> mp::PlainSftpMessage::submessage() const noexcept
+{
+    const auto* raw = sftp_client_message_get_submessage(message.get());
+    return raw ? std::optional<std::string_view>{raw} : std::nullopt;
+}
+
+uint32_t mp::PlainSftpMessage::flags() const noexcept
+{
+    return sftp_client_message_get_flags(message.get());
+}
+
+uint64_t mp::PlainSftpMessage::offset() const noexcept
+{
+    return message->offset;
+}
+
+uint32_t mp::PlainSftpMessage::length() const noexcept
+{
+    return message->len;
+}
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
 {
     sftp_client_message_free(msg);
