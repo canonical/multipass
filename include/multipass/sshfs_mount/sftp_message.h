@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace multipass
@@ -28,8 +29,10 @@ namespace multipass
 
 /**
  * A unit of communication exchange between an SFTP client and an SFTP server, in either direction.
+ *
+ * Provides access to the client request along with methods to reply.
  */
-class SftpMessage
+class SftpMessage // TODO@sftp check if there is anythign unused at in the end
 {
 public:
     virtual ~SftpMessage() = default;
@@ -89,6 +92,27 @@ public:
      * absent or unknown.
      */
     virtual void* handle() const noexcept = 0;
+
+    /**
+     * Reply with a status code.
+     *
+     * @param status The status code to reply with.
+     * @param message A human-readable complement to the status code.
+     * @return True if the reply was successfully sent.
+     */
+    virtual bool reply_status(SftpStatus status, const std::string& message) = 0;
+
+    /**
+     * @copybrief reply_status(SftpStatus, const std::string&)
+     * Overload replying with a status code alone.
+     *
+     * @param status The status code to reply with.
+     * @return True if the reply was successfully sent.
+     */
+    bool reply_status(SftpStatus status)
+    {
+        return reply_status(status, {});
+    }
 
 protected:
     SftpMessage() = default;

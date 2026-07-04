@@ -95,6 +95,13 @@ public:
      */
     void* handle() const noexcept override;
 
+    using SftpMessage::reply_status;
+
+    /**
+     * @copydoc SftpMessage::reply_status(SftpStatus, const std::string&)
+     */
+    bool reply_status(SftpStatus status, const std::string& message) override;
+
 private:
     struct RawMsgDeleter
     {

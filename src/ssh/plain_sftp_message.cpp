@@ -88,6 +88,11 @@ void* mp::PlainSftpMessage::handle() const noexcept
     return sftp_handle(message->sftp, message->handle);
 }
 
+bool mp::PlainSftpMessage::reply_status(SftpStatus status, const std::string& msg)
+{
+    return sftp_reply_status(message.get(), static_cast<uint32_t>(status), msg.c_str()) == SSH_OK;
+}
+
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
 {
     sftp_client_message_free(msg);
