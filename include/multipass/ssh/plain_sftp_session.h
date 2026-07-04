@@ -61,9 +61,6 @@ public:
      */
     void request_stop() noexcept override;
 
-    /**
-     * @copydoc SftpSession::next_message
-     */
     std::unique_ptr<SftpMessage> next_message() override;
 
 private:

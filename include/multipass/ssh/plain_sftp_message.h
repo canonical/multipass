@@ -50,93 +50,26 @@ public:
     PlainSftpMessage(PlainSftpMessage&&) = delete;
     PlainSftpMessage& operator=(PlainSftpMessage&&) = delete;
 
-    /**
-     * @copydoc SftpMessage::type
-     */
     SftpMessageType type() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::filename
-     */
     std::string_view filename() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::data
-     */
     std::string_view data() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::submessage
-     */
     std::optional<std::string_view> submessage() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::flags
-     */
     uint32_t flags() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::offset
-     */
     uint64_t offset() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::length
-     */
     uint32_t length() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::attributes
-     */
     std::optional<SftpAttributes> attributes() const override;
-
-    /**
-     * @copydoc SftpMessage::handle
-     */
     void* handle() const noexcept override;
-
-    /**
-     * @copydoc SftpMessage::remove_handle
-     */
     void remove_handle() noexcept override;
 
     using SftpMessage::reply_status;
-
-    /**
-     * @copydoc SftpMessage::reply_status(SftpStatus, const std::string&)
-     */
     bool reply_status(SftpStatus status, const std::string& message) override;
-
-    /**
-     * @copydoc SftpMessage::reply_attributes
-     */
     bool reply_attributes(const SftpAttributes& attributes) override;
-
-    /**
-     * @copydoc SftpMessage::reply_data
-     */
     bool reply_data(const void* data, size_t len) override;
-
-    /**
-     * @copydoc SftpMessage::reply_name
-     */
     bool reply_name(const std::string& name) override;
-
-    /**
-     * @copydoc SftpMessage::reply_handle
-     */
     bool reply_handle(void* id) override;
-
-    /**
-     * @copydoc SftpMessage::reply_names_add
-     */
     bool reply_names_add(const std::string& file,
                          const std::string& longname,
                          const SftpAttributes& attributes) override;
-
-    /**
-     * @copydoc SftpMessage::reply_names
-     */
     bool reply_names() override;
 
 private:
