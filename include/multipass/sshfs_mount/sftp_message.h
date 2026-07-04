@@ -82,6 +82,14 @@ public:
      */
     virtual std::optional<SftpAttributes> attributes() const = 0;
 
+    /**
+     * Resolve the protocol handle carried by the request (e.g. by read/write/close requests).
+     *
+     * @return The native handle that #reply_handle registered; nullptr if the request's handle is
+     * absent or unknown.
+     */
+    virtual void* handle() const noexcept = 0;
+
 protected:
     SftpMessage() = default;
 };

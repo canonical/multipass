@@ -83,6 +83,11 @@ std::optional<mp::SftpAttributes> mp::PlainSftpMessage::attributes() const
                           raw->mtime};
 }
 
+void* mp::PlainSftpMessage::handle() const noexcept
+{
+    return sftp_handle(message->sftp, message->handle);
+}
+
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
 {
     sftp_client_message_free(msg);
