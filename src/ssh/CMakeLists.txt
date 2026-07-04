@@ -40,6 +40,7 @@ function(add_ssh_target TARGET_NAME LIBSSH_TARGET)
     plain_sftp_session.cpp
     plain_ssh_process.cpp
     plain_ssh_session.cpp
+    sftp_wire_compat.cpp
     ssh_client_key_provider.cpp)
 
   # TODO@sftp move remaining bits to MP_LIBSSH, then this should not be necessary
