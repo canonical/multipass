@@ -23,6 +23,7 @@ function(add_ssh_target TARGET_NAME)
     plain_sftp_session.cpp
     plain_ssh_process.cpp
     plain_ssh_session.cpp
+    sftp_wire_compat.cpp
     ssh_client_key_provider.cpp)
 
   target_link_libraries(${TARGET_NAME}
