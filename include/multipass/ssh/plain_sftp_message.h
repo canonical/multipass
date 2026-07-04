@@ -90,6 +90,11 @@ public:
      */
     std::optional<SftpAttributes> attributes() const override;
 
+    /**
+     * @copydoc SftpMessage::handle
+     */
+    void* handle() const noexcept override;
+
 private:
     struct RawMsgDeleter
     {
