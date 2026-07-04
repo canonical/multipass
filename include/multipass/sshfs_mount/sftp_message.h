@@ -83,7 +83,7 @@ public:
     /**
      * @return The file attributes carried by the request; nullopt if it carries none.
      */
-    virtual std::optional<SftpAttributes> attributes() const = 0;
+    virtual std::optional<SftpAttributes> attributes() const noexcept = 0;
 
     /**
      * Resolve the protocol handle carried by the request (e.g. by read/write/close requests).
