@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/sshfs_mount/sftp_client_message.h>
+#include <multipass/sshfs_mount/sftp_message.h>
 
 #include <memory>
 
