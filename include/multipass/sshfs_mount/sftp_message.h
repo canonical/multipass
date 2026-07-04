@@ -77,6 +77,11 @@ public:
      */
     virtual uint32_t length() const noexcept = 0;
 
+    /**
+     * @return The file attributes carried by the request; nullopt if it carries none.
+     */
+    virtual std::optional<SftpAttributes> attributes() const = 0;
+
 protected:
     SftpMessage() = default;
 };
