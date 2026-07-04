@@ -19,6 +19,9 @@
 
 #include <libssh/sftp.h>
 
+#include <cassert>
+#include <limits>
+
 namespace mp = multipass;
 
 namespace
@@ -114,6 +117,13 @@ bool mp::PlainSftpMessage::reply_attributes(const SftpAttributes& attributes)
 {
     auto raw = to_raw_attributes(attributes);
     return sftp_reply_attr(message.get(), &raw) == SSH_OK;
+}
+
+bool mp::PlainSftpMessage::reply_data(const void* data, size_t len)
+{
+    assert(len <= static_cast<size_t>(std::numeric_limits<int>::max()) &&
+           "data replies are bounded by packet size");
+    return sftp_reply_data(message.get(), data, static_cast<int>(len)) == SSH_OK;
 }
 
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
