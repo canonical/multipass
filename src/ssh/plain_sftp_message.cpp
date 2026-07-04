@@ -108,6 +108,12 @@ void* mp::PlainSftpMessage::handle() const noexcept
     return sftp_handle(message->sftp, message->handle);
 }
 
+void mp::PlainSftpMessage::remove_handle() noexcept
+{
+    if (auto* id = handle())
+        sftp_handle_remove(message->sftp, id);
+}
+
 bool mp::PlainSftpMessage::reply_status(SftpStatus status, const std::string& msg)
 {
     return sftp_reply_status(message.get(), static_cast<uint32_t>(status), msg.c_str()) == SSH_OK;
@@ -124,6 +130,18 @@ bool mp::PlainSftpMessage::reply_data(const void* data, size_t len)
     assert(len <= static_cast<size_t>(std::numeric_limits<int>::max()) &&
            "data replies are bounded by packet size");
     return sftp_reply_data(message.get(), data, static_cast<int>(len)) == SSH_OK;
+}
+
+bool mp::PlainSftpMessage::reply_handle(void* id)
+{
+    using Del = decltype([](ssh_string_struct* handle) noexcept { ssh_string_free(handle); });
+    using RawHandleUptr = std::unique_ptr<ssh_string_struct, Del>;
+
+    const RawHandleUptr raw_handle{sftp_handle_alloc(message->sftp, id)};
+    if (!raw_handle)
+        return false;
+
+    return sftp_reply_handle(message.get(), raw_handle.get()) == SSH_OK;
 }
 
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
