@@ -28,7 +28,7 @@ skipped on macOS where no isolated ephemeral network can be created. Seed
 attaches a VM and records the MACs; verify resumes the VM and checks the same
 MACs are still reported. ``mode=manual`` keeps the guest from DHCP-ing on it.
 The bridged case points ``local.bridged-network`` at the same host network. The
-suspend pair is skipped where suspend/resume isn't kept.
+suspend pair is skipped where suspend/resume isn't kept."""
 
 import pytest
 
