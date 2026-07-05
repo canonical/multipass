@@ -50,7 +50,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     HCSVirtualMachine(const std::string& network_guid,
                       const VirtualMachineDescription& desc,
                       VMStatusMonitor& monitor,
-                      const SSHKeyProvider& key_provider,
+                      std::shared_ptr<SSHKeyProvider> key_provider,
                       AvailabilityZone& zone,
                       const Path& instance_dir);
 
@@ -58,7 +58,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       const multipass::VMSpecs& src_vm_specs,
                       const VirtualMachineDescription& desc,
                       VMStatusMonitor& monitor,
-                      const SSHKeyProvider& key_provider,
+                      std::shared_ptr<SSHKeyProvider> key_provider,
                       AvailabilityZone& zone,
                       const Path& dest_instance_dir);
 

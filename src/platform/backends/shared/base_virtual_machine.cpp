@@ -95,7 +95,7 @@ mpu::TimeoutAction log_and_retry(const ExceptionT& e,
 } // namespace
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
-                                           const SSHKeyProvider& key_provider,
+                                           std::shared_ptr<SSHKeyProvider> key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
     : vm_name{vm_name}, key_provider{key_provider}, zone{zone}, instance_dir{instance_dir}
@@ -105,7 +105,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
 
 mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            const std::string& vm_name,
-                                           const SSHKeyProvider& key_provider,
+                                           std::shared_ptr<SSHKeyProvider> key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
     : VirtualMachine{state},
@@ -300,7 +300,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
     return std::make_unique<PlainSSHSession>(ssh_hostname(),
                                              ssh_port(),
                                              ssh_username(),
-                                             key_provider);
+                                             *key_provider);
 }
 
 bool multipass::BaseVirtualMachine::unplugged()
@@ -921,8 +921,10 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    auto new_session =
-        std::make_unique<PlainSSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    auto new_session = std::make_unique<PlainSSHSession>(ssh_hostname(),
+                                                         ssh_port(),
+                                                         ssh_username(),
+                                                         *key_provider);
 
     std::lock_guard lock{state_mutex};
     ssh_session = std::move(new_session);

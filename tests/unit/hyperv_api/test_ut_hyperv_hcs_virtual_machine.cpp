@@ -81,7 +81,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                                        {},
                                        {}};
 
-    mpt::StubSSHKeyProvider stub_key_provider{};
+    std::shared_ptr<mpt::StubSSHKeyProvider> stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
 
     mpt::MockHCSWrapper::GuardedMock mock_hcs_wrapper_injection =

@@ -96,7 +96,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     const std::string tap_device{"tapfoo"};
     const QString bridge_name{"dummy-bridge"};
     const std::string subnet{"192.168.64"};
-    mpt::StubSSHKeyProvider key_provider{};
+    std::shared_ptr<mpt::StubSSHKeyProvider> key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
     mpt::StubAvailabilityZoneManager az_manager{};
     mpt::StubAvailabilityZone zone{};

@@ -130,7 +130,7 @@ mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(
 
 auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(
     const VirtualMachineDescription& desc,
-    const SSHKeyProvider& key_provider,
+    std::shared_ptr<SSHKeyProvider> key_provider,
     VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
 {
     return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
@@ -279,7 +279,7 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
     const multipass::VMSpecs& /*src_spec*/,
     const VirtualMachineDescription& dest_vm_desc,
     VMStatusMonitor& monitor,
-    const SSHKeyProvider& key_provider)
+    std::shared_ptr<SSHKeyProvider> key_provider)
 {
     return std::make_unique<mp::VirtualBoxVirtualMachine>(
         src_name,

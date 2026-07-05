@@ -41,7 +41,7 @@ public:
                                        const std::string& src_name,
                                        const std::string& dest_name,
                                        const VMImage& dest_image,
-                                       const SSHKeyProvider& key_provider,
+                                       std::shared_ptr<SSHKeyProvider> key_provider,
                                        VMStatusMonitor& monitor) override final;
 
     void remove_resources_for(const std::string& name) final;
@@ -98,7 +98,7 @@ private:
                                                const multipass::VMSpecs& src_vm_specs,
                                                const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
-                                               const SSHKeyProvider& key_provider);
+                                               std::shared_ptr<SSHKeyProvider> key_provider);
     static void copy_instance_dir_with_essential_files(const fs::path& source_instance_dir_path,
                                                        const fs::path& dest_instance_dir_path);
 
@@ -119,7 +119,7 @@ inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clo
     const VMSpecs&,
     const VirtualMachineDescription&,
     VMStatusMonitor&,
-    const SSHKeyProvider&)
+    std::shared_ptr<SSHKeyProvider>)
 {
     throw NotImplementedOnThisBackendException{"clone"};
 }

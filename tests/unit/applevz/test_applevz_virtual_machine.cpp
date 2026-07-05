@@ -60,7 +60,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
-    mpt::StubSSHKeyProvider stub_key_provider{};
+    std::shared_ptr<mpt::StubSSHKeyProvider> stub_key_provider{};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     mpt::StubAvailabilityZoneManager az_manager{};

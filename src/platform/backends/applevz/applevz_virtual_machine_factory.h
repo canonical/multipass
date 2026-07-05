@@ -29,9 +29,10 @@ public:
     explicit AppleVZVirtualMachineFactory(const Path& data_dir,
                                           AvailabilityZoneManager& az_manager);
 
-    [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                              const SSHKeyProvider& key_provider,
-                                                              VMStatusMonitor& monitor) override;
+    [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(
+        const VirtualMachineDescription& desc,
+        std::shared_ptr<SSHKeyProvider> key_provider,
+        VMStatusMonitor& monitor) override;
 
     [[nodiscard]] VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
@@ -59,6 +60,6 @@ private:
                                        const multipass::VMSpecs& src_vm_specs,
                                        const VirtualMachineDescription& desc,
                                        VMStatusMonitor& monitor,
-                                       const SSHKeyProvider& key_provider) override;
+                                       std::shared_ptr<SSHKeyProvider> key_provider) override;
 };
 } // namespace multipass::applevz

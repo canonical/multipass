@@ -47,7 +47,7 @@ struct AppleVZVirtualMachineFactory_UnitTests : public ::testing::Test
 {
     mpt::TempDir dummy_data_dir;
     mpt::StubAvailabilityZoneManager stub_az_manager{};
-    mpt::StubSSHKeyProvider stub_key_provider{};
+    std::shared_ptr<mpt::StubSSHKeyProvider> stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();

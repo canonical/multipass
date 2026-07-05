@@ -48,7 +48,7 @@ struct DaemonConfig
     const std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     const std::unique_ptr<VMImageVault> vault;
     const std::unique_ptr<NameGenerator> name_generator;
-    const std::unique_ptr<SSHKeyProvider> ssh_key_provider;
+    const std::shared_ptr<SSHKeyProvider> ssh_key_provider;
     const std::unique_ptr<CertProvider> cert_provider;
     const std::unique_ptr<CertStore> client_cert_store;
     const std::unique_ptr<UpdatePrompt> update_prompt;
@@ -69,7 +69,7 @@ struct DaemonConfigBuilder
     std::vector<std::unique_ptr<VMImageHost>> image_hosts;
     std::unique_ptr<VMImageVault> vault;
     std::unique_ptr<NameGenerator> name_generator;
-    std::unique_ptr<SSHKeyProvider> ssh_key_provider;
+    std::shared_ptr<SSHKeyProvider> ssh_key_provider;
     std::unique_ptr<CertProvider> cert_provider;
     std::unique_ptr<CertStore> client_cert_store;
     std::unique_ptr<UpdatePrompt> update_prompt;

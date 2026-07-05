@@ -43,7 +43,7 @@ struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
     explicit MockQemuVirtualMachine(const std::string& name, mp::AvailabilityZone& zone)
         : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{
               name,
-              mpt::StubSSHKeyProvider{},
+              std::shared_ptr<mpt::StubSSHKeyProvider>{},
               zone,
           }
     {
@@ -144,7 +144,7 @@ struct QemuMountHandlerTest : public ::Test
         expect_ssh_aux<false>(session, cmd, std::move(output));
     }
 
-    mpt::StubSSHKeyProvider key_provider;
+    std::shared_ptr<mp::SSHKeyProvider> key_provider;
     std::string default_source{"source"}, default_target{"target"};
     mp::id_mappings gid_mappings{{1, 2}}, uid_mappings{{5, 6}};
     mp::VMMount mount{default_source, gid_mappings, uid_mappings, mp::VMMount::MountType::Native};
@@ -168,7 +168,7 @@ struct QemuMountHandlerFailCommand : public QemuMountHandlerTest,
 TEST_F(QemuMountHandlerTest, mountFailsWhenVmNotStopped)
 {
     EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
-    MP_EXPECT_THROW_THAT(mp::QemuMountHandler(&vm, &key_provider, default_target, mount),
+    MP_EXPECT_THROW_THAT(mp::QemuMountHandler(&vm, key_provider.get(), default_target, mount),
                          mp::NativeMountNeedsStoppedVMException,
                          mpt::match_what(AllOf(HasSubstr("Please stop the instance"),
                                                HasSubstr("before attempting native mounts."))));
@@ -180,7 +180,7 @@ TEST_F(QemuMountHandlerTest, mountFailsOnMultipleIdMappings)
                             {{1, 2}, {3, 4}},
                             {{5, -1}, {6, 10}},
                             mp::VMMount::MountType::Native};
-    MP_EXPECT_THROW_THAT(mp::QemuMountHandler(&vm, &key_provider, default_target, mount),
+    MP_EXPECT_THROW_THAT(mp::QemuMountHandler(&vm, key_provider.get(), default_target, mount),
                          std::runtime_error,
                          mpt::match_what(StrEq("Only one mapping per native mount allowed.")));
 }
@@ -189,9 +189,10 @@ TEST_F(QemuMountHandlerTest, mountHandlesMountArgs)
 {
     {
         mp::MountHandler::UPtr mount_handler;
-        EXPECT_NO_THROW(
-            mount_handler =
-                std::make_unique<mp::QemuMountHandler>(&vm, &key_provider, default_target, mount));
+        EXPECT_NO_THROW(mount_handler = std::make_unique<mp::QemuMountHandler>(&vm,
+                                                                               key_provider.get(),
+                                                                               default_target,
+                                                                               mount));
         EXPECT_EQ(mount_args.size(), 1);
         const auto uid_arg = QString("uid_map=%1:%2,")
                                  .arg(uid_mappings.front().first)
@@ -217,7 +218,7 @@ TEST_F(QemuMountHandlerTest, mountLogsInit)
                                                      mount.get_source_path(),
                                                      default_target,
                                                      vm.get_name()));
-    EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
+    EXPECT_NO_THROW(mp::QemuMountHandler(&vm, key_provider.get(), default_target, mount));
 }
 
 TEST_F(QemuMountHandlerTest, recoverFromSuspended)
@@ -230,7 +231,7 @@ TEST_F(QemuMountHandlerTest, recoverFromSuspended)
                     mount.get_source_path(),
                     default_target,
                     vm.get_name()));
-    EXPECT_NO_THROW(mp::QemuMountHandler(&vm, &key_provider, default_target, mount));
+    EXPECT_NO_THROW(mp::QemuMountHandler(&vm, key_provider.get(), default_target, mount));
 }
 
 TEST_F(QemuMountHandlerTest, startSuccessStopSuccess)
@@ -245,7 +246,7 @@ TEST_F(QemuMountHandlerTest, startSuccessStopSuccess)
 
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+    mp::QemuMountHandler handler{&vm, key_provider.get(), default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
     EXPECT_NO_THROW(handler.deactivate());
 }
@@ -261,7 +262,7 @@ TEST_F(QemuMountHandlerTest, stopFailNonforceThrows)
 
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+    mp::QemuMountHandler handler{&vm, key_provider.get(), default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
 
     EXPECT_CALL(vm, ssh_exec(command_umount(default_target), false))
@@ -281,7 +282,7 @@ TEST_F(QemuMountHandlerTest, stopFailForceLogs)
 
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+    mp::QemuMountHandler handler{&vm, key_provider.get(), default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
 
     EXPECT_CALL(vm, ssh_exec(command_umount(default_target), false))
@@ -315,7 +316,7 @@ TEST_F(QemuMountHandlerTest, targetDirectoryMissing)
 
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+    mp::QemuMountHandler handler{&vm, key_provider.get(), default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
 }
 
@@ -365,7 +366,7 @@ TEST_P(QemuMountHandlerFailCommand, throwOnFail)
 
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+    mp::QemuMountHandler handler{&vm, key_provider.get(), default_target, mount};
     MP_EXPECT_THROW_THAT(handler.activate(&server),
                          std::runtime_error,
                          mpt::match_what(StrEq(error)));

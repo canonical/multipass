@@ -96,7 +96,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
     const std::string& src_name,
     const std::string& dest_name,
     const VMImage& dest_image,
-    const multipass::SSHKeyProvider& key_provider,
+    std::shared_ptr<SSHKeyProvider> key_provider,
     VMStatusMonitor& monitor)
 {
     const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};

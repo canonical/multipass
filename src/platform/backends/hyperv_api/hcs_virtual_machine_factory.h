@@ -30,9 +30,10 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 
     HCSVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
 
-    [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                              const SSHKeyProvider& key_provider,
-                                                              VMStatusMonitor& monitor) override;
+    [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(
+        const VirtualMachineDescription& desc,
+        std::shared_ptr<SSHKeyProvider> key_provider,
+        VMStatusMonitor& monitor) override;
 
     [[nodiscard]] VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
@@ -51,11 +52,12 @@ protected:
     void remove_resources_for_impl(const std::string& name) override;
 
 private:
-    [[nodiscard]] VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
-                                                     const multipass::VMSpecs& src_vm_specs,
-                                                     const VirtualMachineDescription& desc,
-                                                     VMStatusMonitor& monitor,
-                                                     const SSHKeyProvider& key_provider) override;
+    [[nodiscard]] VirtualMachine::UPtr clone_vm_impl(
+        const std::string& source_vm_name,
+        const multipass::VMSpecs& src_vm_specs,
+        const VirtualMachineDescription& desc,
+        VMStatusMonitor& monitor,
+        std::shared_ptr<SSHKeyProvider> key_provider) override;
     /**
      * Retrieve a list of available network adapters.
      */

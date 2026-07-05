@@ -28,7 +28,7 @@ public:
                                              AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                const SSHKeyProvider& key_provider,
+                                                std::shared_ptr<SSHKeyProvider> key_provider,
                                                 VMStatusMonitor& monitor) override;
 
     void prepare_networking(std::vector<NetworkInterface>& vector) override;
@@ -54,6 +54,6 @@ private:
                                        const multipass::VMSpecs& src_vm_specs,
                                        const VirtualMachineDescription& desc,
                                        VMStatusMonitor& monitor,
-                                       const SSHKeyProvider& key_provider) override;
+                                       std::shared_ptr<SSHKeyProvider> key_provider) override;
 };
 } // namespace multipass

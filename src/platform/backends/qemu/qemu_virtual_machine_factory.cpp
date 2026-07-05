@@ -58,7 +58,7 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu
 
 mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
     const VirtualMachineDescription& desc,
-    const SSHKeyProvider& key_provider,
+    std::shared_ptr<SSHKeyProvider> key_provider,
     VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
@@ -174,7 +174,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
     const multipass::VMSpecs& /*src_vm_specs*/,
     const VirtualMachineDescription& desc,
     VMStatusMonitor& monitor,
-    const SSHKeyProvider& key_provider)
+    std::shared_ptr<SSHKeyProvider> key_provider)
 {
     return std::make_unique<mp::QemuVirtualMachine>(desc,
                                                     qemu_platform.get(),

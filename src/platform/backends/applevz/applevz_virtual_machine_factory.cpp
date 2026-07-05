@@ -34,7 +34,7 @@ AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir,
 
 VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
     const VirtualMachineDescription& desc,
-    const SSHKeyProvider& key_provider,
+    std::shared_ptr<SSHKeyProvider> key_provider,
     VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
@@ -85,7 +85,7 @@ VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
     const mp::VMSpecs& /*src_vm_specs*/,
     const VirtualMachineDescription& desc,
     VMStatusMonitor& monitor,
-    const SSHKeyProvider& key_provider)
+    std::shared_ptr<SSHKeyProvider> key_provider)
 {
     return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
         desc,

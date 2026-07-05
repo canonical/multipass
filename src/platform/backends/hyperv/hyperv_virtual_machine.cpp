@@ -147,7 +147,7 @@ fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
-                                               const SSHKeyProvider& key_provider,
+                                               std::shared_ptr<SSHKeyProvider> key_provider,
                                                AvailabilityZone& zone,
                                                const mp::Path& instance_dir)
     : HyperVVirtualMachine{desc, monitor, key_provider, zone, instance_dir, true}
@@ -202,7 +202,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
                                                const VMSpecs& src_vm_specs,
                                                const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
-                                               const SSHKeyProvider& key_provider,
+                                               std::shared_ptr<SSHKeyProvider> key_provider,
                                                AvailabilityZone& zone,
                                                const Path& dest_instance_dir)
     : HyperVVirtualMachine{desc, monitor, key_provider, zone, dest_instance_dir, true}
@@ -267,7 +267,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
-                                               const SSHKeyProvider& key_provider,
+                                               std::shared_ptr<SSHKeyProvider> key_provider,
                                                AvailabilityZone& zone,
                                                const Path& instance_dir,
                                                bool /*is_internal*/)
@@ -465,7 +465,7 @@ std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
     // guarantee constness; b) we endure the penalty of creating a new session only when we
     // don't have the IP yet.
     if (!management_ip)
-        management_ip = remote_ip(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+        management_ip = remote_ip(ssh_hostname(), ssh_port(), ssh_username(), *key_provider);
 
     return management_ip;
 }
@@ -518,7 +518,7 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(
 {
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
-                                             &key_provider,
+                                             key_provider.get(),
                                              target,
                                              mount,
                                              instance_dir.absolutePath(),

@@ -221,7 +221,7 @@ QStringList extract_snapshot_tags(const QByteArray& snapshot_list_output_stream)
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
                                            QemuPlatform* qemu_platform,
                                            VMStatusMonitor& monitor,
-                                           const SSHKeyProvider& key_provider,
+                                           std::shared_ptr<SSHKeyProvider> key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir,
                                            bool remove_snapshots)
@@ -741,7 +741,7 @@ void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backe
 mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                          const VMMount& mount)
 {
-    return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
+    return std::make_unique<QemuMountHandler>(this, key_provider.get(), target, mount);
 }
 
 void mp::QemuVirtualMachine::remove_snapshots_from_backend() const

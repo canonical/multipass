@@ -78,7 +78,7 @@ HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
 
 VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const VirtualMachineDescription& desc,
-    const SSHKeyProvider& key_provider,
+    std::shared_ptr<SSHKeyProvider> key_provider,
     VMStatusMonitor& monitor)
 {
     return std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
@@ -226,11 +226,12 @@ std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceI
                                 create_network_result};
 }
 
-VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& source_vm_name,
-                                                             const multipass::VMSpecs& src_vm_specs,
-                                                             const VirtualMachineDescription& desc,
-                                                             VMStatusMonitor& monitor,
-                                                             const SSHKeyProvider& key_provider)
+VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(
+    const std::string& source_vm_name,
+    const multipass::VMSpecs& src_vm_specs,
+    const VirtualMachineDescription& desc,
+    VMStatusMonitor& monitor,
+    std::shared_ptr<SSHKeyProvider> key_provider)
 {
 
     const fs::path src_vm_instance_dir{get_instance_directory(source_vm_name).toStdWString()};

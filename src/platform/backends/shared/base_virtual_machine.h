@@ -40,11 +40,11 @@ class BaseVirtualMachine : public VirtualMachine
 public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
-                       const SSHKeyProvider& key_provider,
+                       std::shared_ptr<SSHKeyProvider> key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
-                       const SSHKeyProvider& key_provider,
+                       std::shared_ptr<SSHKeyProvider> key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
     ~BaseVirtualMachine();
@@ -188,7 +188,7 @@ private:
 
 protected:
     const std::string vm_name;
-    const SSHKeyProvider& key_provider;
+    std::shared_ptr<SSHKeyProvider> key_provider;
     AvailabilityZone& zone;
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;

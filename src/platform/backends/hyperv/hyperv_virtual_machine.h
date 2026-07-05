@@ -41,7 +41,7 @@ class HyperVVirtualMachine final : public BaseVirtualMachine
 public:
     HyperVVirtualMachine(const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
-                         const SSHKeyProvider& key_provider,
+                         std::shared_ptr<SSHKeyProvider> key_provider,
                          AvailabilityZone& zone,
                          const Path& instance_dir);
     // Contruct the vm based on the source virtual machine
@@ -49,7 +49,7 @@ public:
                          const multipass::VMSpecs& src_vm_specs,
                          const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
-                         const SSHKeyProvider& key_provider,
+                         std::shared_ptr<SSHKeyProvider> key_provider,
                          AvailabilityZone& zone,
                          const Path& dest_instance_dir);
     ~HyperVVirtualMachine();
@@ -82,7 +82,7 @@ protected:
 private:
     HyperVVirtualMachine(const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
-                         const SSHKeyProvider& key_provider,
+                         std::shared_ptr<SSHKeyProvider> key_provider,
                          AvailabilityZone& zone,
                          const Path& instance_dir,
                          bool is_internal); // is_internal is a dummy parameter to differentiate

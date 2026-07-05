@@ -51,7 +51,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
     MOCK_METHOD(mp::VirtualMachine::UPtr,
                 create_virtual_machine,
                 (const mp::VirtualMachineDescription&,
-                 const mp::SSHKeyProvider&,
+                 std::shared_ptr<mp::SSHKeyProvider>,
                  mp::VMStatusMonitor&),
                 (override));
     MOCK_METHOD(mp::VMImage, prepare_source_image, (const mp::VMImage&), (override));

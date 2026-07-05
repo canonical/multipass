@@ -44,15 +44,16 @@ class VirtualMachineFactory : private DisabledCopyMove
 public:
     using UPtr = std::unique_ptr<VirtualMachineFactory>;
     virtual ~VirtualMachineFactory() = default;
-    virtual VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                        const SSHKeyProvider& key_provider,
-                                                        VMStatusMonitor& monitor) = 0;
+    virtual VirtualMachine::UPtr create_virtual_machine(
+        const VirtualMachineDescription& desc,
+        std::shared_ptr<SSHKeyProvider> key_provider,
+        VMStatusMonitor& monitor) = 0;
     virtual VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
                                                const VMSpecs& dest_spec,
                                                const std::string& src_name,
                                                const std::string& dest_name,
                                                const VMImage& dest_image,
-                                               const SSHKeyProvider& key_provider,
+                                               std::shared_ptr<SSHKeyProvider> key_provider,
                                                VMStatusMonitor& monitor) = 0;
 
     /** Removes any resources associated with a VM of the given name.

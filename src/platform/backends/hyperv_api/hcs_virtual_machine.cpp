@@ -200,7 +200,7 @@ namespace multipass::hyperv
 HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      const VirtualMachineDescription& desc,
                                      class VMStatusMonitor& monitor,
-                                     const SSHKeyProvider& key_provider,
+                                     std::shared_ptr<SSHKeyProvider> key_provider,
                                      AvailabilityZone& zone,
                                      const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
@@ -690,7 +690,7 @@ HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VM
 
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
-                                             &key_provider,
+                                             key_provider.get(),
                                              target,
                                              mount,
                                              instance_dir.absolutePath(),

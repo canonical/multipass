@@ -197,7 +197,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (server_address.empty())
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)
-        ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
+        ssh_key_provider = std::make_shared<OpenSSHKeyProvider>(data_directory);
     if (client_cert_store == nullptr)
         client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
     if (ssh_username.empty())

@@ -93,7 +93,7 @@ struct TestQemuSnapshot : public Test
         return ret;
     }();
 
-    mpt::StubSSHKeyProvider key_provider{};
+    std::shared_ptr<mpt::StubSSHKeyProvider> key_provider{};
     mpt::StubAvailabilityZone zone{};
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider, zone};
     ArgsMatcher list_args_matcher =

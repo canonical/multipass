@@ -280,7 +280,7 @@ mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& dat
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine(
     const VirtualMachineDescription& desc,
-    const SSHKeyProvider& key_provider,
+    std::shared_ptr<SSHKeyProvider> key_provider,
     VMStatusMonitor& monitor)
 {
     return std::make_unique<mp::HyperVVirtualMachine>(desc,
@@ -475,7 +475,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
     const multipass::VMSpecs& src_spec,
     const VirtualMachineDescription& dest_vm_desc,
     VMStatusMonitor& monitor,
-    const SSHKeyProvider& key_provider)
+    std::shared_ptr<SSHKeyProvider> key_provider)
 {
     return std::make_unique<mp::HyperVVirtualMachine>(src_name,
                                                       src_spec,

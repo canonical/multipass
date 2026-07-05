@@ -1370,8 +1370,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        auto instance = instance_record[name] =
-            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
+        auto instance = instance_record[name] = config->factory->create_virtual_machine(
+            vm_desc,
+            config->ssh_key_provider,
+            *this);
         instance->load_snapshots();
 
         // Add the new macs to the daemon's list only if we got this far
@@ -2805,14 +2807,14 @@ try
         // Specs need to be in place before the factory can create the VM
         // Notice that we are passing `this`, which can be used to retrieve further info
         vm_instance_specs.emplace(destination_name, dest_spec);
-        operative_instances[destination_name] =
-            config->factory->clone_bare_vm(src_spec,
-                                           dest_spec,
-                                           source_name,
-                                           destination_name,
-                                           dest_vm_image,
-                                           *config->ssh_key_provider,
-                                           *this);
+        operative_instances[destination_name] = config->factory->clone_bare_vm(
+            src_spec,
+            dest_spec,
+            source_name,
+            destination_name,
+            dest_vm_image,
+            config->ssh_key_provider,
+            *this);
         ++src_spec.clone_count;
         // preparing instance is done
         preparing_instances.erase(destination_name);
@@ -3106,10 +3108,10 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  0,
                                  vm_desc.zone,
                              };
-                             operative_instances[name] =
-                                 config->factory->create_virtual_machine(vm_desc,
-                                                                         *config->ssh_key_provider,
-                                                                         *this);
+                             operative_instances[name] = config->factory->create_virtual_machine(
+                                 vm_desc,
+                                 config->ssh_key_provider,
+                                 *this);
                              preparing_instances.erase(name);
 
                              persist_instances();

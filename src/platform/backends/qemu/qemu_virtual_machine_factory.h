@@ -33,7 +33,7 @@ public:
     explicit QemuVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
-                                                const SSHKeyProvider& key_provider,
+                                                std::shared_ptr<SSHKeyProvider> key_provider,
                                                 VMStatusMonitor& monitor) override;
     VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
@@ -56,7 +56,7 @@ private:
                                        const multipass::VMSpecs& src_vm_specs,
                                        const VirtualMachineDescription& desc,
                                        VMStatusMonitor& monitor,
-                                       const SSHKeyProvider& key_provider) override;
+                                       std::shared_ptr<SSHKeyProvider> key_provider) override;
 
     QemuPlatform::UPtr qemu_platform;
 };

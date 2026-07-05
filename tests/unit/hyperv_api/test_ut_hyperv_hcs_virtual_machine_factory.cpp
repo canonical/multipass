@@ -46,7 +46,7 @@ using namespace testing;
 struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
 {
     mpt::TempDir dummy_data_dir;
-    mpt::StubSSHKeyProvider stub_key_provider{};
+    std::shared_ptr<mpt::StubSSHKeyProvider> stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
     mpt::StubAvailabilityZoneManager az_manager{};
 

@@ -141,7 +141,8 @@ struct HyperVBackend : public Test
     mpt::StubAvailabilityZoneManager az_manager{};
     mp::HyperVVirtualMachineFactory backend{data_dir.path(), az_manager};
     mpt::StubVMStatusMonitor stub_monitor;
-    mpt::StubSSHKeyProvider stub_key_provider;
+    std::shared_ptr<mp::SSHKeyProvider> stub_key_provider{
+        std::make_shared<mpt::StubSSHKeyProvider>()};
 };
 
 TEST_F(HyperVBackend, createsInOffState)

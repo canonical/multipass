@@ -182,7 +182,7 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
-                                                       const SSHKeyProvider& key_provider,
+                                                       std::shared_ptr<SSHKeyProvider> key_provider,
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr)
     : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, instance_dir_qstr, true)
@@ -264,7 +264,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source_vm_name,
                                                        const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
-                                                       const SSHKeyProvider& key_provider,
+                                                       std::shared_ptr<SSHKeyProvider> key_provider,
                                                        AvailabilityZone& zone,
                                                        const Path& dest_instance_dir)
     : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, dest_instance_dir, true)
@@ -331,7 +331,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
-                                                       const SSHKeyProvider& key_provider,
+                                                       std::shared_ptr<SSHKeyProvider> key_provider,
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr,
                                                        bool /*is_internal*/)
