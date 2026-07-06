@@ -263,15 +263,6 @@ parts:
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -type f \( -name 'LICENSE*' -o -path '*/LICENSE*/*' \) -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE
 
-    override-prime: |
-      craftctl default
-
-      cd "$CRAFT_PRIME"
-      # Symlink the Resources/qemu to qemu for backward compatibility
-      test -d Resources/qemu
-      rm qemu || true
-      ln -s Resources/qemu qemu
-
   kvm-support:
     plugin: nil
     override-pull: ""
