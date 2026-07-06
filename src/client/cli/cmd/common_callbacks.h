@@ -28,8 +28,7 @@
 
 namespace multipass
 {
-template <typename Request, typename Reply>
-    requires LogReply<Reply>
+template <typename Request, LogReply Reply>
 auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
     return [&spinner, &stream](const Reply& reply,
@@ -39,8 +38,7 @@ auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& strea
     };
 }
 
-template <typename Request, typename Reply>
-    requires LogMsgReply<Reply>
+template <typename Request, LogMsgReply Reply>
 auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
     return [&spinner, &stream](const Reply& reply,
@@ -80,8 +78,8 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
     };
 }
 
-template <typename Request, typename Reply>
-    requires LogMsgReply<Reply> && requires(Reply reply) { reply.needs_authorization(); }
+template <typename Request, LogMsgReply Reply>
+    requires requires(Reply reply) { reply.needs_authorization(); }
 auto make_confirmation_callback(Terminal& term, QString key)
 {
     return [key = std::move(key),
