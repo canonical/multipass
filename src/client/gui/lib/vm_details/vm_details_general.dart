@@ -182,7 +182,7 @@ class _RenderHeaderLayout extends RenderBox
           ? _placeNameRow(row, name, width, top)
           : _placeRow(row, actions, width, top);
     }
-    size = Size(width, top);
+    size = constraints.constrain(Size(width, top));
   }
 
   double _placeNameRow(
