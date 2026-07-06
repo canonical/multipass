@@ -26,6 +26,8 @@
 #include <multipass/singleton.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <QCoreApplication>
+#include <QDir>
 #include <QString>
 #include <QStringList>
 
@@ -58,6 +60,12 @@ public:
     virtual bool needs_network_prep() const = 0;
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) const = 0;
     virtual void set_authorization(std::vector<NetworkInterfaceInfo>& networks) = 0;
+
+    // Directory holding the QEMU firmware/UEFI assets shipped alongside the binary.
+    static QString firmware_path()
+    {
+        return QDir{QCoreApplication::applicationDirPath() + "/../Resources/qemu"}.absolutePath();
+    }
 
 protected:
     explicit QemuPlatform() = default;

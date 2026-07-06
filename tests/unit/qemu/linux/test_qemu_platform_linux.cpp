@@ -261,9 +261,8 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
     // clang-format off
 #if defined Q_PROCESSOR_X86
         "-drive",
-        QString("file=%1/../Resources/qemu/edk2-x86_64-code.fd,if=pflash,"
-                "format=raw,readonly=on")
-            .arg(QCoreApplication::applicationDirPath()),
+        QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on")
+            .arg(mp::QemuPlatform::firmware_path()),
 #elif defined Q_PROCESSOR_ARM
         "-bios",
         "QEMU_EFI.fd",

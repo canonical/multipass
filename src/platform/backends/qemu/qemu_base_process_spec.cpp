@@ -16,6 +16,7 @@
  */
 
 #include "qemu_base_process_spec.h"
+#include "qemu_platform.h"
 
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/snap_utils.h>
@@ -44,5 +45,5 @@ QString mp::QemuBaseProcessSpec::apparmor_profile() const
 
 QString mp::QemuBaseProcessSpec::firmware_path() const
 {
-    return QDir(QCoreApplication::applicationDirPath() + "/../Resources/qemu").absolutePath();
+    return QemuPlatform::firmware_path();
 }
