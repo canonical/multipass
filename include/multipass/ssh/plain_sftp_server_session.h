@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/private_pass_provider.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server_session.h>
 
 namespace multipass
@@ -26,6 +27,9 @@ class PlainSftpServerSession : public SftpServerSession,
                                public PrivatePassProvider<PlainSftpServerSession>
 {
 public:
-    ~PlainSftpServerSession() override = default;
+    explicit PlainSftpServerSession(PlainSSHSession&& ssh_session);
+
+private:
+    PlainSSHSession ssh_session;
 };
 } // namespace multipass

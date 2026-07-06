@@ -16,3 +16,12 @@
  */
 
 #include <multipass/ssh/plain_sftp_server_session.h>
+
+#include <utility>
+
+namespace mp = multipass;
+
+mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& ssh_session)
+    : ssh_session{std::move(ssh_session)}
+{
+}
