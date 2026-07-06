@@ -259,15 +259,16 @@ if("system" IN_LIST FEATURES)
     # Common pc-bios ROMs loaded by the system emulator at runtime.
     file(COPY "${SOURCE_PATH}/pc-bios/kvmvapic.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
     file(COPY "${SOURCE_PATH}/pc-bios/vgabios-stdvga.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
-    file(COPY "${SOURCE_PATH}/pc-bios/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+
+    # Ship the 512 KB iPXE virtio-net option ROM instead of QEMU's smaller
+    # in-tree copy, so instances suspended by older Multipass releases can still
+    # be resumed. See vendor/README.md for details.
+    file(COPY "${CMAKE_CURRENT_LIST_DIR}/vendor/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
 
     if(QEMU_ARCH STREQUAL "x86_64")
         # Ship the legacy 2 MB combined OVMF image so instances suspended by
         # older Multipass releases (which booted with `-bios OVMF.fd`) can still
-        # be resumed: resume replays the saved command line verbatim. New VMs use
-        # the split edk2 firmware via pflash instead.
-        # TODO: drop this once suspended instances from those releases are no
-        # longer supported (a couple of releases).
+        # be resumed. See vendor/README.md for details.
         file(COPY "${CMAKE_CURRENT_LIST_DIR}/vendor/OVMF.fd" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
     elseif(QEMU_ARCH STREQUAL "aarch64")
         # Alias expected by the aarch64 backend (`-bios QEMU_EFI.fd`).
