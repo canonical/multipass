@@ -115,13 +115,17 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        expect(
+        final context = tester.element(find.byType(ListTile));
+        final expectedLabel =
+            VmAction.start.label(AppLocalizations.of(context)!);
+
+        final text = tester.widget<Text>(
           find.descendant(
             of: find.byType(ListTile),
             matching: find.byType(Text),
           ),
-          findsOneWidget,
         );
+        expect(text.data, expectedLabel);
       });
 
       testWidgets('title text style is not null when enabled',
