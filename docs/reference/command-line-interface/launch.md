@@ -98,7 +98,7 @@ Options:
 
 Arguments:
   image                                 Optional image to launch. If omitted,
-                                        then the default Ubuntu LTS will be
+                                        then the latest Ubuntu LTS will be
                                         used.
                                         <remote> can be either ‘release’ or
                                         ‘daily‘. If <remote> is omitted,

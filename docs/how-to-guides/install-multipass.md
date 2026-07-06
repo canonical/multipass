@@ -98,14 +98,14 @@ For example:
 
 ```{code-block} text
 name:      multipass
-summary:   Instant Ubuntu VMs
+summary:   Instant cloud VMs
 publisher: Canonical✓
 store-url: https://snapcraft.io/multipass
 contact:   https://github.com/canonical/multipass/issues/new
 license:   GPL-3.0
 description: |
   Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that simulates a cloud
-  environment with support for cloud-init. Get Ubuntu on-demand with clean integration to your IDE
+  environment with support for cloud-init. Get on-demand cloud VMs with clean integration to your IDE
   and version control on your native platform.
   ...
 commands:
