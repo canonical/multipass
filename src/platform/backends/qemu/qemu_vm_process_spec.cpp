@@ -46,6 +46,14 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     {
         args = resume_data->arguments;
 
+        // A VM suspended in a previous version will not contain the firmware
+        // path. Prepend it to the args so QEMU can locate the BIOS.
+        if (!args.contains("-L"))
+        {
+            args.prepend(firmware_path());
+            args.prepend("-L");
+        }
+
         // need to append extra arguments for resume
         args << "-loadvm" << resume_data->suspend_tag;
 
