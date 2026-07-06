@@ -229,9 +229,13 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
 #if defined Q_PROCESSOR_X86
         // Load the split edk2 firmware (code-only) as a read-only pflash drive,
         // matching the macOS backend. `-drive file=` is not resolved via `-L`,
-        // so an explicit path is required.
+        // so an explicit path is required. Locking is disabled because the
+        // firmware is read-only and shared between instances, and lives on the
+        // snap's read-only squashfs, where QEMU's default file locking fails
+        // ("Failed to lock byte 100").
         opts << "-drive"
-             << QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on")
+             << QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,"
+                        "file.locking=off")
                     .arg(firmware_path());
 #elif defined Q_PROCESSOR_ARM
         opts << "-bios"
