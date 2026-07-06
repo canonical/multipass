@@ -156,6 +156,7 @@ parts:
     - python3-pip
     - python3-venv
     - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
+    - gettext # provides msgfmt/msgmerge with matching libgettextsrc on the system loader path
 
     stage-packages:
     - apparmor
