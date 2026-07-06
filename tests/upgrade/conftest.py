@@ -195,12 +195,17 @@ def scenario(request):
 def verify_scenario(request, verify_manifest):
     """Bind a verify test to its recorded slice and purge the VM afterwards.
 
+    A scenario absent from the manifest was skipped at seed time (a feature the
+    upgrade's *from* version lacked), so skip it here too rather than fail: the
+    manifest is the record of what was actually seeded. Verify only runs when the
+    seed phase had no failures, so absence can only mean a deliberate seed skip.
+
     The purge runs in teardown, so the VM is removed even if the test fails --
     the natural way to keep verify tests clean with nothing to forget per test.
     """
     vm = _scenario_vm(request)
     if vm not in verify_manifest:
-        pytest.fail(f"Scenario `{vm}` not present in upgrade manifest; re-run the seed phase.")
+        pytest.skip(f"Scenario `{vm}` was not seeded (absent from manifest); nothing to verify.")
     yield Scenario(vm, verify_manifest[vm])
     if vm_exists(vm):
         assert multipass("delete", vm, "--purge"), f"Failed to purge `{vm}` after verify"
