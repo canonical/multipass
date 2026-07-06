@@ -865,12 +865,12 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu =
-        std::find_if(processes.cbegin(),
-                     processes.cend(),
-                     [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                         return process_info.command.startsWith(expected_qemu_system_prefix());
-                     });
+    auto qemu = std::find_if(processes.cbegin(),
+                             processes.cend(),
+                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
+                             });
 
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-loadvm"));
@@ -898,12 +898,12 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu =
-        std::find_if(processes.cbegin(),
-                     processes.cend(),
-                     [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                         return process_info.command.startsWith(expected_qemu_system_prefix());
-                     });
+    auto qemu = std::find_if(processes.cbegin(),
+                             processes.cend(),
+                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
+                             });
 
     ASSERT_TRUE(qemu != processes.cend());
     ASSERT_TRUE(qemu->command.startsWith(expected_qemu_system_prefix()));
@@ -943,12 +943,12 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu =
-        std::find_if(processes.cbegin(),
-                     processes.cend(),
-                     [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                         return process_info.command.startsWith(expected_qemu_system_prefix());
-                     });
+    auto qemu = std::find_if(processes.cbegin(),
+                             processes.cend(),
+                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
+                             });
 
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-hi_there"));
