@@ -178,7 +178,7 @@ enum SettingResult set_setting(char* key, char* value, char** output)
     try
     {
         std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
-        mp::UserMessages messages{};
+        [[maybe_unused]] mp::UserMessages messages{};
         MP_SETTINGS.set(key_string, value_string, messages);
         *output = nullptr;
         return SettingResult::Ok;

@@ -384,7 +384,7 @@ TEST_F(TestInstanceSettingsHandler, setIncreasesInstanceCPUs)
 
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus(more_cpus)).Times(1);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     make_handler().set(make_key(target_instance_name, "cpus"),
                        QString::number(more_cpus),
                        messages);
@@ -399,7 +399,7 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSu
 
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"),
                                        QString::number(same_cpus),
                                        messages));
@@ -414,7 +414,7 @@ TEST_F(TestInstanceSettingsHandler, setAllowsDecreaseInstanceCPUs)
 
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(1);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"),
                                        QString::number(less_cpus),
                                        messages));
@@ -430,7 +430,7 @@ TEST_F(TestInstanceSettingsHandler, setExpandsInstanceMemory)
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_memory(Eq(more_mem))).Times(1);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     make_handler().set(make_key(target_instance_name, "memory"), more_mem_str, messages);
     EXPECT_EQ(actual_mem, more_mem);
 }
@@ -444,7 +444,7 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceMemoryUntouchedIfSameBut
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(0);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     EXPECT_NO_THROW(
         make_handler().set(make_key(target_instance_name, "memory"), same_mem_str, messages));
     EXPECT_EQ(actual_mem, same_mem);
@@ -459,7 +459,7 @@ TEST_F(TestInstanceSettingsHandler, setAllowsDecreaseInstanceMemory)
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(1);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     EXPECT_NO_THROW(
         make_handler().set(make_key(target_instance_name, "memory"), less_mem_str, messages));
     EXPECT_EQ(actual_mem, less_mem);
@@ -474,7 +474,7 @@ TEST_F(TestInstanceSettingsHandler, setRefusesDecreaseBelowMinimumMemory)
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_memory).Times(0);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(
         make_handler().set(make_key(target_instance_name, "memory"), mem_str, messages),
         mp::InvalidSettingException,
@@ -492,7 +492,7 @@ TEST_F(TestInstanceSettingsHandler, setExpandsInstanceDisk)
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_disk(Eq(more_disk), _)).Times(1);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     make_handler().set(make_key(target_instance_name, "disk"), more_disk_str, messages);
     EXPECT_EQ(actual_disk, more_disk);
 }
@@ -506,7 +506,7 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceDiskUntouchedIfSameButSu
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_disk).Times(0);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     EXPECT_NO_THROW(
         make_handler().set(make_key(target_instance_name, "disk"), same_disk_str, messages));
     EXPECT_EQ(actual_disk, same_disk);
@@ -521,7 +521,7 @@ TEST_F(TestInstanceSettingsHandler, setResusesToShrinkInstanceDisk)
 
     EXPECT_CALL(mock_vm(target_instance_name), resize_disk).Times(0);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(
         make_handler().set(make_key(target_instance_name, "disk"), less_disk_str, messages),
         mp::InvalidSettingException,
@@ -538,7 +538,7 @@ TEST_F(TestInstanceSettingsHandler, setRefusesWrongProperty)
     const auto original_specs = specs[target_instance_name];
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(
         make_handler().set(make_key(target_instance_name, wrong_property), "1", messages),
         mp::UnrecognizedSettingException,
@@ -555,7 +555,7 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToUnbridge)
 
     mock_vm(target_instance_name); // TODO: make this an expectation.
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(
         make_handler().set(make_key(target_instance_name, "bridged"), "false", messages),
         mp::InvalidSettingException,
@@ -743,7 +743,7 @@ TEST_F(TestInstanceSettingsHandler, getAndSetThrowOnBadKey)
     MP_EXPECT_THROW_THAT(make_handler().get(bad_key),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(bad_key)));
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(make_handler().set(bad_key, "1", messages),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(bad_key)));
@@ -764,7 +764,7 @@ TEST_P(TestInstanceSettingsHandlerBadNumericValues, setRefusesBadNumericValues)
     const auto original_specs = specs[target_instance_name];
     EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(
         make_handler().set(make_key(target_instance_name, property), bad_val, messages),
         mp::InvalidSettingException,
@@ -806,7 +806,7 @@ TEST_P(TestInstanceSettingsHandlerBadBooleanValues, setRefusesBadBooleanValues)
     const auto original_specs = specs[target_instance_name];
     mock_vm(target_instance_name); // TODO: make this an expectation.
 
-    mp::UserMessages messages{};
+    [[maybe_unused]] mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(
         make_handler().set(make_key(target_instance_name, property), bad_val, messages),
         mp::InvalidSettingException,

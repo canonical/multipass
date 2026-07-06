@@ -42,7 +42,7 @@ mp::ReturnCodeVariant cmd::Set::run(mp::ArgParser* parser)
             if (ret == ReturnCode::Ok)
             {
                 // We are in the client, messages cannot be sent
-                mp::UserMessages messages{};
+                [[maybe_unused]] mp::UserMessages messages{};
                 MP_SETTINGS.set(key, val, messages);
             }
         }

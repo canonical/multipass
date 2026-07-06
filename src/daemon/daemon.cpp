@@ -2536,12 +2536,10 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
     {
         user_authorized_bridges.insert(get_bridged_interface_name());
 
-        UserMessages messages{};
+        [[maybe_unused]] UserMessages messages{};
         MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
 
         user_authorized_bridges.erase(get_bridged_interface_name());
-
-        mpu::send_messages(server, messages);
 
         mpl::debug(category, "Succeeded setting {}={}", key, val);
 
