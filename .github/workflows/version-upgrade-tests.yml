@@ -87,7 +87,17 @@ jobs:
         run: sudo snap install multipass --channel="${FROM_SNAP_CHANNEL}"
 
       - name: Record installed 'from' version
-        run: multipass version
+        shell: bash
+        run: |
+          # multipassd writes its root cert during init; a client invoked before
+          # that aborts with a missing-cert error. Poll `version` (present in every
+          # release, unlike wait-ready) until the daemon answers.
+          for _ in $(seq 1 60); do
+            multipass version && exit 0
+            sleep 2
+          done
+          echo "Multipass daemon did not become ready in time" >&2
+          exit 1
 
       - name: Seed VMs (phase 1)
         id: seed
@@ -108,9 +118,17 @@ jobs:
       ##################################################################
       - name: Upgrade Multipass (to / version Y)
         if: steps.seed.outputs.seed-exit == '' # only upgrade if seeding passed
+        shell: bash
         run: |
           sudo snap refresh multipass --channel="${TO_SNAP_CHANNEL}"
-          multipass version
+          # As with the install above, wait for the refreshed daemon to finish
+          # initializing (and rewrite its root cert) before the first client call.
+          for _ in $(seq 1 60); do
+            multipass version && exit 0
+            sleep 2
+          done
+          echo "Multipass daemon did not become ready after upgrade" >&2
+          exit 1
 
       ##################################################################
       # Phase 2: validate the seeded VMs on the 'to' version.
