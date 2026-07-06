@@ -17,20 +17,18 @@
 
 #pragma once
 
-#include <multipass/annotated_value.h>
 #include <multipass/reply_concepts.h>
+#include <multipass/user_messages.h>
 
-#include <grpc++/grpc++.h>
+#include <multipass/rpc/multipass.grpc.pb.h>
 
 namespace multipass
 {
 namespace utils
 {
-
-template <typename Reply, typename Request>
-    requires LogMsgReply<Reply>
+template <LogMsgReply Reply, typename Request>
 void send_messages(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                   MessageBag&& message_bag)
+                   const UserMessages& message_bag)
 {
     auto reply = Reply{};
     for (const auto& message : message_bag)

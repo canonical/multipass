@@ -178,7 +178,8 @@ enum SettingResult set_setting(char* key, char* value, char** output)
     try
     {
         std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
-        (void)MP_SETTINGS.set(key_string, value_string);
+        mp::UserMessages messages{};
+        MP_SETTINGS.set(key_string, value_string, messages);
         *output = nullptr;
         return SettingResult::Ok;
     }
@@ -255,8 +256,8 @@ long long get_total_disk_size()
 {
     const auto mp_storage = MP_PLATFORM.multipass_storage_location();
     const auto location = mp_storage.isEmpty()
-                              ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
-                              : mp_storage;
+                            ? MP_STDPATHS.writableLocation(mp::StandardPaths::AppDataLocation)
+                            : mp_storage;
     QStorageInfo storageInfo{location};
     return storageInfo.bytesTotal();
 }

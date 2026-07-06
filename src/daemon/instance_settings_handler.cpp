@@ -162,21 +162,20 @@ void update_mem(const QString& key,
     }
 }
 
-mp::Annotated<void> update_disk(const QString& key,
-                                const QString& val,
-                                mp::VirtualMachine& instance,
-                                mp::VMSpecs& spec,
-                                const mp::MemorySize& size)
+void update_disk(const QString& key,
+                 const QString& val,
+                 mp::VirtualMachine& instance,
+                 mp::VMSpecs& spec,
+                 const mp::MemorySize& size,
+                 mp::UserMessages& messages)
 {
     if (size < spec.disk_space)
         throw mp::InvalidSettingException{key, val, "Disk can only be expanded"};
     else if (size > spec.disk_space) // NOOP if equal
     {
-        auto&& [bag] = instance.resize_disk(size);
+        instance.resize_disk(size, messages);
         spec.disk_space = size;
-        return {std::move(bag)};
     }
-    return {};
 }
 
 void update_bridged(const QString& key,
@@ -256,7 +255,9 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
 }
 
-mp::Annotated<void> mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
+void mp::InstanceSettingsHandler::set(const QString& key,
+                                      const QString& val,
+                                      UserMessages& messages)
 {
     auto [instance_name, property] = parse_key(key);
 
@@ -265,7 +266,6 @@ mp::Annotated<void> mp::InstanceSettingsHandler::set(const QString& key, const Q
                                         instance_name,
                                         "instance is being prepared"};
 
-    MessageBag message_bag{};
     auto& instance =
         modify_instance(instance_name); // we need this first, to refuse updating deleted instances
     auto& spec = modify_spec(instance_name);
@@ -285,12 +285,11 @@ mp::Annotated<void> mp::InstanceSettingsHandler::set(const QString& key, const Q
         else
         {
             assert(property == disk_suffix);
-            update_disk(key, val, instance, spec, size).collect(message_bag);
+            update_disk(key, val, instance, spec, size, messages);
         }
     }
 
     instance_persister();
-    return {std::move(message_bag)};
 }
 
 auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name)

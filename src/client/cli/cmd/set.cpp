@@ -26,6 +26,7 @@
 #include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/settings/settings.h>
+#include <multipass/user_messages.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -39,8 +40,11 @@ mp::ReturnCodeVariant cmd::Set::run(mp::ArgParser* parser)
         try
         {
             if (ret == ReturnCode::Ok)
+            {
                 // We are in the client, messages cannot be sent
-                (void)MP_SETTINGS.set(key, val);
+                mp::UserMessages messages{};
+                MP_SETTINGS.set(key, val, messages);
+            }
         }
         catch (const SettingsException& e)
         {

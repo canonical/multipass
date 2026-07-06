@@ -20,6 +20,7 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/settings/settings_handler.h>
+#include <multipass/user_messages.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
 
@@ -47,7 +48,7 @@ public:
 
     std::set<QString> keys() const override;
     QString get(const QString& key) const override;
-    Annotated<void> set(const QString& key, const QString& val) override;
+    void set(const QString& key, const QString& val, UserMessages& messages) override;
 
 private:
     VirtualMachine& modify_instance(const std::string& instance_name);

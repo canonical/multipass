@@ -641,7 +641,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    uut->resize_disk(multipass::MemorySize::from_bytes(123456));
+    mp::UserMessages messages{};
+    uut->resize_disk(multipass::MemorySize::from_bytes(123456), messages);
 
     EXPECT_CALL(mock_hcs, create_compute_system(_, _))
         .WillRepeatedly(DoAll(

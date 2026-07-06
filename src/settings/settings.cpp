@@ -89,17 +89,16 @@ QString mp::Settings::get(const QString& key) const
     throw UnrecognizedSettingException{key};
 }
 
-mp::Annotated<void> mp::Settings::set(const QString& key, const QString& val)
+void mp::Settings::set(const QString& key, const QString& val, UserMessages& messages)
 {
     auto success = false;
-    MessageBag bag{};
     for (const auto& handler : handlers)
     {
         try
         {
             assert(handler && "can't have null settings handler"); // TODO use a `not_null` type
                                                                    // (e.g. gsl::not_null)
-            handler->set(key, val).collect(bag);
+            handler->set(key, val, messages);
             success = true; // don't return yet, give all handlers a chance to react
         }
         catch (const UnrecognizedSettingException&)
@@ -110,5 +109,4 @@ mp::Annotated<void> mp::Settings::set(const QString& key, const QString& val)
 
     if (!success)
         throw UnrecognizedSettingException{key};
-    return {std::move(bag)};
 }

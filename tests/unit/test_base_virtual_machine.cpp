@@ -216,7 +216,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
     using mp::BaseVirtualMachine::resize_disk;
-    void resize_disk_impl(const mp::MemorySize& new_size) override
+    void resize_disk_impl(const mp::MemorySize&) override
     {
     }
 
@@ -1607,13 +1607,14 @@ TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
     desc.image.original_release = "Ubuntu Core 24";
 
     StubBaseVirtualMachine vm{St::off, zone, std::make_unique<mpt::TempDir>(), desc};
-    auto qualified_return = vm.resize_disk(mp::MemorySize{});
-    auto expected_return = mp::Annotated<void>{};
-    expected_return.add_message(vm.core_image_disk_resize_message());
-    EXPECT_TRUE(std::equal(qualified_return.get_messages().begin(),
-                           qualified_return.get_messages().end(),
-                           expected_return.get_messages().begin(),
-                           expected_return.get_messages().end()));
+    mp::UserMessages messages{};
+    mp::UserMessages expected_messages{};
+    vm.resize_disk(mp::MemorySize{}, messages);
+    expected_messages.add_message(vm.core_image_disk_resize_message());
+    EXPECT_TRUE(std::equal(messages.begin(),
+                           messages.end(),
+                           expected_messages.begin(),
+                           expected_messages.end()));
 }
 
 } // namespace

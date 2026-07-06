@@ -386,13 +386,11 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
-mp::Annotated<void> mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size)
+void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
 {
     resize_disk_impl(new_size);
     if (is_core())
-        return {core_image_disk_resize_message()};
-    else
-        return {};
+        messages.add_message(core_image_disk_resize_message());
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>

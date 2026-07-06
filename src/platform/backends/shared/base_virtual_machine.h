@@ -62,7 +62,7 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
-    Annotated<void> resize_disk(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
     std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int, const std::string&, const NetworkInterface&) override
     {

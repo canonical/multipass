@@ -2511,9 +2511,9 @@ try
     });
 
     mpl::trace(category, "Trying to set {}={}", key, val);
-    auto&& [message_bag] =
-        MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
-    mpu::send_messages(server, std::move(message_bag));
+    UserMessages messages{};
+    MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
+    mpu::send_messages(server, messages);
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
     context->set_value(grpc::Status::OK);
@@ -2536,12 +2536,12 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
     {
         user_authorized_bridges.insert(get_bridged_interface_name());
 
-        auto&& [message_bag] =
-            MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+        UserMessages messages{};
+        MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
 
         user_authorized_bridges.erase(get_bridged_interface_name());
 
-        mpu::send_messages(server, std::move(message_bag));
+        mpu::send_messages(server, messages);
 
         mpl::debug(category, "Succeeded setting {}={}", key, val);
 

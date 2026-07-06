@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include <multipass/annotated_value.h>
 #include <multipass/disabled_copy_move.h>
+#include <multipass/user_messages.h>
 
 #include <QString>
 
@@ -55,7 +55,7 @@ public:
      * @param key The key identifying the setting to modify.
      * @param val A string representation of the value to assign to the setting. The actual value is
      * derived according to this SettingsHandler's interpretation.
-     * @return An Annotated<void> containing messages, cannot be discarded
+     * @param messages A collection of messages to return back to the user.
      * @throws UnrecognizedSettingException When @c key does not identify a setting that this
      * handler recognizes.
      * @throws InvalidSettingException When @c val does not represent a valid value for the setting
@@ -63,7 +63,7 @@ public:
      * @c key, according to this SettingHandler's interpretation.
      * @note Descendents are free to throw other exceptions as well.
      */
-    virtual Annotated<void> set(const QString& key, const QString& val) = 0;
+    virtual void set(const QString& key, const QString& val, UserMessages& messages) = 0;
 };
 
 } // namespace multipass
