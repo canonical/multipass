@@ -57,6 +57,7 @@ install(DIRECTORY ${MULTIPASS_GUI_BUNDLE}/Contents
   COMPONENT multipass_gui
   PATTERN "*/PkgInfo" EXCLUDE
   PATTERN "*/_CodeSignature*" EXCLUDE
+  PATTERN "libdart_ffi.dylib" EXCLUDE
 )
 
 set_target_properties( ${MULTIPASS_GUI_EXECUTABLE} PROPERTIES
@@ -69,6 +70,7 @@ add_custom_target(bundle_symlink ALL
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE} "Multipass.app"
 )
 
+# Manually copy the dart_ffi library so it is available at compile time for local testing
 add_custom_target(libffi_copy ALL
     WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:dart_ffi> ${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE}/Contents/Frameworks/$<TARGET_FILE_NAME:dart_ffi>
