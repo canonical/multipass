@@ -138,9 +138,9 @@ std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd
     return std::make_unique<PlainSSHProcess>(*session.get(), cmd, std::move(lock));
 }
 
-std::unique_ptr<mp::SftpServerSession> mp::PlainSSHSession::make_sftp_server_session()
+std::unique_ptr<mp::SftpServerSession> mp::PlainSSHSession::make_sftp_server_session() &&
 {
-    return std::make_unique<PlainSftpServerSession>();
+    return std::make_unique<PlainSftpServerSession>(std::move(*this));
 }
 
 void mp::PlainSSHSession::force_shutdown()
