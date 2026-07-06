@@ -154,7 +154,7 @@ Copy-Item -Path "C:\ProgramData\Multipass\*" -Recurse -Force -Destination "<path
 ```
 
 ```{caution}
-It is important to copy any existing data to the new location. This avoids unauthenticated client issues, permission issues, and in general, to have any previously created instances available.
+It is important to copy any existing data to the new location. This avoids unauthenticated user issues, permission issues, and in general, to have any previously created instances available.
 ```
 
 You also need to edit several settings so that the specified paths point to the new Multipass storage directory, otherwise your instances will fail to start:
