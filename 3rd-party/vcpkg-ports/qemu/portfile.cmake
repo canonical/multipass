@@ -235,9 +235,9 @@ foreach(tool IN LISTS TOOLS)
     endif()
 endforeach()
 
-# Firmware and UEFI assets are only needed by the system emulator. Windows
-# builds qemu-img only, so skip all of this there.
-if(NOT VCPKG_TARGET_IS_WINDOWS)
+# Firmware and UEFI assets are only needed by the system emulator, which is
+# never built on Windows (there only qemu-img is produced).
+if("system" IN_LIST FEATURES)
     if(QEMU_ARCH STREQUAL "aarch64")
         set(FIRMWARE "edk2-aarch64-code.fd")
     elseif(QEMU_ARCH STREQUAL "x86_64")
@@ -249,15 +249,18 @@ if(NOT VCPKG_TARGET_IS_WINDOWS)
     endif()
 
     file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/Resources/qemu")
-    foreach(fw IN LISTS FIRMWARE)
-        if(EXISTS "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}")
-            file(RENAME
-                "${CURRENT_PACKAGES_DIR}/share/qemu/${fw}"
-                "${CURRENT_PACKAGES_DIR}/Resources/qemu/${fw}")
-        else()
-            message(WARNING "Firmware file not found: ${fw}")
-        endif()
-    endforeach()
+    if(EXISTS "${CURRENT_PACKAGES_DIR}/share/qemu/${FIRMWARE}")
+        file(RENAME
+            "${CURRENT_PACKAGES_DIR}/share/qemu/${FIRMWARE}"
+            "${CURRENT_PACKAGES_DIR}/Resources/qemu/${FIRMWARE}")
+    else()
+        message(FATAL_ERROR "Firmware file not found: ${FIRMWARE}")
+    endif()
+
+    # Common pc-bios ROMs loaded by the system emulator at runtime.
+    file(COPY "${SOURCE_PATH}/pc-bios/kvmvapic.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    file(COPY "${SOURCE_PATH}/pc-bios/vgabios-stdvga.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    file(COPY "${SOURCE_PATH}/pc-bios/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
 
     if(QEMU_ARCH STREQUAL "x86_64")
         # Ship the legacy 2 MB combined OVMF image so instances suspended by
@@ -267,20 +270,13 @@ if(NOT VCPKG_TARGET_IS_WINDOWS)
         # TODO: drop this once suspended instances from those releases are no
         # longer supported (a couple of releases).
         file(COPY "${CMAKE_CURRENT_LIST_DIR}/vendor/OVMF.fd" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    elseif(QEMU_ARCH STREQUAL "aarch64")
+        # Alias expected by the aarch64 backend (`-bios QEMU_EFI.fd`).
+        file(CREATE_LINK
+            "${CURRENT_PACKAGES_DIR}/Resources/qemu/edk2-aarch64-code.fd"
+            "${CURRENT_PACKAGES_DIR}/Resources/qemu/QEMU_EFI.fd"
+            COPY_ON_ERROR)
     endif()
-endif()
-
-if("system" IN_LIST FEATURES)
-    file(COPY "${SOURCE_PATH}/pc-bios/kvmvapic.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
-    file(COPY "${SOURCE_PATH}/pc-bios/vgabios-stdvga.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
-    file(COPY "${SOURCE_PATH}/pc-bios/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
-endif()
-
-if(QEMU_ARCH STREQUAL "aarch64")
-    file(CREATE_LINK
-        "${CURRENT_PACKAGES_DIR}/Resources/qemu/edk2-aarch64-code.fd"
-        "${CURRENT_PACKAGES_DIR}/Resources/qemu/QEMU_EFI.fd"
-        COPY_ON_ERROR)
 endif()
 
 file(REMOVE_RECURSE
