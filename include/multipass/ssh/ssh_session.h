@@ -55,7 +55,7 @@ public:
     [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                            bool whisper = false) = 0;
 
-    virtual std::unique_ptr<SftpServerSession> make_sftp_server_session() = 0;
+    virtual std::unique_ptr<SftpServerSession> make_sftp_server_session() && = 0;
 
     /**
      * @return Whether this object represents a session that is currently connected
