@@ -89,6 +89,9 @@ def test_debian_seed(scenario):
 
 @pytest.mark.verify
 @pytest.mark.scenario("upg-debian")
-@requires_multipass(">=1.17")
 def test_debian_verify(scenario):
+    # No version gate: verify runs against the upgraded (to) version, which may
+    # have the feature even when the seeded (from) version did not. Whether this
+    # scenario was seeded is recorded by its presence in the manifest, and
+    # `verify_scenario` skips it when absent.
     _verify("upg-debian", scenario.record)
