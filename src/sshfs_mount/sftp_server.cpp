@@ -239,8 +239,8 @@ auto create_sshfs_process(mp::SSHSession& session,
                           const std::string& source,
                           const std::string& target)
 {
-    auto sshfs_process =
-        session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
+    auto sshfs_process = session.exec(
+        fmt::format("sudo -n {} :{:?} {:?}", sshfs_exec_line, source, target));
 
     check_sshfs_status(*sshfs_process);
 
