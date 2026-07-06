@@ -228,8 +228,13 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
     {
         // clang-format off
 #if defined Q_PROCESSOR_X86
-        opts << "-bios"
-             << "OVMF.fd";
+        // Load the split edk2 firmware (code-only) as a read-only pflash drive,
+        // matching the macOS backend. `-drive file=` is not resolved via `-L`,
+        // so an explicit path is required.
+        opts << "-drive"
+             << QString("file=%1/../Resources/qemu/edk2-x86_64-code.fd,if=pflash,"
+                        "format=raw,readonly=on")
+                    .arg(QCoreApplication::applicationDirPath());
 #elif defined Q_PROCESSOR_ARM
         opts << "-bios"
              << "QEMU_EFI.fd"

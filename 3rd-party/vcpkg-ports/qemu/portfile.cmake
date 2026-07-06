@@ -259,7 +259,15 @@ if(NOT VCPKG_TARGET_IS_WINDOWS)
         endif()
     endforeach()
 
-    file(COPY "${CMAKE_CURRENT_LIST_DIR}/OVMF.fd" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    if(QEMU_ARCH STREQUAL "x86_64")
+        # Ship the legacy 2 MB combined OVMF image so instances suspended by
+        # older Multipass releases (which booted with `-bios OVMF.fd`) can still
+        # be resumed: resume replays the saved command line verbatim. New VMs use
+        # the split edk2 firmware via pflash instead.
+        # TODO: drop this once suspended instances from those releases are no
+        # longer supported (a couple of releases).
+        file(COPY "${CMAKE_CURRENT_LIST_DIR}/vendor/OVMF.fd" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    endif()
 endif()
 
 if("system" IN_LIST FEATURES)

@@ -260,8 +260,10 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
     std::vector<QString> expected_platform_args{
     // clang-format off
 #if defined Q_PROCESSOR_X86
-        "-bios",
-        "OVMF.fd",
+        "-drive",
+        QString("file=%1/../Resources/qemu/edk2-x86_64-code.fd,if=pflash,"
+                "format=raw,readonly=on")
+            .arg(QCoreApplication::applicationDirPath()),
 #elif defined Q_PROCESSOR_ARM
         "-bios",
         "QEMU_EFI.fd",
