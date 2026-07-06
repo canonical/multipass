@@ -32,7 +32,7 @@
 namespace multipass
 {
 class SSHSession;
-class SSHProcess;
+class SSHProcess; // TODO@sftp remove
 
 class SftpServer
 {
@@ -51,6 +51,7 @@ public:
     void run();
     void stop();
 
+    // TODO@sftp remove
     using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
     using SSHFSProcUptr = std::unique_ptr<SSHProcess>;
 
@@ -92,9 +93,9 @@ private:
     template <typename T>
     T* get_handle(sftp_client_message msg);
 
-    std::unique_ptr<SSHSession> ssh_session;
-    SSHFSProcUptr sshfs_process;
-    SftpSessionUptr sftp_server_session;
+    std::unique_ptr<SSHSession> ssh_session; // TODO@sftp probably remove (consume in session)
+    SSHFSProcUptr sshfs_process;             // TODO@sftp remove
+    SftpSessionUptr raw_sftp_server_session; // TODO@sftp remove
     const std::filesystem::path source_path;
     const std::filesystem::path target_path;
     std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;

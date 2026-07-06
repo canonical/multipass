@@ -309,9 +309,9 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
-      sftp_server_session{make_sftp_session(*ssh_session,
-                                            static_cast<PlainSSHProcess*>(sshfs_process.get())
-                                                ->release_channel())}, // TODO@rewiressh no cast
+      raw_sftp_server_session{make_sftp_session(*ssh_session,
+                                                static_cast<PlainSSHProcess*>(sshfs_process.get())
+                                                    ->release_channel())}, // TODO@rewiressh no cast
       source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{fs::path(target).lexically_normal()},
       gid_mappings{gid_mappings},
@@ -570,7 +570,7 @@ void mp::SftpServer::run()
 
     while (true)
     {
-        MsgUPtr client_msg{sftp_get_client_message(sftp_server_session.get()),
+        MsgUPtr client_msg{sftp_get_client_message(raw_sftp_server_session.get()),
                            sftp_client_message_free};
         auto msg = client_msg.get();
         if (msg == nullptr)
@@ -611,10 +611,10 @@ void mp::SftpServer::run()
                                                      sshfs_exec_line,
                                                      source_path.string(),
                                                      target_path.generic_string());
-                sftp_server_session =
-                    make_sftp_session(*ssh_session,
-                                      static_cast<PlainSSHProcess*>(sshfs_process.get())
-                                          ->release_channel()); // TODO@rewiressh no cast
+                raw_sftp_server_session = make_sftp_session(
+                    *ssh_session,
+                    static_cast<PlainSSHProcess*>(sshfs_process.get())
+                        ->release_channel()); // TODO@rewiressh no cast
 
                 continue;
             }
@@ -636,14 +636,14 @@ void mp::SftpServer::stop()
 
 int mp::SftpServer::handle_close(sftp_client_message msg)
 {
-    const auto id = sftp_handle(sftp_server_session.get(), msg->handle);
+    const auto id = sftp_handle(raw_sftp_server_session.get(), msg->handle);
     if (!open_file_handles.erase(id) && !open_dir_handles.erase(id))
     {
         mpl::trace(category, "{}: bad handle requested", __FUNCTION__);
         return reply_bad_handle(msg, "close");
     }
 
-    sftp_handle_remove(sftp_server_session.get(), id);
+    sftp_handle_remove(raw_sftp_server_session.get(), id);
     return reply_ok(msg);
 }
 
@@ -840,7 +840,7 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         }
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), named_fd.get()),
+    SftpHandleUPtr sftp_handle{sftp_handle_alloc(raw_sftp_server_session.get(), named_fd.get()),
                                ssh_string_free};
     if (!sftp_handle)
     {
@@ -885,7 +885,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    SftpHandleUPtr sftp_handle{sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()),
+    SftpHandleUPtr sftp_handle{sftp_handle_alloc(raw_sftp_server_session.get(), dir_iterator.get()),
                                ssh_string_free};
     if (!sftp_handle)
     {
