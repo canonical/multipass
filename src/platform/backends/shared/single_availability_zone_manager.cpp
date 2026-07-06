@@ -25,9 +25,8 @@ namespace mp = multipass;
 namespace
 {
 constexpr mp::Subnet::PrefixLength subnet_prefix_length = 24;
-mp::SubnetAllocator subnet_allocator{MP_PLATFORM.get_preferred_subnet(), subnet_prefix_length};
 
-mp::Subnet get_subnet(const mp::Path& data_dir)
+mp::Subnet get_subnet(const mp::Path& data_dir, mp::SubnetAllocator& subnet_allocator)
 {
     auto network_dir = MP_UTILS.make_dir(QDir(data_dir), "network");
     QFile subnet_file{network_dir + "/multipass_subnet"};
@@ -50,9 +49,10 @@ namespace multipass
 {
 
 SingleAvailabilityZoneManager::SingleAvailabilityZoneManager(const mp::Path& data_dir)
-    // We name this zone "0" since that matches the naming of our bridge name from before the
-    // introduction of AZs; see src/platform/backends/qemu/linux/qemu_platform_detail_linux.cpp.
-    : zone{"0", get_subnet(data_dir)}
+    : subnet_allocator{MP_PLATFORM.get_preferred_subnet(), subnet_prefix_length},
+      // We name this zone "0" since that matches the naming of our bridge name from before the
+      // introduction of AZs; see src/platform/backends/qemu/linux/qemu_platform_detail_linux.cpp.
+      zone{"0", get_subnet(data_dir, subnet_allocator)}
 {
 }
 

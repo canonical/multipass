@@ -58,8 +58,11 @@ private:
         mutable std::shared_mutex mutex{};
     };
 
+    static constexpr Subnet::PrefixLength subnet_prefix_length = 24;
+
     mutable std::recursive_mutex mutex;
     const std::filesystem::path file_path;
+    SubnetAllocator subnet_allocator;
     ZoneCollection zone_collection;
 
     [[nodiscard]] const ZoneCollection::ZoneArray& zones() const;
