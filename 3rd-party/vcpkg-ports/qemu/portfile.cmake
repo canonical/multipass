@@ -200,8 +200,7 @@ else()
     # Replace configure with our wrapper to strip unsupported flags
     # injected by vcpkg_configure_make.
     file(RENAME "${SOURCE_PATH}/configure" "${SOURCE_PATH}/configure.real")
-    file(COPY "${CMAKE_CURRENT_LIST_DIR}/configure-wrapper" DESTINATION "${SOURCE_PATH}")
-    file(RENAME "${SOURCE_PATH}/configure-wrapper" "${SOURCE_PATH}/configure")
+    file(COPY_FILE "${CMAKE_CURRENT_LIST_DIR}/configure-wrapper" "${SOURCE_PATH}/configure")
     file(CHMOD "${SOURCE_PATH}/configure" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
 
     set(ENV{PKG_CONFIG_PATH} "${CURRENT_INSTALLED_DIR}/lib/pkgconfig")
