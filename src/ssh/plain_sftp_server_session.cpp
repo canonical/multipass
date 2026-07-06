@@ -21,7 +21,9 @@
 
 namespace mp = multipass;
 
-mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& ssh_session)
-    : ssh_session{std::move(ssh_session)}
+mp::PlainSftpServerSession::PlainSftpServerSession(PlainSSHSession&& session)
+    : ssh_session{std::move(session)},
+      sftp_session{sftp_server_new(ssh_session.borrow_session(pass), nullptr), sftp_server_free}
+// TODO@sftp sshfs process and channel
 {
 }
