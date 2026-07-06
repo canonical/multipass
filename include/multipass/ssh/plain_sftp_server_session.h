@@ -21,6 +21,8 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_server_session.h>
 
+#include <libssh/sftp.h>
+
 namespace multipass
 {
 class PlainSftpServerSession : public SftpServerSession,
@@ -36,6 +38,9 @@ public:
     PlainSftpServerSession& operator=(PlainSftpServerSession&&) = delete;
 
 private:
+    using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
+
     PlainSSHSession ssh_session;
+    SftpSessionUptr sftp_session;
 };
 } // namespace multipass
