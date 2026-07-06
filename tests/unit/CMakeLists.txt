@@ -154,7 +154,7 @@ target_include_directories(multipass_cpp_tests
 )
 
 add_definitions(-DWITH_SERVER)
-target_compile_definitions(libssh_wrapper_test PUBLIC
+target_compile_definitions(libssh_wrapper_test PRIVATE
   ${c_mock_defines})
 
 target_compile_definitions(utils_test PRIVATE

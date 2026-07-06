@@ -19,7 +19,9 @@
 
 #include <multipass/ssh/libssh.h>
 
+#include <cstdlib>
 #include <cstring>
+#include <memory>
 
 TEST(Libssh, eventNewReturnsNonNullAndCanBeFreed)
 {
@@ -33,12 +35,13 @@ TEST(Libssh, pkiGenerateExportAndFreeRoundTrip)
     ssh_key key{nullptr};
     ASSERT_EQ(MP_LIBSSH.ssh_pki_generate(SSH_KEYTYPE_RSA, 2048, &key), SSH_OK);
     ASSERT_NE(key, nullptr);
+    std::unique_ptr<ssh_key_struct, void (*)(ssh_key)> key_guard{key, [](ssh_key k) {
+                                                                     MP_LIBSSH.ssh_key_free(k);
+                                                                 }};
 
     char* b64{nullptr};
-    EXPECT_EQ(MP_LIBSSH.ssh_pki_export_pubkey_base64(key, &b64), SSH_OK);
+    ASSERT_EQ(MP_LIBSSH.ssh_pki_export_pubkey_base64(key_guard.get(), &b64), SSH_OK);
     ASSERT_NE(b64, nullptr);
+    std::unique_ptr<char, decltype(&std::free)> b64_guard{b64, &std::free};
     EXPECT_GT(std::strlen(b64), 0u);
-
-    MP_LIBSSH.ssh_string_free_char(b64);
-    MP_LIBSSH.ssh_key_free(key);
 }
