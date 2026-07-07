@@ -62,10 +62,14 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
 mp::PlainSftpSession::RawSftpSessionUptr
 mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel channel)
 {
-    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel), sftp_server_free};
     // The function sftp_server_init was expanded here to avoid deprecation warnings.
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
+
+    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel), sftp_server_free};
+    if (!raw_sftp_session)
+        throw SSHException(
+            fmt::format("[sftp] server init failed: could not create a new sftp_server."));
 
     /* handles setting the sftp->client_version */
     sftp_client_message msg{sftp_get_client_message(raw_sftp_session.get())};
