@@ -72,6 +72,7 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
             fmt::format("[sftp] server init failed: could not create a new sftp_server."));
 
     /* handles setting the sftp->client_version */
+    // TODO@sftp no leak plz - use SftpMessage
     sftp_client_message msg{sftp_get_client_message(raw_sftp_session.get())};
     if (msg == nullptr)
     {
