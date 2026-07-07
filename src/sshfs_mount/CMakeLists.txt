@@ -14,8 +14,6 @@
 
 set(CMAKE_AUTOMOC ON)
 function(add_sshfs_mount_target TARGET_NAME)
-  add_definitions(-DWITH_SERVER)
-
   add_library(${TARGET_NAME} STATIC
     sshfs_mount.cpp
     sshfs_mount_handler.cpp
@@ -23,6 +21,8 @@ function(add_sshfs_mount_target TARGET_NAME)
     # Need to run MOC on these
     sshfs_mount.h
     ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount_handler.h)
+
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 
   target_link_libraries(${TARGET_NAME}
     fmt::fmt-header-only

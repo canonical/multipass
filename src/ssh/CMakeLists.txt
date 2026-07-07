@@ -14,8 +14,6 @@
 #
 
 function(add_ssh_target TARGET_NAME)
-  add_definitions(-DWITH_SERVER)
-
   add_library(${TARGET_NAME} STATIC
     libssh_scope_guard.cpp
     openssh_key_provider.cpp
@@ -23,6 +21,8 @@ function(add_ssh_target TARGET_NAME)
     plain_ssh_process.cpp
     plain_ssh_session.cpp
     ssh_client_key_provider.cpp)
+
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 
   target_link_libraries(${TARGET_NAME}
     fmt::fmt-header-only

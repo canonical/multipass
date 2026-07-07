@@ -153,7 +153,7 @@ target_include_directories(multipass_cpp_tests
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
 )
 
-add_definitions(-DWITH_SERVER)
+target_compile_definitions(multipass_cpp_tests PRIVATE WITH_SERVER)
 target_compile_definitions(ssh_test PRIVATE
   ${c_mock_defines})
 target_compile_definitions(sshfs_mount_test PRIVATE
