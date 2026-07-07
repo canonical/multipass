@@ -65,6 +65,8 @@ add_custom_target(libffi_copy ALL
     DEPENDS ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
 )
 
+add_dependencies(libffi_copy bundle_symlink dart_ffi)
+
 # Install the symlink.
 install(FILES ${MULTIPASS_GUI_BUILD_DIR}/${MULTIPASS_GUI_LINK_NAME}
   DESTINATION bin
