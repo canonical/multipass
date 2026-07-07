@@ -54,6 +54,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 {
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_platform, get_preferred_subnet).WillOnce(Return(mp::Subnet{"192.168.0.0/16"}));
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
@@ -86,6 +87,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 {
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::trace), _, _)).Times(AnyNumber());
     EXPECT_CALL(*mock_logger.mock_logger, log(Eq(mpl::Level::debug), _, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_platform, get_preferred_subnet).WillOnce(Return(mp::Subnet{"192.168.0.0/16"}));
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
@@ -130,6 +132,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, UsesZone1WhenAvailable)
 TEST_F(BaseAvailabilityZoneManagerTest, ThrowsWhenZoneNotFound)
 {
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_platform, get_preferred_subnet).WillOnce(Return(mp::Subnet{"192.168.0.0/16"}));
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
     EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
@@ -154,6 +157,7 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
 {
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
     EXPECT_CALL(mock_file_ops, try_read_file(manager_file)).WillOnce(Return(std::nullopt));
+    EXPECT_CALL(mock_platform, get_preferred_subnet).WillOnce(Return(mp::Subnet{"192.168.0.0/16"}));
     EXPECT_CALL(mock_platform, subnet_used_locally).WillRepeatedly(Return(false));
 
     // Set up default zones to be created - all initially available

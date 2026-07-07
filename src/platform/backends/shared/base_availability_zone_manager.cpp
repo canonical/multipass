@@ -55,7 +55,7 @@ namespace multipass
 
 BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_dir)
     : file_path{data_dir / az_file},
-      subnet_allocator(MP_PLATFORM.get_preferred_subnet(), subnet_prefix_length),
+      subnet_allocator(MP_PLATFORM.get_preferred_subnet(data_dir), subnet_prefix_length),
       zone_collection{create_default_zones(data_dir / zones_directory_name, subnet_allocator),
                       load_file(file_path)}
 {

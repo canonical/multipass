@@ -394,8 +394,13 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     return can_reach_gateway(subnet.min_address()) || can_reach_gateway(subnet.max_address());
 }
 
-mp::Subnet mp::platform::Platform::get_preferred_subnet() const
+mp::Subnet mp::platform::Platform::get_preferred_subnet(const std::filesystem::path& data_dir) const
 {
+    // If the `multipass_subnet` file exists, prefer that as a basis for our subnet. This ensures
+    // that Multipass instances from before the introduction of AZs will have the same IP/subnet
+    // when migrated into zone1.
+    if (auto filedata = MP_FILEOPS.try_read_file(data_dir / "network/multipass_subnet"))
+        return {IPAddress{*filedata + ".0"}, 16};
     return {"10.97.0.0/16"};
 }
 

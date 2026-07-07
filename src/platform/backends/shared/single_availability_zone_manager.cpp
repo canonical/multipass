@@ -49,7 +49,8 @@ namespace multipass
 {
 
 SingleAvailabilityZoneManager::SingleAvailabilityZoneManager(const mp::Path& data_dir)
-    : subnet_allocator{MP_PLATFORM.get_preferred_subnet(), subnet_prefix_length},
+    : subnet_allocator{MP_PLATFORM.get_preferred_subnet(MP_PLATFORM.qstr_to_path(data_dir)),
+                       subnet_prefix_length},
       // We name this zone "0" since that matches the naming of our bridge name from before the
       // introduction of AZs; see src/platform/backends/qemu/linux/qemu_platform_detail_linux.cpp.
       zone{"0", get_subnet(data_dir, subnet_allocator)}
