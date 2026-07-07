@@ -2056,16 +2056,9 @@ TEST_F(Client, infoCmdHelpOk)
     EXPECT_THAT(send_command({"info", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, infoCmdSucceedsWithAll)
+TEST_F(Client, infoCmdFailsWithAll)
 {
-    EXPECT_CALL(mock_daemon, info(_, _));
-    EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, infoCmdFailsWithNamesAndAll)
-{
-    EXPECT_THAT(send_command({"info", "--all", "foo", "bar"}),
-                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, infoCmdDoesNotDefaultToNoRuntimeInformationAndSucceeds)
