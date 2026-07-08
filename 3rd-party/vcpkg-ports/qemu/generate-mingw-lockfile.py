@@ -66,11 +66,7 @@ LOCKFILE = Path(__file__).with_name("mingw64-toolchain.lock")
 
 def strip_constraint(dep: str) -> str:
     """Drop any version constraint (`>=`, `=`, `<`, ...) from a dependency."""
-    for sep in (">=", "<=", "==", "=", ">", "<"):
-        idx = dep.find(sep)
-        if idx != -1:
-            return dep[:idx]
-    return dep
+    return re.sub("(>|<|=).*", "", dep)
 
 
 def _urlopen(url: str):
