@@ -17,8 +17,8 @@
 #
 
 """A VM's data and reported identity should survive an upgrade. Covered for the
-default image (stopped), a non-default LTS (focal, suspended) and a non-Ubuntu
-image (debian, stopped); the suspended case skips where unsupported."""
+default image (stopped), a non-default LTS (focal, suspended) and two non-Ubuntu
+images (debian and fedora, stopped); the suspended case skips where unsupported."""
 
 import pytest
 
@@ -95,3 +95,17 @@ def test_debian_verify(scenario):
     # scenario was seeded is recorded by its presence in the manifest, and
     # `verify_scenario` skips it when absent.
     _verify("upg-debian", scenario.record)
+
+
+@pytest.mark.seed
+@pytest.mark.scenario("upg-fedora")
+@requires_multipass(">=1.17")
+def test_fedora_seed(scenario):
+    _seed("upg-fedora", "fedora", "stop", "Stopped", scenario.record)
+
+
+@pytest.mark.verify
+@pytest.mark.scenario("upg-fedora")
+def test_fedora_verify(scenario):
+    # No version gate on verify: see `test_debian_verify`.
+    _verify("upg-fedora", scenario.record)
