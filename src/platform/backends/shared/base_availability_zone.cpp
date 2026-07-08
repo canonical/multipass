@@ -141,8 +141,12 @@ BaseAvailabilityZone::Data BaseAvailabilityZone::load_file(const std::string& na
         }
         catch (const boost::system::system_error& e)
         {
-            mpl::error("aliases", "Error parsing file '{}': {}", file_path, e.what());
+            mpl::error(name, "Error parsing availability zone '{}': {}", file_path, e.what());
         }
+	catch (const std::exception& e)
+	{
+	    mpl::error(name, "Error loading availability zone '{}':{}", file_path,e.what());
+	}
     }
     // Return a default value if we couldn't load from `file_path`.
     return {

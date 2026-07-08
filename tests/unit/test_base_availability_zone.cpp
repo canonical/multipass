@@ -141,3 +141,32 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     // Setting to new state should notify all VMs
     zone.set_available(false);
 }
+
+TEST_F(BaseAvailabilityZoneTest, FallsBackToDefaultWhenSubnetIsInvalid)
+{
+    const auto json = R"({
+        "subnet": "",
+        "available": true
+    })";
+
+    EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
+
+    EXPECT_CALL(mock_file_ops, try_read_file(az_file))
+        .WillOnce(Return(json));
+
+    EXPECT_CALL(mock_file_ops,
+                write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
+
+    EXPECT_CALL(mock_platform, subnet_used_locally)
+        .WillOnce(Return(false));
+
+    try
+    {
+	mp::BaseAvailabilityZone zone{az_name, az_dir};
+    }
+    catch(const std::exception&)
+    {
+        FAIL() << "BaseAvailabilityZone constructor threw an exception";
+    }
+}
+
