@@ -52,9 +52,7 @@ def test_auth_seed(scenario, multipassd_session_scoped):
 
 @pytest.mark.verify
 @pytest.mark.scenario(VM)
-def test_auth_verify(scenario, request):
-    # ponytail: clear the passphrase on teardown so re-runs start clean.
-    request.addfinalizer(lambda: multipass("set", "local.passphrase="))
+def test_auth_verify(scenario):
 
     # The already-authenticated primary client survived the upgrade.
     assert multipass("list")
