@@ -54,6 +54,7 @@ private:
     void start_dnsmasq();
 
     const QString data_dir;
+    const BridgeSubnetList subnets;
     std::unique_ptr<Process> dnsmasq_cmd;
     QMetaObject::Connection finish_connection;
     QTemporaryFile conf_file;
