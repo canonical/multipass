@@ -43,6 +43,8 @@ function(add_sftp_client_target TARGET_NAME)
     sftp_utils.cpp
     plain_ssh_session.cpp)
 
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
+
   target_link_libraries(${TARGET_NAME}
     fmt::fmt-header-only
     ssh
@@ -59,6 +61,8 @@ function(add_ssh_client_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     ssh_client.cpp
     plain_ssh_session.cpp)
+
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 
   target_link_libraries(${TARGET_NAME}
     console
