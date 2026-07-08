@@ -106,7 +106,7 @@ def parse_db(db_bytes: bytes) -> dict[str, dict]:
 
 
 def resolve_closure(packages: dict[str, dict], roots: list[str]) -> list[str]:
-    provides = {}
+    provides: dict[str, str] = {}
     for name, meta in packages.items():
         for prov in meta["provides"]:
             provides.setdefault(prov, name)
