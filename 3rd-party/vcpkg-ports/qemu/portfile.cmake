@@ -81,15 +81,11 @@ set(QEMU_COMMON_OPTIONS
 
 if(VCPKG_TARGET_IS_WINDOWS)
     ###########################################################################
-    # Windows: QEMU requires GCC/MinGW. Bootstrap a full MSYS2 environment.
-    #
-    # The Windows build is deliberately limited to qemu-img (the only QEMU tool
-    # Multipass uses on Windows). The system emulator is not built here.
-    #
-    # NOTE: MinGW packages are fetched via pacman and are not version-pinned.
-    # Builds are not fully hermetic on Windows. The MSYS2 base tarball is
-    # pinned to limit variance. pacman requires network access, which is
-    # atypical for vcpkg ports.
+    # Windows: build only qemu-img (the sole QEMU tool Multipass uses here; no
+    # system emulator). The GCC/MinGW toolchain is acquired hermetically via
+    # vcpkg_acquire_msys() from packages pinned by URL + SHA512 -- vcpkg's own
+    # pinned msys shell layer plus the MinGW closure in mingw64-toolchain.lock
+    # (regenerate with generate-mingw-lockfile.py).
     ###########################################################################
 
     if(NOT VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
@@ -110,52 +106,46 @@ if(VCPKG_TARGET_IS_WINDOWS)
         set(${OUT_VAR} "${_p}" PARENT_SCOPE)
     endfunction()
 
-    set(MSYS2_DIR "${CURRENT_BUILDTREES_DIR}/msys2-full/msys64")
-    set(MSYS2_BASH "${MSYS2_DIR}/usr/bin/bash.exe")
-    set(MINGW_SHELL "${MSYS2_BASH}" -lc)
-    set(MSYS2_SETUP_STAMP "${MSYS2_DIR}/.qemu-vcpkg-setup-complete")
+    # Pinned MinGW-w64 closure (regenerate with generate-mingw-lockfile.py).
+    # Each non-comment line is "<url> <sha512>". Keep an interleaved list for
+    # vcpkg_acquire_msys(DIRECT_PACKAGES ...) plus parallel url/sha lists.
+    set(MINGW_DIRECT_PACKAGES "")
+    set(MINGW_URLS "")
+    set(MINGW_SHA512S "")
+    file(STRINGS "${CMAKE_CURRENT_LIST_DIR}/mingw64-toolchain.lock" _lock_lines)
+    foreach(_line IN LISTS _lock_lines)
+        if(_line MATCHES "^#" OR _line STREQUAL "")
+            continue()
+        endif()
+        if(NOT _line MATCHES "^([^ \t]+)[ \t]+([0-9a-fA-F]+)$")
+            message(FATAL_ERROR "Malformed mingw64-toolchain.lock entry: ${_line}")
+        endif()
+        list(APPEND MINGW_DIRECT_PACKAGES "${CMAKE_MATCH_1}" "${CMAKE_MATCH_2}")
+        list(APPEND MINGW_URLS "${CMAKE_MATCH_1}")
+        list(APPEND MINGW_SHA512S "${CMAKE_MATCH_2}")
+    endforeach()
 
-    # Select the MinGW64 toolchain for the login shell. With MSYSTEM set in the
-    # environment, `bash -lc` sources /etc/profile already configured for
-    # MinGW64, so individual commands don't need to export it and re-source.
+    # Assemble a private, content-addressed MSYS2 root: vcpkg's pinned msys shell
+    # utilities (plus findutils/perl for configure) and our pinned MinGW closure.
+    vcpkg_acquire_msys(MSYS_ROOT
+        PACKAGES findutils perl
+        DIRECT_PACKAGES ${MINGW_DIRECT_PACKAGES}
+    )
+
+    # Run the MSYS2 tools under an explicit MINGW64 environment (no login shell):
+    # mingw64/bin and usr/bin on PATH, MSYSTEM selecting the MinGW64 personality.
+    file(TO_NATIVE_PATH "${MSYS_ROOT}/mingw64/bin" _mingw_bin_native)
+    file(TO_NATIVE_PATH "${MSYS_ROOT}/usr/bin" _usr_bin_native)
+    set(ENV{PATH} "${_mingw_bin_native};${_usr_bin_native};$ENV{PATH}")
     set(ENV{MSYSTEM} "MINGW64")
 
     macro(msys2_exec COMMAND_STRING LOGNAME_SUFFIX)
         vcpkg_execute_required_process(
-            COMMAND ${MINGW_SHELL} "${COMMAND_STRING}"
-            WORKING_DIRECTORY "${MSYS2_DIR}"
+            COMMAND "${MSYS_ROOT}/usr/bin/bash.exe" --noprofile --norc -c "${COMMAND_STRING}"
+            WORKING_DIRECTORY "${MSYS_ROOT}"
             LOGNAME ${LOGNAME_SUFFIX}-${TARGET_TRIPLET}
         )
     endmacro()
-
-    vcpkg_download_distfile(MSYS2_ARCHIVE
-        URLS "https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-base-x86_64-20250221.tar.zst"
-        FILENAME "msys2-base-x86_64-20250221.tar.zst"
-        SHA512 34267856d189ba21de9aba265c866dd0590a078784193161467387aa9f4f9e97c7a0119788955e95d54d4ab2346869852f8e35e006eaec80bf452bad51b213fa
-    )
-
-    # CMake's bundled libarchive handles .tar.zst, so extract directly instead
-    # of acquiring a separate MSYS2 just to run `tar`.
-    if(NOT EXISTS "${MSYS2_DIR}/usr/bin/pacman.exe")
-        file(ARCHIVE_EXTRACT
-            INPUT "${MSYS2_ARCHIVE}"
-            DESTINATION "${CURRENT_BUILDTREES_DIR}/msys2-full"
-        )
-    endif()
-
-    # Minimal toolchain/deps to build qemu-img: gcc, glib2 (pulls zlib/iconv),
-    # zstd (qcow2 zstd compression), plus the meson/ninja/pkgconf build tools.
-    # pixman is intentionally omitted: it is only used by display/SPICE/GTK/VNC,
-    # none of which qemu-img links against.
-    set(MINGW_PACKAGES
-        mingw-w64-x86_64-gcc
-        mingw-w64-x86_64-glib2
-        mingw-w64-x86_64-zstd
-        mingw-w64-x86_64-python
-        mingw-w64-x86_64-ninja
-        mingw-w64-x86_64-pkgconf
-    )
-    list(JOIN MINGW_PACKAGES " " MINGW_PACKAGES_STRING)
 
     to_msys_path("${SOURCE_PATH}" SOURCE_PATH_UNIX)
     set(BUILD_DIR "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel")
@@ -163,24 +153,56 @@ if(VCPKG_TARGET_IS_WINDOWS)
     to_msys_path("${BUILD_DIR}" BUILD_DIR_UNIX)
     to_msys_path("${CURRENT_PACKAGES_DIR}" INSTALL_PREFIX_UNIX)
 
-    if(NOT EXISTS "${MSYS2_SETUP_STAMP}")
-        msys2_exec("true" msys2-init)
-        msys2_exec("pacman -Rdd --noconfirm mingw-w64-x86_64-pkg-config || true && pacman -Sy --noconfirm && pacman -S --noconfirm --needed ${MINGW_PACKAGES_STRING}" msys2-packages)
+    # vcpkg_acquire_msys() extracts the full MinGW packages but then deletes
+    # every mingw64/lib/pkgconfig on *every* call (the removal sits outside its
+    # "assemble the root once" guard). qemu-img's meson build needs the glib/zstd
+    # .pc files, so we keep a private backup of them (harvested once, gated on the
+    # backup dir) and copy it back into the canonical mingw64/lib/pkgconfig on
+    # every run. The canonical location matters: pkgconf's --define-prefix (on by
+    # default) only rewrites each .pc's absolute `prefix=/mingw64` into the real
+    # Windows path when the file is found under a `.../lib/pkgconfig` layout, and
+    # native mingw gcc can't resolve the bare `/mingw64` POSIX paths otherwise.
+    set(PKGCONFIG_BACKUP "${MSYS_ROOT}/.multipass-qemu-pkgconfig")
+    if(NOT EXISTS "${PKGCONFIG_BACKUP}")
+        # Re-extract the pinned packages into a scratch dir and copy out their
+        # .pc files (the headers/libs acquire already installed are untouched).
+        set(_harvest "${CURRENT_BUILDTREES_DIR}/pkgconfig-harvest")
+        file(REMOVE_RECURSE "${_harvest}")
+        list(LENGTH MINGW_URLS _mingw_count)
+        math(EXPR _mingw_last "${_mingw_count} - 1")
+        foreach(_i RANGE ${_mingw_last})
+            list(GET MINGW_URLS ${_i} _url)
+            list(GET MINGW_SHA512S ${_i} _sha)
+            get_filename_component(_fn "${_url}" NAME)
+            vcpkg_download_distfile(_archive URLS "${_url}" FILENAME "${_fn}" SHA512 "${_sha}" QUIET)
+            file(ARCHIVE_EXTRACT INPUT "${_archive}" DESTINATION "${_harvest}")
+        endforeach()
+        file(GLOB _pc_files "${_harvest}/mingw64/lib/pkgconfig/*.pc")
+        file(COPY ${_pc_files} DESTINATION "${PKGCONFIG_BACKUP}")
+        file(REMOVE_RECURSE "${_harvest}")
+    endif()
+    file(GLOB _pc_backup "${PKGCONFIG_BACKUP}/*.pc")
+    file(COPY ${_pc_backup} DESTINATION "${MSYS_ROOT}/mingw64/lib/pkgconfig")
+
+    # meson build deps: distlib + QEMU's vendored meson wheel. site-packages
+    # survives acquire's deletions, so this is a genuine one-time step.
+    set(PYTHON_STAMP "${MSYS_ROOT}/.multipass-qemu-python-ready")
+    if(NOT EXISTS "${PYTHON_STAMP}")
         msys2_exec("rm -f /mingw64/lib/python3.*/EXTERNALLY-MANAGED && python -m ensurepip && python -m pip install distlib '${SOURCE_PATH_UNIX}'/python/wheels/*.whl" msys2-python-deps)
-        file(TOUCH "${MSYS2_SETUP_STAMP}")
+        file(TOUCH "${PYTHON_STAMP}")
     endif()
 
-    # --enable-tools is required for the qemu-img target to exist, but we build
-    # only that single ninja target (not qemu-io/nbd/storage-daemon/edid) and
-    # skip `ninja install` entirely. The binary is copied straight from the
-    # build tree. --disable-system avoids building any system emulator; pixman
-    # is force-disabled and zstd force-enabled so features don't depend on
-    # autodetection of whatever MSYS2 provides. A --prefix is still required:
-    # meson validates it at configure time even though we never install.
-    msys2_exec("cd '${BUILD_DIR_UNIX}' && '${SOURCE_PATH_UNIX}/configure' --static --enable-tools --disable-system --disable-pixman --enable-zstd --prefix='${INSTALL_PREFIX_UNIX}' --extra-cflags='-UNDEBUG' --extra-ldflags='-liconv'" configure)
+    # Build only qemu-img: --enable-tools exposes the target, --disable-system
+    # skips the system emulator, --disable-docs avoids the sphinx dependency, and
+    # pixman/zstd are pinned off/on so features don't depend on autodetection.
+    # PKG_CONFIG_PATH/LIBDIR are cleared so pkgconf falls back to its default
+    # search (the canonical mingw64/lib/pkgconfig we restore above), which is what
+    # triggers --define-prefix to emit real Windows include/lib paths. --prefix is
+    # required (meson validates it) though we never install; the binary is copied
+    # straight from the build tree.
+    msys2_exec("unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR && cd '${BUILD_DIR_UNIX}' && '${SOURCE_PATH_UNIX}/configure' --static --enable-tools --disable-system --disable-docs --disable-pixman --enable-zstd --prefix='${INSTALL_PREFIX_UNIX}' --extra-cflags='-UNDEBUG' --extra-ldflags='-liconv'" configure)
     msys2_exec("cd '${BUILD_DIR_UNIX}' && ninja -j${VCPKG_CONCURRENCY} qemu-img.exe" build)
 
-    # Copy just qemu-img.exe from the build tree (no install step ran).
     file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/bin")
     file(COPY "${BUILD_DIR}/qemu-img.exe" DESTINATION "${CURRENT_PACKAGES_DIR}/bin")
 
