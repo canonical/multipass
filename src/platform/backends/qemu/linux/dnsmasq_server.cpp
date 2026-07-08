@@ -128,8 +128,12 @@ std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw
                 // TODO: Also check if the lease is still valid
                 // TODO: Aggregate all leases for the MAC before filtering
             }
-            catch (const std::exception&) // unparseable address -> skip this line
+            catch (const std::invalid_argument& ex) // unparseable address -> skip this line
             {
+                mpl::debug(log_category,
+                           "Could not parse `{}` as IPv4 address: {}, ignoring lease line",
+                           fields[ipv4_idx],
+                           ex.what());
             }
         }
     }
