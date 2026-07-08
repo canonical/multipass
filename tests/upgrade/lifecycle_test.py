@@ -23,7 +23,7 @@ images (debian and fedora, stopped); the suspended case skips where unsupported.
 import pytest
 
 from cli.config import cfg
-from cli.multipass.feature_versions import requires_multipass
+from cli.multipass.feature_versions import skip_if_feature_not_supported
 from .helpers import (
     seed_sentinel,
     assert_sentinel_record,
@@ -82,8 +82,13 @@ def test_focal_verify(scenario):
 
 @pytest.mark.seed
 @pytest.mark.scenario("upg-debian")
-@requires_multipass(">=1.17")
-def test_debian_seed(scenario):
+def test_debian_seed(request):
+    # Gate at runtime, not with a marker: `@requires_multipass(...)` evaluates the
+    # installed version by spawning `multipass` at *collection* time, which aborts
+    # bare collection where the daemon/binary isn't ready. Skipping before resolving
+    # `scenario` also keeps the seed manifest clean (no empty entry for a skip).
+    skip_if_feature_not_supported("debian_images")
+    scenario = request.getfixturevalue("scenario")
     _seed("upg-debian", "debian", "stop", "Stopped", scenario.record)
 
 
@@ -99,8 +104,9 @@ def test_debian_verify(scenario):
 
 @pytest.mark.seed
 @pytest.mark.scenario("upg-fedora")
-@requires_multipass(">=1.17")
-def test_fedora_seed(scenario):
+def test_fedora_seed(request):
+    skip_if_feature_not_supported("fedora_images")  # see test_debian_seed
+    scenario = request.getfixturevalue("scenario")
     _seed("upg-fedora", "fedora", "stop", "Stopped", scenario.record)
 
 
