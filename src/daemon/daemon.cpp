@@ -2714,7 +2714,7 @@ try
 
             RestoreRequest client_response;
             if (!server->Read(&client_response))
-                return status_promise->set_value(
+                return context->set_value(
                     grpc::Status(grpc::StatusCode::CANCELLED,
                                  "Cannot get confirmation from client. Aborting..."));
 
