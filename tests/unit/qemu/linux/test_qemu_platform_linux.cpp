@@ -373,8 +373,7 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
                                        mpt::match_qstring(StartsWith("tap-")),
                                        QString("mode"),
                                        QString("tap"));
-    // tap_name is captured by reference; it will be set by the addr_show expectation below before
-    // these matchers fire.
+
     auto tap_name_matcher = mpt::match_qstring(
         Truly([&tap_name](const std::string& s) { return s == tap_name.toStdString(); }));
     auto link_set_master_args = ElementsAre(QString("link"),
@@ -389,7 +388,7 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
 
     // The tap device already exists, so creation must be skipped...
     EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), addr_show_args, _))
-        .WillOnce([&tap_name](auto& cmd, auto& opts, auto...) {
+        .WillOnce([&tap_name](auto&, auto& opts, auto...) {
             tap_name = opts.last();
             return true;
         })
