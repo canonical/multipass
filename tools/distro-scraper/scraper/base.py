@@ -1,9 +1,26 @@
 import logging
 import aiohttp
 from abc import ABC, abstractmethod
+from importlib.metadata import PackageNotFoundError, version
 
 
 DEFAULT_TIMEOUT = 10
+
+try:
+    _VERSION = version("distro-scraper")
+except PackageNotFoundError:
+    _VERSION = "0.0.0"
+
+USER_AGENT = f"multipass-distro-scraper/{_VERSION} (+https://github.com/canonical/multipass)"
+
+
+def make_session(**kwargs) -> aiohttp.ClientSession:
+    """
+    Create an aiohttp.ClientSession that identifies itself with the Multipass
+    distro-scraper User-Agent.
+    """
+    headers = {"User-Agent": USER_AGENT, **kwargs.pop("headers", {})}
+    return aiohttp.ClientSession(headers=headers, **kwargs)
 
 
 class BaseScraper(ABC):
