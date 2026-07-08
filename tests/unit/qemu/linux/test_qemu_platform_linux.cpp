@@ -350,6 +350,59 @@ TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
         .WillOnce(Return(true));
 }
 
+TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
+{
+    mp::VirtualMachineDescription vm_desc;
+
+    const auto& vswitch = switches.front();
+    vm_desc.vm_name = vswitch.name;
+    vm_desc.zone = "zone1";
+    vm_desc.default_mac_address = vswitch.hw_addr;
+
+    QString tap_name;
+
+    auto addr_show_args = ElementsAre(QString("addr"),
+                                      QString("show"),
+                                      mpt::match_qstring(StartsWith("tap-")));
+    auto tuntap_add_args = ElementsAre(QString("tuntap"),
+                                       QString("add"),
+                                       mpt::match_qstring(StartsWith("tap-")),
+                                       QString("mode"),
+                                       QString("tap"));
+
+    auto tap_name_matcher = mpt::match_qstring(
+        Truly([&tap_name](const std::string& s) { return s == tap_name.toStdString(); }));
+    auto link_set_master_args = ElementsAre(QString("link"),
+                                            QString("set"),
+                                            tap_name_matcher,
+                                            QString("master"),
+                                            vswitch.bridge_name);
+    auto link_set_up_args = ElementsAre(QString("link"),
+                                        QString("set"),
+                                        tap_name_matcher,
+                                        QString("up"));
+
+    // The tap device already exists, so creation must be skipped...
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), addr_show_args, _))
+        .WillOnce([&tap_name](auto&, auto& opts, auto...) {
+            tap_name = opts.last();
+            return true;
+        })
+        .WillOnce(Return(true));
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), tuntap_add_args, _)).Times(0);
+
+    // ...but the device must still be (re)linked to the bridge and brought up.
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), link_set_master_args, _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), link_set_up_args, _))
+        .WillOnce(Return(true));
+
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+
+    qemu_platform_linux.vm_platform_args(vm_desc);
+}
+
 TEST_F(QemuPlatformLinux, platformHealthCheckCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
