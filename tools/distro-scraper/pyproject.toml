@@ -7,7 +7,7 @@ name = "distro-scraper"
 version = "0.1.0"
 description = "Cloud distribution image scraper for Multipass"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.9.0",
     "beautifulsoup4>=4.12.0",

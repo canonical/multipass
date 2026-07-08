@@ -1,15 +1,14 @@
 import logging
+import tomllib
 import aiohttp
 from abc import ABC, abstractmethod
-from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 
 DEFAULT_TIMEOUT = 10
 
-try:
-    _VERSION = version("distro-scraper")
-except PackageNotFoundError:
-    _VERSION = "0.0.0"
+with (Path(__file__).resolve().parent.parent / "pyproject.toml").open("rb") as _f:
+    _VERSION = tomllib.load(_f)["project"]["version"]
 
 USER_AGENT = f"multipass-distro-scraper/{_VERSION} (+https://github.com/canonical/multipass)"
 
