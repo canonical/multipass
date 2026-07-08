@@ -177,9 +177,15 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
     EXPECT_CALL(daemon, get)
         .WillOnce(
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::GetRequest, mp::GetReply>));
-    EXPECT_CALL(daemon, set)
-        .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SetRequest, mp::SetReply>));
+    EXPECT_CALL(daemon, set).WillOnce([](auto, auto server, auto status_promise) {
+        mp::SetReply reply;
+        reply.set_reply_message("Message");
+
+        server->Write(reply);
+        status_promise->set_value(grpc::Status::OK);
+
+        return grpc::Status{};
+    });
     EXPECT_CALL(daemon, create(_, _, _))
         .WillOnce(Invoke(&daemon,
                          &mpt::MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
@@ -1926,7 +1932,7 @@ TEST_F(Daemon, setSetsSetting)
     request.set_key(key);
     request.set_val(val);
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).Times(1);
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _)).Times(1);
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
@@ -2038,7 +2044,7 @@ TEST_F(Daemon, setWorksIfBridgedInterfaceIsEmpty)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillOnce(Return(""));
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(value))).Times(1);
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(value), _)).Times(1);
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
 

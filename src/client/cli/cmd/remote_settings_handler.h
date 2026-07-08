@@ -20,6 +20,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/settings/settings_handler.h>
 #include <multipass/terminal.h>
+#include <multipass/user_messages.h>
 
 #include <stdexcept>
 
@@ -35,7 +36,7 @@ public:
                           int verbosity);
 
     QString get(const QString& key) const override;
-    void set(const QString& key, const QString& val) override;
+    void set(const QString& key, const QString& val, UserMessages& messages) override;
     std::set<QString> keys() const override;
 
 public: // accessors for tests

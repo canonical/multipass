@@ -21,6 +21,7 @@
 #include <multipass/cli/return_codes.h>
 #include <multipass/disabled_copy_move.h>
 #include <multipass/format.h>
+#include <multipass/reply_concepts.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 #include <multipass/utils.h>
@@ -84,8 +85,8 @@ protected:
         auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1);
 
         grpc::ClientContext context;
-        std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client =
-            rpc_method(&context);
+        std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client = rpc_method(
+            &context);
 
         client->Write(request);
 
@@ -139,6 +140,8 @@ protected:
               typename Request,
               typename SuccessCallable,
               typename FailureCallable>
+        requires LogReply<std::decay_t<
+            typename multipass::callable_traits<SuccessCallable>::template arg<0>::type>>
     ReturnCodeVariant dispatch(RpcFunc&& rpc_func,
                                const Request& request,
                                SuccessCallable&& on_success,
