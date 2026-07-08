@@ -159,9 +159,11 @@ void mp::PlainSSHSession::force_shutdown()
     if (auto socket = MP_LIBSSH.ssh_get_fd(raw_session.get()); socket != -1)
         MP_PLATFORM.shutdown_socket(socket);
 }
+
 ssh_session multipass::PlainSSHSession::borrow_session(
     const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const
 {
+    assert(!is_moved() && "precondition - cannot borrow a moved session");
     return raw_session.get();
 }
 
