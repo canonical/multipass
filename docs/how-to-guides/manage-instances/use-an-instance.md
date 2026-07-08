@@ -155,4 +155,16 @@ The `stop --force` command is analogous to unplugging the power cord from a phys
 This command is also available on the Multipass GUI.
 ```
 
-<!--?TODO: ADD RESTART?-->
+### Restart an instance
+
+If you want to stop and start an instance in one step, use `multipass restart`.
+This only works for instances in `Running` status. If an instance is already
+stopped or suspended, use `multipass start` instead.
+
+```{code-block} text
+multipass restart desirable-earwig
+```
+
+```{note}
+This command is also available on the Multipass GUI.
+```
