@@ -35,7 +35,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import sys
 import tarfile
 import urllib.request
@@ -86,10 +85,10 @@ def fetch(url: str) -> bytes:
 
 def parse_db(db_bytes: bytes) -> dict[str, dict]:
     """Parse a pacman sync database (a zstd-compressed tar of `desc` files)."""
-    raw = zstandard.ZstdDecompressor().decompress(db_bytes, max_output_size=512 * 1024 * 1024)
     packages: dict[str, dict] = {}
-    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as tar:
-        for member in tar.getmembers():
+    with zstandard.ZstdDecompressor().stream_reader(db_bytes) as zstd, \
+            tarfile.open(fileobj=zstd, mode="r|") as tar:
+        for member in tar:
             if not member.name.endswith("/desc"):
                 continue
             desc = tar.extractfile(member).read().decode("utf-8")
