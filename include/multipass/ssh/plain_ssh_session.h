@@ -82,9 +82,13 @@ public:
     void force_shutdown() override; // TODO@sftp this should not be public
 
 public: // but restricted
-    // Obtain a non-owning libssh session handle.
-    // The caller adopts thread-safety responsibility for the underlying session with respect to
-    // this SSHSession
+    /**
+     * Obtain a non-owning libssh session handle.
+     * The caller adopts thread-safety responsibility for the underlying session with respect to
+     * this SSHSession
+     *
+     * @pre !this->is_moved()
+     */
     ssh_session borrow_session(const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const;
 
 private:
