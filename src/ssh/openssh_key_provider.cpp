@@ -18,6 +18,7 @@
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/utils.h>
 
+#include <libssh/libssh.h>
 #include <multipass/format.h>
 
 #include <QDir>
@@ -31,8 +32,24 @@ namespace
 
 mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
 {
-    ssh_key priv_key;
-    auto ret = ssh_pki_generate(SSH_KEYTYPE_RSA, 2048, &priv_key);
+    ssh_key priv_key = NULL;
+    ssh_pki_ctx pki_ctx = NULL;
+    int ret;
+
+    pki_ctx = ssh_pki_ctx_new();
+    if (pki_ctx == NULL)
+        throw std::runtime_error("unable to generate ssh key");
+
+    int rsa_bits = 2048;
+    ret = ssh_pki_ctx_options_set(pki_ctx, SSH_PKI_OPTION_RSA_BITS, &rsa_bits);
+    if (ret != SSH_OK)
+    {
+        ssh_pki_ctx_free(pki_ctx);
+        throw std::runtime_error("unable to generate ssh key");
+    }
+
+    ret = ssh_pki_generate_key(SSH_KEYTYPE_RSA, pki_ctx, &priv_key);
+    ssh_pki_ctx_free(pki_ctx);
     if (ret != SSH_OK)
         throw std::runtime_error("unable to generate ssh key");
 
