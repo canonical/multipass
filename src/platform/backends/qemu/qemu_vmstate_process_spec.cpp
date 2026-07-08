@@ -30,7 +30,7 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
     QStringList args;
 
     // clang-format off
-    // Tell QEMU to where to look for the BIOS files
+    // Tell QEMU where to look for the BIOS files
     args << "-L"
          << firmware_path();
     args << platform_args

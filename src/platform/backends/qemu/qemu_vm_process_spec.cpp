@@ -82,7 +82,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
         // clang-format off
-        // Tell QEMU to where to look for the BIOS files
+        // Tell QEMU where to look for the BIOS files
         args << "-L"
              << firmware_path();
         args << platform_args;

@@ -23,6 +23,7 @@
 #include "tests/unit/temp_file.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <applevz/applevz_utils.h>
 #include <multipass/utils.h>
 

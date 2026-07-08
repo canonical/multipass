@@ -30,15 +30,18 @@ add_custom_command(
 )
 
 # Copy firmware to build tree
+set(QEMU_FIRMWARE_DST "${CMAKE_BINARY_DIR}/Resources/qemu")
+set(QEMU_FIRMWARE_STAMP "${QEMU_FIRMWARE_DST}/.copied")
 add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/Resources/qemu"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/Resources/qemu"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${QEMU_FIRMWARE_DIR}" "${CMAKE_BINARY_DIR}/Resources/qemu"
+    OUTPUT "${QEMU_FIRMWARE_STAMP}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${QEMU_FIRMWARE_DST}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${QEMU_FIRMWARE_DIR}" "${QEMU_FIRMWARE_DST}"
+    COMMAND ${CMAKE_COMMAND} -E touch "${QEMU_FIRMWARE_STAMP}"
 )
 
 add_custom_target(qemu-system ALL DEPENDS
     "${CMAKE_BINARY_DIR}/bin/qemu-system-${HOST_ARCH}"
-    "${CMAKE_BINARY_DIR}/Resources/qemu"
+    "${QEMU_FIRMWARE_STAMP}"
 )
 
 install(PROGRAMS "${QEMU_SYSTEM}"

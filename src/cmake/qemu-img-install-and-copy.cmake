@@ -20,15 +20,16 @@ find_program(QEMU_IMG qemu-img
 )
 
 # Copy QEMU and QEMU tools to build tree
+set(QEMU_IMG_OUTPUT "${CMAKE_BINARY_DIR}/bin/qemu-img${CMAKE_EXECUTABLE_SUFFIX}")
 add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/bin/qemu-img"
+    OUTPUT "${QEMU_IMG_OUTPUT}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin"
-    COMMAND ${CMAKE_COMMAND} -E copy "${QEMU_IMG}" "${CMAKE_BINARY_DIR}/bin/"
+    COMMAND ${CMAKE_COMMAND} -E copy "${QEMU_IMG}" "${QEMU_IMG_OUTPUT}"
     DEPENDS "${QEMU_IMG}"
 )
 
 add_custom_target(qemu-img ALL DEPENDS
-    "${CMAKE_BINARY_DIR}/bin/qemu-img"
+    "${QEMU_IMG_OUTPUT}"
 )
 
 install(PROGRAMS "${QEMU_IMG}"

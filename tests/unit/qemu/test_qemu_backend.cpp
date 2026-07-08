@@ -51,6 +51,7 @@
 #include <multipass/vm_specs.h>
 
 #include <QCoreApplication>
+#include <QDir>
 #include <boost/json.hpp>
 
 #include <thread>
