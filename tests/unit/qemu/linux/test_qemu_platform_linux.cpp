@@ -365,8 +365,9 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
 
     QString tap_name;
 
-    auto addr_show_args =
-        ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-")));
+    auto addr_show_args = ElementsAre(QString("addr"),
+                                      QString("show"),
+                                      mpt::match_qstring(StartsWith("tap-")));
     auto tuntap_add_args = ElementsAre(QString("tuntap"),
                                        QString("add"),
                                        mpt::match_qstring(StartsWith("tap-")),
@@ -381,8 +382,10 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
                                             tap_name_matcher,
                                             QString("master"),
                                             vswitch.bridge_name);
-    auto link_set_up_args =
-        ElementsAre(QString("link"), QString("set"), tap_name_matcher, QString("up"));
+    auto link_set_up_args = ElementsAre(QString("link"),
+                                        QString("set"),
+                                        tap_name_matcher,
+                                        QString("up"));
 
     // The tap device already exists, so creation must be skipped...
     EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), addr_show_args, _))
