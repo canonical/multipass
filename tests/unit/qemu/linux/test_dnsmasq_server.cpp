@@ -141,7 +141,7 @@ TEST_F(DNSMasqServer, returnsNullIpWhenLeasesFileDoesNotExist)
     EXPECT_FALSE(ip);
 }
 
-TEST_F(DNSMasqServer, getIpForSkipsStaleLeaseAndReturnsLiveOne)
+TEST_F(DNSMasqServer, getIpForSkipsStaleSubnetLeaseAndReturnsLiveOne)
 {
     // Regression (MULTI-2701 follow-up): a version upgrade can change the served subnet, leaving a
     // stale lease pointing at an unreachable old-subnet address ahead of the current one for a MAC.
