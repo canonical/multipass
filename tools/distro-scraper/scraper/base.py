@@ -1,15 +1,11 @@
 import logging
-import tomllib
 import aiohttp
 from abc import ABC, abstractmethod
-from pathlib import Path
+from importlib.metadata import version
 
 
 DEFAULT_TIMEOUT = 10
-
-with (Path(__file__).resolve().parent.parent / "pyproject.toml").open("rb") as _f:
-    _VERSION = tomllib.load(_f)["project"]["version"]
-
+_VERSION = version("distro-scraper")
 USER_AGENT = f"multipass-distro-scraper/{_VERSION} (+https://github.com/canonical/multipass)"
 
 
