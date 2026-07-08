@@ -37,6 +37,7 @@ import argparse
 import hashlib
 import sys
 import tarfile
+import re
 import urllib.request
 from pathlib import Path
 
