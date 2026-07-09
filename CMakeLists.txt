@@ -137,6 +137,23 @@ list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
+# forward compilers to vcpkg via env vars
+if(DEFINED CACHE{CMAKE_C_COMPILER} AND NOT DEFINED ENV{CC})
+  set(ENV{CC} "$CACHE{CMAKE_C_COMPILER}")
+endif()
+if(DEFINED CACHE{CMAKE_CXX_COMPILER} AND NOT DEFINED ENV{CXX})
+  set(ENV{CXX} "$CACHE{CMAKE_CXX_COMPILER}")
+endif()
+
+# Forward linker to vcpkg via env var. Unlike CC/CXX, there is no dedicated variable for the
+# linker, so translate it into LDFLAGS, which CMake uses to seed its default linker flags.
+if(DEFINED CMAKE_LINKER_TYPE AND NOT "${HOST_OS_NAME}" STREQUAL "Windows" AND NOT DEFINED ENV{LDFLAGS})
+  string(TOLOWER "${CMAKE_LINKER_TYPE}" LINKER_LOWER)
+  if(LINKER_LOWER MATCHES "^(mold|lld|bfd|gold)$")
+    set(ENV{LDFLAGS} "-fuse-ld=${LINKER_LOWER}")
+  endif()
+endif()
+
 project(Multipass)
 
 cmake_dependent_option(
