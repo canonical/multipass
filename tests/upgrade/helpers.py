@@ -19,6 +19,7 @@
 """Assertions and small building blocks shared by the upgrade tests."""
 
 import sys
+import warnings
 
 from cli.multipass import (
     info,
@@ -34,6 +35,26 @@ from cli.utilities.mathutils import is_within_tolerance
 
 #: Sentinel files live in the guest home, which survives reboots and snapshots.
 SENTINEL_DIR = "/home/ubuntu"
+
+
+class UpgradeDriftWarning(UserWarning):
+    """A soft check that failed: informational drift, does not fail the test."""
+
+
+def soft_assert(condition: bool, message: str) -> None:
+    """Warn instead of fail when ``condition`` is false.
+
+    For properties that *may* change across an upgrade where it's unclear whether
+    a change is a problem (e.g. a VM's IP address): surface the drift in pytest's
+    warnings summary rather than failing the run.
+    """
+    if not condition:
+        warnings.warn(message, UpgradeDriftWarning, stacklevel=2)
+
+
+def instance_ipv4(vm_name: str) -> list:
+    """Sorted IPv4 addresses reported for ``vm_name`` (only populated running)."""
+    return sorted(info(vm_name)[vm_name].get("ipv4", []))
 
 
 def enable_privileged_mounts(governor):
@@ -125,15 +146,19 @@ def resume_seeded(vm_name: str, expected_state: str = "Stopped") -> None:
 def info_fingerprint(vm_name: str) -> dict:
     """Host-reported instance facts that must be stable across an upgrade.
 
-    ``cpu_count`` and ``memory.total`` are only populated while the instance is
-    *running*, so both capture (seed) and comparison (verify) must happen with
-    the VM up. ``image_release`` is stable in any state.
+    ``cpu_count``, ``memory.total`` and ``disks.sda1.total`` are only populated
+    while the instance is *running*, so both capture (seed) and comparison
+    (verify) must happen with the VM up. ``image_release`` and ``image_hash`` are
+    stable in any state. These map onto persisted ``VMSpecs`` fields
+    (``num_cores``, ``mem_size``, ``disk_space``) plus the source image identity.
     """
     fields = info(vm_name)[vm_name]
     return {
         "cpu_count": fields.get("cpu_count"),
         "image_release": fields.get("image_release"),
+        "image_hash": fields.get("image_hash"),
         "memory_total": fields.get("memory", {}).get("total"),
+        "disk_total": fields.get("disks", {}).get("sda1", {}).get("total"),
     }
 
 
@@ -162,3 +187,29 @@ def guest_interface_macs(vm_name: str) -> list:
     assert listing, f"Could not enumerate interfaces on `{vm_name}`: {listing}"
     interfaces = [iface for iface in listing.content.split() if iface != "lo"]
     return sorted(get_mac_addr_of(vm_name, iface) for iface in interfaces)
+
+
+def guest_identity(vm_name: str) -> dict:
+    """Stable guest-side identity that must survive an upgrade untouched.
+
+    These prove the *same* guest disk came back and was not re-initialised
+    (a botched refresh that re-ran cloud-init would regenerate the machine-id and
+    SSH host key, and possibly the hostname or login user). All are world-readable
+    -- no ``sudo`` -- and stable across reboots. Captured while running (seed) and
+    compared after resume (verify); values that can't be read come back empty on
+    both sides, so a missing file never trips a false mismatch.
+    """
+    return {
+        "hostname": guest_exec(vm_name, "hostname").content.strip(),
+        "user": guest_exec(vm_name, "whoami").content.strip(),
+        "machine_id": read_file(vm_name, "/etc/machine-id").strip(),
+        "ssh_host_key": read_file(vm_name, "/etc/ssh/ssh_host_ed25519_key.pub").strip(),
+    }
+
+
+def assert_guest_identity_unchanged(vm_name: str, recorded: dict) -> None:
+    current = guest_identity(vm_name)
+    assert current == recorded, (
+        f"Guest identity for `{vm_name}` changed across upgrade: "
+        f"recorded {recorded}, now {current}"
+    )
