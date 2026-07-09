@@ -36,6 +36,13 @@ By default, Multipass on Windows uses the `hyperv` driver.
 
 `````{tab-set}
 
+````{tab-item} Linux
+:sync: Linux
+
+On Linux, it is not possible to install an alternative driver.
+
+````
+
 ````{tab-item} macOS
 :sync: macOS
 
