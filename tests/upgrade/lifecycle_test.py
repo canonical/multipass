@@ -31,6 +31,10 @@ from .helpers import (
     assert_fingerprint_unchanged,
     park_seeded,
     resume_seeded,
+    instance_ipv4,
+    soft_assert,
+    guest_identity,
+    assert_guest_identity_unchanged,
 )
 from .seedutils import seeded_vm
 
@@ -43,15 +47,33 @@ requires_suspend = pytest.mark.skipif(
 def _seed(vm, image, how, expected, record):
     with seeded_vm(vm, image=image) if image else seeded_vm(vm):
         sentinel = seed_sentinel(vm, vm)
-        fingerprint = info_fingerprint(vm)  # cpu/memory only reported while running
+        fingerprint = info_fingerprint(vm)  # cpu/memory/disk only reported while running
+        identity = guest_identity(vm)  # guest-side identity, read while running
+        ipv4 = instance_ipv4(vm)  # reported only while running
         park_seeded(vm, how=how, expected=expected)
-    record.update({"sentinel": sentinel, "fingerprint": fingerprint, "expected": expected})
+    record.update(
+        {
+            "sentinel": sentinel,
+            "fingerprint": fingerprint,
+            "identity": identity,
+            "expected": expected,
+            "ipv4": ipv4,
+        }
+    )
 
 
 def _verify(vm, record):
     resume_seeded(vm, expected_state=record["expected"])
     assert_fingerprint_unchanged(vm, record["fingerprint"])
+    assert_guest_identity_unchanged(vm, record["identity"])
     assert_sentinel_record(vm, record["sentinel"])
+    # The IP address may or may not survive an upgrade; warn on drift, don't fail.
+    now = instance_ipv4(vm)
+    soft_assert(
+        now == record["ipv4"],
+        f"IPv4 for `{vm}` changed across upgrade: {record['ipv4']} -> {now} "
+        "(not treated as a failure -- review if unexpected)",
+    )
 
 
 @pytest.mark.seed
