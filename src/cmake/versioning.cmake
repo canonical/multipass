@@ -158,8 +158,8 @@ function(prepare_windows_version_resource OUTPUT_VAR TARGET_BASENAME FILE_DESCRI
   set(RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BASENAME}_version.rc")
 
   configure_file(
-    ${CMAKE_SOURCE_DIR}/packaging/windows/multipass_version.rc.in
-    ${RC_OUTPUT}
+    "${CMAKE_SOURCE_DIR}/packaging/windows/multipass_version.rc.in"
+    "${RC_OUTPUT}"
     @ONLY
   )
   set_source_files_properties(${RC_OUTPUT} PROPERTIES LANGUAGE RC)
