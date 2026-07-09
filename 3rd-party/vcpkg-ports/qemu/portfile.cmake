@@ -22,6 +22,7 @@ vcpkg_from_github(
         multipass-patches/0002-revert-old-highmem-off-behavior.patch
         multipass-patches/0003-zero-initialize-vmnet-send-pos.patch
         multipass-patches/0004-revert-fix-encodings-for-id-aa64pfr1-el1.patch
+        multipass-patches/0005-disable-werror-for-dtc-subproject.patch
 )
 
 if(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")
