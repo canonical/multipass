@@ -254,8 +254,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix)
     params.name = "multipass-hyperv-api-hcn-create-delete-dns-test";
     params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
     params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
-    params.dns = HcnDns{/* domain */ "multipass.test",
-                        /* search */ {"multipass.test", "example.test"},
+    params.dns = HcnDns{/* domain */ "mshome.net",
+                        /* search */ {"mshome.net", "example.test"},
                         /* server_list */ {"172.50.224.1"},
                         /* options */ {}};
 
@@ -272,8 +272,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix)
         const auto result = HCN().query_network("b70c479d-f808-4053-aafa-705bc15b6d68", info);
         ASSERT_TRUE(result);
         ASSERT_TRUE(info.dns.has_value());
-        EXPECT_EQ(info.dns->domain, "multipass.test");
-        EXPECT_THAT(info.dns->search, ::testing::ElementsAre("multipass.test", "example.test"));
+        EXPECT_EQ(info.dns->domain, "mshome.net");
+        EXPECT_THAT(info.dns->search, ::testing::ElementsAre("mshome.net", "example.test"));
         EXPECT_THAT(info.dns->server_list, ::testing::ElementsAre("172.50.224.1"));
     }
 
@@ -290,7 +290,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix_only
     params.name = "multipass-hyperv-api-hcn-create-delete-dns-suffix-only-test";
     params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
     params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
-    params.dns = HcnDns{/* domain */ "multipass.test"};
+    params.dns = HcnDns{/* domain */ "mshome.net"};
 
     (void)HCN().delete_network(params.guid);
 
@@ -305,7 +305,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network_with_dns_suffix_only
         const auto result = HCN().query_network("b70c479d-f808-4053-aafa-705bc15b6d68", info);
         ASSERT_TRUE(result);
         ASSERT_TRUE(info.dns.has_value());
-        EXPECT_EQ(info.dns->domain, "multipass.test");
+        EXPECT_EQ(info.dns->domain, "mshome.net");
     }
 
     {
@@ -321,8 +321,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, endpoint_inherits_network_dns_suffix)
     network_params.name = "multipass-hyperv-api-hcn-endpoint-dns-test";
     network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
     network_params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
-    network_params.dns = HcnDns{/* domain */ "multipass.test",
-                                /* search */ {"multipass.test", "example.test"},
+    network_params.dns = HcnDns{/* domain */ "mshome.net",
+                                /* search */ {"mshome.net", "example.test"},
                                 /* server_list */ {"172.50.224.1"},
                                 /* options */ {}};
 
@@ -349,8 +349,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, endpoint_inherits_network_dns_suffix)
         const auto result = HCN().query_endpoint(endpoint_params.endpoint_guid, info);
         ASSERT_TRUE(result);
         ASSERT_TRUE(info.dns.has_value());
-        EXPECT_EQ(info.dns->domain, "multipass.test");
-        EXPECT_THAT(info.dns->search, ::testing::ElementsAre("multipass.test", "example.test"));
+        EXPECT_EQ(info.dns->domain, "mshome.net");
+        EXPECT_THAT(info.dns->search, ::testing::ElementsAre("mshome.net", "example.test"));
         EXPECT_THAT(info.dns->server_list, ::testing::ElementsAre("172.50.224.1"));
     }
 

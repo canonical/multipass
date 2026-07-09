@@ -39,15 +39,15 @@ struct HyperVHCNDns_UnitTests : public ::testing::Test
 TEST_F(HyperVHCNDns_UnitTests, format_narrow)
 {
     uut_t uut;
-    uut.domain = "multipass.test";
-    uut.search = {"multipass.test", "example.test"};
+    uut.domain = "mshome.net";
+    uut.search = {"mshome.net", "example.test"};
     uut.server_list = {"192.168.1.1", "192.168.1.2"};
     uut.options = {"ndots:1"};
     const auto result = fmt::to_string(uut);
     constexpr auto expected_result = R"json(
         {
-            "Domain": "multipass.test",
-            "Search": ["multipass.test","example.test"],
+            "Domain": "mshome.net",
+            "Search": ["mshome.net","example.test"],
             "ServerList": ["192.168.1.1","192.168.1.2"],
             "Options": ["ndots:1"]
         })json";
@@ -66,15 +66,15 @@ TEST_F(HyperVHCNDns_UnitTests, format_narrow)
 TEST_F(HyperVHCNDns_UnitTests, format_wide)
 {
     uut_t uut;
-    uut.domain = "multipass.test";
-    uut.search = {"multipass.test", "example.test"};
+    uut.domain = "mshome.net";
+    uut.search = {"mshome.net", "example.test"};
     uut.server_list = {"192.168.1.1", "192.168.1.2"};
     uut.options = {"ndots:1"};
     const auto result = fmt::to_wstring(uut);
     constexpr auto expected_result = LR"json(
         {
-            "Domain": "multipass.test",
-            "Search": ["multipass.test","example.test"],
+            "Domain": "mshome.net",
+            "Search": ["mshome.net","example.test"],
             "ServerList": ["192.168.1.1","192.168.1.2"],
             "Options": ["ndots:1"]
         })json";
@@ -93,11 +93,11 @@ TEST_F(HyperVHCNDns_UnitTests, format_wide)
 TEST_F(HyperVHCNDns_UnitTests, format_empty_lists)
 {
     uut_t uut;
-    uut.domain = "multipass.test";
+    uut.domain = "mshome.net";
     const auto result = fmt::to_string(uut);
     constexpr auto expected_result = R"json(
         {
-            "Domain": "multipass.test",
+            "Domain": "mshome.net",
             "Search": [],
             "ServerList": [],
             "Options": []
