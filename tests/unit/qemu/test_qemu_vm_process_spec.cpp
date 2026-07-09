@@ -40,6 +40,7 @@ struct TestQemuVMProcessSpec : public Test
                                              "zone1",
                                              "00:11:22:33:44:55",
                                              {},
+                                             {},
                                              "ssh_username",
                                              {"/path/to/image", "", "", "", "", "", {}}, // VMImage
                                              mp::Path{"/path/to/cloud_init.iso"},
@@ -137,12 +138,33 @@ TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
             << mount_args.begin()->second.second);
 }
 
+TEST_F(TestQemuVMProcessSpec, passthroughDeviceAppended)
+{
+    auto desc_with_device = desc;
+    desc_with_device.passthrough_devices = {{"0000:01:00.0"}};
+
+    mp::QemuVMProcessSpec spec(desc_with_device, platform_args, mount_args, std::nullopt);
+
+    const auto expected_uuid = QString::fromStdString(multipass::utils::make_uuid(desc.vm_name));
+    EXPECT_THAT(spec.arguments(),
+                AllOf(Contains("-vga"), Contains("none"), Contains("vfio-pci,host=0000:01:00.0")));
+}
+
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
     EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("path/to/source/ rw"));
     EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("path/to/source/** rwlk"));
+}
+
+TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesVfioRules)
+{
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
+
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("/dev/vfio/vfio rw,"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("/dev/vfio/[0-9]* rw,"));
+    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("/sys/bus/pci/devices/ r,"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileHasCorrectName)

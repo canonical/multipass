@@ -153,6 +153,10 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     for (const auto& ip : instance_details.ipv4())
         instance_node["ipv4"].push_back(ip);
 
+    instance_node["devices"] = YAML::Node(YAML::NodeType::Sequence);
+    for (const auto& dev : item.passthrough_devices())
+        instance_node["devices"].push_back(dev);
+
     YAML::Node mounts;
     for (const auto& mount : item.mount_info().mount_paths())
     {

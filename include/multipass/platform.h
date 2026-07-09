@@ -93,6 +93,10 @@ public:
 
     // Shuts down I/O on a socket in both directions, without closing it
     virtual void shutdown_socket(Socket socket) const;
+    // Passthrough device support
+    [[nodiscard]] virtual std::vector<std::string>
+    check_passthrough_devices(const std::vector<std::string>& pci_addresses) const;
+    virtual void bind_passthrough_devices(const std::vector<std::string>& pci_addresses) const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);

@@ -17,10 +17,11 @@
 
 #pragma once
 
-#include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
+#include <multipass/passthrough_device.h>
 #include <multipass/path.h>
 #include <multipass/vm_image.h>
+#include <multipass/memory_size.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -43,6 +44,7 @@ public:
     std::string zone;
     std::string default_mac_address;
     std::vector<NetworkInterface> extra_interfaces;
+    std::vector<PassthroughDevice> passthrough_devices;
     std::string ssh_username;
     VMImage image;
     Path cloud_init_iso;
