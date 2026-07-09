@@ -35,7 +35,8 @@ namespace multipass::hyperv::dns
 namespace
 {
 // Local (non-group-policy) NRPT registry location, as used by Add-DnsClientNrptRule.
-constexpr auto nrpt_base = LR"(SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig)";
+constexpr auto nrpt_base =
+    LR"(SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig)";
 
 // ConfigOptions bitmask value meaning "use the provided override DNS resolvers".
 constexpr DWORD nrpt_override_dns = 0x8;
@@ -136,13 +137,12 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
     // Name (REG_MULTI_SZ): the matched namespace(s), each with a leading dot.
     {
         const std::wstring multi = make_namespace_multi_sz(dns_namespaces);
-        if (const auto s = ::RegSetValueExW(
-                key,
-                L"Name",
-                0,
-                REG_MULTI_SZ,
-                reinterpret_cast<const BYTE*>(multi.data()),
-                static_cast<DWORD>(multi.size() * sizeof(wchar_t)));
+        if (const auto s = ::RegSetValueExW(key,
+                                            L"Name",
+                                            0,
+                                            REG_MULTI_SZ,
+                                            reinterpret_cast<const BYTE*>(multi.data()),
+                                            static_cast<DWORD>(multi.size() * sizeof(wchar_t)));
             s != ERROR_SUCCESS)
             fail("Name", s);
     }

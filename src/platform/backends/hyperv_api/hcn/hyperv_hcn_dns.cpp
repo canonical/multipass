@@ -71,9 +71,9 @@ auto fmt::formatter<HcnDns, Char>::format(const HcnDns& dns, FormatContext& ctx)
                                    as_json_string_array<Char>(dns.options));
 }
 
-template auto fmt::formatter<HcnDns, char>::format<fmt::format_context>(
-    const HcnDns&,
-    fmt::format_context&) const -> fmt::format_context::iterator;
+template auto fmt::formatter<HcnDns, char>::format<fmt::format_context>(const HcnDns&,
+                                                                        fmt::format_context&) const
+    -> fmt::format_context::iterator;
 
 template auto fmt::formatter<HcnDns, wchar_t>::format<fmt::wformat_context>(
     const HcnDns&,
