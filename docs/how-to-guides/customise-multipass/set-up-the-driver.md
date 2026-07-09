@@ -56,7 +56,7 @@ multipass set local.driver=applevz
 
 From now on, all instances started with `multipass launch` will use the Apple Virtualization framework behind the scenes.
 
-An additional option is to use VirtualBox.
+On Intel/x86 architectures, an additional option is to use VirtualBox.
 
 To switch the Multipass driver to VirtualBox, run this command:
 
@@ -128,6 +128,10 @@ Alternatively, to use the `virt-manager` GUI, ...
 
 ````{tab-item} macOS
 :sync: macOS
+
+```{note}
+The VirtualBox driver is only available on Intel/x86 architectures.
+```
 
 Multipass runs as the `root` user, so to see the instances in  VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
 
