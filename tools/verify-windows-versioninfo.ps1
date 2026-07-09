@@ -3,7 +3,7 @@ param(
     [switch]$FailOnMissing
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 # Explorer's Details tab typically shows the fixed numeric file version,
 # not the string-table FileVersion/ProductVersion values.
