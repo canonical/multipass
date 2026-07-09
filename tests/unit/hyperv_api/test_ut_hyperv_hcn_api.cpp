@@ -308,8 +308,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_dns)
                         "Flags" : 0,
                         "Policies": [],
                         "Dns": {
-                            "Domain": "multipass.test",
-                            "Search": ["multipass.test","example.test"],
+                            "Domain": "mshome.net",
+                            "Search": ["mshome.net","example.test"],
                             "ServerList": ["172.50.224.1"],
                             "Options": []
                         }
@@ -338,8 +338,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_dns)
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         params.ipams = {
             hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
-        params.dns = hcn::HcnDns{"multipass.test",
-                                 {"multipass.test", "example.test"},
+        params.dns = hcn::HcnDns{"mshome.net",
+                                 {"mshome.net", "example.test"},
                                  {"172.50.224.1"},
                                  {}};
 

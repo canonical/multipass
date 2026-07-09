@@ -215,13 +215,23 @@ std::optional<HcnDns> parse_flattened_dns(const boost::json::object& obj)
     if (!(domain || suffix || servers))
         return std::nullopt;
 
+    // utils::split() returns { "" } for an empty input, so an empty field would be
+    // reported as a one-element list containing an empty string. Treat empty fields
+    // as an empty list instead.
+    const auto split_csv = [](const boost::json::value& value) -> std::vector<std::string> {
+        const std::string str = value.as_string().c_str();
+        if (str.empty())
+            return {};
+        return multipass::utils::split(str, ",");
+    };
+
     HcnDns dns{};
     if (domain)
         dns.domain = domain->as_string().c_str();
     if (suffix)
-        dns.search = multipass::utils::split(suffix->as_string().c_str(), ",");
+        dns.search = split_csv(*suffix);
     if (servers)
-        dns.server_list = multipass::utils::split(servers->as_string().c_str(), ",");
+        dns.server_list = split_csv(*servers);
     return dns;
 }
 

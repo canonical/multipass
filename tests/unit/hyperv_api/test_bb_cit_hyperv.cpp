@@ -379,7 +379,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 //     the default ICS domain and assert it maps to the endpoint's actual leased address.
 TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_hostname_resolution)
 {
-    constexpr auto dns_suffix = "multipass.test";
+    constexpr auto dns_suffix = "mshome.net";
     constexpr auto guest_hostname = "multipass-alpine-it"; // set by cloud-init meta-data
     constexpr auto gateway_ip = "172.50.224.1";
     constexpr auto ics_domain = "mshome.net"; // machine-wide ICS registration domain
