@@ -56,8 +56,7 @@ static std::filesystem::path get_parent_disk_of(const std::filesystem::path& dis
 // Best-effort rename for use inside noexcept rollback guards: MP_FILEOPS.rename has
 // no error_code overload, so a failure during cleanup is caught and logged rather
 // than allowed to escape (and mask) the original error.
-static void try_rename(const std::filesystem::path& from,
-                       const std::filesystem::path& to) noexcept
+static void try_rename(const std::filesystem::path& from, const std::filesystem::path& to) noexcept
 {
     try
     {
@@ -178,9 +177,9 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
                                           "Child disk `{}` already exists",
                                           child};
 
-    const virtdisk::CreateVirtualDiskParameters params{.path = child,
-                                                       .predecessor =
-                                                           virtdisk::ParentPathParameters{parent}};
+    const virtdisk::CreateVirtualDiskParameters params{
+        .path = child,
+        .predecessor = virtdisk::ParentPathParameters{parent}};
 
     if (const auto result = VirtDisk().create_virtual_disk(params); !result)
     {
@@ -195,8 +194,8 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 VirtDiskSnapshot::SnapshotsMap VirtDiskSnapshot::get_children() const
 {
     const auto self_path = make_snapshot_path(*this);
-    const auto all_snapshots =
-        vm.view_snapshots([this_index = this->get_index()](const Snapshot& ss) {
+    const auto all_snapshots = vm.view_snapshots(
+        [this_index = this->get_index()](const Snapshot& ss) {
             // All except self
             return ss.get_index() != this_index;
         });
