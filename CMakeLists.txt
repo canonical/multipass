@@ -97,6 +97,16 @@ else()
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
 endif()
 
+# Refuse vcpkg triplets we're not prepared to handle
+if(NOT APPLE) # mac triplets generated separately for whichever arch is in use
+  set(MULTIPASS_VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets")
+  foreach(MULTIPASS_TRIPLET IN ITEMS "${VCPKG_HOST_TRIPLET}" "${VCPKG_TARGET_TRIPLET}")
+    if(NOT EXISTS "${MULTIPASS_VCPKG_TRIPLETS_DIR}/${MULTIPASS_TRIPLET}.cmake")
+      message(FATAL_ERROR "Unsupported vcpkg triplet '${MULTIPASS_TRIPLET}' on ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}.")
+    endif()
+  endforeach()
+endif()
+
 message(STATUS "Bootstrapping vcpkg...")
 
 set(MULTIPASS_VCPKG_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg" CACHE PATH
