@@ -52,7 +52,6 @@ if(WIN32)
     hcn/hyperv_hcn_create_network_params.cpp
     hcn/hyperv_hcn_endpoint_query.cpp
     hcn/hyperv_hcn_network_info.cpp
-    dns/nrpt_rule.cpp
     hcs/hyperv_hcs_wrapper.cpp
     hcs/hyperv_hcs_event_type.cpp
     hcs/hyperv_hcs_scsi_device.cpp
@@ -79,7 +78,5 @@ if(WIN32)
     computecore.lib
     computenetwork.lib
     virtdisk.lib
-    advapi32.lib
-    rpcrt4.lib
   )
 endif()
