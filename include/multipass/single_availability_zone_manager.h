@@ -46,6 +46,7 @@ public:
     }
 
 private:
+    SubnetAllocator subnet_allocator;
     SingleAvailabilityZone zone;
 };
 } // namespace multipass

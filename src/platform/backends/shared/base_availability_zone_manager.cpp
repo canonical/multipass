@@ -21,6 +21,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 
 #include <fmt/format.h>
 
@@ -33,14 +34,17 @@ constexpr auto az_file = "az-manager.json";
 constexpr auto zones_directory_name = "zones";
 constexpr auto automatic_zone_key = "automatic_zone";
 
-[[nodiscard]] auto create_default_zones(const multipass::fs::path& zones_directory)
+[[nodiscard]] auto create_default_zones(const multipass::fs::path& zones_directory,
+                                        multipass::SubnetAllocator& subnet_allocator)
 {
     using namespace multipass;
 
     std::array<AvailabilityZone::UPtr, default_zone_names.size()> zones{};
     size_t idx = 0;
     for (const auto& zone_name : default_zone_names)
-        zones[idx++] = std::make_unique<BaseAvailabilityZone>(zone_name, zones_directory);
+        zones[idx++] = std::make_unique<BaseAvailabilityZone>(zone_name,
+                                                              zones_directory,
+                                                              subnet_allocator);
 
     return zones;
 };
@@ -51,7 +55,9 @@ namespace multipass
 
 BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_dir)
     : file_path{data_dir / az_file},
-      zone_collection{create_default_zones(data_dir / zones_directory_name), load_file(file_path)}
+      subnet_allocator(MP_PLATFORM.get_preferred_subnet(data_dir), subnet_prefix_length),
+      zone_collection{create_default_zones(data_dir / zones_directory_name, subnet_allocator),
+                      load_file(file_path)}
 {
     save_file();
 }

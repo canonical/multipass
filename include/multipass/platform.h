@@ -80,7 +80,7 @@ public:
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
-    [[nodiscard]] virtual Subnet get_preferred_subnet() const;
+    [[nodiscard]] virtual Subnet get_preferred_subnet(const std::filesystem::path& data_dir) const;
 
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;

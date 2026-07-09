@@ -901,7 +901,7 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     return false;
 }
 
-mp::Subnet mp::platform::Platform::get_preferred_subnet() const
+mp::Subnet mp::platform::Platform::get_preferred_subnet(const std::filesystem::path& data_dir) const
 {
     return {"10.97.0.0/16"};
 }
