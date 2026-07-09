@@ -64,8 +64,7 @@ void touch(const fs::path& p)
 // files in a temporary directory so the on-disk effects are actually verified.
 struct VirtDiskSnapshotTest : public ::testing::Test
 {
-    MockVirtDiskWrapper::GuardedMock virtdisk_injection =
-        MockVirtDiskWrapper::inject<NiceMock>();
+    MockVirtDiskWrapper::GuardedMock virtdisk_injection = MockVirtDiskWrapper::inject<NiceMock>();
     MockVirtDiskWrapper& mock_virtdisk = *virtdisk_injection.first;
 
     NiceMock<MockVirtualMachine> vm;
@@ -357,9 +356,9 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_commit_fails)
         .WillRepeatedly(
             [](const fs::path& a, const fs::path& b) { std::filesystem::rename(a, b); });
     EXPECT_CALL(fops, rename(head_new(), head()))
-        .WillOnce(Throw(std::filesystem::filesystem_error{
-            "forced failure",
-            std::make_error_code(std::errc::permission_denied)}));
+        .WillOnce(Throw(
+            std::filesystem::filesystem_error{"forced failure",
+                                              std::make_error_code(std::errc::permission_denied)}));
 
     EXPECT_THROW(ss->erase(), std::exception);
 
