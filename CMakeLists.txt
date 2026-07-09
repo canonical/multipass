@@ -51,7 +51,7 @@ endif()
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "14" CACHE STRING "macOS Deployment Target")
 elseif("${HOST_OS_NAME}" STREQUAL "Windows")
   set(VCPKG_HOST_OS "windows-static-md")
 else()
