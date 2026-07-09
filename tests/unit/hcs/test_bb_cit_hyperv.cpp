@@ -49,8 +49,6 @@
 #include <future>
 #include <optional>
 #include <random>
-#include <ranges>
-#include <span>
 #include <thread>
 #include <utility>
 
@@ -64,29 +62,6 @@ using namespace std::chrono_literals;
 
 namespace
 {
-std::vector<std::filesystem::path> find_split_parts(const std::filesystem::path& dir,
-                                                    const std::string& prefix)
-{
-    std::vector<std::filesystem::path> parts;
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
-    {
-        if (entry.path().filename().string().starts_with(prefix))
-            parts.push_back(entry.path());
-    }
-    std::ranges::sort(parts); // aa < ab < ac lexicographically
-    return parts;
-}
-
-void merge_files(std::span<const std::filesystem::path> parts, const std::filesystem::path& output)
-{
-    std::ofstream out(output, std::ios::binary);
-    for (const auto& part : parts)
-    {
-        std::ifstream in(part, std::ios::binary);
-        out << in.rdbuf();
-    }
-}
-
 // Reassemble the split alpine.vhdx test image into a fresh temporary VHDX file.
 void reassemble_alpine_vhdx(const std::filesystem::path& output)
 {
