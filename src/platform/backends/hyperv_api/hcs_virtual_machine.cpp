@@ -272,8 +272,8 @@ bool HCSVirtualMachine::has_saved_state_file() const
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
     const std::filesystem::path base_vhdx = description.image.image_path;
-    const std::filesystem::path head_avhdx =
-        base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
+    const std::filesystem::path head_avhdx = base_vhdx.parent_path() /
+                                             virtdisk::VirtDiskSnapshot::head_disk_name();
     return MP_FILEOPS.exists(head_avhdx) ? head_avhdx : base_vhdx;
 }
 
@@ -725,7 +725,9 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
 {
-    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(), *this, description);
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(),
+                                                        *this,
+                                                        description);
 }
 
 } // namespace multipass::hyperv
