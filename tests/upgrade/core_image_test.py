@@ -31,6 +31,8 @@ before the upgrade and asserts it byte-for-byte after, alongside the
 on `multipass exec` working on Core; `resume_seeded` waits for exec-readiness and
 fails clearly if it does not."""
 
+import platform
+
 import pytest
 
 from cli.multipass.feature_versions import skip_if_feature_not_supported
@@ -43,6 +45,14 @@ from .helpers import (
     resume_seeded,
 )
 from .seedutils import seeded_vm
+
+# Core images are only published for amd64, so these scenarios can't launch anywhere
+# else. platform.machine() reports the host arch as x86_64 (Linux/macOS) or AMD64
+# (Windows); everything else (aarch64, arm64, ...) is skipped.
+pytestmark = pytest.mark.skipif(
+    platform.machine().lower() not in ("x86_64", "amd64"),
+    reason=f"core images are amd64-only (host arch `{platform.machine()}`)",
+)
 
 
 def _seed_core(vm, image, record):
