@@ -5,99 +5,123 @@ import 'package:multipass_gui/vm_details/vm_details.dart';
 Widget buildWidget({
   required ActiveEditPage? active,
   required List<ActiveEditPage> letEnabledFor,
+  required VoidCallback onPressed,
 }) {
   return MaterialApp(
     home: Scaffold(
       body: DisableSection(
         active: active,
         letEnabledFor: letEnabledFor,
-        child: const Text('content'),
+        child: ElevatedButton(
+          onPressed: onPressed,
+          child: const Text('content'),
+        ),
       ),
     ),
   );
 }
 
+double sectionOpacity(WidgetTester tester) {
+  final opacity = tester.widget<Opacity>(
+    find
+        .descendant(
+          of: find.byType(DisableSection),
+          matching: find.byType(Opacity),
+        )
+        .first,
+  );
+  return opacity.opacity;
+}
+
 void main() {
   group('DisableSection', () {
-    testWidgets('is not disabled when active is null', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(active: null, letEnabledFor: []),
-      );
-      final section = find.byType(DisableSection);
-      final opacity = tester.widget<Opacity>(
-        find.descendant(of: section, matching: find.byType(Opacity)).first,
-      );
-      expect(opacity.opacity, equals(1.0));
-      final pointer = tester.widget<IgnorePointer>(
-        find
-            .descendant(of: section, matching: find.byType(IgnorePointer))
-            .first,
-      );
-      expect(pointer.ignoring, isFalse);
-    });
-
-    testWidgets('is not disabled when active is in letEnabledFor',
+    testWidgets('forwards taps to its child when active is null',
         (tester) async {
-      await tester.pumpWidget(
-        buildWidget(
-          active: ActiveEditPage.resources,
-          letEnabledFor: [ActiveEditPage.resources],
-        ),
-      );
-      final section = find.byType(DisableSection);
-      final opacity = tester.widget<Opacity>(
-        find.descendant(of: section, matching: find.byType(Opacity)).first,
-      );
-      expect(opacity.opacity, equals(1.0));
-      final pointer = tester.widget<IgnorePointer>(
-        find
-            .descendant(of: section, matching: find.byType(IgnorePointer))
-            .first,
-      );
-      expect(pointer.ignoring, isFalse);
+      var tapped = false;
+      await tester.pumpWidget(buildWidget(
+        active: null,
+        letEnabledFor: const [],
+        onPressed: () => tapped = true,
+      ));
+
+      await tester.tap(find.text('content'));
+      await tester.pumpAndSettle();
+
+      expect(tapped, isTrue);
     });
 
-    testWidgets('is disabled when active is not in letEnabledFor',
+    testWidgets('forwards taps when the active page is in letEnabledFor',
         (tester) async {
-      await tester.pumpWidget(
-        buildWidget(
-          active: ActiveEditPage.bridge,
-          letEnabledFor: [ActiveEditPage.resources],
-        ),
-      );
-      final section = find.byType(DisableSection);
-      final opacity = tester.widget<Opacity>(
-        find.descendant(of: section, matching: find.byType(Opacity)).first,
-      );
-      expect(opacity.opacity, equals(0.5));
-      final pointer = tester.widget<IgnorePointer>(
-        find
-            .descendant(of: section, matching: find.byType(IgnorePointer))
-            .first,
-      );
-      expect(pointer.ignoring, isTrue);
+      var tapped = false;
+      await tester.pumpWidget(buildWidget(
+        active: ActiveEditPage.resources,
+        letEnabledFor: const [ActiveEditPage.resources],
+        onPressed: () => tapped = true,
+      ));
+
+      await tester.tap(find.text('content'));
+      await tester.pumpAndSettle();
+
+      expect(tapped, isTrue);
     });
 
-    testWidgets('is disabled when active is set and letEnabledFor is empty',
+    testWidgets('blocks taps when the active page is not in letEnabledFor',
         (tester) async {
-      await tester.pumpWidget(
-        buildWidget(
-          active: ActiveEditPage.mounts,
-          letEnabledFor: [],
-        ),
-      );
-      final section = find.byType(DisableSection);
-      final opacity = tester.widget<Opacity>(
-        find.descendant(of: section, matching: find.byType(Opacity)).first,
-      );
-      expect(opacity.opacity, equals(0.5));
+      var tapped = false;
+      await tester.pumpWidget(buildWidget(
+        active: ActiveEditPage.bridge,
+        letEnabledFor: const [ActiveEditPage.resources],
+        onPressed: () => tapped = true,
+      ));
+
+      await tester.tap(find.text('content'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(tapped, isFalse);
     });
 
-    testWidgets('renders child widget', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(active: null, letEnabledFor: []),
-      );
+    testWidgets('blocks taps when a page is active and letEnabledFor is empty',
+        (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(buildWidget(
+        active: ActiveEditPage.mounts,
+        letEnabledFor: const [],
+        onPressed: () => tapped = true,
+      ));
+
+      await tester.tap(find.text('content'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(tapped, isFalse);
+    });
+
+    testWidgets('renders its child', (tester) async {
+      await tester.pumpWidget(buildWidget(
+        active: null,
+        letEnabledFor: const [],
+        onPressed: () {},
+      ));
+
       expect(find.text('content'), findsOneWidget);
+    });
+
+    testWidgets('dims a disabled section relative to an enabled one',
+        (tester) async {
+      await tester.pumpWidget(buildWidget(
+        active: null,
+        letEnabledFor: const [],
+        onPressed: () {},
+      ));
+      final enabledOpacity = sectionOpacity(tester);
+
+      await tester.pumpWidget(buildWidget(
+        active: ActiveEditPage.bridge,
+        letEnabledFor: const [ActiveEditPage.resources],
+        onPressed: () {},
+      ));
+      final disabledOpacity = sectionOpacity(tester);
+
+      expect(disabledOpacity, lessThan(enabledOpacity));
     });
   });
 }
