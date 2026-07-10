@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/rpc/multipass.pb.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
 
@@ -28,14 +29,10 @@
 
 namespace multipass
 {
-class SSHKeyProvider;
 class PlainSSHSession : public SSHSession
 {
 public:
-    PlainSSHSession(const std::string& host,
-                    int port,
-                    const std::string& ssh_username,
-                    const SSHKeyProvider& key_provider);
+    PlainSSHSession(const SSHCoordinates&);
 
     // just being explicit (unique_ptr member already caused these to be deleted)
     PlainSSHSession(const PlainSSHSession&) = delete;
