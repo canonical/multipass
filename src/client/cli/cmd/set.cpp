@@ -44,6 +44,12 @@ mp::ReturnCodeVariant cmd::Set::run(mp::ArgParser* parser)
                 // We are in the client, messages cannot be sent
                 [[maybe_unused]] mp::UserMessages messages{};
                 MP_SETTINGS.set(key, val, messages);
+
+                // TODO(applevz): remove when qemu is replaced by applevz on macOS
+                if (key == driver_key && val == "qemu" &&
+                    MP_PLATFORM.is_backend_supported("applevz"))
+                    cerr << "Warning: the 'qemu' driver is deprecated on macOS and will be "
+                            "removed in a future release.\n";
             }
         }
         catch (const SettingsException& e)
