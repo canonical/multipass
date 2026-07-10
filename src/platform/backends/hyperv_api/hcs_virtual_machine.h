@@ -116,8 +116,7 @@ private:
     [[nodiscard]] std::filesystem::path get_primary_disk_path() const noexcept(false);
 
     /**
-     * Retrieve the path to the snapshot differencing "head" disk, if one is currently
-     * layered on the base disk.
+     * Retrieve the path to the snapshot differencing "head" disk, if one currently exists.
      *
      * @return The head disk path when it exists on disk, std::nullopt otherwise.
      */
