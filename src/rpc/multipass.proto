@@ -366,15 +366,16 @@ message SSHInfoRequest {
     int32 verbosity_level = 2;
 }
 
-message SSHInfo {
-    int32 port = 1;
+
+message SSHCoordinates {
+    string username = 1;
     string priv_key_base64 = 2;
-    string host = 3;
-    string username = 4;
+    uint32 port = 3;
+    string tcp_host = 4;
 }
 
 message SSHInfoReply {
-    map<string, SSHInfo> ssh_info = 1;
+    map<string, SSHCoordinates> ssh_coordinates = 1;
     string log_line = 2;
 }
 
