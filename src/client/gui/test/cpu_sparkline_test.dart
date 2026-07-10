@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/grpc_client.dart';
@@ -37,138 +35,95 @@ ProviderContainer makeContainer() {
 
 void main() {
   group('CpuUsagesNotifier', () {
-    group('initial state with empty cpuTimes', () {
-      test('queue has 50 elements', () {
-        final container = makeContainer();
+    test('starts with a flat history of zero usage', () {
+      final container = makeContainer();
 
-        final queue = container.read(cpuUsagesProvider('test-vm'));
+      final history = container.read(cpuUsagesProvider('test-vm'));
 
-        expect(queue.length, equals(50));
-      });
+      expect(history, isNotEmpty);
+      expect(history.every((v) => v == 0.0), isTrue);
+    });
 
-      test('all 50 elements are 0.0', () {
-        final container = makeContainer();
+    test('keeps a fixed-length history as new samples arrive', () {
+      final container = makeContainer();
+      final initialLength = container.read(cpuUsagesProvider('test-vm')).length;
 
-        final queue = container.read(cpuUsagesProvider('test-vm'));
+      container.read(_cpuTimesProvider.notifier).set('h s 500 0 0 500 0 0 0 0');
 
-        expect(queue.every((v) => v == 0.0), isTrue);
-      });
+      expect(
+        container.read(cpuUsagesProvider('test-vm')).length,
+        equals(initialLength),
+      );
     });
 
     group('usage calculation', () {
-      // split/skip(2)/take(8) on 'h s 500 0 0 500 0 0 0 0':
-      //   values = [500, 0, 0, 500, 0, 0, 0, 0]
-      //   total=1000, idle=values[3]=500
-      //   diffTotal=1000, diffIdle=500 → round(100*500/1000) = 50.0
-      test('computes 50% usage when half of total time is idle', () {
+      test('reports 0% usage when the CPU was fully idle', () {
         final container = makeContainer();
 
+        // A single interval where all elapsed time is idle.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 500 0 0 500 0 0 0 0');
+            .set('h s 0 0 0 1000 0 0 0 0');
 
-        expect(
-          container.read(cpuUsagesProvider('test-vm')).last,
-          equals(50.0),
-        );
+        expect(container.read(cpuUsagesProvider('test-vm')).last, equals(0.0));
       });
 
-      // split/skip(2)/take(8) on 'a b 1000 0 0 0 0 0 0 0':
-      //   values = [1000, 0, 0, 0, 0, 0, 0, 0]
-      //   total=1000, idle=values[3]=0
-      //   diffTotal=1000, diffIdle=0 → round(100*1000/1000) = 100.0
-      test('computes 100% usage when no time is idle', () {
+      test('reports 100% usage when the CPU was fully busy', () {
         final container = makeContainer();
 
+        // All elapsed time is non-idle.
         container
             .read(_cpuTimesProvider.notifier)
             .set('a b 1000 0 0 0 0 0 0 0');
 
         expect(
-          container.read(cpuUsagesProvider('test-vm')).last,
-          equals(100.0),
-        );
+            container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
       });
 
-      // split/skip(2)/take(8) on 'h s 0 0 0 1000 0 0 0 0':
-      //   values = [0, 0, 0, 1000, 0, 0, 0, 0]
-      //   total=1000, idle=values[3]=1000
-      //   diffTotal=1000, diffIdle=1000 → round(100*0/1000) = 0.0
-      test('computes 0% usage when all time is idle', () {
+      test('reports 50% usage when the CPU was busy for half the interval', () {
         final container = makeContainer();
 
+        // Half of the elapsed time is idle, half is busy.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 0 0 0 1000 0 0 0 0');
+            .set('h s 500 0 0 500 0 0 0 0');
 
-        expect(
-          container.read(cpuUsagesProvider('test-vm')).last,
-          equals(0.0),
-        );
+        expect(container.read(cpuUsagesProvider('test-vm')).last, equals(50.0));
       });
 
-      // 'cpu 100 200 300 400 500 600 700 800'
-      //   split: ['cpu','100','200','300','400','500','600','700','800']
-      //   skip(2)+take(8): [200, 300, 400, 500, 600, 700, 800]
-      //   total=3500, idle=values[3]=500
-      //   diffTotal=3500, diffIdle=500 → round(100*3000/3500) = round(85.71) = 86.0
-      test('rounds fractional percentage to nearest integer', () {
+      test('rounds the usage percentage to a whole number', () {
         final container = makeContainer();
 
+        // 3000 busy out of 3500 total is 85.71%, expected to round to 86.
         container
             .read(_cpuTimesProvider.notifier)
             .set('cpu 100 200 300 400 500 600 700 800');
 
-        expect(
-          container.read(cpuUsagesProvider('test-vm')).last,
-          equals(86.0),
-        );
+        expect(container.read(cpuUsagesProvider('test-vm')).last, equals(86.0));
       });
     });
 
-    group('accumulated state across builds', () {
-      // First build:  'h s 500 0 0 500 0 0 0 0' → total=1000, idle=500 → lastTotal=1000, lastIdle=500
-      // Second build: 'h s 1500 0 0 500 0 0 0 0' → total=2000, idle=500
-      //   diffTotal=2000-1000=1000, diffIdle=500-500=0 → 100*1000/1000 = 100.0
-      test('second build computes delta from previous accumulated totals', () {
+    group('deltas between samples', () {
+      test('computes usage from the change since the previous sample', () {
         final container = makeContainer();
 
+        // First sample establishes the baseline counters.
         container
             .read(_cpuTimesProvider.notifier)
             .set('h s 500 0 0 500 0 0 0 0');
-        container.read(cpuUsagesProvider('test-vm')); // first build
+        container.read(cpuUsagesProvider('test-vm'));
 
+        // Second sample: 1000 more total, none of it idle → 100% for this
+        // interval, even though the cumulative counters are not fully busy.
         container
             .read(_cpuTimesProvider.notifier)
             .set('h s 1500 0 0 500 0 0 0 0');
 
         expect(
-          container.read(cpuUsagesProvider('test-vm')).last,
-          equals(100.0),
-        );
+            container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
       });
 
-      // Empty cpuTimes skips the update branch, so lastTotal and lastIdle
-      // remain 0 after the initial build. The next real build thus starts
-      // its delta from 0.
-      test('empty cpuTimes does not update accumulated totals', () {
-        final container = makeContainer();
-        // Initial build already used '' → lastTotal=0, lastIdle=0 unchanged.
-
-        // Build with real data: delta is from 0.
-        // [1000,0,0,0,0,0,0,0] total=1000 idle=0
-        // diffTotal=1000-0=1000, diffIdle=0-0=0 → 100.0
-        container
-            .read(_cpuTimesProvider.notifier)
-            .set('a b 1000 0 0 0 0 0 0 0');
-
-        expect(
-          container.read(cpuUsagesProvider('test-vm')).last,
-          equals(100.0),
-        );
-      });
-
-      test('rebuilding with empty cpuTimes appends 0.0', () {
+      test('records 0% usage for an empty sample', () {
         final container = makeContainer();
 
         container
@@ -178,48 +133,48 @@ void main() {
 
         container.read(_cpuTimesProvider.notifier).set('');
 
+        expect(container.read(cpuUsagesProvider('test-vm')).last, equals(0.0));
+      });
+
+      test('ignores empty samples when computing subsequent deltas', () {
+        final container = makeContainer();
+        // The initial build already saw an empty sample, so the baseline
+        // counters remain at zero and the next real sample is a full delta.
+
+        container
+            .read(_cpuTimesProvider.notifier)
+            .set('a b 1000 0 0 0 0 0 0 0');
+
         expect(
-          container.read(cpuUsagesProvider('test-vm')).last,
-          equals(0.0),
-        );
+            container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
       });
     });
 
-    group('provider family isolation', () {
-      test('different vm args have independent notifier instances', () {
-        final container = ProviderContainer(
-          overrides: [
-            vmInfoProvider('vm-a').overrideWithBuild(
-              (ref, notifier) => DetailedInfoItem(
-                instanceInfo: InstanceDetails(
-                  // [1000,0,0,0,0,0,0,0] total=1000, idle=0 → 100%
-                  cpuTimes: 'h s 1000 0 0 0 0 0 0 0',
-                ),
+    test('tracks usage independently for each VM', () {
+      final container = ProviderContainer(
+        overrides: [
+          vmInfoProvider('vm-a').overrideWithBuild(
+            (ref, notifier) => DetailedInfoItem(
+              instanceInfo: InstanceDetails(
+                cpuTimes: 'h s 1000 0 0 0 0 0 0 0', // fully busy → 100%
               ),
             ),
-            vmInfoProvider('vm-b').overrideWithBuild(
-              (ref, notifier) => DetailedInfoItem(
-                instanceInfo: InstanceDetails(
-                  // [500,0,0,500,0,0,0,0] total=1000, idle=500 → 50%
-                  cpuTimes: 'h s 500 0 0 500 0 0 0 0',
-                ),
+          ),
+          vmInfoProvider('vm-b').overrideWithBuild(
+            (ref, notifier) => DetailedInfoItem(
+              instanceInfo: InstanceDetails(
+                cpuTimes: 'h s 500 0 0 500 0 0 0 0', // half busy → 50%
               ),
             ),
-          ],
-        );
-        addTearDown(container.dispose);
-        container.listen(cpuUsagesProvider('vm-a'), (_, __) {});
-        container.listen(cpuUsagesProvider('vm-b'), (_, __) {});
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(cpuUsagesProvider('vm-a'), (_, __) {});
+      container.listen(cpuUsagesProvider('vm-b'), (_, __) {});
 
-        expect(
-          container.read(cpuUsagesProvider('vm-a')).last,
-          equals(100.0),
-        );
-        expect(
-          container.read(cpuUsagesProvider('vm-b')).last,
-          equals(50.0),
-        );
-      });
+      expect(container.read(cpuUsagesProvider('vm-a')).last, equals(100.0));
+      expect(container.read(cpuUsagesProvider('vm-b')).last, equals(50.0));
     });
   });
 }
