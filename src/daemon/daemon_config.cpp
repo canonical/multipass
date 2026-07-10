@@ -120,30 +120,39 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     MP_PLATFORM.setup_permission_inheritance(true);
 
-    auto storage_path = MP_PLATFORM.multipass_storage_location();
-    if (!storage_path.isEmpty())
-        MP_UTILS.make_dir(storage_path);
+    auto storage_path = MP_PLATFORM.qstr_to_path(MP_PLATFORM.multipass_storage_location());
+    if (!storage_path.empty())
+        MP_FILEOPS.create_directory(storage_path);
 
-    if (cache_directory.isEmpty())
+    if (cache_directory.empty())
     {
-        if (!storage_path.isEmpty())
-            cache_directory = MP_UTILS.make_dir(storage_path, "cache");
+        if (!storage_path.empty())
+        {
+            cache_directory = storage_path / "cache";
+            MP_FILEOPS.create_directory(cache_directory);
+        }
         else
-            cache_directory = MP_STDPATHS.writableLocation(StandardPaths::CacheLocation);
+            cache_directory = MP_PLATFORM.qstr_to_path(
+                MP_STDPATHS.writableLocation(StandardPaths::CacheLocation));
     }
-    if (data_directory.isEmpty())
+    if (data_directory.empty())
     {
-        if (!storage_path.isEmpty())
-            data_directory = MP_UTILS.make_dir(storage_path, "data");
+        if (!storage_path.empty())
+        {
+            data_directory = storage_path / "data";
+            MP_FILEOPS.create_directory(data_directory);
+        }
         else
-            data_directory = MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation);
+            data_directory = MP_PLATFORM.qstr_to_path(
+                MP_STDPATHS.writableLocation(StandardPaths::AppDataLocation));
     }
 
     if (url_downloader == nullptr)
-        url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
+        url_downloader = std::make_unique<URLDownloader>(MP_PLATFORM.path_to_qstr(cache_directory),
+                                                         std::chrono::seconds{10});
     if (az_manager == nullptr)
 #ifdef AVAILABILITY_ZONES_FEATURE
-        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
+        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory);
 #else
         az_manager = std::make_unique<SingleAvailabilityZoneManager>(data_directory);
 #endif
@@ -184,10 +193,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             hosts.push_back(image.get());
         }
 
+        const auto cache_dir_path = cache_directory / factory->get_backend_directory_name();
+        MP_FILEOPS.create_directory(cache_dir_path);
         vault = factory->create_image_vault(
             hosts,
             url_downloader.get(),
-            MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name()),
+            cache_dir_path,
             mp::utils::backend_directory_path(data_directory,
                                               factory->get_backend_directory_name()),
             days_to_expire);
@@ -197,9 +208,11 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (server_address.empty())
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)
-        ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
+        ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(
+            MP_PLATFORM.path_to_qstr(data_directory));
     if (client_cert_store == nullptr)
-        client_cert_store = std::make_unique<mp::ClientCertStore>(data_directory);
+        client_cert_store = std::make_unique<mp::ClientCertStore>(
+            MP_PLATFORM.path_to_qstr(data_directory));
     if (ssh_username.empty())
         ssh_username = "ubuntu";
 
@@ -207,20 +220,20 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         network_proxy = discover_http_proxy();
 
     // tighten permissions for cache and data
-    if (!storage_path.isEmpty())
+    if (!storage_path.empty())
     {
-        MP_PERMISSIONS.restrict_permissions(storage_path.toStdU16String());
-        MP_PLATFORM.set_permissions(storage_path.toStdU16String(),
+        MP_PERMISSIONS.restrict_permissions(storage_path);
+        MP_PLATFORM.set_permissions(storage_path,
                                     fs::perms::owner_all | fs::perms::group_exec |
                                         fs::perms::others_exec);
     }
     else
     {
-        MP_PERMISSIONS.restrict_permissions(data_directory.toStdU16String());
-        MP_PLATFORM.set_permissions(data_directory.toStdU16String(),
+        MP_PERMISSIONS.restrict_permissions(data_directory);
+        MP_PLATFORM.set_permissions(data_directory,
                                     fs::perms::owner_all | fs::perms::group_exec |
                                         fs::perms::others_exec);
-        MP_PERMISSIONS.restrict_permissions(cache_directory.toStdU16String());
+        MP_PERMISSIONS.restrict_permissions(cache_directory);
     }
 
     if (cert_provider == nullptr)

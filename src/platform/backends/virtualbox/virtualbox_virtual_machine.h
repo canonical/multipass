@@ -20,10 +20,11 @@
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/ip_address.h>
-#include <multipass/path.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QString>
+
+#include <filesystem>
 
 namespace multipass
 {
@@ -39,14 +40,14 @@ public:
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
                              AvailabilityZone& zone,
-                             const Path& instance_dir);
+                             const std::filesystem::path& instance_dir);
     // Contruct the vm based on the source virtual machine
     VirtualBoxVirtualMachine(const std::string& source_vm_name,
                              const VirtualMachineDescription& desc,
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
                              AvailabilityZone& zone,
-                             const Path& dest_instance_dir);
+                             const std::filesystem::path& dest_instance_dir);
     ~VirtualBoxVirtualMachine() override;
 
     void start() override;
@@ -79,7 +80,7 @@ private:
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
                              AvailabilityZone& zone,
-                             const Path& instance_dir_qstr,
+                             const std::filesystem::path& instance_dir_qstr,
                              bool is_internal);
     void remove_snapshots_from_backend() const;
 

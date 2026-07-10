@@ -52,9 +52,9 @@ public:
         return {};
     };
     virtual QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) = 0;
-    virtual QString get_directory_name() const
+    virtual std::filesystem::path get_directory_name() const
     {
-        return {};
+        return "";
     };
     virtual bool is_network_supported(const std::string& network_type) const = 0;
     virtual bool needs_network_prep() const = 0;
@@ -79,7 +79,8 @@ public:
     QemuPlatformFactory(const Singleton<QemuPlatformFactory>::PrivatePass& pass) noexcept
         : Singleton<QemuPlatformFactory>::Singleton{pass} {};
 
-    virtual QemuPlatform::UPtr
-    make_qemu_platform(const Path& data_dir, const AvailabilityZoneManager::Zones& zones) const;
+    virtual QemuPlatform::UPtr make_qemu_platform(
+        const std::filesystem::path& data_dir,
+        const AvailabilityZoneManager::Zones& zones) const;
 };
 } // namespace multipass

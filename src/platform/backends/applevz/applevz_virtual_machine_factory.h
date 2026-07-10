@@ -26,7 +26,7 @@ namespace multipass::applevz
 class AppleVZVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit AppleVZVirtualMachineFactory(const Path& data_dir,
+    explicit AppleVZVirtualMachineFactory(const std::filesystem::path& data_dir,
                                           AvailabilityZoneManager& az_manager);
 
     [[nodiscard]] VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
@@ -43,7 +43,7 @@ public:
         return "applevz";
     };
 
-    QString get_backend_directory_name() const override
+    std::filesystem::path get_backend_directory_name() const override
     {
         return "applevz";
     };

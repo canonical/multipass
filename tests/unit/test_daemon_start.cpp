@@ -77,7 +77,7 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
         .WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     mp::Daemon daemon{config_builder.build()};
@@ -118,7 +118,7 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     // mustn't be called.
     EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     mp::Daemon daemon{config_builder.build()};
@@ -151,7 +151,7 @@ TEST_F(TestDaemonStart, unknownStateDoesNotStart)
         .WillRepeatedly(Return(mp::VirtualMachine::State::unknown));
     EXPECT_CALL(*instance_ptr, start()).Times(0);
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     mp::Daemon daemon{config_builder.build()};
@@ -183,7 +183,7 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
         .WillRepeatedly(Return(mp::VirtualMachine::State::suspending));
     EXPECT_CALL(*instance_ptr, start()).Times(0);
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     mp::Daemon daemon{config_builder.build()};
@@ -230,7 +230,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     mp::Daemon daemon{config_builder.build()};
@@ -283,7 +283,7 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
     EXPECT_CALL(server, Write(_, _));
     EXPECT_CALL(server, Write(Property(&mp::StartReply::log_line, Eq(log)), _));
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     mp::Daemon daemon{config_builder.build()};

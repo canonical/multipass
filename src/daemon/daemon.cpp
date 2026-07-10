@@ -228,27 +228,22 @@ auto name_from(const std::string& requested_name,
     }
 }
 
-std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
-                                                     const mp::Path& cache_path,
+std::unordered_map<std::string, mp::VMSpecs> load_db(const std::filesystem::path& data_path,
+                                                     const std::filesystem::path& cache_path,
                                                      const mp::AvailabilityZoneManager& az_manager)
 {
-    QDir data_dir{data_path};
-    QDir cache_dir{cache_path};
-    QFile db_file{data_dir.filePath(instance_db_name)};
-    if (!db_file.open(QIODevice::ReadOnly))
-    {
-        // Try to open the old location
-        db_file.setFileName(cache_dir.filePath(instance_db_name));
-        if (!db_file.open(QIODevice::ReadOnly))
-            return {};
-    }
-
     boost::json::value records;
     try
     {
-        records = boost::json::parse(std::string_view(db_file.readAll()));
+        auto filedata = MP_FILEOPS.try_read_file(data_path / instance_db_name);
+        // Try to open the old location
+        if (!filedata)
+            filedata = MP_FILEOPS.try_read_file(cache_path / instance_db_name);
+        if (!filedata)
+            return {};
+        records = boost::json::parse(*filedata);
     }
-    catch (const std::runtime_error& e)
+    catch (const std::runtime_error&)
     {
         return {};
     }
@@ -263,7 +258,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         {
             reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record, az_manager));
         }
-        catch (mp::GhostInstanceException&)
+        catch (const mp::GhostInstanceException&)
         {
             mpl::warn(category, "Ignoring ghost instance in database: {}", key);
             continue;
@@ -290,7 +285,7 @@ auto fetch_image_for(const std::string& name,
                              stub_prepare,
                              stub_progress,
                              std::nullopt,
-                             MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)));
+                             factory.get_instance_directory(name));
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -3007,9 +3002,9 @@ boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
-    QDir data_dir{mp::utils::backend_directory_path(config->data_directory,
+    auto data_dir{mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name())};
-    MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name),
+    MP_FILEOPS.write_transactionally(data_dir / instance_db_name,
                                      pretty_print(instance_records_json));
 }
 
@@ -3229,13 +3224,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 prepare_action,
                 progress_monitor,
                 checksum,
-                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)));
+                config->factory->get_instance_directory(name));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
                 image_size,
                 vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
-                config->data_directory);
+                MP_PLATFORM.path_to_qstr(config->data_directory));
 
             reply.set_create_message("Configuring " + name);
             server->Write(reply);

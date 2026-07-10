@@ -66,7 +66,7 @@ struct AppleVZVirtualMachineFactory_UnitTests : public ::testing::Test
 
     auto construct_factory()
     {
-        return std::make_shared<mp::applevz::AppleVZVirtualMachineFactory>(dummy_data_dir.path(),
+        return std::make_shared<mp::applevz::AppleVZVirtualMachineFactory>(dummy_data_dir,
                                                                            stub_az_manager);
     }
 };
@@ -141,13 +141,13 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, removeResourcesForDeletesInstance
     const std::string vm_name = "test-vm";
     auto uut = construct_factory();
 
-    QDir instance_dir{uut->get_instance_directory(vm_name)};
-    ASSERT_TRUE(instance_dir.mkpath("."));
-    ASSERT_TRUE(instance_dir.exists());
+    const auto instance_dir{uut->get_instance_directory(vm_name)};
+    ASSERT_TRUE(create_directory(instance_dir));
+    ASSERT_TRUE(exists(instance_dir));
 
     EXPECT_NO_THROW(uut->remove_resources_for(vm_name));
 
-    EXPECT_FALSE(instance_dir.exists());
+    EXPECT_FALSE(exists(instance_dir));
 }
 
 TEST_F(AppleVZVirtualMachineFactory_UnitTests, removeResourcesForNonExistentVmDoesNotThrow)

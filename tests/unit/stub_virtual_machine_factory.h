@@ -35,8 +35,7 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     }
 
     StubVirtualMachineFactory(std::unique_ptr<TempDir> tmp_dir, AvailabilityZoneManager& az_manager)
-        : multipass::BaseVirtualMachineFactory{tmp_dir->path(), az_manager},
-          tmp_dir{std::move(tmp_dir)}
+        : multipass::BaseVirtualMachineFactory{*tmp_dir, az_manager}, tmp_dir{std::move(tmp_dir)}
     {
     }
 
@@ -65,14 +64,14 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
     {
     }
 
-    QString get_backend_directory_name() const override
+    std::filesystem::path get_backend_directory_name() const override
     {
-        return {};
+        return "";
     }
 
-    QString get_instance_directory(const std::string&) const override
+    std::filesystem::path get_instance_directory(const std::string&) const override
     {
-        return tmp_dir->path();
+        return *tmp_dir;
     }
 
     QString get_backend_version_string() const override
@@ -80,11 +79,12 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return "stub-5678";
     }
 
-    multipass::VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> /*image_hosts*/,
-                                                     URLDownloader* /*downloader*/,
-                                                     const Path& /*cache_dir_path*/,
-                                                     const Path& /*data_dir_path*/,
-                                                     const days& /*days_to_expire*/) override
+    multipass::VMImageVault::UPtr create_image_vault(
+        std::vector<VMImageHost*> /*image_hosts*/,
+        URLDownloader* /*downloader*/,
+        const std::filesystem::path& /*cache_dir_path*/,
+        const std::filesystem::path& /*data_dir_path*/,
+        const days& /*days_to_expire*/) override
     {
         return std::make_unique<StubVMImageVault>();
     }

@@ -43,7 +43,7 @@ public:
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
                          AvailabilityZone& zone,
-                         const Path& instance_dir);
+                         const std::filesystem::path& instance_dir);
     // Contruct the vm based on the source virtual machine
     HyperVVirtualMachine(const std::string& source_vm_name,
                          const multipass::VMSpecs& src_vm_specs,
@@ -51,7 +51,7 @@ public:
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
                          AvailabilityZone& zone,
-                         const Path& dest_instance_dir);
+                         const std::filesystem::path& dest_instance_dir);
     ~HyperVVirtualMachine();
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy) override;
@@ -84,7 +84,7 @@ private:
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
                          AvailabilityZone& zone,
-                         const Path& instance_dir,
+                         const std::filesystem::path& instance_dir,
                          bool is_internal); // is_internal is a dummy parameter to differentiate
                                             // with other constructors
 

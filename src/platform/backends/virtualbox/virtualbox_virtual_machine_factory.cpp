@@ -120,7 +120,7 @@ mp::NetworkInterfaceInfo list_vbox_network(
 } // namespace
 
 mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(
-    const mp::Path& data_dir,
+    const std::filesystem::path& data_dir,
     AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
@@ -133,11 +133,12 @@ auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
-                                                          monitor,
-                                                          key_provider,
-                                                          az_manager.get_zone(desc.zone),
-                                                          get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::string& name)

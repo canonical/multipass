@@ -40,7 +40,7 @@ struct MockQemuPlatform : public QemuPlatform
     MOCK_METHOD(void, platform_health_check, (), (override));
     MOCK_METHOD(QStringList, vmstate_platform_args, (), (override));
     MOCK_METHOD(QStringList, vm_platform_args, (const VirtualMachineDescription&), (override));
-    MOCK_METHOD(QString, get_directory_name, (), (const, override));
+    MOCK_METHOD(std::filesystem::path, get_directory_name, (), (const, override));
     MOCK_METHOD(bool, is_network_supported, (const std::string&), (const, override));
     MOCK_METHOD(bool, needs_network_prep, (), (const override));
     MOCK_METHOD(std::string, create_bridge_with, (const NetworkInterfaceInfo&), (const, override));
@@ -53,7 +53,7 @@ struct MockQemuPlatformFactory : public QemuPlatformFactory
 
     MOCK_METHOD(QemuPlatform::UPtr,
                 make_qemu_platform,
-                (const Path&, const AvailabilityZoneManager::Zones&),
+                (const std::filesystem::path&, const AvailabilityZoneManager::Zones&),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockQemuPlatformFactory, QemuPlatformFactory);

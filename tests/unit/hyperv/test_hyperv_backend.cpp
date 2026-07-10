@@ -139,7 +139,7 @@ struct HyperVBackend : public Test
     mpt::PowerShellTestHelper ps_helper;
     mpt::StubAvailabilityZone zone{};
     mpt::StubAvailabilityZoneManager az_manager{};
-    mp::HyperVVirtualMachineFactory backend{data_dir.path(), az_manager};
+    mp::HyperVVirtualMachineFactory backend{data_dir, az_manager};
     mpt::StubVMStatusMonitor stub_monitor;
     mpt::StubSSHKeyProvider stub_key_provider;
 };
@@ -407,7 +407,7 @@ struct HyperVNetworks : public Test
     mpt::TempDir data_dir;
     mpt::StubAvailabilityZone zone{};
     mpt::StubAvailabilityZoneManager az_manager{};
-    mp::HyperVVirtualMachineFactory backend{data_dir.path(), az_manager};
+    mp::HyperVVirtualMachineFactory backend{data_dir, az_manager};
 };
 
 struct HyperVNetworksPS : public HyperVNetworks

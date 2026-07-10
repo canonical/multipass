@@ -24,7 +24,7 @@ namespace mp = multipass;
 
 namespace multipass::applevz
 {
-AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir,
+AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const std::filesystem::path& data_dir,
                                                            AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),

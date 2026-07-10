@@ -25,7 +25,6 @@
 #include <multipass/logging/logger.h>
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/name_generator.h>
-#include <multipass/path.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/update_prompt.h>
@@ -35,6 +34,7 @@
 
 #include <QNetworkProxy>
 
+#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -55,8 +55,8 @@ struct DaemonConfig
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const std::unique_ptr<QNetworkProxy> network_proxy;
     const AvailabilityZoneManager::UPtr az_manager;
-    const multipass::Path cache_directory;
-    const multipass::Path data_directory;
+    const std::filesystem::path cache_directory;
+    const std::filesystem::path data_directory;
     const std::string server_address;
     const std::string ssh_username;
     const std::chrono::hours image_refresh_timer;
@@ -76,8 +76,8 @@ struct DaemonConfigBuilder
     std::unique_ptr<logging::Logger> logger;
     std::unique_ptr<QNetworkProxy> network_proxy;
     AvailabilityZoneManager::UPtr az_manager;
-    multipass::Path cache_directory;
-    multipass::Path data_directory;
+    std::filesystem::path cache_directory;
+    std::filesystem::path data_directory;
     std::string server_address;
     std::string ssh_username;
     multipass::days days_to_expire{14};

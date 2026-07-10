@@ -101,11 +101,12 @@ void set_ip_forward()
     }
 }
 
-mp::DNSMasqServer::UPtr init_nat_network(const mp::Path& network_dir,
+mp::DNSMasqServer::UPtr init_nat_network(const std::filesystem::path& network_dir,
                                          const mp::BridgeSubnetList& subnets)
 {
     set_ip_forward();
-    return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(network_dir, subnets);
+    return MP_DNSMASQ_SERVER_FACTORY.make_dnsmasq_server(MP_PLATFORM.path_to_qstr(network_dir),
+                                                         subnets);
 }
 
 void delete_virtual_switch(const QString& bridge_name)
@@ -161,9 +162,9 @@ mp::QemuPlatformLinux::Bridge::~Bridge()
     return out;
 }
 
-mp::QemuPlatformLinux::QemuPlatformLinux(const mp::Path& data_dir,
+mp::QemuPlatformLinux::QemuPlatformLinux(const std::filesystem::path& data_dir,
                                          const AvailabilityZoneManager::Zones& zones)
-    : network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
+    : network_dir{data_dir / "network"},
       bridges{get_bridges(zones)},
       dnsmasq_server{init_nat_network(network_dir, get_bridge_list(bridges))}
 {
@@ -285,7 +286,7 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
 }
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(
-    const Path& data_dir,
+    const std::filesystem::path& data_dir,
     const mp::AvailabilityZoneManager::Zones& zones) const
 {
     return std::make_unique<mp::QemuPlatformLinux>(data_dir, zones);

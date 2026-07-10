@@ -57,7 +57,7 @@ struct TestDaemonRestart : public mpt::DaemonTestFixture
         EXPECT_CALL(*instance_ptr, current_state).WillRepeatedly(Return(state));
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
 
-        config_builder.data_directory = temp_dir->path();
+        config_builder.data_directory = *temp_dir;
         auto daemon = std::make_unique<mp::Daemon>(config_builder.build());
 
         return std::pair{std::move(daemon), ret_instance};

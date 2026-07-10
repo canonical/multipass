@@ -685,19 +685,17 @@ TEST(Utils, validateServerAddressDoesNotThrowOnGoodAddress)
 
 TEST(Utils, noSubdirectoryReturnsSamePath)
 {
-    mp::Path original_path{"/tmp/foo"};
-    QString empty_subdir{};
+    std::filesystem::path original_path{"/tmp/foo"};
 
-    EXPECT_THAT(mp::utils::backend_directory_path(original_path, empty_subdir), Eq(original_path));
+    EXPECT_THAT(mp::utils::backend_directory_path(original_path, ""), Eq(original_path));
 }
 
 TEST(Utils, subdirectoryReturnsNewPath)
 {
-    mp::Path original_path{"/tmp/foo"};
-    QString subdir{"bar"};
+    std::filesystem::path original_path{"/tmp/foo"};
 
-    EXPECT_THAT(mp::utils::backend_directory_path(original_path, subdir),
-                Eq(mp::Path{"/tmp/foo/bar"}));
+    EXPECT_THAT(mp::utils::backend_directory_path(original_path, "bar"),
+                Eq(std::filesystem::path{"/tmp/foo/bar"}));
 }
 
 TEST(Utils, vmRunningReturnsTrue)

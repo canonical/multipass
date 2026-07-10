@@ -29,10 +29,10 @@
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
-const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
+const std::filesystem::path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
 const std::unordered_set<std::string> cloneable_files{".iso", ".img", ".qcow2", ".raw", ".asif"};
 
-mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir,
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const std::filesystem::path& instances_dir,
                                                          AvailabilityZoneManager& az_manager)
     : az_manager{az_manager}, instances_dir{instances_dir} {};
 
@@ -99,8 +99,8 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
     const multipass::SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
-    const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
+    const auto src_instance_dir{get_instance_directory(src_name)};
+    const auto dest_instance_dir{get_instance_directory(dest_name)};
 
     copy_instance_dir_with_essential_files(src_instance_dir, dest_instance_dir);
 

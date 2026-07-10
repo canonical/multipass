@@ -361,7 +361,7 @@ TEST_F(Daemon, proxyContainsValidInfo)
 
 TEST_F(Daemon, dataPathValid)
 {
-    QTemporaryDir data_dir, cache_dir;
+    mpt::TempDir data_dir, cache_dir;
 
     EXPECT_CALL(mpt::MockStandardPaths::mock_instance(),
                 writableLocation(mp::StandardPaths::CacheLocation))
@@ -376,13 +376,13 @@ TEST_F(Daemon, dataPathValid)
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    EXPECT_EQ(config->data_directory, data_dir.path());
-    EXPECT_EQ(config->cache_directory, cache_dir.path());
+    EXPECT_EQ(config->data_directory, data_dir);
+    EXPECT_EQ(config->cache_directory, cache_dir);
 }
 
 TEST_F(Daemon, dataPathWithStorageValid)
 {
-    QTemporaryDir storage_dir;
+    mpt::TempDir storage_dir;
 
     mpt::SetEnvScope storage(mp::multipass_storage_env_var, storage_dir.path().toUtf8());
 
@@ -399,8 +399,8 @@ TEST_F(Daemon, dataPathWithStorageValid)
     config_builder.cache_directory = "";
     auto config = config_builder.build();
 
-    EXPECT_EQ(config->data_directory, storage_dir.filePath("data"));
-    EXPECT_EQ(config->cache_directory, storage_dir.filePath("cache"));
+    EXPECT_EQ(config->data_directory, storage_dir / "data");
+    EXPECT_EQ(config->cache_directory, storage_dir / "cache");
 }
 
 TEST_F(Daemon, rootCertPathDoesntChangeWithStorage)
@@ -434,7 +434,7 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
         }
 })";
     const auto [temp_dir, _] = plant_instance_json(instance_json);
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
@@ -470,7 +470,7 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     vm_props.default_mac = "52:54:00:73:76:28";
     vm_props.state = multipass::VirtualMachine::State::running;
     const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
@@ -494,7 +494,7 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     vm_props.default_mac = "52:54:00:73:76:28";
     vm_props.state = multipass::VirtualMachine::State::running;
     const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
@@ -518,7 +518,7 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     vm_props.default_mac = "52:54:00:73:76:28";
     vm_props.state = multipass::VirtualMachine::State::running;
     const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
@@ -543,7 +543,7 @@ TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
     vm_props.deleted = true;
     vm_props.state = multipass::VirtualMachine::State::running;
     const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but not now.
@@ -1129,7 +1129,7 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
 TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    config_builder.data_directory = QString("invalid_data_directory");
+    config_builder.data_directory = "invalid_data_directory";
     mp::Daemon daemon{config_builder.build()};
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
@@ -1183,7 +1183,7 @@ TEST_F(Daemon, readsMacAddressesFromJson)
 
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of
     // the file.
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     mp::Daemon daemon{config_builder.build()};
 
     // Check that the instance was indeed read and there were no errors.
@@ -1264,7 +1264,7 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
 
     // Make the daemon look for the JSON on our temporary directory. It will read the contents of
     // the file.
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     mp::Daemon daemon{config_builder.build()};
 
     // Check that the instance was indeed read and there were no errors.
@@ -1314,7 +1314,7 @@ TEST_F(Daemon, writesAndReadsOrderedMapsInJson)
             return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
         }));
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -1480,7 +1480,7 @@ TEST_F(Daemon, skipsOverInstanceGhostsInDb)
                                                                       std::move(valid1),
                                                                       std::move(valid2)));
 
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     auto mock_factory = use_a_mock_vm_factory();
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
@@ -1497,9 +1497,9 @@ TEST_F(Daemon, skipsOverInstanceGhostsInDb)
 TEST_F(Daemon, ctorLetsExceptionsArisingFromVmCreationThrough)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
+    config_builder.data_directory = *temp_dir;
 
     const std::string msg = "asdf";
     auto mock_factory = use_a_mock_vm_factory();
@@ -1515,13 +1515,16 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
     const std::string stayed{"foo"}, gone{"fighters"};
     auto stayed_json = fmt::format(valid_template, stayed, "12");
     auto gone_json = fmt::format(valid_template, gone, "34");
-    const auto [temp_dir, filename] = plant_instance_json(
-        fmt::format("{{\n{},\n{}\n}}", std::move(stayed_json), std::move(gone_json)));
-    config_builder.data_directory = temp_dir->path();
+    auto json_contents = fmt::format("{{\n{},\n{}\n}}",
+                                     std::move(stayed_json),
+                                     std::move(gone_json));
+    auto filename = config_builder.data_directory / "multipassd-vm-instances.json";
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
+    EXPECT_CALL(*mock_file_ops, try_read_file(Eq(filename)))
+        .WillOnce(Return(std::make_optional(json_contents)));
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image(Field(&mp::Query::name, stayed), _, _, _, _))
@@ -1546,7 +1549,7 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
-    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(MP_PLATFORM.path_to_qstr(filename)), _))
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
             EXPECT_THAT(data.toByteArray().toStdString(),
@@ -1614,7 +1617,7 @@ TEST_F(Daemon, preventsRepetitionOfLoadedMacAddresses)
 
     std::string repeated_mac{"52:54:00:bd:19:41"};
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(repeated_mac, {}));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
 
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1634,9 +1637,9 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
     std::vector<mp::NetworkInterface> extra_interfaces{
         mp::NetworkInterface{"eth0", mac_addr, true}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = *temp_dir;
 
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -1650,9 +1653,9 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac1, extra_interfaces));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
+    config_builder.data_directory = *temp_dir;
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image)
@@ -1743,7 +1746,7 @@ TEST_F(Daemon, deleteRemovesUnavailableInstances)
     vm_props.name = "vm1";
     vm_props.state = multipass::VirtualMachine::State::unavailable;
     const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
@@ -2327,14 +2330,14 @@ TEST_F(Daemon, purgePersistsInstances)
     auto instance_json1 = fmt::format(valid_template, name1, "10");
     auto instance_json2 = fmt::format(valid_template, name2, "11");
     auto json_contents = fmt::format("{{{}, {}}}", instance_json1, instance_json2);
-
-    const auto [temp_dir, filename] = plant_instance_json(json_contents);
-    config_builder.data_directory = temp_dir->path();
+    auto filename = config_builder.data_directory / "multipassd-vm-instances.json";
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
-    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+    EXPECT_CALL(*mock_file_ops, try_read_file(Eq(filename)))
+        .WillOnce(Return(std::make_optional(json_contents)));
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(MP_PLATFORM.path_to_qstr(filename)), _))
         .WillOnce(Return())
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&name1, &name2](const QByteArrayView& data) {
@@ -2357,10 +2360,11 @@ TEST_F(Daemon, infoAllReturnsAllInstances)
         deleted_instance_name{"deleted-instance"};
     const auto good_instance_json = fmt::format(valid_template, good_instance_name, "10");
     const auto deleted_instance_json = fmt::format(deleted_template, deleted_instance_name, "11");
-    const auto instances_json =
-        fmt::format("{{{}, {}}}", good_instance_json, deleted_instance_json);
+    const auto instances_json = fmt::format("{{{}, {}}}",
+                                            good_instance_json,
+                                            deleted_instance_json);
     const auto [temp_dir, __] = plant_instance_json(instances_json);
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
@@ -2395,13 +2399,10 @@ TEST_F(Daemon, setsPermissionsOnStorageDirs)
 {
 
     config_builder.data_directory = "Sensitive data location";
-    const std::filesystem::path std_data_path{config_builder.data_directory.toStdU16String()};
-
     config_builder.cache_directory = "Pirate's secret cache";
-    const std::filesystem::path std_cache_path{config_builder.cache_directory.toStdU16String()};
 
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_data_path));
-    EXPECT_CALL(mock_permission_utils, restrict_permissions(std_cache_path));
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(config_builder.data_directory));
+    EXPECT_CALL(mock_permission_utils, restrict_permissions(config_builder.cache_directory));
 
     config_builder.build();
 }

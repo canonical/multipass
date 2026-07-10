@@ -37,7 +37,7 @@ namespace
 constexpr auto category = "qemu factory";
 } // namespace
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir,
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const std::filesystem::path& data_dir,
                                                          AvailabilityZoneManager& az_manager)
     : QemuVirtualMachineFactory{
           MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir, az_manager.get_zones()),
@@ -47,7 +47,7 @@ mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_di
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
-                                                         const mp::Path& data_dir,
+                                                         const std::filesystem::path& data_dir,
                                                          AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir,
                                                               qemu_platform->get_directory_name(),
@@ -62,12 +62,13 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::QemuVirtualMachine>(desc,
-                                                    qemu_platform.get(),
-                                                    monitor,
-                                                    key_provider,
-                                                    az_manager.get_zone(desc.zone),
-                                                    get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::QemuVirtualMachine>(
+        desc,
+        qemu_platform.get(),
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -140,7 +141,7 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
     return QString("qemu-unknown");
 }
 
-QString mp::QemuVirtualMachineFactory::get_backend_directory_name() const
+std::filesystem::path mp::QemuVirtualMachineFactory::get_backend_directory_name() const
 {
     return qemu_platform->get_directory_name();
 }
@@ -183,11 +184,12 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return std::make_unique<mp::QemuVirtualMachine>(desc,
-                                                    qemu_platform.get(),
-                                                    monitor,
-                                                    key_provider,
-                                                    az_manager.get_zone(desc.zone),
-                                                    get_instance_directory(desc.vm_name),
-                                                    true);
+    return std::make_unique<mp::QemuVirtualMachine>(
+        desc,
+        qemu_platform.get(),
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        get_instance_directory(desc.vm_name),
+        true);
 }

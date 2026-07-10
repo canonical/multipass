@@ -29,7 +29,8 @@ struct HyperVNetworkAccessor; // fwd declaration, to befriend below
 class HyperVVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit HyperVVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
+    explicit HyperVVirtualMachineFactory(const std::filesystem::path& data_dir,
+                                         AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
