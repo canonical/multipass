@@ -19,7 +19,7 @@ if(UNIX)
         list(APPEND MULTIPASS_BACKENDS virtualbox)
     endif()
 
-    if(APPLEVZ_ENABLED)
+    if(APPLE)
         list(APPEND MULTIPASS_BACKENDS applevz)
     endif()
 elseif(WIN32)
