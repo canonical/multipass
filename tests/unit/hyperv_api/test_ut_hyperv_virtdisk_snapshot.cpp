@@ -369,4 +369,83 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_commit_fails)
     EXPECT_FALSE(fs::exists(head_old()));
 }
 
+// These tests exercise the eager head-collapse that runs at the end of erase_impl()
+// when the *last* snapshot is deleted. With no snapshots left, the head is a plain
+// differencing disk sitting directly on the base, so it is merged back into the base
+// and the VM returns to running on a standalone disk (which re-enables disk resize).
+//
+// The wrapper's list_virtual_disk_chain mock is static, so it cannot express the
+// head being reparented from self onto the base *during* the erase. Instead these
+// tests model the equivalent post-reparent layout directly: self is a leaf child of
+// the base and the head is a sibling child of the base (not attached to self). That
+// isolates and exercises the collapse path itself; the end-to-end reparent+collapse
+// is covered by the integration tests.
+struct VirtDiskSnapshotCollapse : public VirtDiskSnapshotErase
+{
+    void SetUp() override
+    {
+        VirtDiskSnapshotErase::SetUp();
+
+        // This is the last remaining snapshot, so erase_impl() attempts the collapse.
+        ON_CALL(vm, get_num_snapshots()).WillByDefault(Return(1));
+
+        // Report every disk (in particular the head) as a direct child of the base:
+        // the layout once no snapshot remains. This makes collapse_head_into_base()
+        // proceed instead of bailing out, and keeps the head unattached to self.
+        ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
+            .WillByDefault([this](const fs::path& p,
+                                  std::vector<fs::path>& chain,
+                                  std::optional<std::size_t>) {
+                chain.clear();
+                chain.push_back(p);
+                chain.push_back(base()); // parent = base
+                return op_ok();
+            });
+    }
+
+    fs::path base_bak() const
+    {
+        auto p = base();
+        p += ".bak";
+        return p;
+    }
+};
+
+// Happy path: erasing the last snapshot merges the head back into the base. The head
+// disk is gone, the base remains, and — crucially — the collapse does NOT copy the
+// (potentially huge) base: no `.bak` backup and no `.old` sidecar are ever created.
+TEST_F(VirtDiskSnapshotCollapse, removes_head_when_last_snapshot_erased)
+{
+    auto ss = take_captured();
+
+    // The erase transaction has no children to merge (head is not attached to self);
+    // the single merge is the head -> base collapse, which succeeds.
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_ok()));
+
+    EXPECT_NO_THROW(ss->erase());
+
+    EXPECT_FALSE(fs::exists(head())) << "the head must be collapsed into the base";
+    EXPECT_TRUE(fs::exists(base())) << "the base must remain";
+    EXPECT_FALSE(fs::exists(base_bak())) << "the base must not be copied for a backup";
+    EXPECT_FALSE(fs::exists(head_old())) << "no head sidecar must be created";
+}
+
+// If the head-to-base merge fails, the erase itself still succeeds (the snapshot
+// deletion already committed before the collapse). Because the head is only removed
+// after a successful merge, a failed merge simply leaves the `base <- head` chain
+// intact and readable — no base backup/restore is involved, and no sidecars remain.
+TEST_F(VirtDiskSnapshotCollapse, erase_succeeds_even_if_collapse_fails)
+{
+    auto ss = take_captured();
+
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_fail()));
+
+    EXPECT_NO_THROW(ss->erase()); // the collapse failure is caught and logged, not rethrown
+
+    EXPECT_TRUE(fs::exists(head())) << "the head must be left intact on collapse failure";
+    EXPECT_TRUE(fs::exists(base())) << "the base must be left intact (never copied/moved)";
+    EXPECT_FALSE(fs::exists(base_bak())) << "the base must not be copied for a backup";
+    EXPECT_FALSE(fs::exists(head_old())) << "no head sidecar must be created";
+}
+
 } // namespace multipass::test

@@ -271,10 +271,17 @@ bool HCSVirtualMachine::has_saved_state_file() const
 
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
+    return get_snapshot_head_disk_path().value_or(description.image.image_path);
+}
+
+std::optional<std::filesystem::path> HCSVirtualMachine::get_snapshot_head_disk_path() const
+{
     const std::filesystem::path base_vhdx = description.image.image_path;
-    const std::filesystem::path head_avhdx = base_vhdx.parent_path() /
-                                             virtdisk::VirtDiskSnapshot::head_disk_name();
-    return MP_FILEOPS.exists(head_avhdx) ? head_avhdx : base_vhdx;
+    std::filesystem::path head_avhdx =
+        base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
+    if (MP_FILEOPS.exists(head_avhdx))
+        return head_avhdx;
+    return std::nullopt;
 }
 
 void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
@@ -660,6 +667,19 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     {
         throw ResizeDiskException{"Cannot resize the primary disk while there are "
                                   "snapshots. To resize, delete the snapshots first."};
+    }
+
+    // No snapshots remain, but a differencing "head" disk may still be layered on the
+    // base if the collapse at the last snapshot's deletion did not complete. Fold it
+    // back into the base first so we never resize a base that still has a child disk
+    // on top of it (which would corrupt the chain).
+    if (const auto head_avhdx = get_snapshot_head_disk_path())
+    {
+        mpl::warn(get_name(),
+                  "A snapshot head disk `{}` is still layered on the base even though no "
+                  "snapshots remain; collapsing it into the base before resizing.",
+                  *head_avhdx);
+        virtdisk::VirtDiskSnapshot::collapse_head_into_base(description.image.image_path);
     }
 
     if (const auto result =

@@ -51,6 +51,25 @@ public:
         return "head.avhdx";
     }
 
+    /**
+     * Fold a lingering differencing "head" disk back into its base disk and remove
+     * it, so the VM runs on a standalone base again.
+     *
+     * A no-op unless a head disk exists and is a *direct* child of the base (which
+     * holds exactly when no snapshots remain). This restores the pre-snapshot disk
+     * layout after the last snapshot is deleted and, in particular, re-enables disk
+     * resize (a base disk cannot be resized while a differencing child sits on it).
+     *
+     * Safe without copying the base: MergeVirtualDisk only reads the head and writes
+     * into the base, and the head is removed only *after* a fully successful merge, so
+     * a failed or interrupted merge leaves the `base <- head` chain intact and readable
+     * (the head still overrides every block). Throws on merge failure; callers that
+     * treat the collapse as an optimization should catch and continue.
+     *
+     * @param [in] base_vhdx_path Path to the base disk of the differencing chain.
+     */
+    static void collapse_head_into_base(const std::filesystem::path& base_vhdx_path);
+
 protected:
     void capture_impl() override;
     void erase_impl() override;

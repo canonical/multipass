@@ -26,6 +26,7 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <memory>
+#include <optional>
 
 struct HCS_EVENT;
 
@@ -113,6 +114,14 @@ private:
      * Retrieve path to the primary disk symbolic link
      */
     [[nodiscard]] std::filesystem::path get_primary_disk_path() const noexcept(false);
+
+    /**
+     * Retrieve the path to the snapshot differencing "head" disk, if one is currently
+     * layered on the base disk.
+     *
+     * @return The head disk path when it exists on disk, std::nullopt otherwise.
+     */
+    [[nodiscard]] std::optional<std::filesystem::path> get_snapshot_head_disk_path() const;
 
     [[nodiscard]] std::filesystem::path get_guest_state_file_path() const;
     [[nodiscard]] std::filesystem::path get_runtime_state_file_path() const;
