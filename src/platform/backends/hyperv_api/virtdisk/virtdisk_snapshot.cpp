@@ -305,6 +305,77 @@ void VirtDiskSnapshot::erase_impl()
         MP_FILEOPS.remove(backup_path, ec);
     }
     MP_FILEOPS.remove(self_backup, ec);
+
+    // If this was the last remaining snapshot, the head is now a plain differencing
+    // disk sitting directly on the base. Collapse it back into the base so the VM
+    // runs on a standalone disk again (restoring the pre-snapshot layout and, in
+    // particular, re-enabling disk resize). Self is still counted here, so being the
+    // last one means exactly one snapshot remains. Best-effort: the snapshot has
+    // already been erased above, so a collapse failure must not fail the erase; it
+    // just leaves the valid `base <- head` layout in place.
+    if (vm.get_num_snapshots() == 1)
+    {
+        try
+        {
+            collapse_head_into_base(base_vhdx_path);
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(log_category,
+                      "Could not collapse head into base after erasing the last snapshot: {}",
+                      e.what());
+        }
+    }
+}
+
+void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base_vhdx_path)
+{
+    const auto head_path = base_vhdx_path.parent_path() / head_disk_name();
+
+    // Nothing to do if there is no differencing head (the VM already runs on base).
+    if (!MP_FILEOPS.exists(head_path))
+        return;
+
+    // Only collapse when the head is a *direct* child of the base. This holds exactly
+    // when no snapshots remain; guarding on it means we never merge the head into the
+    // wrong parent (e.g. a snapshot that other snapshots still depend on).
+    std::vector<std::filesystem::path> chain{};
+    if (!VirtDisk().list_virtual_disk_chain(head_path, chain, 2) || chain.size() != 2 ||
+        MP_FILEOPS.weakly_canonical(chain[1]) != MP_FILEOPS.weakly_canonical(base_vhdx_path))
+    {
+        mpl::warn(log_category,
+                  "Not collapsing head `{}`: it is not a direct child of base `{}`",
+                  head_path,
+                  base_vhdx_path);
+        return;
+    }
+
+    // Merge the head down into the base. MergeVirtualDisk only *reads* the head and
+    // *writes* into the base; it never touches the head file. That is what makes this
+    // safe without copying the (potentially huge) base: if the merge fails partway,
+    // the base may be partially written, but the head still holds every one of its
+    // blocks and still overrides the base, so the `base <- head` chain keeps reading
+    // correctly. We therefore only retire the head *after* a fully successful merge; on
+    // failure (or a crash mid-merge) the VM simply keeps running on `base <- head` and
+    // a later collapse/resize retries. This mirrors how Hyper-V merges checkpoints.
+    if (const auto r = VirtDisk().merge_virtual_disk_into_parent(head_path); !r)
+        throw CreateVirtdiskSnapshotError{r,
+                                          "Could not merge head `{}` into base `{}`",
+                                          head_path,
+                                          base_vhdx_path};
+
+    // The base now holds the merged-in live state. Retire the now-redundant head so
+    // get_primary_disk_path() resolves to the standalone base. If this remove fails the
+    // layout is still correct (`base <- head` reads identically to the merged base), so
+    // it is only logged; a later collapse/resize will retry the removal.
+    std::error_code ec{};
+    MP_FILEOPS.remove(head_path, ec);
+    if (ec)
+        mpl::warn(log_category,
+                  "Merged head `{}` into base `{}` but could not remove the redundant head: {}",
+                  head_path,
+                  base_vhdx_path,
+                  ec.message());
 }
 
 void VirtDiskSnapshot::apply_impl()
