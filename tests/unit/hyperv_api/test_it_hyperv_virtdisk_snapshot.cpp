@@ -404,7 +404,7 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
 }
 
 // ---------------------------------------------------------------------------
-// 6. Snapshotting again after a collapse rebuilds a fresh chain
+// 8. Snapshotting again after a collapse rebuilds a fresh chain
 // Deleting the last snapshot collapses head into base; taking a new snapshot must
 // build base <- s1 <- head from the standalone base again.
 // ---------------------------------------------------------------------------
@@ -420,7 +420,7 @@ TEST_F(VirtDiskSnapshotErase, snapshot_after_collapse_rebuilds_chain)
 }
 
 // ---------------------------------------------------------------------------
-// 7. Collapsed base is directly resizable
+// 9. Collapsed base is directly resizable
 // The whole point of eager collapse: once the last snapshot is gone and the head has
 // been folded back into the base, the base is a standalone disk that can be resized
 // again (resizing a differencing chain is not possible).

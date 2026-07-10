@@ -505,9 +505,9 @@ struct VirtDiskSnapshotReparent : public VirtDiskSnapshotErase
     void build_self_child_grandchildren()
     {
         touch(base());
-        add(1, nullptr);          // s1: self, to be erased
+        add(1, nullptr);                 // s1: self, to be erased
         auto s2 = add(2, model.front()); // s2: direct child of self
-        add(3, s2);               // s3: grandchild (child of s2)
+        add(3, s2);                      // s3: grandchild (child of s2)
         parent_of[snapshot_path(2)] = snapshot_path(1);
         parent_of[snapshot_path(3)] = snapshot_path(2);
         model.front()->capture(); // lay down real self (1.avhdx) + head files
@@ -552,6 +552,24 @@ TEST_F(VirtDiskSnapshotReparent, reparents_grandchild_onto_rebuilt_child)
     EXPECT_TRUE(fs::exists(snapshot_path(3))) << "the grandchild must remain";
     expect_no_sidecars(1);
     expect_no_sidecars(2);
+}
+
+// A snapshot child whose chain cannot be inspected must fail the erase instead of
+// being silently skipped, because deleting its parent would leave the child broken.
+TEST_F(VirtDiskSnapshotReparent, throws_when_snapshot_child_chain_cannot_be_inspected)
+{
+    build_self_child_grandchildren();
+
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(snapshot_path(2), _, _))
+        .WillOnce(Return(op_fail()));
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).Times(0);
+    EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(_, _)).Times(0);
+
+    EXPECT_THROW(model.front()->erase(), std::exception);
+
+    EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must not be erased";
+    EXPECT_TRUE(fs::exists(snapshot_path(2))) << "the unreadable child must remain";
+    EXPECT_TRUE(fs::exists(snapshot_path(3))) << "the grandchild must remain";
 }
 
 // If refreshing a grandchild's parent linkage fails, the whole erase aborts and rolls
