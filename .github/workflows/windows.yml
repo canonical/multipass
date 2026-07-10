@@ -171,6 +171,11 @@ jobs:
     - name: Build
       run: cmake --build ${{ env.BUILD_DIR }}
 
+    - name: Verify version metadata in build outputs
+      shell: pwsh
+      run: |
+        .\tools\verify-windows-versioninfo.ps1 -BinDir "${{ env.BUILD_DIR }}\bin" -FailOnMissing
+
     - name: Test
       working-directory: ${{ env.BUILD_DIR }}
       run: |

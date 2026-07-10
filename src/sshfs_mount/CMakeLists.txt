@@ -38,8 +38,22 @@ if(MULTIPASS_ENABLE_TESTS)
   add_sshfs_mount_target(sshfs_mount_test)
 endif()
 
-add_executable(sshfs_server
-  sshfs_server.cpp)
+if(MSVC)
+  prepare_windows_version_resource(
+    SSHFS_SERVER_RC_SOURCE
+    sshfs_server
+    "Multipass SSHFS Server"
+    "sshfs_server"
+    "sshfs_server.exe"
+  )
+  add_executable(sshfs_server
+    sshfs_server.cpp
+    ${SSHFS_SERVER_RC_SOURCE})
+else()
+  add_executable(sshfs_server
+    sshfs_server.cpp)
+endif()
+
 
 target_link_libraries(sshfs_server
   logger
