@@ -176,5 +176,68 @@ void main() {
       expect(container.read(cpuUsagesProvider('vm-a')).last, equals(100.0));
       expect(container.read(cpuUsagesProvider('vm-b')).last, equals(50.0));
     });
+
+    group('robustness', () {
+      test('reports 0% usage when the counters do not advance', () {
+        final container = makeContainer();
+
+        container
+            .read(_cpuTimesProvider.notifier)
+            .set('h s 500 0 0 500 0 0 0 0');
+        container.read(cpuUsagesProvider('test-vm'));
+
+        // A second sample with identical counters (e.g. a suspended VM or a
+        // repeated reading) leaves the delta at zero. Usage should be 0%,
+        // not NaN..
+        container
+            .read(_cpuTimesProvider.notifier)
+            .set('x y 500 0 0 500 0 0 0 0');
+
+        final usage = container.read(cpuUsagesProvider('test-vm')).last;
+        expect(usage.isNaN, isFalse);
+        expect(usage, equals(0.0));
+      });
+
+      test('reports 0% usage on a counter reset', () {
+        final container = makeContainer();
+
+        container
+            .read(_cpuTimesProvider.notifier)
+            .set('h s 1000 0 0 0 0 0 0 0');
+        container.read(cpuUsagesProvider('test-vm'));
+
+        // Counters going backwards
+        container.read(_cpuTimesProvider.notifier).set('h s 10 0 0 0 0 0 0 0');
+
+        expect(
+          container.read(cpuUsagesProvider('test-vm')).last,
+          greaterThanOrEqualTo(0.0),
+        );
+      });
+
+      test('records 0% usage for a malformed sample instead of throwing', () {
+        final container = makeContainer();
+
+        container.read(_cpuTimesProvider.notifier).set('cpu 5 10');
+
+        expect(
+          () => container.read(cpuUsagesProvider('test-vm')),
+          returnsNormally,
+        );
+        expect(container.read(cpuUsagesProvider('test-vm')).last, equals(0.0));
+      });
+
+      test('emits a new history instance when a sample changes the usage', () {
+        final container = makeContainer();
+        final first = container.read(cpuUsagesProvider('test-vm'));
+
+        container
+            .read(_cpuTimesProvider.notifier)
+            .set('a b 1000 0 0 0 0 0 0 0');
+        final second = container.read(cpuUsagesProvider('test-vm'));
+
+        expect(identical(first, second), isFalse);
+      });
+    });
   });
 }
