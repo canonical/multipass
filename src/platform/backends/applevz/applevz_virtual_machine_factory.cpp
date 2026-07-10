@@ -19,8 +19,21 @@
 #include <applevz/applevz_virtual_machine.h>
 #include <applevz/applevz_virtual_machine_factory.h>
 #include <multipass/utils/qemu_img_utils.h>
+#include <shared/macos/backend_utils.h>
 
 namespace mp = multipass;
+
+namespace
+{
+void enable_zone_routing(mp::AvailabilityZoneManager& az_manager)
+{
+    std::vector<mp::Subnet> subnets;
+    for (const auto& zone : az_manager.get_zones())
+        subnets.push_back(zone.get().get_subnet());
+
+    mp::backend::enable_cross_zone_routing(subnets);
+}
+} // namespace
 
 namespace multipass::applevz
 {
@@ -30,6 +43,7 @@ AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir,
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
           az_manager)
 {
+    enable_zone_routing(az_manager);
 }
 
 VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
