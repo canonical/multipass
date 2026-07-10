@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
 import '../l10n/app_localizations.dart';
-import '../notifications/notifications_provider.dart';
+import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 
@@ -47,8 +47,21 @@ class VirtualizationSettings extends ConsumerWidget {
           items: {if (driver != null) driver: driver, ...mpPlatform.drivers},
           onChanged: (value) {
             if (value == driver) return;
-            ref.read(driverProvider.notifier).set(value as String).onError(
-                ref.notifyError((e) => l10n.virtualizationDriverError('$e')));
+            ref.read(driverProvider.notifier).set(value as String).then((_) {
+              if (value == 'qemu' &&
+                  mpPlatform.drivers.containsKey('applevz')) {
+                ref.read(notificationsProvider.notifier).add(
+                      WarningNotification(
+                        text: l10n.virtualizationDriverDeprecationWarning,
+                      ),
+                    );
+              }
+            }).onError((e, _) {
+              ref.read(notificationsProvider.notifier).addError(
+                    e,
+                    (e) => l10n.virtualizationDriverError('$e'),
+                  );
+            });
           },
         ),
         const SizedBox(height: 20),

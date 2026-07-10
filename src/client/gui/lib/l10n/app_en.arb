@@ -344,6 +344,10 @@
             }
         }
     },
+    "virtualizationDriverDeprecationWarning": "The 'qemu' driver is deprecated on macOS and will be removed in a future release.",
+    "@virtualizationDriverDeprecationWarning": {
+        "description": "Warning notification shown when switching to the deprecated qemu driver on macOS"
+    },
     "virtualizationBridgedNetworkNone": "None",
     "@virtualizationBridgedNetworkNone": {
         "description": "Dropdown option representing no bridged network selected"

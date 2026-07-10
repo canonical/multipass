@@ -147,6 +147,15 @@ class ErrorNotification extends SimpleNotification {
         );
 }
 
+class WarningNotification extends SimpleNotification {
+  WarningNotification({super.key, required String text})
+      : super(
+          child: Text(text),
+          barColor: Colors.orange,
+          icon: const Icon(Icons.warning_amber_outlined, color: Colors.orange),
+        );
+}
+
 class SuccessNotification extends TimeoutNotification {
   const SuccessNotification({super.key, required super.child})
       : super(
