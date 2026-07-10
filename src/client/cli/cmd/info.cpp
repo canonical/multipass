@@ -70,8 +70,6 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
                                   "Names of instances or snapshots to display information about",
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
-    QCommandLineOption all_option(all_option_name, "Display info for all instances.");
-    all_option.setFlags(QCommandLineOption::HiddenFromHelp);
     QCommandLineOption noRuntimeInfoOption("no-runtime-information",
                                            "Retrieve from the daemon only the information obtained "
                                            "without running commands on the instance.");
@@ -87,7 +85,7 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
                                      format_option_name,
                                      "table");
 
-    parser->addOptions({all_option, noRuntimeInfoOption, snapshots_option, format_option});
+    parser->addOptions({noRuntimeInfoOption, snapshots_option, format_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -95,13 +93,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
 
-    status = check_for_name_and_all_option_conflict(parser, cerr, true);
     if (status != ParseCode::Ok)
         return status;
-
-    if (parser->isSet(all_option_name))
-        cerr << "Warning: the `--all` flag for the `info` command is deprecated. Please use `info` "
-                "with no positional arguments for the same effect.\n";
 
     bool instance_found = false, snapshot_found = false;
     for (const auto& item : add_instance_and_snapshot_names(parser))
