@@ -3658,6 +3658,42 @@ TEST_F(Client, setCmdTogglePetenv)
                 Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, setCmdWarnsAboutQemuDeprecationOnMacOS)
+{
+    EXPECT_CALL(*mock_platform, is_backend_supported(Eq("applevz"))).WillOnce(Return(true));
+    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("qemu"), _));
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(
+        send_command({"set", keyval_arg(mp::driver_key, "qemu")}, trash_stream, cerr_stream),
+        Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("deprecated"));
+}
+
+TEST_F(Client, setCmdDoesNotWarnAboutQemuWhenApplevzUnsupported)
+{
+    EXPECT_CALL(*mock_platform, is_backend_supported(Eq("applevz"))).WillOnce(Return(false));
+    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("qemu"), _));
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(
+        send_command({"set", keyval_arg(mp::driver_key, "qemu")}, trash_stream, cerr_stream),
+        Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cerr_stream.str(), IsEmpty());
+}
+
+TEST_F(Client, setCmdDoesNotWarnForNonQemuDriver)
+{
+    EXPECT_CALL(*mock_platform, is_backend_supported(_)).Times(0);
+    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("applevz"), _));
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(
+        send_command({"set", keyval_arg(mp::driver_key, "applevz")}, trash_stream, cerr_stream),
+        Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cerr_stream.str(), IsEmpty());
+}
+
 // general help tests
 TEST_F(Client, helpReturnsOkReturnCode)
 {
