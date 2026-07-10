@@ -594,7 +594,7 @@ HCSVirtualMachine::State HCSVirtualMachine::current_state()
     set_state(fetch_state_from_api());
     return state;
 }
-int HCSVirtualMachine::ssh_port()
+uint32_t HCSVirtualMachine::ssh_port()
 {
     return default_ssh_port;
 }

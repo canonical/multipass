@@ -21,8 +21,11 @@
 #include "network_interface.h"
 #include "user_messages.h"
 
-#include <QDir>
+#include <multipass/rpc/multipass.pb.h>
+
 #include <fmt/format.h>
+
+#include <QDir>
 
 #include <cassert>
 #include <chrono>
@@ -80,13 +83,11 @@ public:
     virtual void suspend() = 0;
     virtual void set_available(bool available) = 0;
     virtual State current_state() = 0;
-    virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname() = 0;
-    virtual std::string ssh_username() = 0;
     virtual std::optional<IPAddress> management_ipv4() = 0;
     virtual std::vector<IPAddress> get_all_ipv4() = 0;
 
     // careful: default param in virtual methods; be sure to keep the same value in all descendants
+    virtual SSHCoordinates ssh_coordinates() = 0;
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
     virtual std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                          bool whisper = false) = 0;
@@ -137,6 +138,10 @@ public:
     std::mutex state_mutex;
 
 protected:
+    virtual uint32_t ssh_port() = 0;
+    virtual std::string ssh_hostname() = 0;
+    virtual std::string ssh_username() = 0;
+
     explicit VirtualMachine(State state = State::off) : state{state}
     {
     }

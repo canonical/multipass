@@ -461,7 +461,7 @@ mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
     return state;
 }
 
-int mp::VirtualBoxVirtualMachine::ssh_port()
+uint32_t mp::VirtualBoxVirtualMachine::ssh_port()
 {
     if (!port)
     {

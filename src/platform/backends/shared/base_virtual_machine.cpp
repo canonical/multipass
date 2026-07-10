@@ -234,6 +234,18 @@ void mp::BaseVirtualMachine::set_available(bool available)
     handle_state_update();
 }
 
+mp::SSHCoordinates mp::BaseVirtualMachine::ssh_coordinates()
+{
+    SSHCoordinates coordinates;
+
+    coordinates.set_username(ssh_username());
+    coordinates.set_priv_key_base64(key_provider.private_key_as_base64());
+    coordinates.set_port(ssh_port());
+    coordinates.set_tcp_host(ssh_hostname());
+
+    return coordinates;
+}
+
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
     auto proc = ssh_exec_process(cmd, whisper);
@@ -304,10 +316,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
     }
 
     mpl::trace(vm_name, "New SSH session");
-    return std::make_unique<PlainSSHSession>(ssh_hostname(),
-                                             ssh_port(),
-                                             ssh_username(),
-                                             key_provider);
+    return std::make_unique<PlainSSHSession>(ssh_coordinates());
 }
 
 bool multipass::BaseVirtualMachine::unplugged()
@@ -935,8 +944,7 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    auto new_session =
-        std::make_unique<PlainSSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    auto new_session = std::make_unique<PlainSSHSession>(ssh_coordinates());
 
     std::lock_guard lock{state_mutex};
     ssh_session = std::move(new_session);
