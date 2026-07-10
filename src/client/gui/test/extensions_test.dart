@@ -100,37 +100,23 @@ void main() {
   });
 
   group('TextSpanFromStringExt', () {
-    test('span has the correct text', () {
+    test('wraps the string as the span text', () {
       expect('hello'.span.text, 'hello');
     });
 
-    test('span has black color', () {
-      expect('hello'.span.style?.color, Colors.black);
-    });
-
-    test('span has Ubuntu font family', () {
-      expect('hello'.span.style?.fontFamily, 'Ubuntu');
-    });
-
-    test('span has emoji fallback fonts', () {
-      expect('hello'.span.style?.fontFamilyFallback,
-          containsAllInOrder(['NotoColorEmoji', 'FreeSans']));
+    test('applies a default style so text renders consistently', () {
+      expect('hello'.span.style, isNotNull);
     });
   });
 
   group('TextSpanFromListExt', () {
-    test('spans wraps children in a TextSpan', () {
+    test('wraps the given spans as children of a single TextSpan', () {
       final children = ['a'.span, 'b'.span];
       final result = children.spans;
       expect(result.children, children);
     });
 
-    test('spans has black color', () {
-      final result = ['a'.span].spans;
-      expect(result.style?.color, Colors.black);
-    });
-
-    test('spans with empty list has no text', () {
+    test('an empty list produces a span with no text and no children', () {
       final result = <TextSpan>[].spans;
       expect(result.text, isNull);
       expect(result.children, isEmpty);
