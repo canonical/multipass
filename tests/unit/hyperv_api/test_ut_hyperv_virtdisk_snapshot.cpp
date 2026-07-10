@@ -26,6 +26,8 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
+#include <fmt/format.h>
+
 #include <QDir>
 
 #include <filesystem>
