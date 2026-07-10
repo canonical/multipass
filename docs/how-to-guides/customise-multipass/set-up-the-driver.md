@@ -39,7 +39,7 @@ By default, Multipass on Windows uses the `hyperv` driver.
 ````{tab-item} Linux
 :sync: Linux
 
-On Linux, it is not possible to install an alternative driver.
+On Linux, only the `qemu` driver is supported, so switching `local.driver` is not possible.
 
 ````
 
@@ -113,7 +113,7 @@ If you want to switch back to the default driver, run:
 multipass set local.driver=qemu
 ```
 
-Instances created with VirtualBox don't get transferred, but you can always come back to them.
+Instances are tied to the driver they were created with; after switching, they won't be visible until you switch back.
 
 ````
 
@@ -122,24 +122,24 @@ Instances created with VirtualBox don't get transferred, but you can always come
 
 If you want to switch back to the default driver:
 
-```{code-block} text
+```{code-block} powershell
 multipass set local.driver=hyperv
 ```
 
-Instances created with VirtualBox don't get transferred, but you can always come back to them.
+Instances are tied to the driver they were created with; after switching, they won't be visible until you switch back.
 
 ````
 
 `````
 
-## Use the driver to view Multipass instances
+## Use VirtualBox to view Multipass instances
 
 `````{tab-set}
 
 ````{tab-item} Linux
 :sync: Linux
 
-This option only applies to macOS and Windows systems.
+This option does not apply to Linux systems.
 
 ````
 
@@ -150,7 +150,7 @@ This option only applies to macOS and Windows systems.
 The VirtualBox driver is only available on Intel/x86 architectures.
 ```
 
-Multipass runs as the `root` user, so to see the instances in  VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
+Multipass runs as the `root` user, so to see the instances in VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
 
 ```{code-block} text
 sudo VirtualBox
