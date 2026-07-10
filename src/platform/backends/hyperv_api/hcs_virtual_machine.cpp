@@ -669,10 +669,7 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                                   "snapshots. To resize, delete the snapshots first."};
     }
 
-    // No snapshots remain, but a differencing "head" disk may still be layered on the
-    // base if the collapse at the last snapshot's deletion did not complete. Fold it
-    // back into the base first so we never resize a base that still has a child disk
-    // on top of it (which would corrupt the chain).
+    // A leftover head means collapse did not finish. Collapse it before resizing.
     if (const auto head_avhdx = get_snapshot_head_disk_path())
     {
         mpl::warn(get_name(),
