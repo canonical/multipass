@@ -73,6 +73,9 @@ void mp::QemuPlatformMacOS::remove_resources_for(const std::string& name)
 void mp::QemuPlatformMacOS::platform_health_check()
 {
     // TODO: Add appropriate health checks to ensure the QEMU backend will work as expected
+
+    // Re-assert cross-zone routing in case macOS reloaded its pf anchors
+    enable_zone_routing(bridges);
 }
 
 QStringList mp::QemuPlatformMacOS::vmstate_platform_args()
