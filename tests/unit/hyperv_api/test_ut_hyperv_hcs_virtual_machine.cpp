@@ -63,26 +63,26 @@ using partially_mocked_uut_t = PartiallyMockedHCSVM;
 
 struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
 {
-    mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mpt::TempDir dummy_instances_dir;
     const std::string dummy_vm_name{"lord-of-the-pings"};
     mpt::StubAvailabilityZone dummy_zone{};
 
-    mp::VirtualMachineDescription desc{2,
-                                       mp::MemorySize{"3M"},
-                                       mp::MemorySize{}, // not used
-                                       dummy_vm_name,
-                                       dummy_zone.get_name(),
-                                       "aa:bb:cc:dd:ee:ff",
-                                       {},
-                                       "",
-                                       {dummy_image.name().toStdString(), "", "", "", {}, {}},
-                                       dummy_cloud_init_iso.name(),
-                                       {},
-                                       {},
-                                       {},
-                                       {}};
+    mp::VirtualMachineDescription desc{
+        2,
+        mp::MemorySize{"3M"},
+        mp::MemorySize{}, // not used
+        dummy_vm_name,
+        dummy_zone.get_name(),
+        "aa:bb:cc:dd:ee:ff",
+        {},
+        "",
+        {dummy_instances_dir.filePath("base.vhdx").toStdString(), "", "", "", {}, {}},
+        dummy_cloud_init_iso.name(),
+        {},
+        {},
+        {},
+        {}};
 
     mpt::StubSSHKeyProvider stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
@@ -103,6 +103,11 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     hcs_handle_t mock_handle{mock_handle_raw, [](void*) {}};
     void* compute_system_callback_context{nullptr};
     void (*compute_system_callback)(HCS_EVENT* hcs_event, void* context){nullptr};
+
+    void SetUp() override
+    {
+        std::ofstream{desc.image.image_path} << "stub";
+    }
 
     void default_open_success()
     {
@@ -161,16 +166,14 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                 },
                 Return(hcs_op_result_t{0, L""})));
 
-        EXPECT_CALL(mock_virtdisk,
-                    list_virtual_disk_chain(Eq(dummy_image.name().toStdString()), _, _))
+        EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(desc.image.image_path), _, _))
             .WillRepeatedly(
                 DoAll([this](const std::filesystem::path& vhdx_path,
                              std::vector<std::filesystem::path>& chain,
                              std::optional<std::size_t> max_depth) { chain.push_back(vhdx_path); },
                       Return(hcs_op_result_t{0, L""})));
 
-        EXPECT_CALL(mock_hcs,
-                    grant_vm_access(Eq(dummy_vm_name), Eq(dummy_image.name().toStdString())))
+        EXPECT_CALL(mock_hcs, grant_vm_access(Eq(dummy_vm_name), Eq(desc.image.image_path)))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
         EXPECT_CALL(
