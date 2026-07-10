@@ -76,6 +76,14 @@ protected:
     void apply_impl() override;
 
 private:
+    /**
+     * When the snapshot just erased was the last one, fold the now-direct head disk back
+     * into the base (via collapse_head_into_base) so the VM runs on a standalone disk
+     * again. Best-effort: a collapse failure is logged, not propagated, since the erase
+     * itself has already succeeded.
+     */
+    void collapse_head_after_last_erase();
+
     [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
     [[nodiscard]] std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
     [[nodiscard]] std::filesystem::path make_head_disk_path() const;
