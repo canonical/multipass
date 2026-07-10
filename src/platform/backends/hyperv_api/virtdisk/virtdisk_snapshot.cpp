@@ -339,8 +339,7 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
             result.push_back(std::move(path));
     }
 
-    // Head inspection is best-effort; snapshot file inspection is required.
-    if (auto head_path = make_head_disk_path(); is_direct_child_of(head_path, parent_disk, false))
+    if (auto head_path = make_head_disk_path(); is_direct_child_of(head_path, parent_disk, true))
         result.push_back(std::move(head_path));
 
     return result;
