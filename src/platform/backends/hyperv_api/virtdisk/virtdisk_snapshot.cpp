@@ -319,7 +319,9 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
     {
         throw CreateVirtdiskSnapshotError{
             result,
-            "Could not create the head differencing disk for the snapshot"};
+            "Could not create child differencing disk `{}` from parent `{}`",
+            child,
+            parent};
     }
 
     mpl::debug(log_category, "Successfully created the child disk: `{}`", child);
