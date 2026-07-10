@@ -91,6 +91,47 @@ From then on, all instances started with `multipass launch` will use VirtualBox 
 
 `````
 
+## Switch back to the default driver
+
+> See also: {ref}`reference-command-line-interface-stop`, {ref}`reference-settings-local-driver`
+
+`````{tab-set}
+
+````{tab-item} Linux
+:sync: Linux
+
+On Linux, there is only one driver and changing it is not possible.
+
+````
+
+````{tab-item} macOS
+:sync: macOS
+
+If you want to switch back to the default driver, run:
+
+```{code-block} text
+multipass set local.driver=qemu
+```
+
+Instances created with VirtualBox don't get transferred, but you can always come back to them.
+
+````
+
+````{tab-item} Windows
+:sync: Windows
+
+If you want to switch back to the default driver:
+
+```{code-block} text
+multipass set local.driver=hyperv
+```
+
+Instances created with VirtualBox don't get transferred, but you can always come back to them.
+
+````
+
+`````
+
 ## Use the driver to view Multipass instances
 
 `````{tab-set}
@@ -326,55 +367,6 @@ All the services running inside the instance should now be available on your phy
 :sync: Windows
 
 This option only applies to macOS systems.
-
-````
-
-`````
-
-## Switch back to the default driver
-
-> See also: {ref}`reference-command-line-interface-stop`, {ref}`reference-settings-local-driver`
-
-`````{tab-set}
-
-````{tab-item} Linux
-:sync: Linux
-
-To switch back to the default `qemu` driver, first you need to stop all instances again:
-
-```{code-block} text
-multipass stop --all
-multipass set local.driver=qemu
-```
-
-Here, too, existing instances will be migrated.
-
-
-````
-
-````{tab-item} macOS
-:sync: macOS
-
-If you want to switch back to the default driver, run:
-
-```{code-block} text
-multipass set local.driver=qemu
-```
-
-Instances created with VirtualBox don't get transferred, but you can always come back to them.
-
-````
-
-````{tab-item} Windows
-:sync: Windows
-
-If you want to switch back to the default driver:
-
-```{code-block} text
-multipass set local.driver=hyperv
-```
-
-Instances created with VirtualBox don't get transferred, but you can always come back to them.
 
 ````
 
