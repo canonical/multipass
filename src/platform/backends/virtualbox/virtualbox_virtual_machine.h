@@ -53,9 +53,6 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
     State current_state() override;
-    int ssh_port() override;
-    std::string ssh_hostname() override;
-    std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
     std::vector<IPAddress> get_all_ipv4() override;
     void handle_state_update() override;
@@ -73,6 +70,10 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
     void resize_disk_impl(const MemorySize& new_size) override;
+
+    uint32_t ssh_port() override;
+    std::string ssh_hostname() override;
+    std::string ssh_username() override;
 
 private:
     VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,

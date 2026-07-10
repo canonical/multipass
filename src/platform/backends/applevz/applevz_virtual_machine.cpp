@@ -255,7 +255,7 @@ VirtualMachine::State AppleVZVirtualMachine::current_state()
     return state;
 }
 
-int AppleVZVirtualMachine::ssh_port()
+uint32_t AppleVZVirtualMachine::ssh_port()
 {
     return 22;
 }

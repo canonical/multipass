@@ -52,6 +52,7 @@ public:
                        const Path& instance_dir);
     ~BaseVirtualMachine();
 
+    SSHCoordinates ssh_coordinates() override;
     std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;

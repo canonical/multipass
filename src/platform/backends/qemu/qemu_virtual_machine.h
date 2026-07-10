@@ -55,9 +55,6 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
     State current_state() override;
-    int ssh_port() override;
-    std::string ssh_hostname() override;
-    std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void handle_state_update() override;
@@ -94,6 +91,10 @@ protected:
 
     bool unplugged() override;
     void refresh_start() override;
+
+    uint32_t ssh_port() override;
+    std::string ssh_hostname() override;
+    std::string ssh_username() override;
 
 private:
     void on_started();
