@@ -20,8 +20,8 @@
 #include <shared/base_snapshot.h>
 
 #include <filesystem>
-#include <map>
 #include <string_view>
+#include <vector>
 
 namespace multipass::hyperv::virtdisk
 {
@@ -76,8 +76,6 @@ protected:
     void apply_impl() override;
 
 private:
-    using SnapshotsMap = std::map<std::filesystem::path, std::shared_ptr<const Snapshot>>;
-
     [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
     [[nodiscard]] std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
     [[nodiscard]] std::filesystem::path make_head_disk_path() const;
@@ -91,9 +89,15 @@ private:
     void create_new_child_disk(const std::filesystem::path& parent,
                                const std::filesystem::path& child) const;
 
-    SnapshotsMap get_children() const;
-
-    bool is_head_attached_to_this() const;
+    /**
+     * All differencing disks that sit *directly* on @p parent_disk: the snapshot files
+     * whose immediate parent is @p parent_disk, plus the live head disk if it is attached
+     * there. This snapshot's own file is never included.
+     *
+     * @param [in] parent_disk Disk whose direct children to enumerate.
+     */
+    [[nodiscard]] std::vector<std::filesystem::path> get_disk_children(
+        const std::filesystem::path& parent_disk) const;
 
     /**
      * Path to the base disk, i.e. the ancestor of all differencing disks.

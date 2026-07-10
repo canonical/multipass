@@ -184,8 +184,14 @@ TEST_F(VirtDiskSnapshotErase, single_child_forward_merge)
 
     expect_gone(s1);
     expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0), base()});
-    // If this fails, the TODO in erase_impl (grandchild reparenting) is needed.
     expect_chain(head(), {head(), snapshot_path(*s2), snapshot_path(*s0), base()});
+
+    // erase_impl rebuilt s2 in place (a fresh VHDX identity) and reparented its child --
+    // the head -- onto it. Merging the head opens it *together with its rebuilt parent*,
+    // which only succeeds because the reparent refreshed the head's stored parent
+    // identity; without it the parent-linkage check would reject the now-stale head.
+    EXPECT_TRUE(VirtDisk().merge_virtual_disk_into_parent(head()))
+        << "the grandchild head must validate against its rebuilt parent after reparenting";
 }
 
 // ---------------------------------------------------------------------------
