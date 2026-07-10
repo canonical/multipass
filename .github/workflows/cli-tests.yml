@@ -67,8 +67,9 @@ jobs:
 
             if (SNAP_CHANNEL !== '<undefined>') {
               for (const runner of [
-                'ubuntu-latest',
-                'self-hosted-linux-arm64-noble-edge']) {
+                'ubuntu-latest'
+                // 'self-hosted-linux-arm64-noble-edge'
+                ]) {
                 matrix.include.push({
                   os: runner,
                   label: `Snap (${runner})`,
