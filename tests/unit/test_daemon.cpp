@@ -1144,7 +1144,7 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                          MinSpaceRespectedSuite,
                          Combine(Values("test_create", "launch"),
                                  Values("--memory", "--disk"),
-                                 Values("1024m", "2Gb", "987654321")));
+                                 Values("1024m", "2Gb", "1073741824")));
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          MinSpaceViolatedSuite,
                          Combine(Values("test_create", "launch"),
