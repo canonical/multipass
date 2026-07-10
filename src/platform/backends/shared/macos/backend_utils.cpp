@@ -31,6 +31,12 @@ namespace
 {
 constexpr auto category = "backend-utils";
 
+void set_ip_forward()
+{
+    if (!MP_UTILS.run_cmd_for_status("sysctl", {"-w", "net.inet.ip.forwarding=1"}))
+        mpl::warn(category, "Failed to enable IP forwarding");
+}
+
 QString simplify_mac_address(const QString& input_mac_address)
 {
     // Trim the (first) leading 0 of each segment of the a MAC address.
