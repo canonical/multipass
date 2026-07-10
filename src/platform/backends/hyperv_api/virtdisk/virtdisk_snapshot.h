@@ -52,21 +52,14 @@ public:
     }
 
     /**
-     * Fold a lingering differencing "head" disk back into its base disk and remove
-     * it, so the VM runs on a standalone base again.
+     * Merge a direct `base <- head` chain into the base and remove the head.
      *
-     * A no-op unless a head disk exists and is a *direct* child of the base (which
-     * holds exactly when no snapshots remain). This restores the pre-snapshot disk
-     * layout after the last snapshot is deleted and, in particular, re-enables disk
-     * resize (a base disk cannot be resized while a differencing child sits on it).
+     * No-op when the head is missing or is not a direct child of the base.
      *
-     * Safe without copying the base: MergeVirtualDisk only reads the head and writes
-     * into the base, and the head is removed only *after* a fully successful merge, so
-     * a failed or interrupted merge leaves the `base <- head` chain intact and readable
-     * (the head still overrides every block). Throws on merge failure; callers that
-     * treat the collapse as an optimization should catch and continue.
+     * The head is removed only after a successful merge, so a failed merge leaves the
+     * chain readable. Throws on merge failure.
      *
-     * @param [in] base_vhdx_path Path to the base disk of the differencing chain.
+     * @param [in] base_vhdx_path Path to the base disk.
      */
     static void collapse_head_into_base(const std::filesystem::path& base_vhdx_path);
 
@@ -77,10 +70,7 @@ protected:
 
 private:
     /**
-     * When the snapshot just erased was the last one, fold the now-direct head disk back
-     * into the base (via collapse_head_into_base) so the VM runs on a standalone disk
-     * again. Best-effort: a collapse failure is logged, not propagated, since the erase
-     * itself has already succeeded.
+     * After deleting the last snapshot, best-effort collapse `base <- head` into `base`.
      */
     void collapse_head_after_last_erase();
 
@@ -89,20 +79,18 @@ private:
     [[nodiscard]] std::filesystem::path make_head_disk_path() const;
 
     /**
-     * Create a new differencing child disk from the parent
+     * Create a new differencing child disk.
      *
-     * @param [in] parent Parent of the new differencing child disk. Must already exist.
-     * @param [in] child Where to create the child disk. Must be non-existent.
+     * @param [in] parent Existing parent disk.
+     * @param [in] child New child disk path.
      */
     void create_new_child_disk(const std::filesystem::path& parent,
                                const std::filesystem::path& child) const;
 
     /**
-     * All differencing disks that sit *directly* on @p parent_disk: the snapshot files
-     * whose immediate parent is @p parent_disk, plus the live head disk if it is attached
-     * there. This snapshot's own file is never included.
+     * Return this snapshot's direct disk children, excluding this snapshot's own file.
      *
-     * @param [in] parent_disk Disk whose direct children to enumerate.
+     * Includes snapshot files and the live head when they sit directly on @p parent_disk.
      */
     [[nodiscard]] std::vector<std::filesystem::path> get_disk_children(
         const std::filesystem::path& parent_disk) const;
@@ -113,7 +101,7 @@ private:
     const std::filesystem::path base_vhdx_path{};
 
     /**
-     * The owning VM
+     * Owning VM.
      */
     const VirtualMachine& vm;
 };
