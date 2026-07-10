@@ -340,10 +340,23 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
     const std::filesystem::path& parent_disk) const
 {
-    const auto is_child_of_parent = [&](const std::filesystem::path& disk) {
+    const auto is_child_of_parent = [&](const std::filesystem::path& disk, bool required) {
+        if (!MP_FILEOPS.exists(disk))
+            return false;
+
         std::vector<std::filesystem::path> chain;
-        return MP_FILEOPS.exists(disk) && VirtDisk().list_virtual_disk_chain(disk, chain, 2) &&
-               chain.size() >= 2 &&
+        if (const auto r = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !r)
+        {
+            if (required)
+                throw CreateVirtdiskSnapshotError{r,
+                                                  "Could not inspect virtual disk chain for `{}`",
+                                                  disk};
+
+            mpl::warn(log_category, "Could not inspect optional disk chain for `{}`: {}", disk, r);
+            return false;
+        }
+
+        return chain.size() >= 2 &&
                MP_FILEOPS.weakly_canonical(chain[1]) == MP_FILEOPS.weakly_canonical(parent_disk);
     };
 
@@ -355,13 +368,13 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
          }))
     {
         auto path = make_snapshot_path(*elem);
-        if (is_child_of_parent(path))
+        if (is_child_of_parent(path, true))
             result.push_back(std::move(path));
     }
 
     // The live head disk, if it sits directly on parent_disk. A missing or unreadable
     // head is simply treated as "not a child" rather than an error.
-    if (auto head_path = make_head_disk_path(); is_child_of_parent(head_path))
+    if (auto head_path = make_head_disk_path(); is_child_of_parent(head_path, false))
         result.push_back(std::move(head_path));
 
     return result;

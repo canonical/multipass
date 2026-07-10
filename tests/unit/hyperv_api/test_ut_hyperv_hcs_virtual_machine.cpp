@@ -17,6 +17,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/mount_handler.h>
@@ -33,6 +34,8 @@
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/temp_file.h"
+
+#include <fstream>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -657,6 +660,34 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
             },
             Return(hcs_op_result_t{0, L""})));
     uut->start();
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk_fails_if_snapshot_head_remains)
+{
+    default_create_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll([](const hcs_handle_t&,
+                     hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
+                  Return(hcs_op_result_t{0, L""})));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    const auto head_path = std::filesystem::path{desc.image.image_path}.parent_path() /
+                           mhv::virtdisk::VirtDiskSnapshot::head_disk_name();
+    std::ofstream{head_path} << "stub";
+
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(head_path), _, _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"forced failure"}));
+    EXPECT_CALL(mock_virtdisk, resize_virtual_disk(_, _)).Times(0);
+
+    mp::UserMessages messages{};
+    EXPECT_THROW(uut->resize_disk(multipass::MemorySize::from_bytes(123456), messages),
+                 mhv::ResizeDiskException);
 }
 
 // ---------------------------------------------------------

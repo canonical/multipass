@@ -679,7 +679,26 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                   "A snapshot head disk `{}` is still layered on the base even though no "
                   "snapshots remain; collapsing it into the base before resizing.",
                   *head_avhdx);
-        virtdisk::VirtDiskSnapshot::collapse_head_into_base(description.image.image_path);
+        try
+        {
+            virtdisk::VirtDiskSnapshot::collapse_head_into_base(description.image.image_path);
+        }
+        catch (const std::exception& e)
+        {
+            throw ResizeDiskException{
+                "Cannot resize the primary disk because the snapshot head disk `{}` could not be "
+                "collapsed into the base: {}",
+                *head_avhdx,
+                e.what()};
+        }
+
+        if (const auto remaining_head = get_snapshot_head_disk_path())
+        {
+            throw ResizeDiskException{
+                "Cannot resize the primary disk because snapshot head disk `{}` still exists after "
+                "collapse. Delete or repair the head disk before resizing.",
+                *remaining_head};
+        }
     }
 
     if (const auto result = VirtDisk().resize_virtual_disk(description.image.image_path,
