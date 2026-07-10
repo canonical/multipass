@@ -95,5 +95,16 @@ void main() {
         expect(nonLinearInverseMapping(i) % sectorSize, 0);
       }
     });
+
+    test('does not throw for values below the sector size', () {
+      for (final value in [0, 100, 511]) {
+        expect(() => nonLinearMapping(value), returnsNormally);
+      }
+    });
+
+    test('maps sub-sector values to the minimum slider position', () {
+      expect(nonLinearMapping(0), 0);
+      expect(nonLinearMapping(511), 0);
+    });
   });
 }

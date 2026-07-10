@@ -145,6 +145,14 @@ void main() {
       expect(indicator.value, 2.0);
       expect(indicator.color, MemoryUsage.almostFullColor);
     });
+
+    testWidgets('does not crash when values are non-integer strings',
+        (tester) async {
+      await tester.pumpWidget(buildWidget('1.5', '1024'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('MemoryUsage label formatting via widget', () {
