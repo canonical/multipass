@@ -41,9 +41,7 @@ struct CreateVirtdiskSnapshotError : FormattedExceptionBase<std::system_error>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
-// Best-effort rename for use inside noexcept rollback guards: MP_FILEOPS.rename has
-// no error_code overload, so a failure during cleanup is caught and logged rather
-// than allowed to escape (and mask) the original error.
+// Best-effort rename for noexcept rollback guards.
 static void try_rename(const std::filesystem::path& from, const std::filesystem::path& to) noexcept
 {
     try
@@ -62,8 +60,7 @@ static void try_rename(const std::filesystem::path& from, const std::filesystem:
 
 namespace
 {
-// Append a sidecar suffix to a disk path (e.g. `2.avhdx` -> `2.avhdx.new`), keeping the
-// backup/scratch companions of a disk next to it and easy to spot.
+// Keep backup/scratch files beside their disk.
 std::filesystem::path with_suffix(std::filesystem::path p, const char* suffix)
 {
     p += suffix;
@@ -94,25 +91,12 @@ bool is_direct_child_of(const std::filesystem::path& disk,
 }
 
 /**
- * Transactional rebuild of a snapshot's direct children when that snapshot is erased.
+ * Rebuild a deleted snapshot's direct children transactionally.
  *
- * Deleting snapshot S means every disk sitting directly on S must absorb S's contents so
- * it stops depending on S. Each such child is rebuilt in place from a copy of S; that
- * gives the rebuilt file a *new* VHDX identity, so S's grandchildren (which recorded the
- * child's *old* identity) are then relinked onto their rebuilt parent.
+ * Each child is rebuilt from the deleted snapshot. Rebuilt disks get new VHDX
+ * identities, so grandchildren must be reparented to the rebuilt files.
  *
- * The steps are staged so that any failure restores the exact pre-erase state:
- *   begin()    - move S aside as the pristine merge source ("<S>.tmp").
- *   stage()    - Pass 1: merge each child into a fresh copy of S, staged as "<child>.new";
- *                no original file is touched yet.
- *   commit()   - Pass 2: preserve each original as "<child>.old", then swap the staged
- *                result into place.
- *   reparent() - refresh each grandchild's stored parent identity onto its rebuilt child.
- *   finalize() - success: drop the "<child>.old" and "<S>.tmp" backups.
- *   rollback() - failure: restore originals and S, undoing any reparenting; never throws.
- *
- * begin() performs a filesystem side effect and must run *before* the caller arms a scope
- * guard around rollback(); the remaining steps run under that guard.
+ * Rollback restores the original files and parent links.
  */
 class ChildRebuild
 {
@@ -128,21 +112,20 @@ public:
         staged.reserve(this->children.size());
     }
 
-    // Move self aside as the pristine merge source. Must precede arming the rollback.
+    // Move self aside before arming rollback.
     void begin()
     {
         MP_FILEOPS.rename(self_path, self_backup);
     }
 
-    // Pass 1: merge each child into a fresh copy of self, staged as "<child>.new". No
-    // original files are modified, so this leaves nothing to undo beyond the staged copies.
+    // Merge each child into a fresh copy of self, staged as "<child>.new".
     void stage()
     {
         for (const auto& child_path : children)
         {
             auto staged_path = with_suffix(child_path, ".new");
 
-            MP_FILEOPS.copy(self_backup, self_path, {}); // fresh parent for this merge
+            MP_FILEOPS.copy(self_backup, self_path, {});
 
             if (auto merge_r = VirtDisk().merge_virtual_disk_into_parent(child_path); !merge_r)
                 throw CreateVirtdiskSnapshotError{merge_r,
@@ -150,28 +133,22 @@ public:
                                                   child_path,
                                                   self_path};
 
-            MP_FILEOPS.rename(self_path, staged_path); // stash merged result
+            MP_FILEOPS.rename(self_path, staged_path);
             staged.emplace_back(child_path, staged_path);
         }
     }
 
-    // Pass 2: commit. Preserve each original as "<child>.old", then swap the merged result
-    // in. Keeping the originals until the end lets rollback() restore them if a later swap
-    // (or the reparent pass) fails.
+    // Swap staged children into place, keeping originals for rollback.
     void commit()
     {
         for (const auto& [child_path, staged_path] : staged)
         {
-            MP_FILEOPS.rename(child_path, with_suffix(child_path, ".old")); // preserve original
-            MP_FILEOPS.rename(staged_path, child_path);                     // put merged in place
+            MP_FILEOPS.rename(child_path, with_suffix(child_path, ".old"));
+            MP_FILEOPS.rename(staged_path, child_path);
         }
     }
 
-    // Refresh every grandchild's recorded parent identity to match its rebuilt child, whose
-    // file identity changed in commit(). SetVirtualDiskInformation (via reparent_virtual_disk)
-    // rewrites the grandchild's stored parent GUID/timestamp, which is what a differencing
-    // disk validates against its parent when the chain is opened. A failure throws so the
-    // caller's guard rolls the whole erase back rather than orphaning a grandchild.
+    // Refresh grandchildren after their rebuilt parents get new VHDX identities.
     void reparent()
     {
         for (const auto& [grandchild, child_path] : grandchildren)
@@ -185,8 +162,7 @@ public:
         }
     }
 
-    // Success: drop the preserved originals and the self backup. Best-effort; nothing
-    // references them anymore.
+    // Drop unreferenced backups.
     void finalize() noexcept
     {
         std::error_code ec{};
@@ -195,27 +171,24 @@ public:
         MP_FILEOPS.remove(self_backup, ec);
     }
 
-    // Restore the exact pre-erase state. Existence-driven so it is correct no matter how far
-    // stage()/commit() got, and noexcept so it never masks the original error.
+    // Restore the pre-erase state without masking the original error.
     void rollback() noexcept
     {
         std::error_code ec{};
         for (const auto& [child_path, staged_path] : staged)
         {
             const auto backup_path = with_suffix(child_path, ".old");
-            if (MP_FILEOPS.exists(backup_path, ec)) // commit() had started for this child
+            if (MP_FILEOPS.exists(backup_path, ec))
             {
-                MP_FILEOPS.remove(child_path, ec);   // drop merged/partial content
-                try_rename(backup_path, child_path); // restore the original
+                MP_FILEOPS.remove(child_path, ec);
+                try_rename(backup_path, child_path);
             }
-            MP_FILEOPS.remove(staged_path, ec); // drop the staged .new if still present
+            MP_FILEOPS.remove(staged_path, ec);
         }
-        MP_FILEOPS.remove(self_path, ec);   // drop leftover merge scratch
-        try_rename(self_backup, self_path); // restore pristine self
+        MP_FILEOPS.remove(self_path, ec);
+        try_rename(self_backup, self_path);
 
-        // The original children are back at their paths with their original identity;
-        // re-link any grandchild we had already reparented so its stored parent identity
-        // matches again. Best-effort: a failure here is logged, not thrown.
+        // Restore already-updated parent links.
         for (const auto& [grandchild, child_path] : reparented)
             if (const auto r = VirtDisk().reparent_virtual_disk(grandchild, child_path); !r)
                 mpl::error(log_category,
@@ -229,14 +202,10 @@ private:
     std::filesystem::path self_backup;
     std::vector<std::filesystem::path> children;
 
-    // {grandchild, rebuilt-parent} pairs to relink after the children are rebuilt.
     std::vector<std::pair<std::filesystem::path, std::filesystem::path>> grandchildren;
 
-    // {child, staged("<child>.new")} for every child stage() has processed.
     std::vector<std::pair<std::filesystem::path, std::filesystem::path>> staged;
 
-    // Grandchildren already reparented; rollback() must relink them onto the restored
-    // originals (which carry the original identity again).
     std::vector<std::pair<std::filesystem::path, std::filesystem::path>> reparented;
 };
 } // namespace
@@ -288,11 +257,10 @@ void VirtDiskSnapshot::capture_impl()
     const bool head_preexisted = MP_FILEOPS.exists(head_path);
     bool head_became_snapshot = false;
 
-    // Undo partial work on failure so a failed capture leaves no trace. Fires on
-    // exception, dismissed on success; never throws so the original error wins.
+    // Leave no partial files after a failed capture.
     auto rollback = sg::make_scope_guard([&]() noexcept {
         std::error_code ec{};
-        if (head_became_snapshot) // the live head was renamed away; put it back
+        if (head_became_snapshot)
         {
             MP_FILEOPS.remove(head_path, ec);
             try
@@ -304,7 +272,7 @@ void VirtDiskSnapshot::capture_impl()
                 mpl::error(log_category, "capture_impl() rollback failed: {}", e.what());
             }
         }
-        else if (!head_preexisted) // nothing pre-existed; drop whatever we made
+        else if (!head_preexisted)
         {
             MP_FILEOPS.remove(head_path, ec);
             MP_FILEOPS.remove(snapshot_path, ec);
@@ -323,7 +291,6 @@ void VirtDiskSnapshot::capture_impl()
         create_new_child_disk(target, snapshot_path);
     }
 
-    // Create a new head from the snapshot
     create_new_child_disk(snapshot_path, head_path);
 
     rollback.dismiss();
@@ -333,14 +300,12 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
                                              const std::filesystem::path& child) const
 {
     mpl::debug(log_category, "create_new_child_disk() -> parent: {}, child: {}", parent, child);
-    // The parent must already exist.
     if (!MP_FILEOPS.exists(parent))
         throw CreateVirtdiskSnapshotError{
             std::make_error_code(std::errc::no_such_file_or_directory),
             "Parent disk `{}` does not exist",
             parent};
 
-    // The given child path must not exist
     if (MP_FILEOPS.exists(child))
         throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
                                           "Child disk `{}` already exists",
@@ -365,7 +330,6 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
 {
     std::vector<std::filesystem::path> result;
 
-    // Snapshot files (all snapshots except this one) sitting directly on parent_disk.
     for (const auto& elem : vm.view_snapshots([this_index = get_index()](const Snapshot& ss) {
              return ss.get_index() != this_index;
          }))
@@ -375,8 +339,7 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
             result.push_back(std::move(path));
     }
 
-    // The live head disk, if it sits directly on parent_disk. A missing or unreadable
-    // head is simply treated as "not a child" rather than an error.
+    // Head inspection is best-effort; snapshot file inspection is required.
     if (auto head_path = make_head_disk_path(); is_direct_child_of(head_path, parent_disk, false))
         result.push_back(std::move(head_path));
 
@@ -387,44 +350,29 @@ void VirtDiskSnapshot::erase_impl()
 {
     const auto self_path = make_snapshot_path(*this);
 
-    // Every differencing disk that sits directly on this snapshot: its snapshot children
-    // plus the live head, if the head is attached here. Each must absorb this snapshot's
-    // contents (via merge) so it stops depending on the snapshot we are deleting.
     auto children = get_disk_children(self_path);
 
-    // This snapshot's grandchildren, each paired with the child it sits on. Rebuilding a
-    // child in place gives its file a *new* VHDX identity, leaving every grandchild
-    // recording its parent's *old* identity; the rebuild relinks them so the differencing
-    // chain still validates when a grandchild is later opened with its parents (e.g. boot).
     std::vector<std::pair<std::filesystem::path, std::filesystem::path>> grandchildren;
     for (const auto& child_path : children)
         for (auto& grandchild : get_disk_children(child_path))
             grandchildren.emplace_back(std::move(grandchild), child_path);
 
-    // Rebuild the direct children off a copy of self and relink the grandchildren onto
-    // them, all transactionally: any failure restores the exact pre-erase state.
     ChildRebuild rebuild{self_path, std::move(children), std::move(grandchildren)};
-    rebuild.begin(); // move self aside as the merge source; must precede the guard
+    rebuild.begin();
 
     auto rollback = sg::make_scope_guard([&]() noexcept { rebuild.rollback(); });
-    rebuild.stage();    // Pass 1: merge each child into a fresh copy of self (staged)
-    rebuild.commit();   // Pass 2: swap each rebuilt child into place
-    rebuild.reparent(); // refresh every grandchild's stored parent identity
+    rebuild.stage();
+    rebuild.commit();
+    rebuild.reparent();
     rollback.dismiss();
-    rebuild.finalize(); // drop the now-unreferenced backups
+    rebuild.finalize();
 
     collapse_head_after_last_erase();
 }
 
 void VirtDiskSnapshot::collapse_head_after_last_erase()
 {
-    // If this was the last remaining snapshot, the head is now a plain differencing
-    // disk sitting directly on the base. Collapse it back into the base so the VM
-    // runs on a standalone disk again (restoring the pre-snapshot layout and, in
-    // particular, re-enabling disk resize). Self is still counted here, so being the
-    // last one means exactly one snapshot remains. Best-effort: the snapshot has
-    // already been erased above, so a collapse failure must not fail the erase; it
-    // just leaves the valid `base <- head` layout in place.
+    // Self is still counted here, so the last snapshot means exactly one remains.
     if (vm.get_num_snapshots() != 1)
         return;
 
@@ -444,13 +392,10 @@ void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base
 {
     const auto head_path = base_vhdx_path.parent_path() / head_disk_name();
 
-    // Nothing to do if there is no differencing head (the VM already runs on base).
     if (!MP_FILEOPS.exists(head_path))
         return;
 
-    // Only collapse when the head is a *direct* child of the base. This holds exactly
-    // when no snapshots remain; guarding on it means we never merge the head into the
-    // wrong parent (e.g. a snapshot that other snapshots still depend on).
+    // Never merge the head into a snapshot that other snapshots still depend on.
     if (!is_direct_child_of(head_path, base_vhdx_path, false))
     {
         mpl::warn(log_category,
@@ -460,24 +405,14 @@ void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base
         return;
     }
 
-    // Merge the head down into the base. MergeVirtualDisk only *reads* the head and
-    // *writes* into the base; it never touches the head file. That is what makes this
-    // safe without copying the (potentially huge) base: if the merge fails partway,
-    // the base may be partially written, but the head still holds every one of its
-    // blocks and still overrides the base, so the `base <- head` chain keeps reading
-    // correctly. We therefore only retire the head *after* a fully successful merge; on
-    // failure (or a crash mid-merge) the VM simply keeps running on `base <- head` and
-    // a later collapse/resize retries. This mirrors how Hyper-V merges checkpoints.
+    // Keep the head until merge succeeds so `base <- head` remains readable on failure.
     if (const auto r = VirtDisk().merge_virtual_disk_into_parent(head_path); !r)
         throw CreateVirtdiskSnapshotError{r,
                                           "Could not merge head `{}` into base `{}`",
                                           head_path,
                                           base_vhdx_path};
 
-    // The base now holds the merged-in live state. Retire the now-redundant head so
-    // get_primary_disk_path() resolves to the standalone base. If this remove fails the
-    // layout is still correct (`base <- head` reads identically to the merged base), so
-    // it is only logged; a later collapse/resize will retry the removal.
+    // Removal failure is safe; a later collapse or resize will retry it.
     std::error_code ec{};
     MP_FILEOPS.remove(head_path, ec);
     if (ec)
@@ -493,21 +428,14 @@ void VirtDiskSnapshot::apply_impl()
     const auto head_path = make_head_disk_path();
     const auto snapshot_path = make_snapshot_path(*this);
 
-    // Applying a snapshot discards the current head state. Build the replacement
-    // head from the snapshot beside the live one first, so that if creation fails
-    // the existing head stays intact (the VM remains bootable) instead of being
-    // left with no head and silently falling back to the base disk. The temporary
-    // name keeps the ".avhdx" extension because the VirtDisk API selects its
-    // storage provider from the file extension.
+    // Build the replacement beside the live head so creation failure keeps the VM bootable.
     auto new_head_path = head_path;
     new_head_path.replace_extension(".new.avhdx"); // "head.avhdx" -> "head.new.avhdx"
 
     std::error_code ec{};
-    MP_FILEOPS.remove(new_head_path, ec); // clear any leftover from a prior failed apply
-    create_new_child_disk(snapshot_path, new_head_path); // throws here => old head untouched
+    MP_FILEOPS.remove(new_head_path, ec);
+    create_new_child_disk(snapshot_path, new_head_path);
 
-    // Swap the freshly built head in for the old one. rename() replaces the
-    // destination atomically, so there is never a moment with no head.
     MP_FILEOPS.rename(new_head_path, head_path);
     mpl::debug(log_category, "apply_impl() -> new head from {} -> {}", snapshot_path, head_path);
 }
