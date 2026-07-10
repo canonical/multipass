@@ -88,11 +88,14 @@ struct VirtDiskSnapshotErase : public ::testing::Test
         return ss;
     }
 
-    // Remove from model and erase on disk.
+    // Remove from model and erase on disk. Erase first, then drop from the model, to
+    // match BaseVirtualMachine::delete_snapshot (which removes the snapshot only after
+    // erase() returns). This keeps get_num_snapshots() counting self during erase, so
+    // the "last snapshot" head-collapse triggers exactly as it does in production.
     void drop(Snap& ss)
     {
-        std::erase(snapshots, ss);
         ss->erase();
+        std::erase(snapshots, ss);
     }
 
     Path base() const
@@ -130,6 +133,21 @@ struct VirtDiskSnapshotErase : public ::testing::Test
     void expect_gone(const Snap& ss)
     {
         expect_gone(snapshot_path(*ss));
+    }
+
+    // After the last snapshot is deleted, the head must be collapsed back into the
+    // base: no head disk remains, no collapse sidecar files linger, and the base is a
+    // standalone (parentless) disk again.
+    void expect_collapsed_to_base()
+    {
+        EXPECT_FALSE(std::filesystem::exists(head())) << "head must be collapsed into base";
+        auto head_old = head();
+        head_old += ".old";
+        EXPECT_FALSE(std::filesystem::exists(head_old)) << "leftover head.old: " << head_old;
+        auto base_bak = base();
+        base_bak += ".bak";
+        EXPECT_FALSE(std::filesystem::exists(base_bak)) << "leftover base.bak: " << base_bak;
+        expect_chain(base(), {base()});
     }
 };
 
@@ -172,8 +190,9 @@ TEST_F(VirtDiskSnapshotErase, single_child_forward_merge)
 
 // ---------------------------------------------------------------------------
 // 3. Only snapshot, head attached (last snapshot deleted)
-// Head is the only child. parent_path = base.
-// base <- s0 <- head, erase s0
+// Head is the only child. Deleting the last snapshot collapses the head back into
+// the base, leaving a standalone base disk.
+// base <- s0 <- head, erase s0  =>  base (standalone)
 // ---------------------------------------------------------------------------
 TEST_F(VirtDiskSnapshotErase, only_snapshot_head_attached)
 {
@@ -182,7 +201,7 @@ TEST_F(VirtDiskSnapshotErase, only_snapshot_head_attached)
     drop(s0);
 
     expect_gone(s0);
-    expect_chain(head(), {head(), base()});
+    expect_collapsed_to_base();
 }
 
 // ---------------------------------------------------------------------------
@@ -375,7 +394,39 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     expect_chain(head(), {head(), snapshot_path(*s0), base()});
 
     drop(s0);
-    expect_chain(head(), {head(), base()});
+    expect_collapsed_to_base();
+}
+
+// ---------------------------------------------------------------------------
+// 6. Snapshotting again after a collapse rebuilds a fresh chain
+// Deleting the last snapshot collapses head into base; taking a new snapshot must
+// build base <- s1 <- head from the standalone base again.
+// ---------------------------------------------------------------------------
+TEST_F(VirtDiskSnapshotErase, snapshot_after_collapse_rebuilds_chain)
+{
+    auto s0 = take("s0");
+    drop(s0);
+    expect_collapsed_to_base();
+
+    auto s1 = take("s1");
+    expect_chain(head(), {head(), snapshot_path(*s1), base()});
+    expect_chain(snapshot_path(*s1), {snapshot_path(*s1), base()});
+}
+
+// ---------------------------------------------------------------------------
+// 7. Collapsed base is directly resizable
+// The whole point of eager collapse: once the last snapshot is gone and the head has
+// been folded back into the base, the base is a standalone disk that can be resized
+// again (resizing a differencing chain is not possible).
+// ---------------------------------------------------------------------------
+TEST_F(VirtDiskSnapshotErase, collapsed_base_is_resizable)
+{
+    auto s0 = take("s0");
+    drop(s0);
+    expect_collapsed_to_base();
+
+    EXPECT_TRUE(VirtDisk().resize_virtual_disk(base(), vhdx_size * 2))
+        << "collapsed base disk must be resizable";
 }
 
 } // namespace multipass::test
