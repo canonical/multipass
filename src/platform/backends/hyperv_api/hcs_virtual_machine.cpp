@@ -277,8 +277,8 @@ std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 std::optional<std::filesystem::path> HCSVirtualMachine::get_snapshot_head_disk_path() const
 {
     const std::filesystem::path base_vhdx = description.image.image_path;
-    std::filesystem::path head_avhdx =
-        base_vhdx.parent_path() / virtdisk::VirtDiskSnapshot::head_disk_name();
+    std::filesystem::path head_avhdx = base_vhdx.parent_path() /
+                                       virtdisk::VirtDiskSnapshot::head_disk_name();
     if (MP_FILEOPS.exists(head_avhdx))
         return head_avhdx;
     return std::nullopt;
@@ -367,8 +367,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 {
     // Always reset the handle and create a new one.
     hcs_system.reset();
-    auto attach_callback_handler =
-        sg::make_scope_guard([this]() noexcept { set_compute_system_callback_handler(); });
+    auto attach_callback_handler = sg::make_scope_guard(
+        [this]() noexcept { set_compute_system_callback_handler(); });
 
     if (const auto result = HCS().open_compute_system(get_name(), hcs_system))
     {
@@ -399,12 +399,12 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                           .read_only = true}},
         .network_adapters =
             [&] {
-                const auto view =
-                    endpoints |
-                    std::views::transform([](const auto& endpoint) -> hcs::HcsNetworkAdapter {
-                        return {.endpoint_guid = endpoint.endpoint_guid,
-                                .mac_address = endpoint.mac_address.value()};
-                    });
+                const auto view = endpoints |
+                                  std::views::transform(
+                                      [](const auto& endpoint) -> hcs::HcsNetworkAdapter {
+                                          return {.endpoint_guid = endpoint.endpoint_guid,
+                                                  .mac_address = endpoint.mac_address.value()};
+                                      });
                 return std::vector(std::ranges::begin(view), std::ranges::end(view));
             }(),
         .guest_state = {.guest_state_file_path = get_guest_state_file_path(),
@@ -413,8 +413,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                                                   ? std::optional(get_saved_state_file_path())
                                                   : std::nullopt}};
 
-    if (const auto create_result =
-            HCS().create_compute_system(create_compute_system_params, hcs_system);
+    if (const auto create_result = HCS().create_compute_system(create_compute_system_params,
+                                                               hcs_system);
         !create_result)
     {
         throw CreateComputeSystemException{"create_compute_system failed with {}",
@@ -682,8 +682,8 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
         virtdisk::VirtDiskSnapshot::collapse_head_into_base(description.image.image_path);
     }
 
-    if (const auto result =
-            VirtDisk().resize_virtual_disk(description.image.image_path, new_size.in_bytes());
+    if (const auto result = VirtDisk().resize_virtual_disk(description.image.image_path,
+                                                           new_size.in_bytes());
         !result)
     {
         throw ResizeDiskException{"Disk resize failed, details: {}", result};
