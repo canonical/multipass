@@ -302,6 +302,22 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_merge_fails)
     EXPECT_FALSE(fs::exists(head_old()));
 }
 
+// If the live head exists but its chain cannot be inspected, erasing its possible
+// parent must fail rather than orphaning the VM's active differencing disk.
+TEST_F(VirtDiskSnapshotErase, throws_when_head_chain_cannot_be_inspected)
+{
+    auto ss = take_captured();
+
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(head(), _, _)).WillOnce(Return(op_fail()));
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).Times(0);
+
+    EXPECT_THROW(ss->erase(), std::exception);
+
+    EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must not be erased";
+    EXPECT_TRUE(fs::exists(head())) << "the unreadable head must remain";
+    EXPECT_FALSE(fs::exists(self_tmp()));
+}
+
 // The happy path: the head is merged forward and committed. Self is gone and no
 // sidecar files (.tmp / .new / .old) are left behind.
 TEST_F(VirtDiskSnapshotErase, commits_and_cleans_up)
