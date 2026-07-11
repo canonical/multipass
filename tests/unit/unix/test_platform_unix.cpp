@@ -420,7 +420,7 @@ TEST_F(TestPlatformUnix, getMaximumFileNameLengthReturnsFallsBackOnNegativePcNam
 {
     REPLACE(pathconf, [](auto, auto) { return -1; });
 
-    constexpr auto fallback_max_file_name_length = 
+    constexpr auto fallback_max_file_name_length =
 #ifdef NAME_MAX
         NAME_MAX
 #else
