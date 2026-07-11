@@ -88,7 +88,12 @@ struct SFTPClient : public testing::Test
 
     mp::SFTPClient make_sftp_client()
     {
-        return {std::make_unique<mp::PlainSSHSession>("b", 43, "ubuntu", key_provider)};
+        mp::SSHCoordinates coord;
+        coord.set_username("ubuntu");
+        coord.set_priv_key_base64(key_provider.private_key_as_base64());
+        coord.set_port(42);
+        coord.set_tcp_host("b");
+        return {std::make_unique<mp::PlainSSHSession>(coord)};
     }
 
 // this is a macro since REPLACE only applies to the current scope and cannot be moved out.
