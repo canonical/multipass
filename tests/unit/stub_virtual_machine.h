@@ -68,7 +68,7 @@ struct StubVirtualMachine final : public VirtualMachine
         return State::off;
     }
 
-    int ssh_port() override
+    uint32_t ssh_port() override
     {
         return 42;
     }
@@ -81,6 +81,16 @@ struct StubVirtualMachine final : public VirtualMachine
     std::string ssh_username() override
     {
         return "ubuntu";
+    }
+
+    SSHCoordinates ssh_coordinates() override
+    {
+        SSHCoordinates coord;
+        coord.set_port(ssh_port());
+        coord.set_username(ssh_username());
+        coord.set_tcp_host(ssh_hostname());
+
+        return coord;
     }
 
     std::optional<IPAddress> management_ipv4() override

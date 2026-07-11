@@ -179,7 +179,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return state;
     }
 
-    int ssh_port() override
+    uint32_t ssh_port() override
     {
         return 42;
     }

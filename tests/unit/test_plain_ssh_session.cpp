@@ -33,7 +33,12 @@ struct TestPlainSSHSession : public Test
 {
     mp::PlainSSHSession make_ssh_session()
     {
-        return mp::PlainSSHSession("theanswertoeverything", 42, "ubuntu", key_provider);
+        mp::SSHCoordinates coord;
+        coord.set_username("ubuntu");
+        coord.set_priv_key_base64(key_provider.private_key_as_base64());
+        coord.set_port(42);
+        coord.set_tcp_host("theanswertoeverything");
+        return mp::PlainSSHSession(coord);
     }
 
     mp::test::StubSSHKeyProvider key_provider;

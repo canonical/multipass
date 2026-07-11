@@ -36,7 +36,18 @@ struct SSHProcess : public Test
 {
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
+    mp::PlainSSHSession session{CreateSession(key_provider)};
+
+private:
+    static mp::PlainSSHSession CreateSession(const mpt::StubSSHKeyProvider& provider)
+    {
+        mp::SSHCoordinates coord;
+        coord.set_username("ubuntu");
+        coord.set_priv_key_base64(provider.private_key_as_base64());
+        coord.set_port(42);
+        coord.set_tcp_host("a");
+        return mp::PlainSSHSession{coord};
+    }
 };
 } // namespace
 

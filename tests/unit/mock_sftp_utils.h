@@ -56,10 +56,7 @@ struct MockSFTPUtils : public SFTPUtils
                 (override));
     MOCK_METHOD(std::unique_ptr<SFTPClient>,
                 make_SFTPClient,
-                (const std::string& host,
-                 int port,
-                 const std::string& username,
-                 const std::string& priv_key_blob),
+                (const SSHCoordinates& coordinates),
                 (override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockSFTPUtils, SFTPUtils);
