@@ -19,6 +19,8 @@
 
 #include "ssh_session.h"
 
+#include <multipass/rpc/multipass.pb.h>
+
 #include <libssh/sftp.h>
 
 #include <filesystem>
@@ -47,10 +49,7 @@ public:
     Q_DECLARE_FLAGS(Flags, Flag)
 
     SFTPClient() = default;
-    SFTPClient(const std::string& host,
-               int port,
-               const std::string& username,
-               const std::string& priv_key_blob);
+    SFTPClient(const SSHCoordinates& coordinates);
     SFTPClient(SSHSessionUPtr ssh_session);
 
     virtual bool is_remote_dir(const fs::path& path);
