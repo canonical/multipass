@@ -33,6 +33,15 @@ public:
         EXPECT_CALL(*this, set_server_socket_restrictions)
             .Times(testing::AnyNumber())
             .WillRepeatedly(testing::Return());
+        // get_cpus() gained a mock override (see #5061). Default it to an effectively
+        // unlimited host so tests that don't care about the CPU ceiling are unaffected
+        // and host-independent; tests exercising the ceiling override this with EXPECT_CALL.
+        // The value must exceed the largest cpu count any existing test sets (some reuse a
+        // generic numeric value of 134217728 across all numeric properties).
+        // NOTE: get_cpus() is also called by the daemon_info RPC (daemon.cpp); no test
+        // currently exercises DaemonInfoRequest, but any future one will see this default
+        // rather than a real count -- override it there with EXPECT_CALL if it matters.
+        ON_CALL(*this, get_cpus()).WillByDefault(testing::Return(2'000'000'000));
     };
 
     MOCK_METHOD((std::map < std::string, NetworkInterfaceInfo) >,
@@ -60,6 +69,7 @@ public:
                 (const std::string&, const bool),
                 (const, override));
     MOCK_METHOD(QString, multipass_storage_location, (), (const, override));
+    MOCK_METHOD(int, get_cpus, (), (const, override));
     MOCK_METHOD(SettingSpec::Set, extra_daemon_settings, (), (const, override));
     MOCK_METHOD(SettingSpec::Set, extra_client_settings, (), (const, override));
     MOCK_METHOD(QString, daemon_config_home, (), (const, override));

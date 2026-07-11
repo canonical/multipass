@@ -20,6 +20,7 @@
 #include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/platform.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
@@ -131,14 +132,29 @@ void update_cpus(const QString& key,
                  mp::VMSpecs& spec)
 {
     bool converted_ok = false;
-    if (auto cpus = val.toInt(&converted_ok); !converted_ok || cpus < std::stoi(mp::min_cpu_cores))
+    const auto cpus = val.toInt(&converted_ok);
+    if (!converted_ok || cpus < std::stoi(mp::min_cpu_cores))
         throw mp::InvalidSettingException{
             key,
             val,
             QString("Need a positive integer (in decimal format) of minimum %1")
                 .arg(mp::min_cpu_cores)};
-    else if (cpus != spec.num_cores) // NOOP if equal
+
+    if (cpus != spec.num_cores) // NOOP if equal
     {
+        // Reject more vCPUs than the host has -- an over-provisioned count wedges the
+        // instance (see #5061). Mirrors the launch-time check in daemon.cpp. Only an
+        // actual change is validated: re-setting the current value stays a no-op even
+        // if it already exceeds the host (e.g. the spec was moved to a smaller host),
+        // and a `host_cpus > 0` guard skips the check when get_cpus() can't probe (-1).
+        if (const auto host_cpus = MP_PLATFORM.get_cpus(); host_cpus > 0 && cpus > host_cpus)
+            throw mp::InvalidSettingException{
+                key,
+                val,
+                QString("Number of CPUs (%1) must not exceed the %2 available on the host")
+                    .arg(cpus)
+                    .arg(host_cpus)};
+
         instance.update_cpus(cpus);
         spec.num_cores = cpus;
     }

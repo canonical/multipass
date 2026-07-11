@@ -589,6 +589,13 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                 error_details =
                     fmt::format("Invalid memory size value supplied: {}.", request.mem_size());
             }
+            else if (error == LaunchError::INVALID_NUM_CORES)
+            {
+                error_details = fmt::format(
+                    "Invalid number of CPUs requested: {}. It must not exceed the number "
+                    "available on the host.",
+                    request.num_cores());
+            }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
                 error_details =

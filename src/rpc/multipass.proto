@@ -88,6 +88,7 @@ message LaunchError {
         INVALID_NETWORK = 4;
         INVALID_ZONE = 5;
         ZONE_UNAVAILABLE = 6;
+        INVALID_NUM_CORES = 7;
     }
     repeated ErrorCodes error_codes = 1;
 }

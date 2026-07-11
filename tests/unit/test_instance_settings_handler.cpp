@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_platform.h"
 #include "mock_virtual_machine.h"
 
 #include <multipass/constants.h>
@@ -144,6 +145,13 @@ struct TestInstanceSettingsHandler : public Test
     inline static constexpr std::array numeric_properties{"cpus", "disk", "memory"};
     inline static constexpr std::array boolean_properties{"bridged"};
     inline static constexpr std::array properties{"cpus", "disk", "memory", "bridged"};
+
+    // Setting `cpus` now rejects counts above the host's (see #5061); update_cpus reads
+    // MP_PLATFORM.get_cpus(). Inject the platform mock so those reads are deterministic.
+    // Its ctor defaults get_cpus() to an effectively unlimited host, so the existing
+    // cpu-setting tests are unaffected; the ceiling test below overrides it.
+    mpt::MockPlatform::GuardedMock mock_platform_injection{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform& mock_platform = *mock_platform_injection.first;
 };
 
 QString make_key(const QString& instance_name, const QString& property)
@@ -404,6 +412,49 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceCPUsUntouchedIfSameButSu
                                        QString::number(same_cpus),
                                        messages));
     EXPECT_EQ(actual_cpus, same_cpus);
+}
+
+TEST_F(TestInstanceSettingsHandler, setRefusesMoreCPUsThanAvailableOnHost)
+{
+    constexpr auto target_instance_name = "qwer";
+    constexpr auto host_cpus = 4;
+    constexpr auto too_many_cpus = 8;
+    constexpr auto original_cpus = 2;
+    specs[target_instance_name].num_cores = original_cpus;
+
+    // Over-provisioning vCPUs wedges the instance (see #5061); mirror the launch-time
+    // ceiling in daemon.cpp. The VM must never be resized when the request is rejected.
+    EXPECT_CALL(mock_platform, get_cpus()).WillRepeatedly(Return(host_cpus));
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
+
+    [[maybe_unused]] mp::UserMessages messages{};
+    MP_EXPECT_THROW_THAT(make_handler().set(make_key(target_instance_name, "cpus"),
+                                            QString::number(too_many_cpus),
+                                            messages),
+                         mp::InvalidSettingException,
+                         mpt::match_what(AllOf(HasSubstr("CPUs"), HasSubstr("host"))));
+    EXPECT_EQ(specs[target_instance_name].num_cores, original_cpus); // spec left untouched
+}
+
+TEST_F(TestInstanceSettingsHandler, setToCurrentCPUsSucceedsEvenIfAboveHost)
+{
+    // Regression (see #5061 review): the host ceiling gates only an ACTUAL change.
+    // Re-setting the current value is a no-op and must not start throwing just because
+    // the stored count already exceeds the host (e.g. the spec outlived a move to a
+    // smaller host). Host reports fewer cores than the instance currently has.
+    constexpr auto target_instance_name = "zxcv";
+    constexpr auto host_cpus = 4;
+    constexpr auto current_cpus = 8; // already above the host
+    const auto& actual_cpus = specs[target_instance_name].num_cores = current_cpus;
+
+    EXPECT_CALL(mock_platform, get_cpus()).WillRepeatedly(Return(host_cpus));
+    EXPECT_CALL(mock_vm(target_instance_name), update_cpus).Times(0);
+
+    [[maybe_unused]] mp::UserMessages messages{};
+    EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, "cpus"),
+                                       QString::number(current_cpus),
+                                       messages));
+    EXPECT_EQ(actual_cpus, current_cpus);
 }
 
 TEST_F(TestInstanceSettingsHandler, setAllowsDecreaseInstanceCPUs)

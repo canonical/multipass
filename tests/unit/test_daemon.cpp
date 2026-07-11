@@ -1376,6 +1376,48 @@ TEST_F(Daemon, refusesLaunchWithInvalidNetworkInterface)
     EXPECT_THAT(err_stream.str(), HasSubstr("Invalid network options."));
 }
 
+TEST_F(Daemon, refusesLaunchWithMoreCPUsThanAvailableOnHost)
+{
+    mp::Daemon daemon{config_builder.build()};
+
+    // Pretend the host has only 4 logical CPUs. A request for more must be refused up
+    // front: an over-provisioned CPU count launches a VM that never gets an IP and wedges
+    // the daemon until `delete --purge` (see #5061). Memory and disk are already bounded
+    // against the host; CPUs were the one launch resource with no such ceiling.
+    EXPECT_CALL(mock_platform, get_cpus()).WillRepeatedly(Return(4));
+
+    std::stringstream err_stream;
+    send_command({"launch", "--cpus", "8"}, trash_stream, err_stream);
+    EXPECT_THAT(err_stream.str(), HasSubstr("Invalid number of CPUs"));
+}
+
+TEST_F(Daemon, launchesWithExactlyHostCPUCount)
+{
+    [[maybe_unused]] auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    // The ceiling is `> host`, not `>= host`: a VM may still claim every core.
+    EXPECT_CALL(mock_platform, get_cpus()).WillRepeatedly(Return(4));
+
+    std::stringstream err_stream;
+    send_command({"launch", "--cpus", "4"}, trash_stream, err_stream);
+    EXPECT_THAT(err_stream.str(), Not(HasSubstr("Invalid number of CPUs")));
+}
+
+TEST_F(Daemon, launchAcceptsCPUsWhenHostCountUnavailable)
+{
+    [[maybe_unused]] auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    // get_cpus() returns -1 when the host core count can't be probed. The ceiling must
+    // skip that case rather than reject every positive request (see #5061 review).
+    EXPECT_CALL(mock_platform, get_cpus()).WillRepeatedly(Return(-1));
+
+    std::stringstream err_stream;
+    send_command({"launch", "--cpus", "8"}, trash_stream, err_stream);
+    EXPECT_THAT(err_stream.str(), Not(HasSubstr("Invalid number of CPUs")));
+}
+
 TEST_F(Daemon, refusesLaunchBecauseBridgingIsNotImplemented)
 {
     // Use the stub factory, which throws when networks() is called.

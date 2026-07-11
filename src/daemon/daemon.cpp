@@ -468,6 +468,19 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         }
     }
 
+    // CPUs are the one launch resource with no host-side upper bound: unlike memory and
+    // disk (checked above / when reserving space), an over-provisioned core count is
+    // accepted and then wedges the instance at boot -- it times out, leaving the daemon
+    // reporting "IP not available" until the user runs `delete --purge`. Reject a request
+    // for more vCPUs than the host reports up front instead. See issue #5061.
+    // (A stricter "leave one core for the host" policy would be `>= host_cpus`; `>` is
+    // used here so a VM may still use every core.) The `host_cpus > 0` guard skips the
+    // check when the host core count can't be determined (get_cpus() returns -1), so a
+    // failed probe never rejects an otherwise valid request.
+    if (const auto num_cores = request->num_cores(), host_cpus = MP_PLATFORM.get_cpus();
+        num_cores > 0 && host_cpus > 0 && num_cores > host_cpus)
+        option_errors.add_error_codes(mp::LaunchError::INVALID_NUM_CORES);
+
     if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
