@@ -2427,8 +2427,21 @@ try
 
                 if (!all || !purge) // if we're not purging the instance, we need to delete
                                     // specified snapshots
+                {
+                    if (!pick.empty())
+                    {
+                        using St = VirtualMachine::State;
+                        if (auto state = vm_it->second->current_state();
+                            state != St::off && state != St::stopped)
+                            throw VMStateInvalidException{fmt::format(
+                                "Multipass can only delete snapshots of stopped instances. "
+                                "Please stop {} before deleting its snapshot(s).",
+                                instance_name)};
+                    }
+
                     for (const auto& snapshot_name : pick)
                         vm_it->second->delete_snapshot(snapshot_name);
+                }
 
                 if (all) // we're asked to delete the VM
                     instances_dirty |= delete_vm(vm_it, purge, response);
