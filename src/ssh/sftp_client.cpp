@@ -17,7 +17,6 @@
 
 #include <multipass/ssh/sftp_client.h>
 
-#include "ssh_client_key_provider.h"
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -50,14 +49,8 @@ SFTPSessionUPtr make_sftp_session(ssh_session session)
     return sftp;
 }
 
-SFTPClient::SFTPClient(const std::string& host,
-                       int port,
-                       const std::string& username,
-                       const std::string& priv_key_blob)
-    : SFTPClient{std::make_unique<PlainSSHSession>(host,
-                                                   port,
-                                                   username,
-                                                   SSHClientKeyProvider(priv_key_blob))}
+SFTPClient::SFTPClient(const SSHCoordinates& coordinates)
+    : SFTPClient{std::make_unique<PlainSSHSession>(coordinates)}
 {
 }
 

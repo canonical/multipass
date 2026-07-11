@@ -99,6 +99,12 @@ int main(int argc, char* argv[])
     const mp::id_mappings gid_mappings = convert_id_mappings(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
+    mp::SSHCoordinates coordinates;
+    coordinates.set_username(username);
+    coordinates.set_priv_key_base64(priv_key_blob);
+    coordinates.set_port(port);
+    coordinates.set_tcp_host(host);
+
     auto logger = mpp::make_logger(log_level);
     if (!logger)
         logger = std::make_unique<mpl::StandardLogger>(log_level);
@@ -114,15 +120,11 @@ int main(int argc, char* argv[])
         auto watchdog = mpp::make_quit_watchdog(
             std::chrono::milliseconds{500}); // called while there is only one thread
 
-        mp::SshfsMount sshfs_mount(
-            std::make_unique<mp::PlainSSHSession>(host,
-                                                  port,
-                                                  username,
-                                                  mp::SSHClientKeyProvider{priv_key_blob}),
-            source_path,
-            target_path,
-            gid_mappings,
-            uid_mappings);
+        mp::SshfsMount sshfs_mount(std::make_unique<mp::PlainSSHSession>(coordinates),
+                                   source_path,
+                                   target_path,
+                                   gid_mappings,
+                                   uid_mappings);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
         auto sig = watchdog([&sshfs_mount] { return sshfs_mount.alive(); });

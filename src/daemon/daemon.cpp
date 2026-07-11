@@ -3412,12 +3412,8 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
                         name),
             ""};
 
-    mp::SSHInfo ssh_info;
-    ssh_info.set_host(vm.ssh_hostname());
-    ssh_info.set_port(vm.ssh_port());
-    ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
-    ssh_info.set_username(vm.ssh_username());
-    (*response.mutable_ssh_info())[name] = ssh_info;
+    mp::SSHCoordinates ssh_coordinates{vm.ssh_coordinates()};
+    (*response.mutable_ssh_coordinates())[name] = ssh_coordinates;
 
     return grpc::Status::OK;
 }
