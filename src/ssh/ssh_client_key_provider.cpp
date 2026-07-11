@@ -27,7 +27,7 @@ namespace
 {
 mp::SSHClientKeyProvider::KeyUPtr import_priv_key(const std::string& priv_key_blob)
 {
-    ssh_key priv_key;
+    ssh_key priv_key{nullptr};
     MP_LIBSSH.ssh_pki_import_privkey_base64(priv_key_blob.c_str(),
                                             nullptr,
                                             nullptr,
