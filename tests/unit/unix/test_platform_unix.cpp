@@ -420,11 +420,13 @@ TEST_F(TestPlatformUnix, getMaximumFileNameLengthReturnsFallsBackOnNegativePcNam
 {
     REPLACE(pathconf, [](auto, auto) { return -1; });
 
-    EXPECT_EQ(MP_PLATFORM.get_maximum_file_name_length("/"),
+    constexpr auto fallback_max_file_name_length = 
 #ifdef NAME_MAX
-              NAME_MAX
+        NAME_MAX
 #else
-              255u
+        255u
 #endif
-    );
+    ;
+
+    EXPECT_EQ(MP_PLATFORM.get_maximum_file_name_length("/"), fallback_max_file_name_length);
 }
