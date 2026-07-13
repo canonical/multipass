@@ -52,8 +52,8 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/utils/grpc_utils.h>
 #include <multipass/utils.h>
+#include <multipass/utils/grpc_utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -3203,13 +3203,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          prepare_future_watcher->deleteLater();
                      });
 
-    auto make_vm_description = [this,
-                                server,
-                                request,
-                                name,
-                                abbreviated_name,
-                                zone_name,
-                                checked_args]() mutable -> mp::VirtualMachineDescription {
+    auto make_vm_description =
+        [this, server, request, name, abbreviated_name, zone_name, checked_args]() mutable
+        -> mp::VirtualMachineDescription {
         try
         {
             CreateReply reply;

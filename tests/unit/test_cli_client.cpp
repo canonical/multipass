@@ -1299,12 +1299,13 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
 TEST_F(Client, launchCmdTooLongInstanceNameFails)
 {
     const auto some_long_string = QString("some_long_string").repeated(20).toStdString();
-    const auto request_matcher =
-        Property(&mp::LaunchRequest::instance_name, StrEq(some_long_string));
+    const auto request_matcher = Property(&mp::LaunchRequest::instance_name,
+                                          StrEq(some_long_string));
     mp::LaunchError launch_error;
     launch_error.add_error_codes(mp::LaunchError::INSTANCE_NAME_TOO_LONG);
-    const auto failure =
-        grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
+    const auto failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                                      "msg",
+                                      launch_error.SerializeAsString()};
     EXPECT_CALL(mock_daemon, launch)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher,

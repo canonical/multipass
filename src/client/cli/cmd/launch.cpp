@@ -219,10 +219,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "memory",
         QString::fromUtf8(default_memory_size)); // In MB's
 
-    const auto valid_name_desc =
-        QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
-                "letter, must end with an alphanumeric character, and must not exceed the "
-                "filesystem's maximum file name length."};
+    const auto valid_name_desc = QString{
+        "Valid names must consist of letters, numbers, or hyphens, must start with a "
+        "letter, must end with an alphanumeric character, and must not exceed the "
+        "filesystem's maximum file name length."};
     const auto name_option_desc =
         petenv_name.isEmpty()
             ? QString{"Name for the instance.\n%1"}.arg(valid_name_desc)
