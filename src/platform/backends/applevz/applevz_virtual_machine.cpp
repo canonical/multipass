@@ -265,11 +265,6 @@ std::string AppleVZVirtualMachine::ssh_hostname()
     return require_management_ipv4().as_string();
 }
 
-std::string AppleVZVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
-}
-
 std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 {
     if (!management_ip)

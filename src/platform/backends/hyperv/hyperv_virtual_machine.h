@@ -78,7 +78,7 @@ protected:
 
     uint32_t ssh_port() override;
     std::string ssh_hostname() override;
-    std::string ssh_username() override;
+
 private:
     HyperVVirtualMachine(const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,

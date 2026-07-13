@@ -114,8 +114,10 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                                                         get_arguments(data)};
     }
 
-    auto process_spec =
-        std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc,
+                                                                platform_args,
+                                                                mount_args,
+                                                                resume_data);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::debug(desc.vm_name, "process working dir '{}'", process->working_directory());
@@ -144,8 +146,8 @@ std::string get_qemu_machine_type(const QStringList& platform_args)
         return "";
     }
 
-    auto process_spec =
-        std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName(), platform_args);
+    auto process_spec = std::make_unique<mp::QemuVmStateProcessSpec>(dump_file.fileName(),
+                                                                     platform_args);
     auto process = mp::platform::make_process(std::move(process_spec));
     auto process_state = process->execute();
 
@@ -356,8 +358,9 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mpl::debug(vm_name, "No process to kill");
         }
 
-        const auto has_suspend_snapshot =
-            mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag);
+        const auto has_suspend_snapshot = mp::backend::instance_image_has_snapshot(
+            desc.image.image_path,
+            suspend_tag);
         if (has_suspend_snapshot != (state == State::suspended)) // clang-format off
             mpl::warn(vm_name, "Image has {} suspension snapshot, but the state is {}",
                                                                has_suspend_snapshot ? "a" : "no",
@@ -490,11 +493,6 @@ void mp::QemuVirtualMachine::on_restart()
 std::string mp::QemuVirtualMachine::ssh_hostname()
 {
     return require_management_ipv4().as_string();
-}
-
-std::string mp::QemuVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
 }
 
 std::optional<mp::IPAddress> mp::QemuVirtualMachine::management_ipv4()
@@ -746,8 +744,8 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
 
 void mp::QemuVirtualMachine::remove_snapshots_from_backend() const
 {
-    const QStringList snapshot_tag_list =
-        extract_snapshot_tags(backend::snapshot_list_output(desc.image.image_path));
+    const QStringList snapshot_tag_list = extract_snapshot_tags(
+        backend::snapshot_list_output(desc.image.image_path));
 
     for (const auto& snapshot_tag : snapshot_tag_list)
     {

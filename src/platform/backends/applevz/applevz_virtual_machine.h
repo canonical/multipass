@@ -64,7 +64,7 @@ protected:
 
     uint32_t ssh_port() override;
     std::string ssh_hostname() override;
-    std::string ssh_username() override;
+
 private:
     void initialize_vm_handle();
     void set_state(applevz::AppleVMState vm_state);

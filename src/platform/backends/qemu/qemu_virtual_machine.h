@@ -94,7 +94,6 @@ protected:
 
     uint32_t ssh_port() override;
     std::string ssh_hostname() override;
-    std::string ssh_username() override;
 
 private:
     void on_started();

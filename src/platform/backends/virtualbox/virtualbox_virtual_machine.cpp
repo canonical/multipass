@@ -501,11 +501,6 @@ std::string mp::VirtualBoxVirtualMachine::ssh_hostname()
     return "127.0.0.1";
 }
 
-std::string mp::VirtualBoxVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
-}
-
 std::optional<mp::IPAddress> mp::VirtualBoxVirtualMachine::management_ipv4()
 {
     return std::nullopt;
