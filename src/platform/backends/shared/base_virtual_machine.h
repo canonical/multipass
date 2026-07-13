@@ -107,6 +107,7 @@ protected:
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
 
+    std::string ssh_username() const override;
     virtual void drop_ssh_session(); // virtual to allow mocking
 
     // TODO@rewiressh make SSHSession mockable instead and use it in tests

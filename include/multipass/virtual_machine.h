@@ -140,7 +140,7 @@ public:
 protected:
     virtual uint32_t ssh_port() = 0;
     virtual std::string ssh_hostname() = 0;
-    virtual std::string ssh_username() = 0;
+    virtual std::string ssh_username() const = 0;
 
     explicit VirtualMachine(State state = State::off) : state{state}
     {

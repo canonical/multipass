@@ -78,7 +78,7 @@ struct StubVirtualMachine final : public VirtualMachine
         return "localhost";
     }
 
-    std::string ssh_username() override
+    std::string ssh_username() const override
     {
         return "ubuntu";
     }

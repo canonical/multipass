@@ -452,11 +452,6 @@ std::string mp::HyperVVirtualMachine::ssh_hostname()
     return name.toStdString() + ".mshome.net";
 }
 
-std::string mp::HyperVVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
-}
-
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
     // Not using cached SSH session for this because a) the underlying functions do not
