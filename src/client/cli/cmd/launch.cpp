@@ -607,7 +607,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                 error_details =
                     "Invalid network options. "
                     "To troubleshoot, see "
-                    "https://documentation.ubuntu.com/multipass/stable/how-to-guides/troubleshoot/";
+                    "https://canonical.com/multipass/docs/stable/how-to-guides/troubleshoot/";
             }
             else if (error == LaunchError::INVALID_ZONE)
             {
