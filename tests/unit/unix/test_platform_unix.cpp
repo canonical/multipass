@@ -426,7 +426,7 @@ TEST_F(TestPlatformUnix, getMaximumFileNameLengthReturnsFallsBackOnNegativePcNam
 #else
         255u
 #endif
-    ;
+        ;
 
     EXPECT_EQ(MP_PLATFORM.get_maximum_file_name_length("/"), fallback_max_file_name_length);
 }
