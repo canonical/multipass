@@ -37,8 +37,8 @@ multipass recover keen-yak
 If you try `multipass list` again, you'll see that the instance is no longer marked for deletion:
 
 ```{code-block} text
-Name                    State             IPv4             Release
-keen-yak                STOPPED           --               Ubuntu 18.04 LTS
+Name                    State             IPv4             Image
+keen-yak                Stopped           --               Ubuntu 26.04 LTS
 ```
 
 ## Remove an instance permanently

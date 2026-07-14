@@ -10,15 +10,15 @@ Only instances in `Running` status can be suspended.
 For example:
 
 ```{code-block} text
-multipass stop boisterous-tortoise
+multipass start boisterous-tortoise
 multipass suspend boisterous-tortoise
 ```
 
-If check your instances with `multipass list`, you'll see that its status is now set to `Suspended`:
+If you check your instances with `multipass list`, you'll see that its status is now set to `Suspended`:
 
 ```{code-block} text
 Name                    State             IPv4             Image
-boisterous-tortoise     Suspended         --               Ubuntu 22.04 LTS
+boisterous-tortoise     Suspended         --               Ubuntu 26.04 LTS
 ```
 
 Suspended instances can be resumed with the [`multipass start`](/reference/command-line-interface/start) command.

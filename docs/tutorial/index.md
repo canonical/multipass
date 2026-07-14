@@ -57,7 +57,6 @@ Click on the Multipass icon and select **Open Shell**.
 
 Clicking this button does many things in the background:
 * It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: {ref}`primary-instance`
-
 * It installs the most recent Ubuntu LTS release on that instance.
 * It mounts your `$HOME` directory in the instance.
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
@@ -72,30 +71,26 @@ You can see elements of this in the printout below:
 
 ```{code-block} text
 Launched: primary
-Mounted '/home/<user>' into 'primary:Home'
-Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-57-generic x86_64)
+Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
 
- * Documentation:  https://help.ubuntu.com
+ * Documentation:  https://docs.ubuntu.com
  * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/advantage
+ * Support:        https://ubuntu.com/pro
 
-  System information as of Thu Jan 26 08:06:22 PST 2023
+ System information as of Tue Jun  9 15:54:32 UTC 2026
 
-  System load:  0.0               Processes:             95
-  Usage of /:   30.2% of 4.67GB   Users logged in:       0
-  Memory usage: 21%               IPv4 address for ens3: 10.110.66.242
+  System load:  0.4               Processes:             123
+  Usage of /:   67.7% of 3.70GB   Users logged in:       0
+  Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
   Swap usage:   0%
 
- * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
-   just raised the bar for easy, resilient and secure K8s cluster deployment.
 
-   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+Expanded Security Maintenance for Applications is not enabled.
 
 0 updates can be applied immediately.
 
-
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
 
 ubuntu@primary:~$
 ```
@@ -167,33 +162,34 @@ Click on the Multipass icon and select **Open Shell**.
 Clicking this button does many things in the background:
 
 * It creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU.
-* It installs the most recent Ubuntu LTS release on that instance. Last, it mounts your `$HOME` directory in the instance.
+* It installs the most recent Ubuntu LTS release on that instance.
+* It mounts your `$HOME` directory in the instance.
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
 You can see elements of this in the printout below:
 
 ```{code-block} text
 Launched: primary
-Mounted '/home/<user>' into 'primary:Home'
-Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-57-generic x86_64)
+Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
 
- * Documentation:  https://help.ubuntu.com
+ * Documentation:  https://docs.ubuntu.com
  * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/advantage
+ * Support:        https://ubuntu.com/pro
 
-  System information as of Thu Jan 26 21:15:05 UTC 2023
+ System information as of Tue Jun  9 15:54:32 UTC 2026
 
-  System load:  0.72314453125     Processes:             105
-  Usage of /:   29.8% of 4.67GB   Users logged in:       0
-  Memory usage: 20%               IPv4 address for ens3: 192.168.64.5
+  System load:  0.4               Processes:             123
+  Usage of /:   67.7% of 3.70GB   Users logged in:       0
+  Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
   Swap usage:   0%
 
 
+Expanded Security Maintenance for Applications is not enabled.
+
 0 updates can be applied immediately.
 
-
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
 
 ubuntu@primary:~$
 ```
@@ -259,41 +255,40 @@ Click on the Multipass icon and select **Open Shell**.
 ![|423x241](https://assets.ubuntu.com/v1/33a6bf4d-mp-windows-3.png)
 -->
 
-Clicking this button does many things in the background. First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU. Second, it installs the most recent Ubuntu LTS release on that instance. Third, it mounts your `$HOME` directory in the instance. Last, it opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
+Clicking this button does many things in the background:
+* First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU.
+* Then, it installs the most recent Ubuntu LTS release on that instance.
+* Last, it opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
 You can see elements of this in the printout below:
 
 ```{code-block} text
 Launched: primary
-Mounted '/home/<user>' into 'primary:Home'
-Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-57-generic x86_64)
+Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
 
- * Documentation:  https://help.ubuntu.com
+ * Documentation:  https://docs.ubuntu.com
  * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/advantage
+ * Support:        https://ubuntu.com/pro
 
-  System information as of Thu Jan 26 08:06:22 PST 2023
+ System information as of Tue Jun  9 15:54:32 UTC 2026
 
-  System load:  0.0               Processes:             95
-  Usage of /:   30.2% of 4.67GB   Users logged in:       0
-  Memory usage: 21%               IPv4 address for ens3: 10.110.66.242
+  System load:  0.4               Processes:             123
+  Usage of /:   67.7% of 3.70GB   Users logged in:       0
+  Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
   Swap usage:   0%
 
- * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
-   just raised the bar for easy, resilient and secure K8s cluster deployment.
 
-   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+Expanded Security Maintenance for Applications is not enabled.
 
 0 updates can be applied immediately.
 
-
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
 
 ubuntu@primary:~$
 ```
 
-Let’s test it out. As you've just learnt, the previous step automatically mounted your `$HOME` directory in the instance. Try out a few Linux commands to see what you’re working with.
+Try out a few Linux commands to see what you’re working with.
 
 ```{code-block} text
 ubuntu@primary:~$ free
@@ -308,7 +303,6 @@ tmpfs               462900       0     462900   0% /dev/shm
 tmpfs                 5120       0       5120   0% /run/lock
 /dev/sda15          106858    5329     101529   5% /boot/efi
 tmpfs                92580       4      92576   1% /run/user/1000
-:C:/Users/Scott 1048576000       0 1048576000   0% /home/ubuntu/Home
 ```
 
 ````
@@ -349,112 +343,146 @@ debian                      trixie               20260601         Debian Trixie
 fedora                                           20260422         Fedora 44
 ```
 
-Launch an instance running Ubuntu 22.10 ("Kinetic Kudu") by typing the `multipass launch kinetic` command.
-
 `````{tab-set}
 
 ````{tab-item} Linux
 :sync: Linux
 
-Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
+Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `multipass launch resolute` command:
 
 ```{code-block} text
-$ multipass launch kinetic
+$ multipass launch resolute
 Launched: coherent-trumpetfish
 ```
 
+Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
+
 You can check some basic info about your new instance by running the following command:
-
-`multipass exec coherent-trumpetfish -- lsb_release -a`
-
-This tells multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
 
 ```{code-block} text
 $ multipass exec coherent-trumpetfish -- lsb_release -a
 No LSB modules are available.
-Distributor ID:	Ubuntu
-Description:	Ubuntu 22.10
-Release:		22.10
-Codename:		kinetic
+Distributor ID:   Ubuntu
+Description:      Ubuntu 26.04 LTS
+Release:          26.04
+Codename:         resolute
 ```
 
-Perhaps after using this instance for a while, you decide that what you really need is the latest LTS version of Ubuntu, with a more informative name and a little more memory and disk. You can delete the "coherent-trumpetfish" instance by running the following command:
+This tells Multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
 
-`multipass delete coherent-trumpetfish`
-
-You can now launch the type of instance you need by running this command:
+Now, launch another instance, setting its name and specific memory, disk, and CPUs by running this command:
 
 `multipass launch lts --name ltsInstance --memory 2G --disk 10G --cpus 2`
+
+You can confirm that the new instance has the specs you need by running `multipass info ltsInstance`.
+
+```{code-block} text
+$ multipass info ltsInstance
+Name:           ltsInstance
+State:          Running
+IPv4:           10.110.66.139
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
+CPU(s):         2
+Load:           1.11 0.36 0.12
+Disk usage:     1.4GiB out of 9.5GiB
+Memory usage:   170.4MiB out of 1.9GiB
+Mounts:         --
+```
 
 ````
 
 ````{tab-item} macOS
 :sync: macOS
 
-Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "breezy-liger".
+Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `multipass launch resolute` command:
 
 ```{code-block} text
-$ multipass launch kinetic
-Launched: breezy-liger
+$ multipass launch resolute
+Launched: coherent-trumpetfish
 ```
+
+Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
 
 You can check some basic info about your new instance by running the following command:
 
-`multipass exec breezy-liger -- lsb_release -a`
-
-This tells Multipass to run the command `lsb_release -a` on the “breezy-liger” instance.
-
 ```{code-block} text
-$ multipass exec breezy-liger -- lsb_release -a
+$ multipass exec coherent-trumpetfish -- lsb_release -a
 No LSB modules are available.
-Distributor ID:	Ubuntu
-Description:	Ubuntu 22.10
-Release:		22.10
-Codename:		kinetic
+Distributor ID:   Ubuntu
+Description:      Ubuntu 26.04 LTS
+Release:          26.04
+Codename:         resolute
 ```
 
-Perhaps after using this instance for a while, you decide that what you really need is the latest LTS version of Ubuntu, with a more informative name and a little more memory and disk. You can delete the "breezy-liger" instance by running the following command:
+This tells Multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
 
-`multipass delete breezy-liger`
-
-You can now launch the type of instance you need by running this command:
+Now, launch another instance, setting its name and specific memory, disk, and CPUs by running this command:
 
 `multipass launch lts --name ltsInstance --memory 2G --disk 10G --cpus 2`
+
+You can confirm that the new instance has the specs you need by running `multipass info ltsInstance`.
+
+```{code-block} text
+$ multipass info ltsInstance
+Name:           ltsInstance
+State:          Running
+IPv4:           10.110.66.139
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
+CPU(s):         2
+Load:           1.11 0.36 0.12
+Disk usage:     1.4GiB out of 9.5GiB
+Memory usage:   170.4MiB out of 1.9GiB
+Mounts:         --
+```
 
 ````
 
 ````{tab-item} Windows
 :sync: Windows
 
-Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "decorous-skate".
+Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `multipass launch resolute` command:
 
 ```{code-block} text
-C:\WINDOWS\system32> multipass launch kinetic
-Launched: decorous-skate
+C:\WINDOWS\system32> multipass launch resolute
+Launched: coherent-trumpetfish
 ```
+
+Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
 
 You can check some basic info about your new instance by running the following command:
 
-`multipass exec decorous-skate -- lsb_release -a`
-
-This tells Multipass to run the command `lsb_release -a` on the “decorous-skate” instance.
-
 ```{code-block} text
-C:\WINDOWS\system32> multipass exec decorous-skate -- lsb_release -a
+C:\WINDOWS\system32> multipass exec coherent-trumpetfish -- lsb_release -a
 No LSB modules are available.
-Distributor ID:	Ubuntu
-Description:	Ubuntu 22.10
-Release:		22.10
-Codename:		kinetic
+Distributor ID:   Ubuntu
+Description:      Ubuntu 26.04 LTS
+Release:          26.04
+Codename:         resolute
 ```
 
-Perhaps after using this instance for a while, you decide that what you really need is the latest LTS version of Ubuntu, with a more informative name and a little more memory and disk. You can delete the "decorous-skate" instance by running the following command:
+This tells Multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
 
-`multipass delete decorous-skate`
-
-You can now launch the type of instance you need by running this command:
+Now, launch another instance, setting its name and specific memory, disk, and CPUs by running this command:
 
 `multipass launch lts --name ltsInstance --memory 2G --disk 10G --cpus 2`
+
+You can confirm that the new instance has the specs you need by running `multipass info ltsInstance`.
+
+```{code-block} text
+C:\WINDOWS\system32> multipass info ltsInstance
+Name:           ltsInstance
+State:          Running
+IPv4:           10.110.66.139
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
+CPU(s):         2
+Load:           1.11 0.36 0.12
+Disk usage:     1.4GiB out of 9.5GiB
+Memory usage:   170.4MiB out of 1.9GiB
+Mounts:         --
+```
 
 ````
 
@@ -462,35 +490,24 @@ You can now launch the type of instance you need by running this command:
 
 ## Manage instances
 
-You can confirm that the new instance has the specs you need by running `multipass info ltsInstance`.
+Perhaps after using the "coherent-trumpetfish" instance for a while, you decide to delete it by running the following command:
+
+`multipass delete coherent-trumpetfish`
+
 
 `````{tab-set}
 
 ````{tab-item} Linux
 :sync: Linux
 
-```{code-block} text
-$ multipass info ltsInstance
-Name:           ltsInstance
-State:          Running
-IPv4:           10.110.66.139
-Release:        Ubuntu 22.04.1 LTS
-Image hash:     3100a27357a0 (Ubuntu 22.04 LTS)
-CPU(s):         2
-Load:           1.11 0.36 0.12
-Disk usage:     1.4GiB out of 9.5GiB
-Memory usage:   170.4MiB out of 1.9GiB
-Mounts:         --
-```
-
-You've created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
+You have created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
 
 ```{code-block} text
 $ multipass list
 Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
 coherent-trumpetfish    Deleted           --               Not Available
-ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
@@ -498,8 +515,8 @@ The result shows that you have two instances running, the "primary" instance and
 ```{code-block} text
 $ multipass list
 Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
-ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
 ````
@@ -507,37 +524,23 @@ ltsInstance             Running           10.110.66.139    Ubuntu 22.04 LTS
 ````{tab-item} macOS
 :sync: macOS
 
-```{code-block} text
-$ multipass info ltsInstance
-Name:           ltsInstance
-State:          Running
-IPv4:           192.168.64.3
-Release:        Ubuntu 22.04.1 LTS
-Image hash:     3100a27357a0 (Ubuntu 22.04 LTS)
-CPU(s):         2
-Load:           1.55 0.44 0.15
-Disk usage:     1.4GiB out of 9.5GiB
-Memory usage:   155.5MiB out of 1.9GiB
-Mounts:         --
-```
-
-You've created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
+You have created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
 
 ```{code-block} text
 $ multipass list
 Name                    State             IPv4             Image
-primary                 Running           192.168.64.5     Ubuntu 22.04 LTS
-breezy-liger            Deleted           --               Not Available
-ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
+coherent-trumpetfish    Deleted           --               Not Available
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "breezy-liger" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover breezy-liger`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
 
 ```{code-block} text
 $ multipass list
 Name                    State             IPv4             Image
-primary                 Running           192.168.64.5     Ubuntu 22.04 LTS
-ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
 ````
@@ -545,37 +548,23 @@ ltsInstance             Running           192.168.64.3     Ubuntu 22.04 LTS
 ````{tab-item} Windows
 :sync: Windows
 
-```{code-block} text
-C:\WINDOWS\system32> multipass info ltsInstance
-Name:           ltsInstance
-State:          Running
-IPv4:           172.22.115.152
-Release:        Ubuntu 22.04.1 LTS
-Image hash:     3100a27357a0 (Ubuntu 22.04 LTS)
-CPU(s):         2
-Load:           1.11 0.36 0.12
-Disk usage:     1.4GiB out of 9.5GiB
-Memory usage:   170.4MiB out of 1.9GiB
-Mounts:         --
-```
-
-You've created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
+You have created and deleted quite a few instances. It is time to run `multipass list` to see the instances you currently have.
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass list
 Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
-decorous-skate          Deleted           --               Not Available
-ltsInstance             Running           172.22.115.152   Ubuntu 22.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
+coherent-trumpetfish    Deleted           --               Not Available
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "decorous-skate" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover decorous-skate`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass list
 Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 22.04 LTS
-ltsInstance             Running           172.22.115.152   Ubuntu 22.04 LTS
+primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
+ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
 ````
@@ -584,16 +573,9 @@ ltsInstance             Running           172.22.115.152   Ubuntu 22.04 LTS
 
 You've now seen a few ways to create, customise, and delete an instance. It is time to put those instances to work!
 
-## Put your instances to use
+## Put your instances to use: Run a simple web server
 
-Let's see some practical examples of what you can do with your Multipass instances:
-
-* {ref}`run-a-simple-web-server`
-
-(run-a-simple-web-server)=
-### Run a simple web server
-
-One way to put a Multipass instance to use is by running a local web server in it.
+Let's see a practical example of what you can do with your Multipass instances. One way to put a Multipass instance to use is by running a local web server in it.
 
 Return to your customised LTS instance. Take note of its IP address, which was revealed when you ran `multipass list`. Then run `multipass shell ltsInstance` to open a shell in the instance.
 
@@ -607,12 +589,9 @@ sudo apt install apache2
 
 Open a browser and type in the IP address of your instance into the address bar. You should now see the default Apache homepage.
 
-`````{tab-set}
+<!-- This used to be platform dependent but that does not make sense... -->
 
-````{tab-item} Linux
-:sync: Linux
-
-```{figure} /images/tutorial/mp-linux-4.png
+```{figure} /images/tutorial/mp-apache.png
    :width: 720px
    :alt: Default Apache homepage
 ```
@@ -621,37 +600,6 @@ Open a browser and type in the IP address of your instance into the address bar.
 ![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-linux-4.png)
 -->
 
-````
-
-````{tab-item} macOS
-:sync: macOS
-
-```{figure} /images/tutorial/mp-macos-5.png
-   :width: 720px
-   :alt: Default Apache homepage
-```
-
-<!-- Original image on the Asset Manager
-![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-macos-5.png)
--->
-
-````
-
-````{tab-item} Windows
-:sync: Windows
-
-```{figure} /images/tutorial/mp-windows-12.png
-   :width: 720px
-   :alt: Default Apache homepage
-```
-
-<!-- Original image on the Asset Manager
-![|720x545](https://assets.ubuntu.com/v1/e106f7f9-mp-windows-12.png)
--->
-
-````
-
-`````
 
 Just like that, you've got a web server running in a Multipass instance!
 
