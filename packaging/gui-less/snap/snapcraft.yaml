@@ -141,7 +141,6 @@ parts:
 
     stage-packages:
     - apparmor
-    - libpng16-16
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
