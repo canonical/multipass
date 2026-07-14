@@ -104,6 +104,7 @@ QByteArray download(QNetworkAccessManager* manager,
     request.setRawHeader("Connection", "Keep-Alive");
     request.setAttribute(QNetworkRequest::HttpPipeliningAllowedAttribute, true);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, cache_load_control);
+    request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     request.setHeader(QNetworkRequest::UserAgentHeader,
                       QString::fromStdString(fmt::format("Multipass/{} ({}; {})",
                                                          multipass::version_string,
@@ -184,6 +185,7 @@ auto get_header(QNetworkAccessManager* manager,
 
     const QUrl adjusted_url = make_http_url_https(url);
     QNetworkRequest request{adjusted_url};
+    request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
 
     NetworkReplyUPtr reply{manager->head(request)};
 
