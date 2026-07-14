@@ -204,7 +204,6 @@ parts:
     - -usr/lib/*/libgtk-3-0t64/gtk-query-immodules-3.0
     - -usr/lib/*/libcolord.so*
     - -usr/lib/*/libcups.so*
-    - -usr/lib/*/libgiomm-2.4.so*
     - -usr/share/apport
     - -usr/share/bug
     - -usr/share/doc*
