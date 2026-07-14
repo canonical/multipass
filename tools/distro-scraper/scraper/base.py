@@ -1,20 +1,23 @@
 import logging
 import aiohttp
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from importlib.metadata import version
 
 
 DEFAULT_TIMEOUT = 10
 _VERSION = version("distro-scraper")
-USER_AGENT = f"multipass-distro-scraper/{_VERSION} (+https://github.com/canonical/multipass)"
+USER_AGENT = (
+    f"multipass-distro-scraper/{_VERSION} (+https://github.com/canonical/multipass)"
+)
 
 
-def make_session(**kwargs) -> aiohttp.ClientSession:
+def make_session(*, headers: Mapping[str, str] = {}, **kwargs) -> aiohttp.ClientSession:
     """
     Create an aiohttp.ClientSession that identifies itself with the Multipass
     distro-scraper User-Agent.
     """
-    headers = {"User-Agent": USER_AGENT, **kwargs.pop("headers", {})}
+    headers = {"User-Agent": USER_AGENT, **headers}
     return aiohttp.ClientSession(headers=headers, **kwargs)
 
 
