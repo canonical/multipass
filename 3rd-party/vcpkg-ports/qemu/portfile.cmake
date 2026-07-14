@@ -54,6 +54,7 @@ set(QEMU_COMMON_OPTIONS
     "--disable-qed"
     "--disable-libiscsi"
     "--disable-vnc"
+    "--disable-png"
     "--disable-xen"
     "--disable-dmg"
     "--disable-replication"
