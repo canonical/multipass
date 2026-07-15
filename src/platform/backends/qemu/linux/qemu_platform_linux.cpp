@@ -162,9 +162,9 @@ mp::QemuPlatformLinux::Bridge::~Bridge()
 }
 
 mp::QemuPlatformLinux::QemuPlatformLinux(const mp::Path& data_dir,
-                                         const AvailabilityZoneManager::Zones& zones)
+                                         const AvailabilityZoneManager& az_manager)
     : network_dir{MP_UTILS.make_dir(QDir(data_dir), "network")},
-      bridges{get_bridges(zones)},
+      bridges{get_bridges(az_manager.get_zones())},
       dnsmasq_server{init_nat_network(network_dir, get_bridge_list(bridges))}
 {
 }
@@ -286,9 +286,9 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(
     const Path& data_dir,
-    const mp::AvailabilityZoneManager::Zones& zones) const
+    const mp::AvailabilityZoneManager& az_manager) const
 {
-    return std::make_unique<mp::QemuPlatformLinux>(data_dir, zones);
+    return std::make_unique<mp::QemuPlatformLinux>(data_dir, az_manager);
 }
 
 bool mp::QemuPlatformLinux::is_network_supported(const std::string& network_type) const

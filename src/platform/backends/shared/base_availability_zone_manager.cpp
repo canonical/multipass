@@ -25,6 +25,8 @@
 
 #include <fmt/format.h>
 
+#include <utility>
+
 namespace mpl = multipass::logging;
 
 namespace
@@ -64,6 +66,11 @@ BaseAvailabilityZoneManager::BaseAvailabilityZoneManager(const fs::path& data_di
 
 AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string& name)
 {
+    return const_cast<AvailabilityZone&>(std::as_const(*this).get_zone(name));
+}
+
+const AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string& name) const
+{
     for (const auto& zone : zones())
     {
         if (zone->get_name() == name)
@@ -79,7 +86,8 @@ std::string BaseAvailabilityZoneManager::get_automatic_zone_name()
     return zone_name;
 }
 
-std::vector<std::reference_wrapper<const AvailabilityZone>> BaseAvailabilityZoneManager::get_zones()
+std::vector<std::reference_wrapper<const AvailabilityZone>>
+BaseAvailabilityZoneManager::get_zones() const
 {
     std::vector<std::reference_wrapper<const AvailabilityZone>> zone_list;
     zone_list.reserve(zones().size());

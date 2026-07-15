@@ -19,7 +19,15 @@
 #define MULTIPASS_STUB_AVAILABILITY_ZONE_MANAGER_H
 
 #include "multipass/availability_zone_manager.h"
+#include "multipass/exceptions/availability_zone_exceptions.h"
 #include "stub_availability_zone.h"
+
+#include <fmt/format.h>
+
+#include <initializer_list>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace multipass
 {
@@ -29,28 +37,49 @@ struct StubAvailabilityZoneManager final : public AvailabilityZoneManager
 {
     StubAvailabilityZoneManager()
     {
+        zones.push_back(std::make_unique<StubAvailabilityZone>());
     }
 
-    AvailabilityZone& get_zone(const std::string&) override
+    StubAvailabilityZoneManager(const std::initializer_list<Subnet> subnets)
     {
-        return zone;
+        int i = 1;
+        for (const auto& subnet : subnets)
+            zones.push_back(
+                std::make_unique<StubAvailabilityZone>(fmt::format("zone{}", i++), subnet));
+    }
+
+    AvailabilityZone& get_zone(const std::string& name) override
+    {
+        return const_cast<AvailabilityZone&>(std::as_const(*this).get_zone(name));
+    }
+    const AvailabilityZone& get_zone(const std::string& name) const override
+    {
+        for (const auto& zone : zones)
+        {
+            if (zone->get_name() == name)
+                return *zone;
+        }
+        throw AvailabilityZoneNotFound{name};
     }
     std::string get_automatic_zone_name() override
     {
-        return "zone1";
+        return zones[0]->get_name();
     }
-    std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() override
+    std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() const override
     {
-        return {zone};
+        std::vector<std::reference_wrapper<const AvailabilityZone>> zone_list;
+        for (auto& zone : zones)
+            zone_list.push_back(*zone);
+        return zone_list;
     }
 
     std::string get_default_zone_name() const override
     {
-        return "zone1";
+        return zones[0]->get_name();
     }
 
 private:
-    StubAvailabilityZone zone{};
+    std::vector<std::unique_ptr<StubAvailabilityZone>> zones;
 };
 } // namespace test
 } // namespace multipass

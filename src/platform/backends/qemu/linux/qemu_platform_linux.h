@@ -33,7 +33,7 @@ namespace multipass
 class QemuPlatformLinux : public QemuPlatform
 {
 public:
-    explicit QemuPlatformLinux(const Path& data_dir, const AvailabilityZoneManager::Zones& zones);
+    explicit QemuPlatformLinux(const Path& data_dir, const AvailabilityZoneManager& az_manager);
     ~QemuPlatformLinux() override;
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
