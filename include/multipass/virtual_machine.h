@@ -19,9 +19,8 @@
 
 #include "disabled_copy_move.h"
 #include "network_interface.h"
+#include "ssh/ssh_coordinates.h"
 #include "user_messages.h"
-
-#include <multipass/rpc/multipass.pb.h>
 
 #include <fmt/format.h>
 

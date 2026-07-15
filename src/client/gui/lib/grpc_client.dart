@@ -224,7 +224,7 @@ class GrpcClient {
     return doRpc(_client.set, SetRequest(key: key, val: value));
   }
 
-  Future<SSHCoordinates?> sshInfo(String name) {
+  Future<SSHCoordinatesInfo?> sshInfo(String name) {
     return doRpc(
       _client.ssh_info,
       SSHInfoRequest(instanceName: [name]),
