@@ -38,7 +38,8 @@ public:
     virtual ~AvailabilityZoneManager() = default;
 
     virtual AvailabilityZone& get_zone(const std::string& name) = 0;
-    virtual Zones get_zones() = 0;
+    virtual const AvailabilityZone& get_zone(const std::string& name) const = 0;
+    virtual Zones get_zones() const = 0;
     // this returns a computed zone name, using an algorithm e.g. round-robin
     // not to be confused with [get_default_zone_name]
     virtual std::string get_automatic_zone_name() = 0;

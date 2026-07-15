@@ -171,6 +171,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
     multipass::NetworkInterfaceInfo interface1{.id = "aabb", .type = "Ethernet"},
         interface2{.id = "bbaa", .type = "Ethernet"};
 
+    desc.zone = "zone1";
     desc.extra_interfaces = {{.id = interface1.id}, {.id = interface2.id}};
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info())

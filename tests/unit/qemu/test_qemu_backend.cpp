@@ -1423,8 +1423,15 @@ TEST_F(QemuBackend, cloneCopiesRelevantFiles)
         std::ofstream(src_vm_dir / file);
     }
 
-    EXPECT_TRUE(
-        backend.clone_bare_vm({}, {}, src_vm_name, dest_vm_name, {}, key_provider, stub_monitor));
+    mp::VMSpecs src_spec, dest_spec;
+    src_spec.zone = dest_spec.zone = "zone1";
+    EXPECT_TRUE(backend.clone_bare_vm(src_spec,
+                                      dest_spec,
+                                      src_vm_name,
+                                      dest_vm_name,
+                                      {},
+                                      key_provider,
+                                      stub_monitor));
 
     std::unordered_set<std::string> actual_files;
     for (const auto& file : fs::directory_iterator(dest_vm_dir))
