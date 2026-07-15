@@ -79,11 +79,7 @@ struct MockVirtualMachineT : public T
             return std::make_unique<NiceMock<MockSSHSession>>();
         });
         ON_CALL(*this, ssh_coordinates).WillByDefault([this] {
-            SSHCoordinates coord;
-            coord.set_username(ssh_username());
-            coord.set_port(ssh_port());
-            coord.set_tcp_host(ssh_hostname());
-            return coord;
+            return SSHCoordinates{ssh_username(), {}, ssh_port(), ssh_hostname()};
         });
     }
 

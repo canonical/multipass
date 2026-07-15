@@ -367,7 +367,7 @@ message SSHInfoRequest {
 }
 
 
-message SSHCoordinates {
+message SSHCoordinatesInfo {
     string username = 1;
     string priv_key_base64 = 2;
     uint32 port = 3;
@@ -375,7 +375,7 @@ message SSHCoordinates {
 }
 
 message SSHInfoReply {
-    map<string, SSHCoordinates> ssh_coordinates = 1;
+    map<string, SSHCoordinatesInfo> ssh_coordinates = 1;
     string log_line = 2;
 }
 

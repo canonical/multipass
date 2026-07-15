@@ -18,7 +18,7 @@
 #pragma once
 
 #include <multipass/console.h>
-#include <multipass/rpc/multipass.pb.h>
+#include <multipass/ssh/ssh_coordinates.h>
 #include <multipass/ssh/ssh_session.h>
 
 #include <libssh/libssh.h>

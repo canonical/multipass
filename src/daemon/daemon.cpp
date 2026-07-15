@@ -136,8 +136,9 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
                                    const std::string& backend_version_string,
                                    const mp::CreateRequest* request)
 {
-    auto ssh_key_line =
-        fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
+    auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost",
+                                    key_provider.public_key_as_base64(),
+                                    username);
     QString pollinate_alias = QString::fromStdString(request->image());
 
     if (pollinate_alias.isEmpty())
@@ -3412,8 +3413,13 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
                         name),
             ""};
 
-    mp::SSHCoordinates ssh_coordinates{vm.ssh_coordinates()};
-    (*response.mutable_ssh_coordinates())[name] = ssh_coordinates;
+    auto ssh_coordinates{vm.ssh_coordinates()};
+    mp::SSHCoordinatesInfo coordinates_info{};
+    coordinates_info.set_username(ssh_coordinates.username);
+    coordinates_info.set_priv_key_base64(ssh_coordinates.private_key_as_base64);
+    coordinates_info.set_port(ssh_coordinates.port);
+    coordinates_info.set_tcp_host(ssh_coordinates.tcp_host);
+    (*response.mutable_ssh_coordinates())[name] = coordinates_info;
 
     return grpc::Status::OK;
 }

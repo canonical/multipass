@@ -511,7 +511,7 @@ class SshShellInfo {
   final SendPort sender;
   final int width;
   final int height;
-  final SSHCoordinates sshCoordinates;
+  final SSHCoordinatesInfo sshCoordinates;
 
   SshShellInfo({
     required this.sender,

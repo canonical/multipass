@@ -66,7 +66,7 @@ mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& coordinates)
                        .toStdString();
 
     // Setup (common)
-    set_option(SSH_OPTIONS_USER, coordinates.username().c_str());
+    set_option(SSH_OPTIONS_USER, coordinates.username.c_str());
     set_option(SSH_OPTIONS_TIMEOUT, &connect_timeout_secs);
     set_option(SSH_OPTIONS_NODELAY, &nodelay);
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
@@ -74,9 +74,8 @@ mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& coordinates)
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
     // TCP setup
-    set_option(SSH_OPTIONS_HOST, coordinates.tcp_host().c_str());
-    auto tcp_port = coordinates.port();
-    set_option(SSH_OPTIONS_PORT, &tcp_port);
+    set_option(SSH_OPTIONS_HOST, coordinates.tcp_host.c_str());
+    set_option(SSH_OPTIONS_PORT, &coordinates.port);
 
     // Connect (common)
     SSH::throw_on_error(session,
@@ -87,7 +86,7 @@ mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& coordinates)
                         "ssh failed to authenticate",
                         std::bind_front(&Libssh::ssh_userauth_publickey, &Libssh::instance()),
                         nullptr,
-                        mp::SSHClientKeyProvider{coordinates.priv_key_base64()}.private_key());
+                        mp::SSHClientKeyProvider{coordinates.private_key_as_base64}.private_key());
 }
 
 multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other)
