@@ -3592,6 +3592,13 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             persist_instances();
         }
     }
+    catch (const StartException& e)
+    {
+        if (!std::is_same_v<Reply, LaunchReply> || !e.was_intentional())
+        {
+            fmt::format_to(std::back_inserter(errors), "{}", e.what());
+        }
+    }
     catch (const std::exception& e)
     {
         fmt::format_to(std::back_inserter(errors), "{}", e.what());
