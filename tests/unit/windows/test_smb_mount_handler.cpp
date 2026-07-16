@@ -26,7 +26,6 @@
 #include "tests/unit/mock_ssh_session.h"
 #include "tests/unit/mock_utils.h"
 #include "tests/unit/mock_virtual_machine.h"
-#include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/windows/powershell_test_helper.h"
 
 #include "smb_mount_handler.h"
@@ -137,7 +136,6 @@ struct SmbMountHandlerTest : public ::Test
         return true;
     };
 
-    mpt::StubSSHKeyProvider key_provider;
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
 
     NiceMock<mpt::MockVirtualMachine> vm{};
@@ -191,7 +189,7 @@ TEST_F(SmbMountHandlerTest, success)
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
 }
 
@@ -214,7 +212,7 @@ TEST_F(SmbMountHandlerTest, generateKey)
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
 }
 
@@ -243,7 +241,7 @@ TEST_F(SmbMountHandlerTest, installsCifs)
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
 }
 
@@ -268,7 +266,7 @@ TEST_F(SmbMountHandlerTest, failInstallCifs)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(handler.activate(&server),
                          std::runtime_error,
                          mpt::match_what(StrEq("Failed to install cifs-utils")));
@@ -297,7 +295,7 @@ TEST_F(SmbMountHandlerTest, requestAndReceiveCreds)
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
 }
 
@@ -312,7 +310,7 @@ TEST_F(SmbMountHandlerTest, failWithoutClient)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(handler.activate(static_cast<decltype(&server)>(nullptr)),
                          std::runtime_error,
                          mpt::match_what(StrEq("Cannot get password without client connection")));
@@ -332,7 +330,7 @@ TEST_F(SmbMountHandlerTest, failRequestCreds)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(
         handler.activate(&server),
         std::runtime_error,
@@ -354,7 +352,7 @@ TEST_F(SmbMountHandlerTest, failReceiveCreds)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(handler.activate(&server),
                          std::runtime_error,
                          mpt::match_what(StrEq("Cannot get password from client. Aborting...")));
@@ -376,7 +374,7 @@ TEST_F(SmbMountHandlerTest, failEmptyPassword)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(handler.activate(&server),
                          std::runtime_error,
                          mpt::match_what(StrEq("A password is required for SMB mounts.")));
@@ -396,7 +394,7 @@ TEST_F(SmbMountHandlerTest, failCreateSmbShare)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(handler.activate(&server), std::runtime_error, mpt::match_what(error));
 }
 
@@ -415,7 +413,7 @@ TEST_F(SmbMountHandlerTest, failMkdirTarget)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(handler.activate(&server),
                          std::runtime_error,
                          mpt::match_what(fmt::format("Cannot create \"{}\" in instance '{}': {}",
@@ -446,7 +444,7 @@ TEST_F(SmbMountHandlerTest, failMountCommand)
 
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     MP_EXPECT_THROW_THAT(handler.activate(&server),
                          std::runtime_error,
                          mpt::match_what(fmt::format("Error: {}", mount_error)));
@@ -477,7 +475,7 @@ TEST_F(SmbMountHandlerTest, failRemoveCredsFile)
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     EXPECT_NO_THROW(handler.activate(&server));
 }
 
@@ -506,7 +504,7 @@ TEST_F(SmbMountHandlerTest, stopForceFailUmountCommand)
     EXPECT_CALL(smb_manager, share_exists).WillOnce(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
 
     EXPECT_CALL(vm, ssh_exec(umount_command, false))
@@ -533,7 +531,7 @@ TEST_F(SmbMountHandlerTest, stopNonForceFailUmountCommand)
     EXPECT_CALL(smb_manager, share_exists).WillRepeatedly(Return(true));
     EXPECT_CALL(smb_manager, remove_share).WillOnce(Return());
 
-    mp::SmbMountHandler handler{&vm, &key_provider, target, mount, local_cred_dir, smb_manager};
+    mp::SmbMountHandler handler{&vm, target, mount, local_cred_dir, smb_manager};
     handler.activate(&server);
 
     EXPECT_CALL(vm, ssh_exec(umount_command, false))

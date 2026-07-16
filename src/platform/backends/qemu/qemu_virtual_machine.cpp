@@ -739,7 +739,7 @@ void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backe
 mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                          const VMMount& mount)
 {
-    return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
+    return std::make_unique<QemuMountHandler>(this, target, mount);
 }
 
 void mp::QemuVirtualMachine::remove_snapshots_from_backend() const

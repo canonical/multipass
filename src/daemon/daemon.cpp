@@ -1372,8 +1372,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        auto instance = instance_record[name] =
-            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
+        auto instance = instance_record[name] = config->factory->create_virtual_machine(
+            vm_desc,
+            *config->ssh_key_provider,
+            *this);
         instance->load_snapshots();
 
         // Add the new macs to the daemon's list only if we got this far
@@ -3491,10 +3493,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
                                               const VMMount& mount)
 {
     return mount.get_mount_type() == VMMount::MountType::Classic
-             ? std::make_unique<SSHFSMountHandler>(vm,
-                                                   config->ssh_key_provider.get(),
-                                                   target,
-                                                   mount)
+             ? std::make_unique<SSHFSMountHandler>(vm, target, mount)
              : vm->make_native_mount_handler(target, mount);
 }
 

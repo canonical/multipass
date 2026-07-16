@@ -63,8 +63,9 @@ QString mp::SSHFSServerProcessSpec::program() const
 
 QStringList mp::SSHFSServerProcessSpec::arguments() const
 {
-    return QStringList() << QString::fromStdString(config.host) << QString::number(config.port)
-                         << QString::fromStdString(config.username)
+    return QStringList() << QString::fromStdString(config.ssh_coordinates.tcp_host)
+                         << QString::number(config.ssh_coordinates.port)
+                         << QString::fromStdString(config.ssh_coordinates.username)
                          << QString::fromStdString(config.source_path)
                          << QString::fromStdString(config.target_path)
                          << serialise_id_mappings(config.uid_mappings)
@@ -75,7 +76,7 @@ QStringList mp::SSHFSServerProcessSpec::arguments() const
 QProcessEnvironment mp::SSHFSServerProcessSpec::environment() const
 {
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("KEY", QString::fromStdString(config.private_key));
+    env.insert("KEY", QString::fromStdString(config.ssh_coordinates.private_key_as_base64));
     return env;
 }
 

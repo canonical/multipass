@@ -686,7 +686,6 @@ HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VM
 
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
-                                             &key_provider,
                                              target,
                                              mount,
                                              instance_dir.absolutePath(),
