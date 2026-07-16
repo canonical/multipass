@@ -123,27 +123,23 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
     return std::nullopt;
 }
 
-void mp::backend::enable_cross_zone_routing(const std::vector<mp::Subnet>& zone_subnets)
+void mp::backend::enable_cross_zone_routing(const AvailabilityZoneManager& az_manager)
 {
     set_ip_forward();
 
-    std::vector<std::string> cidrs;
-    cidrs.reserve(zone_subnets.size());
-    for (const auto& subnet : zone_subnets)
-        cidrs.push_back(subnet.canonical().to_cidr());
-
-    if (cidrs.size() < 2)
+    const auto zones = az_manager.get_zones();
+    if (zones.size() < 2)
         return;
 
     // macOS automatically enforces isolation between subnets via a pf "block drop quick"
     // rule. Override the rule by adding a "pass quick" rule in an earlier-evaluated anchor.
     std::string rules;
-    for (const auto& src : cidrs)
-        for (const auto& dst : cidrs)
-            if (src != dst)
+    for (const auto& src : zones)
+        for (const auto& dst : zones)
+            if (&src.get() != &dst.get())
                 rules += fmt::format("pass quick inet from {} to {} flags any keep state\n",
-                                     src,
-                                     dst);
+                                     src.get().get_subnet().canonical().to_cidr(),
+                                     dst.get().get_subnet().canonical().to_cidr());
 
     const auto pfctl = mp::platform::make_process(
         mp::simple_process_spec("pfctl", {"-a", pf_anchor, "-f", "-"}));

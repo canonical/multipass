@@ -42,23 +42,13 @@ auto get_common_args(const QString& host_arch)
 
     return qemu_args;
 }
-
-void enable_zone_routing(const std::unordered_map<std::string, mp::Subnet>& bridges)
-{
-    std::vector<mp::Subnet> subnets;
-    subnets.reserve(bridges.size());
-    for (const auto& [_, subnet] : bridges)
-        subnets.push_back(subnet);
-
-    mp::backend::enable_cross_zone_routing(subnets);
-}
 } // namespace
 
 mp::QemuPlatformMacOS::QemuPlatformMacOS(const AvailabilityZoneManager& az_manager)
     : common_args{get_common_args(host_arch)}, az_manager{az_manager}
 
 {
-    enable_zone_routing(bridges);
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 std::optional<mp::IPAddress> mp::QemuPlatformMacOS::get_ip_for(const std::string& hw_addr)
@@ -75,7 +65,7 @@ void mp::QemuPlatformMacOS::platform_health_check()
     // TODO: Add appropriate health checks to ensure the QEMU backend will work as expected
 
     // Re-assert cross-zone routing in case macOS reloaded its pf anchors
-    enable_zone_routing(bridges);
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 QStringList mp::QemuPlatformMacOS::vmstate_platform_args()
