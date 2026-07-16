@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     }
     const auto priv_key_blob = string(key);
     const auto host = string(argv[1]);
-    const uint32_t port = std::strtoul(argv[2], nullptr, 10);
+    const uint32_t port = std::stoul(argv[2]);
     const auto username = string(argv[3]);
     const auto source_path = string(argv[4]);
     const auto target_path = string(argv[5]);

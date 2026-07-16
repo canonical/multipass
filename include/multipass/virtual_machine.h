@@ -87,7 +87,6 @@ public:
 
     // careful: default param in virtual methods; be sure to keep the same value in all descendants
     virtual SSHCoordinates ssh_coordinates() = 0;
-    virtual std::string ssh_username() const = 0;
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
     virtual std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                          bool whisper = false) = 0;
@@ -138,6 +137,7 @@ public:
     std::mutex state_mutex;
 
 protected:
+    virtual std::string ssh_username() const = 0;
     virtual uint32_t ssh_port() = 0;
     virtual std::string ssh_hostname() = 0;
 

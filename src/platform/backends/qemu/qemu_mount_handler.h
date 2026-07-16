@@ -26,10 +26,7 @@ namespace multipass
 class QemuMountHandler : public MountHandler
 {
 public:
-    QemuMountHandler(QemuVirtualMachine* vm,
-                     const SSHKeyProvider* ssh_key_provider,
-                     const std::string& target,
-                     VMMount mount_spec);
+    QemuMountHandler(QemuVirtualMachine* vm, const std::string& target, VMMount mount_spec);
     ~QemuMountHandler() override;
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;

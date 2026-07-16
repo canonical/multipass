@@ -56,7 +56,7 @@ TEST(MountHandler, providesMountSpec)
     EXPECT_CALL(*mock_file_ops, status)
         .WillOnce(Return(fs::file_status{fs::file_type::directory, fs::perms::unknown}));
 
-    PublicMountHandler handler{nullptr, nullptr, mount, ""};
+    PublicMountHandler handler{nullptr, mount, ""};
     EXPECT_EQ(handler.get_mount_spec(), mount);
 }
 
