@@ -290,7 +290,7 @@ auto fetch_image_for(const std::string& name,
                              stub_prepare,
                              stub_progress,
                              std::nullopt,
-                             factory.get_instance_directory(name));
+                             MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)));
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -3227,7 +3227,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 prepare_action,
                 progress_monitor,
                 checksum,
-                config->factory->get_instance_directory(name));
+                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)));
 
             const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
             vm_desc.disk_space = compute_final_image_size(
