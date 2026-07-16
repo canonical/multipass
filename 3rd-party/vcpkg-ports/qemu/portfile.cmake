@@ -284,10 +284,18 @@ if("system" IN_LIST FEATURES)
     file(COPY "${SOURCE_PATH}/pc-bios/kvmvapic.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
     file(COPY "${SOURCE_PATH}/pc-bios/vgabios-stdvga.bin" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
 
-    # Ship the 512 KB iPXE virtio-net option ROM instead of QEMU's smaller
-    # in-tree copy, so instances suspended by older Multipass releases can still
-    # be resumed. See vendor/README.md for details.
-    file(COPY "${CMAKE_CURRENT_LIST_DIR}/vendor/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    # virtio-net-pci option ROM. QEMU sizes the device's ROM BAR from this file,
+    # and that size is baked into a suspended instance's migration state; a
+    # mismatch on resume aborts the load. Older releases sourced this ROM
+    # differently per platform, so we must match each platform's historical size:
+    #   - Linux staged Ubuntu's `ipxe-qemu` ROM (512 KB) -> ship the vendored copy.
+    #   - macOS bundled QEMU's in-tree ROM (256 KB)       -> ship the in-tree copy.
+    # See vendor/README.md for details.
+    if(VCPKG_TARGET_IS_LINUX)
+        file(COPY "${CMAKE_CURRENT_LIST_DIR}/vendor/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    else()
+        file(COPY "${SOURCE_PATH}/pc-bios/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    endif()
 
     if(QEMU_ARCH STREQUAL "x86_64")
         # Ship the legacy 2 MB combined OVMF image so instances suspended by

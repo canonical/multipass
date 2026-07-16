@@ -25,15 +25,30 @@ rounded up to a power of two:
 | QEMU in-tree `pc-bios/efi-virtio.rom` | 160768 B | 256 KB (`0x40000`) |
 | Ubuntu `ipxe-qemu` `/usr/lib/ipxe/qemu/efi-virtio.rom` (**vendored**) | 524288 B | 512 KB (`0x80000`) |
 
-Older releases staged the `ipxe-qemu` ROM, so their suspended instances expect a
-`0x80000` ROM BAR. Shipping QEMU's smaller in-tree ROM yields a `0x40000` BAR and
-makes resume fail with:
+The correct ROM to ship depends on **which ROM the platform's older releases
+used**, because resume happens on the same platform that suspended the instance:
 
-```
-qemu-system-x86_64: Size mismatch: 0000:00:03.0/virtio-net-pci.rom: 0x80000 != 0x40000: Invalid argument
-qemu-system-x86_64: error while loading state for instance 0x0 of device 'ram'
-qemu-system-x86_64: Error -22 while loading VM state
-```
+- **Linux** staged the `ipxe-qemu` ROM from the Ubuntu archive, so its suspended
+  instances expect a `0x80000` ROM BAR. `portfile.cmake` ships the **vendored**
+  512 KB copy on Linux. Shipping QEMU's smaller in-tree ROM there yields a
+  `0x40000` BAR and makes resume fail with:
+
+  ```
+  qemu-system-x86_64: Size mismatch: 0000:00:03.0/virtio-net-pci.rom: 0x80000 != 0x40000: Invalid argument
+  qemu-system-x86_64: error while loading state for instance 0x0 of device 'ram'
+  qemu-system-x86_64: Error -22 while loading VM state
+  ```
+
+- **macOS** bundled QEMU's in-tree ROM (256 KB), so its suspended instances
+  expect a `0x40000` ROM BAR. `portfile.cmake` ships QEMU's **in-tree**
+  `pc-bios/efi-virtio.rom` on macOS. Shipping the vendored 512 KB ROM there
+  yields a `0x80000` BAR and makes resume fail with the inverse mismatch:
+
+  ```
+  qemu-system-aarch64: Size mismatch: 0000:00:01.0/virtio-net-pci.rom: 0x40000 != 0x80000: Invalid argument
+  qemu-system-aarch64: error while loading state for instance 0x0 of device 'ram'
+  qemu-system-aarch64: Error -22 while loading VM state
+  ```
 
 This affects both x86_64 and aarch64, since both use `virtio-net-pci`.
 
