@@ -37,11 +37,10 @@ struct SSHClient : public testing::Test
 {
     mp::SSHClient make_ssh_client()
     {
-        mp::SSHCoordinates coord;
-        coord.set_username("ubuntu");
-        coord.set_priv_key_base64(key_provider.private_key_as_base64());
-        coord.set_port(42);
-        coord.set_tcp_host("a");
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
         return {std::make_unique<mp::PlainSSHSession>(coord), console_creator};
     }
 
@@ -55,11 +54,10 @@ struct SSHClient : public testing::Test
 
 TEST_F(SSHClient, standardCtorDoesNotThrow)
 {
-    mp::SSHCoordinates coord;
-    coord.set_username("ubuntu");
-    coord.set_priv_key_base64(mpt::fake_key_data);
-    coord.set_port(42);
-    coord.set_tcp_host("a");
+    mp::SSHCoordinates coord{"ubuntu",
+                             key_provider.private_key_as_base64(),
+                             42,
+                             "theanswertoeverything"};
     EXPECT_NO_THROW(mp::SSHClient(coord, console_creator));
 }
 

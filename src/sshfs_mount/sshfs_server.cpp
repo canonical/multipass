@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     }
     const auto priv_key_blob = string(key);
     const auto host = string(argv[1]);
-    const int port = atoi(argv[2]);
+    const uint32_t port = std::strtoul(argv[2], nullptr, 10);
     const auto username = string(argv[3]);
     const auto source_path = string(argv[4]);
     const auto target_path = string(argv[5]);
@@ -99,11 +99,7 @@ int main(int argc, char* argv[])
     const mp::id_mappings gid_mappings = convert_id_mappings(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
-    mp::SSHCoordinates coordinates;
-    coordinates.set_username(username);
-    coordinates.set_priv_key_base64(priv_key_blob);
-    coordinates.set_port(port);
-    coordinates.set_tcp_host(host);
+    mp::SSHCoordinates coordinates{username, priv_key_blob, port, host};
 
     auto logger = mpp::make_logger(log_level);
     if (!logger)

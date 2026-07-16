@@ -78,11 +78,10 @@ struct SftpServer : public mp::test::SftpServerTest
                 [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
         REPLACE(ssh_event_free, [](auto...) { return; });
         REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-        mp::SSHCoordinates coord;
-        coord.set_username("ubuntu");
-        coord.set_priv_key_base64(key_provider.private_key_as_base64());
-        coord.set_port(42);
-        coord.set_tcp_host("a");
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
         return {std::make_unique<mp::PlainSSHSession>(coord),
                 path,
                 target.empty() ? path : target,
@@ -415,11 +414,10 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
     REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
     auto make_sftpserver = [this]() {
-        mp::SSHCoordinates coord;
-        coord.set_username("ubuntu");
-        coord.set_priv_key_base64(key_provider.private_key_as_base64());
-        coord.set_port(42);
-        coord.set_tcp_host("a");
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
         return mp::SftpServer{std::make_unique<mp::PlainSSHSession>(coord),
                               "",
                               "",
@@ -493,11 +491,10 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
     REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
-    mp::SSHCoordinates coord;
-    coord.set_username("ubuntu");
-    coord.set_priv_key_base64(key_provider.private_key_as_base64());
-    coord.set_port(42);
-    coord.set_tcp_host("a");
+    mp::SSHCoordinates coord{"ubuntu",
+                             key_provider.private_key_as_base64(),
+                             42,
+                             "theanswertoeverything"};
     auto sftp = mp::SftpServer{std::make_unique<mp::PlainSSHSession>(coord),
                                "",
                                "",

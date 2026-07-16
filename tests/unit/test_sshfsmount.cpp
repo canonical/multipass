@@ -48,11 +48,10 @@ struct SshfsMount : public mp::test::SftpServerTest
 {
     mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
-        mp::SSHCoordinates coord;
-        coord.set_username("ubuntu");
-        coord.set_priv_key_base64(key_provider.private_key_as_base64());
-        coord.set_port(42);
-        coord.set_tcp_host("a");
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
         return {std::make_unique<mp::PlainSSHSession>(coord),
                 default_source,
                 target.value_or(default_target),

@@ -90,7 +90,8 @@ class TerminalNotifier extends Notifier<Terminal?> {
     if (!running) return null;
 
     final grpcClient = ref.read(grpcClientProvider);
-    final sshInfo = await grpcClient.sshInfo(arg.vmName).onError((err, stack) {
+    final sshInfo =
+        await grpcClient.sshCoordinates(arg.vmName).onError((err, stack) {
       ref
           .notifyError((error) => 'Failed to get SSH information: $err')
           .call(err, stack);

@@ -88,11 +88,7 @@ struct SFTPClient : public testing::Test
 
     mp::SFTPClient make_sftp_client()
     {
-        mp::SSHCoordinates coord;
-        coord.set_username("ubuntu");
-        coord.set_priv_key_base64(key_provider.private_key_as_base64());
-        coord.set_port(42);
-        coord.set_tcp_host("b");
+        mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 43, "b"};
         return {std::make_unique<mp::PlainSSHSession>(coord)};
     }
 
