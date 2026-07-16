@@ -4,7 +4,7 @@ import asyncio
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from dateutil import parser
-from ..base import BaseScraper, DEFAULT_TIMEOUT
+from ..base import BaseScraper, DEFAULT_TIMEOUT, make_session
 from ..models import SUPPORTED_ARCHITECTURES
 
 
@@ -130,7 +130,7 @@ class FedoraScraper(BaseScraper):
         """
         Fetch Fedora Cloud Base Generic images for all supported architectures.
         """
-        async with aiohttp.ClientSession() as session:
+        async with make_session() as session:
             version = await self._fetch_latest_version(session)
 
             results = await asyncio.gather(

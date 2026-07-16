@@ -72,11 +72,18 @@ struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
                 }));
 
             const auto d_result = HCS().terminate_compute_system(handle);
-            ASSERT_TRUE(d_result);
+            EXPECT_TRUE(d_result);
             std::wprintf(L"%s\n\n", d_result.status_msg.c_str());
-            handle.reset();
-            ASSERT_EQ(std::future_status::ready, fut.wait_for(std::chrono::seconds(180)))
+
+            // The SystemExited notification is delivered asynchronously on an HCS worker
+            // thread. Wait for it *before* closing the compute system handle: resetting the
+            // handle calls HcsCloseComputeSystem, which unregisters the callback and stops
+            // event delivery. Resetting first races the notification and, when the handle is
+            // closed before the event arrives, the callback is dropped and this wait times
+            // out regardless of the timeout length -- the source of the flakiness.
+            EXPECT_EQ(std::future_status::ready, fut.wait_for(std::chrono::seconds(30)))
                 << "SystemExited callback not received within timeout";
+            handle.reset();
         }
     }
 

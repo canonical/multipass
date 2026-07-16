@@ -50,6 +50,8 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
+#include <QCoreApplication>
+#include <QDir>
 #include <boost/json.hpp>
 
 #include <thread>
@@ -178,6 +180,15 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         }
     };
 
+    auto expected_qemu_img_path()
+    {
+        return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
+    }
+    auto expected_qemu_system_prefix()
+    {
+        return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-system-");
+    }
+
     mpt::MockLogger::Scope logger_scope{mpt::MockLogger::inject()};
 
     mpt::SetEnvScope env_scope{"DISABLE_APPARMOR", "1"};
@@ -194,7 +205,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 
 TEST_F(QemuBackend, createsInOffState)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -206,7 +217,7 @@ TEST_F(QemuBackend, createsInOffState)
 
 TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -221,7 +232,7 @@ TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
 
 TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -245,7 +256,7 @@ TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
 
 TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -269,16 +280,16 @@ TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
 
 TEST_F(QemuBackend, QMPErrorGetsLogged)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    process_factory->register_callback([](mpt::MockProcess* process) {
+    process_factory->register_callback([this](mpt::MockProcess* process) {
         if (process->program().startsWith(
-                "qemu-system-")) // we only care about the actual vm process
+                expected_qemu_system_prefix())) // we only care about the actual vm process
         {
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
                 auto json = boost::json::parse(std::string_view(data));
@@ -309,15 +320,15 @@ TEST_F(QemuBackend, QMPErrorGetsLogged)
 
 TEST_F(QemuBackend, QMPHandlerIgnoresNonJsonLines)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    process_factory->register_callback([](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-"))
+    process_factory->register_callback([this](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()))
         {
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
                 auto json = boost::json::parse(std::string_view(data));
@@ -348,15 +359,15 @@ TEST_F(QemuBackend, QMPHandlerIgnoresNonJsonLines)
 
 TEST_F(QemuBackend, QMPHandlerProcessesInterleavedJson)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    process_factory->register_callback([](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-"))
+    process_factory->register_callback([this](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()))
         {
             EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
                 auto json = boost::json::parse(std::string_view(data));
@@ -390,7 +401,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
 {
     mpt::MockProcess* vmproc = nullptr;
     process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+        if (process->program().contains("qemu-system-") &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -398,7 +409,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -409,7 +420,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     machine->start();
     ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
 
-    mp::AutoJoinThread thread{[&machine, vmproc] {
+    mp::AutoJoinThread thread{[&machine, &vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
         machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
     }};
@@ -430,8 +441,8 @@ TEST_F(QemuBackend, throwsOnShutdownTimeout)
     static const std::string sub_error_msg2{"seconds after being shutdown"};
 
     mpt::MockProcess* vmproc = nullptr;
-    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -439,7 +450,7 @@ TEST_F(QemuBackend, throwsOnShutdownTimeout)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -468,8 +479,8 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
 {
     constexpr auto error_msg = "failing spectacularly";
     mpt::MockProcess* vmproc = nullptr;
-    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -478,7 +489,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -518,7 +529,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
 
 TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -546,7 +557,7 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 {
     const std::string sub_error_msg{"Cannot shut down suspended instance"};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -568,7 +579,7 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
     const std::string sub_error_msg1{"Cannot shut down instance"};
     const std::string sub_error_msg2{"while suspending."};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -591,7 +602,7 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
     const std::string sub_error_msg1{"Cannot shut down instance"};
     const std::string sub_error_msg2{"while starting."};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -612,8 +623,8 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
 TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 {
     mpt::MockProcess* vmproc = nullptr;
-    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &vmproc](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -628,7 +639,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
         }
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -658,7 +669,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 
 TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -679,7 +690,7 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 
 TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -711,14 +722,14 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes =
         process_factory->process_list();
     EXPECT_FALSE(processes.empty());
-    EXPECT_TRUE(processes.back().command == "qemu-img" &&
+    EXPECT_TRUE(processes.back().command == expected_qemu_img_path() &&
                 processes.back().arguments.contains("-d") &&
                 processes.back().arguments.contains(suspend_tag));
 }
 
 TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -740,7 +751,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 
 TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -774,14 +785,14 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes =
         process_factory->process_list();
     EXPECT_FALSE(processes.empty());
-    EXPECT_TRUE(processes.back().command == "qemu-img" &&
+    EXPECT_TRUE(processes.back().command == expected_qemu_img_path() &&
                 processes.back().arguments.contains("-d") &&
                 processes.back().arguments.contains(suspend_tag));
 }
 
 TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -795,26 +806,27 @@ TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
     auto processes = factory->process_list();
     EXPECT_TRUE(std::find_if(processes.cbegin(),
                              processes.cend(),
-                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command == "qemu-img";
+                             [this](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command == expected_qemu_img_path();
                              }) != processes.cend());
 
     EXPECT_TRUE(std::find_if(processes.cbegin(),
                              processes.cend(),
-                             [](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
+                             [this](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
                              }) != processes.cend());
 }
 
 TEST_F(QemuBackend, verifySomeCommonQemuArguments)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
     mpt::MockProcess* qemu = nullptr;
-    process_factory->register_callback([&qemu](mpt::MockProcess* process) {
-        if (process->program().startsWith("qemu-system-") &&
+    process_factory->register_callback([this, &qemu](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
             !process->arguments().contains(
                 "-dump-vmstate")) // we only care about the actual vm process
         {
@@ -841,7 +853,7 @@ TEST_F(QemuBackend, verifySomeCommonQemuArguments)
 
 TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -856,8 +868,9 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
     auto processes = process_factory->process_list();
     auto qemu = std::find_if(processes.cbegin(),
                              processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
+                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
                              });
 
     ASSERT_TRUE(qemu != processes.cend());
@@ -869,7 +882,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
 {
     constexpr auto machine_type = "k0mPuT0R";
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -888,19 +901,20 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     auto processes = process_factory->process_list();
     auto qemu = std::find_if(processes.cbegin(),
                              processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
+                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
                              });
 
     ASSERT_TRUE(qemu != processes.cend());
-    ASSERT_TRUE(qemu->command.startsWith("qemu-system-"));
+    ASSERT_TRUE(qemu->command.startsWith(expected_qemu_system_prefix()));
     EXPECT_TRUE(qemu->arguments.contains("-machine"));
     EXPECT_TRUE(qemu->arguments.contains(machine_type));
 }
 
 TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -932,8 +946,9 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     auto processes = process_factory->process_list();
     auto qemu = std::find_if(processes.cbegin(),
                              processes.cend(),
-                             [](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith("qemu-system-");
+                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command.startsWith(
+                                     expected_qemu_system_prefix());
                              });
 
     ASSERT_TRUE(qemu != processes.cend());
@@ -944,7 +959,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
 
 TEST_F(QemuBackend, returnsVersionString)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -972,7 +987,7 @@ TEST_F(QemuBackend, returnsVersionString)
 
 TEST_F(QemuBackend, returnsVersionStringWhenFailedParsing)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -999,7 +1014,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenFailedParsing)
 
 TEST_F(QemuBackend, returnsVersionStringWhenErrored)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1024,7 +1039,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenErrored)
 
 TEST_F(QemuBackend, returnsVersionStringWhenExecFailed)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1108,7 +1123,9 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
 {
     NiceMock<mpt::MockQemuPlatform> mock_qemu_platform;
 
-    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto...) { return std::nullopt; });
+    ON_CALL(mock_qemu_platform, get_ip_for(_)).WillByDefault([](auto&&...) {
+        return std::nullopt;
+    });
 
     mp::QemuVirtualMachine machine{default_description,
                                    &mock_qemu_platform,
@@ -1204,7 +1221,7 @@ TEST_F(QemuBackend, networksReturnsSupportedNetworks)
 {
     ON_CALL(*mock_qemu_platform, is_network_supported(_)).WillByDefault(Return(true));
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1235,7 +1252,7 @@ TEST_F(QemuBackend, removeResourcesForCallsQemuPlatform)
             EXPECT_EQ(name, test_name);
         });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1254,7 +1271,7 @@ TEST_F(QemuBackend, hypervisorHealthCheckCallsQemuPlatform)
         health_check_called = true;
     });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1278,7 +1295,7 @@ TEST_F(QemuBackend, getBackendDirectoryNameCallsQemuPlatform)
             return backend_dir_name;
         });
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1292,7 +1309,7 @@ TEST_F(QemuBackend, getBackendDirectoryNameCallsQemuPlatform)
 
 TEST_F(QemuBackend, addNetworkInterface)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1307,7 +1324,7 @@ TEST_F(QemuBackend, addNetworkInterface)
 
 TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
     EXPECT_CALL(*mock_qemu_platform, needs_network_prep()).Times(1).WillRepeatedly(Return(true));
@@ -1320,7 +1337,7 @@ TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
 
 TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1362,16 +1379,17 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
     const auto lastProcessInfo = processes.back();
     const auto last2ndProcessInfo = processes[processes.size() - 2];
 
-    EXPECT_TRUE(lastProcessInfo.command == "qemu-img" && lastProcessInfo.arguments.contains("-d") &&
+    EXPECT_TRUE(lastProcessInfo.command == expected_qemu_img_path() &&
+                lastProcessInfo.arguments.contains("-d") &&
                 lastProcessInfo.arguments.contains("@s3"));
-    EXPECT_TRUE(last2ndProcessInfo.command == "qemu-img" &&
+    EXPECT_TRUE(last2ndProcessInfo.command == expected_qemu_img_path() &&
                 last2ndProcessInfo.arguments.contains("-d") &&
                 last2ndProcessInfo.arguments.contains("@s2"));
 }
 
 TEST_F(QemuBackend, cloneCopiesRelevantFiles)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto...) {
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
         return std::move(mock_qemu_platform);
     });
 
@@ -1405,8 +1423,15 @@ TEST_F(QemuBackend, cloneCopiesRelevantFiles)
         std::ofstream(src_vm_dir / file);
     }
 
-    EXPECT_TRUE(
-        backend.clone_bare_vm({}, {}, src_vm_name, dest_vm_name, {}, key_provider, stub_monitor));
+    mp::VMSpecs src_spec, dest_spec;
+    src_spec.zone = dest_spec.zone = "zone1";
+    EXPECT_TRUE(backend.clone_bare_vm(src_spec,
+                                      dest_spec,
+                                      src_vm_name,
+                                      dest_vm_name,
+                                      {},
+                                      key_provider,
+                                      stub_monitor));
 
     std::unordered_set<std::string> actual_files;
     for (const auto& file : fs::directory_iterator(dest_vm_dir))

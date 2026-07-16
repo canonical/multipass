@@ -1,2 +1,0 @@
-Instance   Snapshot    Parent   Comment
-foo        snapshot1   --       This is a sample comment

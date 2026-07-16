@@ -26,6 +26,8 @@
 #include <multipass/singleton.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <QCoreApplication>
+#include <QDir>
 #include <QString>
 #include <QStringList>
 
@@ -59,6 +61,12 @@ public:
     virtual std::string create_bridge_with(const NetworkInterfaceInfo& interface) const = 0;
     virtual void set_authorization(std::vector<NetworkInterfaceInfo>& networks) = 0;
 
+    // Directory holding the QEMU firmware/UEFI assets shipped alongside the binary.
+    static QString firmware_path()
+    {
+        return QDir{QCoreApplication::applicationDirPath() + "/../Resources/qemu"}.absolutePath();
+    }
+
 protected:
     explicit QemuPlatform() = default;
 };
@@ -71,7 +79,7 @@ public:
     QemuPlatformFactory(const Singleton<QemuPlatformFactory>::PrivatePass& pass) noexcept
         : Singleton<QemuPlatformFactory>::Singleton{pass} {};
 
-    virtual QemuPlatform::UPtr
-    make_qemu_platform(const Path& data_dir, const AvailabilityZoneManager::Zones& zones) const;
+    virtual QemuPlatform::UPtr make_qemu_platform(const Path& data_dir,
+                                                  const AvailabilityZoneManager& az_manager) const;
 };
 } // namespace multipass

@@ -17,17 +17,21 @@ cmake_policy(SET CMP0079 NEW) # Allow target_link_libraries() in subdirs
 
 include(feature-flags.cmake)
 include(src/cmake/environment-utils.cmake)
-is_running_in_ci(IS_RUNNING_IN_CI)
+include(CMakeDependentOption)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
 
+is_running_in_ci(IS_RUNNING_IN_CI)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
 
 if(NOT ${IS_RUNNING_IN_CI})
   include(src/cmake/configure-linker.cmake)
   configure_linker()
 endif()
+
+include(src/cmake/populate-supported-backends-list.cmake)
 
 cmake_host_system_information(RESULT HOST_OS_NAME QUERY OS_NAME)
 cmake_host_system_information(RESULT HOST_ARCH QUERY OS_PLATFORM)
@@ -42,13 +46,12 @@ else()
   set(VCPKG_HOST_ARCH "x64")
 endif()
 
-include(CMakeDependentOption)
-cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
+
 
 if("${HOST_OS_NAME}" STREQUAL "macOS")
   # needs to be set before "project"
   set(VCPKG_HOST_OS "osx")
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "macOS Deployment Target")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "14" CACHE STRING "macOS Deployment Target")
 elseif("${HOST_OS_NAME}" STREQUAL "Windows")
   set(VCPKG_HOST_OS "windows-static-md")
 else()
@@ -125,8 +128,11 @@ else()
 endif()
 
 if(MULTIPASS_ENABLE_TESTS)
-  set(VCPKG_MANIFEST_FEATURES "tests" CACHE STRING "Enabled vcpkg features")
+  list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
+
+# All the current backends depend on QEMU one way or the other.
+list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
@@ -216,16 +222,6 @@ if(UNIX)
   if (${HOST_ARCH} STREQUAL "ppc64le")
     set(HOST_ARCH "ppc64")
   endif ()
-
-  if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND ${HOST_ARCH} MATCHES "x86_64"))
-      list(APPEND MULTIPASS_BACKENDS virtualbox)
-  endif()
-
-  list(APPEND MULTIPASS_BACKENDS qemu)
-
-  if(APPLEVZ_ENABLED)
-    list(APPEND MULTIPASS_BACKENDS applevz)
-  endif()
 endif()
 
 # Boost config
@@ -274,6 +270,19 @@ determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
 message(STATUS "Setting version to: ${MULTIPASS_VERSION}")
 
+determine_version_components(${MULTIPASS_VERSION} MULTIPASS_SEMANTIC_VERSION MULTIPASS_BUILD_NUMBER)
+
+# Extract MAJOR, MINOR, PATCH from semantic version (e.g., "1.14.0" -> 1, 14, 0)
+string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" _ "${MULTIPASS_SEMANTIC_VERSION}")
+if(NOT CMAKE_MATCH_1)
+  message(FATAL_ERROR "Failed to parse MAJOR.MINOR.PATCH from MULTIPASS_SEMANTIC_VERSION='${MULTIPASS_SEMANTIC_VERSION}'")
+endif()
+set(MULTIPASS_VERSION_MAJOR ${CMAKE_MATCH_1})
+set(MULTIPASS_VERSION_MINOR ${CMAKE_MATCH_2})
+set(MULTIPASS_VERSION_PATCH ${CMAKE_MATCH_3})
+
+message(STATUS "Version components: ${MULTIPASS_VERSION_MAJOR}.${MULTIPASS_VERSION_MINOR}.${MULTIPASS_VERSION_PATCH} (build: ${MULTIPASS_BUILD_NUMBER})")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -286,11 +295,6 @@ if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   add_definitions(-DSECURITY_WIN32)
-  set(MULTIPASS_BACKENDS hyperv virtualbox)
-  if(HYPERV_HCS_ENABLED)
-    add_definitions(-DHYPERV_HCS_ENABLED=1)
-    list(APPEND MULTIPASS_BACKENDS hyperv_api)
-  endif()
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
@@ -318,7 +322,13 @@ else()
   endif()
 endif()
 
-if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
+if("qemu" IN_LIST MULTIPASS_BACKENDS)
+  include(src/cmake/qemu-system-install-and-copy.cmake)
+endif()
+
+include(src/cmake/qemu-img-install-and-copy.cmake)
+
+if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
   find_program(GCOV gcov)
   find_program(LCOV lcov)
   find_program(GENHTML genhtml)
@@ -339,8 +349,36 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
       set(LCOV_IGNORE_ERRORS --ignore-errors mismatch --ignore-errors negative)
     endif()
 
+    if(MULTIPASS_ENABLE_FLUTTER_GUI)
+      set(FLUTTER_COVERAGE_COMMANDS
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
+                ${FLUTTER_EXECUTABLE} test --coverage
+        COMMAND ${LCOV}
+          --remove ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+          --ignore-errors unused
+          '*/lib/generated/*'
+          '*/lib/l10n/*'
+          --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+        COMMAND ${LCOV}
+          --add-tracefile coverage.cleaned
+          --add-tracefile lcov.info
+          --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+          --output-file total_coverage.info
+      )
+      set(GENHTML_SOURCE_ARGS --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui)
+    else()
+      set(FLUTTER_COVERAGE_COMMANDS
+        COMMAND ${LCOV}
+          --add-tracefile coverage.cleaned
+          --add-tracefile lcov.info
+          --output-file total_coverage.info
+      )
+      set(GENHTML_SOURCE_ARGS)
+    endif()
+
     add_custom_target(covreport
       DEPENDS multipass_cpp_tests multipass_integration_tests rust_coverage_tarpaulin
+        $<$<BOOL:${MULTIPASS_ENABLE_FLUTTER_GUI}>:multipass_gui>
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
@@ -354,9 +392,9 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES "coverage")
         ${CMAKE_BINARY_DIR}'/*'
         --output-file coverage.cleaned
       COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-      COMMAND ${CMAKE_COMMAND} -E remove coverage.info
-      COMMAND ${LCOV} -a coverage.cleaned -a lcov.info -o total_coverage.info
-      COMMAND ${GENHTML} -o coverage total_coverage.info
+      # Merge Flutter test coverage with C++ coverage (when enabled)
+      ${FLUTTER_COVERAGE_COMMANDS}
+      COMMAND ${GENHTML} ${GENHTML_SOURCE_ARGS} -o coverage total_coverage.info
     )
   endif()
 endif()
@@ -374,6 +412,14 @@ add_subdirectory(src)
 if(MULTIPASS_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
+
+  if(MULTIPASS_ENABLE_FLUTTER_GUI)
+    add_test(
+      NAME multipass_gui_tests
+      COMMAND ${FLUTTER_EXECUTABLE} test
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/client/gui
+    )
+  endif()
 endif()
 
 #Added later to be compatible with enable_testing() above

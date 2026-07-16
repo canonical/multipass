@@ -387,7 +387,7 @@ struct Client : public Test
 
     void aux_set_cmd_rejects_bad_val(const char* key, const char* val)
     {
-        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+        EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
             .WillRepeatedly(Throw(mp::InvalidSettingException{key, val, "bad"}));
         EXPECT_THAT(send_command({"set", keyval_arg(key, val)}),
                     Eq(mp::ReturnCode::CommandLineError));
@@ -1255,7 +1255,6 @@ TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageHttpOk))
     EXPECT_THAT(send_command({"launch", "http://foo"}), Eq(mp::ReturnCode::Ok));
 }
 
-#ifdef AVAILABILITY_ZONES_FEATURE
 TEST_F(Client, launchCmdWithZoneOk)
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
@@ -1296,7 +1295,6 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
     EXPECT_THAT(send_command({"launch", "--zone", "unavailable_zone"}),
                 Eq(mp::ReturnCode::CommandFail));
 }
-#endif
 
 TEST_F(Client, launchCmdWithTimer)
 {
@@ -2056,16 +2054,9 @@ TEST_F(Client, infoCmdHelpOk)
     EXPECT_THAT(send_command({"info", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, infoCmdSucceedsWithAll)
+TEST_F(Client, infoCmdFailsWithAll)
 {
-    EXPECT_CALL(mock_daemon, info(_, _));
-    EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::Ok));
-}
-
-TEST_F(Client, infoCmdFailsWithNamesAndAll)
-{
-    EXPECT_THAT(send_command({"info", "--all", "foo", "bar"}),
-                Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({"info", "--all"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, infoCmdDoesNotDefaultToNoRuntimeInformationAndSucceeds)
@@ -3446,7 +3437,7 @@ TEST_P(TestBasicGetSetOptions, setCanWriteSettings)
     const auto& key = GetParam();
     const auto val = "blah";
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -3455,7 +3446,7 @@ TEST_P(TestBasicGetSetOptions, setCmdAllowsEmptyVal)
     const auto& key = GetParam();
     const auto val = "";
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::Ok));
 }
 
@@ -3465,7 +3456,7 @@ TEST_P(TestBasicGetSetOptions, interactiveSetWritesSettings)
     const auto val = "blah";
     std::istringstream cin{fmt::format("{}\n", val)};
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)));
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _));
     EXPECT_THAT(send_command({"set", key}, trash_stream, trash_stream, cin),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -3492,7 +3483,7 @@ TEST_F(Client, getCmdFailsWithNoArguments)
 
 TEST_F(Client, setCmdFailsWithNoArguments)
 {
-    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0);
     EXPECT_THAT(send_command({"set"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
@@ -3504,7 +3495,7 @@ TEST_F(Client, getCmdFailsWithMultipleArguments)
 
 TEST_F(Client, setCmdFailsWithMultipleArguments)
 {
-    EXPECT_CALL(mock_settings, set(_, _)).Times(0);
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0);
     EXPECT_THAT(
         send_command(
             {"set", keyval_arg(mp::petenv_key, "asdf"), keyval_arg(mp::driver_key, "qemu")}),
@@ -3513,7 +3504,7 @@ TEST_F(Client, setCmdFailsWithMultipleArguments)
 
 TEST_F(Client, setCmdFailsWithBadKeyValFormat)
 {
-    EXPECT_CALL(mock_settings, set(_, _)).Times(0); // this is not where the rejection is here
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0); // this is not where the rejection is here
     EXPECT_THAT(send_command({"set", "="}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "=abc"}), Eq(mp::ReturnCode::CommandLineError));
     EXPECT_THAT(send_command({"set", "foo=bar="}), Eq(mp::ReturnCode::CommandLineError));
@@ -3547,7 +3538,7 @@ TEST_F(Client, setCmdFailsWithUnknownKey)
 {
     const auto key = "wrong.key";
     const auto val = "blah";
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
@@ -3559,7 +3550,7 @@ TEST_F(Client, interactiveSetFailsWithUnknownKey)
     std::ostringstream cerr;
     std::istringstream cin{fmt::format("{}\n", val)};
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::UnrecognizedSettingException{key}));
     EXPECT_THAT(send_command({"set", key}, trash_stream, cerr, cin),
                 Eq(mp::ReturnCode::CommandLineError));
@@ -3635,7 +3626,7 @@ TEST_F(Client, setHandlesPersistentSettingsErrors)
 {
     const auto key = mp::petenv_key;
     const auto val = "asdasdasd";
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::PersistentSettingsException{"op", "test"}));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandFail));
 }
@@ -3643,17 +3634,17 @@ TEST_F(Client, setHandlesPersistentSettingsErrors)
 TEST_F(Client, setCmdRejectsBadValues)
 {
     const auto key = "hip", val = "hop", why = "don't like it";
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val)))
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _))
         .WillOnce(Throw(mp::InvalidSettingException{key, val, why}));
     EXPECT_THAT(send_command({"set", keyval_arg(key, val)}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, setCmdTogglePetenv)
 {
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("")));
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq(""), _));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "")}), Eq(mp::ReturnCode::Ok));
 
-    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary")));
+    EXPECT_CALL(mock_settings, set(Eq(mp::petenv_key), Eq("some primary"), _));
     EXPECT_THAT(send_command({"set", keyval_arg(mp::petenv_key, "some primary")}),
                 Eq(mp::ReturnCode::Ok));
 }
@@ -3897,14 +3888,19 @@ TEST_F(RestoreCommandClient, restoreCmdNotDestructiveNotLiveTermFails)
     EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(false));
 
     EXPECT_CALL(mock_daemon, restore(_, _)).WillOnce([](auto, auto* server) {
+        mp::RestoreRequest req;
+        EXPECT_TRUE(server->Read(&req));
         mp::RestoreReply reply;
         reply.set_confirm_destructive(true);
         server->Write(reply);
-        return grpc::Status{};
+
+        EXPECT_FALSE(server->Read(&req));
+        return grpc::Status{grpc::StatusCode::CANCELLED, "dummy_msg"};
     });
 
-    EXPECT_THROW(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal),
-                 std::runtime_error);
+    EXPECT_EQ(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal),
+              mp::ReturnCode::CommandFail);
+    EXPECT_NE(cerr.str().find("Unable to query client for confirmation"), std::string::npos);
 }
 
 // authenticate cli tests
@@ -4447,7 +4443,6 @@ TEST_F(ClientAlias, aliasRefusesCreationRpcError)
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map,default*\n");
 }
 
-#ifdef AVAILABILITY_ZONES_FEATURE
 // zones cli tests
 TEST_F(Client, zonesCmdNoArgsOk)
 {
@@ -4688,8 +4683,6 @@ TEST_F(Client, disableZonesCmdReasksConfirmation)
     EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::Ok);
     EXPECT_THAT(cout_stream.str(), HasSubstr("Please answer (Yes/no):"));
 }
-
-#endif // AVAILABILITY_ZONES_FEATURE
 
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
 {

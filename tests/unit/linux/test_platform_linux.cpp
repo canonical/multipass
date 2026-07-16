@@ -759,4 +759,20 @@ default via 192.168.0.0 dev wlo1 proto dhcp src 192.168.0.1 metric 600
 
     EXPECT_TRUE(MP_PLATFORM.subnet_used_locally(testSubnet));
 }
+
+TEST_F(PlatformLinux, getPreferredSubnetDefault)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, try_read_file).WillOnce(Return(std::nullopt));
+
+    EXPECT_EQ(MP_PLATFORM.get_preferred_subnet("data/dir"), mp::Subnet{"10.97.0.0/16"});
+}
+
+TEST_F(PlatformLinux, getPreferredSubnetChecksMultipassSubnetFile)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, try_read_file).WillOnce(Return("192.168.42"));
+
+    EXPECT_EQ(MP_PLATFORM.get_preferred_subnet("data/dir"), mp::Subnet{"192.168.42.0/16"});
+}
 } // namespace

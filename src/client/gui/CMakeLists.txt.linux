@@ -39,6 +39,9 @@ add_custom_command(OUTPUT ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=${MULTIPASS_GUI_BUILD_DIR}
   COMMAND ${FLUTTER_EXECUTABLE} build ${MULTIPASS_GUI_TARGET} ${FLUTTER_BUILD_ARGS}
   COMMAND ${FLUTTER_EXECUTABLE} config --build-dir=
+  # Touch the output last so it is always newer than every dependency, otherwise Ninja
+  # will consider this command perpetually out of date and will rebuild every time.
+  COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
 )
 
 add_custom_target(${MULTIPASS_GUI_EXECUTABLE} ALL
@@ -61,6 +64,8 @@ add_custom_target(libffi_copy ALL
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:dart_ffi> ${MULTIPASS_GUI_BUNDLE_RELATIVE}/lib/$<TARGET_FILE_NAME:dart_ffi>
     DEPENDS ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
 )
+
+add_dependencies(libffi_copy bundle_symlink dart_ffi)
 
 # Install the symlink.
 install(FILES ${MULTIPASS_GUI_BUILD_DIR}/${MULTIPASS_GUI_LINK_NAME}

@@ -89,7 +89,7 @@ QString mp::Settings::get(const QString& key) const
     throw UnrecognizedSettingException{key};
 }
 
-void mp::Settings::set(const QString& key, const QString& val)
+void mp::Settings::set(const QString& key, const QString& val, UserMessages& messages)
 {
     auto success = false;
     for (const auto& handler : handlers)
@@ -98,7 +98,7 @@ void mp::Settings::set(const QString& key, const QString& val)
         {
             assert(handler && "can't have null settings handler"); // TODO use a `not_null` type
                                                                    // (e.g. gsl::not_null)
-            handler->set(key, val);
+            handler->set(key, val, messages);
             success = true; // don't return yet, give all handlers a chance to react
         }
         catch (const UnrecognizedSettingException&)

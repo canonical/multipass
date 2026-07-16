@@ -177,10 +177,10 @@ Multipass is tested with **Qt 6.9.1**. Newer patch versions along the 6.9 track 
 
 You may use your preferred package manager to install Multipass.
 Note that only the official installers are supported.
-See the [installation guide](https://documentation.ubuntu.com/multipass/en/latest/how-to-guides/install-multipass/) for details.
+See the [installation guide](https://canonical.com/multipass/docs/stable/how-to-guides/install-multipass/) for details.
 
 For backend support and system requirements, refer to the
-[Multipass driver documentation](https://documentation.ubuntu.com/multipass/en/latest/explanation/driver/).
+[Multipass driver documentation](https://canonical.com/multipass/docs/stable/explanation/driver/).
 
 If you notice outdated information or inconsistencies in these files, please [open an issue](https://github.com/canonical/multipass/issues) or, even better, submit a pull request!
 

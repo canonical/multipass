@@ -203,7 +203,7 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      const SSHKeyProvider& key_provider,
                                      AvailabilityZone& zone,
                                      const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, key_provider, zone, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir},
       description(desc),
       primary_network_guid(network_guid),
       monitor(monitor)
@@ -648,7 +648,7 @@ void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
     description.mem_size = new_size;
 }
 
-void HCSVirtualMachine::resize_disk(const MemorySize& new_size)
+void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     mpl::debug(get_name(), "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
 

@@ -166,13 +166,14 @@ void update_disk(const QString& key,
                  const QString& val,
                  mp::VirtualMachine& instance,
                  mp::VMSpecs& spec,
-                 const mp::MemorySize& size)
+                 const mp::MemorySize& size,
+                 mp::UserMessages& messages)
 {
     if (size < spec.disk_space)
         throw mp::InvalidSettingException{key, val, "Disk can only be expanded"};
     else if (size > spec.disk_space) // NOOP if equal
     {
-        instance.resize_disk(size);
+        instance.resize_disk(size, messages);
         spec.disk_space = size;
     }
 }
@@ -254,7 +255,9 @@ QString mp::InstanceSettingsHandler::get(const QString& key) const
     return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
 }
 
-void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
+void mp::InstanceSettingsHandler::set(const QString& key,
+                                      const QString& val,
+                                      UserMessages& messages)
 {
     auto [instance_name, property] = parse_key(key);
 
@@ -282,7 +285,7 @@ void mp::InstanceSettingsHandler::set(const QString& key, const QString& val)
         else
         {
             assert(property == disk_suffix);
-            update_disk(key, val, instance, spec, size);
+            update_disk(key, val, instance, spec, size, messages);
         }
     }
 

@@ -42,6 +42,7 @@ struct BaseAvailabilityZoneTest : public Test
     const mp::fs::path az_dir{"/path/to/zones"};
     const mp::fs::path az_file = az_dir / (az_name + ".json");
     const QString az_file_qstr{QString::fromStdU16String(az_file.u16string())};
+    mp::SubnetAllocator subnet_alloc{{"192.168.0.0/16"}, 24};
     const mp::Subnet az_subnet{"192.168.1.0/24"};
 
     mpt::MockFileOps::GuardedMock mock_file_ops_guard{mpt::MockFileOps::inject()};
@@ -59,7 +60,7 @@ TEST_F(BaseAvailabilityZoneTest, CreatesDefaultAvailableZone)
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
     EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
     EXPECT_EQ(zone.get_name(), az_name);
     EXPECT_TRUE(zone.is_available());
@@ -74,7 +75,7 @@ TEST_F(BaseAvailabilityZoneTest, loadsExistingZoneFile)
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
 
     const mp::Subnet test_subnet{"10.0.0.0/24"};
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
     EXPECT_EQ(zone.get_name(), az_name);
     EXPECT_EQ(zone.get_subnet(), test_subnet);
@@ -92,7 +93,7 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
     NiceMock<mpt::MockVirtualMachine> mock_vm;
     EXPECT_CALL(mock_vm, set_available(false));
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
     zone.add_vm(mock_vm);
     zone.set_available(false);
@@ -108,7 +109,7 @@ TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
 
     NiceMock<mpt::MockVirtualMachine> mock_vm;
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
     zone.add_vm(mock_vm);
     zone.remove_vm(mock_vm);
@@ -130,7 +131,7 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     EXPECT_CALL(mock_vm1, set_available(false));
     EXPECT_CALL(mock_vm2, set_available(false));
 
-    mp::BaseAvailabilityZone zone{az_name, az_dir};
+    mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
     zone.add_vm(mock_vm1);
     zone.add_vm(mock_vm2);

@@ -20,7 +20,6 @@
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
-#include <multipass/platform.h>
 
 #include <fmt/format.h>
 
@@ -32,17 +31,17 @@ namespace
 {
 constexpr auto subnet_key = "subnet";
 constexpr auto available_key = "available";
-
-constexpr multipass::Subnet::PrefixLength subnet_prefix_length = 24;
-multipass::SubnetAllocator subnet_allocator(MP_PLATFORM.get_preferred_subnet(),
-                                            subnet_prefix_length);
 } // namespace
 
 namespace multipass
 {
 
-BaseAvailabilityZone::BaseAvailabilityZone(const std::string& name, const fs::path& az_directory)
-    : file_path{az_directory / (name + ".json")}, name{name}, m{load_file(name, file_path)}
+BaseAvailabilityZone::BaseAvailabilityZone(const std::string& name,
+                                           const fs::path& az_directory,
+                                           SubnetAllocator& subnet_allocator)
+    : file_path{az_directory / (name + ".json")},
+      name{name},
+      m{load_file(name, file_path, subnet_allocator)}
 {
     save_file();
 }
@@ -129,7 +128,8 @@ void BaseAvailabilityZone::remove_vm(VirtualMachine& vm)
 }
 
 BaseAvailabilityZone::Data BaseAvailabilityZone::load_file(const std::string& name,
-                                                           const fs::path& file_path)
+                                                           const fs::path& file_path,
+                                                           SubnetAllocator& subnet_allocator)
 {
     mpl::trace(name, "reading AZ from file '{}'", file_path);
     if (auto filedata = MP_FILEOPS.try_read_file(file_path))

@@ -138,7 +138,8 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithClientFil
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
         .WillOnce(WithArg<0>(make_default_returning_mock_qsettings));
-    handler->set(mp::petenv_key, "goo");
+    [[maybe_unused]] mp::UserMessages messages{};
+    handler->set(mp::petenv_key, "goo", messages);
 }
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSettings)
@@ -190,7 +191,8 @@ TEST_P(TestGoodPetEnvSetting, clientsRegisterHandlerThatAcceptsValidPetenv)
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(key, val));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(key, val, messages));
 }
 
 INSTANTIATE_TEST_SUITE_P(TestGoodPetEnvSetting, TestGoodPetEnvSetting, Values("valid-primary", ""));
@@ -204,7 +206,8 @@ TEST_P(TestBadPetEnvSetting, clientsRegisterHandlerThatRejectsInvalidPetenv)
     auto key = mp::petenv_key, val = GetParam();
     mp::client::register_global_settings_handlers();
 
-    MP_ASSERT_THROW_THAT(handler->set(key, val),
+    [[maybe_unused]] mp::UserMessages messages{};
+    MP_ASSERT_THROW_THAT(handler->set(key, val, messages),
                          mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
@@ -224,7 +227,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerWithDaemonFil
 
     EXPECT_CALL(*mock_qsettings_provider, make_wrapped_qsettings(Eq(expected_filename), _))
         .WillOnce(WithArg<0>(make_default_returning_mock_qsettings));
-    handler->set(mp::bridged_interface_key, "bridge");
+    [[maybe_unused]] mp::UserMessages messages{};
+    handler->set(mp::bridged_interface_key, "bridge", messages);
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSettings)
@@ -282,7 +286,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsValidBackend
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(val)));
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(key, val));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(key, val, messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsHyperVDriver)
@@ -296,7 +301,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsHyperVDri
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(transformed_val))).Times(1);
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(key, val));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(key, val, messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsVBoxDriver)
@@ -310,7 +316,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsVBoxDrive
     EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(transformed_val))).Times(1);
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(key, val));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(key, val, messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBackend)
@@ -321,7 +328,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBacke
 
     EXPECT_CALL(mock_platform, is_backend_supported(Eq(val))).WillOnce(Return(false));
 
-    MP_ASSERT_THROW_THAT(handler->set(key, val),
+    [[maybe_unused]] mp::UserMessages messages{};
+    MP_ASSERT_THROW_THAT(handler->set(key, val, messages),
                          mp::InvalidSettingException,
                          mpt::match_what(AllOf(HasSubstr(key), HasSubstr(val))));
 }
@@ -333,7 +341,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBoolMounts)
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::mounts_key), Eq("true")));
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(mp::mounts_key, "1"));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(mp::mounts_key, "1", messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBrigedInterface)
@@ -345,7 +354,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatAcceptsBrigedInterf
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::bridged_interface_key), Eq(val)));
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(mp::bridged_interface_key, val));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(mp::bridged_interface_key, val, messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatHashesNonEmptyPassword)
@@ -361,7 +371,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatHashesNonEmptyPassw
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::passphrase_key), Eq(hash)));
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(mp::passphrase_key, val));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(mp::passphrase_key, val, messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatResetsHashWhenPasswordIsEmpty)
@@ -373,7 +384,8 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatResetsHashWhenPassw
     EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::passphrase_key), Eq(val)));
     inject_mock_qsettings();
 
-    ASSERT_NO_THROW(handler->set(mp::passphrase_key, val));
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(mp::passphrase_key, val, messages));
 }
 
 } // namespace

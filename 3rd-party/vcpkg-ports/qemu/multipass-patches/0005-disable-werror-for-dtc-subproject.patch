@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mustafa Kemal Gilor <mustafa.gilor@canonical.com>
+Date: Thu, 9 Jul 2026 00:00:00 +0000
+Subject: [PATCH] Don't treat warnings as errors in the bundled dtc subproject
+
+The internal dtc (libfdt) subproject sets werror=true, so newer compilers
+(e.g. clang-21) fail the build on warnings in third-party code such as the
+discarded const qualifier in libfdt/fdt_overlay.c. dtc is fetched as a meson
+wrap during the build and so can't be patched via vcpkg's PATCHES; instead
+disable werror for just that subproject from QEMU's own meson.build.
+---
+ meson.build | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+--- a/meson.build
++++ b/meson.build
+@@ -2093,7 +2093,7 @@
+ if fdt_opt == 'internal'
+   assert(not fdt.found())
+   libfdt_proj = subproject('dtc', required: true,
+-                           default_options: ['tools=false',  'yaml=disabled',
++                           default_options: ['werror=false', 'tools=false',  'yaml=disabled',
+                                              'python=disabled', 'default_library=static'])
+   fdt = libfdt_proj.get_variable('libfdt_dep')
+ endif

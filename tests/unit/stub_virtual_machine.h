@@ -129,7 +129,7 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void resize_disk(const MemorySize&) override
+    void resize_disk(const MemorySize&, UserMessages&) override
     {
     }
 

@@ -58,6 +58,8 @@ add_executable(multipass_cpp_tests
   temp_file.cpp
   test_alias_dict.cpp
   test_argparser.cpp
+  test_base_availability_zone.cpp
+  test_base_availability_zone_manager.cpp
   test_base_snapshot.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
@@ -140,12 +142,6 @@ add_executable(multipass_cpp_tests
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
-
-if(AVAILABILITY_ZONES_ENABLED)
-  target_sources(multipass_cpp_tests PRIVATE
-    test_base_availability_zone.cpp
-    test_base_availability_zone_manager.cpp)
-endif()
 
 target_include_directories(multipass_cpp_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
@@ -270,16 +266,16 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_cpp_tests mock_process)
 
-add_executable(qemu-img
+add_executable(mock-qemu-img
   qemu/mock_qemuimg.cpp)
 
-set_target_properties(qemu-img
+set_target_properties(mock-qemu-img
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_dependencies(multipass_cpp_tests qemu-img)
+add_dependencies(multipass_cpp_tests mock-qemu-img)
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)

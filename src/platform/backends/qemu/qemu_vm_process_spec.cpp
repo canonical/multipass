@@ -17,14 +17,15 @@
 
 #include "qemu_vm_process_spec.h"
 
-#include <QCoreApplication>
-#include <QRegularExpression>
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
+
+#include <QCoreApplication>
+#include <QRegularExpression>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -44,6 +45,14 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     if (resume_data)
     {
         args = resume_data->arguments;
+
+        // A VM suspended in a previous version will not contain the firmware
+        // path. Prepend it to the args so QEMU can locate the BIOS.
+        if (!args.contains("-L"))
+        {
+            args.prepend(firmware_path());
+            args.prepend("-L");
+        }
 
         // need to append extra arguments for resume
         args << "-loadvm" << resume_data->suspend_tag;
@@ -73,8 +82,10 @@ QStringList mp::QemuVMProcessSpec::arguments() const
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
         // clang-format off
+        // Tell QEMU where to look for the BIOS files
+        args << "-L"
+             << firmware_path();
         args << platform_args;
-        // clang-format off
         // The VM image itself
         args << "-device"
 #if defined Q_PROCESSOR_S390
@@ -108,7 +119,6 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         args << "-uuid" << vm_uuid;
         // clang-format on
     }
-    // clang-format on
 
     for (const auto& [_, mount_data] : mount_args)
     {
@@ -192,7 +202,7 @@ profile %1 flags=(attach_disconnected) {
   /sys/module/vhost/parameters/max_mem_regions r,
 
   # binary and its libs
-  %4/usr/bin/%5 ixr,
+  %5 ixr,
   %4/{,usr/}lib/{,@{multiarch}/}{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap
@@ -220,16 +230,16 @@ profile %1 flags=(attach_disconnected) {
         mount_dirs += QString::fromStdString(source_path) + "/** rwlk,\n  ";
     }
 
+    firmware = firmware_path() + "/*";
+
     try
     {
         root_dir = mpu::snap_dir();
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
-        firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
     }
     catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
-        firmware = "/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/*";
     }
 
     return profile_template.arg(apparmor_profile_name(),

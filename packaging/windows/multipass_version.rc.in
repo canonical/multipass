@@ -1,0 +1,41 @@
+// Microsoft Visual C++ generated resource script.
+//
+#pragma code_page(65001)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+1 VERSIONINFO
+ FILEVERSION @VERSION_MAJOR@,@VERSION_MINOR@,@VERSION_PATCH@,@VERSION_BUILD@
+ PRODUCTVERSION @VERSION_MAJOR@,@VERSION_MINOR@,@VERSION_PATCH@,@VERSION_BUILD@
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x00040004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904e4"
+        BEGIN
+            VALUE "CompanyName", "Canonical Ltd." "\0"
+            VALUE "FileDescription", "@FILE_DESCRIPTION@" "\0"
+            VALUE "FileVersion", "@VERSION_STRING@" "\0"
+            VALUE "InternalName", "@INTERNAL_NAME@" "\0"
+            VALUE "LegalCopyright", "Copyright (C) Canonical, Ltd. All rights reserved." "\0"
+            VALUE "OriginalFilename", "@ORIGINAL_FILENAME@" "\0"
+            VALUE "ProductName", "Multipass" "\0"
+            VALUE "ProductVersion", "@VERSION_STRING@" "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END

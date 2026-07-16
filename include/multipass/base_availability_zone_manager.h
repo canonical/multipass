@@ -35,7 +35,8 @@ public:
     explicit BaseAvailabilityZoneManager(const std::filesystem::path& data_dir);
 
     AvailabilityZone& get_zone(const std::string& name) override;
-    std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() override;
+    const AvailabilityZone& get_zone(const std::string& name) const override;
+    std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() const override;
     std::string get_automatic_zone_name() override;
     std::string get_default_zone_name() const override;
 
@@ -58,8 +59,11 @@ private:
         mutable std::shared_mutex mutex{};
     };
 
+    static constexpr Subnet::PrefixLength subnet_prefix_length = 24;
+
     mutable std::recursive_mutex mutex;
     const std::filesystem::path file_path;
+    SubnetAllocator subnet_allocator;
     ZoneCollection zone_collection;
 
     [[nodiscard]] const ZoneCollection::ZoneArray& zones() const;

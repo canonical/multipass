@@ -52,6 +52,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/utils/grpc_utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -2510,7 +2511,9 @@ try
     });
 
     mpl::trace(category, "Trying to set {}={}", key, val);
-    MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+    UserMessages messages{};
+    MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
+    mpu::send_messages(server, messages);
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
     context->set_value(grpc::Status::OK);
@@ -2533,7 +2536,8 @@ catch (const mp::NonAuthorizedBridgeSettingsException& e)
     {
         user_authorized_bridges.insert(get_bridged_interface_name());
 
-        MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val));
+        [[maybe_unused]] UserMessages messages{};
+        MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
 
         user_authorized_bridges.erase(get_bridged_interface_name());
 
@@ -2714,7 +2718,9 @@ try
 
             RestoreRequest client_response;
             if (!server->Read(&client_response))
-                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
+                return context->set_value(
+                    grpc::Status(grpc::StatusCode::CANCELLED,
+                                 "Cannot get confirmation from client. Aborting..."));
 
             if (!client_response.destructive())
             {
@@ -3168,11 +3174,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         try
         {
             CreateReply reply;
-#if AVAILABILITY_ZONES_FEATURE
             reply.set_create_message(fmt::format("Creating {} in {}", name, zone_name));
-#else
-            reply.set_create_message(fmt::format("Creating {}", name));
-#endif
             server->Write(reply);
 
             Query query;
