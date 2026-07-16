@@ -22,7 +22,6 @@
 
 #include <optional>
 #include <string>
-#include <vector>
 
 namespace multipass::backend
 {

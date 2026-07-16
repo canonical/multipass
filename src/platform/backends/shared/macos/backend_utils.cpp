@@ -125,11 +125,11 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
 
 void mp::backend::enable_cross_zone_routing(const AvailabilityZoneManager& az_manager)
 {
-    set_ip_forward();
-
     const auto zones = az_manager.get_zones();
     if (zones.size() < 2)
         return;
+
+    set_ip_forward();
 
     // macOS automatically enforces isolation between subnets via a pf "block drop quick"
     // rule. Override the rule by adding a "pass quick" rule in an earlier-evaluated anchor.
@@ -154,5 +154,8 @@ void mp::backend::enable_cross_zone_routing(const AvailabilityZoneManager& az_ma
     pfctl->close_write_channel();
 
     if (!pfctl->wait_for_finished() || !pfctl->process_state().completed_successfully())
-        mpl::warn(category, "Failed to install pf rules for cross-zone routing");
+        mpl::warn(category,
+                  "Failed to install pf rules for cross-zone routing: {}\n{}",
+                  pfctl->process_state().failure_message(),
+                  pfctl->read_all_standard_error());
 }
