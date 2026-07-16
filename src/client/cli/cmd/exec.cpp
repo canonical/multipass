@@ -164,7 +164,11 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
     if (reply.ssh_coordinates().empty())
         return ReturnCode::Ok;
 
-    const auto& ssh_coordinates = reply.ssh_coordinates().begin()->second;
+    const auto& ssh_coordinates_rpc = reply.ssh_coordinates().begin()->second;
+    mp::SSHCoordinates ssh_coordinates{ssh_coordinates_rpc.username(),
+                                       ssh_coordinates_rpc.priv_key_base64(),
+                                       ssh_coordinates_rpc.port(),
+                                       ssh_coordinates_rpc.tcp_host()};
     try
     {
         auto console_creator = [&term](auto channel) { return term->make_console(channel); };
@@ -179,7 +183,7 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
                 // This preserves the correct SUDO_ environment variables
                 const auto sh_args = fmt::format("cd {} && sudo -u {} {}",
                                                  *dir,
-                                                 ssh_coordinates.username(),
+                                                 ssh_coordinates_rpc.username(),
                                                  fmt::join(args, " "));
 
                 all_args = {{"sudo", "sh", "-c", sh_args}};

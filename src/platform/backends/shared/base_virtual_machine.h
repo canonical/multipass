@@ -53,6 +53,7 @@ public:
     ~BaseVirtualMachine();
 
     SSHCoordinates ssh_coordinates() override;
+    std::string ssh_username() const override;
     std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;
@@ -107,7 +108,6 @@ protected:
                                                              const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
 
-    std::string ssh_username() const override;
     virtual void drop_ssh_session(); // virtual to allow mocking
 
     // TODO@rewiressh make SSHSession mockable instead and use it in tests

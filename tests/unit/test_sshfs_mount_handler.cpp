@@ -108,7 +108,7 @@ TEST_F(SSHFSMountHandlerTest, mountCreatesSshfsProcess)
     factory->register_callback(sshfs_server_callback(sshfs_prints_connected));
 
     mpt::MockVirtualMachine mock_vm{};
-    EXPECT_CALL(mock_vm, ssh_coordinates()).Times(2);
+    EXPECT_CALL(mock_vm, ssh_coordinates()).Times(1);
     EXPECT_CALL(mock_vm, new_ssh_session());
 
     mp::SSHFSMountHandler sshfs_mount_handler{&mock_vm, &key_provider, target_path, mount};

@@ -522,12 +522,12 @@ auto make_info_function(const std::string& source_path = "", const std::string& 
     return info_function;
 }
 
-mp::SSHCoordinates make_ssh_coordinates(const std::string& host = "222.222.222.222",
-                                        int port = 22,
-                                        const std::string& priv_key = mpt::fake_key_data,
-                                        const std::string& username = "user")
+mp::SSHCoordinatesInfo make_ssh_coordinates(const std::string& host = "222.222.222.222",
+                                            uint32_t port = 22,
+                                            const std::string& priv_key = mpt::fake_key_data,
+                                            const std::string& username = "user")
 {
-    mp::SSHCoordinates ssh_coordinates;
+    mp::SSHCoordinatesInfo ssh_coordinates;
 
     ssh_coordinates.set_tcp_host(host);
     ssh_coordinates.set_port(port);
@@ -647,7 +647,7 @@ TEST_F(Client, transferCmdInstanceSourceLocalTarget)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
-            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinates{}});
+            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinatesInfo{}});
             server->Write(reply);
             return grpc::Status{};
         });
@@ -665,7 +665,7 @@ TEST_F(Client, transferCmdInstanceSourcesLocalTargetNotDir)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
-            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinates{}});
+            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinatesInfo{}});
             server->Write(reply);
             return grpc::Status{};
         });
@@ -691,7 +691,7 @@ TEST_F(Client, transferCmdInstanceSourcesLocalTargetCannotAccess)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
-            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinates{}});
+            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinatesInfo{}});
             server->Write(reply);
             return grpc::Status{};
         });
@@ -715,7 +715,7 @@ TEST_F(Client, transferCmdLocalSourcesInstanceTargetNotDir)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
-            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinates{}});
+            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinatesInfo{}});
             server->Write(reply);
             return grpc::Status{};
         });
@@ -739,7 +739,7 @@ TEST_F(Client, transferCmdLocalSourceInstanceTarget)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
-            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinates{}});
+            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinatesInfo{}});
             server->Write(reply);
             return grpc::Status{};
         });
@@ -787,7 +787,7 @@ TEST_F(Client, transferCmdStdinGoodDestinationOk)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
-            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinates{}});
+            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinatesInfo{}});
             server->Write(reply);
             return grpc::Status{};
         });
@@ -812,7 +812,7 @@ TEST_F(Client, transferCmdStdoutGoodSourceOk)
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
-            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinates{}});
+            reply.mutable_ssh_coordinates()->insert({"test-vm", mp::SSHCoordinatesInfo{}});
             server->Write(reply);
             return grpc::Status{};
         });

@@ -41,11 +41,10 @@ struct SSHProcess : public Test
 private:
     static mp::PlainSSHSession CreateSession(const mpt::StubSSHKeyProvider& provider)
     {
-        mp::SSHCoordinates coord;
-        coord.set_username("ubuntu");
-        coord.set_priv_key_base64(provider.private_key_as_base64());
-        coord.set_port(42);
-        coord.set_tcp_host("a");
+        mp::SSHCoordinates coord{"ubuntu",
+                                 provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
         return mp::PlainSSHSession{coord};
     }
 };
