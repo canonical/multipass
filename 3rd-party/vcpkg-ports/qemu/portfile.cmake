@@ -23,6 +23,7 @@ vcpkg_from_github(
         multipass-patches/0003-zero-initialize-vmnet-send-pos.patch
         multipass-patches/0004-migration-remap-legacy-id-aa64pfr1-el1-key.patch
         multipass-patches/0005-disable-werror-for-dtc-subproject.patch
+        multipass-patches/0006-migration-accept-subset-feature-id-registers.patch
 )
 
 if(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")

@@ -1,0 +1,83 @@
+From 7a57c6ce0fb0889bb034e4ff26b40172400f514a Mon Sep 17 00:00:00 2001
+From: Scott Harder <scott.harder@canonical.com>
+Date: Wed, 15 Jul 2026 19:25:37 -0500
+Subject: [PATCH] [migration] Accept subset feature-ID-register values on cpu
+ load
+
+Newer QEMU exposes CPU features via HVF `-cpu host` that older QEMU did not
+(e.g. FEAT_BTI in ID_AA64PFR1_EL1, FEAT_I8MM in ID_AA64ISAR1_EL1). Because the
+AArch64 feature ID registers are read-only, an instance suspended by an older
+QEMU records smaller values that cannot be written back over this host's,
+failing VM state load in cpu_post_load() with "Error -1 ... device 'cpu'".
+
+For registers in the AArch64 feature ID space, tolerate this on load when the
+incoming value is field-wise not greater than the host's -- i.e. the guest ran
+with a subset of the host's features. The guest keeps running with the host's
+(superset) value, which is safe under HVF. Unlike masking individual feature
+fields, this is host- and feature-agnostic: no per-CPU list of features, and it
+automatically covers features exposed by any Apple Silicon generation or future
+QEMU. It is a no-op for natively-suspended instances, whose values already
+match.
+
+Drop once instances suspended by the affected releases are no longer supported.
+---
+ target/arm/helper.c | 38 +++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 37 insertions(+), 1 deletion(-)
+
+diff --git a/target/arm/helper.c b/target/arm/helper.c
+index bb445e30cd..069a936d45 100644
+--- a/target/arm/helper.c
++++ b/target/arm/helper.c
+@@ -164,6 +164,24 @@ bool write_cpustate_to_list(ARMCPU *cpu, bool kvm_sync)
+     return ok;
+ }
+ 
++/*
++ * True if every 4-bit field of 'sub' is less than or equal to the corresponding
++ * field of 'sup'. ARM feature ID registers use (mostly) monotonic unsigned
++ * fields where a higher value describes a superset of features, so this
++ * approximates "the features described by 'sub' are a subset of those in 'sup'".
++ */
++static bool arm_id_reg_fields_subset(uint64_t sub, uint64_t sup)
++{
++    int shift;
++
++    for (shift = 0; shift < 64; shift += 4) {
++        if (((sub >> shift) & 0xf) > ((sup >> shift) & 0xf)) {
++            return false;
++        }
++    }
++    return true;
++}
++
+ bool write_list_to_cpustate(ARMCPU *cpu)
+ {
+     int i;
+@@ -189,7 +207,25 @@ bool write_list_to_cpustate(ARMCPU *cpu)
+          */
+         write_raw_cp_reg(&cpu->env, ri, v);
+         if (read_raw_cp_reg(&cpu->env, ri) != v) {
+-            ok = false;
++            /*
++             * Multipass suspend/resume compatibility across QEMU upgrades.
++             * Newer QEMU exposes CPU features via HVF `-cpu host` that older
++             * QEMU did not; the AArch64 feature ID registers are read-only, so
++             * an instance suspended by an older QEMU records smaller values
++             * that cannot be written back over this host's, which would fail VM
++             * state load in cpu_post_load(). For feature-ID-space registers,
++             * tolerate the mismatch when the incoming value is field-wise not
++             * greater than the host's -- i.e. the guest ran with a subset of
++             * the host's features. The guest keeps the host's (superset) value,
++             * which is safe under HVF since the hardware supports those
++             * features. This is host- and feature-agnostic: no per-CPU list of
++             * features to mask, and a no-op for natively-suspended instances
++             * whose values already match.
++             */
++            if (!(arm_cpreg_in_idspace(ri) &&
++                  arm_id_reg_fields_subset(v, read_raw_cp_reg(&cpu->env, ri)))) {
++                ok = false;
++            }
+         }
+     }
+     return ok;
+-- 
