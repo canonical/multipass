@@ -15,10 +15,13 @@
  *
  */
 
+#include "tests/unit/mock_availability_zone_manager.h"
 #include "tests/unit/mock_process_factory.h"
 #include "tests/unit/mock_utils.h"
 
 #include <src/platform/backends/shared/macos/backend_utils.h>
+
+#include <multipass/subnet.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -114,3 +117,91 @@ TEST_P(GetNeighbourIPInvalidInputsTests, inValidInputCases)
 INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
                          GetNeighbourIPInvalidInputsTests,
                          Values("11:11:11:11:11:11", "ee:ee:ee:ee:ee:ee"));
+
+TEST(EnableCrossZoneRouting, singleZoneDoesNotTouchForwardingOrPf)
+{
+    const auto mock_process_factory = mpt::MockProcessFactory::Inject();
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+
+    const mp::Subnet subnet{"192.168.64.0/24"};
+    NiceMock<mpt::MockAvailabilityZone> zone;
+    ON_CALL(zone, get_subnet()).WillByDefault(ReturnRef(subnet));
+
+    NiceMock<mpt::MockAvailabilityZoneManager> mock_manager;
+    const std::vector<std::reference_wrapper<const mp::AvailabilityZone>> zones{zone};
+    EXPECT_CALL(mock_manager, get_zones()).WillRepeatedly(Return(zones));
+
+    // Neither IP forwarding nor pf rules should be touched with fewer than two zones.
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(_, _, _)).Times(0);
+
+    mp::backend::enable_cross_zone_routing(mock_manager);
+
+    EXPECT_TRUE(mock_process_factory->process_list().empty());
+}
+
+TEST(EnableCrossZoneRouting, multipleZonesEnablesForwardingAndInstallsPfRules)
+{
+    const auto mock_process_factory = mpt::MockProcessFactory::Inject();
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+
+    const mp::Subnet subnet_a{"192.168.64.0/24"};
+    const mp::Subnet subnet_b{"192.168.65.0/24"};
+    const mp::Subnet subnet_c{"192.168.66.0/24"};
+
+    NiceMock<mpt::MockAvailabilityZone> zone_a, zone_b, zone_c;
+    ON_CALL(zone_a, get_subnet()).WillByDefault(ReturnRef(subnet_a));
+    ON_CALL(zone_b, get_subnet()).WillByDefault(ReturnRef(subnet_b));
+    ON_CALL(zone_c, get_subnet()).WillByDefault(ReturnRef(subnet_c));
+
+    NiceMock<mpt::MockAvailabilityZoneManager> mock_manager;
+    const std::vector<std::reference_wrapper<const mp::AvailabilityZone>> zones{zone_a,
+                                                                                zone_b,
+                                                                                zone_c};
+    EXPECT_CALL(mock_manager, get_zones()).WillRepeatedly(Return(zones));
+
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("sysctl"), Contains(QString("net.inet.ip.forwarding=1")), _))
+        .WillOnce(Return(true));
+
+    std::string captured_rules;
+    mock_process_factory->register_callback([&captured_rules](mpt::MockProcess* process) {
+        if (process->program() == "pfctl")
+        {
+            EXPECT_THAT(process->arguments(), Contains(QString("-f")));
+            EXPECT_CALL(*process, write(_)).WillOnce([&captured_rules](const QByteArray& data) {
+                captured_rules = data.toStdString();
+                return data.size();
+            });
+            EXPECT_CALL(*process, wait_for_finished(_)).WillRepeatedly(Return(true));
+        }
+    });
+
+    mp::backend::enable_cross_zone_routing(mock_manager);
+
+    // N zones produce a "pass" rule for each of the N * (N - 1) ordered, distinct subnet pairs.
+    EXPECT_THAT(QString::fromStdString(captured_rules).split('\n', Qt::SkipEmptyParts),
+                SizeIs(zones.size() * (zones.size() - 1)));
+    for (const auto& src : mock_manager.get_zones())
+    {
+        for (const auto& dst : mock_manager.get_zones())
+        {
+            if (&src.get() != &dst.get())
+            {
+                EXPECT_THAT(captured_rules,
+                            HasSubstr(fmt::format("pass quick inet from {} to {} flags any keep "
+                                                  "state",
+                                                  src.get().get_subnet().canonical().to_cidr(),
+                                                  dst.get().get_subnet().canonical().to_cidr())));
+            }
+            else
+            {
+                EXPECT_THAT(
+                    captured_rules,
+                    Not(HasSubstr(fmt::format("from {} to {}",
+                                              src.get().get_subnet().canonical().to_cidr(),
+                                              dst.get().get_subnet().canonical().to_cidr()))));
+            }
+        }
+    }
+}
