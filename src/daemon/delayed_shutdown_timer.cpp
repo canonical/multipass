@@ -54,14 +54,14 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::milliseco
             vm,
             fmt::format(
                 "wall \"The system is going down for poweroff in {} minute{}, use 'multipass stop "
-                "--cancel {}' to cancel the shutdown.\"",
+                "--cancel {}' to cancel the shutdown.\" || true",
                 minutes_left,
                 num_plural(minutes_left) ? "s" : "",
                 vm.get_name()));
     }
     else
     {
-        attempt_ssh_exec(vm, "wall The system is going down for poweroff now");
+        attempt_ssh_exec(vm, "wall The system is going down for poweroff now || true");
     }
 }
 } // namespace
@@ -80,7 +80,8 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
             shutdown_timer.stop();
             mpl::info(virtual_machine->get_name(), "Cancelling delayed shutdown");
             virtual_machine->state = VirtualMachine::State::running;
-            attempt_ssh_exec(*virtual_machine, "wall The system shutdown has been cancelled");
+            attempt_ssh_exec(*virtual_machine,
+                             "wall The system shutdown has been cancelled || true");
         }
     });
 }
