@@ -4,19 +4,19 @@
 The `multipass find` command without any argument lists the images Multipass can use to run instances with [`launch`](/reference/command-line-interface/launch) on your system and associated version information. For example:
 
 ```{code-block} text
-Image                       Aliases              Version          Description
-22.04                       jammy                20260515         Ubuntu 22.04 LTS
-24.04                       noble                20260518         Ubuntu 24.04 LTS
-25.10                       questing             20260520         Ubuntu 25.10
-26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
-core:core16                                      current          Ubuntu Core 16
-core:core18                                      current          Ubuntu Core 18
-core:core20                                      current          Ubuntu Core 20
-core:core22                                      current          Ubuntu Core 22
-core:core24                                      current          Ubuntu Core 24
-core:core26                                      current          Ubuntu Core 26
-debian                      trixie               20260601         Debian Trixie
-fedora                                           20260422         Fedora 44
+Image             Aliases                     Version          Description
+22.04             jammy                       20260515         Ubuntu 22.04 LTS
+24.04             noble                       20260518         Ubuntu 24.04 LTS
+25.10             questing                    20260520         Ubuntu 25.10
+26.04             resolute,lts,ubuntu         20260520         Ubuntu 26.04 LTS
+core:core16                                   current          Ubuntu Core 16
+core:core18                                   current          Ubuntu Core 18
+core:core20                                   current          Ubuntu Core 20
+core:core22                                   current          Ubuntu Core 22
+core:core24                                   current          Ubuntu Core 24
+core:core26                                   current          Ubuntu Core 26
+debian            trixie                      20260601         Debian Trixie
+fedora                                        20260422         Fedora 44
 ```
 
 Launch aliases, version information and a brief description are shown next to each name in the command output.
