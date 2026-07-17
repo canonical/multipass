@@ -74,18 +74,15 @@ mp::PlainSSHSession::PlainSSHSession(const std::string& host,
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
-    SSH::throw_on_error(session, "ssh connection failed", [](ssh_session s) {
-        return MP_LIBSSH.ssh_connect(s);
-    });
+    SSH::throw_on_error(session,
+                        "ssh connection failed",
+                        std::bind_front(&Libssh::ssh_connect, &Libssh::instance()));
     set_option(SSH_OPTIONS_TIMEOUT, &established_timeout_secs);
-    SSH::throw_on_error(
-        session,
-        "ssh failed to authenticate",
-        [](ssh_session s, const char* user, const ssh_key key) {
-            return MP_LIBSSH.ssh_userauth_publickey(s, user, key);
-        },
-        nullptr,
-        key_provider.private_key());
+    SSH::throw_on_error(session,
+                        "ssh failed to authenticate",
+                        std::bind_front(&Libssh::ssh_userauth_publickey, &Libssh::instance()),
+                        nullptr,
+                        key_provider.private_key());
 }
 
 multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other)

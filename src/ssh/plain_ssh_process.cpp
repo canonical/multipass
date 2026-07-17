@@ -79,15 +79,16 @@ auto make_channel(ssh_session session, const std::string& cmd)
     mp::PlainSSHProcess::ChannelUPtr channel{
         MP_LIBSSH.ssh_channel_new(session),
         [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
-    mp::SSH::throw_on_error(channel,
-                            session,
-                            "[ssh proc] failed to open session channel",
-                            [](ssh_channel ch) { return MP_LIBSSH.ssh_channel_open_session(ch); });
+    mp::SSH::throw_on_error(
+        channel,
+        session,
+        "[ssh proc] failed to open session channel",
+        std::bind_front(&mp::Libssh::ssh_channel_open_session, &mp::Libssh::instance()));
     mp::SSH::throw_on_error(
         channel,
         session,
         "[ssh proc] exec request failed",
-        [](ssh_channel ch, const char* c) { return MP_LIBSSH.ssh_channel_request_exec(ch, c); },
+        std::bind_front(&mp::Libssh::ssh_channel_request_exec, &mp::Libssh::instance()),
         cmd.c_str());
     return channel;
 }

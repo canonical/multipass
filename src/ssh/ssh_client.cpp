@@ -39,10 +39,11 @@ mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
     mp::SSHClient::ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(session),
                                        [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
 
-    mp::SSH::throw_on_error(channel,
-                            session,
-                            "[ssh client] channel creation failed",
-                            [](ssh_channel ch) { return MP_LIBSSH.ssh_channel_open_session(ch); });
+    mp::SSH::throw_on_error(
+        channel,
+        session,
+        "[ssh client] channel creation failed",
+        std::bind_front(&mp::Libssh::ssh_channel_open_session, &mp::Libssh::instance()));
 
     return channel;
 }
@@ -164,17 +165,17 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
 {
     // All returned ints from this function can be considered to be VMReturnCodes
     if (cmd_line.empty())
-        SSH::throw_on_error(channel,
-                            *ssh_session,
-                            "[ssh client] shell request failed",
-                            [](ssh_channel ch) { return MP_LIBSSH.ssh_channel_request_shell(ch); });
-    else
         SSH::throw_on_error(
             channel,
             *ssh_session,
-            "[ssh client] exec request failed",
-            [](ssh_channel ch, const char* c) { return MP_LIBSSH.ssh_channel_request_exec(ch, c); },
-            cmd_line.c_str());
+            "[ssh client] shell request failed",
+            std::bind_front(&Libssh::ssh_channel_request_shell, &Libssh::instance()));
+    else
+        SSH::throw_on_error(channel,
+                            *ssh_session,
+                            "[ssh client] exec request failed",
+                            std::bind_front(&Libssh::ssh_channel_request_exec, &Libssh::instance()),
+                            cmd_line.c_str());
 
     handle_ssh_events();
     return this->get_ssh_exit_code();
@@ -187,16 +188,13 @@ int mp::SSHClient::get_ssh_exit_code()
     char* exit_signal_status = nullptr;
     int core_dumped = 0;
 
-    SSH::throw_on_error(
-        channel,
-        *ssh_session,
-        "[ssh client] could not obtain exit state",
-        [](ssh_channel ch, uint32_t* es, char** signal, int* core) {
-            return MP_LIBSSH.ssh_channel_get_exit_state(ch, es, signal, core);
-        },
-        &exit_status,
-        &exit_signal_status,
-        &core_dumped);
+    SSH::throw_on_error(channel,
+                        *ssh_session,
+                        "[ssh client] could not obtain exit state",
+                        std::bind_front(&Libssh::ssh_channel_get_exit_state, &Libssh::instance()),
+                        &exit_status,
+                        &exit_signal_status,
+                        &core_dumped);
 
     if (exit_signal_status != nullptr)
     {
