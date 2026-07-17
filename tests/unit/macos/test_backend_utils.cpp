@@ -15,9 +15,9 @@
  *
  */
 
-#include "tests/unit/mock_availability_zone_manager.h"
 #include "tests/unit/mock_process_factory.h"
 #include "tests/unit/mock_utils.h"
+#include "tests/unit/stub_availability_zone_manager.h"
 
 #include <src/platform/backends/shared/macos/backend_utils.h>
 
@@ -123,18 +123,12 @@ TEST(EnableCrossZoneRouting, singleZoneDoesNotTouchForwardingOrPf)
     const auto mock_process_factory = mpt::MockProcessFactory::Inject();
     auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
 
-    const mp::Subnet subnet{"192.168.64.0/24"};
-    NiceMock<mpt::MockAvailabilityZone> zone;
-    ON_CALL(zone, get_subnet()).WillByDefault(ReturnRef(subnet));
-
-    NiceMock<mpt::MockAvailabilityZoneManager> mock_manager;
-    const std::vector<std::reference_wrapper<const mp::AvailabilityZone>> zones{zone};
-    EXPECT_CALL(mock_manager, get_zones()).WillRepeatedly(Return(zones));
+    const mpt::StubAvailabilityZoneManager az_manager;
 
     // Neither IP forwarding nor pf rules should be touched with fewer than two zones.
     EXPECT_CALL(*mock_utils, run_cmd_for_status(_, _, _)).Times(0);
 
-    mp::backend::enable_cross_zone_routing(mock_manager);
+    mp::backend::enable_cross_zone_routing(az_manager);
 
     EXPECT_TRUE(mock_process_factory->process_list().empty());
 }
@@ -144,20 +138,10 @@ TEST(EnableCrossZoneRouting, multipleZonesEnablesForwardingAndInstallsPfRules)
     const auto mock_process_factory = mpt::MockProcessFactory::Inject();
     auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
 
-    const mp::Subnet subnet_a{"192.168.64.0/24"};
-    const mp::Subnet subnet_b{"192.168.65.0/24"};
-    const mp::Subnet subnet_c{"192.168.66.0/24"};
-
-    NiceMock<mpt::MockAvailabilityZone> zone_a, zone_b, zone_c;
-    ON_CALL(zone_a, get_subnet()).WillByDefault(ReturnRef(subnet_a));
-    ON_CALL(zone_b, get_subnet()).WillByDefault(ReturnRef(subnet_b));
-    ON_CALL(zone_c, get_subnet()).WillByDefault(ReturnRef(subnet_c));
-
-    NiceMock<mpt::MockAvailabilityZoneManager> mock_manager;
-    const std::vector<std::reference_wrapper<const mp::AvailabilityZone>> zones{zone_a,
-                                                                                zone_b,
-                                                                                zone_c};
-    EXPECT_CALL(mock_manager, get_zones()).WillRepeatedly(Return(zones));
+    const auto zones = {mp::Subnet{"192.168.64.0/24"},
+                        mp::Subnet{"192.168.65.0/24"},
+                        mp::Subnet{"192.168.66.0/24"}};
+    const mpt::StubAvailabilityZoneManager az_manager{zones};
 
     EXPECT_CALL(
         *mock_utils,
@@ -177,14 +161,14 @@ TEST(EnableCrossZoneRouting, multipleZonesEnablesForwardingAndInstallsPfRules)
         }
     });
 
-    mp::backend::enable_cross_zone_routing(mock_manager);
+    mp::backend::enable_cross_zone_routing(az_manager);
 
     // N zones produce a "pass" rule for each of the N * (N - 1) ordered, distinct subnet pairs.
     EXPECT_THAT(QString::fromStdString(captured_rules).split('\n', Qt::SkipEmptyParts),
                 SizeIs(zones.size() * (zones.size() - 1)));
-    for (const auto& src : mock_manager.get_zones())
+    for (const auto& src : az_manager.get_zones())
     {
-        for (const auto& dst : mock_manager.get_zones())
+        for (const auto& dst : az_manager.get_zones())
         {
             if (&src.get() != &dst.get())
             {

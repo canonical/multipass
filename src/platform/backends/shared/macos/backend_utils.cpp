@@ -136,7 +136,7 @@ void mp::backend::enable_cross_zone_routing(const AvailabilityZoneManager& az_ma
     std::string rules;
     for (const auto& src : zones)
         for (const auto& dst : zones)
-            if (&src.get() != &dst.get())
+            if (src.get().get_subnet() != dst.get().get_subnet())
                 rules += fmt::format("pass quick inet from {} to {} flags any keep state\n",
                                      src.get().get_subnet().canonical().to_cidr(),
                                      dst.get().get_subnet().canonical().to_cidr());
