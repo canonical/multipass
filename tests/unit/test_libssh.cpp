@@ -27,7 +27,7 @@ TEST(Libssh, eventNewReturnsNonNullAndCanBeFreed)
 {
     ssh_event event = MP_LIBSSH.ssh_event_new();
     ASSERT_NE(event, nullptr);
-    MP_LIBSSH.ssh_event_free(event); // must not crash
+    MP_LIBSSH.ssh_event_free(event);
 }
 
 TEST(Libssh, pkiGenerateExportAndFreeRoundTrip)

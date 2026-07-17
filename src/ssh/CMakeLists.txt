@@ -13,9 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Base, mockable libssh wrapper (MP_LIBSSH). It is built once and shared by every
-# ssh/sftp consumer. WITH_SERVER is required because libssh.cpp forwards to the
-# sftp_server_* family, which libssh only declares under that macro.
+# TODO: drop premock in favor of MP_LIBSSH, then remove all duplicate _test targets
 function(add_libssh_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     libssh_wrapper.cpp)
