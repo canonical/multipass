@@ -23,9 +23,6 @@
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>
 
-#include <cstddef>
-#include <cstdint>
-
 #define MP_LIBSSH multipass::Libssh::instance()
 
 namespace multipass
