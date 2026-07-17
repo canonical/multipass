@@ -21,6 +21,8 @@ add_library(logger STATIC
 )
 
 target_link_libraries(logger
+  rslogger #This is because every staticlib contains the cxx bridge,
+  # But the cxx bridge source cannot be isolated
   fmt::fmt-header-only
   Qt6::Core
 )

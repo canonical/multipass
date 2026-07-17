@@ -46,6 +46,7 @@ set(CARGO_CMD ${CMAKE_COMMAND} -E env ${CARGO_ENV} ${CARGO_EXECUTABLE})
 #for said usage
 set(CRATES
   namegen
+  rslogger
 )
 
 if(NOT CRATES STREQUAL "")
@@ -86,7 +87,7 @@ foreach(CRATE_NAME ${CRATES})
     add_subdirectory(${CRATE_NAME})
     #The CXX glue staticlib must link the rust staticlib
     target_link_libraries(${CRATE_NAME} PUBLIC ${CRATE_NAME}_rs cxx)
-    target_link_libraries(${CRATE_NAME}_rs INTERFACE ${${CRATE_NAME}_LINK_LIBS})
+    target_link_libraries(${CRATE_NAME}_rs PUBLIC ${${CRATE_NAME}_LINK_LIBS})
   endif()
 endforeach()
 
