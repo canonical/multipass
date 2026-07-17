@@ -21,7 +21,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 #include <winsock2.h>
 

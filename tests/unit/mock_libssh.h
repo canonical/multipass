@@ -20,7 +20,7 @@
 #include "common.h"
 #include "mock_singleton_helpers.h"
 
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 namespace multipass::test
 {

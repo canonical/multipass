@@ -16,7 +16,7 @@
  */
 
 #include <multipass/logging/log.h>
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/ssh/throw_on_error.h>

@@ -17,7 +17,7 @@
 
 #include "ssh_client_key_provider.h"
 
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 #include <stdexcept>
 

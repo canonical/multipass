@@ -16,7 +16,7 @@
  */
 
 #include <multipass/file_ops.h>
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/sftp_utils.h>
 
 #include <fmt/std.h>

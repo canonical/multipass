@@ -24,7 +24,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>

@@ -16,7 +16,7 @@
  */
 
 #include <multipass/format.h>
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/sftp_dir_iterator.h>
 #include <multipass/ssh/sftp_utils.h>
 

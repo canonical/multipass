@@ -22,7 +22,7 @@
 
 #include <multipass/format.h>
 #include <multipass/singleton.h>
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 // Routes both the allocating call and the deleter through MP_LIBSSH so SFTP code paths
 // remain mockable. The deleter type stays a std::function (matching the libssh signature)

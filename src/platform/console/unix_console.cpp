@@ -18,7 +18,7 @@
 #include "unix_console.h"
 
 #include <multipass/platform_unix.h>
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 #include <sys/ioctl.h>
 

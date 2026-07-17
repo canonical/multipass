@@ -23,8 +23,6 @@
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>
 
-#include <sys/types.h>
-
 #include <cstddef>
 #include <cstdint>
 

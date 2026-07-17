@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/utils.h>
 

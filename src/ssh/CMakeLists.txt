@@ -18,7 +18,7 @@
 # sftp_server_* family, which libssh only declares under that macro.
 function(add_libssh_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
-    libssh.cpp)
+    libssh_wrapper.cpp)
 
   target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 

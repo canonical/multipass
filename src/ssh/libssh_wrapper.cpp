@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 extern "C"
 {

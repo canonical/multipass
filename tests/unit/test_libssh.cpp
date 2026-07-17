@@ -17,7 +17,7 @@
 
 #include "common.h"
 
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 #include <cstdlib>
 #include <cstring>

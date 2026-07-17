@@ -17,7 +17,7 @@
 
 #include <multipass/ssh/libssh_scope_guard.h>
 
-#include <multipass/ssh/libssh.h>
+#include <multipass/ssh/libssh_wrapper.h>
 
 namespace mp = multipass;
 
