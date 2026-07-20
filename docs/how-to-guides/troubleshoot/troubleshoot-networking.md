@@ -342,8 +342,8 @@ This background information can help if you need to understand why the previous 
 
 On macOS, Multipass uses Apple's built-in **Internet Sharing** feature to give your instances a network. When you create an instance, macOS:
 
-1. Creates a private network and connects each instance to it, using the address range `192.168.64.*`.
-2. Hands out IP addresses and resolves names on that network from `192.168.64.1`, using Apple's own `bootpd` and `mDNSResponder` services.
+1. Creates a private network and connects each instance to it. Multipass draws addresses from the `192.168.252.0/16` range, assigning a `/24` subnet to each availability zone: `192.168.252.0/24` for `zone1`, `192.168.253.0/24` for `zone2`, and `192.168.254.0/24` for `zone3`.
+2. Hands out IP addresses and resolves names on that network from the first address of the zone's subnet (for example, `192.168.252.1` for `zone1`), using Apple's own `bootpd` and `mDNSResponder` services.
 
 In **System Preferences > Sharing**, **Internet Sharing** may appear switched off. That's normal; it still runs in the background for your instances.
 
