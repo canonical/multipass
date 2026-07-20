@@ -15,7 +15,7 @@ A string identifying the hypervisor back-end in use.
 
   - `qemu` on Linux
   - `hyperv` and `virtualbox` on Windows
-  - `qemu`, `applevz`, and `virtualbox` on macOS 13.3+
+  - `qemu` and `applevz` on macOS; `virtualbox` on macOS running on Intel/x86 only
 
 ## Default values
 
