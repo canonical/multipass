@@ -161,7 +161,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image_failed)
         .WillOnce(Return(hcs_op_result_t{1, L""}));
 
     ASSERT_NO_THROW(uut = construct_factory());
-    EXPECT_THROW(uut->prepare_instance_image(img, desc), multipass::hyperv::ImageResizeException);
+    EXPECT_THROW(uut->prepare_instance_image(img, desc), mhv::ImageResizeException);
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
@@ -201,7 +201,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
     EXPECT_CALL(mock_hcn, create_network(_))
         // only expect call for bbaa. aabb's vSwitch already exists.
         .WillOnce(DoAll(
-            [&](const multipass::hyperv::hcn::CreateNetworkParameters& params) {
+            [&](const mhv::hcn::CreateNetworkParameters& params) {
                 constexpr auto expected_name = "Multipass vSwitch (bbaa)";
                 EXPECT_EQ(params.name, expected_name);
                 EXPECT_EQ(params.type, mhv::hcn::HcnNetworkType::Transparent());
@@ -209,12 +209,10 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
                 ASSERT_EQ(params.policies.size(), 1);
                 EXPECT_EQ(params.policies[0].type,
                           mhv::hcn::HcnNetworkPolicyType::NetAdapterName());
-                ASSERT_TRUE(
-                    std::holds_alternative<multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName>(
-                        params.policies[0].settings));
-                const auto& net_adapter_name =
-                    std::get<multipass::hyperv::hcn::HcnNetworkPolicyNetAdapterName>(
-                        params.policies[0].settings);
+                ASSERT_TRUE(std::holds_alternative<mhv::hcn::HcnNetworkPolicyNetAdapterName>(
+                    params.policies[0].settings));
+                const auto& net_adapter_name = std::get<mhv::hcn::HcnNetworkPolicyNetAdapterName>(
+                    params.policies[0].settings);
                 EXPECT_EQ(net_adapter_name.net_adapter_name, interface2.id);
             },
             Return(hcs_op_result_t{0, L""})));
