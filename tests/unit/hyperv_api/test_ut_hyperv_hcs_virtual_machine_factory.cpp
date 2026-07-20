@@ -70,6 +70,23 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
 
     auto construct_factory()
     {
+        EXPECT_CALL(mock_hcn,
+                    create_network(Field(&mhv::hcn::CreateNetworkParameters::name,
+                                         Eq("Multipass vNetwork (zone1)"))))
+            .WillOnce(DoAll(
+                [&](const mhv::hcn::CreateNetworkParameters& params) {
+                    EXPECT_EQ(params.type, mhv::hcn::HcnNetworkType::Ics());
+                    EXPECT_EQ(params.guid,
+                              multipass::utils::make_uuid("Multipass vNetwork (zone1)"));
+                    EXPECT_EQ(params.policies.size(), 0);
+                    ASSERT_EQ(params.ipams.size(), 1);
+                    EXPECT_EQ(params.ipams[0].type, mhv::hcn::HcnIpamType::Static());
+                    ASSERT_EQ(params.ipams[0].subnets.size(), 1);
+                    EXPECT_EQ(params.ipams[0].subnets[0].ip_address_prefix,
+                              az_manager.get_zone("zone1").get_subnet().to_cidr());
+                },
+                Return(hcs_op_result_t{0, L""})));
+
         return std::make_shared<uut_t>(dummy_data_dir.path(), az_manager);
     }
 };
@@ -168,6 +185,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
 {
     std::shared_ptr<uut_t> uut{nullptr};
     multipass::VirtualMachineDescription desc;
+    desc.zone = "zone1";
     multipass::NetworkInterfaceInfo interface1{.id = "aabb", .type = "Ethernet"},
         interface2{.id = "bbaa", .type = "Ethernet"};
 
