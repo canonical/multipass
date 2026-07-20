@@ -52,8 +52,8 @@ pub fn log_message_with_location(
 #[macro_export]
 macro_rules! error {
     ($category:expr, $($arg:tt)+) => {
-        $crate::log_message(
-            ffi::Level::Error,
+        $crate::log::log_message(
+            $crate::ffi::Level::error,
             $category.to_string(),
             format!($($arg)+),
         )
@@ -63,8 +63,8 @@ macro_rules! error {
 #[macro_export]
 macro_rules! warning {
     ($category:expr, $($arg:tt)+) => {
-        $crate::log_message(
-            ffi::Level::Warning,
+        $crate::log::log_message(
+            $crate::ffi::Level::warning,
             $category.to_string(),
             format!($($arg)+),
         )
@@ -74,8 +74,8 @@ macro_rules! warning {
 #[macro_export]
 macro_rules! debug {
     ($category:expr, $($arg:tt)+) => {
-        $crate::log_message(
-            ffi::Level::Debug,
+        $crate::log::log_message(
+            $crate::ffi::Level::debug,
             $category.to_string(),
             format!($($arg)+),
         )
@@ -85,8 +85,8 @@ macro_rules! debug {
 #[macro_export]
 macro_rules! trace {
     ($category:expr, $($arg:tt)+) => {
-        $crate::log_message(
-            ffi::Level::Trace,
+        $crate::log::log_message(
+            $crate::ffi::Level::trace,
             $category.to_string(),
             format!($($arg)+),
         )
@@ -98,8 +98,8 @@ macro_rules! trace {
 #[macro_export]
 macro_rules! debug_location {
     ($category:expr, $($arg:tt)+) => {
-        $crate::log_message_with_location(
-            ffi::Level::Debug,
+        $crate::log::log_message_with_location(
+            $crate::ffi::Level::debug,
             $category.to_string(),
             file!(),
             line!(),
@@ -112,8 +112,8 @@ macro_rules! debug_location {
 #[macro_export]
 macro_rules! trace_location {
     ($category:expr, $($arg:tt)+) => {
-        $crate::log_message_with_location(
-            ffi::Level::Trace,
+        $crate::log::log_message_with_location(
+            $crate::ffi::Level::trace,
             $category.to_string(),
             file!(),
             line!(),
