@@ -1,8 +1,8 @@
 # Copyright (C) Canonical, Ltd.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
-# published by the Free Software Foundation.
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -11,19 +11,3 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-
-add_library(logger STATIC
-  log.cpp
-  log_location.cpp
-  multiplexing_logger.cpp
-  standard_logger.cpp
-)
-
-target_link_libraries(logger
-  rust
-  fmt::fmt-header-only
-  Qt6::Core
-)
-
-add_dependencies(logger rpc)

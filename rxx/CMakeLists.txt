@@ -47,6 +47,7 @@ set(CARGO_CMD ${CMAKE_COMMAND} -E env ${CARGO_ENV} ${CARGO_EXECUTABLE})
 set(CRATES
   namegen
   rslogger
+  rust #Generic library to add access to cxx bindings to the C++ side
 )
 
 if(NOT CRATES STREQUAL "")
