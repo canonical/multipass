@@ -17,6 +17,7 @@ members = [
   "macros",
   "namegen",
   "rslogger",
+  "rust",
 ]
 resolver = "2"
 
