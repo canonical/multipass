@@ -15,3 +15,6 @@
 target_link_libraries(${CRATE_NAME} PUBLIC
     logger #C++ module
 )
+
+#USAGE in other crates
+#target_link_libraries(namegen PRIVATE rslogger)
