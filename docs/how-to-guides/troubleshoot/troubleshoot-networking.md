@@ -118,13 +118,30 @@ Then reload the firewall rules:
 sudo pfctl -f /etc/pf.conf
 ```
 
-#### Use a different network range
+#### Use a different subnet
 
-If the `192.168.64.*` range clashes with your network, you can change it. Edit `/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist` and change the `Shared_Net_Address` value. Stay within the `192.168.*` range, as Multipass relies on it.
+Since Multipass 1.17, each availability zone gets its own subnet from the `192.168.252.0/16` range. Multipass chooses these automatically and avoids ranges already in use, so conflicts are uncommon. If a zone's subnet does clash with your network, you can set a different one in the zone's configuration file.
 
-```{note}
-If you change the range and launch an instance, it will get an address from the new range. Changing it back, however, is reverted the next time an instance starts: the DHCP service reads the last address in `/var/db/dhcpd_leases`, works out the range from it, and resets `Shared_Net_Address` to match. To truly revert the change, edit or delete `/var/db/dhcpd_leases`.
-```
+To change a zone's subnet:
+
+1. List the current subnets to find the zone you want to change:
+
+    ```{code-block} text
+    multipass zones
+
+    Name    State         Subnet
+    zone1   Available     192.168.252.0/24
+    zone2   Available     192.168.253.0/24
+    zone3   Available     192.168.254.0/24
+    ```
+
+2. Stop the Multipass daemon.
+
+3. In the {ref}`Multipass data directory <how-to-guides-customise-multipass-configure-where-multipass-stores-external-data>`, open the zone's file under `zones/` (for example, `zones/zone1.json`) and set its `subnet` value to a free range.
+
+4. Start the Multipass daemon again.
+
+Multipass reads these files at startup, so the new subnet takes effect once the daemon restarts. Note the original value before you change it, in case you want to revert.
 
 (networking-macos-dns)=
 ### Your instance can reach IP addresses, but not domain names
