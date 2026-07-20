@@ -51,7 +51,7 @@ If you use any of these, try quitting it and reproducing your problem before goi
 
 > I try running `multipass launch` and it fails. The error mentions it can't determine an IP address.
 
-**What you'll see**
+### What you'll see
 
 A launch that fails with a message containing:
 
