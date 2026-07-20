@@ -8,8 +8,8 @@ This guide helps you troubleshoot known Multipass networking issues on macOS and
 
 Before troubleshooting a specific symptom, review these quick checks:
 
-- [Apps that commonly interfere with Multipass](#networking-interfering-apps).
-- [How Multipass networking works](#networking-background), if you need more context.
+- {ref}`Apps that commonly interfere with Multipass <networking-interfering-apps>`.
+- {ref}`How Multipass networking works <networking-background>`, if you need more context.
 
 ## Which problem do you have?
 
