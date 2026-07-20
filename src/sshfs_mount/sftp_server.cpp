@@ -229,7 +229,7 @@ void check_sshfs_status(mp::SSHProcess& sshfs_process)
     {
         // This `if` is artificial and should not really be here. However there is a complex
         // arrangement of Sftp and SshfsMount tests depending on this.
-        if (sshfs_process.exit_code(250ms) != 0) // TODO remove
+        if (sshfs_process.get_exit_code(250ms) != 0) // TODO remove
             throw std::runtime_error(sshfs_process.read_std_error());
     }
 }
@@ -581,7 +581,7 @@ void mp::SftpServer::run()
             int status{0};
             try
             {
-                status = sshfs_process->exit_code(250ms);
+                status = sshfs_process->get_exit_code(250ms);
             }
             catch (const mp::ExitlessSSHProcessException&) // should we limit this to
                                                            // SSHProcessExitError?

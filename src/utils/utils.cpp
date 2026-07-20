@@ -301,7 +301,7 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
 
 std::string mp::Utils::reap_ssh_process(mp::SSHProcess& proc) const
 {
-    if (auto ec = proc.exit_code(); ec != 0)
+    if (auto ec = proc.get_exit_code(); ec != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
         auto suffix = error_msg.empty() ? fmt::format("exit_code {} (no stderr output)", ec)

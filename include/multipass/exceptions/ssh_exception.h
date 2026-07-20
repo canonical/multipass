@@ -53,4 +53,11 @@ struct SSHVMNotRunning : public FormattedExceptionBase<SSHException>
 {
     using FormattedExceptionBase<SSHException>::FormattedExceptionBase;
 };
+
+// To indicate internal errors (allocation failures, failed registration of an object, etc.)
+struct SSHAbruptlyClosed : public FormattedExceptionBase<SSHException>
+{
+    using FormattedExceptionBase<SSHException>::FormattedExceptionBase;
+};
+
 } // namespace multipass

@@ -25,10 +25,11 @@ namespace multipass::test
 {
 struct MockSSHProcess : public SSHProcess
 {
-    MOCK_METHOD(bool, exit_recognized, (std::chrono::milliseconds timeout), (override));
-    MOCK_METHOD(int, exit_code, (std::chrono::milliseconds timeout), (override));
-    MOCK_METHOD(std::string, read_std_output, (), (override));
-    MOCK_METHOD(std::string, read_std_error, (), (override));
+    MOCK_METHOD(int, get_exit_code, (sch::milliseconds timeout), (override));
+    MOCK_METHOD(std::string, read_std_output, (sch::milliseconds timeout), (override));
+    MOCK_METHOD(std::string, read_std_error, (sch::milliseconds timeout), (override));
     MOCK_METHOD(const std::string&, get_cmd, (), (const, override));
+    MOCK_METHOD(bool, is_terminated, (sch::milliseconds timeout), (override));
+    MOCK_METHOD(void, close, (), (override));
 };
 } // namespace multipass::test
