@@ -171,6 +171,7 @@ target_link_libraries(multipass_cpp_tests
   iso
   network
   namegen
+  rslogger
   settings
   simplestreams
   sftp_test
