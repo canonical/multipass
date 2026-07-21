@@ -839,9 +839,8 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         }
     }
 
-    SftpHandleUPtr sftp_handle{
-        MP_LIBSSH.sftp_handle_alloc(raw_sftp_session.get(), named_fd.get()),
-        [](ssh_string s) { MP_LIBSSH.ssh_string_free(s); }};
+    SftpHandleUPtr sftp_handle{MP_LIBSSH.sftp_handle_alloc(raw_sftp_session.get(), named_fd.get()),
+                               [](ssh_string s) { MP_LIBSSH.ssh_string_free(s); }};
     if (!sftp_handle)
     {
         mpl::trace(category, "Cannot allocate handle for open()");
