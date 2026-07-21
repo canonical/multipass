@@ -22,7 +22,7 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_session.h>
 
-#include <libssh/sftp.h>
+#include <libssh/sftp.h> // TODO@sftp avoid this include (need to go through MP_LIBSSH)
 
 namespace multipass
 {
@@ -43,6 +43,7 @@ public:
     PlainSftpSession& operator=(PlainSftpSession&&) = delete;
 
 private:
+    // TODO@sftp avoid mentioning sftp_server_free here (need to go through MP_LIBSSH)
     using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
 
     static RawSftpSessionUptr make_raw_sftp_session(ssh_session raw_session, ssh_channel channel);
