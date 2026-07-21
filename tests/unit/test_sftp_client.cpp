@@ -69,6 +69,13 @@ auto make_unique_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR,
         sftp_attributes_free);
 }
 
+sftp_dir get_dummy_sftp_dir(const fs::path& name)
+{
+    auto dir = static_cast<sftp_dir_struct*>(calloc(1, sizeof(struct sftp_dir_struct)));
+    dir->name = strdup(name.string().c_str());
+    return dir;
+}
+
 struct SFTPClient : public testing::Test
 {
     SFTPClient()
@@ -154,6 +161,93 @@ TEST_F(SFTPClient, isDir)
     EXPECT_TRUE(sftp_client.is_remote_dir("a/true/directory"));
     mocked_sftp_stat.returnValue(get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR));
     EXPECT_FALSE(sftp_client.is_remote_dir("not/a/directory"));
+}
+
+TEST_F(SFTPClient, leavesRemotePathWithoutWildcardsUnchanged)
+{
+    REPLACE_SFTP_INIT();
+
+    auto sftp_client = make_sftp_client();
+
+    EXPECT_THAT(sftp_client.expand_remote_path("dir/file.txt"),
+                ElementsAre(fs::path{"dir/file.txt"}));
+}
+
+TEST_F(SFTPClient, expandsRemoteWildcard)
+{
+    REPLACE_SFTP_INIT();
+
+    std::vector<sftp_attributes> entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "third.txt"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, ".hidden.txt"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "second.log"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "first.txt"),
+        nullptr,
+    };
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    REPLACE(sftp_readdir, [&, index = 0](auto...) mutable { return entries[index++]; });
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+
+    auto sftp_client = make_sftp_client();
+
+    EXPECT_THAT(sftp_client.expand_remote_path("dir/*.txt"),
+                ElementsAre(fs::path{"dir/first.txt"}, fs::path{"dir/third.txt"}));
+}
+
+TEST_F(SFTPClient, expandsWildcardsAcrossRemotePathComponents)
+{
+    REPLACE_SFTP_INIT();
+
+    auto root_index = 0;
+    auto first_release_index = 0;
+    auto second_release_index = 0;
+    std::vector<sftp_attributes> root_entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-b"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-a"),
+        nullptr,
+    };
+    std::vector<sftp_attributes> first_release_entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "first.txt"),
+        nullptr,
+    };
+    std::vector<sftp_attributes> second_release_entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "second.txt"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "ignored.log"),
+        nullptr,
+    };
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    REPLACE(sftp_readdir, [&](auto, auto directory) -> sftp_attributes {
+        const std::string_view path{directory->name};
+        if (path == ".")
+            return root_entries[root_index++];
+        if (path == "release-a/logs")
+            return first_release_entries[first_release_index++];
+
+        return second_release_entries[second_release_index++];
+    });
+    REPLACE(sftp_stat,
+            [](auto, auto path) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, path); });
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+
+    auto sftp_client = make_sftp_client();
+
+    EXPECT_THAT(
+        sftp_client.expand_remote_path("release-*/logs/*.txt"),
+        ElementsAre(fs::path{"release-a/logs/first.txt"}, fs::path{"release-b/logs/second.txt"}));
+}
+
+TEST_F(SFTPClient, throwsWhenRemoteWildcardHasNoMatches)
+{
+    REPLACE_SFTP_INIT();
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    REPLACE(sftp_readdir, [](auto...) { return nullptr; });
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+
+    auto sftp_client = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(sftp_client.expand_remote_path("dir/*.txt"),
+                         mp::SFTPError,
+                         mpt::match_what(StrEq("no matches found: dir/*.txt")));
 }
 
 TEST_F(SFTPClient, pushFileSuccess)
