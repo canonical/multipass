@@ -28,6 +28,7 @@
 #include <array>
 #include <cerrno>
 #include <cstring>
+#include <functional>
 #include <sstream>
 
 namespace mp = multipass;

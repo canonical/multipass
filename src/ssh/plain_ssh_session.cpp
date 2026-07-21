@@ -29,6 +29,7 @@
 
 #include <QDir>
 
+#include <functional>
 #include <string>
 
 namespace mp = multipass;

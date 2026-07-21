@@ -30,6 +30,7 @@
 #include <array>
 #include <fcntl.h>
 #include <fmt/std.h>
+#include <functional>
 
 constexpr int file_mode = 0664;
 const std::string stream_file_name{"stream_output.dat"};

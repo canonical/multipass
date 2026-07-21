@@ -29,6 +29,8 @@
 #include <thread>
 #endif
 
+#include <functional>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 

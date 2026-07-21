@@ -24,6 +24,8 @@
 #include <multipass/singleton.h>
 #include <multipass/ssh/libssh_wrapper.h>
 
+#include <functional>
+
 #define MP_SFTP_UNIQUE_PTR_DELETER_true(close) [](auto* ptr) { return MP_LIBSSH.close(ptr); }
 #define MP_SFTP_UNIQUE_PTR_DELETER_false(close) close
 #define MP_SFTP_UNIQUE_PTR_AUX(open, close, wrap)                                                  \
