@@ -33,8 +33,6 @@ if(MULTIPASS_ENABLE_TESTS)
 endif()
 
 function(add_ssh_target TARGET_NAME LIBSSH_TARGET)
-  add_definitions(-DWITH_SERVER)
-
   add_library(${TARGET_NAME} STATIC
     libssh_scope_guard.cpp
     openssh_key_provider.cpp
@@ -42,6 +40,9 @@ function(add_ssh_target TARGET_NAME LIBSSH_TARGET)
     plain_ssh_process.cpp
     plain_ssh_session.cpp
     ssh_client_key_provider.cpp)
+
+  # TODO@sftp move remaining bits to MP_LIBSSH, then this should not be necessary
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 
   target_link_libraries(${TARGET_NAME}
     ${LIBSSH_TARGET}
@@ -63,6 +64,8 @@ function(add_sftp_client_target TARGET_NAME LIBSSH_TARGET)
     sftp_utils.cpp
     plain_ssh_session.cpp)
 
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
+
   target_link_libraries(${TARGET_NAME}
     ${LIBSSH_TARGET}
     fmt::fmt-header-only
@@ -80,6 +83,8 @@ function(add_ssh_client_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
     ssh_client.cpp
     plain_ssh_session.cpp)
+
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 
   target_link_libraries(${TARGET_NAME}
     ${LIBSSH_TARGET}

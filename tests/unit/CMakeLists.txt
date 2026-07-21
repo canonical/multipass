@@ -153,9 +153,8 @@ target_include_directories(multipass_cpp_tests
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
 )
 
-add_definitions(-DWITH_SERVER)
-target_compile_definitions(libssh_wrapper_test PRIVATE
-  ${c_mock_defines})
+target_compile_definitions(multipass_cpp_tests PRIVATE WITH_SERVER)
+target_compile_definitions(libssh_wrapper_test PRIVATE ${c_mock_defines})
 
 target_compile_definitions(utils_test PRIVATE
   -DEVP_PBE_scrypt=ut_premock_EVP_PBE_scrypt)
