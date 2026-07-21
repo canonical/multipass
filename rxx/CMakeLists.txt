@@ -120,8 +120,8 @@ foreach(CRATE_NAME ${CRATES})
         add_dependencies(${CRATE_NAME}_rs cargo_build)
     endif()
 endforeach()
-#The macros crate cannot contain tests
-set(TESTING_EXCLUDE_CRATES_ARG --exclude macros)
+#The macros crate cannot contain tests, rslogger cannot link log(), rust is empty
+set(TESTING_EXCLUDE_CRATES_ARG --exclude macros rslogger rust)
 add_test(
   NAME      multipass_rust_tests
   COMMAND   ${CARGO_CMD} test
