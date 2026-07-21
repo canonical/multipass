@@ -66,6 +66,7 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
 
+    // TODO@sftp go through MP_LIBSSH
     RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel), sftp_server_free};
     if (!raw_sftp_session)
         throw SSHException(
