@@ -23,6 +23,7 @@
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/sftp_utils.h>
+#include <multipass/ssh/ssh_factory.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
 
@@ -50,7 +51,7 @@ SFTPSessionUPtr make_sftp_session(ssh_session session)
 }
 
 SFTPClient::SFTPClient(const SSHCoordinates& coordinates)
-    : SFTPClient{std::make_unique<PlainSSHSession>(coordinates)}
+    : SFTPClient{MP_SSH_FACTORY.make_session(coordinates)}
 {
 }
 

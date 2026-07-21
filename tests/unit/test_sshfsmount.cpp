@@ -28,6 +28,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/signal.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_factory.h>
 #include <multipass/utils.h>
 
 #include <algorithm>
@@ -52,7 +53,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                                  key_provider.private_key_as_base64(),
                                  42,
                                  "theanswertoeverything"};
-        return {std::make_unique<mp::PlainSSHSession>(coord),
+        return {MP_SSH_FACTORY.make_session(coord),
                 default_source,
                 target.value_or(default_target),
                 default_mappings,
