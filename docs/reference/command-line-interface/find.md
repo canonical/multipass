@@ -37,7 +37,7 @@ The list of available images is updated periodically. The option `--force-update
 
 The option `--show-unsupported` includes old Ubuntu images, which were available at some point but are not supported anymore. This means that some features of Multipass might now work on these images and no user support is given. However, they are still available for testing.
 
-The command also supports searching through available images. For example, `multipass find resolute`  returns:
+The command also supports searching through available images. For example, `multipass find resolute` returns:
 
 ```{code-block} text
 Image             Aliases                     Version          Description
