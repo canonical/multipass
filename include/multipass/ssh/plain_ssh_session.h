@@ -71,7 +71,7 @@ public:
     [[nodiscard]] bool is_connected() const override;
     [[nodiscard]] bool is_moved() const override;
 
-    operator ssh_session() override; // TODO@sftp remove
+    operator ssh_session() override;        // TODO@sftp remove
     void shutdown_custom_socket() override; // TODO@sftp this should not be public
 
 public: // but restricted

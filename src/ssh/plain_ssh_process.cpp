@@ -86,19 +86,16 @@ mp::PlainSSHProcess::ChannelUPtr mp::PlainSSHProcess::make_channel(ssh_session r
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
-    ChannelUPtr channel{
-        MP_LIBSSH.ssh_channel_new(raw_session)};
-    SSH::throw_on_error(
-        channel,
-        raw_session,
-        "[ssh proc] failed to open session channel",
-        std::bind_front(&Libssh::ssh_channel_open_session, &Libssh::instance()));
-    SSH::throw_on_error(
-        channel,
-        raw_session,
-        "[ssh proc] exec request failed",
-        std::bind_front(&Libssh::ssh_channel_request_exec, &Libssh::instance()),
-        cmd.c_str());
+    ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(raw_session)};
+    SSH::throw_on_error(channel,
+                        raw_session,
+                        "[ssh proc] failed to open session channel",
+                        std::bind_front(&Libssh::ssh_channel_open_session, &Libssh::instance()));
+    SSH::throw_on_error(channel,
+                        raw_session,
+                        "[ssh proc] exec request failed",
+                        std::bind_front(&Libssh::ssh_channel_request_exec, &Libssh::instance()),
+                        cmd.c_str());
     return channel;
 }
 
