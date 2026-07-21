@@ -62,6 +62,7 @@ namespace mp = multipass;
 namespace mcp = multipass::cli::platform;
 namespace mpt = multipass::test;
 namespace mpu = multipass::utils;
+namespace fs = mp::fs;
 using namespace testing;
 
 namespace
