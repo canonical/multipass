@@ -19,8 +19,6 @@
 
 #include "disabled_copy_move.h"
 
-#include <libssh/libssh.h>
-
 #include <memory>
 
 namespace multipass

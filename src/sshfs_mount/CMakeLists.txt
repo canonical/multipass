@@ -13,7 +13,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 set(CMAKE_AUTOMOC ON)
-function(add_sshfs_mount_target TARGET_NAME)
+function(add_sshfs_mount_target TARGET_NAME LIBSSH_TARGET)
   add_definitions(-DWITH_SERVER)
 
   add_library(${TARGET_NAME} STATIC
@@ -25,6 +25,7 @@ function(add_sshfs_mount_target TARGET_NAME)
     ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount_handler.h)
 
   target_link_libraries(${TARGET_NAME}
+    ${LIBSSH_TARGET}
     fmt::fmt-header-only
     logger
     platform
@@ -33,9 +34,9 @@ function(add_sshfs_mount_target TARGET_NAME)
     Qt6::Core)
 endfunction()
 
-add_sshfs_mount_target(sshfs_mount)
+add_sshfs_mount_target(sshfs_mount libssh_wrapper)
 if(MULTIPASS_ENABLE_TESTS)
-  add_sshfs_mount_target(sshfs_mount_test)
+  add_sshfs_mount_target(sshfs_mount_test libssh_wrapper_test)
 endif()
 
 if(MSVC)

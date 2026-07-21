@@ -17,6 +17,8 @@
 
 #include "ssh_client_key_provider.h"
 
+#include <multipass/ssh/libssh_wrapper.h>
+
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -26,7 +28,11 @@ namespace
 mp::SSHClientKeyProvider::KeyUPtr import_priv_key(const std::string& priv_key_blob)
 {
     ssh_key priv_key;
-    ssh_pki_import_privkey_base64(priv_key_blob.c_str(), nullptr, nullptr, nullptr, &priv_key);
+    MP_LIBSSH.ssh_pki_import_privkey_base64(priv_key_blob.c_str(),
+                                            nullptr,
+                                            nullptr,
+                                            nullptr,
+                                            &priv_key);
 
     return mp::SSHClientKeyProvider::KeyUPtr{priv_key};
 }
@@ -34,7 +40,7 @@ mp::SSHClientKeyProvider::KeyUPtr import_priv_key(const std::string& priv_key_bl
 
 void mp::SSHClientKeyProvider::KeyDeleter::operator()(ssh_key key)
 {
-    ssh_key_free(key);
+    MP_LIBSSH.ssh_key_free(key);
 }
 
 mp::SSHClientKeyProvider::SSHClientKeyProvider(const std::string& priv_key_blob)

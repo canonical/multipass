@@ -21,6 +21,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/throw_on_error.h>
@@ -29,6 +30,7 @@
 #include <array>
 #include <fcntl.h>
 #include <fmt/std.h>
+#include <functional>
 
 constexpr int file_mode = 0664;
 const std::string stream_file_name{"stream_output.dat"};
@@ -42,8 +44,8 @@ SFTPSessionUPtr make_sftp_session(ssh_session session)
 {
     auto sftp = mp_sftp_new(session);
     if (!sftp)
-        throw std::runtime_error(
-            fmt::format("[sftp] could not create new sftp session: {}", ssh_get_error(session)));
+        throw std::runtime_error(fmt::format("[sftp] could not create new sftp session: {}",
+                                             MP_LIBSSH.ssh_get_error(session)));
 
     return sftp;
 }
@@ -62,7 +64,10 @@ SFTPClient::SFTPClient(const std::string& host,
 SFTPClient::SFTPClient(SSHSessionUPtr ssh_session)
     : ssh_session{std::move(ssh_session)}, sftp{make_sftp_session(*this->ssh_session)}
 {
-    SSH::throw_on_error(sftp, *this->ssh_session, "[sftp] init failed", sftp_init);
+    SSH::throw_on_error(sftp,
+                        *this->ssh_session,
+                        "[sftp] init failed",
+                        std::bind_front(&Libssh::sftp_init, &Libssh::instance()));
 }
 
 bool SFTPClient::is_remote_dir(const fs::path& path)
@@ -152,12 +157,12 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
 
     std::error_code _;
     auto status = MP_FILEOPS.status(source_path, _);
-    if (sftp_chmod(sftp.get(),
-                   target_path.string().c_str(),
-                   static_cast<mode_t>(status.permissions())) != SSH_FX_OK)
+    if (MP_LIBSSH.sftp_chmod(sftp.get(),
+                             target_path.string().c_str(),
+                             static_cast<mode_t>(status.permissions())) != SSH_FX_OK)
         throw SFTPError{"cannot set permissions for remote file {}: {}",
                         target_path,
-                        ssh_get_error(sftp->session)};
+                        MP_LIBSSH.ssh_get_error(sftp->session)};
 
     if (local_file->fail() && !local_file->eof())
         throw SFTPError{"cannot read from local file {}: {}", source_path, strerror(errno)};
@@ -216,11 +221,12 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
             }
             case fs::file_type::directory:
             {
-                if (sftp_mkdir(sftp.get(), remote_file_path.string().c_str(), 0777) != SSH_OK &&
-                    sftp_get_error(sftp.get()) != SSH_FX_FILE_ALREADY_EXISTS)
+                if (MP_LIBSSH.sftp_mkdir(sftp.get(), remote_file_path.string().c_str(), 0777) !=
+                        SSH_OK &&
+                    MP_LIBSSH.sftp_get_error(sftp.get()) != SSH_FX_FILE_ALREADY_EXISTS)
                     throw SFTPError{"cannot create remote directory {:?}: {}",
                                     remote_file_path,
-                                    ssh_get_error(sftp->session)};
+                                    MP_LIBSSH.ssh_get_error(sftp->session)};
 
                 subdirectory_perms.emplace_back(remote_file_path, status.permissions());
                 break;
@@ -237,14 +243,15 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
                     throw SFTPError{"cannot overwrite remote directory {:?} with non-directory",
                                     remote_file_path};
 
-                if ((sftp_unlink(sftp.get(), remote_file_path.string().c_str()) != SSH_FX_OK &&
-                     sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE) ||
-                    sftp_symlink(sftp.get(),
-                                 link_target.string().c_str(),
-                                 remote_file_path.string().c_str()) != SSH_FX_OK)
+                if ((MP_LIBSSH.sftp_unlink(sftp.get(), remote_file_path.string().c_str()) !=
+                         SSH_FX_OK &&
+                     MP_LIBSSH.sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE) ||
+                    MP_LIBSSH.sftp_symlink(sftp.get(),
+                                           link_target.string().c_str(),
+                                           remote_file_path.string().c_str()) != SSH_FX_OK)
                     throw SFTPError{"cannot create remote symlink {:?}: {}",
                                     remote_file_path,
-                                    ssh_get_error(sftp->session)};
+                                    MP_LIBSSH.ssh_get_error(sftp->session)};
                 break;
             }
             default:
@@ -261,12 +268,13 @@ bool SFTPClient::push_dir(const fs::path& source_path, const fs::path& target_pa
     for (auto it = subdirectory_perms.crbegin(); it != subdirectory_perms.crend(); ++it)
     {
         const auto& [path, perms] = *it;
-        if (sftp_chmod(sftp.get(), path.string().c_str(), static_cast<mode_t>(perms)) != SSH_FX_OK)
+        if (MP_LIBSSH.sftp_chmod(sftp.get(), path.string().c_str(), static_cast<mode_t>(perms)) !=
+            SSH_FX_OK)
         {
             mpl::error(log_category,
                        "cannot set permissions for remote directory {}: {}",
                        path,
-                       ssh_get_error(sftp->session));
+                       MP_LIBSSH.ssh_get_error(sftp->session));
             success = false;
         }
     }
@@ -315,7 +323,7 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
                 if (!link_target)
                     throw SFTPError{"cannot read remote link \"{}\": {}",
                                     entry->name,
-                                    ssh_get_error(sftp->session)};
+                                    MP_LIBSSH.ssh_get_error(sftp->session)};
 
                 if (MP_FILEOPS.is_directory(local_file_path, err))
                     throw SFTPError{"cannot overwrite local directory {} with non-directory",
@@ -374,17 +382,17 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
     if (!remote_file)
         throw SFTPError{"cannot open remote file {}: {}",
                         target_path,
-                        ssh_get_error(sftp->session)};
+                        MP_LIBSSH.ssh_get_error(sftp->session)};
 
     // create an uninitialized buffer to use.
     const auto max_write = mp_sftp_limits(sftp.get())->max_write_length;
     const std::unique_ptr<char[]> buffer{new char[max_write]};
 
     while (auto r = source.read(buffer.get(), max_write).gcount())
-        if (sftp_write(remote_file.get(), buffer.get(), r) < 0)
+        if (MP_LIBSSH.sftp_write(remote_file.get(), buffer.get(), r) < 0)
             throw SFTPError{"cannot write to remote file {}: {}",
                             target_path,
-                            ssh_get_error(sftp->session)};
+                            MP_LIBSSH.ssh_get_error(sftp->session)};
 }
 
 void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
@@ -393,18 +401,18 @@ void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
     if (!remote_file)
         throw SFTPError{"cannot open remote file {}: {}",
                         source_path,
-                        ssh_get_error(sftp->session)};
+                        MP_LIBSSH.ssh_get_error(sftp->session)};
 
     // create an uninitialized buffer to use.
     const auto max_read = mp_sftp_limits(sftp.get())->max_read_length;
     const std::unique_ptr<char[]> buffer{new char[max_read]};
 
-    while (auto r = sftp_read(remote_file.get(), buffer.get(), max_read))
+    while (auto r = MP_LIBSSH.sftp_read(remote_file.get(), buffer.get(), max_read))
     {
         if (r < 0)
             throw SFTPError{"cannot read from remote file {}: {}",
                             source_path,
-                            ssh_get_error(sftp->session)};
+                            MP_LIBSSH.ssh_get_error(sftp->session)};
 
         target.write(buffer.get(), r);
     }

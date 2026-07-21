@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <multipass/ssh/libssh_wrapper.h>
+
 #include <libssh/libssh.h>
 
 #include <fmt/format.h>
@@ -39,7 +41,7 @@ void throw_on_error(Handle&& h,
     const auto ret = f(h.get(), std::forward<Args>(args)...);
     if (ret != SSH_OK)
     {
-        throw SSHException(fmt::format("{}: '{}'", error_msg, ssh_get_error(session)));
+        throw SSHException(fmt::format("{}: '{}'", error_msg, MP_LIBSSH.ssh_get_error(session)));
     }
 }
 
