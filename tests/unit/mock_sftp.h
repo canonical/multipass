@@ -32,6 +32,7 @@ DECL_MOCK(sftp_close);
 DECL_MOCK(sftp_stat);
 DECL_MOCK(sftp_lstat);
 DECL_MOCK(sftp_opendir);
+DECL_MOCK(sftp_closedir);
 DECL_MOCK(sftp_readdir);
 DECL_MOCK(sftp_readlink);
 DECL_MOCK(sftp_mkdir);

@@ -86,10 +86,16 @@ struct SFTPClient : public testing::Test
                        return sftp;
                    }},
           free_sftp{mock_sftp_free, [](sftp_session sftp) { std::free(sftp); }},
-          close_sftp{mock_sftp_close, [](sftp_file file) {
+          close_sftp{mock_sftp_close,
+                     [](sftp_file file) {
                          std::free(file);
                          return SSH_OK;
-                     }}
+                     }},
+          close_sftp_dir{mock_sftp_closedir, [](sftp_dir dir) {
+                             std::free(dir->name);
+                             std::free(dir);
+                             return SSH_OK;
+                         }}
     {
     }
 
@@ -108,6 +114,7 @@ struct SFTPClient : public testing::Test
     MockScope<decltype(mock_sftp_new)> sftp_new;
     MockScope<decltype(mock_sftp_free)> free_sftp;
     MockScope<decltype(mock_sftp_close)> close_sftp;
+    MockScope<decltype(mock_sftp_closedir)> close_sftp_dir;
 
     sftp_limits_struct limits{32768, 32768, 32768, 0};
 
