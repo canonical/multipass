@@ -18,22 +18,16 @@
 #include <multipass/ssh/plain_sftp_session.h>
 
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
 
 #include <fmt/format.h>
 
-#include <libssh/sftp.h>
-
 #include <cassert>
 #include <chrono>
 #include <stdexcept>
 #include <utility>
-
-extern "C"
-{
-int sftp_reply_version(sftp_client_message msg);
-}
 
 namespace mp = multipass;
 
@@ -76,7 +70,7 @@ auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs
 
 int poll_stdout(ssh_channel channel, int timeout)
 {
-    int poll_result = ssh_channel_poll_timeout(channel, timeout, /* is_stderr = */ 0);
+    int poll_result = MP_LIBSSH.ssh_channel_poll_timeout(channel, timeout, /* is_stderr = */ 0);
     if (poll_result < 0)
         assert((poll_result == SSH_ERROR || poll_result == SSH_EOF) &&
                "contract includes no other negative numbers");
@@ -87,7 +81,7 @@ int poll_stdout(ssh_channel channel, int timeout)
 
 void mp::PlainSftpSession::RawSftpSessionDeleter::operator()(sftp_session session) const noexcept
 {
-    sftp_server_free(session);
+    MP_LIBSSH.sftp_server_free(session);
 }
 
 mp::PlainSftpSession::RawSftpSessionUptr
@@ -99,16 +93,16 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
 
     constexpr static long give_up_timeout_secs = 5; // libssh reads SSH_OPTIONS_TIMEOUT as long
 
-    // TODO@sftp go through MP_LIBSSH
-    RawSftpSessionUptr raw_sftp_session{sftp_server_new(raw_session, channel)};
+    RawSftpSessionUptr raw_sftp_session{MP_LIBSSH.sftp_server_new(raw_session, channel)};
     if (!raw_sftp_session)
         throw SSHException(
             fmt::format("[sftp] server init failed: could not create a new sftp_server."));
 
     // Bound reads/writes to avoid indefinite blocks in mid-message reads, within next_message().
-    if (ssh_options_set(raw_session, SSH_OPTIONS_TIMEOUT, &give_up_timeout_secs) != SSH_OK)
+    if (MP_LIBSSH.ssh_options_set(raw_session, SSH_OPTIONS_TIMEOUT, &give_up_timeout_secs) !=
+        SSH_OK)
     {
-        const auto raw_error = ssh_get_error(raw_session);
+        const auto raw_error = MP_LIBSSH.ssh_get_error(raw_session);
         throw SftpInitException{fmt::format("could not set session timeout: '{}'", raw_error)};
     }
 
@@ -122,7 +116,7 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
 
     /* handles setting the sftp->client_version */
     // TODO@sftp no leak plz - use SftpMessage
-    sftp_client_message msg{sftp_get_client_message(raw_sftp_session.get())};
+    sftp_client_message msg{MP_LIBSSH.sftp_get_client_message(raw_sftp_session.get())};
     if (msg == nullptr)
         throw SftpInitException{"Null client message"};
 
@@ -132,7 +126,7 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
 
     // Optional: Log the SSH_FXP_INIT reception like libssh does with SSH_LOG but with mp::log
 
-    if (sftp_reply_version(msg) != SSH_OK)
+    if (MP_LIBSSH.sftp_reply_version(msg) != SSH_OK)
     {
         throw SftpInitException{"FATAL: Failed to process the SSH_FXP_INIT message"};
     }
@@ -160,8 +154,8 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
     while (!stop_requested.load())
     {
         int poll_result = poll_stdout(raw_sftp_session->channel, poll_interval.count());
-        if (poll_result > 0)
-            raw_msg = sftp_get_client_message(raw_sftp_session.get()); // bounded by session timeout
+        if (poll_result > 0) // bounded by session timeout
+            raw_msg = MP_LIBSSH.sftp_get_client_message(raw_sftp_session.get());
         else if (poll_result == 0)
             continue; // nothing to read yet
 
