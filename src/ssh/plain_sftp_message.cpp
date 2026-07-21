@@ -17,6 +17,8 @@
 
 #include <multipass/ssh/plain_sftp_message.h>
 
+#include <multipass/ssh/libssh_wrapper.h>
+
 #include <libssh/sftp.h>
 
 #include <cassert>
@@ -50,32 +52,32 @@ mp::PlainSftpMessage::PlainSftpMessage(sftp_client_message_struct& message) noex
 
 mp::SftpMessageType mp::PlainSftpMessage::type() const noexcept
 {
-    return static_cast<SftpMessageType>(sftp_client_message_get_type(message.get()));
+    return static_cast<SftpMessageType>(MP_LIBSSH.sftp_client_message_get_type(message.get()));
 }
 
 std::string_view mp::PlainSftpMessage::filename() const noexcept
 {
-    const auto* raw = sftp_client_message_get_filename(message.get());
+    const auto* raw = MP_LIBSSH.sftp_client_message_get_filename(message.get());
     return raw ? std::string_view{raw} : std::string_view{};
 }
 
 std::string_view mp::PlainSftpMessage::data() const noexcept
 {
     if (auto* raw = message->data) // ssh_string carries a length, so this is binary safe
-        return {ssh_string_get_char(raw), ssh_string_len(raw)};
+        return {MP_LIBSSH.ssh_string_get_char(raw), MP_LIBSSH.ssh_string_len(raw)};
 
     return {};
 }
 
 std::optional<std::string_view> mp::PlainSftpMessage::submessage() const noexcept
 {
-    const auto* raw = sftp_client_message_get_submessage(message.get());
+    const auto* raw = MP_LIBSSH.sftp_client_message_get_submessage(message.get());
     return raw ? std::optional<std::string_view>{raw} : std::nullopt;
 }
 
 uint32_t mp::PlainSftpMessage::flags() const noexcept
 {
-    return sftp_client_message_get_flags(message.get());
+    return MP_LIBSSH.sftp_client_message_get_flags(message.get());
 }
 
 uint64_t mp::PlainSftpMessage::offset() const noexcept
@@ -105,49 +107,52 @@ std::optional<mp::SftpAttributes> mp::PlainSftpMessage::attributes() const noexc
 
 void* mp::PlainSftpMessage::handle() const noexcept
 {
-    return sftp_handle(message->sftp, message->handle);
+    return MP_LIBSSH.sftp_handle(message->sftp, message->handle);
 }
 
 void mp::PlainSftpMessage::remove_handle() noexcept
 {
     if (auto* id = handle())
-        sftp_handle_remove(message->sftp, id);
+        MP_LIBSSH.sftp_handle_remove(message->sftp, id);
 }
 
 bool mp::PlainSftpMessage::reply_status(SftpStatus status, const std::string& msg)
 {
     // TODO@C++23 Convert cast to std::to_underlying
-    return sftp_reply_status(message.get(), static_cast<uint32_t>(status), msg.c_str()) == SSH_OK;
+    return MP_LIBSSH.sftp_reply_status(message.get(), static_cast<uint32_t>(status), msg.c_str()) ==
+           SSH_OK;
 }
 
 bool mp::PlainSftpMessage::reply_attributes(const SftpAttributes& attributes)
 {
     auto raw = to_raw_attributes(attributes);
-    return sftp_reply_attr(message.get(), &raw) == SSH_OK;
+    return MP_LIBSSH.sftp_reply_attr(message.get(), &raw) == SSH_OK;
 }
 
 bool mp::PlainSftpMessage::reply_data(const void* data, size_t len)
 {
     assert(len <= static_cast<size_t>(std::numeric_limits<int>::max()) &&
            "data replies are bounded by packet size");
-    return sftp_reply_data(message.get(), data, static_cast<int>(len)) == SSH_OK;
+    return MP_LIBSSH.sftp_reply_data(message.get(), data, static_cast<int>(len)) == SSH_OK;
 }
 
 bool mp::PlainSftpMessage::reply_name(const std::string& name)
 {
-    return sftp_reply_name(message.get(), name.c_str(), nullptr) == SSH_OK;
+    return MP_LIBSSH.sftp_reply_name(message.get(), name.c_str(), nullptr) == SSH_OK;
 }
 
 bool mp::PlainSftpMessage::reply_handle(void* id)
 {
-    using Del = decltype([](ssh_string_struct* handle) noexcept { ssh_string_free(handle); });
+    using Del = decltype([](ssh_string_struct* handle) noexcept {
+        MP_LIBSSH.ssh_string_free(handle);
+    });
     using RawHandleUptr = std::unique_ptr<ssh_string_struct, Del>;
 
-    const RawHandleUptr raw_handle{sftp_handle_alloc(message->sftp, id)};
+    const RawHandleUptr raw_handle{MP_LIBSSH.sftp_handle_alloc(message->sftp, id)};
     if (!raw_handle)
         return false;
 
-    return sftp_reply_handle(message.get(), raw_handle.get()) == SSH_OK;
+    return MP_LIBSSH.sftp_reply_handle(message.get(), raw_handle.get()) == SSH_OK;
 }
 
 bool mp::PlainSftpMessage::reply_names_add(const std::string& file,
@@ -155,15 +160,16 @@ bool mp::PlainSftpMessage::reply_names_add(const std::string& file,
                                            const SftpAttributes& attributes)
 {
     auto raw = to_raw_attributes(attributes);
-    return sftp_reply_names_add(message.get(), file.c_str(), longname.c_str(), &raw) == SSH_OK;
+    return MP_LIBSSH.sftp_reply_names_add(message.get(), file.c_str(), longname.c_str(), &raw) ==
+           SSH_OK;
 }
 
 bool mp::PlainSftpMessage::reply_names()
 {
-    return sftp_reply_names(message.get()) == SSH_OK;
+    return MP_LIBSSH.sftp_reply_names(message.get()) == SSH_OK;
 }
 
 void mp::PlainSftpMessage::RawMsgDeleter::operator()(sftp_client_message_struct* msg) const noexcept
 {
-    sftp_client_message_free(msg);
+    MP_LIBSSH.sftp_client_message_free(msg);
 }
