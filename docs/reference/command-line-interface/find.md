@@ -37,12 +37,12 @@ The list of available images is updated periodically. The option `--force-update
 
 The option `--show-unsupported` includes old Ubuntu images, which were available at some point but are not supported anymore. This means that some features of Multipass might now work on these images and no user support is given. However, they are still available for testing.
 
-The command also supports searching through available images. For example, `multipass find mantic`  returns:
+The command also supports searching through available images. For example, `multipass find resolute`  returns:
 
 ```{code-block} text
-Image                       Aliases           Version          Description
-mantic                                        20240206         Ubuntu 23.10
-daily:mantic                                  20240206         Ubuntu 23.10
+Image             Aliases                     Version          Description
+daily:resolute                                20260720         Ubuntu 26.04 LTS
+resolute                                      20260720         Ubuntu 26.04 LTS
 ```
 
 ---
