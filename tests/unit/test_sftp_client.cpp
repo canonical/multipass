@@ -185,7 +185,8 @@ TEST_F(SFTPClient, expandsRemoteWildcard)
         nullptr,
     };
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
-    REPLACE(sftp_readdir, [&, index = 0](auto...) mutable { return entries[index++]; });
+    auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
+    REPLACE(sftp_readdir, read_dir);
     REPLACE(sftp_dir_eof, [](auto...) { return true; });
 
     auto sftp_client = make_sftp_client();
