@@ -58,15 +58,27 @@ mp::ReturnCodeVariant cmd::Transfer::run(mp::ArgParser* parser)
                 if (const auto args = std::get_if<InstanceSourcesLocalTarget>(&arguments); args)
                 {
                     auto& [sources, target] = *args;
+                    std::vector<fs::path> expanded_sources;
+                    for (auto [source, source_end] = sources.equal_range(instance_name);
+                         source != source_end;
+                         ++source)
+                    {
+                        auto matches = sftp_client->expand_remote_path(source->second);
+                        std::move(matches.begin(),
+                                  matches.end(),
+                                  std::back_inserter(expanded_sources));
+                    }
+
                     std::error_code err;
-                    if (sources.size() > 1 && !MP_FILEOPS.is_directory(target, err) && !err)
+                    if ((sources.size() > 1 || expanded_sources.size() > 1) &&
+                        !MP_FILEOPS.is_directory(target, err) && !err)
                         throw std::runtime_error{
                             fmt::format("Target {:?} is not a directory", target)};
                     else if (err)
                         throw std::runtime_error{
                             fmt::format("Cannot access {:?}: {}", target, err.message())};
-                    for (auto [s, s_end] = sources.equal_range(instance_name); s != s_end; ++s)
-                        success &= sftp_client->pull(s->second, target, flags);
+                    for (const auto& source : expanded_sources)
+                        success &= sftp_client->pull(source, target, flags);
                 }
 
                 if (const auto args = std::get_if<LocalSourcesInstanceTarget>(&arguments); args)

@@ -643,6 +643,8 @@ TEST_F(Client, transferCmdInstanceSourceLocalTarget)
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
         .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"foo"}))
+        .WillOnce(Return(std::vector<fs::path>{"foo"}));
     EXPECT_CALL(*mocked_sftp_client_p, pull).WillOnce(Return(true));
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
@@ -654,13 +656,72 @@ TEST_F(Client, transferCmdInstanceSourceLocalTarget)
     EXPECT_EQ(send_command({"transfer", "test-vm:foo", "bar"}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, transferCmdExpandsRemoteWildcard)
+{
+    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
+        .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"dir/*.txt"}))
+        .WillOnce(Return(std::vector<fs::path>{"dir/first.txt", "dir/second.txt"}));
+    EXPECT_CALL(*mocked_file_ops, is_directory(fs::path{"target"}, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mocked_sftp_client_p, pull(fs::path{"dir/first.txt"}, fs::path{"target"}, _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mocked_sftp_client_p, pull(fs::path{"dir/second.txt"}, fs::path{"target"}, _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(mock_daemon, ssh_info)
+        .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
+            mp::SSHInfoReply reply;
+            reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+            server->Write(reply);
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({"transfer", "test-vm:dir/*.txt", "target"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, transferCmdRemoteWildcardMatchesRequireDirectoryTarget)
+{
+    auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
+        .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"dir/*.txt"}))
+        .WillOnce(Return(std::vector<fs::path>{"dir/first.txt", "dir/second.txt"}));
+    EXPECT_CALL(*mocked_file_ops, is_directory(fs::path{"target"}, _)).WillOnce(Return(false));
+    EXPECT_CALL(mock_daemon, ssh_info)
+        .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
+            mp::SSHInfoReply reply;
+            reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+            server->Write(reply);
+            return grpc::Status{};
+        });
+
+    std::stringstream err;
+    EXPECT_EQ(send_command({"transfer", "test-vm:dir/*.txt", "target"}, trash_stream, err),
+              mp::ReturnCode::CommandFail);
+    EXPECT_THAT(err.str(), HasSubstr("Target \"target\" is not a directory"));
+}
+
 TEST_F(Client, transferCmdInstanceSourcesLocalTargetNotDir)
 {
     auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
     auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
-        .WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
+        .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"foo"}))
+        .WillOnce(Return(std::vector<fs::path>{"foo"}));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"baz"}))
+        .WillOnce(Return(std::vector<fs::path>{"baz"}));
     EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce(Return(false));
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
@@ -680,9 +741,15 @@ TEST_F(Client, transferCmdInstanceSourcesLocalTargetCannotAccess)
 {
     auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
     auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
-        .WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
+        .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"foo"}))
+        .WillOnce(Return(std::vector<fs::path>{"foo"}));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"baz"}))
+        .WillOnce(Return(std::vector<fs::path>{"baz"}));
     auto err = std::make_error_code(std::errc::permission_denied);
     EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce([&](auto, std::error_code& e) {
         e = err;
