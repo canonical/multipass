@@ -28,6 +28,7 @@
 
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/sftp_client.h>
+#include <multipass/ssh/ssh_factory.h>
 
 #include <fmt/std.h>
 
@@ -89,7 +90,7 @@ struct SFTPClient : public testing::Test
     mp::SFTPClient make_sftp_client()
     {
         mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 43, "b"};
-        return {std::make_unique<mp::PlainSSHSession>(coord)};
+        return {MP_SSH_FACTORY.make_session(coord)};
     }
 
 // this is a macro since REPLACE only applies to the current scope and cannot be moved out.

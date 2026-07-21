@@ -25,8 +25,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/ssh/plain_ssh_session.h>
-
-#include <ssh/ssh_client_key_provider.h>
+#include <multipass/ssh/ssh_factory.h>
 
 #include <QStringList>
 
@@ -116,7 +115,7 @@ int main(int argc, char* argv[])
         auto watchdog = mpp::make_quit_watchdog(
             std::chrono::milliseconds{500}); // called while there is only one thread
 
-        mp::SshfsMount sshfs_mount(std::make_unique<mp::PlainSSHSession>(coordinates),
+        mp::SshfsMount sshfs_mount(MP_SSH_FACTORY.make_session(coordinates),
                                    source_path,
                                    target_path,
                                    gid_mappings,

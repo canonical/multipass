@@ -31,6 +31,7 @@
 #include <multipass/snapshot.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_factory.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
@@ -314,7 +315,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
     }
 
     mpl::trace(vm_name, "New SSH session");
-    return std::make_unique<PlainSSHSession>(ssh_coordinates());
+    return MP_SSH_FACTORY.make_session(ssh_coordinates());
 }
 
 bool multipass::BaseVirtualMachine::unplugged()
@@ -942,7 +943,7 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    auto new_session = std::make_unique<PlainSSHSession>(ssh_coordinates());
+    auto new_session = MP_SSH_FACTORY.make_session(ssh_coordinates());
 
     std::lock_guard lock{state_mutex};
     ssh_session = std::move(new_session);

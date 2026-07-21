@@ -15,7 +15,6 @@
  *
  */
 
-#include "ssh_client_key_provider.h"
 #include <multipass/ssh/plain_ssh_session.h>
 
 #include <multipass/exceptions/ssh_exception.h>
@@ -26,6 +25,7 @@
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_sftp_session.h>
 #include <multipass/ssh/plain_ssh_process.h>
+#include <multipass/ssh/ssh_factory.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
@@ -59,7 +59,7 @@ void mp::PlainSSHSession::RawSSHSessionDeleter::operator()(ssh_session session) 
     MP_LIBSSH.ssh_free(session);
 }
 
-mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& coordinates)
+mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& ssh_coordinates)
     : raw_session{MP_LIBSSH.ssh_new()}, mut{}
 {
     if (raw_session == nullptr)
@@ -83,7 +83,7 @@ mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& coordinates)
                        .toStdString();
 
     // Setup (common)
-    set_option(SSH_OPTIONS_USER, coordinates.username.c_str());
+    set_option(SSH_OPTIONS_USER, ssh_coordinates.username.c_str());
     set_option(SSH_OPTIONS_TIMEOUT, &connect_timeout_secs);
     set_option(SSH_OPTIONS_NODELAY, &nodelay);
     set_option(SSH_OPTIONS_CIPHERS_C_S, "chacha20-poly1305@openssh.com,aes256-ctr");
@@ -91,8 +91,8 @@ mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& coordinates)
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
     // TCP setup
-    set_option(SSH_OPTIONS_HOST, coordinates.tcp_host.c_str());
-    set_option(SSH_OPTIONS_PORT, &coordinates.port);
+    set_option(SSH_OPTIONS_HOST, ssh_coordinates.tcp_host.c_str());
+    set_option(SSH_OPTIONS_PORT, &ssh_coordinates.port);
 
     // Connect (common)
     SSH::throw_on_error(raw_session,
@@ -103,7 +103,7 @@ mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& coordinates)
                         "ssh failed to authenticate",
                         std::bind_front(&Libssh::ssh_userauth_publickey, &Libssh::instance()),
                         nullptr,
-                        mp::SSHClientKeyProvider{coordinates.private_key_as_base64}.private_key());
+                        MP_SSH_FACTORY.make_key(ssh_coordinates.private_key_as_base64).get());
 }
 
 mp::PlainSSHSession::PlainSSHSession(PlainSSHSession&& other)

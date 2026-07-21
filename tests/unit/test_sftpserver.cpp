@@ -36,6 +36,7 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_factory.h>
 
 #include <algorithm>
 #include <queue>
@@ -82,7 +83,7 @@ struct SftpServer : public mp::test::SftpServerTest
                                  key_provider.private_key_as_base64(),
                                  42,
                                  "theanswertoeverything"};
-        return {std::make_unique<mp::PlainSSHSession>(coord),
+        return {MP_SSH_FACTORY.make_session(coord),
                 path,
                 target.empty() ? path : target,
                 gid_mappings,
@@ -418,7 +419,7 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
                                  key_provider.private_key_as_base64(),
                                  42,
                                  "theanswertoeverything"};
-        return mp::SftpServer{std::make_unique<mp::PlainSSHSession>(coord),
+        return mp::SftpServer{MP_SSH_FACTORY.make_session(coord),
                               "",
                               "",
                               {{default_uid, mp::default_id}},
@@ -495,7 +496,7 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
                              key_provider.private_key_as_base64(),
                              42,
                              "theanswertoeverything"};
-    auto sftp = mp::SftpServer{std::make_unique<mp::PlainSSHSession>(coord),
+    auto sftp = mp::SftpServer{MP_SSH_FACTORY.make_session(coord),
                                "",
                                "",
                                {{default_gid, mp::default_id}},

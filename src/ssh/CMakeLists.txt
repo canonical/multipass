@@ -34,14 +34,14 @@ endif()
 
 function(add_ssh_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
+    ssh_factory.cpp
     libssh_scope_guard.cpp
     openssh_key_provider.cpp
     plain_sftp_message.cpp
     plain_sftp_session.cpp
     plain_ssh_process.cpp
     plain_ssh_session.cpp
-    sftp_wire_compat.cpp
-    ssh_client_key_provider.cpp)
+    sftp_wire_compat.cpp)
 
   # TODO@sftp move remaining bits to MP_LIBSSH, then this should not be necessary
   target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
@@ -61,6 +61,7 @@ endif()
 
 function(add_sftp_client_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
+    ssh_factory.cpp
     sftp_client.cpp
     sftp_dir_iterator.cpp
     sftp_utils.cpp
@@ -83,6 +84,7 @@ endif()
 
 function(add_ssh_client_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
+    ssh_factory.cpp
     ssh_client.cpp
     plain_ssh_session.cpp)
 

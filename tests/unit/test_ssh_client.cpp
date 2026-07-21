@@ -26,6 +26,7 @@
 
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_client.h>
+#include <multipass/ssh/ssh_factory.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -41,7 +42,7 @@ struct SSHClient : public testing::Test
                                  key_provider.private_key_as_base64(),
                                  42,
                                  "theanswertoeverything"};
-        return {std::make_unique<mp::PlainSSHSession>(coord), console_creator};
+        return {MP_SSH_FACTORY.make_session(coord), console_creator};
     }
 
     const mpt::StubSSHKeyProvider key_provider;
