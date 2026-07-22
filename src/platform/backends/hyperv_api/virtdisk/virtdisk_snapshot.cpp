@@ -22,6 +22,7 @@
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -40,23 +41,6 @@ struct CreateVirtdiskSnapshotError : FormattedExceptionBase<std::system_error>
 {
     using FormattedExceptionBase::FormattedExceptionBase;
 };
-
-// Best-effort rename for noexcept rollback guards.
-static void try_rename(const std::filesystem::path& from, const std::filesystem::path& to) noexcept
-{
-    try
-    {
-        MP_FILEOPS.rename(from, to);
-    }
-    catch (const std::exception& e)
-    {
-        mpl::error(log_category,
-                   "Failed to rename `{}` -> `{}` during rollback: {}",
-                   from,
-                   to,
-                   e.what());
-    }
-}
 
 namespace
 {
@@ -198,13 +182,14 @@ public:
     }
 
 private:
+    using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
     std::filesystem::path self_path;
     std::filesystem::path self_backup;
     std::vector<std::filesystem::path> children;
 
-    using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
-
-    PathPairs grandchildren{}, staged{}, reparented{};
+    PathPairs grandchildren{};
+    PathPairs staged{};
+    PathPairs reparented{};
 };
 } // namespace
 
@@ -437,6 +422,13 @@ void VirtDiskSnapshot::apply_impl()
 
     MP_FILEOPS.rename(new_head_path, head_path);
     mpl::debug(log_category, "apply_impl() -> new head from {} -> {}", snapshot_path, head_path);
+}
+
+// Best-effort rename for noexcept rollback guards.
+void VirtDiskSnapshot::try_rename(const std::filesystem::path& from,
+                                  const std::filesystem::path& to) noexcept
+{
+    top_catch_all(vm.get_name(), [from, to] { MP_FILEOPS.rename(from, to); });
 }
 
 } // namespace multipass::hyperv::virtdisk
