@@ -51,7 +51,7 @@ static void try_rename(const std::filesystem::path& from, const std::filesystem:
     catch (const std::exception& e)
     {
         mpl::error(log_category,
-                   "Failed to restore `{}` -> `{}` during rollback: {}",
+                   "Failed to rename `{}` -> `{}` during rollback: {}",
                    from,
                    to,
                    e.what());
