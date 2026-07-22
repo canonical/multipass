@@ -20,7 +20,7 @@
 
 namespace mp = multipass;
 
-void mp::KeyDeleter::operator()(ssh_key key) const
+void mp::SSHKeyDeleter::operator()(ssh_key key) const
 {
     ssh_key_free(key);
 }
@@ -30,7 +30,7 @@ mp::SSHFactory::SSHFactory(const Singleton<SSHFactory>::PrivatePass& pass) noexc
 {
 }
 
-mp::KeyUPtr mp::SSHFactory::make_key(const std::string& private_key_as_base64) const
+mp::SSHKeyUPtr mp::SSHFactory::make_key(const std::string& private_key_as_base64) const
 {
     ssh_key priv_key{nullptr};
     ssh_pki_import_privkey_base64(private_key_as_base64.c_str(),
@@ -39,7 +39,7 @@ mp::KeyUPtr mp::SSHFactory::make_key(const std::string& private_key_as_base64) c
                                   nullptr,
                                   &priv_key);
 
-    return mp::KeyUPtr{priv_key};
+    return mp::SSHKeyUPtr{priv_key};
 }
 
 mp::SSHSessionUPtr mp::SSHFactory::make_session(const mp::SSHCoordinates& ssh_coordinates) const

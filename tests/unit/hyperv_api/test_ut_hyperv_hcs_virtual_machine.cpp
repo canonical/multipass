@@ -513,7 +513,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_port)
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
-    EXPECT_EQ(uut->ssh_coordinate().port, multipass::default_ssh_port);
+    EXPECT_EQ(uut->ssh_coordinates().port, multipass::default_ssh_port);
 }
 
 // ---------------------------------------------------------

@@ -25,11 +25,11 @@
 
 namespace multipass
 {
-struct KeyDeleter
+struct SSHKeyDeleter
 {
     void operator()(ssh_key key) const;
 };
-using KeyUPtr = std::unique_ptr<ssh_key_struct, KeyDeleter>;
+using SSHKeyUPtr = std::unique_ptr<ssh_key_struct, SSHKeyDeleter>;
 using SSHSessionUPtr = std::unique_ptr<SSHSession>;
 
 class SSHFactory : public Singleton<SSHFactory>
@@ -37,7 +37,7 @@ class SSHFactory : public Singleton<SSHFactory>
 public:
     SSHFactory(const Singleton<SSHFactory>::PrivatePass&) noexcept;
 
-    virtual KeyUPtr make_key(const std::string& private_key_as_base64) const;
+    virtual SSHKeyUPtr make_key(const std::string& private_key_as_base64) const;
 
     virtual SSHSessionUPtr make_session(const SSHCoordinates& ssh_coordinates) const;
 };
