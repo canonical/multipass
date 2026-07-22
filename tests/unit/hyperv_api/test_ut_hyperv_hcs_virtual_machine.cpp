@@ -568,7 +568,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_hostname_throws_when_ip_is_unav
 TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_queries_primary_endpoint)
 {
     default_open_success();
-    expect_endpoint_query({"fe80::1", "10.123.45.67"});
+    expect_endpoint_query({"fe80::1", "1:2:3:4:5:6:7:8", "10.123.45.67"});
 
     auto uut = construct_vm();
 
@@ -613,16 +613,6 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_retries_unsuccessful_q
 
     EXPECT_EQ(uut->management_ipv4(), std::nullopt);
     EXPECT_EQ(uut->management_ipv4(), mp::IPAddress{"10.123.45.67"});
-}
-
-TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_when_query_fails)
-{
-    default_open_success();
-    expect_endpoint_query_failure();
-
-    auto uut = construct_vm();
-
-    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_ipv4_configuration)
