@@ -148,7 +148,7 @@ TEST(PlatformWin, noExtraDaemonSettings)
 
 TEST(WindowsNetworkUtils, invalidMacHasNoPermanentIpv4Neighbor)
 {
-    EXPECT_FALSE(mp::permanent_ipv4_neighbor("not-a-mac"));
+    EXPECT_FALSE(mp::windows_network_utils().permanent_ipv4_neighbor("not-a-mac"));
 }
 
 TEST(PlatformWin, testDefaultDriver)
