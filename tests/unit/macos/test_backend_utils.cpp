@@ -163,29 +163,14 @@ TEST(EnableCrossZoneRouting, multipleZonesEnablesForwardingAndInstallsPfRules)
 
     mp::backend::enable_cross_zone_routing(az_manager);
 
-    // N zones produce a "pass" rule for each of the N * (N - 1) ordered, distinct subnet pairs.
-    EXPECT_THAT(QString::fromStdString(captured_rules).split('\n', Qt::SkipEmptyParts),
-                SizeIs(zones.size() * (zones.size() - 1)));
-    for (const auto& src : az_manager.get_zones())
-    {
-        for (const auto& dst : az_manager.get_zones())
-        {
-            if (&src.get() != &dst.get())
-            {
-                EXPECT_THAT(captured_rules,
-                            HasSubstr(fmt::format("pass quick inet from {} to {} flags any keep "
-                                                  "state",
-                                                  src.get().get_subnet().canonical().to_cidr(),
-                                                  dst.get().get_subnet().canonical().to_cidr())));
-            }
-            else
-            {
-                EXPECT_THAT(
-                    captured_rules,
-                    Not(HasSubstr(fmt::format("from {} to {}",
-                                              src.get().get_subnet().canonical().to_cidr(),
-                                              dst.get().get_subnet().canonical().to_cidr()))));
-            }
-        }
-    }
+    EXPECT_EQ(captured_rules,
+              fmt::format(("pass quick inet from {0} to {1} flags any keep state\n"
+                           "pass quick inet from {0} to {2} flags any keep state\n"
+                           "pass quick inet from {1} to {0} flags any keep state\n"
+                           "pass quick inet from {1} to {2} flags any keep state\n"
+                           "pass quick inet from {2} to {0} flags any keep state\n"
+                           "pass quick inet from {2} to {1} flags any keep state\n"),
+                          "192.168.64.0/24",
+                          "192.168.65.0/24",
+                          "192.168.66.0/24"));
 }
