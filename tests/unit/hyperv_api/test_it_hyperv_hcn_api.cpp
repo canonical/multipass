@@ -17,6 +17,8 @@
 
 #include "tests/unit/common.h"
 
+#include <multipass/subnet.h>
+
 #include <fmt/xchar.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_network_params.h>
@@ -181,6 +183,45 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint_on_ics_dhcp_network
         ASSERT_TRUE(error_msg.empty());
     }
     cleanup.dismiss();
+}
+
+TEST_F(HyperVHCNAPI_IntegrationTests, query_endpoint_returns_host_assigned_ipv4)
+{
+    CreateNetworkParameters network_params{};
+    network_params.name = "multipass-hyperv-api-hcn-query-endpoint-test";
+    network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
+    network_params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
+
+    CreateEndpointParameters endpoint_params{};
+    endpoint_params.network_guid = network_params.guid;
+    endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
+
+    auto cleanup = sg::make_scope_guard([&]() noexcept {
+        (void)HCN().delete_endpoint(endpoint_params.endpoint_guid);
+        (void)HCN().delete_network(network_params.guid);
+    });
+
+    (void)HCN().delete_endpoint(endpoint_params.endpoint_guid);
+    (void)HCN().delete_network(network_params.guid);
+
+    {
+        const auto& [status, error_msg] = HCN().create_network(network_params);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        const auto& [status, error_msg] = HCN().create_endpoint(endpoint_params);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(error_msg.empty());
+    }
+
+    HcnEndpointInfo endpoint_info;
+    const auto result = HCN().query_endpoint(endpoint_params.endpoint_guid, endpoint_info);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(endpoint_info.ip_addresses.size(), 1);
+    EXPECT_TRUE(Subnet{"172.50.224.0/20"}.contains(IPAddress{endpoint_info.ip_addresses.front()}));
 }
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_endpoint_explicit_mac)
