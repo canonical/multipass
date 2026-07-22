@@ -449,17 +449,15 @@ TEST_F(VirtDiskSnapshotCollapse, removes_head_when_last_snapshot_erased)
     EXPECT_FALSE(fs::exists(head_old())) << "no head sidecar must be created";
 }
 
-// If the head-to-base merge fails, the erase itself still succeeds (the snapshot
-// deletion already committed before the collapse). Because the head is only removed
-// after a successful merge, a failed merge simply leaves the `base <- head` chain
-// intact and readable — no base backup/restore is involved, and no sidecars remain.
-TEST_F(VirtDiskSnapshotCollapse, erase_succeeds_even_if_collapse_fails)
+// If the head-to-base merge fails, the erase itself will fail
+TEST_F(VirtDiskSnapshotCollapse, erase_does_not_succeed_if_collapse_fails)
 {
     auto ss = take_captured();
 
     EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_fail()));
 
-    EXPECT_NO_THROW(ss->erase()); // the collapse failure is caught and logged, not rethrown
+    EXPECT_THROW(ss->erase(),
+                 std::exception); // the collapse failure is caught and logged, not rethrown
 
     EXPECT_TRUE(fs::exists(head())) << "the head must be left intact on collapse failure";
     EXPECT_TRUE(fs::exists(base())) << "the base must be left intact (never copied/moved)";
