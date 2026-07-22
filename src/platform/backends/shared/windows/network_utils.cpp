@@ -22,9 +22,9 @@
 
 #include <fmt/format.h>
 
-#include <WinSock2.h>
-#include <WS2tcpip.h>
 #include <windows.h>
+#include <WS2tcpip.h>
+#include <WinSock2.h>
 #include <iphlpapi.h>
 #include <netioapi.h>
 #include <winternl.h>
@@ -67,8 +67,8 @@ WindowsNetworkUtils::WindowsNetworkUtils(
 {
 }
 
-std::optional<std::string>
-WindowsNetworkUtils::permanent_ipv4_neighbor(const std::string& mac_address) const
+std::optional<std::string> WindowsNetworkUtils::permanent_ipv4_neighbor(
+    const std::string& mac_address) const
 {
     auto canonical_mac = mac_address;
     std::ranges::replace(canonical_mac, '-', ':');
