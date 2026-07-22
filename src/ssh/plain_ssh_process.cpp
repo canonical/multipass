@@ -117,7 +117,7 @@ mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
 mp::PlainSSHProcess::~PlainSSHProcess()
 {
     if (channel) // TODO@sftp remove
-        ssh_remove_channel_callbacks(channel.get(), &cb);
+        MP_LIBSSH.ssh_remove_channel_callbacks(channel.get(), &cb);
 }
 
 ssh_channel_callbacks_struct mp::PlainSSHProcess::make_channel_callbacks()
@@ -300,7 +300,7 @@ ssh_channel mp::PlainSSHProcess::release_channel()
     // released at the end; callers are on their own to ensure thread safety
     auto local_lock = std::move(session_lock);
     if (channel)
-        ssh_remove_channel_callbacks(channel.get(), &cb);
+        MP_LIBSSH.ssh_remove_channel_callbacks(channel.get(), &cb);
     return channel.release();
 }
 
