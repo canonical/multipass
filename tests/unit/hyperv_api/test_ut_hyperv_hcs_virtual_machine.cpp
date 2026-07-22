@@ -529,6 +529,56 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_hostname)
 
 // ---------------------------------------------------------
 
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_queries_primary_endpoint)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcn,
+                query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+        .WillOnce(DoAll(
+            [](const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
+                endpoint_info.ip_configurations = {
+                    {.ip_address = "fe80::1"}, {.ip_address = "10.123.45.67"}};
+            },
+            Return(hcs_op_result_t{0, L""})));
+
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->management_ipv4(), mp::IPAddress{"10.123.45.67"});
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_when_query_fails)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcn,
+                query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint query failed"}));
+
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_ipv4_configuration)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcn,
+                query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+        .WillOnce(DoAll(
+            [](const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
+                endpoint_info.ip_configurations = {{.ip_address = "fe80::1"}};
+            },
+            Return(hcs_op_result_t{0, L""})));
+
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+}
+
+// ---------------------------------------------------------
+
 TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state)
 {
     default_open_success();
