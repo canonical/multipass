@@ -22,14 +22,8 @@
 
 namespace multipass::hyperv::hcn
 {
-struct HcnIpConfiguration
-{
-    std::string ip_address;
-};
-
 struct HcnEndpointInfo
 {
-    std::string guid;
-    std::vector<HcnIpConfiguration> ip_configurations;
+    std::vector<std::string> ip_addresses;
 };
 } // namespace multipass::hyperv::hcn
