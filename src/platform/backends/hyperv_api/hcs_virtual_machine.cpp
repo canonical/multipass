@@ -528,13 +528,17 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
         return std::nullopt;
     }
 
+    auto make_ip_address = [this](const std::string& addr_str) {
+        IPAddress address{addr_str};
+        mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
+        return address;
+    };
+
     for (const auto& ip_address : endpoint_info.ip_addresses)
     {
         try
         {
-            IPAddress address{ip_address};
-            mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
-            return address;
+            return make_ip_address(ip_address);
         }
         catch (const std::invalid_argument&)
         {
@@ -544,18 +548,13 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 
     if (endpoint_info.mac_address)
     {
-        if (const auto ip_address =
-                windows_network_utils().permanent_ipv4_neighbor(*endpoint_info.mac_address))
+        if (const auto ip_address = windows_network_utils().permanent_ipv4_neighbor(
+                *endpoint_info.mac_address))
         {
-            IPAddress address{*ip_address};
-            mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
-            return address;
+            return make_ip_address(*ip_address);
         }
     }
 
-    mpl::debug(get_name(),
-               "management_ipv4() > endpoint `{}` has no IPv4 configuration",
-               endpoint_guid);
     return std::nullopt;
 }
 
