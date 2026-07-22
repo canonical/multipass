@@ -26,11 +26,11 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <fmt/format.h>
 #include <scope_guard.hpp>
 
 namespace
 {
-constexpr auto log_category = "virtdisk-snapshot";
 namespace mpl = multipass::logging;
 using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
 
@@ -93,11 +93,13 @@ class ChildRebuild
 public:
     ChildRebuild(std::filesystem::path self_path,
                  std::vector<std::filesystem::path> children,
-                 std::vector<std::pair<std::filesystem::path, std::filesystem::path>> grandchildren)
+                 PathPairs grandchildren,
+                 std::string log_category)
         : self_path{std::move(self_path)},
           self_backup{with_suffix(this->self_path, ".tmp")},
           children{std::move(children)},
-          grandchildren{std::move(grandchildren)}
+          grandchildren{std::move(grandchildren)},
+          log_category{log_category}
     {
         staged.reserve(this->children.size());
     }
@@ -195,6 +197,8 @@ private:
     PathPairs grandchildren{};
     PathPairs staged{};
     PathPairs reparented{};
+
+    std::string log_category;
 };
 } // namespace
 
@@ -237,7 +241,7 @@ void VirtDiskSnapshot::capture_impl()
 {
     const auto head_path = make_head_disk_path();
     const auto snapshot_path = make_snapshot_path(*this);
-    mpl::debug(log_category,
+    mpl::debug(vm.get_name(),
                "capture_impl() -> head_path: {}, snapshot_path: {}",
                head_path,
                snapshot_path);
@@ -257,7 +261,7 @@ void VirtDiskSnapshot::capture_impl()
             }
             catch (const std::exception& e)
             {
-                mpl::error(log_category, "capture_impl() rollback failed: {}", e.what());
+                mpl::error(vm.get_name(), "capture_impl() rollback failed: {}", e.what());
             }
         }
         else if (!head_preexisted)
@@ -287,7 +291,7 @@ void VirtDiskSnapshot::capture_impl()
 void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent,
                                              const std::filesystem::path& child) const
 {
-    mpl::debug(log_category, "create_new_child_disk() -> parent: {}, child: {}", parent, child);
+    mpl::debug(vm.get_name(), "create_new_child_disk() -> parent: {}, child: {}", parent, child);
     if (!MP_FILEOPS.exists(parent))
         throw CreateVirtdiskSnapshotError{
             std::make_error_code(std::errc::no_such_file_or_directory),
@@ -312,7 +316,7 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
             parent};
     }
 
-    mpl::debug(log_category, "Successfully created the child disk: `{}`", child);
+    mpl::debug(vm.get_name(), "Successfully created the child disk: `{}`", child);
 }
 
 std::vector<std::filesystem::path> VirtDiskSnapshot::get_children_of_disk(
@@ -348,7 +352,7 @@ void VirtDiskSnapshot::erase_impl()
         for (auto& grandchild : get_children_of_disk(child_path))
             grandchildren.emplace_back(std::move(grandchild), child_path);
 
-    ChildRebuild rebuild{self_path, std::move(children), std::move(grandchildren)};
+    ChildRebuild rebuild{self_path, std::move(children), std::move(grandchildren), vm.get_name()};
     rebuild.begin();
 
     auto rollback = sg::make_scope_guard([&]() noexcept { rebuild.rollback(); });
@@ -373,13 +377,14 @@ void VirtDiskSnapshot::collapse_head_after_last_erase()
     }
     catch (const std::exception& e)
     {
-        mpl::warn(log_category,
+        mpl::warn(vm.get_name(),
                   "Could not collapse head into base after erasing the last snapshot: {}",
                   e.what());
     }
 }
 
-void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base_vhdx_path)
+void VirtDiskSnapshot::collapse_head_into_base(const std::string& vm_name,
+                                               const std::filesystem::path& base_vhdx_path)
 {
     const auto head_path = base_vhdx_path.parent_path() / head_disk_name();
 
@@ -389,7 +394,7 @@ void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base
     // Never merge the head into a snapshot that other snapshots still depend on.
     if (!is_direct_child_of(head_path, base_vhdx_path))
     {
-        mpl::warn(log_category,
+        mpl::warn(vm_name,
                   "Not collapsing head `{}`: it is not a direct child of base `{}`",
                   head_path,
                   base_vhdx_path);
@@ -407,11 +412,16 @@ void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base
     std::error_code ec{};
     MP_FILEOPS.remove(head_path, ec);
     if (ec)
-        mpl::warn(log_category,
+        mpl::warn(vm_name,
                   "Merged head `{}` into base `{}` but could not remove the redundant head: {}",
                   head_path,
                   base_vhdx_path,
                   ec.message());
+}
+
+void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base_vhdx_path)
+{
+    collapse_head_into_base(vm.get_name(), base_vhdx_path);
 }
 
 void VirtDiskSnapshot::apply_impl()
@@ -428,7 +438,7 @@ void VirtDiskSnapshot::apply_impl()
     create_new_child_disk(snapshot_path, new_head_path);
 
     MP_FILEOPS.rename(new_head_path, head_path);
-    mpl::debug(log_category, "apply_impl() -> new head from {} -> {}", snapshot_path, head_path);
+    mpl::debug(vm.get_name(), "apply_impl() -> new head from {} -> {}", snapshot_path, head_path);
 }
 
 // Best-effort rename for noexcept rollback guards.

@@ -678,7 +678,8 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                   *head_avhdx);
         try
         {
-            virtdisk::VirtDiskSnapshot::collapse_head_into_base(description.image.image_path);
+            virtdisk::VirtDiskSnapshot::collapse_head_into_base(get_name(),
+                                                                description.image.image_path);
         }
         catch (const std::exception& e)
         {
@@ -687,14 +688,6 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                 "collapsed into the base: {}",
                 *head_avhdx,
                 e.what()};
-        }
-
-        if (const auto remaining_head = get_snapshot_head_disk_path())
-        {
-            throw ResizeDiskException{
-                "Cannot resize the primary disk because snapshot head disk `{}` still exists after "
-                "collapse. Delete or repair the head disk before resizing.",
-                *remaining_head};
         }
     }
 
