@@ -59,9 +59,7 @@ std::filesystem::path with_suffix(std::filesystem::path p, const char* suffix)
     return p;
 }
 
-bool is_direct_child_of(const std::filesystem::path& disk,
-                        const std::filesystem::path& parent_disk,
-                        bool required)
+bool is_direct_child_of(const std::filesystem::path& disk, const std::filesystem::path& parent_disk)
 {
     if (!MP_FILEOPS.exists(disk) || !MP_FILEOPS.exists(parent_disk))
         return false;
@@ -69,13 +67,8 @@ bool is_direct_child_of(const std::filesystem::path& disk,
     std::vector<std::filesystem::path> chain;
     if (const auto r = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !r)
     {
-        if (required)
-            throw CreateVirtdiskSnapshotError{r,
-                                              "Could not inspect virtual disk chain for `{}`",
-                                              disk};
 
-        mpl::warn(log_category, "Could not inspect optional disk chain for `{}`: {}", disk, r);
-        return false;
+        throw CreateVirtdiskSnapshotError{r, "Could not inspect virtual disk chain for `{}`", disk};
     }
 
     return chain.size() >= 2 &&
@@ -328,11 +321,11 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
          }))
     {
         auto path = make_snapshot_path(*elem);
-        if (is_direct_child_of(path, parent_disk, true))
+        if (is_direct_child_of(path, parent_disk))
             result.push_back(std::move(path));
     }
 
-    if (auto head_path = make_head_disk_path(); is_direct_child_of(head_path, parent_disk, true))
+    if (auto head_path = make_head_disk_path(); is_direct_child_of(head_path, parent_disk))
         result.push_back(std::move(head_path));
 
     return result;
@@ -388,7 +381,7 @@ void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base
         return;
 
     // Never merge the head into a snapshot that other snapshots still depend on.
-    if (!is_direct_child_of(head_path, base_vhdx_path, false))
+    if (!is_direct_child_of(head_path, base_vhdx_path))
     {
         mpl::warn(log_category,
                   "Not collapsing head `{}`: it is not a direct child of base `{}`",
