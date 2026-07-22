@@ -202,11 +202,9 @@ private:
     std::filesystem::path self_backup;
     std::vector<std::filesystem::path> children;
 
-    std::vector<std::pair<std::filesystem::path, std::filesystem::path>> grandchildren;
+    using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
 
-    std::vector<std::pair<std::filesystem::path, std::filesystem::path>> staged;
-
-    std::vector<std::pair<std::filesystem::path, std::filesystem::path>> reparented;
+    PathPairs grandchildren{}, staged{}, reparented{};
 };
 } // namespace
 
