@@ -21,9 +21,10 @@
 
 #include <multipass/disabled_copy_move.h>
 
-#include <libssh/libssh.h>
-
 #include <string>
+
+struct ssh_key_struct;
+typedef ssh_key_struct* ssh_key;
 
 namespace multipass
 {
