@@ -113,10 +113,10 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     {
         EXPECT_CALL(mock_hcs, open_compute_system(_, _))
             .WillRepeatedly(DoAll(
-                [this](const std::string& name, hcs_handle_t& out_handle) {
+                [this](const std::string& name, hcs_handle_t&) {
                     ASSERT_EQ(dummy_vm_name, name);
-                    out_handle = mock_handle;
                 },
+                SetArgReferee<1>(mock_handle),
                 Return(hcs_op_result_t{0, L""})));
 
         EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
@@ -130,10 +130,8 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                 Return(hcs_op_result_t{0, L""})));
 
         EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-            .WillRepeatedly(
-                DoAll([this](const hcs_handle_t&,
-                             hcs_system_state_t& state) { state = hcs_system_state_t::running; },
-                      Return(hcs_op_result_t{0, L""})));
+            .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
+                                  Return(hcs_op_result_t{0, L""})));
     }
 
     void default_create_success()
@@ -149,10 +147,8 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
         EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-            .WillRepeatedly(
-                DoAll([this](const hcs_handle_t&,
-                             hcs_system_state_t& state) { state = hcs_system_state_t::running; },
-                      Return(hcs_op_result_t{0, L""})));
+            .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
+                                  Return(hcs_op_result_t{0, L""})));
 
         EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
@@ -189,14 +185,14 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         EXPECT_CALL(mock_hcs, create_compute_system(_, _))
             .WillRepeatedly(DoAll(
                 [this](const multipass::hyperv::hcs::CreateComputeSystemParameters& params,
-                       hcs_handle_t& out_hcs_system) {
+                       hcs_handle_t&) {
                     ASSERT_EQ(params.memory_size_mb, 3);
                     ASSERT_EQ(params.name, dummy_vm_name);
                     ASSERT_EQ(params.network_adapters.size(), 1);
                     ASSERT_EQ(params.processor_count, 2);
                     ASSERT_EQ(params.scsi_devices.size(), 2);
-                    out_hcs_system = mock_handle;
                 },
+                SetArgReferee<1>(mock_handle),
                 Return(hcs_op_result_t{0, L""})));
     }
 
@@ -218,10 +214,10 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_open)
 {
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
         .WillOnce(DoAll(
-            [this](const std::string& name, hcs_handle_t& out_handle) {
+            [this](const std::string& name, hcs_handle_t&) {
                 ASSERT_EQ(dummy_vm_name, name);
-                out_handle = mock_handle;
             },
+            SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
@@ -229,10 +225,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_open)
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
         .Times(1)
-        .WillRepeatedly(
-            DoAll([this](const hcs_handle_t&,
-                         hcs_system_state_t& state) { state = hcs_system_state_t::running; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
+                              Return(hcs_op_result_t{0, L""})));
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
@@ -270,11 +264,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_success)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
                         Return(hcs_op_result_t{0, L""})))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
                         Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
@@ -297,10 +289,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_failure)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll([](const hcs_handle_t&,
-                     hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
+                              Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{1, L""}));
@@ -322,11 +312,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_resume_success)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::paused; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::paused),
                         Return(hcs_op_result_t{0, L""})))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
                         Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
@@ -349,8 +337,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_resume_failure)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(DoAll([](const hcs_handle_t&,
-                                 hcs_system_state_t& state) { state = hcs_system_state_t::paused; },
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::paused),
                               Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, resume_compute_system(Eq(mock_handle)))
@@ -373,11 +360,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_success)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
                         Return(hcs_op_result_t{0, L""})))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
                         Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, shutdown_compute_system(Eq(mock_handle)))
@@ -400,11 +385,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_powerdown_fail)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
                         Return(hcs_op_result_t{0, L""})))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
                         Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, shutdown_compute_system(Eq(mock_handle)))
@@ -430,11 +413,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_halt)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
                         Return(hcs_op_result_t{0, L""})))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
                         Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
@@ -460,11 +441,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_success)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
                         Return(hcs_op_result_t{0, L""})))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
                         Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
@@ -493,10 +472,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_failure)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll([](const hcs_handle_t&,
-                     hcs_system_state_t& state) { state = hcs_system_state_t::running; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::running),
+                              Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{1, L""}));
@@ -540,8 +517,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state)
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(DoAll([](const hcs_handle_t&,
-                           hcs_system_state_t& state) { state = hcs_system_state_t::paused; },
+        .WillOnce(DoAll(SetArgReferee<1>(hcs_system_state_t::paused),
                         Return(hcs_op_result_t{0, L""})));
 
     mpt::MockVMStatusMonitor mock_monitor{};
@@ -563,10 +539,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, update_cpus)
     default_create_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll([](const hcs_handle_t&,
-                     hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
+                              Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
@@ -579,14 +553,14 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, update_cpus)
     EXPECT_CALL(mock_hcs, create_compute_system(_, _))
         .WillRepeatedly(DoAll(
             [this](const multipass::hyperv::hcs::CreateComputeSystemParameters& params,
-                   hcs_handle_t& out_hcs_system) {
+                   hcs_handle_t&) {
                 ASSERT_EQ(params.memory_size_mb, 3);
                 ASSERT_EQ(params.name, dummy_vm_name);
                 ASSERT_EQ(params.network_adapters.size(), 1);
                 ASSERT_EQ(params.processor_count, 55);
                 ASSERT_EQ(params.scsi_devices.size(), 2);
-                out_hcs_system = mock_handle;
             },
+            SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
     uut->start();
 }
@@ -598,10 +572,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_memory)
     default_create_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll([](const hcs_handle_t&,
-                     hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
+                              Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
@@ -614,14 +586,14 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_memory)
     EXPECT_CALL(mock_hcs, create_compute_system(_, _))
         .WillRepeatedly(DoAll(
             [this](const multipass::hyperv::hcs::CreateComputeSystemParameters& params,
-                   hcs_handle_t& out_hcs_system) {
+                   hcs_handle_t&) {
                 ASSERT_EQ(params.memory_size_mb, 10240);
                 ASSERT_EQ(params.name, dummy_vm_name);
                 ASSERT_EQ(params.network_adapters.size(), 1);
                 ASSERT_EQ(params.processor_count, 2);
                 ASSERT_EQ(params.scsi_devices.size(), 2);
-                out_hcs_system = mock_handle;
             },
+            SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
     uut->start();
 }
@@ -633,10 +605,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
     default_create_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll([](const hcs_handle_t&,
-                     hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
+                              Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_virtdisk, resize_virtual_disk(Eq(desc.image.image_path), Eq(123456)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
@@ -653,14 +623,14 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
     EXPECT_CALL(mock_hcs, create_compute_system(_, _))
         .WillRepeatedly(DoAll(
             [this](const multipass::hyperv::hcs::CreateComputeSystemParameters& params,
-                   hcs_handle_t& out_hcs_system) {
+                   hcs_handle_t&) {
                 ASSERT_EQ(params.memory_size_mb, 3);
                 ASSERT_EQ(params.name, dummy_vm_name);
                 ASSERT_EQ(params.network_adapters.size(), 1);
                 ASSERT_EQ(params.processor_count, 2);
                 ASSERT_EQ(params.scsi_devices.size(), 2);
-                out_hcs_system = mock_handle;
             },
+            SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
     uut->start();
 }
@@ -672,10 +642,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk_fails_if_snapshot_head_rem
     default_create_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll([](const hcs_handle_t&,
-                     hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
+                              Return(hcs_op_result_t{0, L""})));
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
@@ -704,10 +672,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, add_network_interface)
     if_to_add.id = "floaterface";
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll([](const hcs_handle_t&,
-                     hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
-                  Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(hcs_system_state_t::stopped),
+                              Return(hcs_op_result_t{0, L""})));
 
     std::shared_ptr<partially_mocked_uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm<partially_mocked_uut_t>());
