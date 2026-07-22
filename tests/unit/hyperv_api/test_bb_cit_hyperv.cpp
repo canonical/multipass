@@ -90,8 +90,8 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     });
 
     const auto temp_path = make_tempfile_path(".vhdx");
-    const auto cloud_init_iso_path =
-        std::filesystem::path{test_data_path} / "cloud-init" / "cloud-init.iso";
+    const auto cloud_init_iso_path = std::filesystem::path{test_data_path} / "cloud-init" /
+                                     "cloud-init.iso";
     {
         std::ofstream output{static_cast<const std::filesystem::path&>(temp_path),
                              std::ios::binary};
@@ -166,8 +166,8 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     }
 
     hyperv::hcn::HcnEndpointInfo endpoint_info;
-    const auto query_result =
-        HCN().query_endpoint(endpoint_parameters.endpoint_guid, endpoint_info);
+    const auto query_result = HCN().query_endpoint(endpoint_parameters.endpoint_guid,
+                                                   endpoint_info);
     ASSERT_TRUE(query_result);
     EXPECT_TRUE(endpoint_info.ip_addresses.empty());
     ASSERT_TRUE(endpoint_info.mac_address);
@@ -175,8 +175,8 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     std::optional<std::string> neighbor_address;
     for (auto attempts = 0; attempts < 120 && !neighbor_address; ++attempts)
     {
-        neighbor_address =
-            windows_network_utils().permanent_ipv4_neighbor(*endpoint_info.mac_address);
+        neighbor_address = windows_network_utils().permanent_ipv4_neighbor(
+            *endpoint_info.mac_address);
         if (!neighbor_address)
             std::this_thread::sleep_for(500ms);
     }
@@ -196,9 +196,8 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
         hyperv::hcn::CreateNetworkParameters parameters{};
         parameters.name = "multipass-hyperv-hcn-ip-cit";
         parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47487";
-        parameters.ipams = {
-            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
-                                 {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}};
+        parameters.ipams = {hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+                                                 {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}};
         return parameters;
     }();
 
@@ -253,21 +252,20 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
     StubAvailabilityZone zone;
     StubSSHKeyProvider key_provider;
     StubVMStatusMonitor monitor;
-    const VirtualMachineDescription description{
-        1,
-        MemorySize{"512M"},
-        MemorySize{},
-        vm_name,
-        zone.get_name(),
-        mac_address,
-        {},
-        "",
-        {"", "", "", "", {}, {}},
-        "",
-        {},
-        {},
-        {},
-        {}};
+    const VirtualMachineDescription description{1,
+                                                MemorySize{"512M"},
+                                                MemorySize{},
+                                                vm_name,
+                                                zone.get_name(),
+                                                mac_address,
+                                                {},
+                                                "",
+                                                {"", "", "", "", {}, {}},
+                                                "",
+                                                {},
+                                                {},
+                                                {},
+                                                {}};
 
     {
         hyperv::HCSVirtualMachine vm{network_parameters.guid,
