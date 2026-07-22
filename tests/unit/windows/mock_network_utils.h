@@ -17,23 +17,20 @@
 
 #pragma once
 
-#include <multipass/singleton.h>
+#include "shared/windows/network_utils.h"
+#include "tests/unit/mock_singleton_helpers.h"
 
-#include <optional>
-#include <string>
-
-namespace multipass
+namespace multipass::test
 {
-struct WindowsNetworkUtils : public Singleton<WindowsNetworkUtils>
+struct MockWindowsNetworkUtils : public WindowsNetworkUtils
 {
-    WindowsNetworkUtils(const Singleton<WindowsNetworkUtils>::PrivatePass&) noexcept;
+    using WindowsNetworkUtils::WindowsNetworkUtils;
 
-    [[nodiscard]] virtual std::optional<std::string>
-    permanent_ipv4_neighbor(const std::string& mac_address) const;
+    MOCK_METHOD(std::optional<std::string>,
+                permanent_ipv4_neighbor,
+                (const std::string&),
+                (const, override));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockWindowsNetworkUtils, WindowsNetworkUtils);
 };
-
-inline const WindowsNetworkUtils& windows_network_utils()
-{
-    return WindowsNetworkUtils::instance();
-}
 }

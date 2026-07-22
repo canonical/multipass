@@ -17,6 +17,8 @@
 
 #include <hyperv_api/hcs_virtual_machine.h>
 
+#include <shared/windows/network_utils.h>
+
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
@@ -537,6 +539,17 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
         catch (const std::invalid_argument&)
         {
             // HCN also reports IPv6 configurations, which IPAddress does not represent.
+        }
+    }
+
+    if (endpoint_info.mac_address)
+    {
+        if (const auto ip_address =
+                windows_network_utils().permanent_ipv4_neighbor(*endpoint_info.mac_address))
+        {
+            IPAddress address{*ip_address};
+            mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
+            return address;
         }
     }
 
