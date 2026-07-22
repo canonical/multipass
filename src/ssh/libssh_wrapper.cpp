@@ -185,6 +185,11 @@ int mp::Libssh::ssh_channel_get_exit_state(ssh_channel channel,
 }
 
 // --- channel callbacks ------------------------------------------------------
+void mp::Libssh::ssh_callbacks_initialization(ssh_channel_callbacks callbacks) const
+{
+    ssh_callbacks_init(callbacks);
+}
+
 int mp::Libssh::ssh_add_channel_callbacks(ssh_channel channel, ssh_channel_callbacks cb) const
 {
     return ::ssh_add_channel_callbacks(channel, cb);

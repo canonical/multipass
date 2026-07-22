@@ -44,7 +44,7 @@ class ExitStatusCallback
 public:
     ExitStatusCallback(ssh_channel channel, T& result_holder) : channel{channel}
     {
-        ssh_callbacks_init(&cb);
+        MP_LIBSSH.ssh_callbacks_initialization(&cb);
         cb.channel_exit_status_function = channel_exit_status_cb;
         cb.userdata = &result_holder;
         registered = MP_LIBSSH.ssh_add_channel_callbacks(channel, &cb);
