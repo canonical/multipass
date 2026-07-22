@@ -316,11 +316,12 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
 {
     std::vector<std::filesystem::path> result;
 
-    for (const auto& elem : vm.view_snapshots([this_index = get_index()](const Snapshot& ss) {
-             return ss.get_index() != this_index;
-         }))
+    const auto snapshots_except_this = vm.view_snapshots(
+        [this](const Snapshot& ss) { return &ss != this; });
+
+    for (const auto& ss : snapshots_except_this)
     {
-        auto path = make_snapshot_path(*elem);
+        auto path = make_snapshot_path(*ss);
         if (is_direct_child_of(path, parent_disk))
             result.push_back(std::move(path));
     }
