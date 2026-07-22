@@ -506,7 +506,7 @@ int HCSVirtualMachine::ssh_port()
 }
 std::string HCSVirtualMachine::ssh_hostname()
 {
-    return fmt::format("{}.mshome.net", get_name());
+    return require_management_ipv4().as_string();
 }
 std::string HCSVirtualMachine::ssh_username()
 {
