@@ -672,23 +672,10 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     // A leftover head means collapse did not finish. Collapse it before resizing.
     if (const auto head_avhdx = get_snapshot_head_disk_path())
     {
-        mpl::warn(get_name(),
-                  "A snapshot head disk `{}` is still layered on the base even though no "
-                  "snapshots remain; collapsing it into the base before resizing.",
-                  *head_avhdx);
-        try
-        {
-            virtdisk::VirtDiskSnapshot::collapse_head_into_base(get_name(),
-                                                                description.image.image_path);
-        }
-        catch (const std::exception& e)
-        {
-            throw ResizeDiskException{
-                "Cannot resize the primary disk because the snapshot head disk `{}` could not be "
-                "collapsed into the base: {}",
-                *head_avhdx,
-                e.what()};
-        }
+        throw ResizeDiskException{
+            "Cannot resize the primary disk because the snapshot head disk `{}` is present even "
+            "though there are no snapshots.",
+            *head_avhdx};
     }
 
     if (const auto result = VirtDisk().resize_virtual_disk(description.image.image_path,
