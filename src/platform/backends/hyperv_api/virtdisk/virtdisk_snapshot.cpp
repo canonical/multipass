@@ -32,15 +32,23 @@ namespace
 {
 constexpr auto log_category = "virtdisk-snapshot";
 namespace mpl = multipass::logging;
+
+struct CreateVirtdiskSnapshotError : multipass::FormattedExceptionBase<std::system_error>
+{
+    using FormattedExceptionBase::FormattedExceptionBase;
+};
+
+void try_rename(std::string_view log_category,
+                const std::filesystem::path& from,
+                const std::filesystem::path& to) noexcept
+{
+    multipass::top_catch_all(log_category, [from, to] { MP_FILEOPS.rename(from, to); });
+}
+
 } // namespace
 
 namespace multipass::hyperv::virtdisk
 {
-
-struct CreateVirtdiskSnapshotError : FormattedExceptionBase<std::system_error>
-{
-    using FormattedExceptionBase::FormattedExceptionBase;
-};
 
 namespace
 {
@@ -165,12 +173,12 @@ public:
             if (MP_FILEOPS.exists(backup_path, ec))
             {
                 MP_FILEOPS.remove(child_path, ec);
-                try_rename(backup_path, child_path);
+                try_rename(log_category, backup_path, child_path);
             }
             MP_FILEOPS.remove(staged_path, ec);
         }
         MP_FILEOPS.remove(self_path, ec);
-        try_rename(self_backup, self_path);
+        try_rename(log_category, self_backup, self_path);
 
         // Restore already-updated parent links.
         for (const auto& [grandchild, child_path] : reparented)
@@ -428,7 +436,7 @@ void VirtDiskSnapshot::apply_impl()
 void VirtDiskSnapshot::try_rename(const std::filesystem::path& from,
                                   const std::filesystem::path& to) noexcept
 {
-    top_catch_all(vm.get_name(), [from, to] { MP_FILEOPS.rename(from, to); });
+    ::try_rename(vm.get_name(), from, to);
 }
 
 } // namespace multipass::hyperv::virtdisk
