@@ -29,6 +29,8 @@
 
 #include <multipass/ip_address.h>
 
+#include <scope_guard.hpp>
+
 #include <chrono>
 #include <thread>
 
@@ -66,6 +68,16 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         endpoint_parameters.endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029f";
         return endpoint_parameters;
     }();
+
+    auto cleanup = sg::make_scope_guard([&]() noexcept {
+        if (handle)
+        {
+            (void)HCS().terminate_compute_system(handle);
+            handle.reset();
+        }
+        (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
+        (void)HCN().delete_network(network_parameters.guid);
+    });
 
     const auto temp_path = make_tempfile_path(".vhdx");
 
@@ -135,11 +147,11 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         const auto result = HCN().query_endpoint(endpoint_parameters.endpoint_guid, endpoint_info);
         ASSERT_TRUE(result);
 
-        for (const auto& configuration : endpoint_info.ip_configurations)
+        for (const auto& ip_address : endpoint_info.ip_addresses)
         {
             try
             {
-                endpoint_ipv4.emplace(configuration.ip_address);
+                endpoint_ipv4.emplace(ip_address);
                 break;
             }
             catch (const std::invalid_argument&)
@@ -157,6 +169,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
     handle.reset();
     (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
     (void)HCN().delete_network(network_parameters.guid);
+    cleanup.dismiss();
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_boot)
