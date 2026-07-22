@@ -319,13 +319,15 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
     if (!open_result)
         return open_result;
 
-    UniqueCotaskmemString properties{}, result_msgbuf{};
-    const auto result = ResultCode{API().HcnQueryEndpointProperties(endpoint.get(),
-                                                                    L"{}",
-                                                                    out_ptr(properties),
-                                                                    out_ptr(result_msgbuf))};
-    if (!result.success())
-        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    UniqueCotaskmemString properties{};
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnQueryEndpointProperties(endpoint.get(),
+                                                L"{}",
+                                                out_ptr(properties),
+                                                rmsgbuf);
+    });
+    if (!result)
+        return result;
 
     if (!properties)
         return {E_UNEXPECTED, L"HCN returned no endpoint properties"};
@@ -354,7 +356,7 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
 
     out_info.mac_address = std::move(mac_address);
     out_info.ip_addresses = std::move(*addresses);
-    return {result, L""};
+    return result;
 }
 
 // ---------------------------------------------------------

@@ -77,6 +77,9 @@ WindowsNetworkUtils::permanent_ipv4_neighbor(const std::string& mac_address) con
         logging::error(log_category, "Invalid MAC address `{}`", mac_address);
         return std::nullopt;
     }
+    std::ranges::transform(canonical_mac, canonical_mac.begin(), [](unsigned char character) {
+        return static_cast<char>(std::tolower(character));
+    });
 
     PMIB_IPNET_TABLE2 raw_table{};
     if (const auto result = GetIpNetTable2(AF_INET, &raw_table); result != NO_ERROR)
@@ -96,11 +99,7 @@ WindowsNetworkUtils::permanent_ipv4_neighbor(const std::string& mac_address) con
     const auto matches = [&canonical_mac](const MIB_IPNET_ROW2& row) {
         return row.Address.si_family == AF_INET && row.State == NlnsPermanent &&
                row.PhysicalAddressLength == ethernet_address_length &&
-               std::ranges::equal(canonical_mac_address(row.PhysicalAddress),
-                                  canonical_mac,
-                                  [](unsigned char lhs, unsigned char rhs) {
-                                      return std::tolower(lhs) == std::tolower(rhs);
-                                  });
+               canonical_mac_address(row.PhysicalAddress) == canonical_mac;
     };
 
     const auto* begin = table->Table;

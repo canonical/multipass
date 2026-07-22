@@ -98,7 +98,8 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
             mpl::Level::trace,
             "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
         logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: true");
+                                             "perform_hcn_operation(...) > result: true",
+                                             testing::Exactly(2));
         logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
     }
 };
@@ -871,6 +872,8 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_query_failure)
         "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
     logger_scope.mock_logger->expect_log(mpl::Level::trace,
                                          "perform_hcn_operation(...) > result: true");
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         "perform_hcn_operation(...) > result: false");
 
     hcn::HcnEndpointInfo endpoint_info;
     const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
