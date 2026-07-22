@@ -61,7 +61,8 @@ public:
      *
      * @param [in] base_vhdx_path Path to the base disk.
      */
-    static void collapse_head_into_base(const std::filesystem::path& base_vhdx_path);
+    static void collapse_head_into_base(const std::string& vm_name,
+                                        const std::filesystem::path& base_vhdx_path);
 
 protected:
     void capture_impl() override;
@@ -69,6 +70,7 @@ protected:
     void apply_impl() override;
 
 private:
+    void collapse_head_into_base(const std::filesystem::path& base_vhdx_path);
     /**
      * After deleting the last snapshot, best-effort collapse `base <- head` into `base`.
      */
