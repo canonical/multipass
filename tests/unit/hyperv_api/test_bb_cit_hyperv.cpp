@@ -16,7 +16,10 @@
  */
 
 #include "hyperv_test_utils.h"
+#include "multipass/test_data_path.h"
 #include "tests/unit/common.h"
+
+#include <shared/windows/network_utils.h>
 
 #include <fmt/xchar.h>
 
@@ -29,12 +32,17 @@
 
 #include <scope_guard.hpp>
 
+#include <chrono>
+#include <fstream>
+#include <thread>
+
 namespace multipass::test
 {
 
 using namespace hyperv::hcs;
 using hyperv::hcn::HCN;
 using hyperv::virtdisk::VirtDisk;
+using namespace std::chrono_literals;
 
 // Component level big bang integration tests for Hyper-V HCN/HCS + virtdisk API's.
 // These tests ensure that the API's working together as expected.
@@ -42,7 +50,7 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
 {
 };
 
-TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_on_ics_dhcp_network)
+TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ics_dhcp_network)
 {
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
@@ -61,6 +69,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_on_ics_dhcp_network
         hyperv::hcn::CreateEndpointParameters endpoint_parameters{};
         endpoint_parameters.network_guid = network_parameters.guid;
         endpoint_parameters.endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029f";
+        endpoint_parameters.mac_address = "52-54-00-E9-36-7E";
         return endpoint_parameters;
     }();
 
@@ -75,25 +84,43 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_on_ics_dhcp_network
     });
 
     const auto temp_path = make_tempfile_path(".vhdx");
-
-    const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
-        .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
-        .path = temp_path,
-        .predecessor = {}};
+    const auto cloud_init_iso_path =
+        std::filesystem::path{test_data_path} / "cloud-init" / "cloud-init.iso";
+    {
+        std::ofstream output{static_cast<const std::filesystem::path&>(temp_path),
+                             std::ios::binary};
+        ASSERT_TRUE(output);
+        for (const auto suffix : {"aa", "ab", "ac"})
+        {
+            const auto part = std::filesystem::path{test_data_path} / "cloud-vhdx" /
+                              fmt::format("alpine.vhdx.part-{}", suffix);
+            std::ifstream input{part, std::ios::binary};
+            ASSERT_TRUE(input);
+            output << input.rdbuf();
+        }
+    }
 
     const auto network_adapter = [&endpoint_parameters]() {
         hyperv::hcs::HcsNetworkAdapter network_adapter{};
         network_adapter.endpoint_guid = endpoint_parameters.endpoint_guid;
-        network_adapter.mac_address = "00-15-5D-9D-CF-69";
+        network_adapter.mac_address = *endpoint_parameters.mac_address;
         return network_adapter;
     }();
 
-    const auto create_vm_parameters = [&network_adapter]() {
+    const auto create_vm_parameters = [&network_adapter, &temp_path, &cloud_init_iso_path]() {
         hyperv::hcs::CreateComputeSystemParameters vm_parameters{};
         vm_parameters.name = "multipass-hyperv-cit-vm";
         vm_parameters.processor_count = 1;
         vm_parameters.memory_size_mb = 512;
         vm_parameters.network_adapters.push_back(network_adapter);
+        vm_parameters.scsi_devices = {
+            hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
+                                       .name = "Primary disk",
+                                       .path = temp_path},
+            hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                       .name = "Cloud-init ISO",
+                                       .path = cloud_init_iso_path,
+                                       .read_only = true}};
         return vm_parameters;
     }();
 
@@ -102,6 +129,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_on_ics_dhcp_network
         (void)HCS().terminate_compute_system(handle);
         handle.reset();
     }
+    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
+    (void)HCN().delete_network(network_parameters.guid);
 
     // Create the test network
     {
@@ -115,17 +144,13 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_on_ics_dhcp_network
         ASSERT_TRUE(status.success());
     }
 
-    // Create the test VHDX (empty)
-    {
-        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(create_disk_parameters);
-        ASSERT_TRUE(status.success());
-    }
-
     // Create test VM
     {
         const auto& [status, status_msg] = HCS().create_compute_system(create_vm_parameters,
                                                                        handle);
         ASSERT_TRUE(status.success());
+        ASSERT_TRUE(HCS().grant_vm_access(create_vm_parameters.name, temp_path));
+        ASSERT_TRUE(HCS().grant_vm_access(create_vm_parameters.name, cloud_init_iso_path));
     }
 
     // Start test VM
@@ -139,6 +164,17 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_on_ics_dhcp_network
         HCN().query_endpoint(endpoint_parameters.endpoint_guid, endpoint_info);
     ASSERT_TRUE(query_result);
     EXPECT_TRUE(endpoint_info.ip_addresses.empty());
+    ASSERT_TRUE(endpoint_info.mac_address);
+
+    std::optional<std::string> neighbor_address;
+    for (auto attempts = 0; attempts < 120 && !neighbor_address; ++attempts)
+    {
+        neighbor_address =
+            windows_network_utils().permanent_ipv4_neighbor(*endpoint_info.mac_address);
+        if (!neighbor_address)
+            std::this_thread::sleep_for(500ms);
+    }
+    ASSERT_TRUE(neighbor_address);
 
     (void)HCS().terminate_compute_system(handle);
     handle.reset();
