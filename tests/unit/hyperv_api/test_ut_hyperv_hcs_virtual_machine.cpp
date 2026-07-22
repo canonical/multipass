@@ -204,9 +204,10 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                                std::optional<std::string> mac_address = std::nullopt)
     {
         EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
-            .WillOnce([ip_addresses = std::move(ip_addresses),
-                       mac_address = std::move(mac_address)](
-                          const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
+            .WillOnce(
+                [ip_addresses = std::move(ip_addresses),
+                 mac_address = std::move(mac_address)](const std::string&,
+                                                       mhv::hcn::HcnEndpointInfo& endpoint_info) {
                     endpoint_info.mac_address = mac_address;
                     endpoint_info.ip_addresses = ip_addresses;
                     return hcs_op_result_t{0, L""};

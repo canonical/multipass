@@ -315,6 +315,8 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
 {
     mpl::trace(log_category, "HCNWrapper::query_endpoint(...) > endpoint_guid: {}", endpoint_guid);
 
+    out_info = {};
+
     const auto& [open_result, endpoint] = open_endpoint(endpoint_guid);
     if (!open_result)
         return open_result;
