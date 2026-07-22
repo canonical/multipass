@@ -808,7 +808,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
 TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
 {
     static wchar_t endpoint_properties[] =
-        LR"({"IpConfigurations":[{"IpAddress":"172.20.1.2","PrefixLength":20},{"IpAddress":"fe80::1","PrefixLength":64}]})";
+        LR"({"MacAddress":"52-54-00-E9-36-7E","IpConfigurations":[{"IpAddress":"172.20.1.2","PrefixLength":20},{"IpAddress":"fe80::1","PrefixLength":64}]})";
 
     expect_endpoint_query(endpoint_properties);
 
@@ -816,6 +816,8 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
     const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     ASSERT_TRUE(result);
+    ASSERT_TRUE(endpoint_info.mac_address);
+    EXPECT_EQ(*endpoint_info.mac_address, "52-54-00-E9-36-7E");
     ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);
     EXPECT_EQ(endpoint_info.ip_addresses[0], "172.20.1.2");
     EXPECT_EQ(endpoint_info.ip_addresses[1], "fe80::1");
@@ -919,6 +921,20 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_properties)
     EXPECT_FALSE(result);
     EXPECT_EQ(static_cast<HRESULT>(result.code), E_UNEXPECTED);
     EXPECT_TRUE(endpoint_info.ip_addresses.empty());
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_mac_address)
+{
+    static wchar_t endpoint_properties[] = LR"({"MacAddress":42})";
+
+    expect_endpoint_query(endpoint_properties);
+
+    hcn::HcnEndpointInfo endpoint_info;
+    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(static_cast<HRESULT>(result.code), E_UNEXPECTED);
+    EXPECT_FALSE(endpoint_info.mac_address);
 }
 
 } // namespace multipass::test

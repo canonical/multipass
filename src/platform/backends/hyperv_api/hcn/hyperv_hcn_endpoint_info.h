@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@ namespace multipass::hyperv::hcn
 {
 struct HcnEndpointInfo
 {
+    std::optional<std::string> mac_address;
     std::vector<std::string> ip_addresses;
 };
 } // namespace multipass::hyperv::hcn
