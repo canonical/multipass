@@ -197,19 +197,18 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
 
     void expect_endpoint_query(std::vector<std::string> ip_addresses)
     {
-        EXPECT_CALL(mock_hcn,
-                    query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
-            .WillOnce([ip_addresses = std::move(ip_addresses)](
-                          const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
-                endpoint_info.ip_addresses = ip_addresses;
-                return hcs_op_result_t{0, L""};
-            });
+        EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+            .WillOnce(
+                [ip_addresses = std::move(ip_addresses)](const std::string&,
+                                                         mhv::hcn::HcnEndpointInfo& endpoint_info) {
+                    endpoint_info.ip_addresses = ip_addresses;
+                    return hcs_op_result_t{0, L""};
+                });
     }
 
     void expect_endpoint_query_failure()
     {
-        EXPECT_CALL(mock_hcn,
-                    query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+        EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
             .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint query failed"}));
     }
 
@@ -573,8 +572,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_queries_each_time)
 {
     default_open_success();
 
-    EXPECT_CALL(mock_hcn,
-                query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+    EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
         .WillOnce(DoAll(
             [](const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
                 endpoint_info.ip_addresses = {"10.123.45.67"};
@@ -596,8 +594,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_retries_unsuccessful_q
 {
     default_open_success();
 
-    EXPECT_CALL(mock_hcn,
-                query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+    EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
         .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint query failed"}))
         .WillOnce(DoAll(
             [](const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {

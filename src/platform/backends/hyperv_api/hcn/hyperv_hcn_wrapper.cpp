@@ -193,9 +193,7 @@ std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& e
 
     UniqueHcnEndpoint endpoint{};
     const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
-        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid),
-                                     out_ptr(endpoint),
-                                     rmsgbuf);
+        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid), out_ptr(endpoint), rmsgbuf);
     });
 
     return std::make_pair(result, std::move(endpoint));
@@ -228,7 +226,8 @@ std::optional<std::vector<std::string>> endpoint_ip_addresses(const boost::json:
         }
     }
 
-    if (const auto* address = endpoint.if_contains("IPAddress"); address && !append_address(*address))
+    if (const auto* address = endpoint.if_contains("IPAddress");
+        address && !append_address(*address))
         return std::nullopt;
 
     return addresses;
@@ -314,9 +313,7 @@ OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) co
 OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
                                            HcnEndpointInfo& out_info) const
 {
-    mpl::trace(log_category,
-               "HCNWrapper::query_endpoint(...) > endpoint_guid: {}",
-               endpoint_guid);
+    mpl::trace(log_category, "HCNWrapper::query_endpoint(...) > endpoint_guid: {}", endpoint_guid);
 
     const auto& [open_result, endpoint] = open_endpoint(endpoint_guid);
     if (!open_result)
@@ -448,8 +445,9 @@ OperationResult HCNWrapper::enumerate_networks(std::vector<std::string>& out_net
     UniqueCotaskmemString enumerate_result{}, result_msgbuf{};
 
     // List all HCN network GUIDs
-    const auto result =
-        API().HcnEnumerateNetworks(L"{}", out_ptr(enumerate_result), out_ptr(result_msgbuf));
+    const auto result = API().HcnEnumerateNetworks(L"{}",
+                                                   out_ptr(enumerate_result),
+                                                   out_ptr(result_msgbuf));
     if (enumerate_result)
     {
         // json_output would contain the network GUIDs.

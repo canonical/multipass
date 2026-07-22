@@ -128,8 +128,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     // Create test VM
     {
-        const auto& [status, status_msg] =
-            HCS().create_compute_system(create_vm_parameters, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(create_vm_parameters,
+                                                                       handle);
         ASSERT_TRUE(status.success());
     }
 
@@ -263,8 +263,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Create test VM
     {
-        const auto& [status, status_msg] =
-            HCS().create_compute_system(create_vm_parameters, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(create_vm_parameters,
+                                                                       handle);
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
@@ -285,8 +285,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
             HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
             HcsRequestType::Add(),
             network_adapter};
-        const auto& [status, status_msg] =
-            HCS().modify_compute_system(handle, add_network_adapter_req);
+        const auto& [status, status_msg] = HCS().modify_compute_system(handle,
+                                                                       add_network_adapter_req);
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
@@ -295,11 +295,11 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     {
         // Create another EP so we can ensure that we're only listing the EPs belonging to the VM
         {
-            const auto& [status, status_msg] =
-                HCN().create_endpoint(hyperv::hcn::CreateEndpointParameters{
-                    .network_guid = network_parameters.guid,
-                    .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b",
-                });
+            const auto& [status,
+                         status_msg] = HCN().create_endpoint(hyperv::hcn::CreateEndpointParameters{
+                .network_guid = network_parameters.guid,
+                .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b",
+            });
 
             ASSERT_TRUE(status.success());
             ASSERT_TRUE(status_msg.empty());
