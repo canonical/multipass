@@ -371,16 +371,7 @@ void VirtDiskSnapshot::collapse_head_after_last_erase()
     if (vm.get_num_snapshots() != 1)
         return;
 
-    try
-    {
-        collapse_head_into_base(base_vhdx_path);
-    }
-    catch (const std::exception& e)
-    {
-        mpl::warn(vm.get_name(),
-                  "Could not collapse head into base after erasing the last snapshot: {}",
-                  e.what());
-    }
+    collapse_head_into_base(base_vhdx_path);
 }
 
 void VirtDiskSnapshot::collapse_head_into_base(const std::string& vm_name,
