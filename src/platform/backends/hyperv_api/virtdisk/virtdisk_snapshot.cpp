@@ -424,8 +424,7 @@ void VirtDiskSnapshot::apply_impl()
     auto new_head_path = head_path;
     new_head_path.replace_extension(".new.avhdx"); // "head.avhdx" -> "head.new.avhdx"
 
-    std::error_code ec{};
-    MP_FILEOPS.remove(new_head_path, ec);
+    MP_FILEOPS.remove(new_head_path);
     create_new_child_disk(snapshot_path, new_head_path);
 
     MP_FILEOPS.rename(new_head_path, head_path);
