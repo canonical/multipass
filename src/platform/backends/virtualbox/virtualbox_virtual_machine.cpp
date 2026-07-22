@@ -461,7 +461,7 @@ mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
     return state;
 }
 
-int mp::VirtualBoxVirtualMachine::ssh_port()
+uint32_t mp::VirtualBoxVirtualMachine::ssh_port()
 {
     if (!port)
     {
@@ -499,11 +499,6 @@ void mp::VirtualBoxVirtualMachine::handle_state_update()
 std::string mp::VirtualBoxVirtualMachine::ssh_hostname()
 {
     return "127.0.0.1";
-}
-
-std::string mp::VirtualBoxVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
 }
 
 std::optional<mp::IPAddress> mp::VirtualBoxVirtualMachine::management_ipv4()

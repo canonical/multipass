@@ -45,9 +45,6 @@ public:
 
     State current_state() override;
 
-    int ssh_port() override;
-    std::string ssh_hostname() override;
-    std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
 
     void handle_state_update() override;
@@ -64,6 +61,9 @@ public:
 
 protected:
     void resize_disk_impl(const MemorySize& new_size) override;
+
+    uint32_t ssh_port() override;
+    std::string ssh_hostname() override;
 
 private:
     void initialize_vm_handle();

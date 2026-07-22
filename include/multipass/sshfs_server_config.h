@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/id_mappings.h>
+#include <multipass/ssh/ssh_coordinates.h>
 
 #include <string>
 
@@ -26,11 +27,8 @@ namespace multipass
 
 struct SSHFSServerConfig
 {
-    std::string host;
-    int port;
-    std::string username;
+    SSHCoordinates ssh_coordinates;
     std::string instance;
-    std::string private_key;
     std::string source_path;
     std::string target_path;
     id_mappings gid_mappings;

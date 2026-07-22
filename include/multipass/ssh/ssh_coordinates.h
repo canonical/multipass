@@ -17,27 +17,16 @@
 
 #pragma once
 
-#include "qemu_virtual_machine.h"
-
-#include <multipass/mount_handler.h>
+#include <cstdint>
+#include <string>
 
 namespace multipass
 {
-class QemuMountHandler : public MountHandler
+struct SSHCoordinates
 {
-public:
-    QemuMountHandler(QemuVirtualMachine* vm, const std::string& target, VMMount mount_spec);
-    ~QemuMountHandler() override;
-
-    void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
-    void deactivate_impl(bool force) override;
-    bool is_active() override;
-
-    static std::string make_tag(const std::string& seed);
-
-private:
-    QemuVirtualMachine::MountArgs& vm_mount_args;
-    std::string tag;
+    std::string username;
+    std::string private_key_as_base64;
+    uint32_t port;
+    std::string tcp_host;
 };
-
 } // namespace multipass

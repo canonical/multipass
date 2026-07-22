@@ -59,21 +59,20 @@ mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
             timer->stop();
 
         // TODO: mainly for testing - need a better way to test parsing
-        if (reply.ssh_info().empty())
+        if (reply.ssh_coordinates().empty())
             return ReturnCode::Ok;
 
         // TODO: this should setup a reader that continuously prints out
         // streaming replies from the server corresponding to stdout/stderr streams
-        const auto& ssh_info = reply.ssh_info().begin()->second;
-        const auto& host = ssh_info.host();
-        const auto& port = ssh_info.port();
-        const auto& username = ssh_info.username();
-        const auto& priv_key_blob = ssh_info.priv_key_base64();
-
+        const auto& ssh_coordinates_rpc = reply.ssh_coordinates().begin()->second;
+        mp::SSHCoordinates ssh_coordinates{ssh_coordinates_rpc.username(),
+                                           ssh_coordinates_rpc.priv_key_base64(),
+                                           ssh_coordinates_rpc.port(),
+                                           ssh_coordinates_rpc.tcp_host()};
         try
         {
             auto console_creator = [this](auto channel) { return term->make_console(channel); };
-            mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
+            mp::SSHClient ssh_client{ssh_coordinates, console_creator};
             return static_cast<mp::VMReturnCode>(ssh_client.connect());
         }
         catch (const std::exception& e)

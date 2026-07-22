@@ -356,8 +356,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 {
     // Always reset the handle and create a new one.
     hcs_system.reset();
-    auto attach_callback_handler =
-        sg::make_scope_guard([this]() noexcept { set_compute_system_callback_handler(); });
+    auto attach_callback_handler = sg::make_scope_guard(
+        [this]() noexcept { set_compute_system_callback_handler(); });
 
     if (const auto result = HCS().open_compute_system(get_name(), hcs_system))
     {
@@ -388,12 +388,12 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                           .read_only = true}},
         .network_adapters =
             [&] {
-                const auto view =
-                    endpoints |
-                    std::views::transform([](const auto& endpoint) -> hcs::HcsNetworkAdapter {
-                        return {.endpoint_guid = endpoint.endpoint_guid,
-                                .mac_address = endpoint.mac_address.value()};
-                    });
+                const auto view = endpoints |
+                                  std::views::transform(
+                                      [](const auto& endpoint) -> hcs::HcsNetworkAdapter {
+                                          return {.endpoint_guid = endpoint.endpoint_guid,
+                                                  .mac_address = endpoint.mac_address.value()};
+                                      });
                 return std::vector(std::ranges::begin(view), std::ranges::end(view));
             }(),
         .guest_state = {.guest_state_file_path = get_guest_state_file_path(),
@@ -402,8 +402,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                                                   ? std::optional(get_saved_state_file_path())
                                                   : std::nullopt}};
 
-    if (const auto create_result =
-            HCS().create_compute_system(create_compute_system_params, hcs_system);
+    if (const auto create_result = HCS().create_compute_system(create_compute_system_params,
+                                                               hcs_system);
         !create_result)
     {
         throw CreateComputeSystemException{"create_compute_system failed with {}",
@@ -594,17 +594,13 @@ HCSVirtualMachine::State HCSVirtualMachine::current_state()
     set_state(fetch_state_from_api());
     return state;
 }
-int HCSVirtualMachine::ssh_port()
+uint32_t HCSVirtualMachine::ssh_port()
 {
     return default_ssh_port;
 }
 std::string HCSVirtualMachine::ssh_hostname()
 {
     return fmt::format("{}.mshome.net", get_name());
-}
-std::string HCSVirtualMachine::ssh_username()
-{
-    return description.ssh_username;
 }
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
@@ -652,8 +648,8 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     mpl::debug(get_name(), "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
 
-    if (const auto result =
-            VirtDisk().resize_virtual_disk(description.image.image_path, new_size.in_bytes());
+    if (const auto result = VirtDisk().resize_virtual_disk(description.image.image_path,
+                                                           new_size.in_bytes());
         !result)
     {
         throw ResizeDiskException{"Disk resize failed, details: {}", result};
@@ -690,7 +686,6 @@ HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VM
 
     static const SmbManager smb_manager{};
     return std::make_unique<SmbMountHandler>(this,
-                                             &key_provider,
                                              target,
                                              mount,
                                              instance_dir.absolutePath(),

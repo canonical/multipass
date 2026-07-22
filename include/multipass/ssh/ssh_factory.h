@@ -17,27 +17,28 @@
 
 #pragma once
 
-#include "qemu_virtual_machine.h"
+#include <multipass/singleton.h>
+#include <multipass/ssh/ssh_coordinates.h>
+#include <multipass/ssh/ssh_session.h>
 
-#include <multipass/mount_handler.h>
+#define MP_SSH_FACTORY multipass::SSHFactory::instance()
 
 namespace multipass
 {
-class QemuMountHandler : public MountHandler
+struct SSHKeyDeleter
+{
+    void operator()(ssh_key key) const;
+};
+using SSHKeyUPtr = std::unique_ptr<ssh_key_struct, SSHKeyDeleter>;
+using SSHSessionUPtr = std::unique_ptr<SSHSession>;
+
+class SSHFactory : public Singleton<SSHFactory>
 {
 public:
-    QemuMountHandler(QemuVirtualMachine* vm, const std::string& target, VMMount mount_spec);
-    ~QemuMountHandler() override;
+    SSHFactory(const Singleton<SSHFactory>::PrivatePass&) noexcept;
 
-    void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
-    void deactivate_impl(bool force) override;
-    bool is_active() override;
+    virtual SSHKeyUPtr make_key(const std::string& private_key_as_base64) const;
 
-    static std::string make_tag(const std::string& seed);
-
-private:
-    QemuVirtualMachine::MountArgs& vm_mount_args;
-    std::string tag;
+    virtual SSHSessionUPtr make_session(const SSHCoordinates& ssh_coordinates) const;
 };
-
 } // namespace multipass

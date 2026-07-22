@@ -180,12 +180,9 @@ void SFTPUtils::mkdir_recursive(sftp_session sftp, const fs::path& path)
                             MP_LIBSSH.ssh_get_error(sftp->session)};
 }
 
-std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const std::string& host,
-                                                       int port,
-                                                       const std::string& username,
-                                                       const std::string& priv_key_blob)
+std::unique_ptr<SFTPClient> SFTPUtils::make_SFTPClient(const SSHCoordinates& coordinates)
 {
-    return std::make_unique<SFTPClient>(host, port, username, priv_key_blob);
+    return std::make_unique<SFTPClient>(coordinates);
 }
 
 std::unique_ptr<SFTPDirIterator> SFTPUtils::make_SFTPDirIterator(sftp_session sftp,

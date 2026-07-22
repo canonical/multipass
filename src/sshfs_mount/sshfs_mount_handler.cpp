@@ -118,16 +118,12 @@ catch (const mp::ExitlessSSHProcessException& e)
 namespace multipass
 {
 SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
-                                     const SSHKeyProvider* ssh_key_provider,
                                      const std::string& target,
                                      VMMount mount_spec)
-    : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
+    : MountHandler{vm, std::move(mount_spec), target},
       process{nullptr},
-      config{"",
-             0,
-             vm->ssh_username(),
+      config{{},
              vm->get_name(),
-             ssh_key_provider->private_key_as_base64(),
              source,
              target,
              this->mount_spec.get_gid_mappings(),
@@ -158,8 +154,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
     }
 
     // Can't obtain hostname/IP address until instance is running
-    config.host = vm->ssh_hostname();
-    config.port = vm->ssh_port();
+    config.ssh_coordinates = vm->ssh_coordinates();
 
     process.reset(platform::make_sshfs_server_process(config).release());
 

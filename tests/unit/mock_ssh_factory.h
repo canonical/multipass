@@ -17,28 +17,21 @@
 
 #pragma once
 
-#include <multipass/ssh/ssh_key_provider.h>
+#include "common.h"
+#include "mock_singleton_helpers.h"
 
-#include <memory>
+#include <multipass/ssh/ssh_factory.h>
 
-namespace multipass
+namespace multipass::test
 {
-class SSHClientKeyProvider : public SSHKeyProvider
+class MockSSHFactory : public SSHFactory
 {
 public:
-    struct KeyDeleter
-    {
-        void operator()(ssh_key key);
-    };
-    using KeyUPtr = std::unique_ptr<ssh_key_struct, KeyDeleter>;
+    using SSHFactory::SSHFactory;
 
-    explicit SSHClientKeyProvider(const std::string& priv_key_blob);
+    MOCK_METHOD(KeyUPtr, make_key, (const std::string&), (const, override));
+    MOCK_METHOD(SSHSessionUPtr, make_session, (const SSHCoordinates&), (const, override));
 
-    std::string private_key_as_base64() const override;
-    std::string public_key_as_base64() const override;
-    ssh_key private_key() const override;
-
-private:
-    KeyUPtr priv_key;
+    MP_MOCK_SINGLETON_BOILERPLATE(MockSSHFactory, SSHFactory);
 };
-} // namespace multipass
+} // namespace multipass::test

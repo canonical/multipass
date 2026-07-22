@@ -46,14 +46,15 @@ mp::ReturnCodeVariant cmd::Transfer::run(mp::ArgParser* parser)
 
     auto on_success = [this](mp::SSHInfoReply& reply) -> ReturnCodeVariant {
         auto success = true;
-        for (const auto& [instance_name, ssh_info] : reply.ssh_info())
+        for (const auto& [instance_name, ssh_coordinates_rpc] : reply.ssh_coordinates())
         {
+            mp::SSHCoordinates ssh_coordinates{ssh_coordinates_rpc.username(),
+                                               ssh_coordinates_rpc.priv_key_base64(),
+                                               ssh_coordinates_rpc.port(),
+                                               ssh_coordinates_rpc.tcp_host()};
             try
             {
-                auto sftp_client = MP_SFTPUTILS.make_SFTPClient(ssh_info.host(),
-                                                                ssh_info.port(),
-                                                                ssh_info.username(),
-                                                                ssh_info.priv_key_base64());
+                auto sftp_client = MP_SFTPUTILS.make_SFTPClient(ssh_coordinates);
 
                 if (const auto args = std::get_if<InstanceSourcesLocalTarget>(&arguments); args)
                 {
