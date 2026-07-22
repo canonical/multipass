@@ -18,8 +18,13 @@
 #include "hyperv_test_utils.h"
 #include "multipass/test_data_path.h"
 #include "tests/unit/common.h"
+#include "tests/unit/stub_availability_zone.h"
+#include "tests/unit/stub_ssh_key_provider.h"
+#include "tests/unit/stub_status_monitor.h"
 
 #include <shared/windows/network_utils.h>
+
+#include <multipass/subnet.h>
 
 #include <fmt/xchar.h>
 
@@ -28,6 +33,7 @@
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_endpoint_info.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcs/hyperv_hcs_wrapper.h>
+#include <src/platform/backends/hyperv_api/hcs_virtual_machine.h>
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <scope_guard.hpp>
@@ -181,6 +187,100 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
     (void)HCN().delete_network(network_parameters.guid);
     cleanup.dismiss();
+}
+
+TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn)
+{
+    hyperv::hcs::HcsSystemHandle handle{nullptr};
+    const auto network_parameters = []() {
+        hyperv::hcn::CreateNetworkParameters parameters{};
+        parameters.name = "multipass-hyperv-hcn-ip-cit";
+        parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47487";
+        parameters.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+                                 {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}};
+        return parameters;
+    }();
+
+    const std::string vm_name{"multipass-hyperv-hcn-ip-cit-vm"};
+    const std::string mac_address{"00:15:5d:9d:cf:69"};
+    const hyperv::hcn::CreateEndpointParameters endpoint_parameters{
+        .network_guid = network_parameters.guid,
+        .endpoint_guid = "db4bdbf0-dc14-407f-9780-00155d9dcf69",
+        .mac_address = "00-15-5D-9D-CF-69"};
+
+    auto cleanup = sg::make_scope_guard([&]() noexcept {
+        if (handle)
+        {
+            (void)HCS().terminate_compute_system(handle);
+            handle.reset();
+        }
+        (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
+        (void)HCN().delete_network(network_parameters.guid);
+    });
+
+    if (HCS().open_compute_system(vm_name, handle))
+    {
+        (void)HCS().terminate_compute_system(handle);
+        handle.reset();
+    }
+    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
+    (void)HCN().delete_network(network_parameters.guid);
+
+    {
+        const auto& [status, status_msg] = HCN().create_network(network_parameters);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(status_msg.empty());
+    }
+
+    {
+        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(status_msg.empty());
+    }
+
+    {
+        hyperv::hcs::CreateComputeSystemParameters parameters{};
+        parameters.name = vm_name;
+        parameters.processor_count = 1;
+        parameters.memory_size_mb = 512;
+
+        const auto& [status, status_msg] = HCS().create_compute_system(parameters, handle);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(status_msg.empty());
+    }
+
+    StubAvailabilityZone zone;
+    StubSSHKeyProvider key_provider;
+    StubVMStatusMonitor monitor;
+    const VirtualMachineDescription description{
+        1,
+        MemorySize{"512M"},
+        MemorySize{},
+        vm_name,
+        zone.get_name(),
+        mac_address,
+        {},
+        "",
+        {"", "", "", "", {}, {}},
+        "",
+        {},
+        {},
+        {},
+        {}};
+
+    {
+        hyperv::HCSVirtualMachine vm{network_parameters.guid,
+                                     description,
+                                     monitor,
+                                     key_provider,
+                                     zone,
+                                     {}};
+        const auto address = vm.management_ipv4();
+
+        ASSERT_TRUE(address);
+        EXPECT_TRUE(Subnet{"10.99.100.0/24"}.contains(*address));
+    }
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_boot)
