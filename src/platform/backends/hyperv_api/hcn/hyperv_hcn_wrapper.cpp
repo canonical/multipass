@@ -226,7 +226,8 @@ std::optional<std::vector<std::string>> endpoint_ip_addresses(const boost::json:
         }
     }
 
-    if (const auto* address = endpoint.if_contains("IPAddress"); address && !append_address(*address))
+    if (const auto* address = endpoint.if_contains("IPAddress");
+        address && !append_address(*address))
         return std::nullopt;
 
     return addresses;
