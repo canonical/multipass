@@ -107,6 +107,37 @@ auto net_digest(const QString& options)
 
     return net;
 }
+
+std::string launch_timeout_message(const QString& instance_name,
+                                   const std::vector<std::pair<QString, QString>>& mount_routes)
+{
+    auto message = std::string{"Warning: Timeout while launching the instance."};
+
+    if (!mount_routes.empty())
+    {
+        const auto mount_request_count = mount_routes.size();
+        const auto plural_suffix = mount_request_count == 1 ? "" : "s";
+        message += fmt::format(" No mounts have been performed out of {} mount request{}.\n\n",
+                               mount_request_count,
+                               plural_suffix);
+        message += fmt::format("Run the command{} below to apply manually:\n", plural_suffix);
+
+        for (const auto& [source, target] : mount_routes)
+        {
+            message += "\n multipass mount ";
+            message += source.toStdString();
+            message += " ";
+            message += instance_name.toStdString();
+            if (!target.isEmpty())
+            {
+                message += ":";
+                message += target.toStdString();
+            }
+        }
+    }
+
+    return message;
+}
 } // namespace
 
 mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
@@ -494,7 +525,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         timer = cmd::make_timer(parser->value("timeout").toInt(),
                                 spinner.get(),
                                 cerr,
-                                "Timed out waiting for instance launch.");
+                                launch_timeout_message(instance_name, mount_routes));
         timer->start();
     }
 

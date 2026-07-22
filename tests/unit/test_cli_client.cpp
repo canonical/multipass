@@ -1481,6 +1481,56 @@ TEST_F(Client, launchCmdMountOption)
               mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, launchCmdWarnsWithMountCountOnTimeout)
+{
+    const QTemporaryDir first_fake_directory{};
+    const QTemporaryDir second_fake_directory{};
+    const auto first_fake_source = first_fake_directory.path().toStdString();
+    const auto second_fake_source = second_fake_directory.path().toStdString();
+    const auto instance_name = "some_instance";
+    const auto first_mount_target = "/first";
+    const auto second_mount_target = "/second";
+
+    ON_CALL(mock_daemon, launch)
+        .WillByDefault([](grpc::ServerContext*,
+                          grpc::ServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>*) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            return grpc::Status::OK;
+        });
+
+    EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
+    EXPECT_CALL(mock_daemon, mount).Times(AnyNumber());
+    EXPECT_CALL(*mock_utils, exit(mp::timeout_exit_code));
+
+    std::stringstream cerr_stream;
+    send_command({"launch",
+                  "--name",
+                  instance_name,
+                  "--timeout",
+                  "1",
+                  "--mount",
+                  fmt::format("{}:{}", first_fake_source, first_mount_target),
+                  "--mount",
+                  fmt::format("{}:{}", second_fake_source, second_mount_target)},
+                 trash_stream,
+                 cerr_stream);
+
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr("Warning: Timeout while launching the instance. No mounts have been "
+                           "performed out of 2 mount requests."));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Run the commands below to apply manually:"));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("multipass mount {} {}:{}",
+                                      first_fake_source,
+                                      instance_name,
+                                      first_mount_target)));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("multipass mount {} {}:{}",
+                                      second_fake_source,
+                                      instance_name,
+                                      second_mount_target)));
+}
+
 TEST_F(Client, launchCmdMountOptionFailsOnInvalidDir)
 {
     auto [mocked_file_ops, mocked_file_ops_guard] = mpt::MockFileOps::inject();
