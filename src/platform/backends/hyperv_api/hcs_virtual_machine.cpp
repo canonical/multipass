@@ -26,7 +26,6 @@
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <shared/windows/smb_mount_handler.h>
-#include <shared/windows/wsa_init_wrapper.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
@@ -39,8 +38,6 @@
 #include <scope_guard.hpp>
 
 #include <stdexcept>
-
-#include <WS2tcpip.h>
 
 namespace
 {
@@ -67,97 +64,6 @@ inline auto replace_colon_with_dash(const std::string& addr)
     std::string result{addr};
     std::ranges::replace(result, ':', '-');
     return result;
-}
-
-/**
- * Perform a DNS resolve of @p hostname to obtain IPv4/IPv6
- * address(es) associated with it.
- *
- * @param [in] hostname Hostname to resolve
- * @return Vector of IPv4/IPv6 addresses
- */
-auto resolve_ip_addresses(const std::string& hostname)
-{
-    const static mp::wsa_init_wrapper wsa_context{};
-
-    std::vector<std::string> ipv4{}, ipv6{};
-    mpl::trace("resolve-ip-addr",
-               "resolve_ip_addresses() -> resolve being called for hostname `{}`",
-               hostname);
-
-    // Wrap the raw addrinfo pointer so it's always destroyed properly.
-    const auto& [result, addr_info] = [&]() {
-        struct addrinfo* result = {nullptr};
-        // clang-format off
-        // (xmkg): different behavior between clang-format versions.
-        struct addrinfo hints
-        {
-
-        };
-        // clang-format on
-        const auto r = getaddrinfo(hostname.c_str(), nullptr, nullptr, &result);
-        return std::make_pair(
-            r,
-            std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>{result, freeaddrinfo});
-    }();
-
-    if (result == 0)
-    {
-        assert(addr_info.get());
-        for (auto ptr = addr_info.get(); ptr != nullptr; ptr = ptr->ai_next)
-        {
-            switch (ptr->ai_family)
-            {
-            case AF_INET:
-            {
-                constexpr auto sockaddr_in_size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN>);
-                if (ptr->ai_addrlen >= sockaddr_in_size)
-                {
-                    const auto sockaddr_ipv4 = reinterpret_cast<LPSOCKADDR_IN>(ptr->ai_addr);
-                    char addr[INET_ADDRSTRLEN] = {};
-                    inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), addr, sizeof(addr));
-                    ipv4.push_back(addr);
-                    break;
-                }
-
-                mpl::error("resolve-ip-addr",
-                           "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address "
-                           "data while expecting {}!",
-                           ptr->ai_addrlen,
-                           sockaddr_in_size);
-            }
-            break;
-            case AF_INET6:
-            {
-                constexpr auto sockaddr_in6_size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
-                if (ptr->ai_addrlen >= sockaddr_in6_size)
-                {
-                    const auto sockaddr_ipv6 = reinterpret_cast<LPSOCKADDR_IN6>(ptr->ai_addr);
-                    char addr[INET6_ADDRSTRLEN] = {};
-                    inet_ntop(AF_INET6, &(sockaddr_ipv6->sin6_addr), addr, sizeof(addr));
-                    ipv6.push_back(addr);
-                    break;
-                }
-                mpl::error("resolve-ip-addr",
-                           "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address "
-                           "data while expecting {}!",
-                           ptr->ai_addrlen,
-                           sockaddr_in6_size);
-            }
-            break;
-            default:
-                continue;
-            }
-        }
-    }
-
-    mpl::trace("resolve-ip-addr",
-               "resolve_ip_addresses() -> hostname: {} resolved to : (v4: {}, v6: {})",
-               hostname,
-               fmt::join(ipv4, ","),
-               fmt::join(ipv6, ","));
-
-    return std::make_pair(ipv4, ipv6);
 }
 
 void try_create_endpoints(
@@ -609,19 +515,35 @@ std::string HCSVirtualMachine::ssh_username()
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
-    const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname().c_str());
-    if (ipv4.empty())
+    const auto endpoint_guid = mac2uuid(description.default_mac_address);
+    hcn::HcnEndpointInfo endpoint_info;
+    if (const auto query_result = HCN().query_endpoint(endpoint_guid, endpoint_info); !query_result)
     {
-        mpl::error(get_name(), "management_ipv4() > failed to resolve `{}`", ssh_hostname());
+        mpl::error(get_name(),
+                   "management_ipv4() > failed to query endpoint `{}`: {}",
+                   endpoint_guid,
+                   query_result);
         return std::nullopt;
     }
 
-    const auto result = *ipv4.begin();
+    for (const auto& configuration : endpoint_info.ip_configurations)
+    {
+        try
+        {
+            IPAddress address{configuration.ip_address};
+            mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
+            return address;
+        }
+        catch (const std::invalid_argument&)
+        {
+            // HCN also reports IPv6 configurations, which IPAddress does not represent.
+        }
+    }
 
-    mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", result);
-
-    // Prefer the first one
-    return std::make_optional<IPAddress>(result);
+    mpl::debug(get_name(),
+               "management_ipv4() > endpoint `{}` has no IPv4 configuration",
+               endpoint_guid);
+    return std::nullopt;
 }
 
 void HCSVirtualMachine::handle_state_update()
