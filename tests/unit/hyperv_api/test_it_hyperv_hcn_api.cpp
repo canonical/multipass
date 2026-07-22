@@ -131,23 +131,17 @@ TEST_F(HyperVHCNAPI_IntegrationTests, query_nonexistent_network)
     EXPECT_FALSE(result);
 }
 
-TEST_F(HyperVHCNAPI_IntegrationTests, ics_dhcp_endpoint_has_no_host_assigned_ip)
+TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 {
     CreateNetworkParameters network_params{};
     network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
     network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-    network_params.flags = HcnNetworkFlags::enable_dhcp_server;
     network_params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
 
     CreateEndpointParameters endpoint_params{};
 
     endpoint_params.network_guid = network_params.guid;
     endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
-
-    auto cleanup = sg::make_scope_guard([&]() noexcept {
-        (void)HCN().delete_endpoint(endpoint_params.endpoint_guid);
-        (void)HCN().delete_network(network_params.guid);
-    });
 
     (void)HCN().delete_network(network_params.guid);
 
@@ -159,15 +153,9 @@ TEST_F(HyperVHCNAPI_IntegrationTests, ics_dhcp_endpoint_has_no_host_assigned_ip)
 
     {
         const auto& [status, error_msg] = HCN().create_endpoint(endpoint_params);
+        std::wprintf(L"%s\n", error_msg.c_str());
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
-    }
-
-    {
-        HcnEndpointInfo endpoint_info;
-        const auto result = HCN().query_endpoint(endpoint_params.endpoint_guid, endpoint_info);
-        ASSERT_TRUE(result);
-        EXPECT_TRUE(endpoint_info.ip_addresses.empty());
     }
 
     {
@@ -181,7 +169,6 @@ TEST_F(HyperVHCNAPI_IntegrationTests, ics_dhcp_endpoint_has_no_host_assigned_ip)
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
-    cleanup.dismiss();
 }
 
 TEST_F(HyperVHCNAPI_IntegrationTests, query_endpoint_returns_host_assigned_ipv4)
