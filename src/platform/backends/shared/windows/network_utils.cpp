@@ -61,9 +61,18 @@ std::string ipv4_to_string(const IN_ADDR& address)
 }
 } // namespace
 
-std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address)
+WindowsNetworkUtils::WindowsNetworkUtils(
+    const Singleton<WindowsNetworkUtils>::PrivatePass& pass) noexcept
+    : Singleton<WindowsNetworkUtils>{pass}
 {
-    if (!utils::valid_mac_address(mac_address))
+}
+
+std::optional<std::string>
+WindowsNetworkUtils::permanent_ipv4_neighbor(const std::string& mac_address) const
+{
+    auto canonical_mac = mac_address;
+    std::ranges::replace(canonical_mac, '-', ':');
+    if (!utils::valid_mac_address(canonical_mac))
     {
         logging::error(log_category, "Invalid MAC address `{}`", mac_address);
         return std::nullopt;
@@ -84,11 +93,11 @@ std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_addres
         return std::nullopt;
     }
 
-    const auto matches = [&mac_address](const MIB_IPNET_ROW2& row) {
+    const auto matches = [&canonical_mac](const MIB_IPNET_ROW2& row) {
         return row.Address.si_family == AF_INET && row.State == NlnsPermanent &&
                row.PhysicalAddressLength == ethernet_address_length &&
                std::ranges::equal(canonical_mac_address(row.PhysicalAddress),
-                                  mac_address,
+                                  canonical_mac,
                                   [](unsigned char lhs, unsigned char rhs) {
                                       return std::tolower(lhs) == std::tolower(rhs);
                                   });
