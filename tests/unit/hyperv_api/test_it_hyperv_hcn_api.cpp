@@ -131,7 +131,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, query_nonexistent_network)
     EXPECT_FALSE(result);
 }
 
-TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint_on_ics_dhcp_network)
+TEST_F(HyperVHCNAPI_IntegrationTests, ics_dhcp_endpoint_has_no_host_assigned_ip)
 {
     CreateNetworkParameters network_params{};
     network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
@@ -159,7 +159,6 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint_on_ics_dhcp_network
 
     {
         const auto& [status, error_msg] = HCN().create_endpoint(endpoint_params);
-        std::wprintf(L"%s\n", error_msg.c_str());
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
