@@ -52,6 +52,11 @@ struct MockHCNWrapper : public hyperv::hcn::HCNWrapper
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
+                query_endpoint,
+                (const std::string& endpoint_guid, hyperv::hcn::HcnEndpointInfo& out_info),
+                (const, override));
+
+    MOCK_METHOD(hyperv::OperationResult,
                 enumerate_attached_endpoints,
                 (const std::string& vm_guid, std::vector<std::string>& endpoint_guids),
                 (const, override));

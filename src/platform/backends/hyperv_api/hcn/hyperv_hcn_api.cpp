@@ -68,6 +68,13 @@ HRESULT HCNAPI::HcnEnumerateEndpoints(PCWSTR Query, PWSTR* Endpoints, PWSTR* Err
 {
     return ::HcnEnumerateEndpoints(Query, Endpoints, ErrorRecord);
 }
+HRESULT HCNAPI::HcnQueryEndpointProperties(HCN_ENDPOINT Endpoint,
+                                           PCWSTR Query,
+                                           PWSTR* Properties,
+                                           PWSTR* ErrorRecord) const
+{
+    return ::HcnQueryEndpointProperties(Endpoint, Query, Properties, ErrorRecord);
+}
 HRESULT HCNAPI::HcnEnumerateNetworks(PCWSTR Query, PWSTR* Networks, PWSTR* ErrorRecord) const
 {
     return ::HcnEnumerateNetworks(Query, Networks, ErrorRecord);

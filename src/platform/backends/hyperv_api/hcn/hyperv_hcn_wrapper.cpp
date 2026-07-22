@@ -186,6 +186,20 @@ std::pair<OperationResult, UniqueHcnNetwork> open_network(const std::string& net
     return std::make_pair(result, std::move(network));
 }
 
+std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& endpoint_guid)
+{
+    mpl::trace(log_category, "open_endpoint(...) > endpoint_guid: {}", endpoint_guid);
+
+    UniqueHcnEndpoint endpoint{};
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid),
+                                     out_ptr(endpoint),
+                                     rmsgbuf);
+    });
+
+    return std::make_pair(result, std::move(endpoint));
+}
+
 } // namespace
 
 // ---------------------------------------------------------
@@ -259,6 +273,65 @@ OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) co
     return perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnDeleteEndpoint(guid_from_string(endpoint_guid), rmsgbuf);
     });
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
+                                           HcnEndpointInfo& out_info) const
+{
+    mpl::trace(log_category,
+               "HCNWrapper::query_endpoint(...) > endpoint_guid: {}",
+               endpoint_guid);
+
+    auto [open_result, endpoint] = open_endpoint(endpoint_guid);
+    if (!open_result)
+        return open_result;
+
+    UniqueCotaskmemString properties{}, result_msgbuf{};
+    const auto result = ResultCode{API().HcnQueryEndpointProperties(endpoint.get(),
+                                                                    L"{}",
+                                                                    out_ptr(properties),
+                                                                    out_ptr(result_msgbuf))};
+    if (!result.success())
+        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+
+    if (!properties)
+        return {E_UNEXPECTED, L"HCN returned no endpoint properties"};
+
+    const auto properties_as_str = wchar_to_utf8(properties.get());
+    mpl::trace(log_category, "query_endpoint result: {}", properties_as_str);
+
+    std::error_code ec;
+    const auto parsed = boost::json::parse(properties_as_str, ec);
+    if (ec || !parsed.is_object())
+        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+
+    HcnEndpointInfo endpoint_info{.guid = endpoint_guid};
+    const auto* configurations = parsed.as_object().if_contains("IpConfigurations");
+    if (configurations)
+    {
+        if (!configurations->is_array())
+            return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+
+        for (const auto& configuration : configurations->as_array())
+        {
+            if (!configuration.is_object())
+                return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+
+            const auto* address = configuration.as_object().if_contains("IpAddress");
+            if (!address)
+                continue;
+            if (!address->is_string())
+                return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+
+            endpoint_info.ip_configurations.push_back(
+                {.ip_address = std::string{address->as_string()}});
+        }
+    }
+
+    out_info = std::move(endpoint_info);
+    return {result, L""};
 }
 
 // ---------------------------------------------------------

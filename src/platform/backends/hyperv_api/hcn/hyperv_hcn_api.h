@@ -52,6 +52,10 @@ struct HCNAPI : public Singleton<HCNAPI>
     [[nodiscard]] virtual HRESULT HcnEnumerateEndpoints(PCWSTR Query,
                                                         PWSTR* Endpoints,
                                                         PWSTR* ErrorRecord) const;
+    [[nodiscard]] virtual HRESULT HcnQueryEndpointProperties(HCN_ENDPOINT Endpoint,
+                                                             PCWSTR Query,
+                                                             PWSTR* Properties,
+                                                             PWSTR* ErrorRecord) const;
     [[nodiscard]] virtual HRESULT HcnEnumerateNetworks(PCWSTR Query,
                                                        PWSTR* Networks,
                                                        PWSTR* ErrorRecord) const;
