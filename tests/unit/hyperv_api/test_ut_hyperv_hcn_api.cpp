@@ -909,6 +909,43 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_accepts_unassigned_ip)
     EXPECT_TRUE(endpoint_info.ip_configurations.empty());
 }
 
+TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_accepts_flattened_ip_configuration)
+{
+    static wchar_t endpoint_properties[] =
+        LR"({"ID":"af3fb745-2f23-463c-8ded-443f876d9e81","IPAddress":"172.20.1.2","PrefixLength":20})";
+
+    EXPECT_CALL(mock_hcn_api, HcnOpenEndpoint)
+        .WillOnce(DoAll(
+            [&](REFGUID, PHCN_ENDPOINT endpoint, PWSTR*) { *endpoint = mock_endpoint_object; },
+            Return(NOERROR)));
+    EXPECT_CALL(mock_hcn_api, HcnQueryEndpointProperties)
+        .WillOnce(DoAll(
+            [&](HCN_ENDPOINT, PCWSTR, PWSTR* properties, PWSTR*) {
+                *properties = endpoint_properties;
+            },
+            Return(NOERROR)));
+    EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
+    EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
+
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        "HCNWrapper::query_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::trace,
+        "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
+    logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                         "perform_hcn_operation(...) > result: true");
+    logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
+
+    hcn::HcnEndpointInfo endpoint_info;
+    const auto result =
+        HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+
+    ASSERT_TRUE(result);
+    ASSERT_EQ(endpoint_info.ip_configurations.size(), 1);
+    EXPECT_EQ(endpoint_info.ip_configurations[0].ip_address, "172.20.1.2");
+}
+
 TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_properties)
 {
     static wchar_t endpoint_properties[] = LR"({"IpConfigurations":"invalid"})";

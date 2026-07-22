@@ -284,7 +284,7 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
                "HCNWrapper::query_endpoint(...) > endpoint_guid: {}",
                endpoint_guid);
 
-    auto [open_result, endpoint] = open_endpoint(endpoint_guid);
+    const auto & [open_result, endpoint] = open_endpoint(endpoint_guid);
     if (!open_result)
         return open_result;
 
@@ -308,7 +308,8 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
         return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
 
     HcnEndpointInfo endpoint_info{.guid = endpoint_guid};
-    const auto* configurations = parsed.as_object().if_contains("IpConfigurations");
+    const auto& endpoint_object = parsed.as_object();
+    const auto* configurations = endpoint_object.if_contains("IpConfigurations");
     if (configurations)
     {
         if (!configurations->is_array())
@@ -328,6 +329,14 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
             endpoint_info.ip_configurations.push_back(
                 {.ip_address = std::string{address->as_string()}});
         }
+    }
+    else if (const auto* address = endpoint_object.if_contains("IPAddress"))
+    {
+        if (!address->is_string())
+            return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+
+        endpoint_info.ip_configurations.push_back(
+            {.ip_address = std::string{address->as_string()}});
     }
 
     out_info = std::move(endpoint_info);

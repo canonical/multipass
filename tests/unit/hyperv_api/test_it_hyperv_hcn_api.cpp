@@ -20,6 +20,7 @@
 #include <fmt/xchar.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_endpoint_info.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_wrapper.h>
 
 namespace multipass::test
@@ -151,6 +152,14 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
         std::wprintf(L"%s\n", error_msg.c_str());
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
+    }
+
+    {
+        HcnEndpointInfo endpoint_info;
+        const auto result = HCN().query_endpoint(endpoint_params.endpoint_guid, endpoint_info);
+        ASSERT_TRUE(result);
+        EXPECT_EQ(endpoint_info.guid, endpoint_params.endpoint_guid);
+        EXPECT_FALSE(endpoint_info.ip_configurations.empty());
     }
 
     {
