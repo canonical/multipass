@@ -17,6 +17,9 @@
 
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 
+#include <hyperv_api/virtdisk/virtdisk_child_rebuild.h>
+#include <hyperv_api/virtdisk/virtdisk_exceptions.h>
+#include <hyperv_api/virtdisk/virtdisk_utils.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
@@ -32,175 +35,13 @@
 namespace
 {
 namespace mpl = multipass::logging;
+namespace mhv = multipass::hyperv;
 using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
-
-struct CreateVirtdiskSnapshotError : multipass::FormattedExceptionBase<std::system_error>
-{
-    using FormattedExceptionBase::FormattedExceptionBase;
-};
-
-void try_rename(std::string_view log_category,
-                const std::filesystem::path& from,
-                const std::filesystem::path& to) noexcept
-{
-    multipass::top_catch_all(log_category, [from, to] { MP_FILEOPS.rename(from, to); });
-}
 
 } // namespace
 
 namespace multipass::hyperv::virtdisk
 {
-
-namespace
-{
-// Keep backup/scratch files beside their disk.
-std::filesystem::path with_suffix(std::filesystem::path p, const char* suffix)
-{
-    p += suffix;
-    return p;
-}
-
-bool is_direct_child_of(const std::filesystem::path& disk, const std::filesystem::path& parent_disk)
-{
-    if (!MP_FILEOPS.exists(disk) || !MP_FILEOPS.exists(parent_disk))
-        return false;
-
-    std::vector<std::filesystem::path> chain;
-    if (const auto r = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !r)
-    {
-        throw CreateVirtdiskSnapshotError{r, "Could not inspect virtual disk chain for `{}`", disk};
-    }
-
-    return chain.size() >= 2 &&
-           MP_FILEOPS.weakly_canonical(chain[1]) == MP_FILEOPS.weakly_canonical(parent_disk);
-}
-
-const std::filesystem::path& get_base_vhdx_path(const VirtualMachineDescription& desc)
-{
-    return desc.image.image_path;
-}
-
-/**
- * Rebuild a deleted snapshot's direct children transactionally.
- *
- * Each child is rebuilt from the deleted snapshot. Rebuilt disks get new VHDX
- * identities, so grandchildren must be reparented to the rebuilt files.
- *
- * Rollback restores the original files and parent links.
- */
-class ChildRebuild
-{
-public:
-    ChildRebuild(std::filesystem::path self_path,
-                 std::vector<std::filesystem::path> children,
-                 PathPairs grandchildren,
-                 std::string log_category)
-        : self_path{std::move(self_path)},
-          self_backup{with_suffix(this->self_path, ".tmp")},
-          children{std::move(children)},
-          grandchildren{std::move(grandchildren)},
-          log_category{log_category}
-    {
-        staged.reserve(this->children.size());
-    }
-
-    // Move self aside before arming rollback.
-    void begin()
-    {
-        MP_FILEOPS.rename(self_path, self_backup);
-    }
-
-    // Merge each child into a fresh copy of self, staged as "<child>.new".
-    void stage()
-    {
-        for (const auto& child_path : children)
-        {
-            auto staged_path = with_suffix(child_path, ".new");
-
-            MP_FILEOPS.copy(self_backup, self_path, {});
-
-            if (auto merge_r = VirtDisk().merge_virtual_disk_into_parent(child_path); !merge_r)
-                throw CreateVirtdiskSnapshotError{merge_r,
-                                                  "Could not merge child disk `{}` into `{}`",
-                                                  child_path,
-                                                  self_path};
-
-            MP_FILEOPS.rename(self_path, staged_path);
-            staged.emplace_back(child_path, staged_path);
-        }
-    }
-
-    // Swap staged children into place, keeping originals for rollback.
-    void commit()
-    {
-        for (const auto& [child_path, staged_path] : staged)
-        {
-            MP_FILEOPS.rename(child_path, with_suffix(child_path, ".old"));
-            MP_FILEOPS.rename(staged_path, child_path);
-        }
-    }
-
-    // Refresh grandchildren after their rebuilt parents get new VHDX identities.
-    void reparent()
-    {
-        for (const auto& [grandchild, child_path] : grandchildren)
-        {
-            if (const auto r = VirtDisk().reparent_virtual_disk(grandchild, child_path); !r)
-                throw CreateVirtdiskSnapshotError{r,
-                                                  "Could not reparent `{}` onto rebuilt `{}`",
-                                                  grandchild,
-                                                  child_path};
-            reparented.emplace_back(grandchild, child_path);
-        }
-    }
-
-    // Drop unreferenced backups.
-    void finalize() noexcept
-    {
-        std::error_code ec{};
-        for (const auto& [child_path, staged_path] : staged)
-            MP_FILEOPS.remove(with_suffix(child_path, ".old"), ec);
-        MP_FILEOPS.remove(self_backup, ec);
-    }
-
-    // Restore the pre-erase state without masking the original error.
-    void rollback() noexcept
-    {
-        std::error_code ec{};
-        for (const auto& [child_path, staged_path] : staged)
-        {
-            const auto backup_path = with_suffix(child_path, ".old");
-            if (MP_FILEOPS.exists(backup_path, ec))
-            {
-                MP_FILEOPS.remove(child_path, ec);
-                try_rename(log_category, backup_path, child_path);
-            }
-            MP_FILEOPS.remove(staged_path, ec);
-        }
-        MP_FILEOPS.remove(self_path, ec);
-        try_rename(log_category, self_backup, self_path);
-
-        // Restore already-updated parent links.
-        for (const auto& [grandchild, child_path] : reparented)
-            if (const auto r = VirtDisk().reparent_virtual_disk(grandchild, child_path); !r)
-                mpl::error(log_category,
-                           "Failed to restore parent linkage of `{}` onto `{}` during rollback",
-                           grandchild,
-                           child_path);
-    }
-
-private:
-    std::filesystem::path self_path;
-    std::filesystem::path self_backup;
-    std::vector<std::filesystem::path> children;
-
-    PathPairs grandchildren{};
-    PathPairs staged{};
-    PathPairs reparented{};
-
-    std::string log_category;
-};
-} // namespace
 
 VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
                                    const std::string& comment,
@@ -435,7 +276,7 @@ void VirtDiskSnapshot::apply_impl()
 void VirtDiskSnapshot::try_rename(const std::filesystem::path& from,
                                   const std::filesystem::path& to) noexcept
 {
-    ::try_rename(vm.get_name(), from, to);
+    virtdisk::try_rename(vm.get_name(), from, to);
 }
 
 } // namespace multipass::hyperv::virtdisk
