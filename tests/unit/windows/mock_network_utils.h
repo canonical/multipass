@@ -33,4 +33,4 @@ struct MockWindowsNetworkUtils : public WindowsNetworkUtils
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockWindowsNetworkUtils, WindowsNetworkUtils);
 };
-}
+} // namespace multipass::test

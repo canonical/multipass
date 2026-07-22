@@ -281,6 +281,93 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
     }
 }
 
+TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
+{
+    hyperv::hcs::HcsSystemHandle handle{nullptr};
+    // 10.0. 0.0 to 10.255. 255.255.
+    const auto network_parameters = []() {
+        hyperv::hcn::CreateNetworkParameters network_parameters{};
+        network_parameters.name = "multipass-hyperv-cit";
+        network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
+        network_parameters.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+                                 {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
+        return network_parameters;
+    }();
+
+    const auto endpoint_parameters = [&network_parameters]() {
+        hyperv::hcn::CreateEndpointParameters endpoint_parameters{};
+        endpoint_parameters.network_guid = network_parameters.guid;
+        endpoint_parameters.endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029f";
+        return endpoint_parameters;
+    }();
+
+    const auto temp_path = make_tempfile_path(".vhdx");
+
+    const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
+        .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
+        .path = temp_path,
+        .predecessor = {}};
+
+    const auto network_adapter = [&endpoint_parameters]() {
+        hyperv::hcs::HcsNetworkAdapter network_adapter{};
+        network_adapter.endpoint_guid = endpoint_parameters.endpoint_guid;
+        network_adapter.mac_address = "00-15-5D-9D-CF-69";
+        return network_adapter;
+    }();
+
+    const auto create_vm_parameters = [&network_adapter]() {
+        hyperv::hcs::CreateComputeSystemParameters vm_parameters{};
+        vm_parameters.name = "multipass-hyperv-cit-vm";
+        vm_parameters.processor_count = 1;
+        vm_parameters.memory_size_mb = 512;
+        vm_parameters.network_adapters.push_back(network_adapter);
+        return vm_parameters;
+    }();
+
+    if (HCS().open_compute_system(create_vm_parameters.name, handle))
+    {
+        (void)HCS().terminate_compute_system(handle);
+        handle.reset();
+    }
+
+    // Create the test network
+    {
+        const auto& [status, status_msg] = HCN().create_network(network_parameters);
+        ASSERT_TRUE(status.success());
+    }
+
+    // Create the test endpoint
+    {
+        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
+        ASSERT_TRUE(status.success());
+    }
+
+    // Create the test VHDX (empty)
+    {
+        const auto& [status, status_msg] = VirtDisk().create_virtual_disk(create_disk_parameters);
+        ASSERT_TRUE(status.success());
+    }
+
+    // Create test VM
+    {
+        const auto& [status, status_msg] =
+            HCS().create_compute_system(create_vm_parameters, handle);
+        ASSERT_TRUE(status.success());
+    }
+
+    // Start test VM
+    {
+        const auto& [status, status_msg] = HCS().start_compute_system(handle);
+        ASSERT_TRUE(status.success());
+    }
+
+    (void)HCS().terminate_compute_system(handle);
+    handle.reset();
+    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
+    (void)HCN().delete_network(network_parameters.guid);
+}
+
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_boot)
 {
     hyperv::hcs::HcsSystemHandle handle{nullptr};
