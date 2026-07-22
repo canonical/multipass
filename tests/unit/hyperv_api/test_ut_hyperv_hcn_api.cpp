@@ -91,10 +91,9 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
         EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
         EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
 
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::trace,
-            "HCNWrapper::query_endpoint(...) > endpoint_guid: "
-            "af3fb745-2f23-463c-8ded-443f876d9e81");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                             "HCNWrapper::query_endpoint(...) > endpoint_guid: "
+                                             "af3fb745-2f23-463c-8ded-443f876d9e81");
         logger_scope.mock_logger->expect_log(
             mpl::Level::trace,
             "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
@@ -501,8 +500,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
@@ -537,8 +536,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status.success());
         ASSERT_FALSE(error_msg.empty());
         ASSERT_STREQ(error_msg.c_str(), mock_error_msg);
@@ -764,8 +763,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
@@ -796,8 +795,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status.success());
         ASSERT_FALSE(error_msg.empty());
         ASSERT_STREQ(error_msg.c_str(), mock_error_msg);
@@ -814,8 +813,7 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
     expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
-    const auto result =
-        HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     ASSERT_TRUE(result);
     ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);
@@ -841,8 +839,7 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_open_failure)
                                          "perform_hcn_operation(...) > result: false");
 
     hcn::HcnEndpointInfo endpoint_info;
-    const auto result =
-        HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     EXPECT_FALSE(result);
     EXPECT_EQ(static_cast<HRESULT>(result.code), E_POINTER);
@@ -874,8 +871,7 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_query_failure)
                                          "perform_hcn_operation(...) > result: true");
 
     hcn::HcnEndpointInfo endpoint_info;
-    const auto result =
-        HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     EXPECT_FALSE(result);
     EXPECT_EQ(static_cast<HRESULT>(result.code), E_POINTER);
@@ -889,8 +885,7 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_accepts_unassigned_ip)
     expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
-    const auto result =
-        HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     EXPECT_TRUE(result);
     EXPECT_TRUE(endpoint_info.ip_addresses.empty());
@@ -904,8 +899,7 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_merges_flattened_ip_configuration)
     expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
-    const auto result =
-        HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     ASSERT_TRUE(result);
     ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);
@@ -920,8 +914,7 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_properties)
     expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
-    const auto result =
-        HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
+    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     EXPECT_FALSE(result);
     EXPECT_EQ(static_cast<HRESULT>(result.code), E_UNEXPECTED);
