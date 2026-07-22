@@ -63,7 +63,7 @@ bool is_direct_child_of(const std::filesystem::path& disk,
                         const std::filesystem::path& parent_disk,
                         bool required)
 {
-    if (!MP_FILEOPS.exists(disk))
+    if (!MP_FILEOPS.exists(disk) || !MP_FILEOPS.exists(parent_disk))
         return false;
 
     std::vector<std::filesystem::path> chain;
