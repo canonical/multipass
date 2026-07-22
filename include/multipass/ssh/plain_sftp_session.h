@@ -26,6 +26,8 @@
 #include <chrono>
 
 struct sftp_session_struct;
+struct ssh_channel_struct;
+typedef ssh_channel_struct* ssh_channel;
 
 namespace multipass
 {

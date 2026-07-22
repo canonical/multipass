@@ -93,7 +93,8 @@ private:
 
     PlainSSHSession(PlainSSHSession&&, std::unique_lock<std::mutex> lock);
 
-    void set_option(ssh_options_e type, const void* value);
+    struct SSHOptionType;
+    void set_option(SSHOptionType type, const void* value);
 
     RawSSHSessionUptr raw_session;
     mutable std::mutex mut;
