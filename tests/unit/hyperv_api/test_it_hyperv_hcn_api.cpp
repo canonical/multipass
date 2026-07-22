@@ -129,11 +129,12 @@ TEST_F(HyperVHCNAPI_IntegrationTests, query_nonexistent_network)
     EXPECT_FALSE(result);
 }
 
-TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
+TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint_on_ics_dhcp_network)
 {
     CreateNetworkParameters network_params{};
     network_params.name = "multipass-hyperv-api-hcn-create-delete-test";
     network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
+    network_params.flags = HcnNetworkFlags::enable_dhcp_server;
     network_params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
 
     CreateEndpointParameters endpoint_params{};
@@ -165,7 +166,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
         HcnEndpointInfo endpoint_info;
         const auto result = HCN().query_endpoint(endpoint_params.endpoint_guid, endpoint_info);
         ASSERT_TRUE(result);
-        EXPECT_FALSE(endpoint_info.ip_addresses.empty());
+        EXPECT_TRUE(endpoint_info.ip_addresses.empty());
     }
 
     {

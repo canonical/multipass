@@ -24,6 +24,8 @@
 #include "tests/unit/mock_utils.h"
 #include "tests/unit/temp_dir.h"
 
+#include "shared/windows/network_utils.h"
+
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/platform.h>
@@ -142,6 +144,11 @@ TEST(PlatformWin, wintermInExtraClientSettings)
 TEST(PlatformWin, noExtraDaemonSettings)
 {
     EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
+}
+
+TEST(WindowsNetworkUtils, invalidMacHasNoPermanentIpv4Neighbor)
+{
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("not-a-mac"));
 }
 
 TEST(PlatformWin, testDefaultDriver)
