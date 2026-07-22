@@ -648,8 +648,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk_fails_if_snapshot_head_rem
                            mhv::virtdisk::VirtDiskSnapshot::head_disk_name();
     std::ofstream{head_path} << "stub";
 
-    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(head_path), _, _))
-        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"forced failure"}));
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(head_path), _, _)).Times(0);
     EXPECT_CALL(mock_virtdisk, resize_virtual_disk(_, _)).Times(0);
 
     mp::UserMessages messages{};
