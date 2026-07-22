@@ -526,11 +526,11 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
         return std::nullopt;
     }
 
-    for (const auto& configuration : endpoint_info.ip_configurations)
+    for (const auto& ip_address : endpoint_info.ip_addresses)
     {
         try
         {
-            IPAddress address{configuration.ip_address};
+            IPAddress address{ip_address};
             mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
             return address;
         }

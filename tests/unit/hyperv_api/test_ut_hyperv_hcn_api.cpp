@@ -63,6 +63,45 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
     // Generic error message for all tests, intended to be used for API calls returning
     // an "error_record".
     inline static wchar_t mock_error_msg[16] = L"It's a failure.";
+
+    void expect_endpoint_query(wchar_t* endpoint_properties)
+    {
+        EXPECT_CALL(mock_hcn_api, HcnOpenEndpoint)
+            .WillOnce(DoAll(
+                [&](REFGUID id, PHCN_ENDPOINT endpoint, PWSTR* error_record) {
+                    ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(id));
+                    ASSERT_EQ(nullptr, *endpoint);
+                    ASSERT_EQ(nullptr, *error_record);
+                    *endpoint = mock_endpoint_object;
+                },
+                Return(NOERROR)));
+        EXPECT_CALL(mock_hcn_api, HcnQueryEndpointProperties)
+            .WillOnce(DoAll(
+                [&, endpoint_properties](HCN_ENDPOINT endpoint,
+                                         PCWSTR query,
+                                         PWSTR* properties,
+                                         PWSTR* error_record) {
+                    ASSERT_EQ(mock_endpoint_object, endpoint);
+                    ASSERT_STREQ(L"{}", query);
+                    ASSERT_EQ(nullptr, *properties);
+                    ASSERT_EQ(nullptr, *error_record);
+                    *properties = endpoint_properties;
+                },
+                Return(NOERROR)));
+        EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
+        EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
+
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "HCNWrapper::query_endpoint(...) > endpoint_guid: "
+            "af3fb745-2f23-463c-8ded-443f876d9e81");
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::trace,
+            "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace,
+                                             "perform_hcn_operation(...) > result: true");
+        logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
+    }
 };
 
 // ---------------------------------------------------------
@@ -772,47 +811,16 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
     static wchar_t endpoint_properties[] =
         LR"({"IpConfigurations":[{"IpAddress":"172.20.1.2","PrefixLength":20},{"IpAddress":"fe80::1","PrefixLength":64}]})";
 
-    EXPECT_CALL(mock_hcn_api, HcnOpenEndpoint)
-        .WillOnce(DoAll(
-            [&](REFGUID id, PHCN_ENDPOINT endpoint, PWSTR* error_record) {
-                ASSERT_EQ("af3fb745-2f23-463c-8ded-443f876d9e81", fmt::to_string(id));
-                ASSERT_EQ(nullptr, *endpoint);
-                ASSERT_EQ(nullptr, *error_record);
-                *endpoint = mock_endpoint_object;
-            },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnQueryEndpointProperties)
-        .WillOnce(DoAll(
-            [&](HCN_ENDPOINT endpoint, PCWSTR query, PWSTR* properties, PWSTR* error_record) {
-                ASSERT_EQ(mock_endpoint_object, endpoint);
-                ASSERT_STREQ(L"{}", query);
-                ASSERT_EQ(nullptr, *properties);
-                ASSERT_EQ(nullptr, *error_record);
-                *properties = endpoint_properties;
-            },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
-    EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
-
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "HCNWrapper::query_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         "perform_hcn_operation(...) > result: true");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
+    expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
     const auto result =
         HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     ASSERT_TRUE(result);
-    EXPECT_EQ(endpoint_info.guid, "af3fb745-2f23-463c-8ded-443f876d9e81");
-    ASSERT_EQ(endpoint_info.ip_configurations.size(), 2);
-    EXPECT_EQ(endpoint_info.ip_configurations[0].ip_address, "172.20.1.2");
-    EXPECT_EQ(endpoint_info.ip_configurations[1].ip_address, "fe80::1");
+    ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);
+    EXPECT_EQ(endpoint_info.ip_addresses[0], "172.20.1.2");
+    EXPECT_EQ(endpoint_info.ip_addresses[1], "fe80::1");
 }
 
 TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_open_failure)
@@ -878,100 +886,38 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_accepts_unassigned_ip)
 {
     static wchar_t endpoint_properties[] = LR"({"ID":"af3fb745-2f23-463c-8ded-443f876d9e81"})";
 
-    EXPECT_CALL(mock_hcn_api, HcnOpenEndpoint)
-        .WillOnce(DoAll(
-            [&](REFGUID, PHCN_ENDPOINT endpoint, PWSTR*) { *endpoint = mock_endpoint_object; },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnQueryEndpointProperties)
-        .WillOnce(DoAll(
-            [&](HCN_ENDPOINT, PCWSTR, PWSTR* properties, PWSTR*) {
-                *properties = endpoint_properties;
-            },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
-    EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
-
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "HCNWrapper::query_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         "perform_hcn_operation(...) > result: true");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
+    expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
     const auto result =
         HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     EXPECT_TRUE(result);
-    EXPECT_TRUE(endpoint_info.ip_configurations.empty());
+    EXPECT_TRUE(endpoint_info.ip_addresses.empty());
 }
 
-TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_accepts_flattened_ip_configuration)
+TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_merges_flattened_ip_configuration)
 {
     static wchar_t endpoint_properties[] =
-        LR"({"ID":"af3fb745-2f23-463c-8ded-443f876d9e81","IPAddress":"172.20.1.2","PrefixLength":20})";
+        LR"({"ID":"af3fb745-2f23-463c-8ded-443f876d9e81","IpConfigurations":[{"IpAddress":"fe80::1","PrefixLength":64}],"IPAddress":"172.20.1.2","PrefixLength":20})";
 
-    EXPECT_CALL(mock_hcn_api, HcnOpenEndpoint)
-        .WillOnce(DoAll(
-            [&](REFGUID, PHCN_ENDPOINT endpoint, PWSTR*) { *endpoint = mock_endpoint_object; },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnQueryEndpointProperties)
-        .WillOnce(DoAll(
-            [&](HCN_ENDPOINT, PCWSTR, PWSTR* properties, PWSTR*) {
-                *properties = endpoint_properties;
-            },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
-    EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
-
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "HCNWrapper::query_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         "perform_hcn_operation(...) > result: true");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
+    expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
     const auto result =
         HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     ASSERT_TRUE(result);
-    ASSERT_EQ(endpoint_info.ip_configurations.size(), 1);
-    EXPECT_EQ(endpoint_info.ip_configurations[0].ip_address, "172.20.1.2");
+    ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);
+    EXPECT_EQ(endpoint_info.ip_addresses[0], "fe80::1");
+    EXPECT_EQ(endpoint_info.ip_addresses[1], "172.20.1.2");
 }
 
 TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_properties)
 {
     static wchar_t endpoint_properties[] = LR"({"IpConfigurations":"invalid"})";
 
-    EXPECT_CALL(mock_hcn_api, HcnOpenEndpoint)
-        .WillOnce(DoAll(
-            [&](REFGUID, PHCN_ENDPOINT endpoint, PWSTR*) { *endpoint = mock_endpoint_object; },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnQueryEndpointProperties)
-        .WillOnce(DoAll(
-            [&](HCN_ENDPOINT, PCWSTR, PWSTR* properties, PWSTR*) {
-                *properties = endpoint_properties;
-            },
-            Return(NOERROR)));
-    EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
-    EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
-
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "HCNWrapper::query_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         "perform_hcn_operation(...) > result: true");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
+    expect_endpoint_query(endpoint_properties);
 
     hcn::HcnEndpointInfo endpoint_info;
     const auto result =
@@ -979,7 +925,7 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_properties)
 
     EXPECT_FALSE(result);
     EXPECT_EQ(static_cast<HRESULT>(result.code), E_UNEXPECTED);
-    EXPECT_TRUE(endpoint_info.ip_configurations.empty());
+    EXPECT_TRUE(endpoint_info.ip_addresses.empty());
 }
 
 } // namespace multipass::test

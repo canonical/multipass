@@ -39,6 +39,7 @@
 #include <ztd/out_ptr.hpp>
 
 #include <cassert>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -200,6 +201,39 @@ std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& e
     return std::make_pair(result, std::move(endpoint));
 }
 
+std::optional<std::vector<std::string>> endpoint_ip_addresses(const boost::json::object& endpoint)
+{
+    std::vector<std::string> addresses;
+    const auto append_address = [&addresses](const boost::json::value& address) {
+        if (!address.is_string())
+            return false;
+
+        addresses.emplace_back(address.as_string());
+        return true;
+    };
+
+    if (const auto* configurations = endpoint.if_contains("IpConfigurations"))
+    {
+        if (!configurations->is_array())
+            return std::nullopt;
+
+        for (const auto& configuration : configurations->as_array())
+        {
+            if (!configuration.is_object())
+                return std::nullopt;
+
+            if (const auto* address = configuration.as_object().if_contains("IpAddress");
+                address && !append_address(*address))
+                return std::nullopt;
+        }
+    }
+
+    if (const auto* address = endpoint.if_contains("IPAddress"); address && !append_address(*address))
+        return std::nullopt;
+
+    return addresses;
+}
+
 } // namespace
 
 // ---------------------------------------------------------
@@ -284,7 +318,7 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
                "HCNWrapper::query_endpoint(...) > endpoint_guid: {}",
                endpoint_guid);
 
-    const auto & [open_result, endpoint] = open_endpoint(endpoint_guid);
+    const auto& [open_result, endpoint] = open_endpoint(endpoint_guid);
     if (!open_result)
         return open_result;
 
@@ -307,39 +341,11 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
     if (ec || !parsed.is_object())
         return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
 
-    HcnEndpointInfo endpoint_info{.guid = endpoint_guid};
-    const auto& endpoint_object = parsed.as_object();
-    const auto* configurations = endpoint_object.if_contains("IpConfigurations");
-    if (configurations)
-    {
-        if (!configurations->is_array())
-            return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+    auto addresses = endpoint_ip_addresses(parsed.as_object());
+    if (!addresses)
+        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
 
-        for (const auto& configuration : configurations->as_array())
-        {
-            if (!configuration.is_object())
-                return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
-
-            const auto* address = configuration.as_object().if_contains("IpAddress");
-            if (!address)
-                continue;
-            if (!address->is_string())
-                return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
-
-            endpoint_info.ip_configurations.push_back(
-                {.ip_address = std::string{address->as_string()}});
-        }
-    }
-    else if (const auto* address = endpoint_object.if_contains("IPAddress"))
-    {
-        if (!address->is_string())
-            return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
-
-        endpoint_info.ip_configurations.push_back(
-            {.ip_address = std::string{address->as_string()}});
-    }
-
-    out_info = std::move(endpoint_info);
+    out_info.ip_addresses = std::move(*addresses);
     return {result, L""};
 }
 

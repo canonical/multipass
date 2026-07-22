@@ -23,6 +23,8 @@
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_endpoint_info.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_wrapper.h>
 
+#include <scope_guard.hpp>
+
 namespace multipass::test
 {
 
@@ -139,6 +141,11 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
     endpoint_params.network_guid = network_params.guid;
     endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
 
+    auto cleanup = sg::make_scope_guard([&]() noexcept {
+        (void)HCN().delete_endpoint(endpoint_params.endpoint_guid);
+        (void)HCN().delete_network(network_params.guid);
+    });
+
     (void)HCN().delete_network(network_params.guid);
 
     {
@@ -158,8 +165,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
         HcnEndpointInfo endpoint_info;
         const auto result = HCN().query_endpoint(endpoint_params.endpoint_guid, endpoint_info);
         ASSERT_TRUE(result);
-        EXPECT_EQ(endpoint_info.guid, endpoint_params.endpoint_guid);
-        EXPECT_FALSE(endpoint_info.ip_configurations.empty());
+        EXPECT_FALSE(endpoint_info.ip_addresses.empty());
     }
 
     {
@@ -173,6 +179,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
+    cleanup.dismiss();
 }
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_endpoint_explicit_mac)
