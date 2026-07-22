@@ -19,10 +19,12 @@
 
 #include <multipass/ssh/ssh_process.h>
 
-#include <libssh/libssh.h>
-
 #include <memory>
 #include <string>
+
+// TODO@sftp remove
+struct ssh_session_struct;
+typedef struct ssh_session_struct* ssh_session;
 
 namespace multipass
 {
