@@ -338,10 +338,21 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
     if (ec || !parsed.is_object())
         return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
 
-    auto addresses = endpoint_ip_addresses(parsed.as_object());
+    const auto& endpoint_properties = parsed.as_object();
+    auto addresses = endpoint_ip_addresses(endpoint_properties);
     if (!addresses)
         return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
 
+    std::optional<std::string> mac_address;
+    if (const auto* value = endpoint_properties.if_contains("MacAddress"))
+    {
+        if (!value->is_string())
+            return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+
+        mac_address = value->as_string();
+    }
+
+    out_info.mac_address = std::move(mac_address);
     out_info.ip_addresses = std::move(*addresses);
     return {result, L""};
 }
