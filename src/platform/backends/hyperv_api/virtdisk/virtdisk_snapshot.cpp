@@ -32,6 +32,7 @@ namespace
 {
 constexpr auto log_category = "virtdisk-snapshot";
 namespace mpl = multipass::logging;
+using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
 
 struct CreateVirtdiskSnapshotError : multipass::FormattedExceptionBase<std::system_error>
 {
@@ -67,12 +68,16 @@ bool is_direct_child_of(const std::filesystem::path& disk, const std::filesystem
     std::vector<std::filesystem::path> chain;
     if (const auto r = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !r)
     {
-
         throw CreateVirtdiskSnapshotError{r, "Could not inspect virtual disk chain for `{}`", disk};
     }
 
     return chain.size() >= 2 &&
            MP_FILEOPS.weakly_canonical(chain[1]) == MP_FILEOPS.weakly_canonical(parent_disk);
+}
+
+const std::filesystem::path& get_base_vhdx_path(const VirtualMachineDescription& desc)
+{
+    return desc.image.image_path;
 }
 
 /**
@@ -183,7 +188,6 @@ public:
     }
 
 private:
-    using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
     std::filesystem::path self_path;
     std::filesystem::path self_backup;
     std::vector<std::filesystem::path> children;
@@ -311,21 +315,22 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
     mpl::debug(log_category, "Successfully created the child disk: `{}`", child);
 }
 
-std::vector<std::filesystem::path> VirtDiskSnapshot::get_disk_children(
+std::vector<std::filesystem::path> VirtDiskSnapshot::get_children_of_disk(
     const std::filesystem::path& parent_disk) const
 {
     std::vector<std::filesystem::path> result;
 
-    const auto snapshots_except_this = vm.view_snapshots(
-        [this](const Snapshot& ss) { return &ss != this; });
+    const auto children_of_parent_disk = vm.view_snapshots(
+        [this, &parent_disk](const Snapshot& ss) {
+            const auto path = make_snapshot_path(ss);
+            return &ss != this && is_direct_child_of(path, parent_disk);
+        });
 
-    for (const auto& ss : snapshots_except_this)
-    {
-        auto path = make_snapshot_path(*ss);
-        if (is_direct_child_of(path, parent_disk))
-            result.push_back(std::move(path));
-    }
+    std::ranges::transform(children_of_parent_disk,
+                           std::back_inserter(result),
+                           [this](const auto& ss) { return make_snapshot_path(*ss); });
 
+    // Include the head disk if it's a direct child of the parent, too.
     if (auto head_path = make_head_disk_path(); is_direct_child_of(head_path, parent_disk))
         result.push_back(std::move(head_path));
 
@@ -336,11 +341,11 @@ void VirtDiskSnapshot::erase_impl()
 {
     const auto self_path = make_snapshot_path(*this);
 
-    auto children = get_disk_children(self_path);
+    auto children = get_children_of_disk(self_path);
 
-    std::vector<std::pair<std::filesystem::path, std::filesystem::path>> grandchildren;
+    PathPairs grandchildren;
     for (const auto& child_path : children)
-        for (auto& grandchild : get_disk_children(child_path))
+        for (auto& grandchild : get_children_of_disk(child_path))
             grandchildren.emplace_back(std::move(grandchild), child_path);
 
     ChildRebuild rebuild{self_path, std::move(children), std::move(grandchildren)};
