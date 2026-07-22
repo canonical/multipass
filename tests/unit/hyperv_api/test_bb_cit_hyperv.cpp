@@ -27,12 +27,7 @@
 #include <src/platform/backends/hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_wrapper.h>
 
-#include <multipass/ip_address.h>
-
 #include <scope_guard.hpp>
-
-#include <chrono>
-#include <thread>
 
 namespace multipass::test
 {
@@ -40,7 +35,6 @@ namespace multipass::test
 using namespace hyperv::hcs;
 using hyperv::hcn::HCN;
 using hyperv::virtdisk::VirtDisk;
-using namespace std::chrono_literals;
 
 // Component level big bang integration tests for Hyper-V HCN/HCS + virtdisk API's.
 // These tests ensure that the API's working together as expected.
@@ -48,7 +42,7 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
 {
 };
 
-TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
+TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_on_ics_dhcp_network)
 {
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
@@ -56,6 +50,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         hyperv::hcn::CreateNetworkParameters network_parameters{};
         network_parameters.name = "multipass-hyperv-cit";
         network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
+        network_parameters.flags = hyperv::hcn::HcnNetworkFlags::enable_dhcp_server;
         network_parameters.ipams = {
             hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
                                  {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
@@ -139,31 +134,11 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         ASSERT_TRUE(status.success());
     }
 
-    // HCN assigns endpoint addresses asynchronously, so allow a bounded wait.
-    std::optional<IPAddress> endpoint_ipv4;
-    for (auto attempts = 0; attempts < 20 && !endpoint_ipv4; ++attempts)
-    {
-        hyperv::hcn::HcnEndpointInfo endpoint_info;
-        const auto result = HCN().query_endpoint(endpoint_parameters.endpoint_guid, endpoint_info);
-        ASSERT_TRUE(result);
-
-        for (const auto& ip_address : endpoint_info.ip_addresses)
-        {
-            try
-            {
-                endpoint_ipv4.emplace(ip_address);
-                break;
-            }
-            catch (const std::invalid_argument&)
-            {
-                // Ignore IPv6 configurations; IPAddress only represents IPv4.
-            }
-        }
-
-        if (!endpoint_ipv4)
-            std::this_thread::sleep_for(250ms);
-    }
-    ASSERT_TRUE(endpoint_ipv4);
+    hyperv::hcn::HcnEndpointInfo endpoint_info;
+    const auto query_result =
+        HCN().query_endpoint(endpoint_parameters.endpoint_guid, endpoint_info);
+    ASSERT_TRUE(query_result);
+    EXPECT_TRUE(endpoint_info.ip_addresses.empty());
 
     (void)HCS().terminate_compute_system(handle);
     handle.reset();
