@@ -94,7 +94,7 @@ private:
      *
      * Includes snapshot files and the live head when they sit directly on @p parent_disk.
      */
-    [[nodiscard]] std::vector<std::filesystem::path> get_disk_children(
+    [[nodiscard]] std::vector<std::filesystem::path> get_children_of_disk(
         const std::filesystem::path& parent_disk) const;
 
     /**
