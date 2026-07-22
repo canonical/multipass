@@ -87,6 +87,8 @@ private:
     void create_new_child_disk(const std::filesystem::path& parent,
                                const std::filesystem::path& child) const;
 
+    void try_rename(const std::filesystem::path& from, const std::filesystem::path& to) noexcept;
+
     /**
      * Return this snapshot's direct disk children, excluding this snapshot's own file.
      *
