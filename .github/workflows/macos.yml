@@ -360,6 +360,10 @@ jobs:
 
     needs: [BuildAndTest]
 
+    permissions:
+      contents: read
+      statuses: write
+
     runs-on: macos-26
 
     outputs:
@@ -433,6 +437,26 @@ jobs:
     - name: Report public URL
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+
+    # Surface the published package as a linked commit status in the PR checks panel.
+    # Only for same-repo PRs, since fork PR tokens cannot be granted statuses: write.
+    - name: Publish package link status
+      if: ${{ steps.s3-upload.outputs.url != '' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+      continue-on-error: true
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PACKAGE_URL: ${{ steps.s3-upload.outputs.url }}
+        PACKAGE_NAME: ${{ steps.combine-package.outputs.name }}
+      run: |
+        gh api \
+          --method POST \
+          "/repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+          -f state=success \
+          -f context="Package Link / macOS" \
+          -f description="$PACKAGE_NAME" \
+          -f target_url="$PACKAGE_URL"
 
   DispatchCLITestsWorkflow:
     name: "Dispatch CLI Tests (macOS)"
