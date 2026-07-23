@@ -15,6 +15,7 @@ permissions:
   checks: write
   actions: read
   packages: write
+  statuses: write
 
 jobs:
   filter:
