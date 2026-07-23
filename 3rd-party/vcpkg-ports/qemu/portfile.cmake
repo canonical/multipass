@@ -293,8 +293,10 @@ if("system" IN_LIST FEATURES)
     # See vendor/README.md for details.
     if(VCPKG_TARGET_IS_LINUX)
         file(COPY "${CMAKE_CURRENT_LIST_DIR}/vendor/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
-    else()
+    elseif(VCPKG_TARGET_IS_OSX)
         file(COPY "${SOURCE_PATH}/pc-bios/efi-virtio.rom" DESTINATION "${CURRENT_PACKAGES_DIR}/Resources/qemu")
+    else()
+        message(FATAL_ERROR "Unsupported platform for virtio-net-pci ROM selection")
     endif()
 
     if(QEMU_ARCH STREQUAL "x86_64")
