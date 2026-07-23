@@ -442,6 +442,7 @@ jobs:
     # Only for same-repo PRs, since fork PR tokens cannot be granted statuses: write.
     - name: Publish package link status
       if: ${{ steps.s3-upload.outputs.url != '' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+      shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
