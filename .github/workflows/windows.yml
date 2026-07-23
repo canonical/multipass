@@ -50,6 +50,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      statuses: write
 
     if: ${{ !cancelled() }}
 
@@ -265,6 +266,24 @@ jobs:
       run: |
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
         echo "##[warning] Debug symbols: ${{ steps.s3-upload-pdbs.outputs.url }}"
+
+    # Surface the published package as a linked commit status in the PR checks panel.
+    # Only for same-repo PRs, since fork PR tokens cannot be granted statuses: write.
+    - name: Publish package link status
+      if: ${{ steps.s3-upload.outputs.url != '' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PACKAGE_URL: ${{ steps.s3-upload.outputs.url }}
+      run: |
+        gh api \
+          --method POST \
+          "/repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+          -f state=success \
+          -f context="Package / ${{ matrix.name }}" \
+          -f description="Open Details to download the package" \
+          -f target_url="$PACKAGE_URL"
 
     - name: Store publishing outputs
       if: always()
