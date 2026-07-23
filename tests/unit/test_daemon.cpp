@@ -265,10 +265,22 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
             Invoke(&daemon,
                    &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
     EXPECT_CALL(daemon, zones)
-        .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ZonesRequest, mp::ZonesReply>));
+        .Times(3) // zones, enable-zone, disable-zone
+        .WillRepeatedly([](auto, auto server, auto status_promise) {
+            mp::ZonesReply reply;
+            for (const auto& name : {"zone1", "zone2", "zone3"})
+            {
+                const auto reply_zone = reply.add_zones();
+                reply_zone->set_name(name);
+                reply_zone->set_subnet("192.168.0.0/24");
+                reply_zone->set_available(true);
+            }
+
+            server->Write(reply);
+            status_promise->set_value(grpc::Status::OK);
+        });
     EXPECT_CALL(daemon, zones_state)
-        .Times(2)
+        .Times(2) // enable-zone, disable-zone
         .WillRepeatedly(Invoke(
             &daemon,
             &mpt::MockDaemon::set_promise_value<mp::ZonesStateRequest, mp::ZonesStateReply>));
@@ -300,8 +312,8 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         {"clone", "foo"},
         {"wait-ready"},
         {"zones"},
-        {"enable-zones", "foo"},
-        {"disable-zones", "foo", "--force"},
+        {"enable-zones", "zone1"},
+        {"disable-zones", "zone1", "--force"},
     });
 }
 

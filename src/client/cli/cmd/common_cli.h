@@ -25,6 +25,9 @@
 
 #include <QString>
 
+#include <fmt/ostream.h>
+#include <fmt/ranges.h>
+
 using RpcMethod = multipass::Rpc::StubInterface;
 
 namespace multipass
@@ -69,6 +72,41 @@ std::unique_ptr<multipass::utils::Timer> make_timer(int timeout,
                                                     AnimatedSpinner* spinner,
                                                     std::ostream& cerr,
                                                     const std::string& msg);
+
+namespace detail
+{
+bool do_normalize_zone_name(std::string& zone, const ZonesReply& reply);
+}
+
+ReturnCodeVariant normalize_zone_name(RpcMethod* iface, std::string& zone_name, std::ostream& cerr);
+
+template <typename T>
+ReturnCodeVariant normalize_zone_names(RpcMethod* iface, T&& zone_names, std::ostream& cerr)
+{
+    auto on_success = [&cerr, &zone_names](const ZonesReply& reply) -> ReturnCodeVariant {
+        std::vector<std::string> bad_zones;
+        for (auto& zone : zone_names)
+        {
+            if (!detail::do_normalize_zone_name(zone, reply))
+                bad_zones.push_back(zone);
+        }
+
+        if (!bad_zones.empty())
+        {
+            cerr << fmt::format("No AZ{0} with name{0}: {1}\n",
+                                bad_zones.size() > 1 ? "s" : "",
+                                fmt::join(bad_zones, ", "));
+            return ReturnCode::CommandFail;
+        }
+        return Ok;
+    };
+    auto on_failure = [&cerr](const grpc::Status& status) -> ReturnCodeVariant {
+        return standard_failure_handler_for("normalize-zone-names", cerr, status);
+    };
+
+    ZonesRequest request{};
+    return dispatch_rpc(iface, &RpcMethod::zones, request, on_success, on_failure, cerr);
+}
 
 } // namespace cmd
 } // namespace multipass

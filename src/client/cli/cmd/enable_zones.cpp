@@ -32,11 +32,14 @@ ReturnCodeVariant EnableZones::run(ArgParser* parser)
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
+    if (const auto ret = normalize_zone_names(stub, *request.mutable_zones(), cerr); ret != Ok)
+        return ret;
+
     AnimatedSpinner spinner{cout};
     const auto use_all_zones = request.zones().empty();
     const auto message = use_all_zones
-                             ? "Enabling all zones"
-                             : fmt::format("Enabling {}", fmt::join(request.zones(), ", "));
+                           ? "Enabling all zones"
+                           : fmt::format("Enabling {}", fmt::join(request.zones(), ", "));
     spinner.start(message);
 
     const auto on_success = [&](const ZonesStateReply&) -> ReturnCodeVariant {

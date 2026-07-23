@@ -481,6 +481,27 @@ struct ClientAlias : public Client, public FakeAliasConfig
     }
 };
 
+struct ClientZone : public Client, public FakeAliasConfig
+{
+    ClientZone()
+    {
+        const auto reply_zone1 = zones_reply.add_zones();
+        reply_zone1->set_name("zone1");
+        reply_zone1->set_available(true);
+        reply_zone1->set_subnet("192.168.1.0/24");
+        const auto reply_zone2 = zones_reply.add_zones();
+        reply_zone2->set_name("zone2");
+        reply_zone2->set_available(false);
+        reply_zone2->set_subnet("192.168.2.0/24");
+        const auto reply_zone3 = zones_reply.add_zones();
+        reply_zone3->set_name("zone3");
+        reply_zone3->set_available(true);
+        reply_zone3->set_subnet("192.168.3.0/24");
+    }
+
+    mp::ZonesReply zones_reply{};
+};
+
 auto make_info_function(const std::string& source_path = "", const std::string& target_path = "")
 {
     auto info_function = [source_path, target_path](
@@ -1257,43 +1278,57 @@ TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageHttpOk))
 
 TEST_F(Client, launchCmdWithZoneOk)
 {
+    mp::ZonesReply zones_reply{};
+    zones_reply.add_zones()->set_name("zone1");
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     EXPECT_CALL(mock_daemon, launch(_, _));
     EXPECT_THAT(send_command({"launch", "--zone", "zone1"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, launchCmdWithEmptyZoneFails)
 {
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_THAT(send_command({"launch", "--zone", ""}), Eq(mp::ReturnCode::CommandLineError));
 }
 
 TEST_F(Client, launchCmdWithInvalidZoneFails)
 {
+    mp::ZonesReply zones_reply{};
+    zones_reply.add_zones()->set_name("zone1");
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("invalid_zone"));
-    mp::LaunchError launch_error;
-    launch_error.add_error_codes(mp::LaunchError::INVALID_ZONE);
-    const auto failure =
-        grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
-    EXPECT_CALL(mock_daemon, launch)
-        .WillOnce(
-            WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher,
-                                                                                    failure)));
+    EXPECT_CALL(mock_daemon, launch).Times(0);
     EXPECT_THAT(send_command({"launch", "--zone", "invalid_zone"}),
                 Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, launchCmdWithUnavailableZoneFails)
 {
-    const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("unavailable_zone"));
+    mp::ZonesReply zones_reply{};
+    const auto reply_zone1 = zones_reply.add_zones();
+    reply_zone1->set_name("zone1");
+    reply_zone1->set_available(false);
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
+    const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("zone1"));
     mp::LaunchError launch_error;
     launch_error.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
-    const auto failure =
-        grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg", launch_error.SerializeAsString()};
+    const auto failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                                      "msg",
+                                      launch_error.SerializeAsString()};
     EXPECT_CALL(mock_daemon, launch)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher,
                                                                                     failure)));
-    EXPECT_THAT(send_command({"launch", "--zone", "unavailable_zone"}),
-                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"launch", "--zone", "zone1"}), Eq(mp::ReturnCode::CommandFail));
 }
 
 TEST_F(Client, launchCmdWithTimer)
@@ -4444,18 +4479,19 @@ TEST_F(ClientAlias, aliasRefusesCreationRpcError)
 }
 
 // zones cli tests
-TEST_F(Client, zonesCmdNoArgsOk)
+TEST_F(ClientZone, zonesCmdNoArgsOk)
 {
     EXPECT_CALL(mock_daemon, zones(_, _));
     EXPECT_EQ(send_command({"zones"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, zonesCmdHelpOk)
+TEST_F(ClientZone, zonesCmdHelpOk)
 {
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_EQ(send_command({"zones", "-h"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, zonesCmdSucceedsWithFormatOptions)
+TEST_F(ClientZone, zonesCmdSucceedsWithFormatOptions)
 {
     EXPECT_CALL(mock_daemon, zones(_, _)).Times(4);
     EXPECT_EQ(send_command({"zones", "--format", "table"}), mp::ReturnCode::Ok);
@@ -4464,20 +4500,22 @@ TEST_F(Client, zonesCmdSucceedsWithFormatOptions)
     EXPECT_EQ(send_command({"zones", "--format", "yaml"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, zonesCmdFailsWithInvalidFormat)
+TEST_F(ClientZone, zonesCmdFailsWithInvalidFormat)
 {
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_EQ(send_command({"zones", "--format", "invalid"}), mp::ReturnCode::CommandLineError);
 }
 
-TEST_F(Client, zonesCmdFailsWithArgs)
+TEST_F(ClientZone, zonesCmdFailsWithArgs)
 {
     std::stringstream cerr_stream;
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_EQ(send_command({"zones", "foo"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
     EXPECT_THAT(cerr_stream.str(), HasSubstr("This command takes no arguments"));
 }
 
-TEST_F(Client, zonesCmdVerbosityForwarded)
+TEST_F(ClientZone, zonesCmdVerbosityForwarded)
 {
     const auto verbosity = 2;
     const auto request_matcher = make_request_verbosity_matcher<mp::ZonesRequest>(verbosity);
@@ -4488,18 +4526,8 @@ TEST_F(Client, zonesCmdVerbosityForwarded)
     EXPECT_EQ(send_command({"zones", "-vv"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, zonesCmdFormatIsCorrectCSV)
+TEST_F(ClientZone, zonesCmdFormatIsCorrectCSV)
 {
-    mp::ZonesReply reply{};
-    const auto reply_zone1 = reply.add_zones();
-    reply_zone1->set_name("zone1");
-    reply_zone1->set_available(true);
-    reply_zone1->set_subnet("192.168.1.0/24");
-    const auto reply_zone2 = reply.add_zones();
-    reply_zone2->set_name("zone2");
-    reply_zone2->set_available(false);
-    reply_zone2->set_subnet("192.168.2.0/24");
-
     std::stringstream cout, cerr;
     mpt::MockTerminal term;
     EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(cout));
@@ -4507,8 +4535,8 @@ TEST_F(Client, zonesCmdFormatIsCorrectCSV)
     EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr));
 
     EXPECT_CALL(mock_daemon, zones)
-        .WillOnce(
-            WithArg<1>(check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, reply)));
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
     EXPECT_EQ(setup_client_and_run({"zones", "--format", "csv"}, term), mp::ReturnCode::Ok);
     EXPECT_THAT(
         cout.str(),
@@ -4516,84 +4544,140 @@ TEST_F(Client, zonesCmdFormatIsCorrectCSV)
 }
 
 // enable_zones tests
-TEST_F(Client, enableZonesCmdHelpOk)
+TEST_F(ClientZone, enableZonesCmdHelpOk)
 {
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_EQ(send_command({"enable-zones", "-h"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, enableZonesCmdSuccess)
+TEST_F(ClientZone, enableZonesCmdSuccess)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
     EXPECT_CALL(mock_daemon, zones_state(_, _));
     EXPECT_EQ(send_command({"enable-zones", "zone1", "zone2"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, enableZonesCmdNoZonesFails)
+TEST_F(ClientZone, enableZonesCmdNoZonesFails)
 {
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
     EXPECT_EQ(send_command({"enable-zones"}), mp::ReturnCode::CommandLineError);
 }
 
-TEST_F(Client, enableZonesCmdPassesProperRequest)
+TEST_F(ClientZone, enableZonesCmdInvalidZonesFails)
 {
-    const auto request_matcher =
-        AllOf(Property(&mp::ZonesStateRequest::available, true),
-              Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+    EXPECT_CALL(mock_daemon, zones)
+        .Times(2)
+        .WillRepeatedly(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
 
+    EXPECT_EQ(send_command({"enable-zones", "100"}), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(send_command({"enable-zones", "not-a-zone"}), mp::ReturnCode::CommandFail);
+}
+
+TEST_F(ClientZone, enableZonesCmdPassesProperRequest)
+{
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
+    const auto request_matcher = AllOf(
+        Property(&mp::ZonesStateRequest::available, true),
+        Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
     EXPECT_CALL(mock_daemon, zones_state)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher,
                                                                                  ok)));
 
-    EXPECT_EQ(send_command({"enable-zones", "zone1", "zone2"}), mp::ReturnCode::Ok);
+    // Pass one zone by index and another by name.
+    EXPECT_EQ(send_command({"enable-zones", "1", "zone2"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, enableZonesCmdOnFailure)
+TEST_F(ClientZone, enableZonesCmdOnFailure)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     const auto failure = grpc::Status{grpc::StatusCode::UNAVAILABLE, "msg"};
     EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
     EXPECT_EQ(send_command({"enable-zones", "zone1"}), mp::ReturnCode::CommandFail);
 }
 
 // disable_zones tests
-TEST_F(Client, disableZonesCmdHelpOk)
+TEST_F(ClientZone, disableZonesCmdHelpOk)
 {
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_EQ(send_command({"disable-zones", "-h"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, disableZonesCmdSuccess)
+TEST_F(ClientZone, disableZonesCmdSuccess)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
     EXPECT_CALL(mock_daemon, zones_state(_, _));
     EXPECT_EQ(send_command({"disable-zones", "--force", "zone1", "zone2"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, disableZonesCmdNoZonesFails)
+TEST_F(ClientZone, disableZonesCmdNoZonesFails)
 {
+    EXPECT_CALL(mock_daemon, zones).Times(0);
     EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
     EXPECT_EQ(send_command({"disable-zones"}), mp::ReturnCode::CommandLineError);
 }
 
-TEST_F(Client, disableZonesCmdPassesProperRequest)
+TEST_F(ClientZone, disableZonesCmdInvalidZonesFails)
 {
-    const auto request_matcher =
-        AllOf(Property(&mp::ZonesStateRequest::available, false),
-              Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
+    EXPECT_CALL(mock_daemon, zones)
+        .Times(2)
+        .WillRepeatedly(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+    EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
 
+    EXPECT_EQ(send_command({"disable-zones", "--force", "100"}), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(send_command({"disable-zones", "--force", "not-a-zone"}),
+              mp::ReturnCode::CommandFail);
+}
+
+TEST_F(ClientZone, disableZonesCmdPassesProperRequest)
+{
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
+    const auto request_matcher = AllOf(
+        Property(&mp::ZonesStateRequest::available, false),
+        Property(&mp::ZonesStateRequest::zones, ElementsAre("zone1", "zone2")));
     EXPECT_CALL(mock_daemon, zones_state)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::ZonesStateReply, mp::ZonesStateRequest>(request_matcher,
                                                                                  ok)));
 
-    EXPECT_EQ(send_command({"disable-zones", "--force", "zone1", "zone2"}), mp::ReturnCode::Ok);
+    // Pass one zone by index and another by name.
+    EXPECT_EQ(send_command({"disable-zones", "--force", "1", "zone2"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, disableZonesCmdWithForceOption)
+TEST_F(ClientZone, disableZonesCmdWithForceOption)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     EXPECT_CALL(mock_daemon, zones_state(_, _));
     EXPECT_EQ(send_command({"disable-zones", "--force", "zone1"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, disableZonesCmdConfirm)
+TEST_F(ClientZone, disableZonesCmdConfirm)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .Times(2)
+        .WillRepeatedly(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     std::stringstream cout, cerr;
     std::istringstream cin;
     mpt::MockTerminal term;
@@ -4611,14 +4695,23 @@ TEST_F(Client, disableZonesCmdConfirm)
     EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::CommandFail);
 }
 
-TEST_F(Client, disableZonesCmdOnFailure)
+TEST_F(ClientZone, disableZonesCmdOnFailure)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     const auto failure = grpc::Status{grpc::StatusCode::UNAVAILABLE, "msg"};
     EXPECT_CALL(mock_daemon, zones_state(_, _)).WillOnce(Return(failure));
     EXPECT_EQ(send_command({"disable-zones", "--force", "zone1"}), mp::ReturnCode::CommandFail);
 }
-TEST_F(Client, disableZonesCmdNotLiveTermFails)
+
+TEST_F(ClientZone, disableZonesCmdNotLiveTermFails)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     NiceMock<mpt::MockTerminal> term;
     EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(false));
     EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
@@ -4633,8 +4726,12 @@ TEST_F(Client, disableZonesCmdNotLiveTermFails)
                          mpt::match_what(HasSubstr("--force")));
 }
 
-TEST_F(Client, disableZonesCmdConfirmsMultipleZones)
+TEST_F(ClientZone, disableZonesCmdConfirmsMultipleZones)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     NiceMock<mpt::MockTerminal> term;
     std::stringstream cin_stream;
     cin_stream << "Yes\n";
@@ -4660,8 +4757,12 @@ TEST_F(Client, disableZonesCmdConfirmsMultipleZones)
                           "want to continue? (Yes/no)"));
 }
 
-TEST_F(Client, disableZonesCmdReasksConfirmation)
+TEST_F(ClientZone, disableZonesCmdReasksConfirmation)
 {
+    EXPECT_CALL(mock_daemon, zones)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
+
     NiceMock<mpt::MockTerminal> term;
     std::stringstream cin_stream;
     cin_stream << "this is gibberish\n";
