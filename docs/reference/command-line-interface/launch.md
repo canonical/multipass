@@ -51,11 +51,11 @@ Options:
   -d, --disk <disk>                     Disk space to allocate. Positive
                                         integers, in bytes, or decimals, with K,
                                         M, G suffix.
-                                        Minimum: 512M, default: 5G.
+                                        Minimum: 1G, default: 5G.
   -m, --memory <memory>                 Amount of memory to allocate. Positive
                                         integers, in bytes, or decimals, with K,
                                         M, G suffix.
-                                        Minimum: 128M, default: 1G.
+                                        Minimum: 512M, default: 1G.
   -n, --name <name>                     Name for the instance. If it is
                                         'primary' (the configured primary
                                         instance name), the user's home

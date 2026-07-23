@@ -453,7 +453,7 @@ TEST_F(TestInstanceSettingsHandler, setMaintainsInstanceMemoryUntouchedIfSameBut
 TEST_F(TestInstanceSettingsHandler, setAllowsDecreaseInstanceMemory)
 {
     constexpr auto target_instance_name = "Dvořák";
-    constexpr auto less_mem_str = "256MiB";
+    const auto less_mem_str = mp::min_memory_size;
     const auto less_mem = mp::MemorySize{less_mem_str};
     const auto& actual_mem = specs[target_instance_name].mem_size = mp::MemorySize{"1024MiB"};
 
@@ -641,7 +641,7 @@ struct TestInstanceModOnStoppedInstance : public TestInstanceSettingsHandler,
 TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
 {
     constexpr auto target_instance_name = "Beethoven";
-    constexpr auto val = "134217728"; // To work with the 128M minimum allowed for memory
+    const auto val = "1500000000"; // exceed all minima
     const auto [property, state] = GetParam();
     const auto& target_specs = specs[target_instance_name];
 
@@ -669,7 +669,7 @@ struct TestInstanceModPersists : public TestInstanceSettingsHandler,
 TEST_P(TestInstanceModPersists, setPersistsInstances)
 {
     constexpr auto target_instance_name = "Tchaikovsky";
-    constexpr auto val = "134217728"; // To work with the 128M minimum allowed for memory
+    constexpr auto val = "1500000000"; // used to force a state mutation
     const auto property = GetParam();
 
     specs[target_instance_name];
