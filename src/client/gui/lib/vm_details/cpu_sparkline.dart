@@ -63,26 +63,35 @@ class CpuUsagesNotifier extends Notifier<Queue<double>> {
         .split(' ')
         .skip(2)
         .take(8)
-        .map(int.parse)
+        .map(int.tryParse)
         .toList();
 
-    if (cpuTimes.isEmpty) {
-      return usages
+    void append(double usage) {
+      usages
         ..removeFirst()
-        ..addLast(0.0);
+        ..addLast(usage);
     }
 
-    final total = cpuTimes.sum;
-    final idle = cpuTimes[3];
+    // We need at least the idle field (index 3) and every field parsed
+    if (cpuTimes.length < 4 || cpuTimes.any((v) => v == null)) {
+      append(0.0);
+      return Queue.of(usages);
+    }
+
+    final values = cpuTimes.cast<int>();
+    final total = values.sum;
+    final idle = values[3];
     final diffTotal = total - lastTotal;
     final diffIdle = idle - lastIdle;
     lastTotal = total;
     lastIdle = idle;
 
-    final usage = (100 * (diffTotal - diffIdle) / diffTotal).roundToDouble();
-    return usages
-      ..removeFirst()
-      ..addLast(usage);
+    // Guard against a zero or negative delta
+    final usage = diffTotal <= 0
+        ? 0.0
+        : (100 * (diffTotal - diffIdle) / diffTotal).roundToDouble();
+    append(usage);
+    return Queue.of(usages);
   }
 }
 

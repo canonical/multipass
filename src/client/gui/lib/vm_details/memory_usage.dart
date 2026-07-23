@@ -42,7 +42,7 @@ String _formatMemory(String data) {
     'KiB': divider,
   };
 
-  final size = int.parse(data);
+  final size = int.tryParse(data) ?? 0;
   for (final MapEntry(key: suffix, value: unit) in units.entries) {
     if (size >= unit) return '${(size / unit).toStringAsFixed(1)}$suffix';
   }
