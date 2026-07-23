@@ -25,6 +25,7 @@ namespace multipass::test
 struct MockSFTPClient : public SFTPClient
 {
     MOCK_METHOD(bool, is_remote_dir, (const fs::path& path), (override));
+    MOCK_METHOD(std::vector<fs::path>, expand_remote_path, (const fs::path& path), (override));
     MOCK_METHOD(bool,
                 push,
                 (const fs::path& source_path, const fs::path& target_path, Flags flags),
