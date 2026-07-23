@@ -3910,6 +3910,11 @@ TEST_F(Client, authenticateCmdGoodPassphraseOk)
     EXPECT_EQ(send_command({"authenticate", "foo"}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, authenticateCmdEmptyPassphraseFails)
+{
+    EXPECT_EQ(send_command({"authenticate", ""}), mp::ReturnCode::CommandLineError);
+}
+
 TEST_F(Client, authenticateCmdInvalidOptionFails)
 {
     EXPECT_EQ(send_command({"authenticate", "--foo"}), mp::ReturnCode::CommandLineError);

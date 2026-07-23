@@ -160,7 +160,7 @@ multipass help <command>
 
 The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions and questions
 on the [Discourse forum](https://discourse.ubuntu.com/c/multipass/21). Please read the policy sections below carefully
-before contributing to the project. <!-- TODO: link to guidelines -->
+before contributing to the project, especially the [contribution guidelines](./CONTRIBUTING.md).
 
 ## Building Multipass
 
