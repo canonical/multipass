@@ -280,7 +280,7 @@ jobs:
       run: |
         gh api \
           --method POST \
-          "/repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+          "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
           -f state=success \
           -f context="Package / ${{ matrix.name }}" \
           -f description="Open Details to download $PACKAGE_NAME" \
