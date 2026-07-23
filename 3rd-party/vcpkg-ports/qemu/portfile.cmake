@@ -202,6 +202,10 @@ if(VCPKG_TARGET_IS_WINDOWS)
     # triggers --define-prefix to emit real Windows include/lib paths. --prefix is
     # required (meson validates it) though we never install; the binary is copied
     # straight from the build tree.
+    # QEMU on Windows uses the hermetic MinGW/GCC toolchain from vcpkg_acquire_msys(),
+    # not MSVC -- unset CC/CXX so the MinGW bash shell picks up its own gcc.
+    unset(ENV{CC})
+    unset(ENV{CXX})
     msys2_exec("unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR && cd '${BUILD_DIR_UNIX}' && '${SOURCE_PATH_UNIX}/configure' --static --enable-tools --disable-system --disable-docs --disable-pixman --enable-zstd --prefix='${INSTALL_PREFIX_UNIX}' --extra-cflags='-UNDEBUG' --extra-ldflags='-liconv'" configure)
     msys2_exec("cd '${BUILD_DIR_UNIX}' && ninja -j${VCPKG_CONCURRENCY} qemu-img.exe" build)
 

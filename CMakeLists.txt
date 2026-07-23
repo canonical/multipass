@@ -79,6 +79,7 @@ if(NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
   # Propagate macOS deployment target to vcpkg triplet
   if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
     set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+    set(MULTIPASS_VCPKG_TRIPLETS_COMMON "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/common.cmake")
     configure_file(
       "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
       "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
@@ -94,6 +95,16 @@ else()
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
+endif()
+
+# Refuse vcpkg triplets we're not prepared to handle
+if(NOT APPLE) # mac triplets generated separately for whichever arch is in use
+  set(MULTIPASS_VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets")
+  foreach(MULTIPASS_TRIPLET IN ITEMS "${VCPKG_HOST_TRIPLET}" "${VCPKG_TARGET_TRIPLET}")
+    if(NOT EXISTS "${MULTIPASS_VCPKG_TRIPLETS_DIR}/${MULTIPASS_TRIPLET}.cmake")
+      message(FATAL_ERROR "Unsupported vcpkg triplet '${MULTIPASS_TRIPLET}' on ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}.")
+    endif()
+  endforeach()
 endif()
 
 message(STATUS "Bootstrapping vcpkg...")
@@ -136,6 +147,23 @@ list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
+
+# forward compilers to vcpkg via env vars
+if(DEFINED CACHE{CMAKE_C_COMPILER} AND NOT DEFINED ENV{CC})
+  set(ENV{CC} "$CACHE{CMAKE_C_COMPILER}")
+endif()
+if(DEFINED CACHE{CMAKE_CXX_COMPILER} AND NOT DEFINED ENV{CXX})
+  set(ENV{CXX} "$CACHE{CMAKE_CXX_COMPILER}")
+endif()
+
+# Forward linker to vcpkg via env var. Unlike CC/CXX, there is no dedicated variable for the
+# linker, so translate it into LDFLAGS, which CMake uses to seed its default linker flags.
+if(DEFINED CMAKE_LINKER_TYPE AND NOT "${HOST_OS_NAME}" STREQUAL "Windows" AND NOT DEFINED ENV{LDFLAGS})
+  string(TOLOWER "${CMAKE_LINKER_TYPE}" LINKER_LOWER)
+  if(LINKER_LOWER MATCHES "^(mold|lld|bfd|gold)$")
+    set(ENV{LDFLAGS} "-fuse-ld=${LINKER_LOWER}")
+  endif()
+endif()
 
 project(Multipass)
 
