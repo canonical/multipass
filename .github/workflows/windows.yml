@@ -276,13 +276,14 @@ jobs:
         GH_TOKEN: ${{ github.token }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         PACKAGE_URL: ${{ steps.s3-upload.outputs.url }}
+        PACKAGE_NAME: ${{ steps.cmake-package.outputs.name }}
       run: |
         gh api \
           --method POST \
           "/repos/${{ github.repository }}/statuses/$HEAD_SHA" \
           -f state=success \
           -f context="Package / ${{ matrix.name }}" \
-          -f description="Open Details to download the package" \
+          -f description="Open Details to download $PACKAGE_NAME" \
           -f target_url="$PACKAGE_URL"
 
     - name: Store publishing outputs
