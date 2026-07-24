@@ -16,7 +16,11 @@
  */
 
 #include "common.h"
+#include "mock_libssh.h"
+#include "stub_ssh_key_provider.h"
+
 #include <multipass/ssh/plain_sftp_session.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_session.h>
 
 #include <string>
@@ -43,4 +47,65 @@ using MakeSftpSession = decltype(&mp::SSHSession::make_sftp_session);
 static_assert(!std::is_invocable_v<MakeSftpSession, mp::SSHSession&, std::string>,
               "make_sftp_session must consume the session (callable only on an rvalue)");
 static_assert(std::is_invocable_v<MakeSftpSession, mp::SSHSession&&, std::string>);
+
+struct TestPlainSftpSession : public Test
+{
+    TestPlainSftpSession()
+    {
+        ON_CALL(mock_libssh, ssh_new()).WillByDefault(Return(fake_session));
+        ON_CALL(mock_libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_connect).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_userauth_publickey).WillByDefault(Return(SSH_AUTH_SUCCESS));
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
+        ON_CALL(mock_libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
+        ON_CALL(mock_libssh, ssh_get_error).WillByDefault(Return("mocked error"));
+
+        // Exit-status machinery: deliver `sshfs_exit_code` through the registered callback when
+        // the event loop polls, as libssh would on a channel-exit-status message
+        ON_CALL(mock_libssh, ssh_add_channel_callbacks)
+            .WillByDefault(DoAll(SaveArg<1>(&channel_cbs), Return(SSH_OK)));
+        ON_CALL(mock_libssh, ssh_remove_channel_callbacks).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_event_new()).WillByDefault(Return(fake_event));
+        ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_event_dopoll).WillByDefault([this](ssh_event, int) {
+            channel_cbs->channel_exit_status_function(fake_session,
+                                                      fake_channel,
+                                                      sshfs_exit_code,
+                                                      channel_cbs->userdata);
+            return SSH_OK;
+        });
+    }
+
+    mp::PlainSSHSession make_ssh_session() const
+    {
+        return mp::PlainSSHSession{"host", 42, "ubuntu", key_provider};
+    }
+
+    mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
+    mpt::MockLibssh& mock_libssh = *guarded_mock.first;
+
+    constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
+    ssh_session fake_session = reinterpret_cast<ssh_session>(bad_addr);
+    ssh_channel fake_channel = reinterpret_cast<ssh_channel>(bad_addr);
+    ssh_event fake_event = reinterpret_cast<ssh_event>(bad_addr);
+
+    ssh_channel_callbacks channel_cbs = nullptr;
+    int sshfs_exit_code = 0;
+
+    mpt::StubSSHKeyProvider key_provider;
+};
 } // namespace
+
+TEST_F(TestPlainSftpSession, makeSftpSessionRunsSshfsCommand)
+{
+    sshfs_exit_code = 1; // TODO@sftp mock success path instead
+
+    auto session = make_ssh_session();
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq("sshfs -o slave")))
+        .WillOnce(Return(SSH_OK));
+
+    EXPECT_ANY_THROW(static_cast<void>(std::move(session).make_sftp_session("sshfs -o slave")));
+}
