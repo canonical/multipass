@@ -100,7 +100,7 @@ list(JOIN ACTIVE_FEATURES  "," FEATURES_CSV)
    "${CMAKE_CURRENT_SOURCE_DIR}/*.txt"
  )
 add_custom_command(
-  OUTPUT ${CARGO_GENERATED_FILES}
+  OUTPUT ${CARGO_GENERATED_FILES} "${CMAKE_CURRENT_BINARY_DIR}/_force_cargo_rebuild"
   COMMAND ${CARGO_CMD} build
   --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
   --workspace
@@ -109,6 +109,7 @@ add_custom_command(
   --features "${FEATURES_CSV}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   DEPENDS ${RUST_SOURCES}
+  JOB_SERVER_AWARE TRUE
   COMMENT "Building Rust crates and generating C++ glue..."
 )
 
