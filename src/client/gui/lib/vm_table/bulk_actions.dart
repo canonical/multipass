@@ -9,6 +9,7 @@ import '../notifications.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 import 'vms.dart';
+import 'zones_dropdown_button.dart';
 
 class BulkActionsBar extends ConsumerWidget {
   const BulkActionsBar({super.key});
@@ -71,6 +72,7 @@ class BulkActionsBar extends ConsumerWidget {
           currentStatuses: statuses,
           function: () => function(action),
         ),
+      const ZonesDropdownButton(),
     ];
 
     return Row(children: actionButtons.gap(width: 8).toList());
