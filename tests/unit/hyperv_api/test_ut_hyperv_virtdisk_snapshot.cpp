@@ -20,6 +20,7 @@
 #include "mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/common.h"
 
+#include <hyperv_api/virtdisk/virtdisk_exceptions.h>
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
@@ -42,6 +43,7 @@ namespace
 namespace fs = std::filesystem;
 using hyperv::OperationResult;
 using hyperv::virtdisk::CreateVirtualDiskParameters;
+using hyperv::virtdisk::CreateVirtdiskSnapshotError;
 using hyperv::virtdisk::VirtDiskSnapshot;
 
 OperationResult op_ok()
@@ -141,11 +143,28 @@ TEST_F(VirtDiskSnapshotCapture, rolls_back_when_new_head_creation_fails)
 
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).WillOnce(Return(op_fail()));
 
-    auto ss = make_snapshot();
-    EXPECT_THROW(ss->capture(), std::exception);
+    auto parent = make_snapshot();
+    snapshot_count = 1;
+    auto ss = make_snapshot(parent);
+    EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
 
     EXPECT_TRUE(fs::exists(head())) << "the original head must be restored";
-    EXPECT_FALSE(fs::exists(snapshot_path(1))) << "the snapshot file must be cleaned up";
+    EXPECT_FALSE(fs::exists(snapshot_path(2))) << "the snapshot file must be cleaned up";
+}
+
+// A head disk without a logical parent is an inconsistent snapshot state. Capture
+// must reject it before touching the disk chain or invoking the VirtDisk API.
+TEST_F(VirtDiskSnapshotCapture, rejects_preexisting_head_without_parent)
+{
+    touch(head());
+
+    EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).Times(0);
+
+    auto ss = make_snapshot();
+    EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
+
+    EXPECT_TRUE(fs::exists(head())) << "the existing head must remain intact";
+    EXPECT_FALSE(fs::exists(snapshot_path(1))) << "no snapshot file should be created";
 }
 
 // No head exists yet (VM with no snapshots). The head is created during capture,
