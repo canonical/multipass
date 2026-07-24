@@ -43,8 +43,8 @@ namespace
 namespace fs = std::filesystem;
 using hyperv::OperationResult;
 using hyperv::virtdisk::CreateVirtualDiskParameters;
-using hyperv::virtdisk::CreateVirtdiskSnapshotError;
 using hyperv::virtdisk::VirtDiskSnapshot;
+using hyperv::virtdisk::VirtdiskSnapshotError;
 
 OperationResult op_ok()
 {
@@ -147,7 +147,7 @@ TEST_F(VirtDiskSnapshotCapture, rolls_back_when_new_live_disk_creation_fails)
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).WillOnce(Return(op_fail()));
 
     auto ss = make_snapshot();
-    EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
+    EXPECT_THROW(ss->capture(), VirtdiskSnapshotError);
 
     EXPECT_TRUE(fs::exists(live_disk())) << "the original live disk must be restored";
     EXPECT_FALSE(fs::exists(snapshot_path(1))) << "the snapshot file must be cleaned up";
@@ -158,7 +158,7 @@ TEST_F(VirtDiskSnapshotCapture, rejects_missing_live_disk)
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).Times(0);
 
     auto ss = make_snapshot();
-    EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
+    EXPECT_THROW(ss->capture(), VirtdiskSnapshotError);
 
     EXPECT_FALSE(fs::exists(snapshot_path(1))) << "no snapshot file should be created";
 }
@@ -171,7 +171,7 @@ TEST_F(VirtDiskSnapshotCapture, rejects_existing_snapshot_disk_without_touching_
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).Times(0);
 
     auto ss = make_snapshot();
-    EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
+    EXPECT_THROW(ss->capture(), VirtdiskSnapshotError);
 
     EXPECT_TRUE(fs::exists(live_disk())) << "the live disk must remain intact";
     EXPECT_TRUE(fs::exists(snapshot_path(1))) << "the existing snapshot disk must remain intact";
@@ -183,8 +183,9 @@ TEST_F(VirtDiskSnapshotCapture, creates_replacement_live_disk)
 
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_))
         .WillOnce([](const CreateVirtualDiskParameters& params) {
-            EXPECT_EQ(std::get<hyperv::virtdisk::ParentPathParameters>(params.predecessor.get()).path,
-                      params.path.parent_path() / "1.avhdx");
+            EXPECT_EQ(
+                std::get<hyperv::virtdisk::ParentPathParameters>(params.predecessor.get()).path,
+                params.path.parent_path() / "1.avhdx");
             touch(params.path);
             return op_ok();
         });

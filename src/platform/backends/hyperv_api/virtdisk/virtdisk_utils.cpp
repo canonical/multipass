@@ -23,6 +23,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/top_catch_all.h>
 
+#include <vector>
+
 namespace multipass::hyperv::virtdisk
 {
 
@@ -41,7 +43,7 @@ bool is_direct_child_of(const std::filesystem::path& disk, const std::filesystem
     std::vector<std::filesystem::path> chain;
     if (const auto r = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !r)
     {
-        throw CreateVirtdiskSnapshotError{r, "Could not inspect virtual disk chain for `{}`", disk};
+        throw VirtdiskSnapshotError{r, "Could not inspect virtual disk chain for `{}`", disk};
     }
 
     return chain.size() >= 2 &&
