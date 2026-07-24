@@ -19,6 +19,8 @@
 
 #include <multipass/ssh/ssh_process.h>
 
+#include <multipass/private_pass_provider.h>
+
 #include <libssh/libssh.h>
 
 #include <exception>
@@ -28,12 +30,14 @@
 
 namespace multipass
 {
+class PlainSftpSession;
+
 class PlainSSHProcess : public SSHProcess
 {
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
 
-    PlainSSHProcess(ssh_session_struct& ssh_session,
+    PlainSSHProcess(ssh_session_struct& raw_session,
                     const std::string& cmd,
                     std::unique_lock<std::mutex> session_lock);
 
@@ -56,6 +60,12 @@ public:
     std::string read_std_error() override;
     const std::string& get_cmd() const override;
 
+public: // but restricted
+    // Obtain a non-owning libssh channel handle.
+    // The caller adopts thread-safety responsibility for the channel with respect to this
+    // SSHProcess and the SSHSession it belongs to.
+    ssh_channel borrow_channel(const PrivatePassProvider<PlainSftpSession>::PrivatePass&);
+
 private:
     enum class StreamType
     {
@@ -70,7 +80,7 @@ private:
                                    // ensure thread safety
 
     std::unique_lock<std::mutex> session_lock; // do not attempt to re-lock, as this is moved from
-    ssh_session session;
+    ssh_session raw_session;
     std::string cmd;
     ChannelUPtr channel;
     std::variant<std::monostate, int, std::exception_ptr> exit_result;
