@@ -19,6 +19,10 @@
 #include <multipass/ssh/plain_sftp_session.h>
 #include <multipass/sshfs_mount/sftp_session.h>
 
+#include <string>
+#include <type_traits>
+#include <utility>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -33,4 +37,10 @@ static_assert(!std::is_copy_constructible_v<mp::PlainSftpSession>);
 static_assert(!std::is_copy_assignable_v<mp::PlainSftpSession>);
 static_assert(!std::is_move_constructible_v<mp::PlainSftpSession>);
 static_assert(!std::is_move_assignable_v<mp::PlainSftpSession>);
+
+// make_sftp_session consumes SSHSession
+using MakeSftpSession = decltype(&mp::SSHSession::make_sftp_session);
+static_assert(!std::is_invocable_v<MakeSftpSession, mp::SSHSession&, std::string>,
+              "make_sftp_session must consume the session (callable only on an rvalue)");
+static_assert(std::is_invocable_v<MakeSftpSession, mp::SSHSession&&, std::string>);
 } // namespace
