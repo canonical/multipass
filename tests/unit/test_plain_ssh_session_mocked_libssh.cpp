@@ -51,7 +51,9 @@ struct TestPlainSSHSessionMockedLibssh : public Test
         ON_CALL(libssh, ssh_is_connected).WillByDefault(Return(1));
         ON_CALL(libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
         ON_CALL(libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
         ON_CALL(libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
+        ON_CALL(libssh, ssh_get_error).WillByDefault(Return("mocked error"));
     }
 
     mp::PlainSSHSession make_ssh_session() const
@@ -80,4 +82,24 @@ TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGi
 
     ASSERT_THAT(proc, NotNull());
     EXPECT_EQ(proc->get_cmd(), "ls -la");
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, execPlainThrowsOnDisconnectedSession)
+{
+    auto session = make_ssh_session();
+    EXPECT_CALL(libssh, ssh_is_connected(fake_session)).WillOnce(Return(0));
+
+    MP_EXPECT_THROW_THAT(static_cast<void>(session.exec_plain("cmd")),
+                         mp::SSHException,
+                         mpt::match_what(HasSubstr("not connected")));
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, execProducesPlainProcess)
+{
+    auto session = make_ssh_session();
+
+    auto proc = session.exec("true");
+
+    ASSERT_THAT(proc, NotNull());
+    EXPECT_THAT(dynamic_cast<mp::PlainSSHProcess*>(proc.get()), NotNull());
 }
