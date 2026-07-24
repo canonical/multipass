@@ -39,6 +39,8 @@
 #include <fmt/xchar.h>
 #include <scope_guard.hpp>
 
+#include <algorithm>
+#include <ranges>
 #include <stdexcept>
 
 #include <WS2tcpip.h>

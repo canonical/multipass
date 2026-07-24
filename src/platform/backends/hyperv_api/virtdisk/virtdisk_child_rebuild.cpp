@@ -68,7 +68,7 @@ void ChildRebuild::stage()
         MP_FILEOPS.copy(self_backup, self_path, {});
 
         if (auto merge_r = VirtDisk().merge_virtual_disk_into_parent(child_path); !merge_r)
-            throw CreateVirtdiskSnapshotError{merge_r,
+            throw VirtdiskSnapshotError{merge_r,
                                               "Could not merge child disk `{}` into `{}`",
                                               child_path,
                                               self_path};
@@ -94,7 +94,7 @@ void ChildRebuild::reparent()
     for (const auto& [grandchild, child_path] : grandchildren)
     {
         if (const auto r = VirtDisk().reparent_virtual_disk(grandchild, child_path); !r)
-            throw CreateVirtdiskSnapshotError{r,
+            throw VirtdiskSnapshotError{r,
                                               "Could not reparent `{}` onto rebuilt `{}`",
                                               grandchild,
                                               child_path};

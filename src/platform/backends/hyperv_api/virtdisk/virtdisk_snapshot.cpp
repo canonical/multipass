@@ -29,13 +29,15 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <algorithm>
+#include <iterator>
+
 #include <fmt/format.h>
 #include <scope_guard.hpp>
 
 namespace
 {
 namespace mpl = multipass::logging;
-namespace mhv = multipass::hyperv;
 } // namespace
 
 namespace multipass::hyperv::virtdisk
@@ -80,15 +82,14 @@ void VirtDiskSnapshot::capture_impl()
                snapshot_path);
 
     if (!MP_FILEOPS.exists(live_disk_path))
-        throw CreateVirtdiskSnapshotError{
-            std::make_error_code(std::errc::no_such_file_or_directory),
-            "Live disk `{}` does not exist",
-            live_disk_path};
+        throw VirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
+                                    "Live disk `{}` does not exist",
+                                    live_disk_path};
 
     if (MP_FILEOPS.exists(snapshot_path))
-        throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
-                                          "Snapshot disk `{}` already exists",
-                                          snapshot_path};
+        throw VirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
+                                    "Snapshot disk `{}` already exists",
+                                    snapshot_path};
 
     bool live_disk_became_snapshot = false;
     auto rollback = sg::make_scope_guard([&]() noexcept {
@@ -111,15 +112,14 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 {
     mpl::debug(vm.get_name(), "create_new_child_disk() -> parent: {}, child: {}", parent, child);
     if (!MP_FILEOPS.exists(parent))
-        throw CreateVirtdiskSnapshotError{
-            std::make_error_code(std::errc::no_such_file_or_directory),
-            "Parent disk `{}` does not exist",
-            parent};
+        throw VirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
+                                    "Parent disk `{}` does not exist",
+                                    parent};
 
     if (MP_FILEOPS.exists(child))
-        throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
-                                          "Child disk `{}` already exists",
-                                          child};
+        throw VirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
+                                    "Child disk `{}` already exists",
+                                    child};
 
     const virtdisk::CreateVirtualDiskParameters params{
         .path = child,
@@ -127,7 +127,7 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 
     if (const auto result = VirtDisk().create_virtual_disk(params); !result)
     {
-        throw CreateVirtdiskSnapshotError{
+        throw VirtdiskSnapshotError{
             result,
             "Could not create child differencing disk `{}` from parent `{}`",
             child,
@@ -185,10 +185,9 @@ void VirtDiskSnapshot::apply_impl()
     const auto snapshot_path = make_snapshot_path(*this);
 
     if (!MP_FILEOPS.exists(live_disk_path))
-        throw CreateVirtdiskSnapshotError{
-            std::make_error_code(std::errc::no_such_file_or_directory),
-            "Live disk `{}` does not exist",
-            live_disk_path};
+        throw VirtdiskSnapshotError{std::make_error_code(std::errc::no_such_file_or_directory),
+                                    "Live disk `{}` does not exist",
+                                    live_disk_path};
 
     auto new_live_disk_path = live_disk_path;
     new_live_disk_path.replace_extension(".new.avhdx");
