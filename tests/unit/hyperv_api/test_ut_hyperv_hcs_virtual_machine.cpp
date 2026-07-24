@@ -18,6 +18,7 @@
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/mount_handler.h>
 #include <multipass/vm_mount.h>
@@ -33,6 +34,7 @@
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/temp_file.h"
+#include "tests/unit/windows/mock_network_utils.h"
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -95,6 +97,10 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     mpt::MockVirtDiskWrapper::GuardedMock mock_virtdisk_wrapper_injection =
         mpt::MockVirtDiskWrapper::inject<StrictMock>();
     mpt::MockVirtDiskWrapper& mock_virtdisk = *mock_virtdisk_wrapper_injection.first;
+
+    mpt::MockWindowsNetworkUtils::GuardedMock mock_network_utils_injection =
+        mpt::MockWindowsNetworkUtils::inject<StrictMock>();
+    mpt::MockWindowsNetworkUtils& mock_network_utils = *mock_network_utils_injection.first;
 
     inline static auto mock_handle_raw = reinterpret_cast<void*>(0xbadf00d);
     hcs_handle_t mock_handle{mock_handle_raw, [](void*) {}};
@@ -192,6 +198,26 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                     out_hcs_system = mock_handle;
                 },
                 Return(hcs_op_result_t{0, L""})));
+    }
+
+    void expect_endpoint_query(std::vector<std::string> ip_addresses,
+                               std::optional<std::string> mac_address = std::nullopt)
+    {
+        EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+            .WillOnce(
+                [ip_addresses = std::move(ip_addresses),
+                 mac_address = std::move(mac_address)](const std::string&,
+                                                       mhv::hcn::HcnEndpointInfo& endpoint_info) {
+                    endpoint_info.mac_address = mac_address;
+                    endpoint_info.ip_addresses = ip_addresses;
+                    return hcs_op_result_t{0, L""};
+                });
+    }
+
+    void expect_endpoint_query_failure()
+    {
+        EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+            .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint query failed"}));
     }
 
     template <typename T = uut_t>
@@ -521,10 +547,107 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_port)
 TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_hostname)
 {
     default_open_success();
+    expect_endpoint_query({"10.123.45.67"});
 
-    std::shared_ptr<uut_t> uut{nullptr};
-    ASSERT_NO_THROW(uut = construct_vm());
-    EXPECT_EQ(uut->ssh_hostname(), uut->get_name() + ".mshome.net");
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->ssh_hostname(), "10.123.45.67");
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_ssh_hostname_throws_when_ip_is_unavailable)
+{
+    default_open_success();
+    expect_endpoint_query_failure();
+
+    auto uut = construct_vm();
+
+    EXPECT_THROW((void)uut->ssh_hostname(), mp::IPUnavailableException);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_queries_primary_endpoint)
+{
+    default_open_success();
+    expect_endpoint_query({"fe80::1", "1:2:3:4:5:6:7:8", "10.123.45.67"});
+
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->management_ipv4(), mp::IPAddress{"10.123.45.67"});
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_queries_each_time)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+        .WillOnce(DoAll(
+            [](const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
+                endpoint_info.ip_addresses = {"10.123.45.67"};
+            },
+            Return(hcs_op_result_t{0, L""})))
+        .WillOnce(DoAll(
+            [](const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
+                endpoint_info.ip_addresses = {"10.123.45.68"};
+            },
+            Return(hcs_op_result_t{0, L""})));
+
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->management_ipv4(), mp::IPAddress{"10.123.45.67"});
+    EXPECT_EQ(uut->management_ipv4(), mp::IPAddress{"10.123.45.68"});
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_retries_unsuccessful_query)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint query failed"}))
+        .WillOnce(DoAll(
+            [](const std::string&, mhv::hcn::HcnEndpointInfo& endpoint_info) {
+                endpoint_info.ip_addresses = {"10.123.45.67"};
+            },
+            Return(hcs_op_result_t{0, L""})));
+
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+    EXPECT_EQ(uut->management_ipv4(), mp::IPAddress{"10.123.45.67"});
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_ipv4_configuration)
+{
+    default_open_success();
+    expect_endpoint_query({"fe80::1"});
+
+    auto uut = construct_vm();
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_uses_permanent_neighbor)
+{
+    default_open_success();
+    expect_endpoint_query({}, "aa-bb-cc-dd-ee-ff");
+
+    auto uut = construct_vm();
+    EXPECT_CALL(mock_network_utils, permanent_ipv4_neighbor("aa-bb-cc-dd-ee-ff"))
+        .WillOnce(Return(std::optional<std::string>{"10.123.45.67"}));
+
+    EXPECT_EQ(uut->management_ipv4(), mp::IPAddress{"10.123.45.67"});
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_neighbor)
+{
+    default_open_success();
+    expect_endpoint_query({}, "aa-bb-cc-dd-ee-ff");
+
+    auto uut = construct_vm();
+    EXPECT_CALL(mock_network_utils, permanent_ipv4_neighbor("aa-bb-cc-dd-ee-ff"))
+        .WillOnce(Return(std::nullopt));
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
 }
 
 // ---------------------------------------------------------
