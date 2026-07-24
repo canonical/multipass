@@ -20,7 +20,6 @@
 #include <shared/base_snapshot.h>
 
 #include <filesystem>
-#include <string_view>
 #include <vector>
 
 namespace multipass::hyperv::virtdisk
@@ -46,39 +45,14 @@ public:
                      VirtualMachine& vm,
                      const VirtualMachineDescription& desc);
 
-    [[nodiscard]] static constexpr std::string_view head_disk_name() noexcept
-    {
-        return "head.avhdx";
-    }
-
-    /**
-     * Merge a direct `base <- head` chain into the base and remove the head.
-     *
-     * No-op when the head is missing or is not a direct child of the base.
-     *
-     * The head is removed only after a successful merge, so a failed merge leaves the
-     * chain readable. Throws on merge failure.
-     *
-     * @param [in] base_vhdx_path Path to the base disk.
-     */
-    static void collapse_head_into_base(const std::string& vm_name,
-                                        const std::filesystem::path& base_vhdx_path);
-
 protected:
     void capture_impl() override;
     void erase_impl() override;
     void apply_impl() override;
 
 private:
-    void collapse_head_into_base(const std::filesystem::path& base_vhdx_path);
-    /**
-     * After deleting the last snapshot, best-effort collapse `base <- head` into `base`.
-     */
-    void collapse_head_after_last_erase();
-
     [[nodiscard]] static std::string make_snapshot_filename(const Snapshot& ss);
     [[nodiscard]] std::filesystem::path make_snapshot_path(const Snapshot& ss) const;
-    [[nodiscard]] std::filesystem::path make_head_disk_path() const;
 
     /**
      * Create a new differencing child disk.
@@ -94,15 +68,16 @@ private:
     /**
      * Return this snapshot's direct disk children, excluding this snapshot's own file.
      *
-     * Includes snapshot files and the live head when they sit directly on @p parent_disk.
+     * Includes snapshot files and the live VM disk when they sit directly on @p parent_disk.
      */
     [[nodiscard]] std::vector<std::filesystem::path> get_children_of_disk(
         const std::filesystem::path& parent_disk) const;
 
     /**
-     * Path to the base disk, i.e. the ancestor of all differencing disks.
+     * Path to the VM's live disk. This path remains stable while the file at it becomes
+     * a numbered snapshot and is replaced by a new differencing disk during capture.
      */
-    const std::filesystem::path base_vhdx_path{};
+    const std::filesystem::path live_disk_path{};
 
     /**
      * Owning VM.

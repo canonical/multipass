@@ -49,7 +49,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
                                    const VirtualMachine& vm,
                                    const VirtualMachineDescription& desc)
     : BaseSnapshot(name, comment, instance_id, std::move(parent), specs, vm),
-      base_vhdx_path{desc.image.image_path},
+      live_disk_path{desc.image.image_path},
       vm{vm}
 {
 }
@@ -57,7 +57,7 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
 VirtDiskSnapshot::VirtDiskSnapshot(const std::filesystem::path& filename,
                                    VirtualMachine& vm,
                                    const VirtualMachineDescription& desc)
-    : BaseSnapshot(filename, vm, desc), base_vhdx_path{desc.image.image_path}, vm{vm}
+    : BaseSnapshot(filename, vm, desc), live_disk_path{desc.image.image_path}, vm{vm}
 {
 }
 
@@ -68,58 +68,41 @@ std::string VirtDiskSnapshot::make_snapshot_filename(const Snapshot& ss)
 
 std::filesystem::path VirtDiskSnapshot::make_snapshot_path(const Snapshot& ss) const
 {
-    return base_vhdx_path.parent_path() / make_snapshot_filename(ss);
-}
-
-std::filesystem::path VirtDiskSnapshot::make_head_disk_path() const
-{
-    return base_vhdx_path.parent_path() / head_disk_name();
+    return live_disk_path.parent_path() / make_snapshot_filename(ss);
 }
 
 void VirtDiskSnapshot::capture_impl()
 {
-    const auto head_path = make_head_disk_path();
     const auto snapshot_path = make_snapshot_path(*this);
     mpl::debug(vm.get_name(),
-               "capture_impl() -> head_path: {}, snapshot_path: {}",
-               head_path,
+               "capture_impl() -> live_disk_path: {}, snapshot_path: {}",
+               live_disk_path,
                snapshot_path);
 
-    const bool head_preexisted = MP_FILEOPS.exists(head_path);
-    bool head_became_snapshot = false;
+    if (!MP_FILEOPS.exists(live_disk_path))
+        throw CreateVirtdiskSnapshotError{
+            std::make_error_code(std::errc::no_such_file_or_directory),
+            "Live disk `{}` does not exist",
+            live_disk_path};
 
-    // Leave no partial files after a failed capture.
+    if (MP_FILEOPS.exists(snapshot_path))
+        throw CreateVirtdiskSnapshotError{std::make_error_code(std::errc::file_exists),
+                                          "Snapshot disk `{}` already exists",
+                                          snapshot_path};
+
+    bool live_disk_became_snapshot = false;
     auto rollback = sg::make_scope_guard([&]() noexcept {
         std::error_code ec{};
-        if (head_became_snapshot)
+        if (live_disk_became_snapshot)
         {
-            MP_FILEOPS.remove(head_path, ec);
-            try_rename(snapshot_path, head_path);
-        }
-        else if (!head_preexisted)
-        {
-            MP_FILEOPS.remove(head_path, ec);
-            MP_FILEOPS.remove(snapshot_path, ec);
+            MP_FILEOPS.remove(live_disk_path, ec);
+            try_rename(snapshot_path, live_disk_path);
         }
     });
 
-    if (head_preexisted)
-    {
-        if (nullptr == get_parent())
-        {
-            throw CreateVirtdiskSnapshotError{
-                std::make_error_code(std::errc::state_not_recoverable),
-                "Cannot capture snapshot: head disk `{}` exists but the snapshot has no parent",
-                head_path};
-        }
-        MP_FILEOPS.rename(head_path, snapshot_path);
-        head_became_snapshot = true;
-    }
-    else
-        create_new_child_disk(base_vhdx_path, snapshot_path);
-
-    // The head was either absent or became a snapshot -- create a new one.
-    create_new_child_disk(snapshot_path, head_path);
+    MP_FILEOPS.rename(live_disk_path, snapshot_path);
+    live_disk_became_snapshot = true;
+    create_new_child_disk(snapshot_path, live_disk_path);
     rollback.dismiss();
 }
 
@@ -169,9 +152,8 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_children_of_disk(
                            std::back_inserter(result),
                            [this](const auto& ss) { return make_snapshot_path(*ss); });
 
-    // Include the head disk if it's a direct child of the parent, too.
-    if (auto head_path = make_head_disk_path(); is_direct_child_of(head_path, parent_disk))
-        result.push_back(std::move(head_path));
+    if (is_direct_child_of(live_disk_path, parent_disk))
+        result.push_back(live_disk_path);
 
     return result;
 }
@@ -196,74 +178,55 @@ void VirtDiskSnapshot::erase_impl()
     rebuild.reparent();
     rollback.dismiss();
     rebuild.finalize();
-
-    collapse_head_after_last_erase();
-}
-
-void VirtDiskSnapshot::collapse_head_after_last_erase()
-{
-    // Self is still counted here, so the last snapshot means exactly one remains.
-    if (vm.get_num_snapshots() != 1)
-        return;
-
-    collapse_head_into_base(base_vhdx_path);
-}
-
-void VirtDiskSnapshot::collapse_head_into_base(const std::string& vm_name,
-                                               const std::filesystem::path& base_vhdx_path)
-{
-    const auto head_path = base_vhdx_path.parent_path() / head_disk_name();
-
-    if (!MP_FILEOPS.exists(head_path))
-        return;
-
-    // The head disk must be attached to the base.
-    if (!is_direct_child_of(head_path, base_vhdx_path))
-    {
-        mpl::warn(vm_name,
-                  "Not collapsing head `{}`: it is not a direct child of base `{}`",
-                  head_path,
-                  base_vhdx_path);
-        return;
-    }
-
-    // Keep the head until merge succeeds so `base <- head` remains readable on failure.
-    if (const auto r = VirtDisk().merge_virtual_disk_into_parent(head_path); !r)
-        throw CreateVirtdiskSnapshotError{r,
-                                          "Could not merge head `{}` into base `{}`",
-                                          head_path,
-                                          base_vhdx_path};
-
-    // Removal failure is safe; a later collapse or resize will retry it.
-    std::error_code ec{};
-    MP_FILEOPS.remove(head_path, ec);
-    if (ec)
-        mpl::warn(vm_name,
-                  "Merged head `{}` into base `{}` but could not remove the redundant head: {}",
-                  head_path,
-                  base_vhdx_path,
-                  ec.message());
-}
-
-void VirtDiskSnapshot::collapse_head_into_base(const std::filesystem::path& base_vhdx_path)
-{
-    collapse_head_into_base(vm.get_name(), base_vhdx_path);
 }
 
 void VirtDiskSnapshot::apply_impl()
 {
-    const auto head_path = make_head_disk_path();
     const auto snapshot_path = make_snapshot_path(*this);
 
-    // Build the replacement beside the live head so creation failure keeps the VM bootable.
-    auto new_head_path = head_path;
-    new_head_path.replace_extension(".new.avhdx"); // "head.avhdx" -> "head.new.avhdx"
+    if (!MP_FILEOPS.exists(live_disk_path))
+        throw CreateVirtdiskSnapshotError{
+            std::make_error_code(std::errc::no_such_file_or_directory),
+            "Live disk `{}` does not exist",
+            live_disk_path};
 
-    MP_FILEOPS.remove(new_head_path);
-    create_new_child_disk(snapshot_path, new_head_path);
+    auto new_live_disk_path = live_disk_path;
+    new_live_disk_path.replace_extension(".new.vhdx");
+    auto old_live_disk_path = live_disk_path;
+    old_live_disk_path.replace_extension(".old.vhdx");
 
-    MP_FILEOPS.rename(new_head_path, head_path);
-    mpl::debug(vm.get_name(), "apply_impl() -> new head from {} -> {}", snapshot_path, head_path);
+    MP_FILEOPS.remove(new_live_disk_path);
+    MP_FILEOPS.remove(old_live_disk_path);
+    create_new_child_disk(snapshot_path, new_live_disk_path);
+
+    bool live_disk_moved = false;
+    auto rollback = sg::make_scope_guard([&]() noexcept {
+        std::error_code ec{};
+        MP_FILEOPS.remove(new_live_disk_path, ec);
+        if (live_disk_moved)
+        {
+            MP_FILEOPS.remove(live_disk_path, ec);
+            try_rename(old_live_disk_path, live_disk_path);
+        }
+    });
+
+    MP_FILEOPS.rename(live_disk_path, old_live_disk_path);
+    live_disk_moved = true;
+    MP_FILEOPS.rename(new_live_disk_path, live_disk_path);
+    rollback.dismiss();
+
+    std::error_code ec{};
+    MP_FILEOPS.remove(old_live_disk_path, ec);
+    if (ec)
+        mpl::warn(vm.get_name(),
+                  "Applied snapshot but could not remove old live disk `{}`: {}",
+                  old_live_disk_path,
+                  ec.message());
+
+    mpl::debug(vm.get_name(),
+               "apply_impl() -> new live disk from {} -> {}",
+               snapshot_path,
+               live_disk_path);
 }
 
 // Best-effort rename for noexcept rollback guards.

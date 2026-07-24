@@ -86,13 +86,9 @@ struct VirtDiskSnapshotTest : public ::testing::Test
     {
         return fs::path{desc.image.image_path}.parent_path();
     }
-    fs::path base() const
+    fs::path live_disk() const
     {
         return desc.image.image_path;
-    }
-    fs::path head() const
-    {
-        return dir() / VirtDiskSnapshot::head_disk_name();
     }
     fs::path snapshot_path(int index) const
     {
@@ -127,87 +123,96 @@ struct VirtDiskSnapshotCapture : public VirtDiskSnapshotTest
 
 struct VirtDiskSnapshotApply : public VirtDiskSnapshotTest
 {
-    fs::path new_head() const
+    fs::path new_live_disk() const
     {
-        auto p = head();
-        p.replace_extension(".new.avhdx");
+        auto p = live_disk();
+        p.replace_extension(".new.vhdx");
+        return p;
+    }
+
+    fs::path old_live_disk() const
+    {
+        auto p = live_disk();
+        p.replace_extension(".old.vhdx");
         return p;
     }
 };
 
-// A pre-existing head is renamed into the snapshot file, then creating the new
-// head fails. The original head must be restored and the snapshot file removed.
-TEST_F(VirtDiskSnapshotCapture, rolls_back_when_new_head_creation_fails)
+// The live disk is renamed into the snapshot file before its replacement is created.
+// A creation failure must restore the original disk and remove the snapshot file.
+TEST_F(VirtDiskSnapshotCapture, rolls_back_when_new_live_disk_creation_fails)
 {
-    touch(head()); // the VM already has a live head disk
+    touch(live_disk());
 
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).WillOnce(Return(op_fail()));
 
-    auto parent = make_snapshot();
-    snapshot_count = 1;
-    auto ss = make_snapshot(parent);
+    auto ss = make_snapshot();
     EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
 
-    EXPECT_TRUE(fs::exists(head())) << "the original head must be restored";
-    EXPECT_FALSE(fs::exists(snapshot_path(2))) << "the snapshot file must be cleaned up";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the original live disk must be restored";
+    EXPECT_FALSE(fs::exists(snapshot_path(1))) << "the snapshot file must be cleaned up";
 }
 
-// A head disk without a logical parent is an inconsistent snapshot state. Capture
-// must reject it before touching the disk chain or invoking the VirtDisk API.
-TEST_F(VirtDiskSnapshotCapture, rejects_preexisting_head_without_parent)
+TEST_F(VirtDiskSnapshotCapture, rejects_missing_live_disk)
 {
-    touch(head());
+    EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).Times(0);
+
+    auto ss = make_snapshot();
+    EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
+
+    EXPECT_FALSE(fs::exists(snapshot_path(1))) << "no snapshot file should be created";
+}
+
+TEST_F(VirtDiskSnapshotCapture, rejects_existing_snapshot_disk_without_touching_live_disk)
+{
+    touch(live_disk());
+    touch(snapshot_path(1));
 
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).Times(0);
 
     auto ss = make_snapshot();
     EXPECT_THROW(ss->capture(), CreateVirtdiskSnapshotError);
 
-    EXPECT_TRUE(fs::exists(head())) << "the existing head must remain intact";
-    EXPECT_FALSE(fs::exists(snapshot_path(1))) << "no snapshot file should be created";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the live disk must remain intact";
+    EXPECT_TRUE(fs::exists(snapshot_path(1))) << "the existing snapshot disk must remain intact";
 }
 
-// No head exists yet (VM with no snapshots). The head is created during capture,
-// renamed into the snapshot file, and then the new head creation fails. Rollback
-// must leave neither a head nor a snapshot file behind (exact pre-capture state).
-TEST_F(VirtDiskSnapshotCapture, rolls_back_when_no_preexisting_head)
+TEST_F(VirtDiskSnapshotCapture, creates_replacement_live_disk)
 {
-    touch(base()); // base must exist so the head can be layered on it
+    touch(live_disk());
 
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_))
         .WillOnce([](const CreateVirtualDiskParameters& params) {
-            touch(params.path); // simulate the head disk being created
+            EXPECT_EQ(std::get<hyperv::virtdisk::ParentPathParameters>(params.predecessor.get()).path,
+                      params.path.parent_path() / "1.avhdx");
+            touch(params.path);
             return op_ok();
-        })
-        .WillOnce(Return(op_fail())); // new head creation fails
+        });
 
     auto ss = make_snapshot();
-    EXPECT_THROW(ss->capture(), std::exception);
+    EXPECT_NO_THROW(ss->capture());
 
-    EXPECT_FALSE(fs::exists(head())) << "no head should remain after a failed first capture";
-    EXPECT_FALSE(fs::exists(snapshot_path(1))) << "no snapshot file should remain";
+    EXPECT_TRUE(fs::exists(live_disk()));
+    EXPECT_TRUE(fs::exists(snapshot_path(1)));
 }
 
-// The snapshot file to restore is missing, so building the replacement head
-// fails before it starts. The live head must be left untouched (the VM stays
-// bootable) and no temporary ".new" head should be left behind.
-TEST_F(VirtDiskSnapshotApply, apply_keeps_head_when_snapshot_missing)
+// The snapshot file to restore is missing, so building the replacement disk fails
+// before the live disk is touched.
+TEST_F(VirtDiskSnapshotApply, apply_keeps_live_disk_when_snapshot_missing)
 {
-    touch(head()); // the VM's current head disk
+    touch(live_disk());
     // note: snapshot_path(1) is intentionally absent
 
     auto ss = make_snapshot();
     EXPECT_THROW(ss->apply(), std::exception);
 
-    EXPECT_TRUE(fs::exists(head())) << "the existing head must remain intact";
-    EXPECT_FALSE(fs::exists(new_head())) << "no temporary head should be left behind";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the existing live disk must remain intact";
+    EXPECT_FALSE(fs::exists(new_live_disk())) << "no temporary disk should be left behind";
 }
 
-// Building the replacement head fails (VirtDisk API error). Because the new head
-// is built before the old one is swapped out, the existing head must survive.
-TEST_F(VirtDiskSnapshotApply, apply_keeps_head_when_new_head_creation_fails)
+TEST_F(VirtDiskSnapshotApply, apply_keeps_live_disk_when_replacement_creation_fails)
 {
-    touch(head());
+    touch(live_disk());
     touch(snapshot_path(1)); // snapshot to restore exists
 
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_)).WillOnce(Return(op_fail()));
@@ -215,28 +220,104 @@ TEST_F(VirtDiskSnapshotApply, apply_keeps_head_when_new_head_creation_fails)
     auto ss = make_snapshot();
     EXPECT_THROW(ss->apply(), std::exception);
 
-    EXPECT_TRUE(fs::exists(head())) << "the existing head must remain intact";
-    EXPECT_FALSE(fs::exists(new_head())) << "no temporary head should be left behind";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the existing live disk must remain intact";
+    EXPECT_FALSE(fs::exists(new_live_disk())) << "no temporary disk should be left behind";
+    EXPECT_FALSE(fs::exists(old_live_disk())) << "no backup disk should be left behind";
 }
 
-// The happy path: the replacement head is built from the snapshot and swapped in
-// for the old head. No throw, a head remains, and no temporary ".new" head lingers.
-TEST_F(VirtDiskSnapshotApply, apply_swaps_in_new_head)
+TEST_F(VirtDiskSnapshotApply, apply_swaps_in_new_live_disk)
 {
-    touch(head());
+    touch(live_disk());
     touch(snapshot_path(1));
 
     EXPECT_CALL(mock_virtdisk, create_virtual_disk(_))
         .WillOnce([](const CreateVirtualDiskParameters& params) {
-            touch(params.path); // simulate the new head disk being created
+            touch(params.path);
             return op_ok();
         });
 
     auto ss = make_snapshot();
     EXPECT_NO_THROW(ss->apply());
 
-    EXPECT_TRUE(fs::exists(head())) << "the swapped-in head must be present";
-    EXPECT_FALSE(fs::exists(new_head())) << "the temporary head must be renamed away";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the replacement live disk must be present";
+    EXPECT_FALSE(fs::exists(new_live_disk())) << "the temporary disk must be renamed away";
+    EXPECT_FALSE(fs::exists(old_live_disk())) << "the old live disk must be removed";
+}
+
+TEST_F(VirtDiskSnapshotApply, apply_restores_live_disk_when_swap_fails)
+{
+    touch(live_disk());
+    touch(snapshot_path(1));
+
+    EXPECT_CALL(mock_virtdisk, create_virtual_disk(_))
+        .WillOnce([](const CreateVirtualDiskParameters& params) {
+            touch(params.path);
+            return op_ok();
+        });
+
+    auto fops_injection = MockFileOps::inject<NiceMock>();
+    auto& fops = *fops_injection.first;
+
+    ON_CALL(fops, exists(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::exists(p);
+    });
+    ON_CALL(fops, remove(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::remove(p);
+    });
+    ON_CALL(fops, remove(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
+        return std::filesystem::remove(p, ec);
+    });
+    EXPECT_CALL(fops, rename(A<const fs::path&>(), A<const fs::path&>()))
+        .Times(AnyNumber())
+        .WillRepeatedly(
+            [](const fs::path& from, const fs::path& to) { std::filesystem::rename(from, to); });
+    EXPECT_CALL(fops, rename(new_live_disk(), live_disk()))
+        .WillOnce(Throw(
+            std::filesystem::filesystem_error{"forced failure",
+                                              std::make_error_code(std::errc::permission_denied)}));
+
+    auto ss = make_snapshot();
+    EXPECT_THROW(ss->apply(), std::filesystem::filesystem_error);
+
+    EXPECT_TRUE(fs::exists(live_disk())) << "the original live disk must be restored";
+    EXPECT_FALSE(fs::exists(new_live_disk()));
+    EXPECT_FALSE(fs::exists(old_live_disk()));
+}
+
+TEST_F(VirtDiskSnapshotApply, apply_removes_replacement_when_live_disk_cannot_be_moved)
+{
+    touch(live_disk());
+    touch(snapshot_path(1));
+
+    EXPECT_CALL(mock_virtdisk, create_virtual_disk(_))
+        .WillOnce([](const CreateVirtualDiskParameters& params) {
+            touch(params.path);
+            return op_ok();
+        });
+
+    auto fops_injection = MockFileOps::inject<NiceMock>();
+    auto& fops = *fops_injection.first;
+
+    ON_CALL(fops, exists(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::exists(p);
+    });
+    ON_CALL(fops, remove(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::remove(p);
+    });
+    ON_CALL(fops, remove(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
+        return std::filesystem::remove(p, ec);
+    });
+    EXPECT_CALL(fops, rename(live_disk(), old_live_disk()))
+        .WillOnce(Throw(
+            std::filesystem::filesystem_error{"forced failure",
+                                              std::make_error_code(std::errc::permission_denied)}));
+
+    auto ss = make_snapshot();
+    EXPECT_THROW(ss->apply(), std::filesystem::filesystem_error);
+
+    EXPECT_TRUE(fs::exists(live_disk())) << "the original live disk must remain intact";
+    EXPECT_FALSE(fs::exists(new_live_disk())) << "the staged replacement must be removed";
+    EXPECT_FALSE(fs::exists(old_live_disk())) << "no backup disk should be created";
 }
 
 // These tests exercise VirtDiskSnapshot::erase_impl()'s transactional behaviour.
@@ -251,10 +332,10 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
         VirtDiskSnapshotTest::SetUp();
 
         // No snapshot children: get_disk_children() iterates the snapshots and finds
-        // nothing, so the head is the only child sitting on self.
+        // nothing, so the live disk is the only child sitting on self.
         ON_CALL(vm, view_snapshots(_)).WillByDefault(Return(VirtualMachine::SnapshotVista{}));
 
-        // Report every disk as parented on self, so get_disk_children() sees the head
+        // Report every disk as parented on self, so get_disk_children() sees the live disk
         // attached to this snapshot.
         ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
             .WillByDefault([this](const fs::path& p,
@@ -266,7 +347,7 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
                 return op_ok();
             });
 
-        // Used only by capture() to lay down real stub files for self and head.
+        // Used only by capture() to lay down the replacement live disk.
         ON_CALL(mock_virtdisk, create_virtual_disk(_))
             .WillByDefault([](const CreateVirtualDiskParameters& params) {
                 touch(params.path);
@@ -274,11 +355,11 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
             });
     }
 
-    // Capture the snapshot: creates real self (1.avhdx) + head files and puts the
+    // Capture the snapshot: renames the live disk to self and creates its replacement.
     // snapshot into the "captured" state so it can be erased.
     std::shared_ptr<VirtDiskSnapshot> take_captured()
     {
-        touch(base()); // capture layers the first snapshot on the base disk
+        touch(live_disk());
         auto ss = make_snapshot();
         ss->capture();
         return ss;
@@ -290,22 +371,22 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
         p += ".tmp";
         return p;
     }
-    fs::path head_new() const
+    fs::path live_new() const
     {
-        auto p = head();
+        auto p = live_disk();
         p += ".new";
         return p;
     }
-    fs::path head_old() const
+    fs::path live_old() const
     {
-        auto p = head();
+        auto p = live_disk();
         p += ".old";
         return p;
     }
 };
 
 // A merge fails during Pass 1. Nothing has been committed, so the pre-erase state
-// must be fully restored: self back in place, head untouched, no sidecar files.
+// must be fully restored: self back in place, live disk untouched, no sidecar files.
 TEST_F(VirtDiskSnapshotErase, rolls_back_when_merge_fails)
 {
     auto ss = take_captured();
@@ -315,29 +396,30 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_merge_fails)
     EXPECT_THROW(ss->erase(), std::exception);
 
     EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must be restored";
-    EXPECT_TRUE(fs::exists(head())) << "the head must be left untouched";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the live disk must be left untouched";
     EXPECT_FALSE(fs::exists(self_tmp()));
-    EXPECT_FALSE(fs::exists(head_new()));
-    EXPECT_FALSE(fs::exists(head_old()));
+    EXPECT_FALSE(fs::exists(live_new()));
+    EXPECT_FALSE(fs::exists(live_old()));
 }
 
-// If the live head exists but its chain cannot be inspected, erasing its possible
+// If the live disk exists but its chain cannot be inspected, erasing its possible
 // parent must fail rather than orphaning the VM's active differencing disk.
-TEST_F(VirtDiskSnapshotErase, throws_when_head_chain_cannot_be_inspected)
+TEST_F(VirtDiskSnapshotErase, throws_when_live_disk_chain_cannot_be_inspected)
 {
     auto ss = take_captured();
 
-    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(head(), _, _)).WillOnce(Return(op_fail()));
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(live_disk(), _, _))
+        .WillOnce(Return(op_fail()));
     EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).Times(0);
 
     EXPECT_THROW(ss->erase(), std::exception);
 
     EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must not be erased";
-    EXPECT_TRUE(fs::exists(head())) << "the unreadable head must remain";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the unreadable live disk must remain";
     EXPECT_FALSE(fs::exists(self_tmp()));
 }
 
-// The happy path: the head is merged forward and committed. Self is gone and no
+// The happy path: the live disk is merged forward and committed. Self is gone and no
 // sidecar files (.tmp / .new / .old) are left behind.
 TEST_F(VirtDiskSnapshotErase, commits_and_cleans_up)
 {
@@ -348,10 +430,10 @@ TEST_F(VirtDiskSnapshotErase, commits_and_cleans_up)
     EXPECT_NO_THROW(ss->erase());
 
     EXPECT_FALSE(fs::exists(snapshot_path(1))) << "the erased snapshot must be gone";
-    EXPECT_TRUE(fs::exists(head())) << "the reparented head must be present";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the rebuilt live disk must be present";
     EXPECT_FALSE(fs::exists(self_tmp()));
-    EXPECT_FALSE(fs::exists(head_new()));
-    EXPECT_FALSE(fs::exists(head_old()));
+    EXPECT_FALSE(fs::exists(live_new()));
+    EXPECT_FALSE(fs::exists(live_old()));
 }
 
 // A file operation fails mid-commit (Pass 2). Everything except the final swap-in
@@ -388,99 +470,23 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_commit_fails)
     });
 
     // Delegate every rename to the real filesystem, except the swap-in of the new
-    // head, which fails mid-commit (after the original was moved aside to .old).
+    // live disk, which fails mid-commit (after the original was moved aside to .old).
     EXPECT_CALL(fops, rename(A<const fs::path&>(), A<const fs::path&>()))
         .Times(AnyNumber())
         .WillRepeatedly(
             [](const fs::path& a, const fs::path& b) { std::filesystem::rename(a, b); });
-    EXPECT_CALL(fops, rename(head_new(), head()))
+    EXPECT_CALL(fops, rename(live_new(), live_disk()))
         .WillOnce(Throw(
             std::filesystem::filesystem_error{"forced failure",
                                               std::make_error_code(std::errc::permission_denied)}));
 
     EXPECT_THROW(ss->erase(), std::exception);
 
-    EXPECT_TRUE(fs::exists(head())) << "the head must be restored from its .old backup";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the live disk must be restored from its backup";
     EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must be restored";
     EXPECT_FALSE(fs::exists(self_tmp()));
-    EXPECT_FALSE(fs::exists(head_new()));
-    EXPECT_FALSE(fs::exists(head_old()));
-}
-
-// These tests exercise the eager head-collapse that runs at the end of erase_impl()
-// when the *last* snapshot is deleted. With no snapshots left, the head is a plain
-// differencing disk sitting directly on the base, so it is merged back into the base
-// and the VM returns to running on a standalone disk (which re-enables disk resize).
-//
-// The wrapper's list_virtual_disk_chain mock is static, so it cannot express the
-// head being reparented from self onto the base *during* the erase. Instead these
-// tests model the equivalent post-reparent layout directly: self is a leaf child of
-// the base and the head is a sibling child of the base (not attached to self). That
-// isolates and exercises the collapse path itself; the end-to-end reparent+collapse
-// is covered by the integration tests.
-struct VirtDiskSnapshotCollapse : public VirtDiskSnapshotErase
-{
-    void SetUp() override
-    {
-        VirtDiskSnapshotErase::SetUp();
-
-        // This is the last remaining snapshot, so erase_impl() attempts the collapse.
-        ON_CALL(vm, get_num_snapshots()).WillByDefault(Return(1));
-
-        // Report every disk (in particular the head) as a direct child of the base:
-        // the layout once no snapshot remains. This makes collapse_head_into_base()
-        // proceed instead of bailing out, and keeps the head unattached to self.
-        ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
-            .WillByDefault([this](const fs::path& p,
-                                  std::vector<fs::path>& chain,
-                                  std::optional<std::size_t>) {
-                chain.clear();
-                chain.push_back(p);
-                chain.push_back(base()); // parent = base
-                return op_ok();
-            });
-    }
-
-    fs::path base_bak() const
-    {
-        auto p = base();
-        p += ".bak";
-        return p;
-    }
-};
-
-// Happy path: erasing the last snapshot merges the head back into the base. The head
-// disk is gone, the base remains, and — crucially — the collapse does NOT copy the
-// (potentially huge) base: no `.bak` backup and no `.old` sidecar are ever created.
-TEST_F(VirtDiskSnapshotCollapse, removes_head_when_last_snapshot_erased)
-{
-    auto ss = take_captured();
-
-    // The erase transaction has no children to merge (head is not attached to self);
-    // the single merge is the head -> base collapse, which succeeds.
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_ok()));
-
-    EXPECT_NO_THROW(ss->erase());
-
-    EXPECT_FALSE(fs::exists(head())) << "the head must be collapsed into the base";
-    EXPECT_TRUE(fs::exists(base())) << "the base must remain";
-    EXPECT_FALSE(fs::exists(base_bak())) << "the base must not be copied for a backup";
-    EXPECT_FALSE(fs::exists(head_old())) << "no head sidecar must be created";
-}
-
-// If the head-to-base merge fails, the erase itself will fail
-TEST_F(VirtDiskSnapshotCollapse, erase_does_not_succeed_if_collapse_fails)
-{
-    auto ss = take_captured();
-
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_fail()));
-
-    EXPECT_THROW(ss->erase(),
-                 std::exception); // collapse failure propagates and makes erase() fail
-    EXPECT_TRUE(fs::exists(head())) << "the head must be left intact on collapse failure";
-    EXPECT_TRUE(fs::exists(base())) << "the base must be left intact (never copied/moved)";
-    EXPECT_FALSE(fs::exists(base_bak())) << "the base must not be copied for a backup";
-    EXPECT_FALSE(fs::exists(head_old())) << "no head sidecar must be created";
+    EXPECT_FALSE(fs::exists(live_new()));
+    EXPECT_FALSE(fs::exists(live_old()));
 }
 
 // These tests exercise erase_impl()'s grandchild-reparenting pass. Deleting a snapshot
@@ -516,14 +522,8 @@ struct VirtDiskSnapshotReparent : public VirtDiskSnapshotErase
             return result;
         });
 
-        // More than one snapshot, so erasing one never triggers the last-snapshot head
-        // collapse (which would add an unrelated merge).
-        ON_CALL(vm, get_num_snapshots()).WillByDefault([this] {
-            return static_cast<int>(model.size());
-        });
-
         // Resolve each disk's immediate parent from parent_of; anything not listed is
-        // reported as sitting directly on the base.
+        // reported as unrelated to the snapshot being erased.
         ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
             .WillByDefault([this](const fs::path& p,
                                   std::vector<fs::path>& chain,
@@ -531,20 +531,20 @@ struct VirtDiskSnapshotReparent : public VirtDiskSnapshotErase
                 chain.clear();
                 chain.push_back(p);
                 const auto it = parent_of.find(p);
-                chain.push_back(it != parent_of.end() ? it->second : base());
+                chain.push_back(it != parent_of.end() ? it->second : live_disk());
                 return op_ok();
             });
     }
 
     void build_self_child_grandchildren()
     {
-        touch(base());
+        touch(live_disk());
         add(1, nullptr);                 // s1: self, to be erased
         auto s2 = add(2, model.front()); // s2: direct child of self
         add(3, s2);                      // s3: grandchild (child of s2)
         parent_of[snapshot_path(2)] = snapshot_path(1);
         parent_of[snapshot_path(3)] = snapshot_path(2);
-        model.front()->capture(); // lay down real self (1.avhdx) + head files
+        model.front()->capture();
         touch(snapshot_path(2));
         touch(snapshot_path(3));
     }
@@ -564,8 +564,7 @@ struct VirtDiskSnapshotReparent : public VirtDiskSnapshotErase
 };
 
 // Erasing a snapshot that has a grandchild rebuilds the direct child in place and then
-// reparents the grandchild onto it. The head (a great-grandchild here, under the base)
-// is not involved and must not be reparented.
+// reparents the grandchild onto it. The unrelated live disk is not reparented.
 TEST_F(VirtDiskSnapshotReparent, reparents_grandchild_onto_rebuilt_child)
 {
     build_self_child_grandchildren();
@@ -632,7 +631,7 @@ TEST_F(VirtDiskSnapshotReparent, rolls_back_when_reparent_fails)
 // The earlier grandchild is therefore reparented twice: once forward, once on rollback.
 TEST_F(VirtDiskSnapshotReparent, rollback_relinks_already_reparented_grandchildren)
 {
-    touch(base());
+    touch(live_disk());
     add(1, nullptr);                 // s1: self
     auto s2 = add(2, model.front()); // s2: direct child
     add(3, s2);                      // s3: grandchild #1 (reparented first, succeeds)
