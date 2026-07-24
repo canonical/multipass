@@ -36,8 +36,6 @@ namespace
 {
 namespace mpl = multipass::logging;
 namespace mhv = multipass::hyperv;
-using PathPairs = std::vector<std::pair<std::filesystem::path, std::filesystem::path>>;
-
 } // namespace
 
 namespace multipass::hyperv::virtdisk
