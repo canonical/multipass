@@ -15,7 +15,26 @@
  *
  */
 
+use named_lock::NamedLock;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
+fn get_target_scoped_lock_name() -> String {
+    // Read target dir (or OUT_DIR as fallback)
+    let target_dir = std::env::var("CARGO_TARGET_DIR")
+        .unwrap_or_else(|_| std::env::var("OUT_DIR").unwrap_or_default());
+
+    // Hash the path to create a clean, fixed-length lock identifier
+    let mut hasher = DefaultHasher::new();
+    target_dir.hash(&mut hasher);
+
+    format!("cxx_build_{:x}", hasher.finish())
+}
+
 fn main() {
+    let lock_name = get_target_scoped_lock_name();
+    let lock = NamedLock::create(&lock_name).expect("Failed to create scoped named lock");
+    let _guard = lock.lock().expect("Failed to acquire lock");
     // Generate the .h and .cc files (_do not_ compile them)
     let _ = cxx_build::bridge("src/lib.rs"); // drops the builder, just codegen
     println!("cargo:rerun-if-changed=src/lib.rs");

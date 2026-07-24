@@ -32,3 +32,4 @@ rand.workspace = true
 
 [build-dependencies]
 cxx-build.workspace = true
+named-lock.workspace = true
