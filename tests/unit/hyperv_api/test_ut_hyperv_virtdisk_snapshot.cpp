@@ -126,14 +126,14 @@ struct VirtDiskSnapshotApply : public VirtDiskSnapshotTest
     fs::path new_live_disk() const
     {
         auto p = live_disk();
-        p.replace_extension(".new.vhdx");
+        p.replace_extension(".new.avhdx");
         return p;
     }
 
     fs::path old_live_disk() const
     {
         auto p = live_disk();
-        p.replace_extension(".old.vhdx");
+        p.replace_extension(".old.avhdx");
         return p;
     }
 };

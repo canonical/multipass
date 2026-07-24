@@ -101,10 +101,10 @@ struct OperationResult
     }
 
     /**
-     * Make a OperationResult from WIN32 system errpr code
+     * Make a OperationResult from WIN32 system error code
      *
      * @param win32_system_errc System error code
-     * @param status_msg Message
+     * @param status_msg Prefix message
      */
     static OperationResult from_win32(uint32_t win32_result_code, std::wstring status_msg)
     {
