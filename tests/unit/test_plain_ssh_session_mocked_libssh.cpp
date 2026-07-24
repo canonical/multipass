@@ -98,6 +98,15 @@ TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToConnect)
     MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
 }
 
+TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToAuth)
+{
+    constexpr auto err = "mocked error";
+    EXPECT_CALL(mock_libssh, ssh_userauth_publickey).WillOnce(Return(SSH_AUTH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_get_error(fake_session)).WillOnce(Return(err));
+
+    MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
+}
+
 TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGivenCommand)
 {
     auto session = make_ssh_session();
