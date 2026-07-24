@@ -65,6 +65,7 @@ struct TestPlainSSHSessionMockedLibssh : public Test
     mpt::MockLibssh& libssh = *guarded_mock.first;
 
     constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
+    constexpr static auto bad_addr_too = 0xbadadd4f0ccac1adull; // idem
     ssh_session fake_session = reinterpret_cast<ssh_session>(bad_addr);
     ssh_channel fake_channel = reinterpret_cast<ssh_channel>(bad_addr);
 
@@ -102,4 +103,41 @@ TEST_F(TestPlainSSHSessionMockedLibssh, execProducesPlainProcess)
 
     ASSERT_THAT(proc, NotNull());
     EXPECT_THAT(dynamic_cast<mp::PlainSSHProcess*>(proc.get()), NotNull());
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, moveConstructionLeavesSourceMoved)
+{
+    auto session1 = make_ssh_session();
+    EXPECT_FALSE(session1.is_moved());
+
+    auto session2 = std::move(session1);
+
+    EXPECT_TRUE(session1.is_moved());
+    EXPECT_FALSE(session2.is_moved());
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, moveAssignmentTransfersUnderlyingSession)
+{
+    auto other_session = reinterpret_cast<ssh_session>(bad_addr_too);
+    EXPECT_CALL(libssh, ssh_new()).WillOnce(Return(fake_session)).WillOnce(Return(other_session));
+
+    auto session1 = make_ssh_session();
+    auto session2 = make_ssh_session();
+
+    session1 = std::move(session2);
+
+    EXPECT_TRUE(session2.is_moved());
+    EXPECT_FALSE(session1.is_moved());
+
+    EXPECT_CALL(libssh, ssh_channel_new(other_session)).WillOnce(Return(fake_channel));
+    ASSERT_THAT(session1.exec_plain("cmd"), NotNull());
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, movedSessionReleasesOnce)
+{
+    EXPECT_CALL(libssh, ssh_free(fake_session)).Times(1);
+    EXPECT_CALL(libssh, ssh_disconnect(fake_session)).Times(1);
+
+    auto session1 = make_ssh_session();
+    auto session2 = std::move(session1);
 }
