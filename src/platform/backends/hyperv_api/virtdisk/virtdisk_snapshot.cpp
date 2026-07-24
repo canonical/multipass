@@ -105,18 +105,21 @@ void VirtDiskSnapshot::capture_impl()
 
     if (head_preexisted)
     {
+        if (nullptr == get_parent())
+        {
+            throw CreateVirtdiskSnapshotError{
+                std::make_error_code(std::errc::state_not_recoverable),
+                "Cannot capture snapshot: head disk `{}` exists but the snapshot has no parent",
+                head_path};
+        }
         MP_FILEOPS.rename(head_path, snapshot_path);
         head_became_snapshot = true;
     }
     else
-    {
-        const auto parent = get_parent();
-        const auto target = parent ? make_snapshot_path(*parent) : base_vhdx_path;
-        create_new_child_disk(target, snapshot_path);
-    }
+        create_new_child_disk(base_vhdx_path, snapshot_path);
 
+    // The head was either absent or became a snapshot -- create a new one.
     create_new_child_disk(snapshot_path, head_path);
-
     rollback.dismiss();
 }
 
