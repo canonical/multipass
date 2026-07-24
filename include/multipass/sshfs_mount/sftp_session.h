@@ -17,8 +17,12 @@
 
 #pragma once
 
+#include <memory>
+
 namespace multipass
 {
+class SftpMessage;
+
 /**
  * A server-side SFTP session.
  */
@@ -30,6 +34,25 @@ public:
     // No copies
     SftpSession(const SftpSession&) = delete;
     SftpSession& operator=(const SftpSession&) = delete;
+
+    /**
+     * Request cooperative cancellation of this session.
+     *
+     * Call this method to cancel in-progress #next_message() calls on the same object (in other
+     * threads) at the next occasion.
+     */
+    virtual void request_stop() noexcept = 0;
+
+    /**
+     * Poll for and return the next client message.
+     *
+     * Callers can tell apart the reasons for a `nullptr` return by checking whether they
+     * themselves requested a stop.
+     * @return The next message; `nullptr` if either:
+     * @li #request_stop() was called; or
+     * @li the connection ended or errored out
+     */
+    virtual std::unique_ptr<SftpMessage> next_message() = 0;
 
 protected:
     SftpSession() = default;

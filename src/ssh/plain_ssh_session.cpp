@@ -30,6 +30,8 @@
 #include <multipass/standard_paths.h>
 #include <multipass/top_catch_all.h>
 
+#include <libssh/libssh.h>
+
 #include <QDir>
 
 #include <functional>
@@ -43,11 +45,24 @@ namespace
 constexpr auto category = "ssh session";
 }
 
+struct mp::PlainSSHSession::SSHOptionType
+{
+    SSHOptionType(ssh_options_e o) : value{o}
+    {
+    }
+    ssh_options_e value;
+};
+
+void mp::PlainSSHSession::RawSSHSessionDeleter::operator()(ssh_session session) const noexcept
+{
+    MP_LIBSSH.ssh_free(session);
+}
+
 mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
                                      const std::string& username,
                                      const SSHKeyProvider& key_provider)
-    : raw_session{MP_LIBSSH.ssh_new(), [](ssh_session s) { MP_LIBSSH.ssh_free(s); }}, mut{}
+    : raw_session{MP_LIBSSH.ssh_new()}, mut{}
 {
     if (raw_session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
@@ -119,8 +134,9 @@ mp::PlainSSHSession::~PlainSSHSession()
             mpl::trace(category, "disconnecting SSH session");
 
             MP_LIBSSH.ssh_disconnect(raw_session.get());
-            PlainSSHSession::force_shutdown(); // Shutdown I/O on manually open sockets.
-                                               // The socket is still closed by libssh in ssh_free.
+            PlainSSHSession::shutdown_custom_socket(); // Shutdown I/O on manually open sockets.
+                                                       // The socket is still closed by libssh in
+                                                       // ssh_free.
         }
     });
 }
@@ -148,7 +164,7 @@ std::unique_ptr<mp::SftpSession> mp::PlainSSHSession::make_sftp_session(
     return std::make_unique<PlainSftpSession>(std::move(*this), sshfs_cmd);
 }
 
-void mp::PlainSSHSession::force_shutdown()
+void mp::PlainSSHSession::shutdown_custom_socket()
 {
     // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
     // with a lock acquired). Make it private instead. Provide public way to close the session
@@ -223,17 +239,17 @@ std::string as_string(ssh_options_e type, const void* value)
 
 } // namespace
 
-void mp::PlainSSHSession::set_option(ssh_options_e type, const void* data)
+void mp::PlainSSHSession::set_option(SSHOptionType type, const void* data)
 {
     std::unique_lock lock{mut};
     assert(raw_session && "should not set option on null session");
 
-    const auto ret = MP_LIBSSH.ssh_options_set(raw_session.get(), type, data);
+    const auto ret = MP_LIBSSH.ssh_options_set(raw_session.get(), type.value, data);
     if (ret != SSH_OK)
     {
         throw mp::SSHException(fmt::format("libssh failed to set {} option to '{}': '{}'",
-                                           name_for(type),
-                                           as_string(type, data),
+                                           name_for(type.value),
+                                           as_string(type.value, data),
                                            MP_LIBSSH.ssh_get_error(raw_session.get())));
     }
 }

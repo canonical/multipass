@@ -21,11 +21,11 @@
 
 #include <multipass/private_pass_provider.h>
 
-#include <libssh/libssh.h>
-
 #include <memory>
 #include <mutex>
 #include <string>
+
+struct ssh_session_struct;
 
 namespace multipass
 {
@@ -68,18 +68,11 @@ public:
 
     std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && override;
 
-    /**
-     * @copydoc SSHSession::is_connected
-     */
     [[nodiscard]] bool is_connected() const override;
-
-    /**
-     * @copydoc SSHSession::is_moved
-     */
     [[nodiscard]] bool is_moved() const override;
 
-    operator ssh_session() override; // TODO@sftp remove
-    void force_shutdown() override; // TODO@sftp this should not be public
+    operator ssh_session() override;        // TODO@sftp remove
+    void shutdown_custom_socket() override; // TODO@sftp this should not be public
 
 public: // but restricted
     /**
@@ -92,11 +85,18 @@ public: // but restricted
     ssh_session borrow_session(const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const;
 
 private:
+    struct RawSSHSessionDeleter
+    {
+        void operator()(ssh_session_struct* message) const noexcept;
+    };
+    using RawSSHSessionUptr = std::unique_ptr<ssh_session_struct, RawSSHSessionDeleter>;
+
     PlainSSHSession(PlainSSHSession&&, std::unique_lock<std::mutex> lock);
 
-    void set_option(ssh_options_e type, const void* value);
+    struct SSHOptionType;
+    void set_option(SSHOptionType type, const void* value);
 
-    std::unique_ptr<ssh_session_struct, void (*)(ssh_session)> raw_session;
+    RawSSHSessionUptr raw_session;
     mutable std::mutex mut;
 };
 } // namespace multipass

@@ -22,7 +22,12 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_session.h>
 
-#include <libssh/sftp.h> // TODO@sftp avoid this include (need to go through MP_LIBSSH)
+#include <atomic>
+#include <chrono>
+
+struct sftp_session_struct;
+struct ssh_channel_struct;
+typedef ssh_channel_struct* ssh_channel;
 
 namespace multipass
 {
@@ -34,6 +39,12 @@ namespace multipass
 class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
 public:
+    /**
+     * Interval at which #next_message polls for new messages while waiting for one to arrive.
+     * Using int underneath: that is perfectly enough for intent and it is what libssh expects.
+     */
+    constexpr static std::chrono::duration<int, std::milli> poll_interval{250};
+
     PlainSftpSession(PlainSSHSession&& ssh_session_obj, const std::string& sshfs_cmd);
     PlainSftpSession(const PlainSftpSession&) = delete;
     PlainSftpSession& operator=(const PlainSftpSession&) = delete;
@@ -42,14 +53,30 @@ public:
     PlainSftpSession(PlainSftpSession&&) = delete;
     PlainSftpSession& operator=(PlainSftpSession&&) = delete;
 
+    /**
+     * @copydoc SftpSession::request_stop
+     *
+     * This will typically take up to #poll_interval to take effect, but it can take longer if:
+     * @li reading a single SFTP message takes longer, e.g. because it arrives in chunks that are
+     * slow to complete
+     * @li the reading thread is delayed in being scheduled
+     */
+    void request_stop() noexcept override;
+
+    std::unique_ptr<SftpMessage> next_message() override;
+
 private:
-    // TODO@sftp avoid mentioning sftp_server_free here (need to go through MP_LIBSSH)
-    using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
+    struct RawSftpSessionDeleter
+    {
+        void operator()(sftp_session_struct* session) const noexcept;
+    };
+    using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, RawSftpSessionDeleter>;
 
     static RawSftpSessionUptr make_raw_sftp_session(ssh_session raw_session, ssh_channel channel);
 
     PlainSSHSession plain_ssh_session;
     std::unique_ptr<PlainSSHProcess> sshfs_process;
     RawSftpSessionUptr raw_sftp_session;
+    std::atomic<bool> stop_requested{false};
 };
 } // namespace multipass

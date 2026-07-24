@@ -19,10 +19,12 @@
 
 #include <multipass/ssh/ssh_process.h>
 
-#include <libssh/libssh.h>
-
 #include <memory>
 #include <string>
+
+// TODO@sftp remove
+struct ssh_session_struct;
+typedef struct ssh_session_struct* ssh_session;
 
 namespace multipass
 {
@@ -69,7 +71,7 @@ public:
     [[nodiscard]] virtual bool is_moved() const = 0;
 
     virtual operator ssh_session() = 0; // careful, not thread safe // TODO@sftp drop this?
-    virtual void force_shutdown() = 0;  // careful, not thread safe
+    virtual void shutdown_custom_socket() = 0; // careful, not thread safe
 
 protected:
     SSHSession() = default;
