@@ -112,6 +112,7 @@ struct Daemon : public mpt::DaemonTestFixture
                 return mock_utils.Utils::filesystem_bytes_available(data_directory);
             });
         ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
+        ON_CALL(mock_utils, max_instance_name_length(_)).WillByDefault(Return(255));
 
         EXPECT_CALL(mock_platform, multipass_storage_location())
             .Times(AnyNumber())
@@ -1041,6 +1042,20 @@ TEST_P(MinSpaceViolatedSuite, refusesLaunchWithMemoryBelowThreshold)
     send_command({cmd, opt_name, opt_value}, trash_stream, stream);
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr("fail"), AnyOf(HasSubstr("memory"), HasSubstr("disk"))));
+}
+
+TEST_F(Daemon, rejectsLaunchWithTooLongInstanceName)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    constexpr auto max_len = 10;
+    EXPECT_CALL(mock_utils, max_instance_name_length(_)).WillOnce(Return(max_len));
+
+    std::stringstream stream;
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
+    send_command({"launch", "--name", std::string(max_len + 1, 'a')}, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("Instance name too long"));
 }
 
 TEST_P(LaunchImgSizeSuite, launchesWithCorrectDiskSize)

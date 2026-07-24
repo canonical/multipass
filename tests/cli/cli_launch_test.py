@@ -260,3 +260,20 @@ class TestLaunch:
             assert not output
             assert "6CiG is not a valid memory size" in output
             assert not vm_exists(name)
+
+    def test_launch_too_long_instance_name(self):
+        name = "too_long_instance_name" * 20
+        with multipass(
+            "launch",
+            "--cpus",
+            "2",
+            "--memory",
+            "1G",
+            "--disk",
+            "6G",
+            "--name",
+            name,
+        ) as output:
+            assert not output
+            assert "Instance name too long" in output
+            assert not vm_exists(name)

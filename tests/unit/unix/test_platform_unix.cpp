@@ -18,6 +18,7 @@
 #include "mock_libc_functions.h"
 #include "mock_signal_wrapper.h"
 
+#include <premock.hpp>
 #include <tests/unit/common.h>
 #include <tests/unit/mock_environment_helpers.h>
 #include <tests/unit/mock_platform.h>
@@ -406,4 +407,26 @@ TEST_F(TestPlatformUnix, test_qstr_path_conversion)
     // Spaces and special filesystem characters
     QString special = QStringLiteral("/path with spaces/file (1).txt");
     EXPECT_EQ(MP_PLATFORM.path_to_qstr(MP_PLATFORM.qstr_to_path(special)), special);
+}
+
+TEST_F(TestPlatformUnix, getMaximumFileNameLengthReturnsPositivePcNameMax)
+{
+    REPLACE(pathconf, [](auto, auto) { return 10; });
+
+    EXPECT_EQ(MP_PLATFORM.get_maximum_file_name_length("/"), 10);
+}
+
+TEST_F(TestPlatformUnix, getMaximumFileNameLengthReturnsFallsBackOnNegativePcNameMax)
+{
+    REPLACE(pathconf, [](auto, auto) { return -1; });
+
+    constexpr auto fallback_max_file_name_length =
+#ifdef NAME_MAX
+        NAME_MAX
+#else
+        255u
+#endif
+        ;
+
+    EXPECT_EQ(MP_PLATFORM.get_maximum_file_name_length("/"), fallback_max_file_name_length);
 }
