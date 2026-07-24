@@ -613,10 +613,6 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                     "To troubleshoot, see "
                     "https://canonical.com/multipass/docs/stable/how-to-guides/troubleshoot/";
             }
-            else if (error == LaunchError::INVALID_ZONE)
-            {
-                error_details = fmt::format("Invalid zone name supplied: {}", request.zone());
-            }
             else if (error == LaunchError::ZONE_UNAVAILABLE)
             {
                 error_details = fmt::format("Unavailable zone name supplied: {}", request.zone());
