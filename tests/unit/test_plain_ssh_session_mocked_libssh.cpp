@@ -45,16 +45,16 @@ struct TestPlainSSHSessionMockedLibssh : public Test
 {
     TestPlainSSHSessionMockedLibssh()
     {
-        ON_CALL(libssh, ssh_new()).WillByDefault(Return(fake_session));
-        ON_CALL(libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
-        ON_CALL(libssh, ssh_connect).WillByDefault(Return(SSH_OK));
-        ON_CALL(libssh, ssh_userauth_publickey).WillByDefault(Return(SSH_AUTH_SUCCESS));
-        ON_CALL(libssh, ssh_is_connected).WillByDefault(Return(1));
-        ON_CALL(libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
-        ON_CALL(libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
-        ON_CALL(libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
-        ON_CALL(libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
-        ON_CALL(libssh, ssh_get_error).WillByDefault(Return("mocked error"));
+        ON_CALL(mock_libssh, ssh_new()).WillByDefault(Return(fake_session));
+        ON_CALL(mock_libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_connect).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_userauth_publickey).WillByDefault(Return(SSH_AUTH_SUCCESS));
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
+        ON_CALL(mock_libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
+        ON_CALL(mock_libssh, ssh_get_error).WillByDefault(Return("mocked error"));
     }
 
     mp::PlainSSHSession make_ssh_session() const
@@ -63,7 +63,7 @@ struct TestPlainSSHSessionMockedLibssh : public Test
     }
 
     mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
-    mpt::MockLibssh& libssh = *guarded_mock.first;
+    mpt::MockLibssh& mock_libssh = *guarded_mock.first;
 
     constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
     constexpr static auto bad_addr_too = 0xbadadd4f0ccac1adull; // idem
@@ -77,7 +77,7 @@ struct TestPlainSSHSessionMockedLibssh : public Test
 TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGivenCommand)
 {
     auto session = make_ssh_session();
-    EXPECT_CALL(libssh, ssh_channel_request_exec(fake_channel, StrEq("ls -la")))
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq("ls -la")))
         .WillOnce(Return(SSH_OK));
 
     std::unique_ptr<mp::PlainSSHProcess> proc = session.exec_plain("ls -la");
@@ -89,7 +89,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGi
 TEST_F(TestPlainSSHSessionMockedLibssh, execPlainThrowsOnDisconnectedSession)
 {
     auto session = make_ssh_session();
-    EXPECT_CALL(libssh, ssh_is_connected(fake_session)).WillOnce(Return(0));
+    EXPECT_CALL(mock_libssh, ssh_is_connected(fake_session)).WillOnce(Return(0));
 
     MP_EXPECT_THROW_THAT(static_cast<void>(session.exec_plain("cmd")),
                          mp::SSHException,
@@ -120,7 +120,9 @@ TEST_F(TestPlainSSHSessionMockedLibssh, moveConstructionLeavesSourceMoved)
 TEST_F(TestPlainSSHSessionMockedLibssh, moveAssignmentTransfersUnderlyingSession)
 {
     auto other_session = reinterpret_cast<ssh_session>(bad_addr_too);
-    EXPECT_CALL(libssh, ssh_new()).WillOnce(Return(fake_session)).WillOnce(Return(other_session));
+    EXPECT_CALL(mock_libssh, ssh_new())
+        .WillOnce(Return(fake_session))
+        .WillOnce(Return(other_session));
 
     auto session1 = make_ssh_session();
     auto session2 = make_ssh_session();
@@ -130,14 +132,14 @@ TEST_F(TestPlainSSHSessionMockedLibssh, moveAssignmentTransfersUnderlyingSession
     EXPECT_TRUE(session2.is_moved());
     EXPECT_FALSE(session1.is_moved());
 
-    EXPECT_CALL(libssh, ssh_channel_new(other_session)).WillOnce(Return(fake_channel));
+    EXPECT_CALL(mock_libssh, ssh_channel_new(other_session)).WillOnce(Return(fake_channel));
     ASSERT_THAT(session1.exec_plain("cmd"), NotNull());
 }
 
 TEST_F(TestPlainSSHSessionMockedLibssh, movedSessionReleasesOnce)
 {
-    EXPECT_CALL(libssh, ssh_free(fake_session)).Times(1);
-    EXPECT_CALL(libssh, ssh_disconnect(fake_session)).Times(1);
+    EXPECT_CALL(mock_libssh, ssh_free(fake_session)).Times(1);
+    EXPECT_CALL(mock_libssh, ssh_disconnect(fake_session)).Times(1);
 
     auto session1 = make_ssh_session();
     auto session2 = std::move(session1);
