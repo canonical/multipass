@@ -19,6 +19,7 @@
 #include <applevz/applevz_virtual_machine.h>
 #include <applevz/applevz_virtual_machine_factory.h>
 #include <multipass/utils/qemu_img_utils.h>
+#include <shared/macos/backend_utils.h>
 
 namespace mp = multipass;
 
@@ -30,6 +31,7 @@ AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir,
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
           az_manager)
 {
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
@@ -64,6 +66,9 @@ void AppleVZVirtualMachineFactory::hypervisor_health_check()
     {
         throw std::runtime_error("Virtualization is not supported on this system.");
     }
+
+    // Re-assert cross-zone routing in case macOS reloaded its pf anchors
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 void AppleVZVirtualMachineFactory::remove_resources_for_impl(const std::string& name)

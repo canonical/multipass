@@ -48,6 +48,7 @@ mp::QemuPlatformMacOS::QemuPlatformMacOS(const AvailabilityZoneManager& az_manag
     : common_args{get_common_args(host_arch)}, az_manager{az_manager}
 
 {
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 std::optional<mp::IPAddress> mp::QemuPlatformMacOS::get_ip_for(const std::string& hw_addr)
@@ -62,6 +63,9 @@ void mp::QemuPlatformMacOS::remove_resources_for(const std::string& name)
 void mp::QemuPlatformMacOS::platform_health_check()
 {
     // TODO: Add appropriate health checks to ensure the QEMU backend will work as expected
+
+    // Re-assert cross-zone routing in case macOS reloaded its pf anchors
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 QStringList mp::QemuPlatformMacOS::vmstate_platform_args()

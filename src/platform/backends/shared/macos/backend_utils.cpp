@@ -30,6 +30,13 @@ namespace mp = multipass;
 namespace
 {
 constexpr auto category = "backend-utils";
+constexpr auto pf_anchor = "com.apple/multipass";
+
+void set_ip_forward()
+{
+    if (!MP_UTILS.run_cmd_for_status("sysctl", {"-w", "net.inet.ip.forwarding=1"}))
+        mpl::warn(category, "Failed to enable IP forwarding");
+}
 
 QString simplify_mac_address(const QString& input_mac_address)
 {
@@ -114,4 +121,41 @@ std::optional<mp::IPAddress> mp::backend::get_neighbour_ip(const std::string& ma
     }
 
     return std::nullopt;
+}
+
+void mp::backend::enable_cross_zone_routing(const AvailabilityZoneManager& az_manager)
+{
+    const auto zones = az_manager.get_zones();
+    if (zones.size() < 2)
+        return;
+
+    set_ip_forward();
+
+    // macOS automatically enforces isolation between subnets via a pf "block drop quick"
+    // rule. Override the rule by adding a "pass quick" rule in an earlier-evaluated anchor.
+    std::string rules;
+    for (const auto& src : zones)
+        for (const auto& dst : zones)
+            if (src.get().get_subnet() != dst.get().get_subnet())
+                rules += fmt::format("pass quick inet from {} to {} flags any keep state\n",
+                                     src.get().get_subnet().canonical().to_cidr(),
+                                     dst.get().get_subnet().canonical().to_cidr());
+
+    const auto pfctl = mp::platform::make_process(
+        mp::simple_process_spec("pfctl", {"-a", pf_anchor, "-f", "-"}));
+    pfctl->start();
+    if (!pfctl->wait_for_started())
+    {
+        mpl::warn(category, "Failed to run pfctl");
+        return;
+    }
+
+    pfctl->write(QByteArray::fromStdString(rules));
+    pfctl->close_write_channel();
+
+    if (!pfctl->wait_for_finished() || !pfctl->process_state().completed_successfully())
+        mpl::warn(category,
+                  "Failed to install pf rules for cross-zone routing: {}\n{}",
+                  pfctl->process_state().failure_message(),
+                  pfctl->read_all_standard_error());
 }
