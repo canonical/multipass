@@ -80,6 +80,15 @@ TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToAllocateSession)
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
+TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToSetOption)
+{
+    constexpr auto err = "mocked error";
+    EXPECT_CALL(mock_libssh, ssh_options_set).WillOnce(Return(SSH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_get_error(fake_session)).WillOnce(Return(err));
+
+    MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
+}
+
 TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGivenCommand)
 {
     auto session = make_ssh_session();
