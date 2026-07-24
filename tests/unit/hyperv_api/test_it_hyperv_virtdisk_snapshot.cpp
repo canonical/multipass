@@ -297,22 +297,16 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     auto s1b2 = take("s1b2", s1b);
 
     // Verify initial structure
+    expect_chain(snapshot_path(*s3),
+                 {snapshot_path(*s3), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0)});
+    expect_chain(snapshot_path(*s2b),
+                 {snapshot_path(*s2b), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(
-        snapshot_path(*s3),
-        {snapshot_path(*s3), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0)});
+        snapshot_path(*s1b1),
+        {snapshot_path(*s1b1), snapshot_path(*s1b), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(
-        snapshot_path(*s2b),
-        {snapshot_path(*s2b), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0)});
-    expect_chain(snapshot_path(*s1b1),
-                 {snapshot_path(*s1b1),
-                  snapshot_path(*s1b),
-                  snapshot_path(*s1),
-                  snapshot_path(*s0)});
-    expect_chain(snapshot_path(*s1b2),
-                 {snapshot_path(*s1b2),
-                  snapshot_path(*s1b),
-                  snapshot_path(*s1),
-                  snapshot_path(*s0)});
+        snapshot_path(*s1b2),
+        {snapshot_path(*s1b2), snapshot_path(*s1b), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(base(),
                  {base(),
                   snapshot_path(*s1b2),
@@ -326,8 +320,7 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     drop(s2);
 
     expect_gone(s2);
-    expect_chain(snapshot_path(*s3),
-                 {snapshot_path(*s3), snapshot_path(*s1), snapshot_path(*s0)});
+    expect_chain(snapshot_path(*s3), {snapshot_path(*s3), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s2b),
                  {snapshot_path(*s2b), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(base(),
@@ -347,8 +340,7 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
                  {snapshot_path(*s1b1), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s1b2),
                  {snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
-    expect_chain(base(),
-                 {base(), snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
+    expect_chain(base(), {base(), snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
 
     // Phase 3: erase s1 (4 snapshot children + live disk via s1b2)
     s3->set_parent(s0);
