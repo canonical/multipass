@@ -457,8 +457,7 @@ TEST_F(VirtDiskSnapshotCollapse, erase_does_not_succeed_if_collapse_fails)
     EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_fail()));
 
     EXPECT_THROW(ss->erase(),
-                 std::exception); // the collapse failure is caught and logged, not rethrown
-
+                 std::exception); // collapse failure propagates and makes erase() fail
     EXPECT_TRUE(fs::exists(head())) << "the head must be left intact on collapse failure";
     EXPECT_TRUE(fs::exists(base())) << "the base must be left intact (never copied/moved)";
     EXPECT_FALSE(fs::exists(base_bak())) << "the base must not be copied for a backup";
