@@ -40,6 +40,7 @@ static_assert(std::is_move_assignable_v<mp::PlainSSHSession>);
 static_assert(!std::is_copy_constructible_v<mp::SSHSession>);
 static_assert(!std::is_copy_assignable_v<mp::SSHSession>);
 
+// TODO@sftp transfer premock-based session tests to this scheme; then, rename this file/suite
 struct TestPlainSSHSessionMockedLibssh : public Test
 {
     TestPlainSSHSessionMockedLibssh()
