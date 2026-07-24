@@ -22,7 +22,7 @@
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_recursive_dir_iterator.h"
-#include "mock_ssh_process_exit_status.h"
+#include "mock_ssh_callback_engine.h"
 #include "path.h"
 #include "sftp_server_test_fixture.h"
 #include "stub_ssh_key_provider.h"
@@ -73,7 +73,6 @@ struct SftpServer : public mp::test::SftpServerTest
         REPLACE(ssh_channel_new,
                 [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
         REPLACE(ssh_channel_free, [](auto...) { return; });
-        REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
         REPLACE(ssh_event_new,
                 [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
         REPLACE(ssh_event_free, [](auto...) { return; });
@@ -131,7 +130,7 @@ struct SftpServer : public mp::test::SftpServerTest
     }
 
     const mpt::StubSSHKeyProvider key_provider;
-    mpt::ExitStatusMock exit_status_mock;
+    mpt::CallbackEngineMock callback_mock_engine;
     std::queue<sftp_client_message> messages;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
@@ -357,6 +356,7 @@ bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permiss
 
 TEST_F(SftpServer, throwsWhenMessageNull)
 {
+    callback_mock_engine.push_state({});
     EXPECT_THROW(make_sftpserver(), mp::SSHException);
 }
 
@@ -396,18 +396,14 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
     REPLACE(ssh_channel_new,
             [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_add_channel_callbacks, [this](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        cb->channel_exit_status_function(nullptr,
-                                         nullptr,
-                                         exit_status_mock.failure_status,
-                                         cb->userdata);
-        return SSH_OK;
-    });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
     REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_event_free, [](auto...) { return; });
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
+
+    mpt::CallbackState cb{};
+    cb.exit_code = callback_mock_engine.failure_code;
+    callback_mock_engine.push_state(cb);
+    callback_mock_engine.pop_state(); // Remove default state
 
     auto make_sftpserver = [this]() {
         return mp::SftpServer{
@@ -432,8 +428,8 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
             invoked = true;
-            exit_status_mock.set_ssh_rc(SSH_ERROR);
-            exit_status_mock.set_no_exit();
+            callback_mock_engine.push_state(callback_mock_engine.process_noexit);
+            callback_mock_engine.pop_state();
         }
 
         return SSH_OK;
@@ -456,18 +452,11 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     int num_calls{0};
     auto message{make_msg(SSH_FXP_INIT)};
     auto request_exec = [](ssh_channel, const char*) { return SSH_OK; };
-    auto add_channel_callbacks = [this, &num_calls](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        if (num_calls >= total_calls / 2) // The status has to only be retrieved (as a successful
-                                          // exit) once the loop is in its second recovery stage
-            // Otherwise we time out. Because of how we cache, we need to set up the return code on
-            // process creation after the first timeout
-            cb->channel_exit_status_function(nullptr,
-                                             nullptr,
-                                             exit_status_mock.success_status,
-                                             cb->userdata);
-        return SSH_OK;
-    };
-    REPLACE(ssh_add_channel_callbacks, add_channel_callbacks);
+
+    callback_mock_engine.push_state(callback_mock_engine.process_running);
+    callback_mock_engine.push_state(callback_mock_engine.process_exit_success);
+    callback_mock_engine.pop_state();
+
     REPLACE(ssh_channel_request_exec, request_exec);
 
     auto get_client_msg = [&num_calls, &message](auto...) {
@@ -478,11 +467,9 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     REPLACE(ssh_channel_new,
             [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
     REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_event_free, [](auto...) { return; });
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
     auto sftp =
         mp::SftpServer{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
