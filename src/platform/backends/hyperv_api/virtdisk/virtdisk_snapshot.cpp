@@ -96,14 +96,7 @@ void VirtDiskSnapshot::capture_impl()
         if (head_became_snapshot)
         {
             MP_FILEOPS.remove(head_path, ec);
-            try
-            {
-                MP_FILEOPS.rename(snapshot_path, head_path);
-            }
-            catch (const std::exception& e)
-            {
-                mpl::error(vm.get_name(), "capture_impl() rollback failed: {}", e.what());
-            }
+            try_rename(snapshot_path, head_path);
         }
         else if (!head_preexisted)
         {
