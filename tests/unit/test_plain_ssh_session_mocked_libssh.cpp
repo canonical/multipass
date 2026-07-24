@@ -74,6 +74,12 @@ struct TestPlainSSHSessionMockedLibssh : public Test
 };
 } // namespace
 
+TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToAllocateSession)
+{
+    EXPECT_CALL(mock_libssh, ssh_new()).WillOnce(Return(nullptr));
+    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+}
+
 TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGivenCommand)
 {
     auto session = make_ssh_session();
