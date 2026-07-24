@@ -110,6 +110,7 @@ add_executable(multipass_cpp_tests
   test_output_formatter.cpp
   test_permission_utils.cpp
   test_persistent_settings_handler.cpp
+  test_plain_sftp_session.cpp
   test_plain_ssh_session.cpp
   test_plain_ssh_session_mocked_libssh.cpp
   test_private_pass_provider.cpp
