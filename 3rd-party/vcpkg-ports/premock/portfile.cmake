@@ -5,8 +5,8 @@ vcpkg_from_github(
     SHA512 ae67a2eee725d79b9d548fa7470fd7518430db66d823a5838c5b24a0729c0ab325e9699b6ec7074ee11f73dedc6fec9243a70d2d5659caee825e902b5b5a2dc4
     HEAD_REF master
     PATCHES
-        0001-add-more-args-support.patch
-        0002-remove-thread-local.patch
+        multipass-patches/0001-add-more-args-support.patch
+        multipass-patches/0002-remove-thread-local.patch
 )
 
 file(INSTALL "${SOURCE_PATH}/premock.hpp"
