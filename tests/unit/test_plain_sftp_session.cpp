@@ -131,3 +131,18 @@ TEST_F(TestPlainSftpSession, makeSftpSessionThrowsSshfsErrorWhenSshfsFails)
                          std::runtime_error,
                          mpt::match_what(StrEq(error)));
 }
+
+TEST_F(TestPlainSftpSession, releasesConsumedSessionOnce)
+{
+    sshfs_exit_code = 127;
+
+    auto session = make_ssh_session();
+    {
+        EXPECT_CALL(mock_libssh, ssh_channel_free(fake_channel)).Times(1);
+        EXPECT_CALL(mock_libssh, ssh_free(fake_session)).Times(1);
+
+        EXPECT_ANY_THROW(static_cast<void>(std::move(session).make_sftp_session("sshfs")));
+    } // session internals freed
+
+    EXPECT_TRUE(session.is_moved());
+}
