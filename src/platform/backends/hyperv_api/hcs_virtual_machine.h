@@ -115,13 +115,6 @@ private:
      */
     [[nodiscard]] std::filesystem::path get_primary_disk_path() const noexcept(false);
 
-    /**
-     * Retrieve the path to the snapshot differencing "head" disk, if one currently exists.
-     *
-     * @return The head disk path when it exists on disk, std::nullopt otherwise.
-     */
-    [[nodiscard]] std::optional<std::filesystem::path> get_snapshot_head_disk_path() const;
-
     [[nodiscard]] std::filesystem::path get_guest_state_file_path() const;
     [[nodiscard]] std::filesystem::path get_runtime_state_file_path() const;
     [[nodiscard]] std::filesystem::path get_saved_state_file_path() const;
