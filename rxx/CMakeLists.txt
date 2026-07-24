@@ -121,7 +121,7 @@ foreach(CRATE_NAME ${CRATES})
     endif()
 endforeach()
 #The macros crate cannot contain tests, rslogger cannot link log(), rust is empty
-set(TESTING_EXCLUDE_CRATES_ARG --exclude macros rslogger rust)
+set(TESTING_EXCLUDE_CRATES_ARG --exclude macros --exclude rslogger --exclude rust)
 add_test(
   NAME      multipass_rust_tests
   COMMAND   ${CARGO_CMD} test
