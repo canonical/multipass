@@ -26,6 +26,7 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <memory>
+#include <optional>
 
 struct HCS_EVENT;
 

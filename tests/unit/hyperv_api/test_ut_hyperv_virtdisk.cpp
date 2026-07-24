@@ -311,7 +311,8 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
         EXPECT_FALSE(status.success());
         ASSERT_FALSE(status_msg.empty());
-        ASSERT_STREQ(status_msg.c_str(), L"CreateVirtualDisk failed with 3!");
+        ASSERT_STREQ(status_msg.c_str(),
+                     L"CreateVirtualDisk failed : The system cannot find the path specified. (0x80070003)");
     }
 }
 
@@ -415,7 +416,8 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
         const auto& [status, status_msg] = VirtDisk().resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_FALSE(status.success());
         ASSERT_FALSE(status_msg.empty());
-        ASSERT_STREQ(status_msg.c_str(), L"ResizeVirtualDisk failed with 87!");
+        ASSERT_STREQ(status_msg.c_str(),
+                     L"ResizeVirtualDisk failed : The parameter is incorrect. (0x80070057)");
     }
 }
 
@@ -625,8 +627,8 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_happy_path)
     }
 
     {
-        const auto& [status, status_msg] =
-            VirtDisk().reparent_virtual_disk("child.avhdx", "parent.vhdx");
+        const auto& [status, status_msg] = VirtDisk().reparent_virtual_disk("child.avhdx",
+                                                                            "parent.vhdx");
         EXPECT_TRUE(status.success());
         EXPECT_TRUE(status_msg.empty());
     }
@@ -642,8 +644,8 @@ TEST_F(HyperVVirtDisk_UnitTests, reparent_virtual_disk_open_disk_failure)
     }
 
     {
-        const auto& [status, status_msg] =
-            VirtDisk().reparent_virtual_disk("child.avhdx", "parent.vhdx");
+        const auto& [status, status_msg] = VirtDisk().reparent_virtual_disk("child.avhdx",
+                                                                            "parent.vhdx");
         EXPECT_FALSE(status.success());
         EXPECT_FALSE(status_msg.empty());
     }

@@ -278,34 +278,32 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
 
     UniqueHandle result_handle{nullptr};
 
-    const auto result =
-        API().CreateVirtualDisk(&type,
-                                // [in] PCWSTR Path
-                                target_path_normalized.c_str(),
-                                // [in] VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
-                                VIRTUAL_DISK_ACCESS_NONE,
-                                // [in, optional] PSECURITY_DESCRIPTOR SecurityDescriptor,
-                                nullptr,
-                                // [in] CREATE_VIRTUAL_DISK_FLAG Flags,
-                                flags,
-                                // [in] ULONG ProviderSpecificFlags,
-                                0,
-                                // [in] PCREATE_VIRTUAL_DISK_PARAMETERS Parameters,
-                                &parameters,
-                                // [in, optional] LPOVERLAPPED Overlapped
-                                nullptr,
-                                // [out] PHANDLE Handle
-                                out_ptr(result_handle));
+    const auto result = API().CreateVirtualDisk(
+        &type,
+        // [in] PCWSTR Path
+        target_path_normalized.c_str(),
+        // [in] VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
+        VIRTUAL_DISK_ACCESS_NONE,
+        // [in, optional] PSECURITY_DESCRIPTOR SecurityDescriptor,
+        nullptr,
+        // [in] CREATE_VIRTUAL_DISK_FLAG Flags,
+        flags,
+        // [in] ULONG ProviderSpecificFlags,
+        0,
+        // [in] PCREATE_VIRTUAL_DISK_PARAMETERS Parameters,
+        &parameters,
+        // [in, optional] LPOVERLAPPED Overlapped
+        nullptr,
+        // [out] PHANDLE Handle
+        out_ptr(result_handle));
 
     if (result == ERROR_SUCCESS)
-    {
-        return OperationResult{NOERROR, L""};
-    }
+        return OperationResult::success();
 
     mpl::error(log_category,
                "create_virtual_disk(...) > CreateVirtualDisk failed with {}!",
                result);
-    return OperationResult{E_FAIL, fmt::format(L"CreateVirtualDisk failed with {}!", result)};
+    return OperationResult::from_win32(result, L"CreateVirtualDisk failed");
 }
 
 // ---------------------------------------------------------
@@ -321,7 +319,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 
     if (nullptr == disk_handle)
     {
-        return OperationResult{E_FAIL, L"open_virtual_disk failed!"};
+        return OperationResult::failure(L"open_virtual_disk failed!");
     }
 
     RESIZE_VIRTUAL_DISK_PARAMETERS params{};
@@ -340,16 +338,13 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
         nullptr);
 
     if (ERROR_SUCCESS == resize_result)
-    {
-        return OperationResult{NOERROR, L""};
-    }
+        return OperationResult::success();
 
     mpl::error(log_category,
                "resize_virtual_disk(...) > ResizeVirtualDisk failed with {}!",
                resize_result);
 
-    return OperationResult{E_FAIL,
-                           fmt::format(L"ResizeVirtualDisk failed with {}!", resize_result)};
+    return OperationResult::from_win32(resize_result, L"ResizeVirtualDisk failed");
 }
 
 // ---------------------------------------------------------
@@ -364,15 +359,15 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_into_parent(
     open_params.Version = OPEN_VIRTUAL_DISK_VERSION_1;
     open_params.Version1.RWDepth = 2;
 
-    const auto child_handle =
-        open_virtual_disk(child,
-                          VIRTUAL_DISK_ACCESS_METAOPS | VIRTUAL_DISK_ACCESS_GET_INFO,
-                          OPEN_VIRTUAL_DISK_FLAG_NONE,
-                          &open_params);
+    const auto child_handle = open_virtual_disk(child,
+                                                VIRTUAL_DISK_ACCESS_METAOPS |
+                                                    VIRTUAL_DISK_ACCESS_GET_INFO,
+                                                OPEN_VIRTUAL_DISK_FLAG_NONE,
+                                                &open_params);
 
     if (nullptr == child_handle)
     {
-        return OperationResult{E_FAIL, L"open_virtual_disk failed!"};
+        return OperationResult::failure(L"open_virtual_disk failed!");
     }
     MERGE_VIRTUAL_DISK_PARAMETERS params{};
     params.Version = MERGE_VIRTUAL_DISK_VERSION_1;
@@ -383,14 +378,14 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_into_parent(
                                               &params,
                                               nullptr);
         r == ERROR_SUCCESS)
-        return OperationResult{NOERROR, L""};
+        return OperationResult::success();
     else
     {
         std::error_code ec{static_cast<int>(r), std::system_category()};
         mpl::error(log_category,
                    "merge_virtual_disk_into_parent(...) > MergeVirtualDisk failed with {}!",
                    ec.message());
-        return OperationResult{E_FAIL, fmt::format(L"MergeVirtualDisk failed with {}!", r)};
+        return OperationResult::from_win32(r, L"MergeVirtualDisk failed");
     }
 }
 
@@ -415,7 +410,7 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
 
     if (nullptr == child_handle)
     {
-        return OperationResult{E_FAIL, L"open_virtual_disk failed!"};
+        return OperationResult::failure(L"open_virtual_disk failed!");
     }
 
     const auto parent_path_wstr = parent.generic_wstring();
@@ -429,13 +424,13 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
 
     if (const auto r = API().SetVirtualDiskInformation(child_handle.get(), &info);
         r == ERROR_SUCCESS)
-        return OperationResult{NOERROR, L""};
+        return OperationResult::success();
     else
     {
         mpl::error(log_category,
                    "reparent_virtual_disk(...) > SetVirtualDiskInformation failed with {}!",
                    r);
-        return OperationResult{E_FAIL, fmt::format(L"reparent_virtual_disk failed with {}!", r)};
+        return OperationResult::from_win32(r, L"reparent_virtual_disk failed");
     }
 }
 
@@ -486,7 +481,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
 
     if (nullptr == disk_handle)
     {
-        return OperationResult{E_FAIL, L"open_virtual_disk failed!"};
+        return OperationResult::failure(L"open_virtual_disk failed!");
     }
 
     constexpr GET_VIRTUAL_DISK_INFO_VERSION what_to_get[] = {
@@ -500,8 +495,10 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
 
         ULONG sz = sizeof(disk_info);
 
-        const auto result =
-            API().GetVirtualDiskInformation(disk_handle.get(), &sz, &disk_info, nullptr);
+        const auto result = API().GetVirtualDiskInformation(disk_handle.get(),
+                                                            &sz,
+                                                            &disk_info,
+                                                            nullptr);
 
         if (ERROR_SUCCESS == result)
         {
@@ -529,7 +526,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
         }
     }
 
-    return {NOERROR, L""};
+    return OperationResult::success();
 }
 
 // ---------------------------------------------------------
@@ -561,7 +558,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
         const auto disk_handle = open_virtual_disk(current);
 
         if (nullptr == disk_handle)
-            return OperationResult{E_FAIL, L"open_virtual_disk failed!"};
+            return OperationResult::failure(L"open_virtual_disk failed!");
 
         chain.push_back(current);
 
@@ -572,8 +569,10 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
         // to be allocated by us. Hence, the API first returns ERROR_INSUFFICIENT_BUFFER to tell us
         // how much extra space is needed for storing the parent's path.
         // If the disk does not have a parent, the API would return ERROR_VHD_INVALID_TYPE instead.
-        if (const auto r =
-                API().GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
+        if (const auto r = API().GetVirtualDiskInformation(disk_handle.get(),
+                                                           &sz,
+                                                           disk_info.get(),
+                                                           nullptr);
             r == ERROR_INSUFFICIENT_BUFFER)
         {
             // Reallocate the disk_info struct with the correct size, and also re-set
@@ -588,11 +587,13 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
             break;
         }
         else
-            return OperationResult{E_FAIL, L"GetVirtualDiskInformation failed!"};
+            return OperationResult::from_win32(r, L"GetVirtualDiskInformation failed");
 
         // This is the real call to obtain the parent path.
-        const auto r =
-            API().GetVirtualDiskInformation(disk_handle.get(), &sz, disk_info.get(), nullptr);
+        const auto r = API().GetVirtualDiskInformation(disk_handle.get(),
+                                                       &sz,
+                                                       disk_info.get(),
+                                                       nullptr);
 
         if (r == ERROR_SUCCESS)
         {
@@ -601,14 +602,17 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
             if (disk_info->ParentLocation.ParentResolved)
             {
                 // Single string.
-                const auto parent_buffer_size =
-                    sz - FIELD_OFFSET(GET_VIRTUAL_DISK_INFO, ParentLocation.ParentLocationBuffer);
+                const auto parent_buffer_size = sz -
+                                                FIELD_OFFSET(GET_VIRTUAL_DISK_INFO,
+                                                             ParentLocation.ParentLocationBuffer);
                 std::size_t parent_path_size = {0};
-                if (FAILED(StringCbLengthW(disk_info->ParentLocation.ParentLocationBuffer,
-                                           parent_buffer_size,
-                                           &parent_path_size)))
+                if (const auto cblen_r = StringCbLengthW(
+                        disk_info->ParentLocation.ParentLocationBuffer,
+                        parent_buffer_size,
+                        &parent_path_size);
+                    FAILED(cblen_r))
                 {
-                    return OperationResult{E_FAIL, L"StringCbLengthW failed!"};
+                    return OperationResult::from_win32(cblen_r, L"StringCbLengthW failed");
                 }
                 current = std::wstring{disk_info->ParentLocation.ParentLocationBuffer,
                                        parent_path_size / sizeof(wchar_t)};
@@ -619,13 +623,17 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
                 // strings. The use-case for it is recording multiple possible paths for a disk.
                 // Hyper-V uses this feature to resolve moved disks, which is not typical for our
                 // use-case.
-                return OperationResult{E_FAIL, L"Parent virtual disk path resolution failed!"};
+                return OperationResult::failure(L"Parent virtual disk path resolution failed!");
+        }
+        else
+        {
+            return OperationResult::from_win32(r, L"GetVirtualDiskInformation failed");
         }
     } while (!max_depth || --(*max_depth));
     mpl::debug(log_category,
                "list_virtual_disk_chain(...) > final chain: {}",
                fmt::join(chain, " | --> | "));
-    return {NOERROR, L""};
+    return OperationResult::success();
 }
 
 } // namespace multipass::hyperv::virtdisk

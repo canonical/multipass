@@ -81,17 +81,12 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_ex
     auto vm_name = "test-vm";
     auto vm_guid = "this isn't a guid but this isn't a real implementation either";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
-        .WillOnce(DoAll(
-            [&](const std::string& name, hcs_handle_t& out_handle) {
-                ASSERT_EQ(vm_name, name);
-                out_handle = mock_handle;
-            },
-            Return(hcs_op_result_t{0, L""})));
+        .WillOnce(DoAll([&](const std::string& name, hcs_handle_t&) { ASSERT_EQ(vm_name, name); },
+                        SetArgReferee<1>(mock_handle),
+                        Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, get_compute_system_guid(Eq(mock_handle), IsEmpty()))
-        .WillOnce(DoAll([&](const hcs_handle_t& target_hcs_system,
-                            std::string& out_guid) { out_guid = vm_guid; },
-                        Return(hcs_op_result_t{0, L""})));
+        .WillOnce(DoAll(SetArgReferee<1>(vm_guid), Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
@@ -118,12 +113,9 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_
 {
     auto vm_name = "test-vm";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
-        .WillOnce(DoAll(
-            [&](const std::string& name, hcs_handle_t& out_handle) {
-                ASSERT_EQ(vm_name, name);
-                out_handle = mock_handle;
-            },
-            Return(hcs_op_result_t{1, L""})));
+        .WillOnce(DoAll([&](const std::string& name, hcs_handle_t&) { ASSERT_EQ(vm_name, name); },
+                        SetArgReferee<1>(mock_handle),
+                        Return(hcs_op_result_t{1, L""})));
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_factory());
@@ -220,9 +212,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
             Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
-        .WillRepeatedly(DoAll(
-            [this](const std::string& name, hcs_handle_t& out_handle) { out_handle = mock_handle; },
-            Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(mock_handle), Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
         .WillRepeatedly(DoAll(
@@ -234,11 +224,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
             Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(DoAll(
-            [this](const hcs_handle_t&, mhv::hcs::ComputeSystemState& state) {
-                state = mhv::hcs::ComputeSystemState::running;
-            },
-            Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll(SetArgReferee<1>(mhv::hcs::ComputeSystemState::running),
+                              Return(hcs_op_result_t{0, L""})));
 
     ASSERT_NO_THROW(uut = construct_factory());
 

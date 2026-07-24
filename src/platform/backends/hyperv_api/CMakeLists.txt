@@ -61,8 +61,11 @@ if(WIN32)
     hcs/hyperv_hcs_path.cpp
     hcs/hyperv_hcs_api.cpp
     virtdisk/virtdisk_wrapper.cpp
+    virtdisk/virtdisk_snapshot.cpp
     virtdisk/virtdisk_api.cpp
     virtdisk/virtdisk_guid.cpp
+    virtdisk/virtdisk_child_rebuild.cpp
+    virtdisk/virtdisk_utils.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
   )
