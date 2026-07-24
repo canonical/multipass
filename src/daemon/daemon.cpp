@@ -471,15 +471,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    try
-    {
-        if (!zone_name.empty() && !config->az_manager->get_zone(zone_name).is_available())
-            option_errors.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
-    }
-    catch (const mp::AvailabilityZoneNotFound& e)
-    {
-        option_errors.add_error_codes(mp::LaunchError::INVALID_ZONE);
-    }
+    if (!zone_name.empty() && !config->az_manager->get_zone(zone_name).is_available())
+        option_errors.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
 
     std::vector<std::string> nets_need_bridging;
     auto extra_interfaces =

@@ -32,6 +32,9 @@ ReturnCodeVariant DisableZones::run(ArgParser* parser)
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
+    if (const auto ret = normalize_zone_names(stub, *request.mutable_zones(), cerr); ret != Ok)
+        return ret;
+
     if (ask_for_confirmation)
     {
         if (!term->is_live())
