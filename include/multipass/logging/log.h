@@ -20,6 +20,8 @@
 #include <multipass/logging/level.h>
 #include <multipass/logging/logger.h>
 
+#include <rust/cxx.h>
+
 #include <fmt/std.h>   // standard library formatters
 #include <fmt/xchar.h> // char-type agnostic formatting
 
@@ -41,6 +43,11 @@ void log_message(Level level, std::string_view category, std::string_view messag
 void set_logger(std::shared_ptr<Logger> logger);
 Level get_logging_level();
 Logger* get_logger(); // for tests, don't rely on it lasting
+
+namespace rust
+{
+void log_message(Level level, ::rust::String category, ::rust::String message);
+}
 
 /**
  * Log with formatting support

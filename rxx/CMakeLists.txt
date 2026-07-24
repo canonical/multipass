@@ -46,6 +46,8 @@ set(CARGO_CMD ${CMAKE_COMMAND} -E env ${CARGO_ENV} ${CARGO_EXECUTABLE})
 #for said usage
 set(CRATES
   namegen
+  rslogger
+  rust #Generic library to add access to cxx bindings to the C++ side
 )
 
 if(NOT CRATES STREQUAL "")
@@ -98,7 +100,7 @@ list(JOIN ACTIVE_FEATURES  "," FEATURES_CSV)
    "${CMAKE_CURRENT_SOURCE_DIR}/*.txt"
  )
 add_custom_command(
-  OUTPUT ${CARGO_GENERATED_FILES}
+  OUTPUT ${CARGO_GENERATED_FILES} "${CMAKE_CURRENT_BINARY_DIR}/_force_cargo_rebuild"
   COMMAND ${CARGO_CMD} build
   --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
   --workspace
@@ -107,6 +109,7 @@ add_custom_command(
   --features "${FEATURES_CSV}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   DEPENDS ${RUST_SOURCES}
+  JOB_SERVER_AWARE TRUE
   COMMENT "Building Rust crates and generating C++ glue..."
 )
 
@@ -118,8 +121,8 @@ foreach(CRATE_NAME ${CRATES})
         add_dependencies(${CRATE_NAME}_rs cargo_build)
     endif()
 endforeach()
-#The macros crate cannot contain tests
-set(TESTING_EXCLUDE_CRATES_ARG --exclude macros)
+#The macros crate cannot contain tests, rslogger cannot link log(), rust is empty
+set(TESTING_EXCLUDE_CRATES_ARG --exclude macros --exclude rslogger --exclude rust)
 add_test(
   NAME      multipass_rust_tests
   COMMAND   ${CARGO_CMD} test

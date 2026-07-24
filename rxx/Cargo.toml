@@ -16,6 +16,8 @@
 members = [
   "macros",
   "namegen",
+  "rslogger",
+  "rust",
 ]
 resolver = "2"
 
@@ -32,8 +34,10 @@ syn = "^2.0.0"
 quote = "^1.0.0"
 proc-macro2 = "^1.0.0"
 rand = "^0.10.0"
+named-lock = "^0.4.0"
 macros = { path = "macros" }
 namegen = { path = "namegen" }
+rslogger = { path = "rslogger" }
 
 # This is debug
 [profile.dev]
