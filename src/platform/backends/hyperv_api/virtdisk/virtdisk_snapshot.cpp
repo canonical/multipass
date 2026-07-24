@@ -217,7 +217,7 @@ void VirtDiskSnapshot::collapse_head_into_base(const std::string& vm_name,
     if (!MP_FILEOPS.exists(head_path))
         return;
 
-    // Never merge the head into a snapshot that other snapshots still depend on.
+    // The head disk must be attached to the base.
     if (!is_direct_child_of(head_path, base_vhdx_path))
     {
         mpl::warn(vm_name,

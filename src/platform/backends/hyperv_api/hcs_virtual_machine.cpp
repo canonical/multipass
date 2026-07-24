@@ -669,7 +669,7 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                                   "snapshots. To resize, delete the snapshots first."};
     }
 
-    // A leftover head means collapse did not finish. Collapse it before resizing.
+    // A leftover head means collapse did not finish.
     if (const auto head_avhdx = get_snapshot_head_disk_path())
     {
         throw ResizeDiskException{
