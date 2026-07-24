@@ -695,7 +695,7 @@ int mp::SftpServer::handle_rmdir(sftp_client_message msg)
     {
         // TODO@security: Handle EACCES once server is not running as root
         mpl::trace_location(category, "rmdir failed for '{}': does not exist", filename->string());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "no such directory");
     }
     if (!is_directory(attr))
     {
@@ -892,7 +892,7 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     if (msg->offset > std::numeric_limits<mp::off_t>::max())
     {
         mpl::trace_location(category, "offset is too large");
-        return sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "offset too large");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "offset too large");
     }
     const auto offset = static_cast<mp::off_t>(msg->offset);
 
@@ -902,8 +902,10 @@ int mp::SftpServer::handle_read(sftp_client_message msg)
     // No array initialization. Memory does not leak because the message copy copies only the read
     // bytes.
     std::array<char, max_packet_size> buffer;
-    const auto result =
-        MP_PLATFORM.pread(fd, buffer.data(), std::min(msg->len, max_packet_size), offset);
+    const auto result = MP_PLATFORM.pread(fd,
+                                          buffer.data(),
+                                          std::min(msg->len, max_packet_size),
+                                          offset);
 
     if (result > 0)
         return MP_LIBSSH.sftp_reply_data(msg, buffer.data(), result);
@@ -965,7 +967,7 @@ int mp::SftpServer::handle_readlink(sftp_client_message msg)
     if (MP_PLATFORM.lstat_attr_from(filename->string().c_str(), attr) != 0)
     {
         mpl::trace_location(category, "cannot access path '{}': no such file", filename->string());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "readlink");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "readlink");
     }
     if (!has_id_mappings_for(attr))
     {
@@ -1041,7 +1043,7 @@ int mp::SftpServer::handle_remove(sftp_client_message msg)
     {
         // TODO@security: Handle EACCES once server is not running as root
         mpl::trace_location(category, "cannot remove '{}': Does not exist", filename->string());
-        return sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "No such file");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_NO_SUCH_FILE, "No such file");
     }
     // File exists
     if (!has_id_mappings_for(attr))
@@ -1413,7 +1415,7 @@ int mp::SftpServer::handle_write(sftp_client_message msg)
     if (msg->offset > std::numeric_limits<mp::off_t>::max())
     {
         mpl::trace_location(category, "offset is too large");
-        return sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "offset too large");
+        return MP_LIBSSH.sftp_reply_status(msg, SSH_FX_BAD_MESSAGE, "offset too large");
     }
     auto current_offset = static_cast<mp::off_t>(msg->offset);
 

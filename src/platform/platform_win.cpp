@@ -1379,13 +1379,15 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
         success &= set_specific_perms(lpPath, WinWorldSid, convert_permissions(others), inherit) ==
                    ERROR_SUCCESS;
     if (int group = int(perms) & 0070; group != 0)
-        success &=
-            set_specific_perms(lpPath, WinCreatorGroupSid, convert_permissions(group), inherit) ==
-            ERROR_SUCCESS;
+        success &= set_specific_perms(lpPath,
+                                      WinCreatorGroupSid,
+                                      convert_permissions(group),
+                                      inherit) == ERROR_SUCCESS;
     if (int owner = int(perms) & 0700; owner != 0)
-        success &=
-            set_specific_perms(lpPath, WinCreatorOwnerSid, convert_permissions(owner), inherit) ==
-            ERROR_SUCCESS;
+        success &= set_specific_perms(lpPath,
+                                      WinCreatorOwnerSid,
+                                      convert_permissions(owner),
+                                      inherit) == ERROR_SUCCESS;
 
     // #3216 Set the owner as Admin and give the Admins group blanket access
     success &= take_ownership(path);
@@ -1808,8 +1810,11 @@ mp::ssize_t mp::platform::Platform::pread(int fd,
 
     // Perform the read (atomic)
     DWORD bytesRead = 0;
-    BOOL success =
-        ReadFile(file_handle, buffer, static_cast<DWORD>(bytes_to_read), &bytesRead, &overlapped);
+    BOOL success = ReadFile(file_handle,
+                            buffer,
+                            static_cast<DWORD>(bytes_to_read),
+                            &bytesRead,
+                            &overlapped);
 
     if (success)
     {

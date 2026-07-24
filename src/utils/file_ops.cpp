@@ -301,11 +301,6 @@ int mp::FileOps::write(int fd, const void* buf, size_t nbytes) const
     return ::write(fd, buf, nbytes);
 }
 
-off_t mp::FileOps::lseek(int fd, off_t offset, int whence) const
-{
-    return ::lseek(fd, offset, whence);
-}
-
 void mp::FileOps::open(std::fstream& stream,
                        const std::filesystem::path& filename,
                        std::ios_base::openmode mode) const

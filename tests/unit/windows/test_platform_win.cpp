@@ -42,7 +42,9 @@
 
 #include <scope_guard.hpp>
 
+#include <windows.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include <filesystem>
 #include <fstream>
@@ -252,8 +254,8 @@ TEST_P(TestWinTermSyncModerateLogging, loggingOnUnavailableProfiles)
     const auto& [setting, lvl] = GetParam();
     mock_winterm_setting(setting);
 
-    const auto [json_file_name, tmp_file_guard] =
-        guarded_fake_json("{ \"someNode\": \"someValue\" }");
+    const auto [json_file_name,
+                tmp_file_guard] = guarded_fake_json("{ \"someNode\": \"someValue\" }");
     const auto mock_logger_guard = expect_only_log(lvl, "Could not find");
 
     mp::platform::sync_winterm_profiles();
@@ -836,8 +838,8 @@ TEST_F(TestPlatformWinSftp, statAttrFromMissingFileReturnsMinus1AndSetsEnoent)
 TEST_F(TestPlatformWinSftp, fstatAttrFromOpenFdReturnsRegularType)
 {
     auto path = make_file("fstat.txt");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -849,8 +851,8 @@ TEST_F(TestPlatformWinSftp, fstatAttrFromOpenFdReturnsRegularType)
 TEST_F(TestPlatformWinSftp, fstatAttrFromFillsSizeAndTimestamps)
 {
     auto path = make_file("fstat-sz.txt", "abcde");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -871,8 +873,8 @@ TEST_F(TestPlatformWinSftp, fstatAttrFromBadFdReturnsMinus1)
 TEST_F(TestPlatformWinSftp, preadReadsAtOffset)
 {
     auto path = make_file("pread.txt", "Hello, World!");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -885,8 +887,8 @@ TEST_F(TestPlatformWinSftp, preadReadsAtOffset)
 TEST_F(TestPlatformWinSftp, preadAtEofReturnsZero)
 {
     auto path = make_file("pread-eof.txt", "hi");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -900,8 +902,8 @@ TEST_F(TestPlatformWinSftp, preadDoesNotAdvanceFilePosition)
     // Windows OVERLAPPED-based ReadFile does not move the handle's file pointer,
     // so a second pread at offset 0 must still return the file's beginning.
     auto path = make_file("pread-pos.txt", "ABCDEFGH");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -925,8 +927,8 @@ TEST_F(TestPlatformWinSftp, preadBadFdReturnsMinus1WithEbadf)
 TEST_F(TestPlatformWinSftp, pwriteWritesAtOffset)
 {
     auto path = make_file("pwrite.txt", "Hello, World!");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -944,8 +946,8 @@ TEST_F(TestPlatformWinSftp, pwriteWritesAtOffset)
 TEST_F(TestPlatformWinSftp, pwriteDoesNotAdvanceFilePosition)
 {
     auto path = make_file("pwrite-pos.txt", "00000000");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -972,8 +974,8 @@ TEST_F(TestPlatformWinSftp, pwriteBadFdReturnsMinus1WithEbadf)
 TEST_F(TestPlatformWinSftp, ftruncateShrinksTruncatesFile)
 {
     auto path = make_file("trunc.txt", "Hello, World!");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -994,8 +996,8 @@ TEST_F(TestPlatformWinSftp, ftruncateBadFdReturnsNonZero)
 TEST_F(TestPlatformWinSftp, futimesSetsModificationTime)
 {
     auto path = make_file("utime.txt", "data");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDWR, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -1022,8 +1024,8 @@ TEST(PlatformWin, fchownIsNoOpAndReturnsZero)
     auto path = tmp.path().toStdString() + "\\fchown-file.txt";
     mpt::make_file_with_content(QString::fromStdString(path), "content");
 
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -1036,8 +1038,8 @@ TEST(PlatformWin, fchownLogsTrace)
     auto path = tmp.path().toStdString() + "\\fchown-log.txt";
     mpt::make_file_with_content(QString::fromStdString(path), "content");
 
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), _O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 

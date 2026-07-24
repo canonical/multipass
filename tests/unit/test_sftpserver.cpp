@@ -498,13 +498,14 @@ TEST_F(SftpServer, handlesRealpath)
     auto expected_path = fs::weakly_canonical(file_name.data()).string();
 
     bool invoked{false};
-    auto reply_name =
-        [&msg, &invoked, &file_name](sftp_client_message cmsg, const char* name, sftp_attributes) {
-            EXPECT_THAT(cmsg, Eq(msg.get()));
-            EXPECT_THAT(name, StrEq(file_name.data()));
-            invoked = true;
-            return SSH_OK;
-        };
+    auto reply_name = [&msg, &invoked, &expected_path](sftp_client_message cmsg,
+                                                       const char* name,
+                                                       sftp_attributes) {
+        EXPECT_THAT(cmsg, Eq(msg.get()));
+        EXPECT_THAT(name, StrEq(expected_path.data()));
+        invoked = true;
+        return SSH_OK;
+    };
     REPLACE(sftp_reply_name, reply_name);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -1294,7 +1295,7 @@ TEST_F(SftpServer, symlinkFailureFails)
             return 0;
         });
     EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
-        .WillOnce([](const char*, sftp_attributes_struct& attr) { return -1; });
+        .WillOnce([](const char*, sftp_attributes_struct&) { return -1; });
 
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
@@ -1448,7 +1449,7 @@ TEST_F(SftpServer, renameFailureFails)
 
     EXPECT_CALL(*mock_file_ops,
                 rename(A<const fs::path&>(), A<const fs::path&>(), A<std::error_code&>()))
-        .WillOnce([](const fs::path& path, const fs::path& pathname, std::error_code& ec) {
+        .WillOnce([](const fs::path&, const fs::path&, std::error_code& ec) {
             ec.assign(1, std::generic_category());
             return false;
         });
@@ -1722,7 +1723,7 @@ TEST_F(SftpServer, openInWriteModeCreatesFile)
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*platform, fchown).WillOnce(Return(0));
     EXPECT_CALL(*platform, stat_attr_from(_, _))
-        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+        .WillOnce([](const char*, sftp_attributes_struct&) {
             errno = ENOENT;
             return -1;
         })
@@ -1846,7 +1847,7 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
-        .WillOnce([](const char*, sftp_attributes_struct& attr) { return -1; });
+        .WillOnce([](const char*, sftp_attributes_struct&) { return -1; });
 
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
         return fs::weakly_canonical(path);
@@ -1884,7 +1885,7 @@ TEST_F(SftpServer, openChownFailureFails)
 
     EXPECT_CALL(*mock_platform, fchown(_, _, _)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
-        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+        .WillOnce([](const char*, sftp_attributes_struct&) {
             errno = ENOENT;
             return -1;
         })
@@ -1926,7 +1927,7 @@ TEST_F(SftpServer, openNoHandleAllocatedFails)
     const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject<NiceMock>();
     EXPECT_CALL(*platform, set_permissions_sftp(_, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*platform, stat_attr_from(_, _))
-        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+        .WillOnce([](const char*, sftp_attributes_struct&) {
             errno = ENOENT;
             return -1;
         })
@@ -3083,7 +3084,7 @@ TEST_F(SftpServer, handlesWrites)
             return 0;
         });
     EXPECT_CALL(*platform, pwrite(_, _, _, _))
-        .WillRepeatedly([&stream](int, const void* buf, size_t nbytes, mp::off_t offset) {
+        .WillRepeatedly([&stream](int, const void* buf, size_t nbytes, mp::off_t) {
             stream.write((const char*)buf, nbytes);
             return nbytes;
         });
@@ -3145,7 +3146,7 @@ TEST_F(SftpServer, writeFailureFails)
             return 0;
         });
     EXPECT_CALL(*platform, pwrite(_, _, _, _))
-        .WillRepeatedly([](int, const void* buf, size_t nbytes, mp::off_t offset) { return -1; });
+        .WillRepeatedly([](int, const void*, size_t, mp::off_t) { return -1; });
 
     REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
     REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
@@ -3200,12 +3201,11 @@ TEST_F(SftpServer, handlesReads)
         });
 
     EXPECT_CALL(*platform, pread(_, _, _, _))
-        .WillRepeatedly(
-            [&given_data, r = 0](int, void* buf, size_t count, mp::off_t offset) mutable {
-                ::memcpy(buf, given_data.c_str() + r, count);
-                r += count;
-                return count;
-            });
+        .WillRepeatedly([&given_data, r = 0](int, void* buf, size_t count, mp::off_t) mutable {
+            ::memcpy(buf, given_data.c_str() + r, count);
+            r += count;
+            return count;
+        });
     REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
     REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
 
@@ -3268,8 +3268,9 @@ TEST_F(SftpServer, readReturnsFailureFails)
             return 0;
         });
 
-    EXPECT_CALL(*platform, pread(_, _, _, _))
-        .WillRepeatedly([](int, void* buf, size_t count, mp::off_t offset) { return -1; });
+    EXPECT_CALL(*platform, pread(_, _, _, _)).WillRepeatedly([](int, void*, size_t, mp::off_t) {
+        return -1;
+    });
     REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
     REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
     REPLACE(sftp_get_client_message, make_msg_handler());
@@ -3327,8 +3328,9 @@ TEST_F(SftpServer, readReturnsZeroEndOfFile)
             return 0;
         });
 
-    EXPECT_CALL(*platform, pread(_, _, _, _))
-        .WillOnce([](int, void* buf, size_t count, mp::off_t offset) { return 0; });
+    EXPECT_CALL(*platform, pread(_, _, _, _)).WillOnce([](int, void*, size_t, mp::off_t) {
+        return 0;
+    });
     REPLACE(sftp_reply_handle, [&](auto...) { return SSH_OK; });
     REPLACE(sftp_handle, [&fd_ptr](auto...) { return (void*)fd_ptr; });
 
@@ -3527,7 +3529,7 @@ TEST_F(SftpServer, extendedLinkFailureFails)
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, lstat_attr_from(_, _))
-        .WillOnce([](const char*, sftp_attributes_struct& attr) { return -1; });
+        .WillOnce([](const char*, sftp_attributes_struct&) { return -1; });
     EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
         .WillOnce([](const char*, sftp_attributes_struct& attr) {
             attr.uid = default_uid;
@@ -4300,7 +4302,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
     EXPECT_CALL(*mock_platform, fchown(_, host_uid, host_gid)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_platform, fchown(_, sftp_uid, sftp_gid)).Times(0);
     EXPECT_CALL(*mock_platform, stat_attr_from(_, _))
-        .WillOnce([](const char*, sftp_attributes_struct& attr) {
+        .WillOnce([](const char*, sftp_attributes_struct&) {
             errno = ENOENT;
             return -1;
         })

@@ -39,6 +39,7 @@
 #include <thread>
 
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace mp = multipass;
@@ -510,8 +511,8 @@ TEST_F(TestPlatformUnixSftp, statAttrFromMissingFileReturnsMinus1AndSetsEnoent)
 TEST_F(TestPlatformUnixSftp, fstatAttrFromOpenFdReturnsCorrectType)
 {
     auto path = make_file("fstat-file");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -529,8 +530,8 @@ TEST_F(TestPlatformUnixSftp, fstatAttrFromBadFdReturnsMinus1)
 TEST_F(TestPlatformUnixSftp, fstatAttrFromFillsSizeAndTimestamps)
 {
     auto path = make_file("fstat-sz", "abcde");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -545,8 +546,8 @@ TEST_F(TestPlatformUnixSftp, fstatAttrFromFillsSizeAndTimestamps)
 TEST_F(TestPlatformUnixSftp, preadReadsAtOffset)
 {
     auto path = make_file("pread-file", "Hello, World!");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -560,8 +561,8 @@ TEST_F(TestPlatformUnixSftp, preadReadsAtOffset)
 TEST_F(TestPlatformUnixSftp, preadDoesNotAdvanceFilePosition)
 {
     auto path = make_file("pread-pos", "ABCDEFGH");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -576,8 +577,8 @@ TEST_F(TestPlatformUnixSftp, preadDoesNotAdvanceFilePosition)
 TEST_F(TestPlatformUnixSftp, preadAtEofReturnsZero)
 {
     auto path = make_file("pread-eof", "hi");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -591,8 +592,8 @@ TEST_F(TestPlatformUnixSftp, preadAtEofReturnsZero)
 TEST_F(TestPlatformUnixSftp, pwriteWritesAtOffset)
 {
     auto path = make_file("pwrite-file", "Hello, World!");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -609,8 +610,8 @@ TEST_F(TestPlatformUnixSftp, pwriteWritesAtOffset)
 TEST_F(TestPlatformUnixSftp, pwriteDoesNotAdvanceFilePosition)
 {
     auto path = make_file("pwrite-pos", "00000000");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -628,8 +629,8 @@ TEST_F(TestPlatformUnixSftp, pwriteDoesNotAdvanceFilePosition)
 TEST_F(TestPlatformUnixSftp, ftruncateShrinksTruncatesFile)
 {
     auto path = make_file("trunc-file", "Hello, World!");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDWR, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -650,8 +651,8 @@ TEST_F(TestPlatformUnixSftp, ftruncateBadFdReturnsMinus1)
 TEST_F(TestPlatformUnixSftp, futimesSetsModificationTime)
 {
     auto path = make_file("utime-file");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
@@ -670,8 +671,8 @@ TEST_F(TestPlatformUnixSftp, fchownWithCurrentOwnerSucceeds)
     // Calling fchown with the process's own uid/gid must succeed for a
     // file we own (non-root cannot chown to other users, but self-chown is a no-op)
     auto path = make_file("fchown-file");
-    auto handle =
-        std::get<std::unique_ptr<mp::NamedFd>>(MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
+    auto handle = std::get<std::unique_ptr<mp::NamedFd>>(
+        MP_FILEOPS.open_fd(path.c_str(), O_RDONLY, 0));
     int fd = handle->fd;
     ASSERT_NE(fd, -1);
 
