@@ -21,7 +21,7 @@
 
 namespace multipass::hyperv::virtdisk
 {
-struct CreateVirtdiskSnapshotError : FormattedExceptionBase<std::system_error>
+struct VirtdiskSnapshotError : FormattedExceptionBase<std::system_error>
 {
     using FormattedExceptionBase::FormattedExceptionBase;
 };
