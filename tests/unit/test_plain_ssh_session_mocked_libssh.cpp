@@ -77,7 +77,7 @@ struct TestPlainSSHSessionMockedLibssh : public Test
 TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToAllocateSession)
 {
     EXPECT_CALL(mock_libssh, ssh_new()).WillOnce(Return(nullptr));
-    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+    EXPECT_THROW(make_ssh_session(), mp::SSHException);
 }
 
 TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToSetOption)
