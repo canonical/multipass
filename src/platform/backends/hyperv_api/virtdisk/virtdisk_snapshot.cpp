@@ -92,9 +92,9 @@ void VirtDiskSnapshot::capture_impl()
 
     bool live_disk_became_snapshot = false;
     auto rollback = sg::make_scope_guard([&]() noexcept {
-        std::error_code ec{};
         if (live_disk_became_snapshot)
         {
+            std::error_code ec{};
             MP_FILEOPS.remove(live_disk_path, ec);
             try_rename(snapshot_path, live_disk_path);
         }
@@ -191,9 +191,9 @@ void VirtDiskSnapshot::apply_impl()
             live_disk_path};
 
     auto new_live_disk_path = live_disk_path;
-    new_live_disk_path.replace_extension(".new.vhdx");
+    new_live_disk_path.replace_extension(".new.avhdx");
     auto old_live_disk_path = live_disk_path;
-    old_live_disk_path.replace_extension(".old.vhdx");
+    old_live_disk_path.replace_extension(".old.avhdx");
 
     MP_FILEOPS.remove(new_live_disk_path);
     MP_FILEOPS.remove(old_live_disk_path);
