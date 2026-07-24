@@ -189,6 +189,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                     ASSERT_EQ(params.network_adapters.size(), 1);
                     ASSERT_EQ(params.processor_count, 2);
                     ASSERT_EQ(params.scsi_devices.size(), 2);
+                    EXPECT_EQ(params.scsi_devices.front().path.get(), desc.image.image_path);
                 },
                 SetArgReferee<1>(mock_handle),
                 Return(hcs_op_result_t{0, L""})));
@@ -629,31 +630,6 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
             SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
     uut->start();
-}
-
-// ---------------------------------------------------------
-
-TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk_fails_if_snapshot_head_remains)
-{
-    default_create_success();
-
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
-
-    std::shared_ptr<uut_t> uut{nullptr};
-    ASSERT_NO_THROW(uut = construct_vm());
-
-    const auto head_path = std::filesystem::path{desc.image.image_path}.parent_path() /
-                           mhv::virtdisk::VirtDiskSnapshot::head_disk_name();
-    std::ofstream{head_path} << "stub";
-
-    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(head_path), _, _)).Times(0);
-    EXPECT_CALL(mock_virtdisk, resize_virtual_disk(_, _)).Times(0);
-
-    mp::UserMessages messages{};
-    EXPECT_THROW(uut->resize_disk(multipass::MemorySize::from_bytes(123456), messages),
-                 mhv::ResizeDiskException);
 }
 
 // ---------------------------------------------------------

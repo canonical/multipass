@@ -271,17 +271,7 @@ bool HCSVirtualMachine::has_saved_state_file() const
 
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
-    return get_snapshot_head_disk_path().value_or(description.image.image_path);
-}
-
-std::optional<std::filesystem::path> HCSVirtualMachine::get_snapshot_head_disk_path() const
-{
-    const std::filesystem::path base_vhdx = description.image.image_path;
-    std::filesystem::path head_avhdx = base_vhdx.parent_path() /
-                                       virtdisk::VirtDiskSnapshot::head_disk_name();
-    if (MP_FILEOPS.exists(head_avhdx))
-        return head_avhdx;
-    return std::nullopt;
+    return description.image.image_path;
 }
 
 void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
@@ -667,15 +657,6 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     {
         throw ResizeDiskException{"Cannot resize the primary disk while there are "
                                   "snapshots. To resize, delete the snapshots first."};
-    }
-
-    // A leftover head means collapse did not finish.
-    if (const auto head_avhdx = get_snapshot_head_disk_path())
-    {
-        throw ResizeDiskException{
-            "Cannot resize the primary disk because the snapshot head disk `{}` is present even "
-            "though there are no snapshots.",
-            *head_avhdx};
     }
 
     if (const auto result = VirtDisk().resize_virtual_disk(description.image.image_path,

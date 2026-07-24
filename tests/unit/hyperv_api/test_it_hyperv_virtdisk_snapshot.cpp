@@ -91,9 +91,7 @@ struct VirtDiskSnapshotErase : public ::testing::Test
     }
 
     // Remove from model and erase on disk. Erase first, then drop from the model, to
-    // match BaseVirtualMachine::delete_snapshot (which removes the snapshot only after
-    // erase() returns). This keeps get_num_snapshots() counting self during erase, so
-    // the "last snapshot" head-collapse triggers exactly as it does in production.
+    // match BaseVirtualMachine::delete_snapshot.
     void drop(Snap& ss)
     {
         ss->erase();
@@ -103,10 +101,6 @@ struct VirtDiskSnapshotErase : public ::testing::Test
     Path base() const
     {
         return desc.image.image_path;
-    }
-    Path head() const
-    {
-        return base().parent_path() / VirtDiskSnapshot::head_disk_name();
     }
     Path snapshot_path(const Snapshot& ss) const
     {
@@ -137,26 +131,22 @@ struct VirtDiskSnapshotErase : public ::testing::Test
         expect_gone(snapshot_path(*ss));
     }
 
-    // After the last snapshot is deleted, the head must be collapsed back into the
-    // base: no head disk remains, no collapse sidecar files linger, and the base is a
-    // standalone (parentless) disk again.
-    void expect_collapsed_to_base()
+    void expect_standalone_live_disk()
     {
-        EXPECT_FALSE(std::filesystem::exists(head())) << "head must be collapsed into base";
-        auto head_old = head();
-        head_old += ".old";
-        EXPECT_FALSE(std::filesystem::exists(head_old)) << "leftover head.old: " << head_old;
-        auto base_bak = base();
-        base_bak += ".bak";
-        EXPECT_FALSE(std::filesystem::exists(base_bak)) << "leftover base.bak: " << base_bak;
+        auto live_new = base();
+        live_new += ".new";
+        EXPECT_FALSE(std::filesystem::exists(live_new)) << "leftover live disk: " << live_new;
+        auto live_old = base();
+        live_old += ".old";
+        EXPECT_FALSE(std::filesystem::exists(live_old)) << "leftover live disk: " << live_old;
         expect_chain(base(), {base()});
     }
 };
 
 // ---------------------------------------------------------------------------
-// 1. Leaf, no children, head elsewhere
+// 1. Leaf, no children, live disk elsewhere
 // Merge loop is empty. Just removes the file.
-// base <- s0 <- s1 <- head, restore s0, erase s1
+// s0 <- s1; restore s0, erase s1 while the live disk is attached to s0
 // ---------------------------------------------------------------------------
 TEST_F(VirtDiskSnapshotErase, leaf_no_children)
 {
@@ -167,13 +157,13 @@ TEST_F(VirtDiskSnapshotErase, leaf_no_children)
     drop(s1);
 
     expect_gone(s1);
-    expect_chain(head(), {head(), snapshot_path(*s0), base()});
+    expect_chain(base(), {base(), snapshot_path(*s0)});
 }
 
 // ---------------------------------------------------------------------------
-// 2. Single child forward-merge + grandchild head survival
-// One merge iteration. Head is grandchild via s2.
-// base <- s0 <- s1 <- s2 <- head, erase s1
+// 2. Single child forward-merge + live-disk survival
+// One merge iteration. The live disk is a grandchild via s2.
+// s0 <- s1 <- s2 <- live, erase s1
 // ---------------------------------------------------------------------------
 TEST_F(VirtDiskSnapshotErase, single_child_forward_merge)
 {
@@ -185,36 +175,33 @@ TEST_F(VirtDiskSnapshotErase, single_child_forward_merge)
     drop(s1);
 
     expect_gone(s1);
-    expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0), base()});
-    expect_chain(head(), {head(), snapshot_path(*s2), snapshot_path(*s0), base()});
+    expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0)});
+    expect_chain(base(), {base(), snapshot_path(*s2), snapshot_path(*s0)});
 
-    // erase_impl rebuilt s2 in place (a fresh VHDX identity) and reparented its child --
-    // the head -- onto it. Merging the head opens it *together with its rebuilt parent*,
-    // which only succeeds because the reparent refreshed the head's stored parent
-    // identity; without it the parent-linkage check would reject the now-stale head.
-    EXPECT_TRUE(VirtDisk().merge_virtual_disk_into_parent(head()))
-        << "the grandchild head must validate against its rebuilt parent after reparenting";
+    // erase_impl rebuilt s2 in place and reparented the live disk onto its new VHDX
+    // identity. Merging the live disk validates that refreshed parent linkage.
+    EXPECT_TRUE(VirtDisk().merge_virtual_disk_into_parent(base()))
+        << "the live disk must validate against its rebuilt parent after reparenting";
 }
 
 // ---------------------------------------------------------------------------
-// 3. Only snapshot, head attached (last snapshot deleted)
-// Head is the only child. Deleting the last snapshot collapses the head back into
-// the base, leaving a standalone base disk.
-// base <- s0 <- head, erase s0  =>  base (standalone)
+// 3. Only snapshot, live disk attached
+// Deleting the last snapshot rebuilds its live child as a standalone disk in place.
+// s0 <- live, erase s0 => live (standalone)
 // ---------------------------------------------------------------------------
-TEST_F(VirtDiskSnapshotErase, only_snapshot_head_attached)
+TEST_F(VirtDiskSnapshotErase, only_snapshot_live_disk_attached)
 {
     auto s0 = take("s0");
 
     drop(s0);
 
     expect_gone(s0);
-    expect_collapsed_to_base();
+    expect_standalone_live_disk();
 }
 
 // ---------------------------------------------------------------------------
-// 4. Root deletion with snapshot child (parent_path = base fallback)
-// base <- s0 <- s1 <- head, erase s0
+// 4. Root deletion with snapshot child
+// s0 <- s1 <- live, erase s0
 // ---------------------------------------------------------------------------
 TEST_F(VirtDiskSnapshotErase, root_deletion)
 {
@@ -225,17 +212,17 @@ TEST_F(VirtDiskSnapshotErase, root_deletion)
     drop(s0);
 
     expect_gone(s0);
-    expect_chain(snapshot_path(*s1), {snapshot_path(*s1), base()});
-    expect_chain(head(), {head(), snapshot_path(*s1), base()});
+    expect_chain(snapshot_path(*s1), {snapshot_path(*s1)});
+    expect_chain(base(), {base(), snapshot_path(*s1)});
 }
 
 // ---------------------------------------------------------------------------
-// 5. Two snapshot children + head (multi-iteration loop, head as grandchild)
-// base <- s0 <- s1 <- s2
-//                   <- s1b <- head
+// 5. Two snapshot children with the live disk as a grandchild
+// s0 <- s1 <- s2
+//           <- s1b <- live
 // erase s1
 // ---------------------------------------------------------------------------
-TEST_F(VirtDiskSnapshotErase, two_children_and_head)
+TEST_F(VirtDiskSnapshotErase, two_children_and_live_disk)
 {
     auto s0 = take("s0");
     auto s1 = take("s1", s0);
@@ -249,18 +236,18 @@ TEST_F(VirtDiskSnapshotErase, two_children_and_head)
     drop(s1);
 
     expect_gone(s1);
-    expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0), base()});
-    expect_chain(snapshot_path(*s1b), {snapshot_path(*s1b), snapshot_path(*s0), base()});
-    expect_chain(head(), {head(), snapshot_path(*s1b), snapshot_path(*s0), base()});
+    expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0)});
+    expect_chain(snapshot_path(*s1b), {snapshot_path(*s1b), snapshot_path(*s0)});
+    expect_chain(base(), {base(), snapshot_path(*s1b), snapshot_path(*s0)});
 }
 
 // ---------------------------------------------------------------------------
-// 6. Snapshot child + head both directly attached to deleted snapshot
-// base <- s0 <- s1 <- s2 (on disk)
-//                   <- head (after restore s1)
+// 6. Snapshot child + live disk both directly attached to deleted snapshot
+// s0 <- s1 <- s2
+//           <- live (after restore s1)
 // erase s1
 // ---------------------------------------------------------------------------
-TEST_F(VirtDiskSnapshotErase, children_and_head_both_attached)
+TEST_F(VirtDiskSnapshotErase, children_and_live_disk_both_attached)
 {
     auto s0 = take("s0");
     auto s1 = take("s1", s0);
@@ -272,24 +259,24 @@ TEST_F(VirtDiskSnapshotErase, children_and_head_both_attached)
     drop(s1);
 
     expect_gone(s1);
-    expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0), base()});
-    expect_chain(head(), {head(), snapshot_path(*s0), base()});
+    expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0)});
+    expect_chain(base(), {base(), snapshot_path(*s0)});
 }
 
 // ---------------------------------------------------------------------------
-// 7. Multi-level multi-branch: build, collapse in phases, apply all, teardown
+// 7. Multi-level multi-branch: build, rebuild in phases, apply all, teardown
 //
 // Initial tree (8 snapshots, 4 levels, branching at s1 and s2):
-//   base <- s0 <- s1 <- s2 <- s3
-//                          <- s2b
-//                    <- s1b <- s1b1
-//                           <- s1b2 <- head
+//   s0 <- s1 <- s2 <- s3
+//              |     <- s2b
+//              <- s1b <- s1b1
+//                      <- s1b2 <- live
 //
 // Phase 1: erase s2   (2 children: s3, s2b)
-// Phase 2: erase s1b  (2 children: s1b1, s1b2; head is grandchild via s1b2)
-// Phase 3: erase s1   (4 children: s3, s2b, s1b1, s1b2; head via s1b2)
-// Phase 4: apply every survivor to confirm valid heads
-// Phase 5: delete all leaves, then root -> base <- head
+// Phase 2: erase s1b  (2 children: s1b1, s1b2; live is grandchild via s1b2)
+// Phase 3: erase s1   (4 children: s3, s2b, s1b1, s1b2; live via s1b2)
+// Phase 4: apply every survivor to confirm valid live chains
+// Phase 5: delete all leaves, then root, leaving a standalone live disk
 // ---------------------------------------------------------------------------
 TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
 {
@@ -312,29 +299,26 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     // Verify initial structure
     expect_chain(
         snapshot_path(*s3),
-        {snapshot_path(*s3), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0), base()});
+        {snapshot_path(*s3), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(
         snapshot_path(*s2b),
-        {snapshot_path(*s2b), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0), base()});
+        {snapshot_path(*s2b), snapshot_path(*s2), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s1b1),
                  {snapshot_path(*s1b1),
                   snapshot_path(*s1b),
                   snapshot_path(*s1),
-                  snapshot_path(*s0),
-                  base()});
+                  snapshot_path(*s0)});
     expect_chain(snapshot_path(*s1b2),
                  {snapshot_path(*s1b2),
                   snapshot_path(*s1b),
                   snapshot_path(*s1),
-                  snapshot_path(*s0),
-                  base()});
-    expect_chain(head(),
-                 {head(),
+                  snapshot_path(*s0)});
+    expect_chain(base(),
+                 {base(),
                   snapshot_path(*s1b2),
                   snapshot_path(*s1b),
                   snapshot_path(*s1),
-                  snapshot_path(*s0),
-                  base()});
+                  snapshot_path(*s0)});
 
     // Phase 1: erase s2
     s3->set_parent(s1);
@@ -343,31 +327,30 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
 
     expect_gone(s2);
     expect_chain(snapshot_path(*s3),
-                 {snapshot_path(*s3), snapshot_path(*s1), snapshot_path(*s0), base()});
+                 {snapshot_path(*s3), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s2b),
-                 {snapshot_path(*s2b), snapshot_path(*s1), snapshot_path(*s0), base()});
-    expect_chain(head(),
-                 {head(),
+                 {snapshot_path(*s2b), snapshot_path(*s1), snapshot_path(*s0)});
+    expect_chain(base(),
+                 {base(),
                   snapshot_path(*s1b2),
                   snapshot_path(*s1b),
                   snapshot_path(*s1),
-                  snapshot_path(*s0),
-                  base()});
+                  snapshot_path(*s0)});
 
-    // Phase 2: erase s1b (head is grandchild via s1b2)
+    // Phase 2: erase s1b (the live disk is a grandchild via s1b2)
     s1b1->set_parent(s1);
     s1b2->set_parent(s1);
     drop(s1b);
 
     expect_gone(s1b);
     expect_chain(snapshot_path(*s1b1),
-                 {snapshot_path(*s1b1), snapshot_path(*s1), snapshot_path(*s0), base()});
+                 {snapshot_path(*s1b1), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s1b2),
-                 {snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0), base()});
-    expect_chain(head(),
-                 {head(), snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0), base()});
+                 {snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
+    expect_chain(base(),
+                 {base(), snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
 
-    // Phase 3: erase s1 (4 snapshot children + head via s1b2)
+    // Phase 3: erase s1 (4 snapshot children + live disk via s1b2)
     s3->set_parent(s0);
     s2b->set_parent(s0);
     s1b1->set_parent(s0);
@@ -376,65 +359,60 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
 
     expect_gone(s1);
     for (const auto& ss : {s3, s2b, s1b1, s1b2})
-        expect_chain(snapshot_path(*ss), {snapshot_path(*ss), snapshot_path(*s0), base()});
-    expect_chain(head(), {head(), snapshot_path(*s1b2), snapshot_path(*s0), base()});
+        expect_chain(snapshot_path(*ss), {snapshot_path(*ss), snapshot_path(*s0)});
+    expect_chain(base(), {base(), snapshot_path(*s1b2), snapshot_path(*s0)});
 
     // Phase 4: apply every survivor
     s3->apply();
-    expect_chain(head(), {head(), snapshot_path(*s3), snapshot_path(*s0), base()});
+    expect_chain(base(), {base(), snapshot_path(*s3), snapshot_path(*s0)});
 
     s2b->apply();
-    expect_chain(head(), {head(), snapshot_path(*s2b), snapshot_path(*s0), base()});
+    expect_chain(base(), {base(), snapshot_path(*s2b), snapshot_path(*s0)});
 
     s1b1->apply();
-    expect_chain(head(), {head(), snapshot_path(*s1b1), snapshot_path(*s0), base()});
+    expect_chain(base(), {base(), snapshot_path(*s1b1), snapshot_path(*s0)});
 
     s1b2->apply();
-    expect_chain(head(), {head(), snapshot_path(*s1b2), snapshot_path(*s0), base()});
+    expect_chain(base(), {base(), snapshot_path(*s1b2), snapshot_path(*s0)});
 
     s0->apply();
-    expect_chain(head(), {head(), snapshot_path(*s0), base()});
+    expect_chain(base(), {base(), snapshot_path(*s0)});
 
     // Phase 5: delete all leaves, then root
     for (auto leaf : {s3, s2b, s1b1, s1b2})
         drop(leaf);
 
-    expect_chain(head(), {head(), snapshot_path(*s0), base()});
+    expect_chain(base(), {base(), snapshot_path(*s0)});
 
     drop(s0);
-    expect_collapsed_to_base();
+    expect_standalone_live_disk();
 }
 
 // ---------------------------------------------------------------------------
-// 8. Snapshotting again after a collapse rebuilds a fresh chain
-// Deleting the last snapshot collapses head into base; taking a new snapshot must
-// build base <- s1 <- head from the standalone base again.
+// 8. Snapshotting again after deleting the last snapshot rebuilds a fresh chain
 // ---------------------------------------------------------------------------
-TEST_F(VirtDiskSnapshotErase, snapshot_after_collapse_rebuilds_chain)
+TEST_F(VirtDiskSnapshotErase, snapshot_after_last_delete_rebuilds_chain)
 {
     auto s0 = take("s0");
     drop(s0);
-    expect_collapsed_to_base();
+    expect_standalone_live_disk();
 
     auto s1 = take("s1");
-    expect_chain(head(), {head(), snapshot_path(*s1), base()});
-    expect_chain(snapshot_path(*s1), {snapshot_path(*s1), base()});
+    expect_chain(base(), {base(), snapshot_path(*s1)});
+    expect_chain(snapshot_path(*s1), {snapshot_path(*s1)});
 }
 
 // ---------------------------------------------------------------------------
-// 9. Collapsed base is directly resizable
-// The whole point of eager collapse: once the last snapshot is gone and the head has
-// been folded back into the base, the base is a standalone disk that can be resized
-// again (resizing a differencing chain is not possible).
+// 9. The live disk is directly resizable after the last snapshot is deleted
 // ---------------------------------------------------------------------------
-TEST_F(VirtDiskSnapshotErase, collapsed_base_is_resizable)
+TEST_F(VirtDiskSnapshotErase, live_disk_is_resizable_after_last_delete)
 {
     auto s0 = take("s0");
     drop(s0);
-    expect_collapsed_to_base();
+    expect_standalone_live_disk();
 
     EXPECT_TRUE(VirtDisk().resize_virtual_disk(base(), vhdx_size * 2))
-        << "collapsed base disk must be resizable";
+        << "standalone live disk must be resizable";
 }
 
 } // namespace multipass::test
