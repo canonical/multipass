@@ -31,6 +31,12 @@ namespace
 {
 struct TestPlainSSHProcess : public Test
 {
+    TestPlainSSHProcess()
+    {
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
+    }
+
     mp::PlainSSHProcess make_ssh_process(const std::string& cmd = "cmd")
     {
         return mp::PlainSSHProcess{*fake_session, cmd, std::unique_lock{mutex}};
@@ -59,9 +65,17 @@ TEST_F(TestPlainSSHProcess, execThrowsOnADeadSession)
 TEST_F(TestPlainSSHProcess, execThrowsWhenUnableToOpenAChannelSession)
 {
     constexpr auto err = "mocked error";
-    ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
-    ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
     EXPECT_CALL(mock_libssh, ssh_channel_open_session).WillOnce(Return(SSH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_get_error(fake_session)).WillOnce(Return(err));
+
+    MP_EXPECT_THROW_THAT(make_ssh_process(), mp::SSHException, mpt::match_what(HasSubstr(err)));
+}
+
+TEST_F(TestPlainSSHProcess, execThrowsWhenUnableToRequestChannelExec)
+{
+    constexpr auto err = "mocked error";
+    ON_CALL(mock_libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillOnce(Return(SSH_ERROR));
     EXPECT_CALL(mock_libssh, ssh_get_error(fake_session)).WillOnce(Return(err));
 
     MP_EXPECT_THROW_THAT(make_ssh_process(), mp::SSHException, mpt::match_what(HasSubstr(err)));
