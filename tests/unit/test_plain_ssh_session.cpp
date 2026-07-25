@@ -42,10 +42,9 @@ static_assert(std::is_move_assignable_v<mp::PlainSSHSession>);
 static_assert(!std::is_copy_constructible_v<mp::SSHSession>);
 static_assert(!std::is_copy_assignable_v<mp::SSHSession>);
 
-// TODO@sftp transfer premock-based session tests to this scheme; then, rename this file/suite
-struct TestPlainSSHSessionMockedLibssh : public Test
+struct TestPlainSSHSession : public Test
 {
-    TestPlainSSHSessionMockedLibssh()
+    TestPlainSSHSession()
     {
         ON_CALL(mock_libssh, ssh_new()).WillByDefault(Return(fake_session));
         ON_CALL(mock_libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
@@ -76,13 +75,13 @@ struct TestPlainSSHSessionMockedLibssh : public Test
 };
 } // namespace
 
-TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToAllocateSession)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToAllocateSession)
 {
     EXPECT_CALL(mock_libssh, ssh_new()).WillOnce(Return(nullptr));
     EXPECT_THROW(make_ssh_session(), mp::SSHException);
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToSetOption)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToSetOption)
 {
     constexpr auto err = "mocked error";
     EXPECT_CALL(mock_libssh, ssh_options_set).WillOnce(Return(SSH_ERROR));
@@ -91,7 +90,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToSetOption)
     MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToConnect)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToConnect)
 {
     constexpr auto err = "mocked error";
     EXPECT_CALL(mock_libssh, ssh_connect).WillOnce(Return(SSH_ERROR));
@@ -100,7 +99,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToConnect)
     MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToAuth)
+TEST_F(TestPlainSSHSession, throwsWhenUnableToAuth)
 {
     constexpr auto err = "mocked error";
     EXPECT_CALL(mock_libssh, ssh_userauth_publickey).WillOnce(Return(SSH_AUTH_ERROR));
@@ -109,7 +108,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, throwsWhenUnableToAuth)
     MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGivenCommand)
+TEST_F(TestPlainSSHSession, execPlainReturnsConcreteProcessRunningGivenCommand)
 {
     auto session = make_ssh_session();
     EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq("ls -la")))
@@ -121,7 +120,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, execPlainReturnsConcreteProcessRunningGi
     EXPECT_EQ(proc->get_cmd(), "ls -la");
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, execPlainThrowsOnDisconnectedSession)
+TEST_F(TestPlainSSHSession, execPlainThrowsOnDisconnectedSession)
 {
     auto session = make_ssh_session();
     EXPECT_CALL(mock_libssh, ssh_is_connected(fake_session)).WillOnce(Return(0));
@@ -131,7 +130,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, execPlainThrowsOnDisconnectedSession)
                          mpt::match_what(HasSubstr("not connected")));
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, execProducesPlainProcess)
+TEST_F(TestPlainSSHSession, execProducesPlainProcess)
 {
     auto session = make_ssh_session();
 
@@ -141,7 +140,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, execProducesPlainProcess)
     EXPECT_THAT(dynamic_cast<mp::PlainSSHProcess*>(proc.get()), NotNull());
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, moveConstructionLeavesSourceMoved)
+TEST_F(TestPlainSSHSession, moveConstructionLeavesSourceMoved)
 {
     auto session1 = make_ssh_session();
     EXPECT_FALSE(session1.is_moved());
@@ -152,7 +151,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, moveConstructionLeavesSourceMoved)
     EXPECT_FALSE(session2.is_moved());
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, moveAssignmentTransfersUnderlyingSession)
+TEST_F(TestPlainSSHSession, moveAssignmentTransfersUnderlyingSession)
 {
     auto other_session = reinterpret_cast<ssh_session>(bad_addr_too);
     EXPECT_CALL(mock_libssh, ssh_new())
@@ -171,7 +170,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, moveAssignmentTransfersUnderlyingSession
     ASSERT_THAT(session1.exec_plain("cmd"), NotNull());
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, movedSessionReleasesOnce)
+TEST_F(TestPlainSSHSession, movedSessionReleasesOnce)
 {
     EXPECT_CALL(mock_libssh, ssh_free(fake_session)).Times(1);
     EXPECT_CALL(mock_libssh, ssh_disconnect(fake_session)).Times(1);
@@ -180,7 +179,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, movedSessionReleasesOnce)
     auto session2 = std::move(session1);
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, forceShutdownCallsShutdownSocketWhenFdIsValid)
+TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
 {
     constexpr socket_t fake_fd = 5;
     auto session = make_ssh_session();
@@ -192,7 +191,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, forceShutdownCallsShutdownSocketWhenFdIs
     session.shutdown_custom_socket();
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, forceShutdownSkipsShutdownSocketWhenNoFd)
+TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
 {
     auto session = make_ssh_session();
 
@@ -201,7 +200,7 @@ TEST_F(TestPlainSSHSessionMockedLibssh, forceShutdownSkipsShutdownSocketWhenNoFd
     session.shutdown_custom_socket();
 }
 
-TEST_F(TestPlainSSHSessionMockedLibssh, dtorCallsShutdownSocket)
+TEST_F(TestPlainSSHSession, dtorCallsShutdownSocket)
 {
     constexpr socket_t fake_fd = 12;
     EXPECT_CALL(mock_libssh, ssh_get_fd(fake_session)).WillOnce(Return(fake_fd));
