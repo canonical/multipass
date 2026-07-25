@@ -40,24 +40,28 @@ struct TestPlainSSHSession : public Test
 };
 } // namespace
 
+// Replaced by TestPlainSSHSessionMockedLibssh.throwsWhenUnableToAllocateSession
 TEST_F(TestPlainSSHSession, throwsWhenUnableToAllocateSession)
 {
     REPLACE(ssh_new, []() { return nullptr; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.throwsWhenUnableToSetOption
 TEST_F(TestPlainSSHSession, throwsWhenUnableToSetOption)
 {
     REPLACE(ssh_options_set, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.throwsWhenUnableToConnect
 TEST_F(TestPlainSSHSession, throwsWhenUnableToConnect)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_ERROR; });
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.throwsWhenUnableToAuth
 TEST_F(TestPlainSSHSession, throwsWhenUnableToAuth)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -65,6 +69,7 @@ TEST_F(TestPlainSSHSession, throwsWhenUnableToAuth)
     EXPECT_THROW(make_ssh_session(), std::runtime_error);
 }
 
+// Replaced by TestPlainSSHProcess.execThrowsOnADeadSession
 TEST_F(TestPlainSSHSession, execThrowsOnADeadSession)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -75,6 +80,7 @@ TEST_F(TestPlainSSHSession, execThrowsOnADeadSession)
     EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
+// Duplicate of execThrowsOnADeadSession above
 TEST_F(TestPlainSSHSession, execThrowsIfSshIsDead)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -85,6 +91,7 @@ TEST_F(TestPlainSSHSession, execThrowsIfSshIsDead)
     EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
+// Replaced by TestPlainSSHProcess.execThrowsWhenUnableToOpenAChannelSession
 TEST_F(TestPlainSSHSession, execThrowsWhenUnableToOpenAChannelSession)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -96,6 +103,7 @@ TEST_F(TestPlainSSHSession, execThrowsWhenUnableToOpenAChannelSession)
     EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
+// Replaced by TestPlainSSHProcess.execThrowsWhenUnableToRequestChannelExec
 TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -108,6 +116,8 @@ TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
     EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.execPlainReturnsConcreteProcessRunningGivenCommand
+// and TestPlainSSHSessionMockedLibssh.execProducesPlainProcess
 TEST_F(TestPlainSSHSession, execSucceeds)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -121,6 +131,7 @@ TEST_F(TestPlainSSHSession, execSucceeds)
     EXPECT_NO_THROW(static_cast<void>(session.exec("dummy")));
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.moveAssignmentTransfersUnderlyingSession
 TEST_F(TestPlainSSHSession, moveAssigns)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -134,6 +145,7 @@ TEST_F(TestPlainSSHSession, moveAssigns)
     EXPECT_EQ(ssh_session{session2}, nullptr);
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.forceShutdownCallsShutdownSocketWhenFdIsValid
 TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
 {
     constexpr socket_t fake_fd = 5;
@@ -149,6 +161,7 @@ TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
     session.shutdown_custom_socket();
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.forceShutdownSkipsShutdownSocketWhenNoFd
 TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
 {
     REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
@@ -162,6 +175,7 @@ TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
     session.shutdown_custom_socket();
 }
 
+// Replaced by TestPlainSSHSessionMockedLibssh.dtorCallsShutdownSocket
 TEST_F(TestPlainSSHSession, dtorCallsShutdownSocket)
 {
     constexpr socket_t fake_fd = 12;
