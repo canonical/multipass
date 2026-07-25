@@ -38,12 +38,12 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
 
 * On **Windows**, download the installer [from GitHub](https://github.com/canonical/multipass/releases).
 
-For more information, see [How to install Multipass](https://canonical.com/multipass/docs/install-multipass).
+For more information, see [How to install Multipass](https://canonical.com/multipass/docs/stable/how-to-guides/install-multipass/).
 
 # Usage
 
 Here are some pointers to get started with Multipass. For a more comprehensive learning experience, please check out the
-Multipass [Tutorial](https://canonical.com/multipass/docs/tutorial).
+Multipass [Tutorial](https://canonical.com/multipass/docs/stable/tutorial/).
 
 ## Find available images
 
