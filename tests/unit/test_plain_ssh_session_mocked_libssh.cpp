@@ -17,9 +17,11 @@
 
 #include "common.h"
 #include "mock_libssh.h"
+#include "mock_platform.h"
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/socket.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
 
@@ -176,4 +178,36 @@ TEST_F(TestPlainSSHSessionMockedLibssh, movedSessionReleasesOnce)
 
     auto session1 = make_ssh_session();
     auto session2 = std::move(session1);
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, forceShutdownCallsShutdownSocketWhenFdIsValid)
+{
+    constexpr socket_t fake_fd = 5;
+    auto session = make_ssh_session();
+
+    ON_CALL(mock_libssh, ssh_get_fd(fake_session)).WillByDefault(Return(fake_fd));
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
+    session.shutdown_custom_socket();
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, forceShutdownSkipsShutdownSocketWhenNoFd)
+{
+    auto session = make_ssh_session();
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket).Times(0);
+    session.shutdown_custom_socket();
+}
+
+TEST_F(TestPlainSSHSessionMockedLibssh, dtorCallsShutdownSocket)
+{
+    constexpr socket_t fake_fd = 12;
+    EXPECT_CALL(mock_libssh, ssh_get_fd(fake_session)).WillOnce(Return(fake_fd));
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
+
+    auto session = make_ssh_session();
 }
