@@ -112,7 +112,7 @@ add_executable(multipass_cpp_tests
   test_persistent_settings_handler.cpp
   test_plain_sftp_session.cpp
   test_plain_ssh_process.cpp
-  test_plain_ssh_session_mocked_libssh.cpp
+  test_plain_ssh_session.cpp
   test_private_pass_provider.cpp
   test_qemu_img_utils.cpp
   test_qemuimg_process_spec.cpp
