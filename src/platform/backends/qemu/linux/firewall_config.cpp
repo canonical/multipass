@@ -326,22 +326,6 @@ void clear_firewall_rules_for(const QString& firewall,
     }
 }
 
-bool is_firewall_in_use(const QString& firewall)
-{
-
-    return std::any_of(
-        firewall_tables.cbegin(),
-        firewall_tables.cend(),
-        [&firewall](const QString& table) {
-            QRegularExpression re{"^-[ARIN]"};
-            auto rule_lines = get_firewall_rules(firewall, table).split('\n');
-
-            return std::any_of(rule_lines.cbegin(), rule_lines.cend(), [&re](const QString& line) {
-                return re.match(line).hasMatch();
-            });
-        });
-}
-
 // We require a >= 5.2 kernel to avoid weird conflicts with xtables and support for inet table NAT
 // rules. Taken from LXD :)
 bool kernel_supports_nftables()
@@ -367,20 +351,111 @@ bool kernel_supports_nftables()
     }
 }
 
+// Check the system's default iptables backend by resolving the /usr/sbin/iptables symlink.
+// This properly detects whether the system is configured to use iptables-nft or iptables-legacy,
+// which is more reliable than checking for rule presence since both backends share the same
+// kernel netfilter ruleset.
+QString detect_firewall_from_system_config()
+{
+    // Try to read what /usr/sbin/iptables points to
+    auto process = MP_PROCFACTORY.create_process(
+        QStringLiteral("/bin/sh"), QStringList{QStringLiteral("-c"),
+                                               QStringLiteral("readlink /usr/sbin/iptables")});
+
+    if (const auto exit_state = process->execute(); exit_state.completed_successfully())
+    {
+        const auto link_target = process->read_all_standard_output();
+        if (link_target.contains("iptables-nft"))
+        {
+            mpl::info(category, "System iptables defaults to nft backend");
+            return nftables;
+        }
+        if (link_target.contains("iptables-legacy"))
+        {
+            mpl::info(category, "System iptables defaults to legacy backend");
+            return iptables;
+        }
+    }
+
+    // If readlink fails or returns unexpected value, fall back to kernel-based detection
+    mpl::info(category, "Could not determine system iptables preference, using kernel check");
+    return QString();
+}
+
 QString detect_firewall()
 {
     QString firewall_exec;
-    try
+
+    // First, check the system's default iptables configuration
+    QString system_preference = detect_firewall_from_system_config();
+
+    if (!system_preference.isEmpty())
     {
-        firewall_exec = kernel_supports_nftables() &&
-                                (is_firewall_in_use(nftables) || !is_firewall_in_use(iptables))
-                            ? nftables
-                            : iptables;
+        firewall_exec = system_preference;
     }
-    catch (const FirewallException& e)
+    else
     {
-        firewall_exec = iptables;
-        mpl::log_message(mpl::Level::warning, category, e.what());
+        // Fall back to checking which backend has rules if we can't determine system preference.
+        // This is a best-effort heuristic when system configuration is unavailable.
+        bool nft_in_use = false;
+        bool legacy_in_use = false;
+
+        try
+        {
+            // Check iptables-nft first
+            nft_in_use = [&]() {
+                try
+                {
+                    return std::any_of(
+                        firewall_tables.cbegin(),
+                        firewall_tables.cend(),
+                        [&nftables](const QString& table) {
+                            QRegularExpression re{"^-[ARIN]"};
+                            auto rule_lines = get_firewall_rules(nftables, table).split('\n');
+                            return std::any_of(rule_lines.cbegin(), rule_lines.cend(),
+                                               [&re](const QString& line) {
+                                                   return re.match(line).hasMatch();
+                                               });
+                        });
+                }
+                catch (const FirewallException&)
+                {
+                    return false;
+                }
+            }();
+
+            // Check iptables-legacy
+            legacy_in_use = [&]() {
+                try
+                {
+                    return std::any_of(
+                        firewall_tables.cbegin(),
+                        firewall_tables.cend(),
+                        [&iptables](const QString& table) {
+                            QRegularExpression re{"^-[ARIN]"};
+                            auto rule_lines = get_firewall_rules(iptables, table).split('\n');
+                            return std::any_of(rule_lines.cbegin(), rule_lines.cend(),
+                                               [&re](const QString& line) {
+                                                   return re.match(line).hasMatch();
+                                               });
+                        });
+                }
+                catch (const FirewallException&)
+                {
+                    return false;
+                }
+            }();
+        }
+        catch (const FirewallException& e)
+        {
+            mpl::log_message(mpl::Level::warning, category, e.what());
+        }
+
+        // Use nftables if kernel supports it and either:
+        // - nftables has rules (another tool using it), OR
+        // - legacy has no rules (clean system, prefer modern backend)
+        firewall_exec = kernel_supports_nftables() && (nft_in_use || !legacy_in_use) ? nftables
+                                                                                     : iptables;
     }
 
     mpl::info(category, "Using {} for firewall rules.", firewall_exec);
