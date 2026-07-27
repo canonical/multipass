@@ -329,32 +329,38 @@ int mp::PlainSSHProcess::event_dopoll(sch::milliseconds timeout,
     while ((sch::steady_clock::now() < deadline) && rc != SSH_ERROR && while_condition() &&
            is_active())
     {
-        auto current_timeout = deadline - sch::steady_clock::now();
-        rc = ssh_event_dopoll(event.get(), current_timeout.count());
-    }
-
-    if (while_condition())
-    {
+        auto remaining = sch::duration_cast<sch::milliseconds>(deadline - sch::steady_clock::now());
+        int ms =
+            static_cast<int>(std::clamp<sch::milliseconds::rep>(remaining.count(),
+                                                                0,
+                                                                std::numeric_limits<int>::max()));
+        rc = ssh_event_dopoll(event.get(), ms);
         if (rc == SSH_ERROR)
         {
-            // SSH_ERROR with no closed or eof means that ::poll returned <0. Further polling will
-            // fail (unless the error was EINTR).
-            auto local_errno{MP_PLATFORM.get_errno()};
-            if (local_errno != EINTR)
-            {
-                channel_closed = true;
-                channel_eof = true;
-            }
+            if (MP_PLATFORM.get_errno() == EINTR)
+                rc = SSH_OK;
+            else
+                break;
         }
-        else if (rc == SSH_OK && !is_active())
-            // Channel closed gracefully without filling condition
-            // Signal with separate code
-            rc = SSH_EOF;
-        else
-            // SSH_AGAIN or chrono timeout
-            rc = SSH_AGAIN;
     }
-    return rc;
+
+    if (!while_condition())
+        return rc;
+    if (rc == SSH_ERROR)
+    {
+        // SSH_ERROR with no closed or eof means that ::poll returned <0. Further polling will
+        // fail (unless the error was EINTR).
+        channel_closed = true;
+        channel_eof = true;
+        return SSH_ERROR;
+    }
+    else if (!is_active())
+        // Channel closed gracefully without filling condition
+        // Signal with separate code
+        return SSH_EOF;
+    else
+        // SSH_AGAIN or chrono timeout
+        return SSH_AGAIN;
 }
 
 bool mp::PlainSSHProcess::is_terminated(sch::milliseconds timeout)
