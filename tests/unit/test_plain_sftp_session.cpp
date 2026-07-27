@@ -146,3 +146,27 @@ TEST_F(TestPlainSftpSession, releasesConsumedSessionOnce)
 
     EXPECT_TRUE(session.is_moved());
 }
+
+TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
+{
+    sshfs_exit_code = 0; // sshfs reports success promptly; construction should still succeed
+
+    auto session = make_ssh_session();
+    ASSERT_FALSE(session.is_moved());
+
+    sftp_session_struct fake_sftp_session{};
+    fake_sftp_session.channel = fake_channel;
+    sftp_client_message_struct fake_client_msg{};
+    fake_client_msg.type = SSH_FXP_INIT;
+
+    // borrow_session/borrow_channel are private-pass-gated and called nowhere but here (the ctor
+    // below), so this expectation on their sftp_server_new args is the only way to check them.
+    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
+        .WillOnce(Return(&fake_sftp_session));
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_session))
+        .WillOnce(Return(&fake_client_msg));
+    EXPECT_CALL(mock_libssh, sftp_reply_version(&fake_client_msg)).WillOnce(Return(SSH_OK));
+
+    EXPECT_THAT(std::move(session).make_sftp_session("sshfs -o slave"), NotNull());
+}
