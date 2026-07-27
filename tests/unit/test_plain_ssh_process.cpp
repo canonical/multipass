@@ -39,7 +39,7 @@ struct TestPlainSSHProcess : public Test
 
     mp::PlainSSHProcess make_ssh_process(const std::string& cmd = "cmd")
     {
-        return mp::PlainSSHProcess{*fake_session, cmd, std::unique_lock{mutex}};
+        return mp::PlainSSHProcess{fake_session, cmd, std::unique_lock{mutex}};
     }
 
     mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
