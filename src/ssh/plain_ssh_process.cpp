@@ -70,24 +70,24 @@ private:
     int registered{};
 };
 
-auto make_channel(ssh_session session, const std::string& cmd)
+auto make_channel(ssh_session raw_session, const std::string& cmd)
 {
-    if (!MP_LIBSSH.ssh_is_connected(session))
+    if (!MP_LIBSSH.ssh_is_connected(raw_session))
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
             cmd));
 
     mp::PlainSSHProcess::ChannelUPtr channel{
-        MP_LIBSSH.ssh_channel_new(session),
+        MP_LIBSSH.ssh_channel_new(raw_session),
         [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
     mp::SSH::throw_on_error(
         channel,
-        session,
+        raw_session,
         "[ssh proc] failed to open session channel",
         std::bind_front(&mp::Libssh::ssh_channel_open_session, &mp::Libssh::instance()));
     mp::SSH::throw_on_error(
         channel,
-        session,
+        raw_session,
         "[ssh proc] exec request failed",
         std::bind_front(&mp::Libssh::ssh_channel_request_exec, &mp::Libssh::instance()),
         cmd.c_str());
@@ -96,14 +96,14 @@ auto make_channel(ssh_session session, const std::string& cmd)
 
 } // namespace
 
-mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
+mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& raw_session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
     : session_lock{std::move(
           session_lock)}, // this is held until the exit code is requested or this is destroyed
-      session{&session},
+      raw_session{&raw_session},
       cmd{cmd},
-      channel{make_channel(this->session, cmd)},
+      channel{make_channel(this->raw_session, cmd)},
       exit_result{}
 {
     assert(this->session_lock.owns_lock());
@@ -162,9 +162,9 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout, bool
         err = "could not allocate event";
     else if (!cb.is_registered())
         err = "could not register callback";
-    else if ((MP_LIBSSH.ssh_event_add_session(event.get(), session) != SSH_OK))
+    else if ((MP_LIBSSH.ssh_event_add_session(event.get(), raw_session) != SSH_OK))
     {
-        const auto raw_err = MP_LIBSSH.ssh_get_error(session);
+        const auto raw_err = MP_LIBSSH.ssh_get_error(raw_session);
         err = fmt::format("could not add event to session: {}",
                           raw_err && *raw_err ? raw_err : "Empty error");
     }
@@ -263,7 +263,14 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
     return output.str();
 }
 
-ssh_channel mp::PlainSSHProcess::release_channel()
+ssh_channel mp::PlainSSHProcess::borrow_channel(
+    const PrivatePassProvider<PlainSftpSession>::PrivatePass&)
+{
+    auto local_lock = std::move(session_lock); // released at end; caller gets a non-owning handle
+    return channel.get();
+}
+
+ssh_channel mp::PlainSSHProcess::release_channel() // TODO@sftp remove entirely
 {
     // released at the end; callers are on their own to ensure thread safety
     auto local_lock = std::move(session_lock);
