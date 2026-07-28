@@ -38,15 +38,15 @@ public:
     {
     private:
         constexpr PrivatePass() = default;
-        friend class PrivatePassProvider<T>;
+        friend class PrivatePassProvider;
     };
 
 private:
-    static constexpr const PrivatePass pass{}; // token to prove friendship
+    static constexpr PrivatePass pass{}; // token to prove friendship
     friend T;
 };
 } // namespace multipass
 
 template <typename T>
-constexpr const typename multipass::PrivatePassProvider<T>::PrivatePass
+constexpr multipass::PrivatePassProvider<T>::PrivatePass
     multipass::PrivatePassProvider<T>::pass;
