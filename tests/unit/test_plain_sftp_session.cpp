@@ -103,7 +103,7 @@ struct TestPlainSftpSession : public Test
 
 TEST_F(TestPlainSftpSession, makeSftpSessionRunsSshfsCommand)
 {
-    sshfs_exit_code = 1; // TODO@sftp mock success path instead
+    sshfs_exit_code = 1;
 
     auto session = make_ssh_session();
     EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq("sshfs -o slave")))
