@@ -1142,11 +1142,16 @@ INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          DaemonCreateLaunchPollinateDataTestSuite,
                          Combine(Values("launch", "test_create"), Values("foo", "")));
-INSTANTIATE_TEST_SUITE_P(Daemon,
+INSTANTIATE_TEST_SUITE_P(DaemonMemory,
                          MinSpaceRespectedSuite,
                          Combine(Values("test_create", "launch"),
-                                 Values("--memory", "--disk"),
-                                 Values("1024m", "2Gb", "987654321")));
+                                 Values("--memory"),
+                                 Values("512m", "1024m", "2Gb", "987654321")));
+INSTANTIATE_TEST_SUITE_P(DaemonDisk,
+                         MinSpaceRespectedSuite,
+                         Combine(Values("test_create", "launch"),
+                                 Values("--disk"),
+                                 Values("1024m", "2Gb", "1073741824", "9876543210")));
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          MinSpaceViolatedSuite,
                          Combine(Values("test_create", "launch"),
