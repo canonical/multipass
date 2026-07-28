@@ -48,5 +48,4 @@ private:
 } // namespace multipass
 
 template <typename T>
-constexpr multipass::PrivatePassProvider<T>::PrivatePass
-    multipass::PrivatePassProvider<T>::pass;
+constexpr multipass::PrivatePassProvider<T>::PrivatePass multipass::PrivatePassProvider<T>::pass;
