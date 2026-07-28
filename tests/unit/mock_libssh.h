@@ -90,7 +90,7 @@ public:
                 (const, override));
 
     // --- channel callbacks ---------------------------------------------------
-    MOCK_METHOD(void, ssh_callbacks_initialization, (ssh_channel_callbacks cb), (const, override));
+    MOCK_METHOD(void, ssh_callbacks_initialize, (ssh_channel_callbacks cb), (const, override));
     MOCK_METHOD(int,
                 ssh_add_channel_callbacks,
                 (ssh_channel channel, ssh_channel_callbacks cb),
