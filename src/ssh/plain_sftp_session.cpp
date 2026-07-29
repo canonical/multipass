@@ -17,6 +17,7 @@
 
 #include <multipass/ssh/plain_sftp_session.h>
 
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_sftp_message.h>
@@ -163,4 +164,16 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
     }
 
     return raw_msg ? std::make_unique<PlainSftpMessage>(*raw_msg) : nullptr;
+}
+
+bool mp::PlainSftpSession::client_failed()
+{
+    try
+    {
+        return sshfs_process->exit_code(250ms) != 0; // TODO@sftp distinguish 0 from no return
+    }
+    catch (const ExitlessSSHProcessException&)
+    {
+        return true;
+    }
 }

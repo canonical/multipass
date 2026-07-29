@@ -65,6 +65,14 @@ public:
 
     std::unique_ptr<SftpMessage> next_message() override;
 
+    /**
+     * @copydoc SftpSession::client_failed
+     *
+     * This waits briefly for the sshfs process to exit. When its exit status cannot be obtained
+     * (e.g. timeout or SSH error), failure is assumed.
+     */
+    bool client_failed() override;
+
 private:
     struct RawSftpSessionDeleter
     {

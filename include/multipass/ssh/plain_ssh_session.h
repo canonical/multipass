@@ -78,7 +78,7 @@ public: // but restricted
     /**
      * Obtain a non-owning libssh session handle.
      * The caller adopts thread-safety responsibility for the underlying session with respect to
-     * this SSHSession
+     * this SSHSession.
      *
      * @pre !this->is_moved()
      */

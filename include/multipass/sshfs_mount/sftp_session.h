@@ -54,6 +54,17 @@ public:
      */
     virtual std::unique_ptr<SftpMessage> next_message() = 0;
 
+    /**
+     * Tell whether the remote client failed.
+     *
+     * Call this method after #next_message() returns `nullptr` without a stop request, to
+     * distinguish a client failure from a graceful end of the connection.
+     *
+     * @return True if the remote client terminated abnormally or its success could not be
+     * confirmed; false if it exited successfully.
+     */
+    virtual bool client_failed() = 0;
+
 protected:
     SftpSession() = default;
 };
