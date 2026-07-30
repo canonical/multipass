@@ -25,6 +25,7 @@
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/sshfs_mount/sftp_protocol.h>
 #include <multipass/utils.h>
 
 #include <QDir>
@@ -275,27 +276,33 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
              : found->first;
 }
 
-constexpr bool follows_symlinks(uint8_t type)
+constexpr bool follows_symlinks(mp::SftpMessageType type)
 {
     switch (type)
     {
-    case SSH_FXP_OPEN:
-    case SSH_FXP_OPENDIR:
-    case SSH_FXP_REALPATH:
-    case SSH_FXP_SETSTAT:
-    case SSH_FXP_STAT:
+    case mp::SftpMessageType::open:
+    case mp::SftpMessageType::opendir:
+    case mp::SftpMessageType::realpath:
+    case mp::SftpMessageType::setstat:
+    case mp::SftpMessageType::stat:
         return true;
-    case SSH_FXP_LSTAT:
-    case SSH_FXP_READLINK:
-    case SSH_FXP_REMOVE:
-    case SSH_FXP_RMDIR:
-    case SSH_FXP_MKDIR:
-    case SSH_FXP_RENAME:
-    case SSH_FXP_SYMLINK:
+    case mp::SftpMessageType::lstat:
+    case mp::SftpMessageType::readlink:
+    case mp::SftpMessageType::remove:
+    case mp::SftpMessageType::rmdir:
+    case mp::SftpMessageType::mkdir:
+    case mp::SftpMessageType::rename:
+    case mp::SftpMessageType::symlink:
         return false;
     default:
         return false; // Fail-safe default
     }
+}
+
+// TODO@sftp dump once handlers take SftpMessage
+mp::SftpMessageType type_of(sftp_client_message msg)
+{
+    return static_cast<mp::SftpMessageType>(MP_LIBSSH.sftp_client_message_get_type(msg));
 }
 } // namespace
 
@@ -339,15 +346,15 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
     attr.permissions = to_unix_permissions(file_info.permissions());
     attr.atime = file_info.lastRead().toUTC().toMSecsSinceEpoch() / 1000;
     attr.mtime = file_info.lastModified().toUTC().toMSecsSinceEpoch() / 1000;
-    attr.flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_UIDGID | SSH_FILEXFER_ATTR_PERMISSIONS |
-                 SSH_FILEXFER_ATTR_ACMODTIME;
+    attr.flags = SftpAttrFlags::size | SftpAttrFlags::uidgid | SftpAttrFlags::permissions |
+                 SftpAttrFlags::acmodtime;
 
     if (file_info.isSymLink())
-        attr.permissions |= SSH_S_IFLNK | 0777;
+        attr.permissions |= SftpFileMode::symlink | 0777;
     else if (file_info.isDir())
-        attr.permissions |= SSH_S_IFDIR;
+        attr.permissions |= SftpFileMode::directory;
     else if (file_info.isFile())
-        attr.permissions |= SSH_S_IFREG;
+        attr.permissions |= SftpFileMode::regular;
 
     return attr;
 }
@@ -465,7 +472,7 @@ fs::path mp::SftpServer::get_absolute_path(const char* path) const
 
 std::optional<fs::path> mp::SftpServer::get_validated_path(sftp_client_message msg) const
 {
-    bool follows{follows_symlinks(MP_LIBSSH.sftp_client_message_get_type(msg))};
+    bool follows{follows_symlinks(type_of(msg))};
     const auto path = get_absolute_path(MP_LIBSSH.sftp_client_message_get_filename(msg));
     if (!validate_path(path, follows))
     {
@@ -499,60 +506,60 @@ std::string mp::SftpServer::host_to_guest_path(const fs::path& host_path) const
 void mp::SftpServer::process_message(sftp_client_message msg)
 {
     int ret = 0;
-    const auto type = MP_LIBSSH.sftp_client_message_get_type(msg);
+    const auto type = type_of(msg);
     switch (type)
     {
-    case SFTP_REALPATH:
+    case SftpMessageType::realpath:
         ret = handle_realpath(msg);
         break;
-    case SFTP_OPENDIR:
+    case SftpMessageType::opendir:
         ret = handle_opendir(msg);
         break;
-    case SFTP_MKDIR:
+    case SftpMessageType::mkdir:
         ret = handle_mkdir(msg);
         break;
-    case SFTP_RMDIR:
+    case SftpMessageType::rmdir:
         ret = handle_rmdir(msg);
         break;
-    case SFTP_LSTAT:
-    case SFTP_STAT:
-        ret = handle_stat(msg, type == SFTP_STAT);
+    case SftpMessageType::lstat:
+    case SftpMessageType::stat:
+        ret = handle_stat(msg, type == SftpMessageType::stat);
         break;
-    case SFTP_FSTAT:
+    case SftpMessageType::fstat:
         ret = handle_fstat(msg);
         break;
-    case SFTP_READDIR:
+    case SftpMessageType::readdir:
         ret = handle_readdir(msg);
         break;
-    case SFTP_CLOSE:
+    case SftpMessageType::close:
         ret = handle_close(msg);
         break;
-    case SFTP_OPEN:
+    case SftpMessageType::open:
         ret = handle_open(msg);
         break;
-    case SFTP_READ:
+    case SftpMessageType::read:
         ret = handle_read(msg);
         break;
-    case SFTP_WRITE:
+    case SftpMessageType::write:
         ret = handle_write(msg);
         break;
-    case SFTP_RENAME:
+    case SftpMessageType::rename:
         ret = handle_rename(msg);
         break;
-    case SFTP_REMOVE:
+    case SftpMessageType::remove:
         ret = handle_remove(msg);
         break;
-    case SFTP_SETSTAT:
-    case SFTP_FSETSTAT:
+    case SftpMessageType::setstat:
+    case SftpMessageType::fsetstat:
         ret = handle_setstat(msg);
         break;
-    case SFTP_READLINK:
+    case SftpMessageType::readlink:
         ret = handle_readlink(msg);
         break;
-    case SFTP_SYMLINK:
+    case SftpMessageType::symlink:
         ret = handle_symlink(msg);
         break;
-    case SFTP_EXTENDED:
+    case SftpMessageType::extended:
         ret = handle_extended(msg);
         break;
     default:
@@ -657,7 +664,7 @@ int mp::SftpServer::handle_fstat(sftp_client_message msg)
 
     const auto& [path, _] = *handle;
 
-    if (!validate_path(path, follows_symlinks(MP_LIBSSH.sftp_client_message_get_type(msg))))
+    if (!validate_path(path, follows_symlinks(type_of(msg))))
     {
         mpl::trace(category,
                    "{}: cannot validate target path \'{}\' against source \'{}\'",
@@ -791,29 +798,31 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     int mode = 0;
     const auto flags = MP_LIBSSH.sftp_client_message_get_flags(msg);
 
-    if (flags & SSH_FXF_READ)
-        mode |= O_RDONLY;
+    { // TODO@sftp clarify logic - no setting/resetting
+        if (flags & SftpOpenFlags::read)
+            mode |= O_RDONLY;
 
-    if (flags & SSH_FXF_WRITE)
-        mode |= O_WRONLY;
+        if (flags & SftpOpenFlags::write)
+            mode |= O_WRONLY;
 
-    if ((flags & SSH_FXF_READ) && (flags & SSH_FXF_WRITE))
-    {
-        mode &= ~O_RDONLY;
-        mode &= ~O_WRONLY;
-        mode |= O_RDWR;
+        if ((flags & SftpOpenFlags::read) && (flags & SftpOpenFlags::write))
+        {
+            mode &= ~O_RDONLY;
+            mode &= ~O_WRONLY;
+            mode |= O_RDWR;
+        }
     }
 
-    if (flags & SSH_FXF_APPEND)
+    if (flags & SftpOpenFlags::append)
         mode |= O_APPEND;
 
-    if (flags & SSH_FXF_TRUNC)
+    if (flags & SftpOpenFlags::trunc)
         mode |= O_TRUNC;
 
-    if (flags & SSH_FXF_CREAT)
+    if (flags & SftpOpenFlags::creat)
         mode |= O_CREAT;
 
-    if (flags & SSH_FXF_EXCL)
+    if (flags & SftpOpenFlags::excl)
         mode |= O_EXCL;
 
     auto named_fd = MP_FILEOPS.open_fd(*filename, mode, msg->attr ? msg->attr->permissions : 0);
@@ -1142,7 +1151,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 {
     fs::path filename;
 
-    if (MP_LIBSSH.sftp_client_message_get_type(msg) == SFTP_FSETSTAT)
+    if (type_of(msg) == SftpMessageType::fsetstat)
     {
         const auto handle = get_handle<NamedFd>(msg);
         if (handle == nullptr)
@@ -1183,7 +1192,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         return reply_perm_denied(msg);
     }
 
-    if (msg->attr->flags & SSH_FILEXFER_ATTR_SIZE)
+    if (msg->attr->flags & SftpAttrFlags::size)
     {
         QFile file{filename};
         if (!MP_FILEOPS.resize(file, msg->attr->size))
@@ -1193,7 +1202,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if (msg->attr->flags & SSH_FILEXFER_ATTR_PERMISSIONS)
+    if (msg->attr->flags & SftpAttrFlags::permissions)
     {
         if (!MP_PLATFORM.set_permissions(filename, static_cast<fs::perms>(msg->attr->permissions)))
         {
@@ -1205,7 +1214,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if (msg->attr->flags & SSH_FILEXFER_ATTR_ACMODTIME)
+    if (msg->attr->flags & SftpAttrFlags::acmodtime)
     {
         if (MP_PLATFORM.utime(filename.string().c_str(), msg->attr->atime, msg->attr->mtime) < 0)
         {
@@ -1217,7 +1226,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
     }
 
-    if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
+    if (msg->attr->flags & SftpAttrFlags::uidgid)
     {
         if (!has_reverse_uid_mapping_for(msg->attr->uid) &&
             !has_reverse_gid_mapping_for(msg->attr->gid))
@@ -1391,7 +1400,7 @@ int mp::SftpServer::handle_extended(sftp_client_message msg)
             return reply_perm_denied(msg);
         const auto new_name = get_absolute_path(MP_LIBSSH.sftp_client_message_get_data(msg));
 
-        if (!validate_path(new_name, follows_symlinks(MP_LIBSSH.sftp_client_message_get_type(msg))))
+        if (!validate_path(new_name, follows_symlinks(type_of(msg))))
         {
             mpl::trace(category,
                        "{}: cannot validate path \'{}\' against source \'{}\'",
