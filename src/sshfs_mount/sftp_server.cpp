@@ -798,20 +798,12 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
     int mode = 0;
     const auto flags = MP_LIBSSH.sftp_client_message_get_flags(msg);
 
-    { // TODO@sftp clarify logic - no setting/resetting
-        if (flags & SftpOpenFlags::read)
-            mode |= O_RDONLY;
-
-        if (flags & SftpOpenFlags::write)
-            mode |= O_WRONLY;
-
-        if ((flags & SftpOpenFlags::read) && (flags & SftpOpenFlags::write))
-        {
-            mode &= ~O_RDONLY;
-            mode &= ~O_WRONLY;
-            mode |= O_RDWR;
-        }
-    }
+    if ((flags & SftpOpenFlags::read) && (flags & SftpOpenFlags::write))
+        mode |= O_RDWR;
+    else if (flags & SftpOpenFlags::read)
+        mode |= O_RDONLY;
+    else if (flags & SftpOpenFlags::write)
+        mode |= O_WRONLY;
 
     if (flags & SftpOpenFlags::append)
         mode |= O_APPEND;
