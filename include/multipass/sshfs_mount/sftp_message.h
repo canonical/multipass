@@ -66,7 +66,7 @@ public:
     virtual std::optional<std::string_view> submessage() const noexcept = 0;
 
     /**
-     * @return The access flags of an open request (a combination of sftp_open_flags).
+     * @return The access flags of an open request (a combination of SftpOpenFlags).
      */
     virtual uint32_t flags() const noexcept = 0;
 
