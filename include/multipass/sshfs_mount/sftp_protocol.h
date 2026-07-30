@@ -82,42 +82,51 @@ enum class SftpStatus : uint32_t
 /**
  * Access flags of an open request (SSH_FXF_* in the protocol spec); see SftpMessage::flags.
  */
-namespace sftp_open_flags
+struct SftpOpenFlags
 {
-constexpr uint32_t read = 0x01;
-constexpr uint32_t write = 0x02;
-constexpr uint32_t append = 0x04;
-constexpr uint32_t creat = 0x08;
-constexpr uint32_t trunc = 0x10;
-constexpr uint32_t excl = 0x20;
-} // namespace sftp_open_flags
+    enum : uint32_t
+    {
+        read = 0x01,
+        write = 0x02,
+        append = 0x04,
+        creat = 0x08,
+        trunc = 0x10,
+        excl = 0x20,
+    };
+};
 
 /**
  * Validity flags for SftpAttributes fields (SSH_FILEXFER_ATTR_* in the protocol spec).
  */
-namespace sftp_attr_flags
+struct SftpAttrFlags
 {
-constexpr uint32_t size = 0x00000001;
-constexpr uint32_t uidgid = 0x00000002;
-constexpr uint32_t permissions = 0x00000004;
-constexpr uint32_t acmodtime = 0x00000008;
-constexpr uint32_t extended = 0x80000000;
-} // namespace sftp_attr_flags
+    enum : uint32_t
+    {
+        size = 0x00000001,
+        uidgid = 0x00000002,
+        permissions = 0x00000004,
+        acmodtime = 0x00000008,
+        extended = 0x80000000,
+    };
+};
 
 /**
  * POSIX-style file-type bits, encoded in SftpAttributes::permissions (SSH_S_IF* in libssh).
  */
-namespace sftp_file_mode
+struct SftpFileMode
 {
-constexpr uint32_t regular = 0100000;
-constexpr uint32_t directory = 0040000;
-constexpr uint32_t symlink = 0120000;
-} // namespace sftp_file_mode
+    enum : uint32_t
+    {
+        regular = 0100000,
+        directory = 0040000,
+        symlink = 0120000,
+    };
+};
 
 /**
  * File attributes exchanged in SFTP messages, in either direction.
  *
- * Only the fields flagged in #flags (see sftp_attr_flags) carry meaningful values.
+ * Only the fields flagged in #flags (see SftpAttrFlags) carry meaningful values.
  */
 struct SftpAttributes
 {
@@ -125,7 +134,7 @@ struct SftpAttributes
     uint64_t size{};
     uint32_t uid{};
     uint32_t gid{};
-    uint32_t permissions{}; ///< permission bits, possibly combined with sftp_file_mode bits
+    uint32_t permissions{}; ///< permission bits, possibly combined with SftpFileMode bits
     uint32_t atime{};       ///< seconds since the epoch
     uint32_t mtime{};       ///< seconds since the epoch
 };

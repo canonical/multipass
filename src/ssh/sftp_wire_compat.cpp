@@ -66,20 +66,20 @@ static_assert(static_cast<uint32_t>(mp::SftpStatus::no_connection) == SSH_FX_NO_
 static_assert(static_cast<uint32_t>(mp::SftpStatus::connection_lost) == SSH_FX_CONNECTION_LOST);
 static_assert(static_cast<uint32_t>(mp::SftpStatus::op_unsupported) == SSH_FX_OP_UNSUPPORTED);
 
-static_assert(mp::sftp_open_flags::read == SSH_FXF_READ);
-static_assert(mp::sftp_open_flags::write == SSH_FXF_WRITE);
-static_assert(mp::sftp_open_flags::append == SSH_FXF_APPEND);
-static_assert(mp::sftp_open_flags::creat == SSH_FXF_CREAT);
-static_assert(mp::sftp_open_flags::trunc == SSH_FXF_TRUNC);
-static_assert(mp::sftp_open_flags::excl == SSH_FXF_EXCL);
+static_assert(mp::SftpOpenFlags::read == SSH_FXF_READ);
+static_assert(mp::SftpOpenFlags::write == SSH_FXF_WRITE);
+static_assert(mp::SftpOpenFlags::append == SSH_FXF_APPEND);
+static_assert(mp::SftpOpenFlags::creat == SSH_FXF_CREAT);
+static_assert(mp::SftpOpenFlags::trunc == SSH_FXF_TRUNC);
+static_assert(mp::SftpOpenFlags::excl == SSH_FXF_EXCL);
 
-static_assert(mp::sftp_attr_flags::size == SSH_FILEXFER_ATTR_SIZE);
-static_assert(mp::sftp_attr_flags::uidgid == SSH_FILEXFER_ATTR_UIDGID);
-static_assert(mp::sftp_attr_flags::permissions == SSH_FILEXFER_ATTR_PERMISSIONS);
-static_assert(mp::sftp_attr_flags::acmodtime == SSH_FILEXFER_ATTR_ACMODTIME);
-static_assert(mp::sftp_attr_flags::extended == SSH_FILEXFER_ATTR_EXTENDED);
+static_assert(mp::SftpAttrFlags::size == SSH_FILEXFER_ATTR_SIZE);
+static_assert(mp::SftpAttrFlags::uidgid == SSH_FILEXFER_ATTR_UIDGID);
+static_assert(mp::SftpAttrFlags::permissions == SSH_FILEXFER_ATTR_PERMISSIONS);
+static_assert(mp::SftpAttrFlags::acmodtime == SSH_FILEXFER_ATTR_ACMODTIME);
+static_assert(mp::SftpAttrFlags::extended == SSH_FILEXFER_ATTR_EXTENDED);
 
-static_assert(mp::sftp_file_mode::regular == SSH_S_IFREG);
-static_assert(mp::sftp_file_mode::directory == SSH_S_IFDIR);
-static_assert(mp::sftp_file_mode::symlink == SSH_S_IFLNK);
+static_assert(mp::SftpFileMode::regular == SSH_S_IFREG);
+static_assert(mp::SftpFileMode::directory == SSH_S_IFDIR);
+static_assert(mp::SftpFileMode::symlink == SSH_S_IFLNK);
 } // namespace
