@@ -149,8 +149,6 @@ TEST_F(TestPlainSftpSession, releasesConsumedSessionOnce)
 
 TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
 {
-    sshfs_exit_code = 0; // sshfs reports success promptly; construction should still succeed
-
     auto session = make_ssh_session();
     ASSERT_FALSE(session.is_moved());
 
@@ -158,6 +156,9 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
     fake_sftp_session.channel = fake_channel;
     sftp_client_message_struct fake_client_msg{};
     fake_client_msg.type = SSH_FXP_INIT;
+
+    // Don't invoke the exit-status callback so sshfs doesn't appear to have exited
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll(fake_event, _)).WillRepeatedly(Return(SSH_OK));
 
     // borrow_session/borrow_channel are private-pass-gated and called nowhere but here (the ctor
     // below), so this expectation on their sftp_server_new args is the only way to check them.

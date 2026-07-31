@@ -50,20 +50,16 @@ private:
 
 void check_sshfs_status(mp::SSHProcess& sshfs_process)
 {
-    if (sshfs_process.exit_recognized(250ms))
-    {
-        // This `if` is artificial and should not really be here. However there is a complex
-        // arrangement of Sftp and SshfsMount tests depending on this.
-        // TODO@sftp no longer needed - just write new tests properly
-        if (sshfs_process.exit_code(250ms) != 0) // TODO remove
-            throw std::runtime_error(sshfs_process.read_std_error());
-    }
+    // TODO@sftp should we have a way to wait for it to start running...
+    if (sshfs_process.exit_recognized(250ms)) // TODO@sftp don't we need to try-catch this?
+        throw std::runtime_error(sshfs_process.read_std_error());
 }
 
 auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs_cmd)
 {
     auto sshfs_process = session.exec_plain(sshfs_cmd);
 
+    assert(sshfs_process && "can't have null process");
     check_sshfs_status(*sshfs_process);
 
     return sshfs_process;
@@ -170,7 +166,8 @@ bool mp::PlainSftpSession::client_failed()
 {
     try
     {
-        return sshfs_process->exit_code(250ms) != 0; // TODO@sftp distinguish 0 from no return
+        // TODO@sftp distinguish 0 from no return, once that SSHProcess API has settled
+        return sshfs_process->exit_code(250ms) != 0;
     }
     catch (const ExitlessSSHProcessException&)
     {
