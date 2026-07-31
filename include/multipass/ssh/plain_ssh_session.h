@@ -67,10 +67,11 @@ public:
     [[nodiscard]] std::unique_ptr<PlainSSHProcess> exec_plain(const std::string& cmd,
                                                               bool whisper = false);
 
+    // clang-format off
     std::unique_ptr<SftpSession> make_sftp_session(const SftpClientComposer& client_composer,
                                                    const std::string& source,
-                                                   const std::string& target) &&
-        override;
+                                                   const std::string& target) && override;
+    // clang-format on
 
     [[nodiscard]] bool is_connected() const override;
     [[nodiscard]] bool is_moved() const override;
