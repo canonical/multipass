@@ -22,6 +22,7 @@
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
+#include <multipass/sshfs_mount/sftp_client_composer.h>
 
 #include <fmt/format.h>
 
@@ -132,9 +133,13 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
 }
 
 mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
-                                       const std::string& sshfs_cmd)
+                                       const SftpClientComposer& client_composer,
+                                       const std::string& source,
+                                       const std::string& target)
     : plain_ssh_session{std::move(ssh_session_obj)},
-      sshfs_process{create_sshfs_process(plain_ssh_session, sshfs_cmd)},
+      sshfs_process{create_sshfs_process(
+          plain_ssh_session,
+          client_composer.compose_client_command(plain_ssh_session, source, target))},
       raw_sftp_session{make_raw_sftp_session(plain_ssh_session.borrow_session(pass),
                                              sshfs_process->borrow_channel(pass))}
 {
