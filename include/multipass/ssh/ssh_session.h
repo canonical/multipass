@@ -58,6 +58,14 @@ public:
     [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                            bool whisper = false) = 0;
 
+    /**
+     * Consume this SSH session to create an SFTP session, serving SFTP to a remote client.
+     *
+     * @param client_composer Composer of the command that runs the remote SFTP client.
+     * @param source The local path to serve.
+     * @param target The remote path to map the source to.
+     * @return The resulting SFTP session.
+     */
     virtual std::unique_ptr<SftpSession> make_sftp_session(
         const SftpClientComposer& client_composer,
         const std::string& source,
