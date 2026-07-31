@@ -31,6 +31,7 @@ typedef ssh_channel_struct* ssh_channel;
 
 namespace multipass
 {
+class SftpClientComposer;
 
 /**
  * A concrete SftpSession backed by an SSHFS mount: it serves the SFTP protocol over an SSH
@@ -45,7 +46,10 @@ public:
      */
     constexpr static std::chrono::duration<int, std::milli> poll_interval{250};
 
-    PlainSftpSession(PlainSSHSession&& ssh_session_obj, const std::string& sshfs_cmd);
+    PlainSftpSession(PlainSSHSession&& ssh_session_obj,
+                     const SftpClientComposer& client_composer,
+                     const std::string& source,
+                     const std::string& target);
     PlainSftpSession(const PlainSftpSession&) = delete;
     PlainSftpSession& operator=(const PlainSftpSession&) = delete;
 
