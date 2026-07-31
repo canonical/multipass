@@ -24,7 +24,7 @@ namespace multipass
 class SftpMessage;
 
 /**
- * A server-side SFTP session.
+ * A local SFTP session, serving SFTP to a remote client.
  */
 class SftpSession
 {

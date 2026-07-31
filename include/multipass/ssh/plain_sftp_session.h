@@ -46,6 +46,14 @@ public:
      */
     constexpr static std::chrono::duration<int, std::milli> poll_interval{250};
 
+    /**
+     * Consume an SSH session to serve SFTP to a remote client over it.
+     *
+     * @param ssh_session_obj The SSH session to serve on, which this consumes.
+     * @param client_composer Composer of the command that runs the remote SFTP client.
+     * @param source The local path to serve.
+     * @param target The remote path to map the source to.
+     */
     PlainSftpSession(PlainSSHSession&& ssh_session_obj,
                      const SftpClientComposer& client_composer,
                      const std::string& source,
