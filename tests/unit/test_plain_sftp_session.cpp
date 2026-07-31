@@ -25,7 +25,9 @@
 #include <multipass/sshfs_mount/sftp_session.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
+#include <map>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -70,24 +72,41 @@ struct TestPlainSftpSession : public Test
         ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
         ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
         ON_CALL(mock_libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
-        ON_CALL(mock_libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
         ON_CALL(mock_libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
         ON_CALL(mock_libssh, ssh_get_error).WillByDefault(Return("mocked error"));
-
-        // Exit-status machinery: deliver `sshfs_exit_code` through the registered callback when
-        // the event loop polls, as libssh would on a channel-exit-status message
-        ON_CALL(mock_libssh, ssh_add_channel_callbacks)
-            .WillByDefault(DoAll(SaveArg<1>(&channel_cbs), Return(SSH_OK)));
         ON_CALL(mock_libssh, ssh_remove_channel_callbacks).WillByDefault(Return(SSH_OK));
         ON_CALL(mock_libssh, ssh_event_new()).WillByDefault(Return(fake_event));
         ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault(Return(SSH_OK));
+
+        // Remember what is running, to serve the result registered for it (see `exec_results`)
+        ON_CALL(mock_libssh, ssh_channel_request_exec)
+            .WillByDefault(DoAll(SaveArg<1>(&running_cmd), Return(SSH_OK)));
+        // Save callbacks, to deliver exit code
+        ON_CALL(mock_libssh, ssh_add_channel_callbacks)
+            .WillByDefault(DoAll(SaveArg<1>(&channel_cbs), Return(SSH_OK)));
         ON_CALL(mock_libssh, ssh_event_dopoll).WillByDefault([this](ssh_event, int) {
             channel_cbs->channel_exit_status_function(fake_session,
                                                       fake_channel,
-                                                      sshfs_exit_code,
+                                                      result_for(running_cmd).exit_code,
                                                       channel_cbs->userdata);
             return SSH_OK;
         });
+
+        // Serve the running command's output, until exhausted
+        ON_CALL(mock_libssh, ssh_channel_read_timeout)
+            .WillByDefault([this](ssh_channel, void* dest, uint32_t count, int is_stderr, int) {
+                const auto& result = result_for(running_cmd);
+                const auto& stream = is_stderr ? result.std_err : result.std_out;
+                auto& read_so_far = bytes_read[{running_cmd, is_stderr != 0}];
+
+                // num_bytes will be zero once the stream is exhausted
+                const auto num_bytes = std::min<std::size_t>(count, stream.size() - read_so_far);
+
+                std::memcpy(dest, stream.data() + read_so_far, num_bytes);
+                read_so_far += num_bytes;
+
+                return static_cast<int>(num_bytes); // a zero return signals successful completion
+            });
 
         ON_CALL(client_composer, compose_client_command).WillByDefault(Return(sshfs_cmd));
     }
@@ -101,6 +120,24 @@ struct TestPlainSftpSession : public Test
     {
         return std::move(ssh_session).make_sftp_session(client_composer, source, target);
     }
+
+    struct ExecResult
+    {
+        int exit_code = 0;
+        std::string std_out = {};
+        std::string std_err = {};
+    };
+
+    const ExecResult& result_for(const std::string& cmd) const
+    {
+        static const auto default_result = ExecResult{};
+        const auto it = exec_results.find(cmd);
+        return it == exec_results.end() ? default_result : it->second;
+    }
+
+    std::map<std::string, ExecResult> exec_results;                 ///< results, by command
+    std::string running_cmd;                                        ///< currently executing cmd
+    std::map<std::pair<std::string, bool>, std::size_t> bytes_read; ///< by command and stream
 
     constexpr static auto source = "/host/source";
     constexpr static auto target = "/guest/target";
@@ -119,35 +156,25 @@ struct TestPlainSftpSession : public Test
     ssh_event fake_event = reinterpret_cast<ssh_event>(bad_addr);
 
     ssh_channel_callbacks channel_cbs = nullptr;
-    int sshfs_exit_code = 0;
 };
 } // namespace
 
 TEST_F(TestPlainSftpSession, makeSftpSessionRunsDerivedClientCommand)
 {
-    sshfs_exit_code = 1; // TODO@sftp mock success path instead
+    exec_results[sshfs_cmd] = {.exit_code = 1};
 
     auto session = make_ssh_session();
     EXPECT_CALL(client_composer, compose_client_command(_, StrEq(source), StrEq(target)))
         .WillOnce(Return(sshfs_cmd));
-    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(sshfs_cmd)))
-        .WillOnce(Return(SSH_OK));
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(sshfs_cmd)));
 
     EXPECT_ANY_THROW(static_cast<void>(make_sftp_session(std::move(session))));
 }
 
 TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenClientFails)
 {
-    sshfs_exit_code = 127;
     const std::string error = "sshfs bonkers";
-    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly(Return(0));
-    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout(_, _, _, Ne(0), _))
-        .WillOnce(WithArgs<1, 2>([&error](void* dest, uint32_t count) {
-            const auto num_bytes = std::min<std::size_t>(error.size(), count);
-            std::memcpy(dest, error.data(), num_bytes);
-            return static_cast<int>(num_bytes);
-        }))
-        .RetiresOnSaturation();
+    exec_results[sshfs_cmd] = {.exit_code = 127, .std_err = error};
 
     auto session = make_ssh_session();
 
@@ -158,7 +185,7 @@ TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenClientFails)
 
 TEST_F(TestPlainSftpSession, releasesConsumedSessionOnce)
 {
-    sshfs_exit_code = 127;
+    exec_results[sshfs_cmd] = {.exit_code = 127};
 
     auto session = make_ssh_session();
     {
