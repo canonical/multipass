@@ -29,6 +29,7 @@ typedef struct ssh_session_struct* ssh_session;
 namespace multipass
 {
 class SftpSession;
+class SftpClientComposer;
 
 class SSHSession
 {
@@ -57,7 +58,10 @@ public:
     [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                            bool whisper = false) = 0;
 
-    virtual std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && = 0;
+    virtual std::unique_ptr<SftpSession> make_sftp_session(
+        const SftpClientComposer& client_composer,
+        const std::string& source,
+        const std::string& target) && = 0;
 
     /**
      * @return Whether this object represents a session that is currently connected

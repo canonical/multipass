@@ -32,6 +32,7 @@ namespace multipass
 class SSHKeyProvider;
 class PlainSftpSession;
 class PlainSSHProcess;
+class SftpClientComposer;
 
 class PlainSSHSession final : public SSHSession // final to prevent chopping on move
 {
@@ -66,7 +67,10 @@ public:
     [[nodiscard]] std::unique_ptr<PlainSSHProcess> exec_plain(const std::string& cmd,
                                                               bool whisper = false);
 
-    std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && override;
+    std::unique_ptr<SftpSession> make_sftp_session(const SftpClientComposer& client_composer,
+                                                   const std::string& source,
+                                                   const std::string& target) &&
+        override;
 
     [[nodiscard]] bool is_connected() const override;
     [[nodiscard]] bool is_moved() const override;

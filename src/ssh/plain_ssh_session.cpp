@@ -159,9 +159,11 @@ std::unique_ptr<mp::PlainSSHProcess> mp::PlainSSHSession::exec_plain(const std::
 }
 
 std::unique_ptr<mp::SftpSession> mp::PlainSSHSession::make_sftp_session(
-    const std::string& sshfs_cmd) &&
+    const SftpClientComposer& client_composer,
+    const std::string& source,
+    const std::string& target) &&
 {
-    return std::make_unique<PlainSftpSession>(std::move(*this), sshfs_cmd);
+    return std::make_unique<PlainSftpSession>(std::move(*this), client_composer, source, target);
 }
 
 void mp::PlainSSHSession::shutdown_custom_socket()

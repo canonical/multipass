@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_libssh.h"
+#include "mock_sftp_client_composer.h"
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/ssh/plain_sftp_session.h>
@@ -46,9 +47,17 @@ static_assert(!std::is_move_assignable_v<mp::PlainSftpSession>);
 
 // make_sftp_session consumes SSHSession
 using MakeSftpSession = decltype(&mp::SSHSession::make_sftp_session);
-static_assert(!std::is_invocable_v<MakeSftpSession, mp::SSHSession&, std::string>,
+static_assert(!std::is_invocable_v<MakeSftpSession,
+                                   mp::SSHSession&,
+                                   const mp::SftpClientComposer&,
+                                   std::string,
+                                   std::string>,
               "make_sftp_session must consume the session (callable only on an rvalue)");
-static_assert(std::is_invocable_v<MakeSftpSession, mp::SSHSession&&, std::string>);
+static_assert(std::is_invocable_v<MakeSftpSession,
+                                  mp::SSHSession&&,
+                                  const mp::SftpClientComposer&,
+                                  std::string,
+                                  std::string>);
 
 struct TestPlainSftpSession : public Test
 {
@@ -79,6 +88,8 @@ struct TestPlainSftpSession : public Test
                                                       channel_cbs->userdata);
             return SSH_OK;
         });
+
+        ON_CALL(client_composer, compose_client_command).WillByDefault(Return(sshfs_cmd));
     }
 
     mp::PlainSSHSession make_ssh_session() const
@@ -86,6 +97,19 @@ struct TestPlainSftpSession : public Test
         return mp::PlainSSHSession{"host", 42, "ubuntu", key_provider};
     }
 
+    std::unique_ptr<mp::SftpSession> make_sftp_session(mp::PlainSSHSession&& ssh_session) const
+    {
+        return std::move(ssh_session).make_sftp_session(client_composer, source, target);
+    }
+
+    constexpr static auto source = "/host/source";
+    constexpr static auto target = "/guest/target";
+    static inline const std::string sshfs_cmd = fmt::format("sudo -n sshfs -o slave :{} {}",
+                                                            source,
+                                                            target);
+
+    NiceMock<mpt::MockSftpClientComposer> client_composer;
+    mpt::StubSSHKeyProvider key_provider;
     mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
     mpt::MockLibssh& mock_libssh = *guarded_mock.first;
 
@@ -96,23 +120,23 @@ struct TestPlainSftpSession : public Test
 
     ssh_channel_callbacks channel_cbs = nullptr;
     int sshfs_exit_code = 0;
-
-    mpt::StubSSHKeyProvider key_provider;
 };
 } // namespace
 
-TEST_F(TestPlainSftpSession, makeSftpSessionRunsSshfsCommand)
+TEST_F(TestPlainSftpSession, makeSftpSessionRunsDerivedClientCommand)
 {
     sshfs_exit_code = 1; // TODO@sftp mock success path instead
 
     auto session = make_ssh_session();
-    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq("sshfs -o slave")))
+    EXPECT_CALL(client_composer, compose_client_command(_, StrEq(source), StrEq(target)))
+        .WillOnce(Return(sshfs_cmd));
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(sshfs_cmd)))
         .WillOnce(Return(SSH_OK));
 
-    EXPECT_ANY_THROW(static_cast<void>(std::move(session).make_sftp_session("sshfs -o slave")));
+    EXPECT_ANY_THROW(static_cast<void>(make_sftp_session(std::move(session))));
 }
 
-TEST_F(TestPlainSftpSession, makeSftpSessionThrowsSshfsErrorWhenSshfsFails)
+TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenClientFails)
 {
     sshfs_exit_code = 127;
     const std::string error = "sshfs bonkers";
@@ -127,7 +151,7 @@ TEST_F(TestPlainSftpSession, makeSftpSessionThrowsSshfsErrorWhenSshfsFails)
 
     auto session = make_ssh_session();
 
-    MP_EXPECT_THROW_THAT(static_cast<void>(std::move(session).make_sftp_session("sshfs")),
+    MP_EXPECT_THROW_THAT(static_cast<void>(make_sftp_session(std::move(session))),
                          std::runtime_error,
                          mpt::match_what(StrEq(error)));
 }
@@ -141,7 +165,7 @@ TEST_F(TestPlainSftpSession, releasesConsumedSessionOnce)
         EXPECT_CALL(mock_libssh, ssh_channel_free(fake_channel)).Times(1);
         EXPECT_CALL(mock_libssh, ssh_free(fake_session)).Times(1);
 
-        EXPECT_ANY_THROW(static_cast<void>(std::move(session).make_sftp_session("sshfs")));
+        EXPECT_ANY_THROW(static_cast<void>(make_sftp_session(std::move(session))));
     } // session internals freed
 
     EXPECT_TRUE(session.is_moved());
@@ -169,5 +193,5 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
         .WillOnce(Return(&fake_client_msg));
     EXPECT_CALL(mock_libssh, sftp_reply_version(&fake_client_msg)).WillOnce(Return(SSH_OK));
 
-    EXPECT_THAT(std::move(session).make_sftp_session("sshfs -o slave"), NotNull());
+    EXPECT_THAT(make_sftp_session(std::move(session)), NotNull());
 }
