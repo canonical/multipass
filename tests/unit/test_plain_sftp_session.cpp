@@ -268,3 +268,30 @@ TEST_F(TestPlainSftpSession, renewClientRespawnsSshfsClient)
 
     EXPECT_CALL(mock_libssh, sftp_server_free(&fakes[1].first)).Times(1);
 }
+
+TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
+{
+    sftp_session_struct fake_sftp_session{};
+    fake_sftp_session.channel = fake_channel;
+    sftp_client_message_struct fake_client_msg{};
+    fake_client_msg.type = SSH_FXP_INIT;
+
+    // Don't invoke the exit-status callback so sshfs doesn't appear to have exited
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll(fake_event, _)).WillRepeatedly(Return(SSH_OK));
+
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(sshfs_cmd))).Times(1);
+    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
+        .WillOnce(Return(&fake_sftp_session));
+
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_session))
+        .WillOnce(Return(&fake_client_msg));
+    EXPECT_CALL(mock_libssh, sftp_reply_version(&fake_client_msg)).WillOnce(Return(SSH_OK));
+    EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_session)).Times(1);
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    sftp_session->request_stop();
+    sftp_session->renew_client();
+}

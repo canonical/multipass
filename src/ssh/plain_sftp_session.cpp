@@ -157,13 +157,17 @@ void mp::PlainSftpSession::spawn_client()
 
 void mp::PlainSftpSession::renew_client()
 {
-    mpl::debug(category, "Attempting SFTP client recovery.");
+    if (!stop_requested.load())
+    {
+        mpl::debug(category, "Attempting SFTP client recovery.");
 
-    // TODO@sftp should we check stop here?
-    raw_sftp_session.reset(); // mind the order: this borrows the process's channel
-    sshfs_process.reset();
+        raw_sftp_session.reset(); // mind the order: this borrows the process's channel
+        sshfs_process.reset();
 
-    spawn_client();
+        spawn_client();
+    }
+    else
+        mpl::debug(category, "Skipping SFTP client recovery due to stop request.");
 }
 
 void mp::PlainSftpSession::request_stop() noexcept
