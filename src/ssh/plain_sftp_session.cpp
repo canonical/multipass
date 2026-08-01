@@ -53,21 +53,21 @@ private:
     constexpr static auto init_error_prefix = "[sftp] server init failed:"; // TODO square brackets?
 };
 
-void check_sshfs_status(mp::SSHProcess& sshfs_process)
+void check_client_status(mp::SSHProcess& client_process)
 {
     // TODO@sftp should we have a way to wait for it to start running...
-    if (sshfs_process.exit_recognized(250ms)) // TODO@sftp don't we need to try-catch this?
-        throw std::runtime_error(sshfs_process.read_std_error());
+    if (client_process.exit_recognized(250ms)) // TODO@sftp don't we need to try-catch this?
+        throw std::runtime_error(client_process.read_std_error());
 }
 
-auto create_sshfs_process(mp::PlainSSHSession& session, const std::string& sshfs_cmd)
+auto create_client_process(mp::PlainSSHSession& session, const std::string& client_cmd)
 {
-    auto sshfs_process = session.exec_plain(sshfs_cmd);
+    auto client_process = session.exec_plain(client_cmd);
 
-    assert(sshfs_process && "can't have null process");
-    check_sshfs_status(*sshfs_process);
+    assert(client_process && "can't have null process");
+    check_client_status(*client_process);
 
-    return sshfs_process;
+    return client_process;
 }
 
 int poll_stdout(ssh_channel channel, int timeout)
@@ -141,18 +141,18 @@ mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
                                        const std::string& source,
                                        const std::string& target)
     : plain_ssh_session{std::move(ssh_session_obj)},
-      sshfs_cmd{client_composer.compose_client_command(plain_ssh_session, source, target)}
+      client_cmd{client_composer.compose_client_command(plain_ssh_session, source, target)}
 {
     spawn_client();
 }
 
 void mp::PlainSftpSession::spawn_client()
 {
-    assert(!sshfs_process && "precondition - no client may be running");
+    assert(!client_process && "precondition - no client may be running");
 
-    sshfs_process = create_sshfs_process(plain_ssh_session, sshfs_cmd);
+    client_process = create_client_process(plain_ssh_session, client_cmd);
     raw_sftp_session = make_raw_sftp_session(plain_ssh_session.borrow_session(pass),
-                                             sshfs_process->borrow_channel(pass));
+                                             client_process->borrow_channel(pass));
 }
 
 void mp::PlainSftpSession::renew_client()
@@ -162,7 +162,7 @@ void mp::PlainSftpSession::renew_client()
         mpl::debug(category, "Attempting SFTP client recovery.");
 
         raw_sftp_session.reset(); // mind the order: this borrows the process's channel
-        sshfs_process.reset();
+        client_process.reset();
 
         spawn_client();
     }
@@ -197,7 +197,7 @@ bool mp::PlainSftpSession::client_failed()
     try
     {
         // TODO@sftp distinguish 0 from no return, once that SSHProcess API has settled
-        return sshfs_process->exit_code(250ms) != 0;
+        return client_process->exit_code(250ms) != 0;
     }
     catch (const ExitlessSSHProcessException&)
     {
