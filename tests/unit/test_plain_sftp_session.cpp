@@ -23,6 +23,7 @@
 #include <multipass/format.h>
 #include <multipass/ssh/plain_sftp_session.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/sshfs_mount/sftp_message.h>
 #include <multipass/sshfs_mount/sftp_session.h>
 
 #include <algorithm>
@@ -272,6 +273,9 @@ TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
 
     sftp_session->request_stop();
     sftp_session->renew_client();
+
+    // the pending stop request is not forgotten either
+    EXPECT_THAT(sftp_session->next_message(), IsNull());
 }
 
 TEST_F(TestPlainSftpSession, renewClientUnmountsStaleMountBeforeRespawning)
