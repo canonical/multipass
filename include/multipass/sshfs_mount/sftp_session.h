@@ -61,7 +61,8 @@ public:
      * #client_failed() confirmed the client at fault. The secure transport itself needs to be up:
      * this cannot recover from a broken connection.
      *
-     * A stop requested with #request_stop() survives renewal.
+     * If a stop was requested with #request_stop() in the meantime, this is a no-op: no new
+     * client is spawned; the stop request survives.
      */
     virtual void renew_client() = 0;
 
