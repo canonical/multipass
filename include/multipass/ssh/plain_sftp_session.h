@@ -35,8 +35,9 @@ namespace multipass
 class SftpClientComposer;
 
 /**
- * A concrete SftpSession backed by an SSHFS mount: it serves the SFTP protocol over an SSH
- * session to a remote sshfs client, which mounts it on the guest.
+ * A concrete SftpSession backed by a remote SFTP client. It serves the SFTP protocol over an SSH
+ * session to a client that is spawned on the guest, according to the specification provided by an
+ * SftpClientComposer.
  */
 class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
@@ -81,14 +82,14 @@ public:
     /**
      * @copydoc SftpSession::renew_client
      *
-     * This runs a new sshfs client in the guest, over the SSH session that this already holds.
+     * This runs a new client in the guest, over the SSH session that this already holds.
      */
     void renew_client() override;
 
     /**
      * @copydoc SftpSession::client_failed
      *
-     * This waits briefly for the sshfs process to exit. When its exit status cannot be obtained
+     * This waits briefly for the client process to exit. When its exit status cannot be obtained
      * (e.g. timeout or SSH error), failure is assumed.
      */
     bool client_failed() override;
@@ -103,15 +104,15 @@ private:
     static RawSftpSessionUptr make_raw_sftp_session(ssh_session raw_session, ssh_channel channel);
 
     /**
-     * Run a new sshfs client in the guest and serve a new SFTP session to it.
+     * Run a new client in the guest and serve a new SFTP session to it.
      *
-     * @pre No sshfs client of this session is currently running.
+     * @pre No client of this session is currently running.
      */
     void spawn_client();
 
     PlainSSHSession plain_ssh_session;
-    const std::string sshfs_cmd;
-    std::unique_ptr<PlainSSHProcess> sshfs_process;
+    const std::string client_cmd;
+    std::unique_ptr<PlainSSHProcess> client_process;
     RawSftpSessionUptr raw_sftp_session;
     std::atomic<bool> stop_requested{false};
 };
