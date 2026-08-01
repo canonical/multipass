@@ -274,6 +274,22 @@ TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
     sftp_session->renew_client();
 }
 
+TEST_F(TestPlainSftpSession, renewClientUnmountsStaleMountBeforeRespawning)
+{
+    constexpr auto mount_path = "/guest/target";
+    const auto umount_cmd = fmt::format("sudo umount {}", mount_path);
+    exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", mount_path)};
+    exec_results[umount_cmd] = {.exit_code = 0};
+
+    expect_client_spawns<2>();
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(umount_cmd)));
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    sftp_session->renew_client();
+}
+
 TEST_F(TestPlainSftpSession, renewClientSkipsUnmountWhenNothingMounted)
 {
     // No mount to be found: findmnt says so with an empty answer and a non-zero exit
@@ -286,4 +302,21 @@ TEST_F(TestPlainSftpSession, renewClientSkipsUnmountWhenNothingMounted)
     ASSERT_THAT(sftp_session, NotNull());
 
     sftp_session->renew_client();
+}
+
+TEST_F(TestPlainSftpSession, renewClientThrowsWhenUnmountFails)
+{
+    constexpr auto mount_path = "/guest/target";
+    exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", mount_path)};
+    exec_results[fmt::format("sudo umount {}", mount_path)] = {.exit_code = 1,
+                                                               .std_err = "not mounted"};
+
+    expect_client_spawns<1>(); // the replacement never gets to run
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    MP_EXPECT_THROW_THAT(sftp_session->renew_client(),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("not mounted")));
 }
