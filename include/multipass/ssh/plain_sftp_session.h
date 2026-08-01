@@ -79,11 +79,11 @@ public:
     std::unique_ptr<SftpMessage> next_message() override;
 
     /**
-     * @copydoc SftpSession::renew
+     * @copydoc SftpSession::renew_client
      *
      * This runs a new sshfs client in the guest, over the SSH session that this already holds.
      */
-    void renew() override;
+    void renew_client() override;
 
     /**
      * @copydoc SftpSession::client_failed

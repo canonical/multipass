@@ -155,7 +155,7 @@ void mp::PlainSftpSession::spawn_client()
                                              sshfs_process->borrow_channel(pass));
 }
 
-void mp::PlainSftpSession::renew()
+void mp::PlainSftpSession::renew_client()
 {
     mpl::debug(category, "Attempting SFTP client recovery.");
 

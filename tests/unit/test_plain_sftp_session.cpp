@@ -224,7 +224,7 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
     EXPECT_THAT(make_sftp_session(std::move(session)), NotNull());
 }
 
-TEST_F(TestPlainSftpSession, renewRespawnsSshfsClient)
+TEST_F(TestPlainSftpSession, renewClientRespawnsSshfsClient)
 {
     sftp_session_struct fake_sftp_session{};
     fake_sftp_session.channel = fake_channel;
@@ -263,7 +263,7 @@ TEST_F(TestPlainSftpSession, renewRespawnsSshfsClient)
 
         ASSERT_THAT(sftp_session, NotNull());
 
-        sftp_session->renew();
+        sftp_session->renew_client();
     }
 
     EXPECT_CALL(mock_libssh, sftp_server_free(&fakes[1].first)).Times(1);

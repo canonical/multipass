@@ -63,7 +63,7 @@ public:
      *
      * A stop requested with #request_stop() survives renewal.
      */
-    virtual void renew() = 0;
+    virtual void renew_client() = 0;
 
     /**
      * Tell whether the remote client failed.
