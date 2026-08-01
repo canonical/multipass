@@ -75,7 +75,7 @@ void unmount_stale(mp::PlainSSHSession& session, const std::string& source)
 {
     const auto mount_path = [&session, &source] {
         auto proc = session.exec_plain(fmt::format("findmnt --source :{} -o TARGET -n", source));
-        return proc->read_std_output();
+        return mp::utils::trim(proc->read_std_output());
     }();
 
     if (!mount_path.empty())
