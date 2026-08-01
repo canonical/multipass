@@ -19,6 +19,7 @@
 
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/logging/log.h>
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
@@ -32,10 +33,13 @@
 #include <utility>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 
 namespace
 {
 using namespace std::literals::chrono_literals;
+
+constexpr auto category = "sftp session";
 
 class SftpInitException : public mp::SSHException
 {
@@ -137,12 +141,29 @@ mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
                                        const std::string& source,
                                        const std::string& target)
     : plain_ssh_session{std::move(ssh_session_obj)},
-      sshfs_process{create_sshfs_process(
-          plain_ssh_session,
-          client_composer.compose_client_command(plain_ssh_session, source, target))},
-      raw_sftp_session{make_raw_sftp_session(plain_ssh_session.borrow_session(pass),
-                                             sshfs_process->borrow_channel(pass))}
+      sshfs_cmd{client_composer.compose_client_command(plain_ssh_session, source, target)}
 {
+    spawn_client();
+}
+
+void mp::PlainSftpSession::spawn_client()
+{
+    assert(!sshfs_process && "precondition - no client may be running");
+
+    sshfs_process = create_sshfs_process(plain_ssh_session, sshfs_cmd);
+    raw_sftp_session = make_raw_sftp_session(plain_ssh_session.borrow_session(pass),
+                                             sshfs_process->borrow_channel(pass));
+}
+
+void mp::PlainSftpSession::renew()
+{
+    mpl::debug(category, "Attempting SFTP client recovery.");
+
+    // TODO@sftp should we check stop here?
+    raw_sftp_session.reset(); // mind the order: this borrows the process's channel
+    sshfs_process.reset();
+
+    spawn_client();
 }
 
 void mp::PlainSftpSession::request_stop() noexcept
