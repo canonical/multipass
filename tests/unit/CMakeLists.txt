@@ -132,6 +132,7 @@ add_executable(multipass_cpp_tests
   test_ssh_exec_failure.cpp
   test_ssh_key_provider.cpp
   test_ssh_process.cpp
+  test_sshfs_client_composer.cpp
   test_sshfs_mount_handler.cpp
   test_sshfs_server_process_spec.cpp
   test_sshfsmount.cpp
