@@ -25,6 +25,7 @@
 #include <multipass/sshfs_mount/sftp_session.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstring>
 #include <map>
@@ -221,4 +222,49 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
     EXPECT_CALL(mock_libssh, sftp_reply_version(&fake_client_msg)).WillOnce(Return(SSH_OK));
 
     EXPECT_THAT(make_sftp_session(std::move(session)), NotNull());
+}
+
+TEST_F(TestPlainSftpSession, renewRespawnsSshfsClient)
+{
+    sftp_session_struct fake_sftp_session{};
+    fake_sftp_session.channel = fake_channel;
+    sftp_client_message_struct fake_client_msg{};
+    fake_client_msg.type = SSH_FXP_INIT;
+
+    using FakePair = std::pair<sftp_session_struct, sftp_client_message_struct>;
+    FakePair fake_pair = {fake_sftp_session, fake_client_msg};
+
+    using Fakes = std::array<FakePair, 2>;
+    Fakes fakes{};
+    fakes.fill(fake_pair);
+
+    // Don't invoke the exit-status callback so sshfs doesn't appear to have exited
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll(fake_event, _)).WillRepeatedly(Return(SSH_OK));
+
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(sshfs_cmd))).Times(2);
+    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
+        .WillOnce(Return(&fakes[0].first))
+        .WillOnce(Return(&fakes[1].first));
+
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
+        .Times(2)
+        .WillRepeatedly(Return(1));
+
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fakes[0].first))
+        .WillOnce(Return(&fakes[0].second));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fakes[1].first))
+        .WillOnce(Return(&fakes[1].second));
+    EXPECT_CALL(mock_libssh, sftp_reply_version(_)).Times(2).WillRepeatedly(Return(SSH_OK));
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+
+    {
+        EXPECT_CALL(mock_libssh, sftp_server_free(&fakes[0].first)).Times(1);
+
+        ASSERT_THAT(sftp_session, NotNull());
+
+        sftp_session->renew();
+    }
+
+    EXPECT_CALL(mock_libssh, sftp_server_free(&fakes[1].first)).Times(1);
 }

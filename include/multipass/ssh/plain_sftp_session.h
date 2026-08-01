@@ -24,6 +24,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <string>
 
 struct sftp_session_struct;
 struct ssh_channel_struct;
@@ -78,6 +79,13 @@ public:
     std::unique_ptr<SftpMessage> next_message() override;
 
     /**
+     * @copydoc SftpSession::renew
+     *
+     * This runs a new sshfs client in the guest, over the SSH session that this already holds.
+     */
+    void renew() override;
+
+    /**
      * @copydoc SftpSession::client_failed
      *
      * This waits briefly for the sshfs process to exit. When its exit status cannot be obtained
@@ -94,7 +102,15 @@ private:
 
     static RawSftpSessionUptr make_raw_sftp_session(ssh_session raw_session, ssh_channel channel);
 
+    /**
+     * Run a new sshfs client in the guest and serve a new SFTP session to it.
+     *
+     * @pre No sshfs client of this session is currently running.
+     */
+    void spawn_client();
+
     PlainSSHSession plain_ssh_session;
+    const std::string sshfs_cmd;
     std::unique_ptr<PlainSSHProcess> sshfs_process;
     RawSftpSessionUptr raw_sftp_session;
     std::atomic<bool> stop_requested{false};

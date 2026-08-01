@@ -55,6 +55,17 @@ public:
     virtual std::unique_ptr<SftpMessage> next_message() = 0;
 
     /**
+     * Re-establish the remote SFTP client.
+     *
+     * Call this method after #next_message() returned `nullptr` without a stop request and
+     * #client_failed() confirmed the client at fault. The secure transport itself needs to be up:
+     * this cannot recover from a broken connection.
+     *
+     * A stop requested with #request_stop() survives renewal.
+     */
+    virtual void renew() = 0;
+
+    /**
      * Tell whether the remote client failed.
      *
      * Call this method after #next_message() returns `nullptr` without a stop request, to
