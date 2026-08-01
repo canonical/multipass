@@ -16,12 +16,17 @@
  */
 
 #include "common.h"
+#include "mock_libssh.h"
 #include "mock_platform.h"
-#include "mock_ssh.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/socket.h>
+#include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
+
+#include <type_traits>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -29,120 +34,157 @@ using namespace testing;
 
 namespace
 {
+static_assert(std::is_final_v<mp::PlainSSHSession>, "required to prevent chopping on move");
+static_assert(!std::is_copy_constructible_v<mp::PlainSSHSession>);
+static_assert(!std::is_copy_assignable_v<mp::PlainSSHSession>);
+static_assert(std::is_move_constructible_v<mp::PlainSSHSession>);
+static_assert(std::is_move_assignable_v<mp::PlainSSHSession>);
+static_assert(!std::is_copy_constructible_v<mp::SSHSession>);
+static_assert(!std::is_copy_assignable_v<mp::SSHSession>);
+
 struct TestPlainSSHSession : public Test
 {
-    mp::PlainSSHSession make_ssh_session()
+    TestPlainSSHSession()
     {
-        return mp::PlainSSHSession("theanswertoeverything", 42, "ubuntu", key_provider);
+        ON_CALL(mock_libssh, ssh_new()).WillByDefault(Return(fake_session));
+        ON_CALL(mock_libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_connect).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_userauth_publickey).WillByDefault(Return(SSH_AUTH_SUCCESS));
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
+        ON_CALL(mock_libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
+        ON_CALL(mock_libssh, ssh_get_error).WillByDefault(Return("mocked error"));
     }
 
-    mp::test::StubSSHKeyProvider key_provider;
+    mp::PlainSSHSession make_ssh_session() const
+    {
+        return mp::PlainSSHSession{"host", 42, "ubuntu", key_provider};
+    }
+
+    mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
+    mpt::MockLibssh& mock_libssh = *guarded_mock.first;
+
+    constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
+    constexpr static auto bad_addr_too = 0xbadadd4f0ccac1adull; // idem
+    ssh_session fake_session = reinterpret_cast<ssh_session>(bad_addr);
+    ssh_channel fake_channel = reinterpret_cast<ssh_channel>(bad_addr);
+
+    mpt::StubSSHKeyProvider key_provider;
 };
 } // namespace
 
 TEST_F(TestPlainSSHSession, throwsWhenUnableToAllocateSession)
 {
-    REPLACE(ssh_new, []() { return nullptr; });
-    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+    EXPECT_CALL(mock_libssh, ssh_new()).WillOnce(Return(nullptr));
+    EXPECT_THROW(make_ssh_session(), mp::SSHException);
 }
 
 TEST_F(TestPlainSSHSession, throwsWhenUnableToSetOption)
 {
-    REPLACE(ssh_options_set, [](auto...) { return SSH_ERROR; });
-    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+    constexpr auto err = "mocked error";
+    EXPECT_CALL(mock_libssh, ssh_options_set).WillOnce(Return(SSH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_get_error(fake_session)).WillOnce(Return(err));
+
+    MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
 }
 
 TEST_F(TestPlainSSHSession, throwsWhenUnableToConnect)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_ERROR; });
-    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+    constexpr auto err = "mocked error";
+    EXPECT_CALL(mock_libssh, ssh_connect).WillOnce(Return(SSH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_get_error(fake_session)).WillOnce(Return(err));
+
+    MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
 }
 
 TEST_F(TestPlainSSHSession, throwsWhenUnableToAuth)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_ERROR; });
-    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+    constexpr auto err = "mocked error";
+    EXPECT_CALL(mock_libssh, ssh_userauth_publickey).WillOnce(Return(SSH_AUTH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_get_error(fake_session)).WillOnce(Return(err));
+
+    MP_EXPECT_THROW_THAT(make_ssh_session(), mp::SSHException, mpt::match_what(HasSubstr(err)));
 }
 
-TEST_F(TestPlainSSHSession, execThrowsOnADeadSession)
+TEST_F(TestPlainSSHSession, execPlainReturnsConcreteProcessRunningGivenCommand)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::PlainSSHSession session = make_ssh_session();
+    auto session = make_ssh_session();
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq("ls -la")))
+        .WillOnce(Return(SSH_OK));
 
-    REPLACE(ssh_is_connected, [](auto...) { return false; });
-    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+    std::unique_ptr<mp::PlainSSHProcess> proc = session.exec_plain("ls -la");
+
+    ASSERT_THAT(proc, NotNull());
+    EXPECT_EQ(proc->get_cmd(), "ls -la");
 }
 
-TEST_F(TestPlainSSHSession, execThrowsIfSshIsDead)
+TEST_F(TestPlainSSHSession, execPlainThrowsOnDisconnectedSession)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::PlainSSHSession session = make_ssh_session();
+    auto session = make_ssh_session();
+    EXPECT_CALL(mock_libssh, ssh_is_connected(fake_session)).WillOnce(Return(0));
 
-    REPLACE(ssh_is_connected, [](auto...) { return false; });
-    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+    MP_EXPECT_THROW_THAT(static_cast<void>(session.exec_plain("cmd")),
+                         mp::SSHException,
+                         mpt::match_what(HasSubstr("not connected")));
 }
 
-TEST_F(TestPlainSSHSession, execThrowsWhenUnableToOpenAChannelSession)
+TEST_F(TestPlainSSHSession, execProducesPlainProcess)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::PlainSSHSession session = make_ssh_session();
+    auto session = make_ssh_session();
 
-    REPLACE(ssh_is_connected, [](auto...) { return true; });
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
-    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+    auto proc = session.exec("true");
+
+    ASSERT_THAT(proc, NotNull());
+    EXPECT_THAT(dynamic_cast<mp::PlainSSHProcess*>(proc.get()), NotNull());
 }
 
-TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
+TEST_F(TestPlainSSHSession, moveConstructionLeavesSourceMoved)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::PlainSSHSession session = make_ssh_session();
+    auto session1 = make_ssh_session();
+    EXPECT_FALSE(session1.is_moved());
 
-    REPLACE(ssh_is_connected, [](auto...) { return true; });
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_ERROR; });
-    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+    auto session2 = std::move(session1);
+
+    EXPECT_TRUE(session1.is_moved());
+    EXPECT_FALSE(session2.is_moved());
 }
 
-TEST_F(TestPlainSSHSession, execSucceeds)
+TEST_F(TestPlainSSHSession, moveAssignmentTransfersUnderlyingSession)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::PlainSSHSession session = make_ssh_session();
+    auto other_session = reinterpret_cast<ssh_session>(bad_addr_too);
+    EXPECT_CALL(mock_libssh, ssh_new())
+        .WillOnce(Return(fake_session))
+        .WillOnce(Return(other_session));
 
-    REPLACE(ssh_is_connected, [](auto...) { return true; });
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
-
-    EXPECT_NO_THROW(static_cast<void>(session.exec("dummy")));
-}
-
-TEST_F(TestPlainSSHSession, moveAssigns)
-{
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    mp::PlainSSHSession session1 = make_ssh_session();
-    mp::PlainSSHSession session2 = make_ssh_session();
-    ssh_session ssh_session2 = session2;
+    auto session1 = make_ssh_session();
+    auto session2 = make_ssh_session();
 
     session1 = std::move(session2);
-    EXPECT_EQ(ssh_session{session1}, ssh_session2);
-    EXPECT_EQ(ssh_session{session2}, nullptr);
+
+    EXPECT_TRUE(session2.is_moved());
+    EXPECT_FALSE(session1.is_moved());
+
+    EXPECT_CALL(mock_libssh, ssh_channel_new(other_session)).WillOnce(Return(fake_channel));
+    ASSERT_THAT(session1.exec_plain("cmd"), NotNull());
+}
+
+TEST_F(TestPlainSSHSession, movedSessionReleasesOnce)
+{
+    EXPECT_CALL(mock_libssh, ssh_free(fake_session)).Times(1);
+    EXPECT_CALL(mock_libssh, ssh_disconnect(fake_session)).Times(1);
+
+    auto session1 = make_ssh_session();
+    auto session2 = std::move(session1);
 }
 
 TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
 {
     constexpr socket_t fake_fd = 5;
+    auto session = make_ssh_session();
 
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    REPLACE(ssh_get_fd, [](auto...) -> socket_t { return fake_fd; });
-
-    mp::PlainSSHSession session = make_ssh_session();
+    ON_CALL(mock_libssh, ssh_get_fd(fake_session)).WillByDefault(Return(fake_fd));
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
@@ -151,11 +193,7 @@ TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
 
 TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    REPLACE(ssh_get_fd, [](auto...) { return (socket_t)-1; });
-
-    mp::PlainSSHSession session = make_ssh_session();
+    auto session = make_ssh_session();
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, shutdown_socket).Times(0);
@@ -165,14 +203,10 @@ TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
 TEST_F(TestPlainSSHSession, dtorCallsShutdownSocket)
 {
     constexpr socket_t fake_fd = 12;
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
-    REPLACE(ssh_get_fd, [](auto...) -> socket_t { return fake_fd; });
+    EXPECT_CALL(mock_libssh, ssh_get_fd(fake_session)).WillOnce(Return(fake_fd));
 
-    {
-        auto [mock_platform, guard] = mpt::MockPlatform::inject();
-        EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
 
-        mp::PlainSSHSession session = make_ssh_session();
-    }
+    auto session = make_ssh_session();
 }
