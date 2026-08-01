@@ -20,6 +20,7 @@
 #include "mock_sftp_client_composer.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/format.h>
 #include <multipass/ssh/plain_sftp_session.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_session.h>
@@ -29,6 +30,7 @@
 #include <cstddef>
 #include <cstring>
 #include <map>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -86,10 +88,11 @@ struct TestPlainSftpSession : public Test
         ON_CALL(mock_libssh, ssh_add_channel_callbacks)
             .WillByDefault(DoAll(SaveArg<1>(&channel_cbs), Return(SSH_OK)));
         ON_CALL(mock_libssh, ssh_event_dopoll).WillByDefault([this](ssh_event, int) {
-            channel_cbs->channel_exit_status_function(fake_session,
-                                                      fake_channel,
-                                                      result_for(running_cmd).exit_code,
-                                                      channel_cbs->userdata);
+            if (const auto& exit_code = result_for(running_cmd).exit_code)
+                channel_cbs->channel_exit_status_function(fake_session,
+                                                          fake_channel,
+                                                          *exit_code,
+                                                          channel_cbs->userdata);
             return SSH_OK;
         });
 
@@ -110,6 +113,16 @@ struct TestPlainSftpSession : public Test
             });
 
         ON_CALL(client_composer, compose_client_command).WillByDefault(Return(client_cmd));
+
+        init_fakes();
+    }
+
+    void init_fakes()
+    {
+        for (auto& fake_sftp_session : fake_sftp_sessions)
+            fake_sftp_session.channel = fake_channel;
+        for (auto& fake_client_msg : fake_client_msgs)
+            fake_client_msg.type = SSH_FXP_INIT;
     }
 
     mp::PlainSSHSession make_ssh_session() const
@@ -124,7 +137,7 @@ struct TestPlainSftpSession : public Test
 
     struct ExecResult
     {
-        int exit_code = 0;
+        std::optional<int> exit_code = std::nullopt;
         std::string std_out = {};
         std::string std_err = {};
     };
@@ -136,15 +149,46 @@ struct TestPlainSftpSession : public Test
         return it == exec_results.end() ? default_result : it->second;
     }
 
-    std::map<std::string, ExecResult> exec_results;                 ///< results, by command
-    std::string running_cmd;                                        ///< currently executing cmd
-    std::map<std::pair<std::string, bool>, std::size_t> bytes_read; ///< by command and stream
+    template <size_t times>
+    void expect_client_spawns()
+    {
+        static_assert(times <= max_fakes, "not enough fakes to go around");
+
+        // Whatever else the session may run is up to individual tests to care about
+        EXPECT_CALL(mock_libssh, ssh_channel_request_exec).Times(AnyNumber());
+        EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(client_cmd)))
+            .Times(times);
+
+        auto& server_new = EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel));
+        for (std::size_t i = 0; i < times; ++i)
+        {
+            server_new.WillOnce(Return(&fake_sftp_sessions[i]));
+            EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[i]))
+                .WillOnce(Return(&fake_client_msgs[i]));
+            EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_sessions[i])).Times(1);
+        }
+
+        EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
+            .Times(times)
+            .WillRepeatedly(Return(1));
+        EXPECT_CALL(mock_libssh, sftp_reply_version(_)).Times(times).WillRepeatedly(Return(SSH_OK));
+    }
 
     constexpr static auto source = "/host/source";
     constexpr static auto target = "/guest/target";
     static inline const std::string client_cmd = fmt::format("sudo -n sshfs -o slave :{} {}",
                                                              source,
                                                              target);
+    static inline const auto findmnt_cmd = fmt::format("findmnt --source :{} -o TARGET -n", source);
+
+    // Fakes for the SFTP sessions that successive clients get served, and their init messages
+    constexpr static size_t max_fakes = 2;
+    std::array<sftp_session_struct, max_fakes> fake_sftp_sessions{};
+    std::array<sftp_client_message_struct, max_fakes> fake_client_msgs{};
+
+    std::string running_cmd;                                        ///< currently executing cmd
+    std::map<std::string, ExecResult> exec_results;                 ///< results, by command
+    std::map<std::pair<std::string, bool>, std::size_t> bytes_read; ///< by command and stream
 
     NiceMock<mpt::MockSftpClientComposer> client_composer;
     mpt::StubSSHKeyProvider key_provider;
@@ -204,94 +248,42 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
     auto session = make_ssh_session();
     ASSERT_FALSE(session.is_moved());
 
-    sftp_session_struct fake_sftp_session{};
-    fake_sftp_session.channel = fake_channel;
-    sftp_client_message_struct fake_client_msg{};
-    fake_client_msg.type = SSH_FXP_INIT;
-
-    // Don't invoke the exit-status callback so the client doesn't appear to have exited
-    EXPECT_CALL(mock_libssh, ssh_event_dopoll(fake_event, _)).WillRepeatedly(Return(SSH_OK));
-
-    // borrow_session/borrow_channel are private-pass-gated and called nowhere but here (the ctor
-    // below), so this expectation on their sftp_server_new args is the only way to check them.
-    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
-        .WillOnce(Return(&fake_sftp_session));
-    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
-    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_session))
-        .WillOnce(Return(&fake_client_msg));
-    EXPECT_CALL(mock_libssh, sftp_reply_version(&fake_client_msg)).WillOnce(Return(SSH_OK));
+    expect_client_spawns<1>();
 
     EXPECT_THAT(make_sftp_session(std::move(session)), NotNull());
 }
 
 TEST_F(TestPlainSftpSession, renewClientRespawnsClient)
 {
-    sftp_session_struct fake_sftp_session{};
-    fake_sftp_session.channel = fake_channel;
-    sftp_client_message_struct fake_client_msg{};
-    fake_client_msg.type = SSH_FXP_INIT;
-
-    using FakePair = std::pair<sftp_session_struct, sftp_client_message_struct>;
-    FakePair fake_pair = {fake_sftp_session, fake_client_msg};
-
-    using Fakes = std::array<FakePair, 2>;
-    Fakes fakes{};
-    fakes.fill(fake_pair);
-
-    // Don't invoke the exit-status callback so the client doesn't appear to have exited
-    EXPECT_CALL(mock_libssh, ssh_event_dopoll(fake_event, _)).WillRepeatedly(Return(SSH_OK));
-
-    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(client_cmd))).Times(2);
-    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
-        .WillOnce(Return(&fakes[0].first))
-        .WillOnce(Return(&fakes[1].first));
-
-    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
-        .Times(2)
-        .WillRepeatedly(Return(1));
-
-    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fakes[0].first))
-        .WillOnce(Return(&fakes[0].second));
-    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fakes[1].first))
-        .WillOnce(Return(&fakes[1].second));
-    EXPECT_CALL(mock_libssh, sftp_reply_version(_)).Times(2).WillRepeatedly(Return(SSH_OK));
+    expect_client_spawns<2>(); // one client to begin with, another one to replace it
 
     auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
 
-    {
-        EXPECT_CALL(mock_libssh, sftp_server_free(&fakes[0].first)).Times(1);
-
-        ASSERT_THAT(sftp_session, NotNull());
-
-        sftp_session->renew_client();
-    }
-
-    EXPECT_CALL(mock_libssh, sftp_server_free(&fakes[1].first)).Times(1);
+    sftp_session->renew_client();
 }
 
 TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
 {
-    sftp_session_struct fake_sftp_session{};
-    fake_sftp_session.channel = fake_channel;
-    sftp_client_message_struct fake_client_msg{};
-    fake_client_msg.type = SSH_FXP_INIT;
-
-    // Don't invoke the exit-status callback so the client doesn't appear to have exited
-    EXPECT_CALL(mock_libssh, ssh_event_dopoll(fake_event, _)).WillRepeatedly(Return(SSH_OK));
-
-    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(client_cmd))).Times(1);
-    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
-        .WillOnce(Return(&fake_sftp_session));
-
-    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
-    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_session))
-        .WillOnce(Return(&fake_client_msg));
-    EXPECT_CALL(mock_libssh, sftp_reply_version(&fake_client_msg)).WillOnce(Return(SSH_OK));
-    EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_session)).Times(1);
+    expect_client_spawns<1>(); // only the original client, no replacement
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
 
     sftp_session->request_stop();
+    sftp_session->renew_client();
+}
+
+TEST_F(TestPlainSftpSession, renewClientSkipsUnmountWhenNothingMounted)
+{
+    // No mount to be found: findmnt says so with an empty answer and a non-zero exit
+    exec_results[findmnt_cmd] = {.exit_code = 1};
+
+    expect_client_spawns<2>();
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(_, HasSubstr("umount"))).Times(0);
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
     sftp_session->renew_client();
 }

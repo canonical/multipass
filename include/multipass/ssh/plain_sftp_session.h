@@ -111,6 +111,7 @@ private:
     void spawn_client();
 
     PlainSSHSession plain_ssh_session;
+    const std::string source;
     const std::string client_cmd;
     std::unique_ptr<PlainSSHProcess> client_process;
     RawSftpSessionUptr raw_sftp_session;
