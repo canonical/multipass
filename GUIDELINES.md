@@ -22,38 +22,23 @@ Accordingly, this document aims at establishing a set of guidelines that:
 - afford a few grains of salt;
 - are meant to evolve.
 
-## Guidelines
+## Overview
 
 In the lists that follow, prefixes are meant to provide an easy means of referring to individual
 guidelines and sections. Order may follow a loose line of reasoning, but it does not signify
 precedence or priority.
 
-### Meta-guidelines (META)
+| General | Coding | Processes |
+|----|----|----|
+| MU: [Core principles](#core-principles-mu) | COD: [Generic engineering and coding](#generic-engineering-and-code-cod) | PR: [Pull Requests](#pull-requests-pr) |
+| GIT: [Git usage](#versioning-git)  | CPP: [C++](#c-cpp) | RVW: [Reviews](#reviews-rvw) |
+| MSG: [Commit messages](#commit-messages-msg) | TXT: [Text](#text) | REL: [Releases](#releases-rel)|
+| META: [Meta guidelines](#meta-guidelines-meta)  | AI: [Artificial Intelligence](#artificial-intelligence-ai) |   |
+|   | FF: [Feature Flags](#feature-flags-ff) |   |
+|   | DEP: [Dependencies](#dependencies-dep) |   |
 
-The following meta-guidelines cover the process to derive Multipass's contribution guidelines, along
-with governance goals.
 
-**META1.** Everyone in the team can propose additional guidelines.<br>
-**META2.** Everyone in the team can question and propose changes to guidelines.<br>
-**META3.** Before the *first* set of guidelines is established, everyone in the team is invited to
-participate in live discussions about them.<br>
-**META4.** Before a new version of these guidelines is established, everyone in the team reviews it
-independently, except if away on prolonged absence.<br>
-**META5.** Ideally, all team members come to *agree* on any given version of these guidelines before
-it is established.<br>
-**META6.** Where that is not possible, preferably a majority of the team *agrees* with any given
-version of these guidelines before it is established.<br>
-**META7.** Preferably, all team members *accept* the latest established version of these guidelines,
-until the team agrees to modify it.<br>
-**META8.** In any case, all team members *abide* by the latest established version of these
-guidelines, until the team agrees to modify it.<br>
-**META9.** Established guidelines are taken seriously, but with a grain of salt. They are guidelines
-after all, not absolute rules.<br>
-**META10.** Once established, the first version of these guidelines is transferred to a versioned
-document (CONTRIBUTING.md).<br>
-**META11.** Going forward, these guidelines are meant to be expanded, refined, and corrected via
-pull requests.<br>
-**META12.** New practices can be experimented with before being adopted definitively.<br>
+# General
 
 ### Core principles (MU)
 
@@ -79,92 +64,7 @@ e.g. [CppCoreGuidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuide
 **MU14.** Leave the code a little bit better than you found it.<br>
 **MU15.** Aim for optimal solutions when they are feasible, compromise when they are not.<br>
 
-### Releases (REL)
-
-Descriptive rules of how releases are obtained from Git.
-
-**REL1.** The trunk of Multipass development happens in the `main` branch, which releases branch out
-of.<br>
-**REL2.** Preferably, release branches contain only commits that are directly reachable from `main`
-or cherry-picked from it.<br>
-**REL3.** Cherry-picked commits in release branches may differ from the original ones only where
-necessary to avoid or fix conflicts.<br>
-**REL4.** In exceptional cases, release branches may contain dedicated commits for bug, build, or
-conflict fixes.<br>
-**REL5.** After a release is published, the corresponding release branch is merged back into
-`main`.<br>
-
-### Pull Requests (PR)
-
-Guidelines for how we use and handle pull requests.
-
-**PR1.** Concrete modifications of Multipass can be proposed
-via [Pull Requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests)
-(AKA PRs) targeting the `main` branch.<br>
-**PR2.** Prefer small, single-issue PRs.<br>
-**PR3.** A PR should introduce a coherent change that appears as a unit in a medium or high level of
-abstraction.<br>
-**PR4.** The `main` branch is modified exclusively via PRs, except for an empty commit after
-branching for release.<br>
-**PR5.** PRs accepted into `main` are merged with merge commits.<br>
-**PR6.** PRs to `main` should typically be covered by automated tests.<br>
-**PR7.** If a PR is valuable on its own, does not depend on others, and does not involve dead code,
-target the `main` branch, even if it is part of a larger task. This should be the most common
-case.<br>
-**PR8.** If your PR relies on another one, target the other's branch.<br>
-**PR9.** When PRs are stacked, prefer to merge them in order. The target branch will update
-automatically upon merging.<br>
-**PR10.** PRs should include descriptions and/or point to appropriate context (within reason).<br>
-**PR11.** When authoring a PR, make sure to test it.<br>
-**PR12.** When authoring a PR, make sure to review its diff.<br>
-
-### Reviews (RVW)
-
-**RVW1.** Multipass team members submit their PRs for review by assigning at least one reviewer:
-either a specific person of their choice or the "Multipass" team, for automated assignment.<br>
-**RVW2.** For PRs from external contributors, the Multipass team member on support duty at the time
-will delegate review assignment.<br>
-**RVW3.** Anyone in the Multipass team may request secondary reviews, including assigning themselves
-as a reviewer.<br>
-**RVW4.** Multipass team members may modify review assignments after discussion with the team.<br>
-**RVW5.** When assigning multiple reviewers, Multipass team members should indicate who is meant as
-primary and secondary reviewer.<br>
-**RVW6.** Reviewers should always request an additional secondary review if they're not fully
-confident in their understanding of all of the changes.<br>
-**RVW7.** The primary reviewer is responsible for closely inspecting the changes, considering the
-impacts, and appropriately testing the changes.<br>
-**RVW8.** Secondary reviewers are responsible for inspecting a particular aspect of the changes
-(e.g. architecture, UI design, domain-specific knowledge), to be defined by the person requesting
-the secondary review.<br>
-**RVW9.** After a PR is approved by multiple reviewers, small updates require only a single
-additional approval (i.e. after multiple approvals are dismissed).<br>
-**RVW10.** Review comments should be acknowledged by the author, but *resolved* by the reviewer.<br>
-
-### Feature flags (FF)
-
-**FF1.** When making an interdependent set of changes too large to review and merge as a single PR,
-consider adding a feature flag for it.<br>
-**FF2.** Feature flags should be used to disable any new code or behavior which is part of the given
-feature; with the feature flag disabled, Multipass should behave identically to before the flag's
-introduction.<br>
-**FF3.** Strive to encapsulate code that is dependent on a feature flag, preferably in its own
-files, so that those files can be entirely included or excluded from builds.<br>
-**FF4.** If necessary, create stub implementations of new feature APIs to allow other Multipass code
-to work with the new interfaces. When possible, put the stub implementations in separate files and
-conditionally compile them or the real implementations based on the state of the feature flag.<br>
-**FF5.** Where separate files are not feasible or justified, use preprocessor directives to
-selectively enable or disable feature code. Keep this approach as the exception rather than the
-norm.<br>
-**FF6.** Minimize unreachable code under a feature flag, i.e., code that can't be reached even
-though the feature is enabled.<br>
-**FF7.** PRs for code behind a feature flag should otherwise be treated as usual, with authors and
-reviewers maintaining the same standards of quality as for other PRs.<br>
-**FF8.** When a feature is fully-complete and suitable for release, the corresponding feature flag
-should be completely removed from Multipass.<br>
-**FF9.** Once a feature flag is removed, all newly-unreachable code should be removed along with
-it.<br>
-
-### Versioning (GIT)
+### Git usage (GIT)
 
 **GIT1.** Strive for atomic commits. A commit should introduce a coherent change that appears as a
 unit in a low level of abstraction.<br>
@@ -214,7 +114,7 @@ references, sign-offs, and co-authors.<br>
 
 - Common categories: `[daemon]`, `[cli]`, `[settings]`, `[build]`, `[ci]`, `[test]`, `[doc]`,
   `[gui]`, `[format]`
-- Subject line: `[gui]` Fix button alignment in navigation bar
+- Subject line: `[gui] Fix button alignment in navigation bar`
 - Full commit message with a body:
 
 ```
@@ -234,13 +134,31 @@ code injection (now or in the future).
 `packaging/gui-less/snap/snapcraft.yaml` when `snap/snapcraft.yaml` changes
     * `ln -s ../../git-hooks/pre-commit .git/hooks/pre-commit`
 
-### Dependencies (DEP)
 
-**DEP1.** Acceptable mechanisms to adopt source-code dependencies are, in decreasing order of
-preference: Vcpkg (for C++) > FetchContent > submodule.<br>
-**DEP2.** Avoid vendoring (copied source code).<br>
+### Meta-guidelines (META)
 
-### Code
+The following meta-guidelines cover the process to derive Multipass's contribution guidelines, along
+with governance goals.
+
+**META1.** Everyone in the team can propose additional guidelines.<br>
+**META2.** Everyone in the team can question and propose changes to guidelines.<br>
+**META3.** Before a new version of these guidelines is established, everyone in the team reviews it
+independently, except if away on prolonged absence.<br>
+**META4.** Ideally, all team members come to *agree* on any given version of these guidelines before
+it is established.<br>
+**META5.** Where that is not possible, preferably a majority of the team *agrees* with any given
+version of these guidelines before it is established.<br>
+**META6.** Preferably, all team members *accept* the latest established version of these guidelines,
+until the team agrees to modify it.<br>
+**META7.** In any case, all team members *abide* by the latest established version of these
+guidelines, until the team agrees to modify it.<br>
+**META8.** Established guidelines are taken seriously, but with a grain of salt. They are guidelines
+after all, not absolute rules.<br>
+**META9.** Going forward, these guidelines are meant to be expanded, refined, and corrected via
+pull requests.<br>
+**META10.** New practices can be experimented with before being adopted definitively.<br>
+
+# Coding
 
 Prescriptive programming and engineering principles to aim at. Many of these overlap. Some are in
 tension and have to be balanced.
@@ -310,7 +228,7 @@ and increase reliability.<br>
 **TXT5.** Express the same idea more than once only to add relevant information, improve precision,
 provide a different perspective, or help clarify complexity.<br>
 
-### AI
+### Artificial Intelligence (AI)
 
 Prescriptive guidelines concerning the use of Artificial Intelligence (AI) when contributing to
 Multipass, in particular generative AI and LLMs.
@@ -331,6 +249,100 @@ especially if it includes AI-generated content.<br>
 (i.e. high signal-to-noise ratio). This includes code and text.<br>
 **AI8.** Authors are ultimately responsible for their entire contributions,
 including all components, contents, format, presentation, and communication.<br>
+
+
+### Feature flags (FF)
+
+**FF1.** When making an interdependent set of changes too large to review and merge as a single PR,
+consider adding a feature flag for it.<br>
+**FF2.** Feature flags should be used to disable any new code or behavior which is part of the given
+feature; with the feature flag disabled, Multipass should behave identically to before the flag's
+introduction.<br>
+**FF3.** Strive to encapsulate code that is dependent on a feature flag, preferably in its own
+files, so that those files can be entirely included or excluded from builds.<br>
+**FF4.** If necessary, create stub implementations of new feature APIs to allow other Multipass code
+to work with the new interfaces. When possible, put the stub implementations in separate files and
+conditionally compile them or the real implementations based on the state of the feature flag.<br>
+**FF5.** Where separate files are not feasible or justified, use preprocessor directives to
+selectively enable or disable feature code. Keep this approach as the exception rather than the
+norm.<br>
+**FF6.** Minimize unreachable code under a feature flag, i.e., code that can't be reached even
+though the feature is enabled.<br>
+**FF7.** PRs for code behind a feature flag should otherwise be treated as usual, with authors and
+reviewers maintaining the same standards of quality as for other PRs.<br>
+**FF8.** When a feature is fully-complete and suitable for release, the corresponding feature flag
+should be completely removed from Multipass.<br>
+**FF9.** Once a feature flag is removed, all newly-unreachable code should be removed along with
+it.<br>
+
+### Dependencies (DEP)
+
+**DEP1.** Acceptable mechanisms to adopt source-code dependencies are, in decreasing order of
+preference: Vcpkg (for C++) > FetchContent > submodule.<br>
+**DEP2.** Avoid vendoring (copied source code).<br>
+
+# Processes
+
+### Pull Requests (PR)
+
+Guidelines for how we use and handle pull requests.
+
+**PR1.** Concrete modifications of Multipass can be proposed
+via [Pull Requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests)
+(AKA PRs) targeting the `main` branch.<br>
+**PR2.** Prefer small, single-issue PRs.<br>
+**PR3.** A PR should introduce a coherent change that appears as a unit in a medium or high level of
+abstraction.<br>
+**PR4.** The `main` branch is modified exclusively via PRs, except for an empty commit after
+branching for release.<br>
+**PR5.** PRs accepted into `main` are merged with merge commits.<br>
+**PR6.** PRs to `main` should typically be covered by automated tests.<br>
+**PR7.** If a PR is valuable on its own, does not depend on others, and does not involve dead code,
+target the `main` branch, even if it is part of a larger task. This should be the most common
+case.<br>
+**PR8.** If your PR relies on another one, target the other's branch.<br>
+**PR9.** When PRs are stacked, prefer to merge them in order. The target branch will update
+automatically upon merging.<br>
+**PR10.** PRs should include descriptions and/or point to appropriate context (within reason).<br>
+**PR11.** When authoring a PR, make sure to test it.<br>
+**PR12.** When authoring a PR, make sure to review its diff.<br>
+
+### Reviews (RVW)
+
+**RVW1.** Multipass team members submit their PRs for review by assigning at least one reviewer:
+either a specific person of their choice or the "Multipass" team, for automated assignment.<br>
+**RVW2.** For PRs from external contributors, the Multipass team member on support duty at the time
+will delegate review assignment.<br>
+**RVW3.** Anyone in the Multipass team may request secondary reviews, including assigning themselves
+as a reviewer.<br>
+**RVW4.** Multipass team members may modify review assignments after discussion with the team.<br>
+**RVW5.** When assigning multiple reviewers, Multipass team members should indicate who is meant as
+primary and secondary reviewer.<br>
+**RVW6.** Reviewers should always request an additional secondary review if they're not fully
+confident in their understanding of all of the changes.<br>
+**RVW7.** The primary reviewer is responsible for closely inspecting the changes, considering the
+impacts, and appropriately testing the changes.<br>
+**RVW8.** Secondary reviewers are responsible for inspecting a particular aspect of the changes
+(e.g. architecture, UI design, domain-specific knowledge), to be defined by the person requesting
+the secondary review.<br>
+**RVW9.** After a PR is approved by multiple reviewers, small updates require only a single
+additional approval (i.e. after multiple approvals are dismissed).<br>
+**RVW10.** Review comments should be acknowledged by the author, but *resolved* by the reviewer.<br>
+
+### Releases (REL)
+
+Descriptive rules of how releases are obtained from Git.
+
+**REL1.** The trunk of Multipass development happens in the `main` branch, which releases branch out
+of.<br>
+**REL2.** Preferably, release branches contain only commits that are directly reachable from `main`
+or cherry-picked from it.<br>
+**REL3.** Cherry-picked commits in release branches may differ from the original ones only where
+necessary to avoid or fix conflicts.<br>
+**REL4.** In exceptional cases, release branches may contain dedicated commits for bug, build, or
+conflict fixes.<br>
+**REL5.** After a release is published, the corresponding release branch is merged back into
+`main`.<br>
 
 # Further Information
 
