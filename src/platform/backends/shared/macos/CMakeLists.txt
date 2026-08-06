@@ -14,7 +14,8 @@
 
 add_library(shared_macos STATIC
   backend_utils.cpp
-  process_factory.cpp)
+  process_factory.cpp
+  sleep_wake_handler.mm)
 
 include_directories(shared_macos
   ..)
@@ -22,4 +23,6 @@ include_directories(shared_macos
 target_link_libraries(shared_macos
   fmt::fmt-header-only
   ssh_common
-  Qt6::Core)
+  Qt6::Core
+  "-framework AppKit"
+  "-framework Foundation")
