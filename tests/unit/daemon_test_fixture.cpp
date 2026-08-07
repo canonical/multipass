@@ -540,10 +540,12 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
     contents += QString::fromStdString(fmt::format("\n        ],\n"
                                                    "        \"num_cores\": 1,\n"
                                                    "        \"ssh_username\": \"ubuntu\",\n"
-                                                   "        \"state\": {}\n"
+                                                   "        \"state\": {},\n"
+                                                   "        \"was_running\": {}\n"
                                                    "    }}\n"
                                                    "}}",
-                                                   fmt::underlying(vm_properties.state)));
+                                                   fmt::underlying(vm_properties.state),
+                                                   vm_properties.was_running));
 
     return contents.toStdString();
 }

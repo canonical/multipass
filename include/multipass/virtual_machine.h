@@ -136,6 +136,11 @@ public:
     std::condition_variable state_wait;
     std::mutex state_mutex;
 
+    // Whether the VM was running when its zone was last disabled; used to decide whether to
+    // start it back up when the zone becomes available again. Public (like `state`) so it can be
+    // persisted and restored by the daemon across restarts.
+    bool was_running = false;
+
 protected:
     explicit VirtualMachine(State state = State::off) : state{state}
     {

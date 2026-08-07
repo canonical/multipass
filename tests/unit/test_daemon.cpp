@@ -531,6 +531,40 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     mp::Daemon daemon{config_builder.build()};
 }
 
+TEST_F(Daemon, restoresUnavailableStateAndWasRunningOnConstruction)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::unavailable;
+    vm_props.was_running = true;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // Backends know nothing about availability zones, so on construction they reset their
+    // in-memory state using their own heuristics (e.g. off, or suspended if a snapshot exists),
+    // ignoring the persisted `unavailable` state and losing was_running.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
+    EXPECT_CALL(*mock_vm, current_state).Times(0);
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
+    mock_vm->state = mp::VirtualMachine::State::off;
+    mock_vm->was_running = false;
+
+    auto* mock_vm_ptr = mock_vm.get();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    // The daemon should have restored both fields from the persisted spec, so that a later
+    // enable-zones still knows this instance needs to be started back up.
+    EXPECT_EQ(mock_vm_ptr->state, mp::VirtualMachine::State::unavailable);
+    EXPECT_TRUE(mock_vm_ptr->was_running);
+}
+
 TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
 {
     auto mock_factory = use_a_mock_vm_factory();

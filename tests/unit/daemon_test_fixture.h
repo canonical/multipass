@@ -50,6 +50,7 @@ struct fake_vm_properties
     std::unordered_map<std::string, mp::VMMount> mounts{};
     bool deleted = false;
     VirtualMachine::State state = VirtualMachine::State::starting;
+    bool was_running = false;
 };
 
 struct DaemonTestFixture : public ::Test

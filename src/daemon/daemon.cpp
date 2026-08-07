@@ -1426,6 +1426,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             break;
             }
         }
+        else if (spec.state == e_state::unavailable)
+        {
+            // Backends decide the VM's initial in-memory state from local heuristics (e.g. QEMU
+            // looks for a suspend snapshot on disk) and know nothing about availability zones, so
+            // a VM whose zone was disabled always comes back as `off`/`suspended` here. Restore
+            // the persisted `unavailable` state and whether it was running, so that a later
+            // enable-zones still knows to start it back up.
+            operative_instances[name]->state = spec.state;
+            operative_instances[name]->was_running = spec.was_running;
+        }
     }
 
     for (const auto& bad_spec : invalid_specs)
@@ -2991,6 +3001,12 @@ void mp::Daemon::on_restart(const std::string& name)
 void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
 {
     vm_instance_specs[name].state = state;
+
+    // Capture whether the VM was running when it was last marked unavailable, so that
+    // enable-zones can correctly restart it even after a daemon restart in between.
+    if (const auto it = operative_instances.find(name); it != operative_instances.end())
+        vm_instance_specs[name].was_running = it->second->was_running;
+
     persist_instances();
 }
 

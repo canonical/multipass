@@ -45,6 +45,7 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
         {"clone_count", specs.clone_count},
         {"zone", specs.zone},
+        {"was_running", specs.was_running},
     };
 }
 
@@ -83,5 +84,6 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
         metadata,
         lookup_or<int>(json, "clone_count", 0),
         lookup_or<std::string>(json, "zone", az_manager.get_default_zone_name()),
+        lookup_or<bool>(json, "was_running", false),
     };
 }
