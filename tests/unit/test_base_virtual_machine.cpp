@@ -1056,13 +1056,13 @@ TEST_F(BaseVM, throwsIfThereAreSnapshotsToLoadButNoGenericInfo)
 
     mpt::make_file_with_content(get_snapshot_file_path(1), "stub");
     MP_EXPECT_THROW_THAT(vm.load_snapshots(),
-                         mp::FileOpenFailedException,
+                         std::filesystem::filesystem_error,
                          mpt::match_what(HasSubstr(count_filename)));
 
     vm.delete_snapshot(name);
     mpt::make_file_with_content(count_path, "1");
     MP_EXPECT_THROW_THAT(vm.load_snapshots(),
-                         mp::FileOpenFailedException,
+                         std::filesystem::filesystem_error,
                          mpt::match_what(HasSubstr(head_filename)));
 }
 

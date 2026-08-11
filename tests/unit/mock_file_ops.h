@@ -39,6 +39,7 @@ public:
                 write_transactionally,
                 (const QString& file_name, const QByteArrayView& data),
                 (const, override));
+    // NOTE: Likewise, we don't mock `read_file`, since it forwards to `try_read_file`.
     MOCK_METHOD(std::optional<std::string>, try_read_file, (const fs::path&), (const, override));
 
     // QDir mock methods

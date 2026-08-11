@@ -171,30 +171,28 @@ private:
                                        std::shared_ptr<Snapshot>& old_head,
                                        int old_count);
 
-    auto make_common_file_rollback(const Path& file_path,
-                                   QFile& file,
+    auto make_common_file_rollback(const std::filesystem::path& file,
                                    const std::string& old_contents) const;
-    void common_file_rollback_helper(const Path& file_path,
-                                     QFile& file,
+    void common_file_rollback_helper(const std::filesystem::path& file,
                                      const std::string& old_contents,
                                      bool existed) const;
 
     void persist_generic_snapshot_info() const;
-    void persist_head_snapshot_index(const Path& head_path) const;
+    void persist_head_snapshot_index(const std::filesystem::path& head_path) const;
     [[nodiscard]] std::string generate_snapshot_name() const;
 
     template <typename NodeT>
     auto make_reinsert_guard(NodeT& snapshot_node);
 
-    auto make_restore_rollback(const Path& head_path, VMSpecs& specs);
-    void restore_rollback_helper(const Path& head_path,
+    auto make_restore_rollback(const std::filesystem::path& head_path, VMSpecs& specs);
+    void restore_rollback_helper(const std::filesystem::path& head_path,
                                  const std::shared_ptr<Snapshot>& old_head,
                                  const VMSpecs& old_specs,
                                  VMSpecs& specs);
 
-    bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path);
-    auto make_deleted_head_rollback(const Path& head_path, const bool& wrote_head);
-    void deleted_head_rollback_helper(const Path& head_path,
+    bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const std::filesystem::path& head_path);
+    auto make_deleted_head_rollback(const std::filesystem::path& head_path, const bool& wrote_head);
+    void deleted_head_rollback_helper(const std::filesystem::path& head_path,
                                       const bool& wrote_head,
                                       std::shared_ptr<Snapshot>& old_head);
 
@@ -215,7 +213,7 @@ protected:
     VMStatusMonitor& monitor;
     const SSHKeyProvider& key_provider;
     AvailabilityZone& zone;
-    const QDir instance_dir;
+    const std::filesystem::path instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
 
