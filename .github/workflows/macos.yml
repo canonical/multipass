@@ -354,7 +354,7 @@ jobs:
         path: ${{ env.SCCACHE_DIR }}
         key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
 
-  CombineAndPublishMacOSPackage:
+  CombineMacOSPackage:
     # Want to run even if one of the builds above failed
     if: ${{ !cancelled() && always() }}
 
@@ -362,12 +362,13 @@ jobs:
 
     permissions:
       contents: read
-      statuses: write
 
     runs-on: macos-26
 
     outputs:
-      macos-pkg-url: ${{ steps.s3-upload.outputs.url }}
+      build-label: ${{ needs.BuildAndTest.outputs.build-label }}
+      macos-package-artifact-name: ${{ steps.combine-package.outputs.name }}
+      macos-package-file-name: ${{ steps.combine-package.outputs.name }}
 
     steps:
     - name: Check out code
@@ -422,14 +423,34 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
+  PublishMacOSPackage:
+    needs: CombineMacOSPackage
+    if: ${{ !cancelled() && success() }}
+
+    permissions:
+      contents: read
+      statuses: write
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      macos-pkg-url: ${{ steps.s3-upload.outputs.url }}
+
+    steps:
+    - name: Retrieve the combined macOS package
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.CombineMacOSPackage.outputs.macos-package-artifact-name }}
+        path: package
+
     - name: Publish combined macOS package on S3
-      if: ${{ steps.combine-package.outputs.path && env.AWS_ACCESS_KEY_ID }}
+      if: ${{ env.AWS_ACCESS_KEY_ID }}
       id: s3-upload
       uses: canonical/actions/s3-upload@release
       with:
-        path: ${{ steps.combine-package.outputs.path }}
+        path: package/${{ needs.CombineMacOSPackage.outputs.macos-package-file-name }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ needs.BuildAndTest.outputs.build-label }}
+        prefix: ${{ needs.CombineMacOSPackage.outputs.build-label }}
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
@@ -443,12 +464,11 @@ jobs:
     - name: Publish package link status
       if: ${{ steps.s3-upload.outputs.url != '' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
       continue-on-error: true
-      shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         PACKAGE_URL: ${{ steps.s3-upload.outputs.url }}
-        PACKAGE_NAME: ${{ steps.combine-package.outputs.name }}
+        PACKAGE_NAME: ${{ needs.CombineMacOSPackage.outputs.macos-package-file-name }}
       run: |
         gh api \
           --method POST \
@@ -460,22 +480,22 @@ jobs:
 
   DispatchCLITestsWorkflow:
     name: "Dispatch CLI Tests (macOS)"
-    if: needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url != ''
+    if: needs.PublishMacOSPackage.outputs.macos-pkg-url != ''
     permissions:
       contents: read
       actions: read
       checks:  write
     secrets: inherit
     needs:
-      - CombineAndPublishMacOSPackage
+      - PublishMacOSPackage
     uses: ./.github/workflows/cli-tests.yml
     with:
-      macos-pkg-url: ${{ needs.CombineAndPublishMacOSPackage.outputs.macos-pkg-url }}
+      macos-pkg-url: ${{ needs.PublishMacOSPackage.outputs.macos-pkg-url }}
 
   DeleteSeparateMacPackages:
-    if: ${{ !cancelled() && success() && needs.CombineAndPublishMacOSPackage.result == 'success' }}
+    if: ${{ !cancelled() && success() && needs.PublishMacOSPackage.result == 'success' }}
 
-    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
+    needs: [BuildAndTest, CombineMacOSPackage, PublishMacOSPackage]
 
     runs-on: ubuntu-latest
 
@@ -489,7 +509,7 @@ jobs:
         failOnError: false
 
   Report-Workflow-Failure:
-    needs: [BuildAndTest, CombineAndPublishMacOSPackage]
+    needs: [BuildAndTest, CombineMacOSPackage, PublishMacOSPackage]
     if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
 
     runs-on: ubuntu-latest
