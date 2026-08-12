@@ -218,6 +218,7 @@ linkcheck_ignore = [
 ]
 
 linkcheck_retries = 3
+linkcheck_timeout = 60
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 
