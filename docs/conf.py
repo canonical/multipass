@@ -214,7 +214,8 @@ linkcheck_ignore = [
     "https://developer.hashicorp.com/packer",
     "https://www.freedesktop.org/*",
     "https://asciinema.org/*",
-    "https://askubuntu.com/a/4404"
+    "https://askubuntu.com/a/4404",
+    "https://launchpad.net/ubuntu/devel",
 ]
 
 linkcheck_retries = 3
