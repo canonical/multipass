@@ -1,7 +1,7 @@
 (how-to-guides-customise-multipass-use-a-different-terminal-from-the-system-icon)=
 # Use a different terminal from the system icon
 
-> See also: [How to install Multipass](/how-to-guides/install-multipass), [`shell`](/reference/command-line-interface/shell).
+> See also: [How to install Multipass](how-to-guides-install-multipass), [`shell`](reference-command-line-interface-shell).
 
 If you want, you can change the terminal application used by the Multipass system menu icon.
 

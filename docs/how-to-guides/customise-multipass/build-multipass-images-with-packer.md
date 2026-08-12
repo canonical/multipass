@@ -5,7 +5,7 @@
 Custom images are only supported on Linux.
 ```
 
-[Packer](https://packer.io/) is a utility that lets you (re)build images to run in a variety of environments. Multipass can run those images too, provided some requirements are met (namely, the image has to boot on the hypervisor in use, and [cloud-init](https://cloudinit.readthedocs.io/en/latest/) needs to be available).
+[Packer](https://developer.hashicorp.com/packer) is a utility that lets you (re)build images to run in a variety of environments. Multipass can run those images too, provided some requirements are met (namely, the image has to boot on the hypervisor in use, and [cloud-init](https://cloudinit.readthedocs.io/en/latest/) needs to be available).
 
 ## Setting up the build directory
 

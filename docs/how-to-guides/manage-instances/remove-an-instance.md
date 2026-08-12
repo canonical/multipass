@@ -1,13 +1,13 @@
 (how-to-guides-manage-instances-remove-an-instance)=
 # Remove an instance
 
-> See also: [Instance](/explanation/instance)
+> See also: [Instance](explanation-instance)
 
 This guide demonstrates how to remove an instance, either temporarily or permanently.
 
 ## Move an instance to the recycle bin
 
-> See also: [`delete`](/reference/command-line-interface/launch), [`recover`](/reference/command-line-interface/recover)
+> See also: [`delete`](reference-command-line-interface-delete), [`recover`](reference-command-line-interface-recover)
 
 To mark an instance as deleted, run:
 
@@ -43,7 +43,7 @@ keen-yak                STOPPED           --               Ubuntu 18.04 LTS
 
 ## Remove an instance permanently
 
-> See also: [`delete`](/reference/command-line-interface/launch), [`purge`](/reference/command-line-interface/purge)
+> See also: [`delete`](reference-command-line-interface-delete), [`purge`](reference-command-line-interface-purge)
 
 If you want to get rid of all instances in `Deleted` status for good, you can purge them:
 

@@ -213,14 +213,17 @@ linkcheck_ignore = [
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
     "https://www.freedesktop.org/*",
-    "https://asciinema.org/*"
+    "https://asciinema.org/*",
+    "https://askubuntu.com/a/4404",
+    "https://launchpad.net/ubuntu/devel",
 ]
 
 linkcheck_retries = 3
+linkcheck_timeout = 60
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 
-linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*"]
+linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*",r"https://matrix\.to/.*"]
 
 
 ########################
