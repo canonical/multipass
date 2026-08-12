@@ -71,10 +71,12 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
+version_slug = f"{os.environ.get('READTHEDOCS_VERSION', 'local')}"
+html_baseurl = f"https://canonical.com/multipass/docs/{version_slug}/"
 ogp_site_url = html_baseurl
 
 sitemap_url_scheme = "{link}"
+sitemap_filename = "doc-sitemap.xml"  # Required to avoid sitemap conflicts
 
 # Preview name of the documentation website
 #
@@ -165,7 +167,7 @@ html_theme_options = {
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-slug = "multipass"
+slug = "multipass/docs"
 
 
 # Template and asset locations
@@ -210,7 +212,8 @@ linkcheck_ignore = [
     "http://www.straightrunning.com/XmingNotes/",
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
-    "https://www.freedesktop.org/*"
+    "https://www.freedesktop.org/*",
+    "https://asciinema.org/*"
 ]
 
 linkcheck_retries = 3
@@ -276,6 +279,7 @@ html_css_files = [
 
 html_js_files = [
     "js/bundle.js",
+    "js/overwrite_links.js",
 ]
 
 
