@@ -184,10 +184,11 @@ multipass enable-zones zone1 zone2
 
 After a few moments, `web-a` and `web-b` rejoin the rotation and the load balancer serves all three zones once more.
 
-Let's now delete the instances and free their resources on our host machine:
+Let's now delete the instances, free their resources on our host machine, and remove the local HAProxy configuration file:
 
 ```bash
 multipass delete --purge web-a web-b web-c load-balancer
+rm haproxy.cfg
 ```
 
 ## Summary
