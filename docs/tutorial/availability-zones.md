@@ -16,10 +16,10 @@ multipass zones
 Sample output:
 
 ```text
-Name State
-zone1 Available
-zone2 Available
-zone3 Available
+Name    State       Subnet
+zone1   Available   192.168.252.0/24
+zone2   Available   192.168.253.0/24
+zone3   Available   192.168.254.0/24
 ```
 
 We will spread our web servers across `zone1`, `zone2` and `zone3`.
