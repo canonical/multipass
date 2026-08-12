@@ -26,7 +26,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 Start here to install and launch your first Multipass instance.
 
-- Tutorial: [Getting stated with Multipass](tutorial-index) • [Install Multipass](how-to-guides-install-multipass) •  [Setup the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
+- Tutorial: [Getting stated with Multipass](tutorial-getting-started) • [Install Multipass](how-to-guides-install-multipass) •  [Setup the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
 
 ### Using Multipass
 
