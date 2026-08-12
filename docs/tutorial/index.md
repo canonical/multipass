@@ -9,7 +9,7 @@ Create and configure your first Multipass instances while becoming familiar with
 
 ## [Multipass availability zones with a load-balanced web service](availability-zones)
 
-Learn the basics of Multipass availability zones by deploying a load-balanced web service and testing backend failover when zones become unavailable.
+Learn the basics of Multipass availability zones by deploying a load-balanced web service and testing how it responds when zones become unavailable.
 
 ```{toctree}
 :hidden:
