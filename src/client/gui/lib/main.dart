@@ -184,7 +184,9 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     // checking the need to restore the window
-    if (!await windowManager.isVisible() || await windowManager.isMinimized()) {
+    if (!await windowManager.isVisible() ||
+        await windowManager.isMinimized() ||
+        !await windowManager.isFocused()) {
       windowManager.showAndRestore();
     }
 
