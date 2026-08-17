@@ -38,7 +38,7 @@ struct SSHProcess : public Test
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
-    mpt::CallbackEngineMock callback_mock_engine;
+    mpt::CallbackChEngineMock callback_mock_engine;
 };
 } // namespace
 
@@ -48,10 +48,9 @@ TEST_F(SSHProcess, canRetrieveExitStatus)
     REPLACE(ssh_channel_new,
             [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_channel_free, [](auto...) { return; });
-    mpt::CallbackState cb_state{};
+    mpt::CallbackChState cb_state{};
     cb_state.exit_code = expected_status;
     callback_mock_engine.push_state(cb_state);
-    callback_mock_engine.pop_state();
     REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
     REPLACE(ssh_event_free, [](auto...) { return; });
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
@@ -88,8 +87,6 @@ TEST_F(SSHProcess, specifiesStderrCorrectly)
 
 TEST_F(SSHProcess, readingOutputReturnsEmptyIfChannelClosed)
 {
-    REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
-
     auto proc = session.exec("something");
     auto output = proc->read_std_output();
     EXPECT_TRUE(output.empty());

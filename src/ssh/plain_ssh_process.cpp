@@ -151,15 +151,23 @@ void mp::PlainSSHProcess::channel_exit_signal_cb(ssh_session,
                                                  void* userdata)
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
-    mp::top_catch_all(category, [process, signal] {
-        mpl::error(category,
-                   "{}: Process terminated by remote signal: SIG{}",
-                   process->cmd,
-                   signal ? signal : "UNKNOWN");
 
-        auto sig_code{signal_to_exit_code(signal)};
-        process->exit_result = sig_code;
-    });
+    try
+    {
+        mpl::warn(category,
+                  "{}: Process terminated by remote signal: SIG{}",
+                  process->cmd,
+                  signal ? signal : "UNKNOWN");
+    }
+    catch (...)
+    {
+        // There is no stack unwinding code in the libssh library (C-based), an exception during
+        // logging will probably cause another exception if logging is attempted again, so in this
+        // case there is a silent failure.
+    }
+
+    auto sig_code{mp::SSH::signal_to_exit_code(signal)};
+    process->exit_result = sig_code;
 }
 
 void mp::PlainSSHProcess::channel_eof_cb(ssh_session, ssh_channel, void* userdata)
@@ -199,8 +207,6 @@ int mp::PlainSSHProcess::exit_code(std::chrono::milliseconds timeout)
     auto local_lock = std::move(session_lock); // unlock at the end
     read_exit_code(timeout);
 
-    assert(exit_result.has_value()); // TODO: remove assert or exit_code must be called only if
-    // exit_recognized returned true
     return *exit_result;
 }
 
@@ -224,15 +230,17 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout)
     {
         if (channel_closed) // eof is ok
             throw SSHProcessExitError{cmd, "channel is closed with no exit status"};
-        else if (rc == SSH_ERROR)
+
+        if (rc == SSH_ERROR)
         { // SSH_ERROR with no closed or eof means that poll returned <0. Further polling will fail
           // (unless the error was EINTR). Not setting the closed or eof.
 
             const auto err = fmt::format("ssh_event_dopoll failed: {}", std::strerror(errno));
             throw SSHProcessExitError{cmd, err};
         }
-        else // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
-            throw SSHProcessTimeoutException{cmd, timeout};
+
+        // we expect SSH_AGAIN or SSH_OK (unchanged) when there is a timeout
+        throw SSHProcessTimeoutException{cmd, timeout};
     }
 }
 
@@ -312,16 +320,18 @@ mp::PlainSSHProcess::EventUPtr mp::PlainSSHProcess::get_event_in_session()
 
     std::optional<std::string> err = std::nullopt;
     if (!event)
-        err = "could not allocate event";
+        err = "could not allocate a libssh event context";
     else if (MP_LIBSSH.ssh_event_add_session(event.get(), session) != SSH_OK)
     {
         const auto raw_err = ssh_get_error(session);
-        err = fmt::format("could not add event to session: {}",
-                          raw_err && *raw_err ? raw_err : "Empty error");
+        err = fmt::format("could not add a libssh event context to the SSH session: {}",
+                          raw_err && *raw_err ? raw_err : "no detail");
     }
+
     if (err.has_value())
     {
         throw SSHProcessExitError{cmd, err.value()};
     }
+
     return event;
 }

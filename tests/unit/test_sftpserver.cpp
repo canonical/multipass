@@ -130,7 +130,7 @@ struct SftpServer : public mp::test::SftpServerTest
     }
 
     const mpt::StubSSHKeyProvider key_provider;
-    mpt::CallbackEngineMock callback_mock_engine;
+    mpt::CallbackChEngineMock callback_mock_engine;
     std::queue<sftp_client_message> messages;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
@@ -400,7 +400,7 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
     REPLACE(ssh_event_free, [](auto...) { return; });
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
 
-    mpt::CallbackState cb{};
+    mpt::CallbackChState cb{};
     cb.exit_code = callback_mock_engine.failure_code;
     callback_mock_engine.push_state(cb);
     callback_mock_engine.pop_state(); // Remove default state
@@ -428,7 +428,7 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
             invoked = true;
-            callback_mock_engine.push_state(callback_mock_engine.process_noexit);
+            callback_mock_engine.push_state(callback_mock_engine.channel_noexit);
             callback_mock_engine.pop_state();
         }
 
@@ -453,8 +453,8 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     auto message{make_msg(SSH_FXP_INIT)};
     auto request_exec = [](ssh_channel, const char*) { return SSH_OK; };
 
-    callback_mock_engine.push_state(callback_mock_engine.process_running);
-    callback_mock_engine.push_state(callback_mock_engine.process_exit_success);
+    callback_mock_engine.push_state(callback_mock_engine.channel_running);
+    callback_mock_engine.push_state(callback_mock_engine.channel_exit_success);
     callback_mock_engine.pop_state();
 
     REPLACE(ssh_channel_request_exec, request_exec);
@@ -471,15 +471,15 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     REPLACE(ssh_event_free, [](auto...) { return; });
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
 
-    auto sftp =
-        mp::SftpServer{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
-                       "",
-                       "",
-                       {{default_gid, mp::default_id}},
-                       {{default_uid, mp::default_id}},
-                       default_uid,
-                       default_gid,
-                       "sshfs"};
+    auto sftp = mp::SftpServer{
+        std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+        "",
+        "",
+        {{default_gid, mp::default_id}},
+        {{default_uid, mp::default_id}},
+        default_uid,
+        default_gid,
+        "sshfs"};
     // This is the end of the alternate test
     sftp.run();
 
@@ -543,8 +543,9 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
     msg->filename = file_name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -556,8 +557,8 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
 
 TEST_F(SftpServer, handlesOpendir)
 {
-    auto dir_name =
-        name_as_char_array(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto dir_name = name_as_char_array(
+        fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -580,8 +581,8 @@ TEST_F(SftpServer, handlesOpendir)
 
 TEST_F(SftpServer, opendirNotExistingFails)
 {
-    auto dir_name =
-        name_as_char_array(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto dir_name = name_as_char_array(
+        fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
     auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -611,8 +612,8 @@ TEST_F(SftpServer, opendirNotExistingFails)
 
 TEST_F(SftpServer, opendirNotReadableFails)
 {
-    auto dir_name =
-        name_as_char_array(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto dir_name = name_as_char_array(
+        fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
     auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -701,8 +702,9 @@ TEST_F(SftpServer, opendirFailsWhenIdsAreNotMapped)
     open_dir_msg->filename = dir_name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(open_dir_msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(open_dir_msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -1016,8 +1018,9 @@ TEST_F(SftpServer, rmdirFailsToRemoveDirThatsMissingMappedIds)
     msg->filename = new_dir_name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -1085,8 +1088,9 @@ TEST_F(SftpServer, readlinkFailsWhenIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -1146,8 +1150,9 @@ TEST_F(SftpServer, symlinkInInvalidDirFails)
     REPLACE(sftp_client_message_get_data, [&invalid_link](auto...) { return invalid_link.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -1256,8 +1261,9 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -1426,8 +1432,9 @@ TEST_F(SftpServer, renameInvalidTargetFails)
             [&invalid_target](auto...) { return invalid_target.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -1454,8 +1461,9 @@ TEST_F(SftpServer, renameFailsWhenSourceFileIdsAreNotMapped)
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -1508,8 +1516,9 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -1597,8 +1606,9 @@ TEST_F(SftpServer, removeFailsWhenIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -1868,8 +1878,9 @@ TEST_F(SftpServer, openFailsWhenIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -1891,8 +1902,9 @@ TEST_F(SftpServer, openNonExistingFileFailsWhenDirIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -2459,8 +2471,9 @@ TEST_F(SftpServer, setstatFailsWhenMissingMappedIds)
     msg->flags = SSH_FXF_WRITE;
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -2494,8 +2507,9 @@ TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
     EXPECT_CALL(*mock_platform, chown(_, _, _)).Times(0);
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -2807,8 +2821,9 @@ TEST_F(SftpServer, extendedLinkInInvalidDirFails)
     REPLACE(sftp_client_message_get_data, [&invalid_link](auto...) { return invalid_link.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -2879,8 +2894,9 @@ TEST_F(SftpServer, extendedLinkFailureFailsWhenSourceFileIdsAreNotMapped)
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -2942,8 +2958,9 @@ TEST_F(SftpServer, extendedRenameFailsWhenMissingMappedIds)
     REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
     REPLACE(sftp_reply_status, reply_status);
     REPLACE(sftp_get_client_message, make_msg_handler());
 
@@ -2967,8 +2984,9 @@ TEST_F(SftpServer, extendedRenameInInvalidDirFails)
     msg->filename = invalid_path.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -3051,8 +3069,9 @@ TEST_P(WhenInInvalidDir, fails)
     msg->filename = invalid_path.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
     REPLACE(sftp_get_client_message, make_msg_handler());
     REPLACE(sftp_reply_status, reply_status);
@@ -3485,8 +3504,8 @@ TEST_F(SftpServer, brokenLinkInParentPathFailsValidation)
 
     mpt::TempDir temp_dir;
     auto link = fs::path(temp_dir.path().toStdString()) / "linked";
-    auto non_existent_location =
-        fs::path(temp_dir.path().toStdString()) / ".." / "does_not_exist" / "";
+    auto non_existent_location = fs::path(temp_dir.path().toStdString()) / ".." / "does_not_exist" /
+                                 "";
     auto broken_path = (link / "file.txt").generic_string();
 
     MP_PLATFORM.symlink(non_existent_location.string().c_str(), link.string().c_str(), true);
