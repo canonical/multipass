@@ -24,6 +24,10 @@ zone2   Available   192.168.253.0/24
 zone3   Available   192.168.254.0/24
 ```
 
+```{note}
+Multipass assigns each zone its own subnet, simulating the network separation between real-world availability zones.
+```
+
 We will spread our web servers across `zone1`, `zone2` and `zone3`.
 
 ## Launch the web servers
