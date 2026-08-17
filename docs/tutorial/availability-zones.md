@@ -156,7 +156,7 @@ curl http://$LB_IP
 <h1>Welcome to web-c in zone3</h1>
 ```
 
-Notice that neither response comes from `web-a` in `zone1`.
+Notice that none of the responses comes from `web-a` in `zone1`.
 
 ### Take down a second zone
 
