@@ -21,6 +21,7 @@
 #include <multipass/logging/log_location.h>
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_process.h>
+#include <multipass/ssh/ssh_utils.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/top_catch_all.h>
 
@@ -67,38 +68,6 @@ auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callb
         cmd.c_str());
     return channel;
 }
-
-auto signal_to_exit_code(const char* sig)
-{
-    constexpr auto base_signal_code{128};
-    if (!sig || !*sig)
-        return base_signal_code;
-    std::string signal{sig};
-    if (signal == "HUP")
-        return base_signal_code + 1;
-    if (signal == "INT")
-        return base_signal_code + 2;
-    if (signal == "QUIT")
-        return base_signal_code + 3;
-    if (signal == "ILL")
-        return base_signal_code + 4;
-    if (signal == "ABRT")
-        return base_signal_code + 6;
-    if (signal == "FPE")
-        return base_signal_code + 8;
-    if (signal == "KILL")
-        return base_signal_code + 9;
-    if (signal == "SEGV")
-        return base_signal_code + 11;
-    if (signal == "PIPE")
-        return base_signal_code + 13;
-    if (signal == "ALRM")
-        return base_signal_code + 14;
-    if (signal == "TERM")
-        return base_signal_code + 15;
-    return base_signal_code;
-}
-
 } // namespace
 
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
