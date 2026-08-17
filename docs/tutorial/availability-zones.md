@@ -3,6 +3,8 @@
 
 In this tutorial, we will use Multipass availability zones to build a simple, highly available web service. We will deploy three Nginx web servers, one in each availability zone, and a fourth instance acting as a load balancer to distribute traffic between them.
 
+In the real world, availability zones are clusters of data centers in a particular region. Multipass provides a local simulation of availability zones for development purposes.
+
 To complete this tutorial, you need Multipass 1.17 or later installed on your host.
 
 ## Check the available zones
