@@ -17,9 +17,13 @@
 
 #pragma once
 
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
-#include <sys/types.h>
+#include <cstddef>
+#include <cstdint>
+
+namespace multipass
+{
+// Due to a lack of support of some types by the Windows CRT, we define in this header the
+// equivalent types
+using off_t = std::int64_t;
+using ssize_t = std::ptrdiff_t;
+} // namespace multipass

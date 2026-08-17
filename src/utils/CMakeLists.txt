@@ -29,6 +29,7 @@ function(add_target TARGET_NAME)
     vm_mount.cpp
     vm_specs.cpp
     yaml_node_utils.cpp
+    named_fd.cpp
     semver_compare.cpp)
 
   target_link_libraries(${TARGET_NAME}

@@ -28,6 +28,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <functional>
 #include <future>
@@ -262,6 +263,9 @@ public:
                                            const std::string& cmd,
                                            bool whisper = false) const;
     virtual std::string reap_ssh_process(SSHProcess& proc) const;
+
+    // time helpers
+    virtual std::string format_time_t(time_t time) const;
 
     // various
     virtual std::vector<uint8_t> random_bytes(size_t len);

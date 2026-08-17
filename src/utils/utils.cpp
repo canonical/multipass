@@ -43,8 +43,11 @@
 #include <array>
 #include <cassert>
 #include <cctype>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <locale>
+#include <mutex>
 #include <optional>
 #include <random>
 #include <regex>
@@ -56,6 +59,18 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "utils";
+
+std::tm get_localtime(std::time_t time_since_epoch)
+{
+    std::tm time_struct{};
+    static std::mutex localtime_mutex;
+    std::lock_guard guard{localtime_mutex};
+    // TODO C++26: replace with localtime_r
+    auto shared_localtime = std::localtime(&time_since_epoch);
+    if (shared_localtime)
+        time_struct = *shared_localtime;
+    return time_struct;
+}
 } // namespace
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept
     : Singleton<Utils>::Singleton{pass}
@@ -397,6 +412,16 @@ std::string mp::utils::contents_of(const multipass::Path& file_path)
 std::string mp::Utils::contents_of(const multipass::Path& file_path) const
 {
     return mp::utils::contents_of(file_path);
+}
+
+std::string mp::Utils::format_time_t(time_t mtime) const
+{
+    std::tm time_struct{get_localtime(mtime)};
+
+    return fmt::format(std::locale::classic(),
+                       "{0:%b} {1} {0:%H:%M:%S %Y}",
+                       time_struct,
+                       time_struct.tm_mday);
 }
 
 std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
