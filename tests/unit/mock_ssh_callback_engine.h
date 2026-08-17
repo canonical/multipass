@@ -17,36 +17,42 @@
 
 #pragma once
 
-#include "mock_ssh.h"
+#include "mock_libssh.h"
 
+#include <chrono>
 #include <optional>
 #include <queue>
+#include <thread>
 
 namespace multipass::test
 {
-struct CallbackState
+struct CallbackChState
 {
     int ssh_rc{SSH_OK};
     bool eof{true};
     bool closed{true};
     std::optional<int> exit_code{0};
+    std::optional<std::string> signal;
+    std::chrono::milliseconds wait{std::chrono::milliseconds(0)};
 };
 
-class CallbackEngineMock // TODO@rewiressh remove (and can we can rid of premock entirely?)
+class CallbackChEngineMock // TODO@rewiressh remove (and can we can rid of premock entirely?)
 {
 public:
-    CallbackEngineMock()
+    CallbackChEngineMock(MockLibssh& mock_libssh)
     {
-        add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {
-            channel_cbs = cb;
-            return SSH_OK;
-        };
+        ON_CALL(mock_libssh, ssh_add_channel_callbacks)
+            .WillByDefault([this](ssh_channel, ssh_channel_callbacks cb) {
+                channel_cbs = cb;
+                return SSH_OK;
+            });
 
-        event_do_poll = [this](auto...) {
+        ON_CALL(mock_libssh, ssh_event_dopoll).WillByDefault([this](auto...) {
             // Explicit copy
-            CallbackState cb_s{cb_state.front()};
+            CallbackChState cb_s{cb_state.front()};
 
             this->pop_state();
+            std::this_thread::sleep_for(cb_s.wait);
 
             if (channel_cbs == nullptr)
                 return SSH_ERROR;
@@ -63,20 +69,24 @@ public:
                 channel_cbs->channel_close_function(nullptr, nullptr, channel_cbs->userdata);
 
             return cb_s.ssh_rc;
-        };
+        });
 
-        remove_channel_cbs = [](auto...) { return SSH_OK; };
-        cb_state.push(process_exit_success);
+        ON_CALL(mock_libssh, ssh_add_channel_callbacks)
+            .WillByDefault([this](ssh_channel, ssh_channel_callbacks cb) {
+                if (cb == channel_cbs)
+                {
+                    channel_cbs = nullptr;
+                    return SSH_OK;
+                }
+                return SSH_ERROR;
+            });
     }
 
-    ~CallbackEngineMock()
+    ~CallbackChEngineMock()
     {
-        add_channel_cbs = std::move(old_add_channel_cbs);
-        event_do_poll = std::move(old_event_do_poll);
-        remove_channel_cbs = std::move(old_remove_channel_cbs);
     }
 
-    void push_state(CallbackState cb_s)
+    void push_state(CallbackChState cb_s)
     {
         cb_state.push(cb_s);
     }
@@ -90,24 +100,46 @@ public:
     static constexpr int success_code = 0;
     static constexpr int failure_code = 42;
 
-    static constexpr CallbackState process_exit_success{SSH_OK, true, true, success_code};
-    static constexpr CallbackState process_exit_failure{SSH_OK, true, true, failure_code};
-    static constexpr CallbackState process_noexit{SSH_ERROR, true, true, std::nullopt};
-    static constexpr CallbackState process_running{SSH_AGAIN, false, false, std::nullopt};
+    static constexpr CallbackChState channel_exit_success{SSH_OK,
+                                                          true,
+                                                          true,
+                                                          success_code,
+                                                          std::nullopt,
+                                                          std::chrono::milliseconds(0)};
+    static constexpr CallbackChState channel_exit_failure{SSH_OK,
+                                                          true,
+                                                          true,
+                                                          failure_code,
+                                                          std::nullopt,
+                                                          std::chrono::milliseconds(0)};
+    static constexpr CallbackChState channel_sigterm_exit{SSH_OK,
+                                                          true,
+                                                          true,
+                                                          failure_code,
+                                                          "TERM",
+                                                          std::chrono::milliseconds(0)};
+    static constexpr CallbackChState channel_noexit{SSH_ERROR,
+                                                    true,
+                                                    true,
+                                                    std::nullopt,
+                                                    std::nullopt,
+                                                    std::chrono::milliseconds(0)};
+    static constexpr CallbackChState channel_running{SSH_AGAIN,
+                                                     false,
+                                                     false,
+                                                     std::nullopt,
+                                                     std::nullopt,
+                                                     std::chrono::milliseconds(50)};
+    static constexpr CallbackChState channel_timeout{SSH_AGAIN,
+                                                     false,
+                                                     false,
+                                                     std::nullopt,
+                                                     std::nullopt,
+                                                     std::chrono::milliseconds(250)};
 
 private:
-    decltype(mock_ssh_add_channel_callbacks)& add_channel_cbs{mock_ssh_add_channel_callbacks};
-    decltype(mock_ssh_add_channel_callbacks) old_add_channel_cbs{
-        std::move(mock_ssh_add_channel_callbacks)};
-    decltype(mock_ssh_event_dopoll)& event_do_poll{mock_ssh_event_dopoll};
-    decltype(mock_ssh_event_dopoll) old_event_do_poll{std::move(mock_ssh_event_dopoll)};
-    decltype(mock_ssh_remove_channel_callbacks)& remove_channel_cbs{
-        mock_ssh_remove_channel_callbacks};
-    decltype(mock_ssh_remove_channel_callbacks) old_remove_channel_cbs{
-        std::move(mock_ssh_remove_channel_callbacks)};
-
     ssh_channel_callbacks channel_cbs{nullptr};
     // By default it behaves like the previous implementation
-    std::queue<CallbackState> cb_state{};
+    std::queue<CallbackChState> cb_state{};
 };
 } // namespace multipass::test
