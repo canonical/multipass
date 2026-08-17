@@ -65,7 +65,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {
                     invoked = true;
-                    callback_mock_engine.push_state(callback_mock_engine.process_exit_failure);
+                    callback_mock_engine.push_state(callback_mock_engine.channel_exit_failure);
                     callback_mock_engine.pop_state();
                 }
             }
@@ -100,7 +100,7 @@ struct SshfsMount : public mp::test::SftpServerTest
             invoked = false;
 
             std::string cmd{raw_cmd};
-            mpt::CallbackState cb{};
+            mpt::CallbackChState cb{};
             cb.closed = false;
             cb.ssh_rc = SSH_AGAIN;
 
@@ -118,8 +118,9 @@ struct SshfsMount : public mp::test::SftpServerTest
                 // In that case, give the correct answer. If not, check the rest of the list to see
                 // if we broke the execution order.
                 auto pred = [&cmd](auto it) { return cmd == it.first; };
-                CommandVector::const_iterator found_cmd =
-                    std::find_if(next_expected_cmd, commands.end(), pred);
+                CommandVector::const_iterator found_cmd = std::find_if(next_expected_cmd,
+                                                                       commands.end(),
+                                                                       pred);
 
                 if (found_cmd == next_expected_cmd)
                 {
@@ -232,7 +233,7 @@ struct SshfsMount : public mp::test::SftpServerTest
         return [message](sftp_session) mutable { return std::exchange(message, nullptr); };
     }
 
-    mpt::CallbackEngineMock callback_mock_engine;
+    mpt::CallbackChEngineMock callback_mock_engine;
 
     std::string default_source{"source"};
     std::string default_target{"target"};
@@ -458,8 +459,8 @@ INSTANTIATE_TEST_SUITE_P(SshfsMountThrowInvArg,
 TEST_F(SshfsMount, throwsWhenSshfsDoesNotExist)
 {
     bool invoked{false};
-    auto request_exec =
-        make_exec_that_fails_for({"sudo multipass-sshfs.env", "which sshfs"}, invoked);
+    auto request_exec = make_exec_that_fails_for({"sudo multipass-sshfs.env", "which sshfs"},
+                                                 invoked);
     REPLACE(ssh_channel_request_exec, request_exec);
 
     EXPECT_THROW(make_sshfsmount(), mp::SSHFSMissingError);
@@ -496,7 +497,7 @@ TEST_F(SshfsMount, unblocksWhenSftpserverExits)
 
 TEST_F(SshfsMount, blankFuseVersionLogsError)
 {
-    callback_mock_engine.push_state(callback_mock_engine.process_exit_success);
+    callback_mock_engine.push_state(callback_mock_engine.channel_exit_success);
     callback_mock_engine.pop_state();
     CommandVector commands = {
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:\n"}};
