@@ -332,7 +332,7 @@ jobs:
           --method POST \
           "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
           -f state=success \
-          -f context="Package Link / Windows Server 2025" \
+          -f context="Package Link / Windows" \
           -f description="$PACKAGE_NAME" \
           -f target_url="$PACKAGE_URL"
 
