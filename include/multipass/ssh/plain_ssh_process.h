@@ -32,7 +32,6 @@ class PlainSSHProcess : public SSHProcess
 {
 public:
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
-    using ExitResultType = std::optional<int>;
     using EventUPtr = std::unique_ptr<ssh_event_struct, void (*)(ssh_event)>;
 
     PlainSSHProcess(ssh_session_struct& ssh_session,
@@ -93,7 +92,7 @@ private:
     ssh_channel_callbacks_struct cb;
     ChannelUPtr channel;
 
-    ExitResultType exit_result{};
+    std::optional<int> exit_result{};
     bool channel_eof{false};
     bool channel_closed{false};
 
