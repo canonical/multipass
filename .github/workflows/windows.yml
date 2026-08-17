@@ -14,10 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-  S3_BUCKET: multipass-ci
   USERNAME: ${{ github.repository_owner }}
   VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
 
@@ -59,7 +56,10 @@ jobs:
 
     outputs:
       build-label: ${{ steps.build-params.outputs.label }}
-      windows-pkg-url: ${{ steps.publish-data.outputs.windows-2025-s3-url }}
+      windows-package-artifact-name: ${{ steps.package-data.outputs.windows-2025-package-artifact-name }}
+      windows-package-file-name: ${{ steps.package-data.outputs.windows-2025-package-file-name }}
+      windows-symbols-artifact-name: ${{ steps.package-data.outputs.windows-2025-symbols-artifact-name }}
+      windows-symbols-file-name: ${{ steps.package-data.outputs.windows-2025-symbols-file-name }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -234,15 +234,66 @@ jobs:
         # Same as the package's retention days
         retention-days: 7
 
+    - name: Store package outputs
+      if: always()
+      id: package-data
+      shell: bash
+      run: |
+        PACKAGE_NAME="${{ steps.cmake-package.outputs.name }}"
+        SYMBOLS_NAME="${{ steps.collect-symbols.outputs.name }}"
+
+        echo "${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+        echo "${{ matrix.runs-on }}-package-file-name=${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+        echo "${{ matrix.runs-on }}-symbols-artifact-name=${{ matrix.runs-on }}-${SYMBOLS_NAME}" >> "$GITHUB_OUTPUT"
+        echo "${{ matrix.runs-on }}-symbols-file-name=${SYMBOLS_NAME}" >> "$GITHUB_OUTPUT"
+
+    - name: Save sccache
+      uses: actions/cache/save@v6
+      if: ${{ github.ref == 'refs/heads/main' }}
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+
+  PublishWindowsPackage:
+    needs: BuildAndTest
+    if: ${{ !cancelled() && success() }}
+
+    permissions:
+      contents: read
+      statuses: write
+
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      S3_BUCKET: multipass-ci
+
+    outputs:
+      windows-pkg-url: ${{ steps.s3-upload.outputs.url }}
+
+    steps:
+    - name: Retrieve the Windows package
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.BuildAndTest.outputs.windows-package-artifact-name }}
+        path: package
+
+    - name: Retrieve the Windows debug symbols
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.BuildAndTest.outputs.windows-symbols-artifact-name }}
+        path: symbols
+
     # Put the package on S3 for public consumption
     - name: Publish package on S3
       id: s3-upload
       uses: canonical/actions/s3-upload@release
       if: ${{ env.AWS_ACCESS_KEY_ID }}
       with:
-        path: ${{ steps.cmake-package.outputs.path }}
+        path: package/${{ needs.BuildAndTest.outputs.windows-package-file-name }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ steps.build-params.outputs.label }}
+        prefix: ${{ needs.BuildAndTest.outputs.build-label }}
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
@@ -253,9 +304,9 @@ jobs:
       uses: canonical/actions/s3-upload@release
       if: ${{ env.AWS_ACCESS_KEY_ID }}
       with:
-        path: ${{ steps.collect-symbols.outputs.path }}
+        path: symbols/${{ needs.BuildAndTest.outputs.windows-symbols-file-name }}
         bucket: ${{ env.S3_BUCKET }}
-        prefix: ${{ steps.build-params.outputs.label }}/symbols
+        prefix: ${{ needs.BuildAndTest.outputs.build-label }}/symbols
         public: true
         storage-class: ONEZONE_IA
       timeout-minutes: 5
@@ -266,26 +317,24 @@ jobs:
         echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
         echo "##[warning] Debug symbols: ${{ steps.s3-upload-pdbs.outputs.url }}"
 
-    - name: Store publishing outputs
-      if: always()
-      id: publish-data
-      shell: bash
+    # Surface the published package as a linked commit status in the PR checks panel.
+    # Only for same-repo PRs, since fork PR tokens cannot be granted statuses: write.
+    - name: Publish package link status
+      if: ${{ steps.s3-upload.outputs.url != '' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ github.token }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PACKAGE_URL: ${{ steps.s3-upload.outputs.url }}
+        PACKAGE_NAME: ${{ needs.BuildAndTest.outputs.windows-package-file-name }}
       run: |
-        NAME="${{ steps.cmake-package.outputs.name }}"
-        ARTIFACT_NAME="${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${NAME}"
-        FILE_NAME="${{ matrix.runs-on }}-package-file-name=${NAME}"
-
-        echo "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
-        echo "$FILE_NAME" >> "$GITHUB_OUTPUT"
-
-        echo "${{ matrix.runs-on }}-s3-url=${{ steps.s3-upload.outputs.url }}" >> "$GITHUB_OUTPUT"
-
-    - name: Save sccache
-      uses: actions/cache/save@v6
-      if: ${{ github.ref == 'refs/heads/main' }}
-      with:
-        path: ${{ env.SCCACHE_DIR }}
-        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+        gh api \
+          --method POST \
+          "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+          -f state=success \
+          -f context="Package Link / Windows" \
+          -f description="$PACKAGE_NAME" \
+          -f target_url="$PACKAGE_URL"
 
   # Disabled for now -- the runner fails with this message intermittently:
   #
@@ -297,21 +346,21 @@ jobs:
   # of time.
   # DispatchCLITestsWorkflow:
   #   name: "Dispatch CLI Tests (Windows)"
-  #   if: needs.BuildAndTest.outputs.windows-pkg-url != ''
+  #   if: needs.PublishWindowsPackage.outputs.windows-pkg-url != ''
   #   permissions:
   #     contents: read
   #     actions: read
   #     checks:  write
   #   secrets: inherit
   #   needs:
-  #     - BuildAndTest
+  #     - PublishWindowsPackage
   #   uses: ./.github/workflows/cli-tests.yml
   #   with:
-  #     windows-pkg-url: ${{ needs.BuildAndTest.outputs.windows-pkg-url }}
+  #     windows-pkg-url: ${{ needs.PublishWindowsPackage.outputs.windows-pkg-url }}
   #     backend-driver: hyperv_api
 
   Report-Workflow-Failure:
-    needs: [BuildAndTest]
+    needs: [BuildAndTest, PublishWindowsPackage]
     if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
 
     runs-on: ubuntu-latest
