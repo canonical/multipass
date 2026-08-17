@@ -166,7 +166,7 @@ Now disable `zone2` as well, leaving only `zone3` healthy:
 multipass disable-zones zone2
 ```
 
-Query the load balancer once more. With two zones down, every request can only come from `web-c` in `zone3`:
+Query the load balancer again. With two zones down, every request can only come from `web-c` in `zone3`:
 
 ```bash
 curl http://$LB_IP
