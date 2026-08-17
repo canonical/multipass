@@ -478,13 +478,17 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
 
     if (parser->isSet("zone"))
     {
-        auto zone = parser->value("zone").trimmed();
-        if (zone.isEmpty())
+        auto zone = parser->value("zone").trimmed().toStdString();
+        if (zone.empty())
         {
             cerr << "Error: Empty zone specified with --zone option\n";
             return ReturnCode::CommandLineError;
         }
-        request.set_zone(zone.toStdString());
+
+        if (const auto ret = normalize_zone_name(stub, zone, cerr); ret != Ok)
+            return ret;
+
+        request.set_zone(zone);
     }
 
     if (timer)
@@ -608,10 +612,6 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                     "Invalid network options. "
                     "To troubleshoot, see "
                     "https://canonical.com/multipass/docs/stable/how-to-guides/troubleshoot/";
-            }
-            else if (error == LaunchError::INVALID_ZONE)
-            {
-                error_details = fmt::format("Invalid zone name supplied: {}", request.zone());
             }
             else if (error == LaunchError::ZONE_UNAVAILABLE)
             {
