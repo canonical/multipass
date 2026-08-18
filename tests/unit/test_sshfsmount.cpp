@@ -61,7 +61,6 @@ struct SshfsMount : public mp::test::SftpServerTest
             return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef);
         });
         ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault([](auto...) { return SSH_OK; });
-        callback_mock_engine.push_state(callback_mock_engine.channel_exit_success);
     }
     mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
@@ -240,7 +239,8 @@ struct SshfsMount : public mp::test::SftpServerTest
 
     mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
     mpt::MockLibssh& mock_libssh = *libssh_guard.first;
-    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh};
+    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh,
+                                                   mpt::CallbackChEngineMock::channel_exit_success};
 
     std::string default_source{"source"};
     std::string default_target{"target"};
@@ -465,7 +465,7 @@ INSTANTIATE_TEST_SUITE_P(SshfsMountThrowInvArg,
 TEST_F(SshfsMount, throwsWhenSshfsDoesNotExist)
 {
     bool invoked{false};
-    auto request_exec = make_exec_that_fails_for({"sudo run multipass-sshfs.env", "which sshfs"},
+    auto request_exec = make_exec_that_fails_for({"snap run multipass-sshfs.env", "which sshfs"},
                                                  invoked);
     EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 

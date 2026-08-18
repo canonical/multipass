@@ -58,12 +58,12 @@ auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callb
     mp::SSH::throw_on_error(
         channel,
         session,
-        "[ssh proc] failed to open session channel",
+        fmt::format("[{}] failed to open session channel", category).c_str(),
         std::bind_front(&mp::Libssh::ssh_channel_open_session, &mp::Libssh::instance()));
     mp::SSH::throw_on_error(
         channel,
         session,
-        "[ssh proc] exec request failed",
+        fmt::format("[{}] exec request failed", category).c_str(),
         std::bind_front(&mp::Libssh::ssh_channel_request_exec, &mp::Libssh::instance()),
         cmd.c_str());
     return channel;
@@ -292,7 +292,7 @@ mp::PlainSSHProcess::EventUPtr mp::PlainSSHProcess::get_event_in_session()
         err = "could not allocate a libssh event context";
     else if (MP_LIBSSH.ssh_event_add_session(event.get(), session) != SSH_OK)
     {
-        const auto raw_err = ssh_get_error(session);
+        const auto raw_err = MP_LIBSSH.ssh_get_error(session);
         err = fmt::format("could not add a libssh event context to the SSH session: {}",
                           raw_err && *raw_err ? raw_err : "no detail");
     }

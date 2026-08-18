@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 #include <algorithm>
 #include <array>
 #include <string_view>
@@ -54,7 +55,7 @@ constexpr std::array signal_map{
  * native system macros like `SIGKILL` or `SIGSEGV` for the following reasons:
  *
  * 1. Signals are received from a remote Linux guest, but this code must compile and run on
- * non-Linux hosts (macOS, Windows without relying on target-specific `<csignal>` or Linux headers.
+ * non-Linux hosts (macOS, Windows) without relying on target-specific `<csignal>` or Linux headers.
  *
  * 2. The supported subset of signal names is defined directly by the SSH connection protocol
  * specification (RFC 4254, Section 6.9/10).
@@ -66,14 +67,12 @@ constexpr std::array signal_map{
  * @return The calculated exit status (128 + signal offset), or 128 if unknown/null.
  * @see https://www.rfc-editor.org/info/rfc4254/#section-6.9
  */
-auto signal_to_exit_code(const char* sig) -> int
+inline auto signal_to_exit_code(const char* sig) -> int
 {
-    constexpr auto base_signal_code = 128;
+    constexpr auto base_signal_code{128};
 
     if (!sig || !*sig)
-    {
         return base_signal_code;
-    }
 
     const std::string_view signal{sig};
 
@@ -82,9 +81,7 @@ auto signal_to_exit_code(const char* sig) -> int
     });
 
     if (it != signal_map.end())
-    {
         return base_signal_code + it->offset;
-    }
 
     return base_signal_code;
 }

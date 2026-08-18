@@ -22,6 +22,7 @@
 #include <chrono>
 #include <optional>
 #include <queue>
+#include <string>
 #include <thread>
 
 namespace multipass::test
@@ -39,8 +40,9 @@ struct CallbackChState
 class CallbackChEngineMock // TODO@rewiressh remove (and can we can rid of premock entirely?)
 {
 public:
-    CallbackChEngineMock(MockLibssh& mock_libssh)
+    CallbackChEngineMock(MockLibssh& mock_libssh, CallbackChState initial_state)
     {
+        cb_state.push(initial_state);
         ON_CALL(mock_libssh, ssh_add_channel_callbacks)
             .WillByDefault([this](ssh_channel, ssh_channel_callbacks cb) {
                 channel_cbs = cb;
@@ -61,6 +63,14 @@ public:
                 channel_cbs->channel_exit_status_function(nullptr,
                                                           nullptr,
                                                           *cb_s.exit_code,
+                                                          channel_cbs->userdata);
+            if (cb_s.signal)
+                channel_cbs->channel_exit_signal_function(nullptr,
+                                                          nullptr,
+                                                          cb_s.signal->c_str(),
+                                                          0,
+                                                          nullptr,
+                                                          nullptr,
                                                           channel_cbs->userdata);
             if (cb_s.eof)
                 channel_cbs->channel_eof_function(nullptr, nullptr, channel_cbs->userdata);
