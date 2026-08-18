@@ -73,6 +73,14 @@ elseif(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
+# vcpkg's CRT must match CMAKE_BUILD_TYPE, or the linker rejects the mismatch
+# (LNK2038). The release-only triplet is /MD-only, so force the debug/release
+# triplet whenever building Debug.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
+  message(STATUS "CMAKE_BUILD_TYPE is Debug: forcing `vcpkg` dependencies to build in both `debug`/`release` configurations so their C runtime matches the project's build type.")
+  set(MULTIPASS_VCPKG_BUILD_DEFAULT ON)
+endif()
+
 if(NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
   message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
 
@@ -295,6 +303,7 @@ if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   add_definitions(-DSECURITY_WIN32)
+  add_compile_options(/EHsc)
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
