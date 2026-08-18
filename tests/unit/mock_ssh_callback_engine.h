@@ -71,7 +71,7 @@ public:
             return cb_s.ssh_rc;
         });
 
-        ON_CALL(mock_libssh, ssh_add_channel_callbacks)
+        ON_CALL(mock_libssh, ssh_remove_channel_callbacks)
             .WillByDefault([this](ssh_channel, ssh_channel_callbacks cb) {
                 if (cb == channel_cbs)
                 {
