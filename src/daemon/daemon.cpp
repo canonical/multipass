@@ -2916,19 +2916,34 @@ void mp::Daemon::zones_state(const ZonesStateRequest* request,
 try // clang-format on
 {
     auto& az_manager = *config->az_manager;
+
+    std::vector<std::string> transitioned;
+    auto apply_to = [&](const std::string& zone_name) {
+        auto names = az_manager.get_zone(zone_name).set_available(request->available());
+        transitioned.insert(transitioned.end(),
+                            std::make_move_iterator(names.begin()),
+                            std::make_move_iterator(names.end()));
+    };
+
     if (request->zones().empty())
     {
         for (auto&& zone : az_manager.get_zones())
         {
-            az_manager.get_zone(zone.get().get_name()).set_available(request->available());
+            apply_to(zone.get().get_name());
         }
     }
     else
     {
         for (const auto& zone_name : request->zones())
         {
-            az_manager.get_zone(zone_name).set_available(request->available());
+            apply_to(zone_name);
         }
+    }
+
+    for (const auto& name : transitioned)
+    {
+        if (request->available())
+            on_restart(name);
     }
 
     context->set_value(grpc::Status{});
