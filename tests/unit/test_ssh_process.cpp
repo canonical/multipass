@@ -157,3 +157,32 @@ TEST_F(SSHProcess, getCmdReturnsCommandName)
     auto proc = session.exec(cmd);
     EXPECT_EQ(proc->get_cmd(), cmd);
 }
+
+struct SSHProcessSignals : public SSHProcess, public ::testing::WithParamInterface<const char*>
+{
+};
+
+TEST_P(SSHProcessSignals, exitSignalIsProcessedAccordingly)
+{
+    constexpr auto base_signal_exit_code{128};
+    const auto signal = GetParam();
+    const auto signal_pos = std::find_if(
+        mp::SSH::signal_map.begin(),
+        mp::SSH::signal_map.end(),
+        [signal](const auto& sigmap) { return sigmap.name.find(signal) != std::string::npos; });
+    const auto signal_code = (signal_pos == mp::SSH::signal_map.end()
+                                  ? base_signal_exit_code
+                                  : signal_pos->offset + base_signal_exit_code);
+    mpt::CallbackChState cb_state{};
+    cb_state.signal = signal;
+    callback_mock_engine.push_state(cb_state);
+    callback_mock_engine.pop_state();
+
+    auto proc = session.exec("something");
+    EXPECT_THAT(proc->exit_code(), Eq(signal_code));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    SSHProcess,
+    SSHProcessSignals,
+    ::testing::Values("HUP", "INT", "QUIT", "USR1", "SEGV", "USR2", "TERM", "UNKNOWN"));
