@@ -112,7 +112,8 @@ TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
 TEST_F(TestPlainSSHSession, execSucceeds)
 {
     auto [mock_libssh, libssh_guard] = mpt::MockLibssh::inject();
-    mpt::CallbackChEngineMock cb_engine{*mock_libssh};
+    mpt::CallbackChEngineMock cb_engine{*mock_libssh,
+                                        mpt::CallbackChEngineMock::channel_exit_success};
 
     EXPECT_CALL(*mock_libssh, ssh_new).WillOnce([]() {
         return reinterpret_cast<ssh_session>(0xdeadbeefdeadbeef);
