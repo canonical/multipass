@@ -2974,7 +2974,7 @@ void mp::Daemon::on_suspend()
 void mp::Daemon::on_restart(const std::string& name)
 {
     stop_mounts(name);
-    auto future_watcher = create_future_watcher([this, &name]() {
+    auto future_watcher = create_future_watcher([this, name]() {
         try
         {
             auto virtual_machine = operative_instances.at(name);
