@@ -21,6 +21,7 @@
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_utils.h>
 
 #include <algorithm>
 #include <thread>
@@ -44,14 +45,14 @@ struct SSHProcess : public Test
             return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef);
         });
         ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault([](auto...) { return SSH_OK; });
-        callback_mock_engine.push_state(callback_mock_engine.channel_exit_success);
     }
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
     mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
     mpt::MockLibssh& mock_libssh = *libssh_guard.first;
-    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh};
+    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh,
+                                                   mpt::CallbackChEngineMock::channel_exit_success};
 };
 } // namespace
 

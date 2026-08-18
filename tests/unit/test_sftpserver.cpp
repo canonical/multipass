@@ -77,7 +77,6 @@ struct SftpServer : public mp::test::SftpServerTest
             return reinterpret_cast<ssh_string>(0xdeadbeefdeadbee4);
         });
 
-        callback_mock_engine.push_state(callback_mock_engine.channel_exit_success);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_type, mp::Libssh);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_data, mp::Libssh);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_filename, mp::Libssh);
@@ -152,7 +151,8 @@ struct SftpServer : public mp::test::SftpServerTest
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
     mpt::MockLibssh& mock_libssh = *libssh_guard.first;
-    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh};
+    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh,
+                                                   mpt::CallbackChEngineMock::channel_exit_success};
     std::queue<sftp_client_message> messages;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };

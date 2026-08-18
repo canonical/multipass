@@ -89,12 +89,12 @@ private:
     ssh_session session;
     std::string cmd;
 
-    ssh_channel_callbacks_struct cb;
-    ChannelUPtr channel;
-
     std::optional<int> exit_result{};
     bool channel_eof{false};
     bool channel_closed{false};
+
+    ssh_channel_callbacks_struct cb;
+    ChannelUPtr channel;
 
     friend class SftpServer;
 };
