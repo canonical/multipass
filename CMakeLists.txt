@@ -76,9 +76,9 @@ endif()
 # vcpkg's CRT must match CMAKE_BUILD_TYPE, or the linker rejects the mismatch
 # (LNK2038). The release-only triplet is /MD-only, so force the debug/release
 # triplet whenever building Debug.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
-  message(STATUS "CMAKE_BUILD_TYPE is Debug: forcing `vcpkg` dependencies to build in both `debug`/`release` configurations so their C runtime matches the project's build type.")
-  set(MULTIPASS_VCPKG_BUILD_DEFAULT ON)
+if(MSVC AND (CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE MATCHES "^[Dd]ebug$") AND NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
+  message(STATUS "Enabling default `vcpkg` dependencies build (both `debug`/`release`) to ensure MSVC CRT matches the active configuration.")
+  set(MULTIPASS_VCPKG_BUILD_DEFAULT ON CACHE BOOL "" FORCE)
 endif()
 
 if(NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
@@ -303,7 +303,7 @@ if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   add_definitions(-DSECURITY_WIN32)
-  add_compile_options(/EHsc)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/EHsc>)
   set(MULTIPASS_PLATFORM windows)
 else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
