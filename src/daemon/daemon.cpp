@@ -2944,6 +2944,8 @@ try // clang-format on
     {
         if (request->available())
             on_restart(name);
+        else
+            stop_mounts(name);
     }
 
     context->set_value(grpc::Status{});
