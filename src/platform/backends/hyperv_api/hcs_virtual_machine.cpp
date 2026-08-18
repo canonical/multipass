@@ -425,6 +425,12 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
 {
     mpl::debug(get_name(), "set_state() -> HCS state `{}`", compute_system_state);
 
+    if (state == State::unavailable)
+    {
+        mpl::debug(get_name(), "set_state() -> Zone is unavailable");
+        return;
+    }
+
     const auto prev_state = state;
     switch (compute_system_state)
     {
@@ -449,7 +455,7 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
     if (state == prev_state)
         return;
 
-    mpl::info(get_name(), "set_state() > State changed from {} to {}", prev_state, state);
+    mpl::info(get_name(), "set_state() -> State changed from {} to {}", prev_state, state);
 }
 
 void HCSVirtualMachine::start()
