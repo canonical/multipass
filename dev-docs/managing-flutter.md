@@ -16,7 +16,7 @@ flutter precache # download the new flutter binaries
 
 Flutter dependencies are located in the `pubspec.yaml` file.
 After a Flutter update, manually go through the dependencies in that file and check for newer versions on pub.dev.
-Theoretically, one could use `flutter pub upgrade --major-versions` for this, but it is a good idea to go through their changlogs.
+Theoretically, one could use `flutter pub upgrade --major-versions` for this, but it is a good idea to go through their changelogs.
 
 Some of the dependencies used do not come from pub.dev, but come from GitHub. Those are:
 

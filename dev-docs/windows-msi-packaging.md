@@ -2,7 +2,7 @@
 
 ### Building:
 
-`ninja package` will build the Multipass installer, but will place the package under `<build-dir>\packages\en-US\`. The contents of the msi package can be inspected with [Orca](https://learn.microsoft.com/en-us/windows/win32/msi/orca-exe). MSI packages are at their core a relational database. Actions and properties are placed in appropriate tables. Some tables of interest are the `InstallExecuteSequence` and `InstallUISequence` tables. Sorting by `Sequence` will also you to visualize the order of events/actions during the respective sequence.
+ `ninja package` will build the Multipass installer, but will place the package under `<build-dir>\packages\en-US\`. The contents of the msi package can be inspected with [Orca](https://learn.microsoft.com/en-us/windows/win32/msi/orca-exe). MSI packages are at their core a relational database. Actions and properties are placed in appropriate tables. Some tables of interest are the `InstallExecuteSequence` and `InstallUISequence` tables. Sorting by `Sequence` will also allow you to visualize the order of events/actions during the respective sequence.
 
 ### Installing:
 

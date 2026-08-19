@@ -4,34 +4,34 @@ _Note: The original document was written in 2020 and might be outdated._
 
 A guest running on qemu/libvirt on Linux will not expose as default the features needed by Windows to enable Hyper-V virtualization.
 
-The are three requirements to run Hyper-V on a Windows Pro, Enterprise or Education (not Home) guest:
+There are three requirements to run Hyper-V on a Windows Pro, Enterprise or Education (not Home) guest:
 1. nested virtualization must be enabled in the host;
 2. the host must expose some features to the guest;
 3. virtualization must be enabled in the guest.
 
 ## Host configuration
-Intel processors support nested virtualization starting in the Hasswell series; some AMD processors also support it.
+ ntel processors support nested virtualization starting in the Haswell series; some AMD processors also support it.
 
 ### KVM configuration
-The nesting should be enabled on KVM, through the `kvm-intel` or `kvm-amd` modules. For this, the options `nested` and `ept` (Extended Page Tables, see [here](https://en.wikipedia.org/wiki/Second_Level_Address_Translation#EPT) must be enabled. They are enabled by default but, if not, they can be forced at boot time adding the file `/etc/modprobe.d/kvm-nested.conf` containing the lines
+The nesting should be enabled on KVM, through the `kvm-intel` or `kvm-amd` modules. For this, the options `nested` and `ept` (Extended Page Tables, see [here](https://en.wikipedia.org/wiki/Second_Level_Address_Translation#EPT)) must be enabled. They are enabled by default but, if not, they can be forced at boot time adding the file `/etc/modprobe.d/kvm-nested.conf` containing the lines
 ```
 options kvm-intel nested=1
 options kvm-intel ept=1
 ```
 
-[Here](https://www.linuxtechi.com/enable-nested-virtualization-kvm-centos-7-rhel-7/) it is suggested to also activate the options `enable_shadow_vmcs` and `enable_apicv`. Altough they are not needed, they may be important. Unfortunately, I can't test because my Broadwell doesn't support them. Testing them with newer hardware is welcome.
+[Here](https://www.linuxtechi.com/enable-nested-virtualization-kvm-centos-7-rhel-7/) it is suggested to also activate the options `enable_shadow_vmcs` and `enable_apicv`. Although they are not needed, they may be important. Unfortunately, I can't test because my Broadwell doesn't support them. Testing them with newer hardware is welcome.
 
-The procedure must be analogous for the kvm-amd module, tough I didn't test it because I don't have an AMD at hand. There is an option called `nested` and the analogous to `ept` should be `npt` (Nested Page Tables, a.k.a. Rapid Virtualization Indexing, see [here](https://en.wikipedia.org/wiki/Second_Level_Address_Translation#Rapid_Virtualization_Indexing)).
+The procedure must be analogous for the kvm-amd module, though I didn't test it because I don't have an AMD at hand. There is an option called `nested` and the analogous to `ept` should be `npt` (Nested Page Tables, a.k.a. Rapid Virtualization Indexing, see [here](https://en.wikipedia.org/wiki/Second_Level_Address_Translation#Rapid_Virtualization_Indexing)).
 
-The analogous in AMD to the module option `enable_apicv` is `avic`. There should not exist an AMD analogous to `enable_shadow_vcms`, because shadowing VCMS is an alias for nested virtualization.
+The analogous in AMD to the module option `enable_apicv` is `avic`. There should not exist an AMD analogous to `enable_shadow_vmcs`, because shadowing VMCS is an alias for nested virtualization.
 
-## Qemu configuration
-On Intel, it is mandatory to expose to the guest the `vmx` feature (which indicates that the processor supports VT-x). On AMD, it is mandatory to expose the `svm` feature. Also disabling the `xsaves` feature is needed on some Intel and AMD processors, to workaround [this bug](https://bugs.launchpad.net/qemu/+bug/1864536) on cpus that have `xsaves` (can be checked with `virsh capabilities`). All this can be accomplished using command-line qemu or through libvirt.
+## QEMU configuration
+On Intel, it is mandatory to expose to the guest the `vmx` feature (which indicates that the processor supports VT-x). On AMD, it is mandatory to expose the `svm` feature. Also disabling the `xsaves` feature is needed on some Intel and AMD processors, to work around [this bug](https://bugs.launchpad.net/qemu/+bug/1864536) on CPUs that have `xsaves` (can be checked with `virsh capabilities`). All this can be accomplished using command-line QEMU or through libvirt.
 
 ### Through libvirt
 In the `<cpu>` section of the virtual machine's XML, adding the lines
 ```xml
-<feature policy="require" name="vmx"/>`
+<feature policy="require" name="vmx"/>
 <feature policy="disable" name="xsaves"/>
 ```
 will do. An example of this follows.

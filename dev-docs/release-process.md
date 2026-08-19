@@ -93,7 +93,7 @@ release/1.15 $ git push --tags
     * Run validation on the new package. This might take a few working days.
 8. Submit a draft PR to the website to update the latest-release.json
 9. Prepare release notes and release announcements for Discourse, Matrix, and Mattermost
-9. Submit a PR to `main` with
+10. Submit a PR to `main` with
     * The new release notes for this version in `docs/reference/release-notes`.
     * Update the `index.md` file as well, adding a link to the release notes and changing/adding details about the release's contents.
     * Follow the [template](https://github.com/canonical/multipass/blob/main/docs/reference/release-notes/release-notes-templates.md) and use these release notes in the GH draft release as well.
@@ -106,7 +106,7 @@ release/1.15 $ git push --tags
 4. Undraft the PR on the website (mark "ready for review")
     * Verify that the package links work after the release is published.
     * Follow up on the PR until it is merged.
-5. Set the `stable` branch to point to the release. This will allow Launchpad to generate updated snaps in the candidate channel (with updated deb dependencies): Launchpad checks daily if there are out of date dependencies in our snap; if there are, a new package gets built as candidate and if its good we promote it to stable.
+5. Set the `stable` branch to point to the release. This will allow Launchpad to generate updated snaps in the candidate channel (with updated deb dependencies): Launchpad checks daily if there are out of date dependencies in our snap; if there are, a new package gets built as candidate and if it's good we promote it to stable.
 ```shell
 stable $ git reset --hard release/1.15
 stable $ git push --force

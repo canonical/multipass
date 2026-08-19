@@ -4,7 +4,7 @@ This documentation section only refers to Multipass development related topics.
 
 ## Release and packaging
 
-- [Multpass release process](release-process.md)
+- [Multipass release process](release-process.md)
 - [Accessing packages built on a PR](pr-packages.md)
 - [Windows MSI packaging](windows-msi-packaging.md)
 
