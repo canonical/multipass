@@ -343,6 +343,7 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 
 void mp::HyperVVirtualMachine::start()
 {
+    const std::lock_guard lock{power_shell_mutex};
     state = State::starting;
     handle_state_update();
 
@@ -357,6 +358,7 @@ void mp::HyperVVirtualMachine::start()
 
 void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
+    const std::lock_guard power_shell_lock{power_shell_mutex};
     std::unique_lock<std::mutex> lock{state_mutex};
     const auto present_state = current_state();
 
@@ -395,6 +397,7 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void mp::HyperVVirtualMachine::suspend()
 {
+    const std::lock_guard lock{power_shell_mutex};
     auto present_state = instance_state_for(power_shell.get(), name);
 
     if (present_state == State::running || present_state == State::delayed_shutdown)
@@ -421,6 +424,7 @@ void mp::HyperVVirtualMachine::suspend()
 
 mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 {
+    const std::lock_guard lock{power_shell_mutex};
     auto present_state = instance_state_for(power_shell.get(), name);
 
     if ((state == State::delayed_shutdown && present_state == State::running) ||
@@ -461,9 +465,6 @@ std::string mp::HyperVVirtualMachine::ssh_username()
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
-    // Not using cached SSH session for this because a) the underlying functions do not
-    // guarantee constness; b) we endure the penalty of creating a new session only when we
-    // don't have the IP yet.
     if (!management_ip)
         management_ip = remote_ip(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
 
@@ -472,6 +473,7 @@ std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 {
+    const std::lock_guard lock{power_shell_mutex};
     assert(num_cores > 0);
 
     power_shell->easy_run(
@@ -481,6 +483,7 @@ void mp::HyperVVirtualMachine::update_cpus(int num_cores)
 
 void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
 {
+    const std::lock_guard lock{power_shell_mutex};
     assert(new_size.in_bytes() > 0);
 
     QStringList resize_cmd = {"Set-VMMemory",
@@ -493,6 +496,7 @@ void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::HyperVVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
+    const std::lock_guard lock{power_shell_mutex};
     assert(new_size.in_bytes() > 0);
 
     // Resize the current disk layer, which will differ from the original image if there are
@@ -507,6 +511,7 @@ void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this bac
                                                      const std::string& default_mac_addr,
                                                      const NetworkInterface& extra_interface)
 {
+    const std::lock_guard lock{power_shell_mutex};
     desc.extra_interfaces.push_back(extra_interface);
     add_extra_net(*power_shell, name, extra_interface);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
@@ -527,6 +532,7 @@ mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(
 
 void mp::HyperVVirtualMachine::remove_snapshots_from_backend() const
 {
+    const std::lock_guard lock{power_shell_mutex};
     // Get-VMSnapshot -VMName "YourVMName" | Remove-VMSnapshot
     power_shell->easy_run({"Get-VMSnapshot -VMName", name, "| Remove-VMSnapshot"},
                           "Could not remove the snapshots");

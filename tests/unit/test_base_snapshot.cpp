@@ -42,6 +42,7 @@ class MockBaseSnapshot : public mp::BaseSnapshot
 {
 public:
     using mp::BaseSnapshot::BaseSnapshot;
+    using mp::BaseSnapshot::get_explicit_disk_path;
 
     MOCK_METHOD(void, capture_impl, (), (override));
     MOCK_METHOD(void, erase_impl, (), (override));
@@ -436,6 +437,18 @@ TEST_F(TestBaseSnapshot, adoptsMetadataFromJson)
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_metadata(), metadata);
+}
+
+TEST_F(TestBaseSnapshot, adoptsExplicitDiskPathFromJson)
+{
+    const auto disk_path = vm.tmp_dir->filePath("legacy-checkpoint.avhdx").toStdString();
+    auto json = test_snapshot_json();
+    mod_snapshot_json(json, "disk_path", boost::json::value{disk_path});
+
+    auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
+
+    ASSERT_TRUE(snapshot.get_explicit_disk_path());
+    EXPECT_EQ(*snapshot.get_explicit_disk_path(), std::filesystem::path{disk_path});
 }
 
 TEST_F(TestBaseSnapshot, adoptsMountsFromJson)
