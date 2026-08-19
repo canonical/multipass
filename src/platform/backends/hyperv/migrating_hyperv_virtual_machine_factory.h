@@ -20,9 +20,6 @@
 
 #include <shared/base_virtual_machine_factory.h>
 
-#include <mutex>
-#include <unordered_set>
-
 namespace multipass::hyperv
 {
 class MigratingHyperVVirtualMachineFactory final : public BaseVirtualMachineFactory
@@ -57,7 +54,5 @@ private:
                                        const SSHKeyProvider& key_provider) override;
 
     HCSVirtualMachineFactory hcs_factory;
-    std::mutex pending_instances_mutex;
-    std::unordered_set<std::string> pending_hcs_instances;
 };
 } // namespace multipass::hyperv

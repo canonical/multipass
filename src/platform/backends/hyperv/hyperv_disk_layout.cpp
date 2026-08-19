@@ -62,13 +62,6 @@ bool same_path(const fs::path& lhs, const fs::path& rhs)
     return MP_FILEOPS.weakly_canonical(lhs) == MP_FILEOPS.weakly_canonical(rhs);
 }
 
-bool chain_contains(const std::vector<fs::path>& chain, const fs::path& disk)
-{
-    return std::ranges::any_of(chain, [&disk](const auto& candidate) {
-        return same_path(candidate, disk);
-    });
-}
-
 void append_unique(std::vector<fs::path>& disks, const std::vector<fs::path>& chain)
 {
     for (const auto& disk : chain)
