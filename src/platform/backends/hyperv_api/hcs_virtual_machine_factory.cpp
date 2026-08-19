@@ -23,6 +23,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/hcs_virtual_machine_resources.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
@@ -141,17 +142,7 @@ void remove_endpoints_by_name(const std::string& name)
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::debug(log_category, "remove_resources_for_impl() -> VM: {}", name);
-    hcs::HcsSystemHandle handle{nullptr};
-    if (HCS().open_compute_system(name, handle))
-    {
-        if (HCS().terminate_compute_system(handle))
-        {
-            mpl::warn(log_category,
-                      "remove_resources_for_impl() -> Host compute system {} was still alive.",
-                      name);
-        }
-    }
-
+    remove_hcs_resources(name);
     remove_endpoints_by_name(name);
 }
 
