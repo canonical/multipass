@@ -482,6 +482,33 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_success)
 
 // ---------------------------------------------------------
 
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_set_unavailable)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillOnce(DoAll([](const hcs_handle_t&,
+                           hcs_system_state_t& state) { state = hcs_system_state_t::running; },
+                        Return(hcs_op_result_t{0, L""})))
+        .WillOnce(DoAll([](const hcs_handle_t&,
+                           hcs_system_state_t& state) { state = hcs_system_state_t::stopped; },
+                        Return(hcs_op_result_t{0, L""})));
+
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+
+    uut->set_available(false);
+
+    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::unavailable);
+}
+
+// ---------------------------------------------------------
+
 TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_failure)
 {
     default_open_success();
