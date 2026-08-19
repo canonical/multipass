@@ -34,12 +34,15 @@ class VMStatusMonitor;
 
 namespace multipass::hyperv
 {
+struct LegacyHyperVDiskLayout;
+
 class HyperVMigrator
 {
 public:
     virtual ~HyperVMigrator() = default;
 
-    [[nodiscard]] virtual bool migrate(VirtualMachine& legacy_vm) = 0;
+    // Returns true only after the migration crosses the commit boundary.
+    [[nodiscard]] virtual bool try_migrate(VirtualMachine& legacy_vm) = 0;
     [[nodiscard]] virtual VirtualMachine::UPtr make_target() = 0;
 };
 
@@ -52,10 +55,12 @@ public:
                           AvailabilityZone& zone,
                           Path instance_dir);
 
-    [[nodiscard]] bool migrate(VirtualMachine& legacy_vm) override;
+    [[nodiscard]] bool try_migrate(VirtualMachine& legacy_vm) override;
     [[nodiscard]] VirtualMachine::UPtr make_target() override;
 
 private:
+    void commit_migration(const LegacyHyperVDiskLayout& layout, HyperVMigrationState state);
+
     VirtualMachineDescription description;
     VMStatusMonitor& monitor;
     const SSHKeyProvider& key_provider;

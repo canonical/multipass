@@ -20,8 +20,10 @@
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
+#include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/windows/powershell_test_helper.h"
 
+#include <src/platform/backends/hyperv/hyperv_migration_state.h>
 #include <src/platform/backends/hyperv/migrating_hyperv_virtual_machine_factory.h>
 
 #include <multipass/constants.h>
@@ -40,6 +42,9 @@ struct MigratingHyperVFactoryTest : Test
     mpt::StubAvailabilityZoneManager zone_manager;
     mpt::StubSSHKeyProvider key_provider;
     mpt::StubVMStatusMonitor monitor;
+    mpt::MockVirtDiskWrapper::GuardedMock virtdisk_injection =
+        mpt::MockVirtDiskWrapper::inject<StrictMock>();
+    mpt::MockVirtDiskWrapper& virtdisk = *virtdisk_injection.first;
     mhv::MigratingHyperVVirtualMachineFactory factory{data_dir.path(), zone_manager};
 
     mp::VirtualMachineDescription description()
@@ -62,6 +67,24 @@ struct MigratingHyperVFactoryTest : Test
     }
 };
 } // namespace
+
+TEST_F(MigratingHyperVFactoryTest, persistsHcsOwnershipWhenPreparingANewInstance)
+{
+    auto desc = description();
+    EXPECT_CALL(virtdisk,
+                resize_virtual_disk(desc.image.image_path, desc.disk_space.in_bytes()))
+        .WillOnce(Return(mhv::OperationResult{0, L""}));
+
+    factory.prepare_instance_image(desc.image, desc);
+
+    const QDir instance_dir{factory.get_instance_directory(desc.vm_name)};
+    const auto state = mhv::HyperVMigrationState::load(
+        std::filesystem::path{instance_dir.path().toStdString()});
+    ASSERT_TRUE(state);
+    EXPECT_EQ(state->backend, mhv::HyperVBackend::hcs);
+    EXPECT_EQ(state->active_disk, desc.image.image_path);
+    EXPECT_EQ(state->hcs_state_file_stem, desc.image.image_path);
+}
 
 TEST_F(MigratingHyperVFactoryTest, blocksMalformedMigrationMetadata)
 {

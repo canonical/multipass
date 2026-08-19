@@ -32,7 +32,7 @@ namespace
 class MockHyperVMigrator : public mhv::HyperVMigrator
 {
 public:
-    MOCK_METHOD(bool, migrate, (multipass::VirtualMachine& legacy_vm), (override));
+    MOCK_METHOD(bool, try_migrate, (multipass::VirtualMachine& legacy_vm), (override));
     MOCK_METHOD(multipass::VirtualMachine::UPtr, make_target, (), (override));
 };
 } // namespace
@@ -56,6 +56,27 @@ TEST(MigratingHyperVVirtualMachine, keepsRunningLegacyVm)
     EXPECT_EQ(vm.state, legacy_ptr->state);
 }
 
+TEST(MigratingHyperVVirtualMachine, synchronizesStateWhenDelegateStartFails)
+{
+    mpt::StubAvailabilityZone zone;
+    auto legacy = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    auto* legacy_ptr = legacy.get();
+    legacy->state = multipass::VirtualMachine::State::running;
+    ON_CALL(*legacy, current_state())
+        .WillByDefault(Return(multipass::VirtualMachine::State::running));
+    ON_CALL(*legacy, get_zone()).WillByDefault(ReturnRef(zone));
+    EXPECT_CALL(*legacy, start()).WillOnce([legacy_ptr] {
+        legacy_ptr->state = multipass::VirtualMachine::State::off;
+        throw std::runtime_error{"start failed"};
+    });
+
+    auto migrator = std::make_unique<StrictMock<MockHyperVMigrator>>();
+    auto vm = mhv::MigratingHyperVVirtualMachine{std::move(legacy), std::move(migrator)};
+
+    EXPECT_THROW(vm.start(), std::runtime_error);
+    EXPECT_EQ(vm.state, multipass::VirtualMachine::State::off);
+}
+
 TEST(MigratingHyperVVirtualMachine, fallsBackToLegacyWhenMigrationIsSkipped)
 {
     mpt::StubAvailabilityZone zone;
@@ -68,7 +89,7 @@ TEST(MigratingHyperVVirtualMachine, fallsBackToLegacyWhenMigrationIsSkipped)
     EXPECT_CALL(*legacy, start());
 
     auto migrator = std::make_unique<StrictMock<MockHyperVMigrator>>();
-    EXPECT_CALL(*migrator, migrate(Ref(*legacy_ptr))).WillOnce(Return(false));
+    EXPECT_CALL(*migrator, try_migrate(Ref(*legacy_ptr))).WillOnce(Return(false));
 
     auto vm = mhv::MigratingHyperVVirtualMachine{std::move(legacy), std::move(migrator)};
     vm.start();
@@ -91,7 +112,7 @@ TEST(MigratingHyperVVirtualMachine, switchesToHcsBeforeStarting)
     EXPECT_CALL(*target, start());
 
     auto migrator = std::make_unique<StrictMock<MockHyperVMigrator>>();
-    EXPECT_CALL(*migrator, migrate(Ref(*legacy_ptr))).WillOnce(Return(true));
+    EXPECT_CALL(*migrator, try_migrate(Ref(*legacy_ptr))).WillOnce(Return(true));
     EXPECT_CALL(*migrator, make_target()).WillOnce(Return(ByMove(std::move(target))));
 
     auto vm = mhv::MigratingHyperVVirtualMachine{std::move(legacy), std::move(migrator)};
@@ -114,7 +135,7 @@ TEST(MigratingHyperVVirtualMachine, retriesTargetConstructionAfterCommit)
     EXPECT_CALL(*target, start());
 
     auto migrator = std::make_unique<StrictMock<MockHyperVMigrator>>();
-    EXPECT_CALL(*migrator, migrate(Ref(*legacy_ptr))).WillOnce(Return(true));
+    EXPECT_CALL(*migrator, try_migrate(Ref(*legacy_ptr))).WillOnce(Return(true));
     EXPECT_CALL(*migrator, make_target())
         .WillOnce(Throw(std::runtime_error{"target construction failed"}))
         .WillOnce(Return(ByMove(std::move(target))));
@@ -147,7 +168,7 @@ TEST(MigratingHyperVVirtualMachine, keepsDelegateAliveForConcurrentCalls)
     std::promise<void> release_migration;
     auto release = release_migration.get_future().share();
     auto migrator = std::make_unique<StrictMock<MockHyperVMigrator>>();
-    EXPECT_CALL(*migrator, migrate(Ref(*legacy_ptr)))
+    EXPECT_CALL(*migrator, try_migrate(Ref(*legacy_ptr)))
         .WillOnce([&](auto&) {
             migration_entered.set_value();
             release.wait();
