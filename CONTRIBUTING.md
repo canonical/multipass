@@ -2,13 +2,13 @@
 
 The Multipass team is very open for contributions from the community, whether these are feature ideas, bug report issues, change suggestions through pull requests, or discussions about Multipass. While we are driven by our passion to improve Multipass and strive for high quality code at the same time, we are limited by natural resources and must take careful decisions on where we can spend our time on.
 
-# Guidelines
+## Guidelines
 
 Our [Coding Guidelines](GUIDELINES.md) detail various aspects around Git usage, coding, and processes.
 
 ### A special note on the usage of AI tools
 
-Especially with the recent developments in AI supported code generation, we must be careful on accepting external contributions for capacity and legal reasons. While we use AI tools in our development processes, we remain very careful about its outputs and expect our contributors to do the same.
+Especially with recent developments in AI-supported code generation, we must be careful when accepting external contributions for capacity and legal reasons. While we use AI tools in our development processes, too, we remain very careful about their outputs and expect our contributors to do the same.
 
 # General directions
 
@@ -24,7 +24,7 @@ At Canonical, we define and update roadmaps twice a year - in April and October.
 
 ### What is unlikely to get accepted?
 
-- Big junks of obviously AI generated code that has never been double checked by a skilled human developer will be ignored.
+- Big chunks of obviously AI-generated code that has never been double checked by a skilled human developer will be ignored.
 - Contributions that ignore our [Coding Guidelines](GUIDELINES.md).
 
 ### How can I increase the likelihood to have my contribution accepted?

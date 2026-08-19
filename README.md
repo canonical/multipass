@@ -56,11 +56,11 @@ Here are some pointers to get started with Multipass.
 | Find available images | `multipass find` |
 | Launch an instance with the current Ubuntu LTS | `multipass launch lts` |
 | List existing instances | `multipass list` |
-| Get infos about an instance | `multipass info <instance-name>` |
+| Get info about an instance | `multipass info <instance-name>` |
 | Connect to a running instance | `multipass shell <instance-name>` |
 | Run a command inside an instance | `multipass exec <instance-name> -- <command>` |
 | Stop an instance | `multipass stop <instance-name>` |
-| Delete an instance | `multipass delete <instance-name>` <br/> `multipass purge <instance-name>` |
+| Delete an instance | `multipass delete <instance-name>` <br/> `multipass purge` |
 | Get help | `multipass help` <br/> `multipass help <command>` |
 
 For a more comprehensive learning experience, please check out the
@@ -133,7 +133,7 @@ See [LICENSE](https://github.com/canonical/multipass/blob/main/LICENSE) for more
 [gha-url-linux]: https://github.com/canonical/multipass/actions/workflows/linux.yml
 [gha-image-windows]: https://github.com/canonical/multipass/actions/workflows/windows.yml/badge.svg?branch=main
 [gha-url-windows]: https://github.com/canonical/multipass/actions/workflows/windows.yml
-[gha-image-macos]:https://github.com/canonical/multipass/actions/workflows/macos.yml/badge.svg?branch=main
+[gha-image-macos]: https://github.com/canonical/multipass/actions/workflows/macos.yml/badge.svg?branch=main
 [gha-url-macos]: https://github.com/canonical/multipass/actions/workflows/macos.yml
 
 [snap-image]: https://snapcraft.io/multipass/badge.svg
