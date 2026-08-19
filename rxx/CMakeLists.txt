@@ -36,6 +36,21 @@ set(CARGO_ENV "CARGO_TARGET_DIR=${RUST_BUILD_DIR}")
 if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
   list(APPEND CARGO_ENV "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
+if(WIN32)
+  # cc-rs always hardcodes /MD for cxx's internal cxx.cc object on MSVC. Pass
+  # CFLAGS/CXXFLAGS (applied last, so they override) to match our CRT and
+  # avoid LNK2038 mismatches.
+  if(CMAKE_BUILD_TYPE_LOWER MATCHES "debug")
+    set(RUST_MSVC_CRT_FLAG "/MDd")
+  else()
+    set(RUST_MSVC_CRT_FLAG "/MD")
+  endif()
+  set(RUST_CFLAGS "$ENV{CFLAGS} ${RUST_MSVC_CRT_FLAG}")
+  string(STRIP "${RUST_CFLAGS}" RUST_CFLAGS)
+  set(RUST_CXXFLAGS "$ENV{CXXFLAGS} ${RUST_MSVC_CRT_FLAG}")
+  string(STRIP "${RUST_CXXFLAGS}" RUST_CXXFLAGS)
+  list(APPEND CARGO_ENV "CFLAGS=${RUST_CFLAGS}" "CXXFLAGS=${RUST_CXXFLAGS}")
+endif()
 
 #Find cargo, which will be a hard dependency
 find_program(CARGO_EXECUTABLE cargo REQUIRED)
