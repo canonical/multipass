@@ -29,3 +29,14 @@ target_link_libraries(hyperv_backend
   ssh
   utils
   yaml-cpp::yaml-cpp)
+
+if(HYPERV_HCS_ENABLED)
+  target_sources(hyperv_backend PRIVATE
+    blocked_hyperv_virtual_machine.cpp
+    hyperv_disk_layout.cpp
+    hyperv_migrator.cpp
+    hyperv_migration_state.cpp
+    migrating_hyperv_virtual_machine.cpp
+    migrating_hyperv_virtual_machine_factory.cpp)
+  target_link_libraries(hyperv_backend hyperv_api_backend scope_guard)
+endif()
