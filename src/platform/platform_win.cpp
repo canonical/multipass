@@ -30,6 +30,7 @@
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #if defined(HYPERV_HCS_ENABLED)
+#include "backends/hyperv/migrating_hyperv_virtual_machine_factory.h"
 #include "backends/hyperv_api/hcs_virtual_machine_factory.h"
 #endif
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
@@ -871,7 +872,7 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::Platform::default_driver() const
 {
-    return QStringLiteral("hyperv_api");
+    return QStringLiteral("hyperv");
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
@@ -930,7 +931,11 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
     if (driver == QStringLiteral("hyperv"))
+#if defined(HYPERV_HCS_ENABLED)
+        return std::make_unique<hyperv::MigratingHyperVVirtualMachineFactory>(data_dir, az_manager);
+#else
         return std::make_unique<HyperVVirtualMachineFactory>(data_dir, az_manager);
+#endif
     else if (driver == QStringLiteral("virtualbox"))
     {
         qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*

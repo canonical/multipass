@@ -22,6 +22,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/hcs_virtual_machine_resources.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/constants.h>
@@ -58,7 +59,6 @@ using hcs::HCS;
 using virtdisk::VirtDisk;
 
 constexpr auto log_category = "HyperV-Virtual-Machine-Factory";
-constexpr auto default_hyperv_switch_guid = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
 constexpr auto extra_interface_vswitch_name_fmtstr = "Multipass vSwitch ({})";
 /**
  * Regex pattern to extract the origin network name and GUID from an extra interface
@@ -92,47 +92,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::debug(log_category, "remove_resources_for_impl() -> VM: {}", name);
-    hcs::HcsSystemHandle handle{nullptr};
-    if (HCS().open_compute_system(name, handle))
-    {
-        // Grab compute system GUID before terminating it so we can use it later on for endpoint
-        // cleanup.
-        std::string vm_guid{};
-        if (!HCS().get_compute_system_guid(handle, vm_guid) || vm_guid.empty())
-        {
-            mpl::warn(log_category,
-                      "Could not retrieve VM guid for `{}`, skipping endpoint cleanup.",
-                      name);
-            return;
-        }
-
-        if (HCS().terminate_compute_system(handle))
-        {
-            mpl::warn(log_category,
-                      "remove_resources_for_impl() -> Host compute system {} was still alive.",
-                      name);
-        }
-
-        std::vector<std::string> attached_endpoints{};
-        const auto& enumerate_result =
-            HCN().enumerate_attached_endpoints(vm_guid, attached_endpoints);
-        for (const auto& elem : attached_endpoints)
-        {
-            const auto remove_result = HCN().delete_endpoint(elem);
-
-            mpl::log(remove_result ? mpl::Level::trace : mpl::Level::warning,
-                     log_category,
-                     "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
-                     elem,
-                     remove_result.code);
-        }
-    }
-    else
-    {
-        mpl::info(log_category,
-                  "remove_resources_for_impl() -> Host compute system `{}` already terminated.",
-                  name);
-    }
+    remove_hcs_resources(name);
 }
 
 VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)

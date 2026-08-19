@@ -25,6 +25,8 @@
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/virtual_machine_description.h>
+#include <multipass/file_ops.h>
+#include <multipass/json_utils.h>
 #include <multipass/vm_specs.h>
 
 #include <fmt/format.h>
@@ -114,6 +116,30 @@ struct VirtDiskSnapshotTest : public ::testing::Test
                                                   specs,
                                                   vm,
                                                   desc);
+    }
+
+    std::shared_ptr<VirtDiskSnapshot> load_snapshot(const fs::path& disk_path, int index = 1)
+    {
+        const boost::json::object snapshot{
+            {"name", fmt::format("s{}", index)},
+            {"comment", ""},
+            {"parent", 0},
+            {"cloud_init_instance_id", "test-id"},
+            {"index", index},
+            {"creation_timestamp", "2026-08-19T00:00:00.000Z"},
+            {"num_cores", 1},
+            {"mem_size", "1073741824"},
+            {"disk_space", "5368709120"},
+            {"extra_interfaces", boost::json::array{}},
+            {"state", static_cast<int>(VirtualMachine::State::stopped)},
+            {"mounts", boost::json::array{}},
+            {"metadata", boost::json::object{}},
+            {"disk_path", disk_path.string()},
+        };
+        const boost::json::object json{{"snapshot", snapshot}};
+        const auto metadata_path = dir() / fmt::format("{:04}.snapshot.json", index);
+        MP_FILEOPS.write_transactionally(metadata_path, pretty_print(json));
+        return std::make_shared<VirtDiskSnapshot>(metadata_path, vm, desc);
     }
 };
 
@@ -243,6 +269,25 @@ TEST_F(VirtDiskSnapshotApply, apply_swaps_in_new_live_disk)
     EXPECT_TRUE(fs::exists(live_disk())) << "the replacement live disk must be present";
     EXPECT_FALSE(fs::exists(new_live_disk())) << "the temporary disk must be renamed away";
     EXPECT_FALSE(fs::exists(old_live_disk())) << "the old live disk must be removed";
+}
+
+TEST_F(VirtDiskSnapshotApply, apply_uses_explicit_migrated_disk_path)
+{
+    const auto migrated_snapshot = dir() / "legacy-checkpoint.avhdx";
+    touch(live_disk());
+    touch(migrated_snapshot);
+
+    EXPECT_CALL(mock_virtdisk, create_virtual_disk(_))
+        .WillOnce([&](const CreateVirtualDiskParameters& params) {
+            EXPECT_EQ(
+                std::get<hyperv::virtdisk::ParentPathParameters>(params.predecessor.get()).path,
+                migrated_snapshot);
+            touch(params.path);
+            return op_ok();
+        });
+
+    auto ss = load_snapshot(migrated_snapshot);
+    EXPECT_NO_THROW(ss->apply());
 }
 
 TEST_F(VirtDiskSnapshotApply, apply_restores_live_disk_when_swap_fails)
