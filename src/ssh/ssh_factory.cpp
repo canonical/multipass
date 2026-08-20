@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_factory.h>
 
@@ -22,7 +23,7 @@ namespace mp = multipass;
 
 void mp::SSHKeyDeleter::operator()(ssh_key key) const
 {
-    ssh_key_free(key);
+    MP_LIBSSH.ssh_key_free(key);
 }
 
 mp::SSHFactory::SSHFactory(const Singleton<SSHFactory>::PrivatePass& pass) noexcept
@@ -33,11 +34,11 @@ mp::SSHFactory::SSHFactory(const Singleton<SSHFactory>::PrivatePass& pass) noexc
 mp::SSHKeyUPtr mp::SSHFactory::make_key(const std::string& private_key_as_base64) const
 {
     ssh_key priv_key{nullptr};
-    ssh_pki_import_privkey_base64(private_key_as_base64.c_str(),
-                                  nullptr,
-                                  nullptr,
-                                  nullptr,
-                                  &priv_key);
+    MP_LIBSSH.ssh_pki_import_privkey_base64(private_key_as_base64.c_str(),
+                                            nullptr,
+                                            nullptr,
+                                            nullptr,
+                                            &priv_key);
 
     return mp::SSHKeyUPtr{priv_key};
 }

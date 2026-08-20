@@ -83,7 +83,8 @@ struct TestPlainSftpSession : public Test
 
     mp::PlainSSHSession make_ssh_session() const
     {
-        return mp::PlainSSHSession{"host", 42, "ubuntu", key_provider};
+        mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 42, "host"};
+        return mp::PlainSSHSession{coord};
     }
 
     mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
