@@ -22,6 +22,17 @@ Accordingly, this document aims at establishing a set of guidelines that:
 - afford a few grains of salt;
 - are meant to evolve.
 
+## Quick contribution workflow
+
+If you are contributing for the first time, the shortest useful path is:
+
+1. Create a branch from `main`.
+2. Make one coherent change.
+3. Build and test the change on your platform.
+4. Review your diff before pushing.
+5. Open a pull request against `main`.
+6. Make sure the Canonical CLA is signed before review can complete.
+
 ## Guidelines
 
 In the lists that follow, prefixes are meant to provide an easy means of referring to individual
