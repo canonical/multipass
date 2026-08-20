@@ -97,6 +97,27 @@ class TestSnapshot:
                 "Multipass can only restore snapshots of stopped instances." in result
             )
 
+    def test_snapshot_delete_while_running(self, instance):
+        """Ensure deleting a snapshot while the instance is running fails with
+        a proper error message."""
+
+        assert snapshot_count(instance) == 0
+        take_snapshot(instance, "snapshot1")
+        assert snapshot_count(instance) == 1
+        assert state(instance) == "Stopped"
+
+        assert multipass("start", instance)
+        assert state(instance) == "Running"
+
+        with multipass("delete", f"{instance}.snapshot1", "--purge") as result:
+            assert not result
+            assert (
+                "Multipass can only delete snapshots of stopped instances." in result
+            )
+
+        assert snapshot_count(instance) == 1
+        assert multipass("stop", instance)
+
     def test_take_snapshot_linear_history(self, instance):
         """Verify that a linear chain of snapshots can be created, each
         referencing the correct parent."""
