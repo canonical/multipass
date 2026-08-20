@@ -1,0 +1,77 @@
+name: Assign Multipass PR Reviewer
+
+on:
+  pull_request:
+    types: [review_requested]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  REVIEW_STATS_REPOSITORY: ricab/review-stats
+  REVIEW_STATS_REF: main # pin to a tag/SHA for reproducibility when available
+  REVIEW_STATS_DIR: .review-stats-src
+
+jobs:
+  assign:
+    if: ${{ github.event.requested_team && github.event.requested_team.name == 'multipass' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.MULTIPASS_CI_BOT_ID }}
+          private-key: ${{ secrets.MULTIPASS_CI_BOT_KEY }}
+
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Check out review-stats
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.REVIEW_STATS_REPOSITORY }}
+          ref: ${{ env.REVIEW_STATS_REF }}
+          path: ${{ env.REVIEW_STATS_DIR }}
+          persist-credentials: false
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache review-stats build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.REVIEW_STATS_DIR }}/target
+          key: ${{ runner.os }}-review-stats-${{ env.REVIEW_STATS_REF }}-${{ hashFiles(format('{0}/Cargo.lock', env.REVIEW_STATS_DIR)) }}
+          restore-keys: |
+            ${{ runner.os }}-review-stats-${{ env.REVIEW_STATS_REF }}-
+            ${{ runner.os }}-review-stats-
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+
+      - name: Build review-stats
+        run: cargo build --release --locked --manifest-path "$REVIEW_STATS_DIR/Cargo.toml"
+
+      - name: Assign reviewer
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          REVIEW_STATS_BIN: ${{ env.REVIEW_STATS_DIR }}/target/release/review-stats
+        run: python tools/review-assignment/assign_pr_reviewer.py
