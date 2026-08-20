@@ -84,9 +84,6 @@ struct SFTPUtils : public Singleton<SFTPUtils>
     virtual void mkdir_recursive(sftp_session sftp, const fs::path& path);
     virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp,
                                                                   const fs::path& path);
-    virtual std::unique_ptr<SFTPClient> make_SFTPClient(const std::string& host,
-                                                        int port,
-                                                        const std::string& username,
-                                                        const std::string& priv_key_blob);
+    virtual std::unique_ptr<SFTPClient> make_SFTPClient(const SSHCoordinates& coordinates);
 };
 } // namespace multipass

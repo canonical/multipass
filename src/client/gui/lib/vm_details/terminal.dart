@@ -90,7 +90,8 @@ class TerminalNotifier extends Notifier<Terminal?> {
     if (!running) return null;
 
     final grpcClient = ref.read(grpcClientProvider);
-    final sshInfo = await grpcClient.sshInfo(arg.vmName).onError((err, stack) {
+    final sshInfo =
+        await grpcClient.sshCoordinates(arg.vmName).onError((err, stack) {
       ref
           .notifyError((error) => 'Failed to get SSH information: $err')
           .call(err, stack);
@@ -145,7 +146,7 @@ class TerminalNotifier extends Notifier<Terminal?> {
         sender: receiver.sendPort,
         width: terminal.viewWidth,
         height: terminal.viewHeight,
-        sshInfo: sshInfo,
+        sshCoordinates: sshInfo,
       ),
       onError: errorReceiver.sendPort,
       onExit: exitReceiver.sendPort,
@@ -511,29 +512,30 @@ class SshShellInfo {
   final SendPort sender;
   final int width;
   final int height;
-  final SSHInfo sshInfo;
+  final SSHCoordinatesInfo sshCoordinates;
 
   SshShellInfo({
     required this.sender,
     required this.width,
     required this.height,
-    required this.sshInfo,
+    required this.sshCoordinates,
   });
 }
 
 Future<void> sshIsolate(SshShellInfo info) async {
-  final SshShellInfo(:sender, :width, :height, :sshInfo) = info;
+  final SshShellInfo(:sender, :width, :height, :sshCoordinates) = info;
   final receiver = ReceivePort();
   sender.send(receiver.sendPort);
 
-  final pem = SSHPem.decode(sshInfo.privKeyBase64);
+  final pem = SSHPem.decode(sshCoordinates.privKeyBase64);
   final rsa = RsaKeyPair.decode(pem);
 
-  final socket = await SSHSocket.connect(sshInfo.host, sshInfo.port);
+  final socket =
+      await SSHSocket.connect(sshCoordinates.tcpHost, sshCoordinates.port);
 
   final client = SSHClient(
     socket,
-    username: sshInfo.username,
+    username: sshCoordinates.username,
     identities: [rsa.getPrivateKeys()],
   );
 

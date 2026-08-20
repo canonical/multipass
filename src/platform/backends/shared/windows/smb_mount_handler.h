@@ -37,7 +37,6 @@ class SmbMountHandler : public MountHandler
 {
 public:
     SmbMountHandler(VirtualMachine* vm,
-                    const SSHKeyProvider* ssh_key_provider,
                     const std::string& target,
                     VMMount mount_spec,
                     const multipass::Path& cred_dir,

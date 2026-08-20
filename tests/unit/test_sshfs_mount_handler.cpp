@@ -108,12 +108,10 @@ TEST_F(SSHFSMountHandlerTest, mountCreatesSshfsProcess)
     factory->register_callback(sshfs_server_callback(sshfs_prints_connected));
 
     mpt::MockVirtualMachine mock_vm{};
-    EXPECT_CALL(mock_vm, ssh_port()).Times(1);
-    EXPECT_CALL(mock_vm, ssh_hostname()).Times(1);
-    EXPECT_CALL(mock_vm, ssh_username()).Times(1);
+    EXPECT_CALL(mock_vm, ssh_coordinates()).Times(1);
     EXPECT_CALL(mock_vm, new_ssh_session());
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&mock_vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&mock_vm, target_path, mount};
     sshfs_mount_handler.activate(&server);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
@@ -146,7 +144,7 @@ TEST_F(SSHFSMountHandlerTest, sshfsProcessFailingWithReturnCode9CausesException)
         ON_CALL(*process, process_state()).WillByDefault(Return(exit_state));
     }));
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), mp::SSHFSMissingError);
 
     ASSERT_EQ(factory->process_list().size(), 1u);
@@ -167,7 +165,7 @@ TEST_F(SSHFSMountHandlerTest, sshfsProcessFailingCausesRuntimeException)
         ON_CALL(*process, process_state()).WillByDefault(Return(exit_state));
     }));
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, target_path, mount};
     MP_EXPECT_THROW_THAT(sshfs_mount_handler.activate(&server),
                          std::runtime_error,
                          mpt::match_what(StrEq("Process returned exit code: 1: Whoopsie")));
@@ -181,7 +179,7 @@ TEST_F(SSHFSMountHandlerTest, stopTerminatesSshfsProcess)
         EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
     }));
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, target_path, mount};
     sshfs_mount_handler.activate(&server);
     sshfs_mount_handler.deactivate();
 }
@@ -192,7 +190,7 @@ TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsWhichSnapFails)
     expect_and_fail_ssh_command(*session, "which snap");
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), std::runtime_error);
 }
 
@@ -204,7 +202,7 @@ TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsNoSnapDirFails)
     expect_and_fail_ssh_command(*session, "[ -e /snap ]");
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), std::runtime_error);
 }
 
@@ -217,7 +215,7 @@ TEST_F(SSHFSMountHandlerTest, throwsInstallSshfsSnapInstallFails)
     expect_and_fail_ssh_command(*session, "snap install multipass-sshfs");
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server), mp::SSHFSMissingError);
 }
 
@@ -243,7 +241,7 @@ TEST_F(SSHFSMountHandlerTest, installSshfsTimeoutLogsInfo)
             StrEq("sshfs-mount-handler"),
             AllOf(HasSubstr("Could not install 'multipass-sshfs'"), HasSubstr("timed out"))));
 
-    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, target_path, mount};
     EXPECT_THROW(sshfs_mount_handler.activate(&server, std::chrono::milliseconds(1)),
                  mp::SSHFSMissingError);
 }

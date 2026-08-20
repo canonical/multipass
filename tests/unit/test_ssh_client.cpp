@@ -26,6 +26,7 @@
 
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_client.h>
+#include <multipass/ssh/ssh_factory.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -37,8 +38,11 @@ struct SSHClient : public testing::Test
 {
     mp::SSHClient make_ssh_client()
     {
-        return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
-                console_creator};
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
+        return {MP_SSH_FACTORY.make_session(coord), console_creator};
     }
 
     const mpt::StubSSHKeyProvider key_provider;
@@ -51,7 +55,11 @@ struct SSHClient : public testing::Test
 
 TEST_F(SSHClient, standardCtorDoesNotThrow)
 {
-    EXPECT_NO_THROW(mp::SSHClient("a", 42, "foo", mpt::fake_key_data, console_creator));
+    mp::SSHCoordinates coord{"ubuntu",
+                             key_provider.private_key_as_base64(),
+                             42,
+                             "theanswertoeverything"};
+    EXPECT_NO_THROW(mp::SSHClient(coord, console_creator));
 }
 
 TEST_F(SSHClient, execSingleCommandReturnsOKNoFailure)

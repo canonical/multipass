@@ -36,6 +36,7 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_factory.h>
 
 #include <algorithm>
 #include <queue>
@@ -78,7 +79,11 @@ struct SftpServer : public mp::test::SftpServerTest
                 [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
         REPLACE(ssh_event_free, [](auto...) { return; });
         REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-        return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
+        return {MP_SSH_FACTORY.make_session(coord),
                 path,
                 target.empty() ? path : target,
                 gid_mappings,
@@ -410,15 +415,18 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
     REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
     auto make_sftpserver = [this]() {
-        return mp::SftpServer{
-            std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
-            "",
-            "",
-            {{default_uid, mp::default_id}},
-            {{default_gid, mp::default_id}},
-            default_uid,
-            default_gid,
-            "sshfs"};
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything"};
+        return mp::SftpServer{MP_SSH_FACTORY.make_session(coord),
+                              "",
+                              "",
+                              {{default_uid, mp::default_id}},
+                              {{default_gid, mp::default_id}},
+                              default_uid,
+                              default_gid,
+                              "sshfs"};
     };
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
     EXPECT_TRUE(invoked);
@@ -484,15 +492,18 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
     REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
-    auto sftp =
-        mp::SftpServer{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
-                       "",
-                       "",
-                       {{default_gid, mp::default_id}},
-                       {{default_uid, mp::default_id}},
-                       default_uid,
-                       default_gid,
-                       "sshfs"};
+    mp::SSHCoordinates coord{"ubuntu",
+                             key_provider.private_key_as_base64(),
+                             42,
+                             "theanswertoeverything"};
+    auto sftp = mp::SftpServer{MP_SSH_FACTORY.make_session(coord),
+                               "",
+                               "",
+                               {{default_gid, mp::default_id}},
+                               {{default_uid, mp::default_id}},
+                               default_uid,
+                               default_gid,
+                               "sshfs"};
     // This is the end of the alternate test
     sftp.run();
 

@@ -136,8 +136,9 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
                                    const std::string& backend_version_string,
                                    const mp::CreateRequest* request)
 {
-    auto ssh_key_line =
-        fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
+    auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost",
+                                    key_provider.public_key_as_base64(),
+                                    username);
     QString pollinate_alias = QString::fromStdString(request->image());
 
     if (pollinate_alias.isEmpty())
@@ -1371,8 +1372,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        auto instance = instance_record[name] =
-            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
+        auto instance = instance_record[name] = config->factory->create_virtual_machine(
+            vm_desc,
+            *config->ssh_key_provider,
+            *this);
         instance->load_snapshots();
 
         // Add the new macs to the daemon's list only if we got this far
@@ -3412,12 +3415,13 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
                         name),
             ""};
 
-    mp::SSHInfo ssh_info;
-    ssh_info.set_host(vm.ssh_hostname());
-    ssh_info.set_port(vm.ssh_port());
-    ssh_info.set_priv_key_base64(config->ssh_key_provider->private_key_as_base64());
-    ssh_info.set_username(vm.ssh_username());
-    (*response.mutable_ssh_info())[name] = ssh_info;
+    auto ssh_coordinates{vm.ssh_coordinates()};
+    mp::SSHCoordinatesInfo coordinates_info{};
+    coordinates_info.set_username(ssh_coordinates.username);
+    coordinates_info.set_priv_key_base64(ssh_coordinates.private_key_as_base64);
+    coordinates_info.set_port(ssh_coordinates.port);
+    coordinates_info.set_tcp_host(ssh_coordinates.tcp_host);
+    (*response.mutable_ssh_coordinates())[name] = coordinates_info;
 
     return grpc::Status::OK;
 }
@@ -3489,10 +3493,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
                                               const VMMount& mount)
 {
     return mount.get_mount_type() == VMMount::MountType::Classic
-             ? std::make_unique<SSHFSMountHandler>(vm,
-                                                   config->ssh_key_provider.get(),
-                                                   target,
-                                                   mount)
+             ? std::make_unique<SSHFSMountHandler>(vm, target, mount)
              : vm->make_native_mount_handler(target, mount);
 }
 

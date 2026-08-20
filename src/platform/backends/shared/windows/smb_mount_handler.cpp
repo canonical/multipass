@@ -260,12 +260,11 @@ catch (const std::exception& e)
 }
 
 SmbMountHandler::SmbMountHandler(VirtualMachine* vm,
-                                 const SSHKeyProvider* ssh_key_provider,
                                  const std::string& target,
                                  VMMount mount_spec,
                                  const mp::Path& cred_dir,
                                  const SmbManager& smb_manager)
-    : MountHandler{vm, ssh_key_provider, std::move(mount_spec), target},
+    : MountHandler{vm, std::move(mount_spec), target},
       source{QString::fromStdString(get_mount_spec().get_source_path())},
       // share name must be unique and 80 chars max
       // UUIDS are 36 chars each, and +1 for dash: 73 characters.
@@ -389,10 +388,7 @@ try
 
     auto smb_creds = fmt::format("username={}\npassword={}", username, password);
     const std::string credentials_path{"/tmp/.smb_credentials"};
-    auto sftp_client = MP_SFTPUTILS.make_SFTPClient(vm->ssh_hostname(),
-                                                    vm->ssh_port(),
-                                                    vm->ssh_username(),
-                                                    ssh_key_provider->private_key_as_base64());
+    auto sftp_client = MP_SFTPUTILS.make_SFTPClient(vm->ssh_coordinates());
     std::istringstream creds_stringstream(smb_creds);
     sftp_client->from_cin(creds_stringstream, credentials_path, false);
 

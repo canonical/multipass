@@ -17,24 +17,31 @@
 
 #pragma once
 
-#include <multipass/mount_handler.h>
-#include <multipass/process/process.h>
-#include <multipass/qt_delete_later_unique_ptr.h>
-#include <multipass/sshfs_server_config.h>
+#include <multipass/singleton.h>
+#include <multipass/ssh/ssh_coordinates.h>
+#include <multipass/ssh/ssh_session.h>
+
+struct ssh_key_struct;
+typedef ssh_key_struct* ssh_key;
+
+#define MP_SSH_FACTORY multipass::SSHFactory::instance()
 
 namespace multipass
 {
-class SSHFSMountHandler : public MountHandler
+struct SSHKeyDeleter
+{
+    void operator()(ssh_key key) const;
+};
+using SSHKeyUPtr = std::unique_ptr<ssh_key_struct, SSHKeyDeleter>;
+using SSHSessionUPtr = std::unique_ptr<SSHSession>;
+
+class SSHFactory : public Singleton<SSHFactory>
 {
 public:
-    SSHFSMountHandler(VirtualMachine* vm, const std::string& target, VMMount mount_spec);
-    ~SSHFSMountHandler() override;
+    SSHFactory(const Singleton<SSHFactory>::PrivatePass&) noexcept;
 
-    void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
-    void deactivate_impl(bool force) override;
+    virtual SSHKeyUPtr make_key(const std::string& private_key_as_base64) const;
 
-private:
-    qt_delete_later_unique_ptr<Process> process;
-    SSHFSServerConfig config;
+    virtual SSHSessionUPtr make_session(const SSHCoordinates& ssh_coordinates) const;
 };
 } // namespace multipass

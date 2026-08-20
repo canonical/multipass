@@ -255,7 +255,7 @@ VirtualMachine::State AppleVZVirtualMachine::current_state()
     return state;
 }
 
-int AppleVZVirtualMachine::ssh_port()
+uint32_t AppleVZVirtualMachine::ssh_port()
 {
     return 22;
 }
@@ -263,11 +263,6 @@ int AppleVZVirtualMachine::ssh_port()
 std::string AppleVZVirtualMachine::ssh_hostname()
 {
     return require_management_ipv4().as_string();
-}
-
-std::string AppleVZVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
 }
 
 std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()

@@ -161,19 +161,18 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
                                               mp::Terminal* term)
 {
     // TODO: mainly for testing - need a better way to test parsing
-    if (reply.ssh_info().empty())
+    if (reply.ssh_coordinates().empty())
         return ReturnCode::Ok;
 
-    const auto& ssh_info = reply.ssh_info().begin()->second;
-    const auto& host = ssh_info.host();
-    const auto& port = ssh_info.port();
-    const auto& username = ssh_info.username();
-    const auto& priv_key_blob = ssh_info.priv_key_base64();
-
+    const auto& ssh_coordinates_rpc = reply.ssh_coordinates().begin()->second;
+    mp::SSHCoordinates ssh_coordinates{ssh_coordinates_rpc.username(),
+                                       ssh_coordinates_rpc.priv_key_base64(),
+                                       ssh_coordinates_rpc.port(),
+                                       ssh_coordinates_rpc.tcp_host()};
     try
     {
         auto console_creator = [&term](auto channel) { return term->make_console(channel); };
-        mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
+        mp::SSHClient ssh_client{ssh_coordinates, console_creator};
 
         std::vector<std::vector<std::string>> all_args;
         if (dir)
@@ -182,8 +181,10 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
             {
                 // Use sudo to access the directory, but run the command as the default user,
                 // This preserves the correct SUDO_ environment variables
-                const auto sh_args =
-                    fmt::format("cd {} && sudo -u {} {}", *dir, username, fmt::join(args, " "));
+                const auto sh_args = fmt::format("cd {} && sudo -u {} {}",
+                                                 *dir,
+                                                 ssh_coordinates_rpc.username(),
+                                                 fmt::join(args, " "));
 
                 all_args = {{"sudo", "sh", "-c", sh_args}};
             }

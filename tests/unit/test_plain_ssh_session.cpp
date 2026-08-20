@@ -33,7 +33,8 @@ struct TestPlainSSHSession : public Test
 {
     mp::PlainSSHSession make_ssh_session()
     {
-        return mp::PlainSSHSession("theanswertoeverything", 42, "ubuntu", key_provider);
+        return mp::PlainSSHSession(
+            {"ubuntu", key_provider.private_key_as_base64(), 42, "theanswertoeverything"});
     }
 
     mp::test::StubSSHKeyProvider key_provider;

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <multipass/ssh/plain_ssh_process.h>
+#include <multipass/ssh/ssh_coordinates.h>
 #include <multipass/ssh/ssh_session.h>
 
 #include <multipass/private_pass_provider.h>
@@ -36,10 +38,7 @@ class PlainSSHProcess;
 class PlainSSHSession final : public SSHSession // final to prevent chopping on move
 {
 public:
-    PlainSSHSession(const std::string& host,
-                    int port,
-                    const std::string& ssh_username,
-                    const SSHKeyProvider& key_provider);
+    PlainSSHSession(const SSHCoordinates&);
 
     // just being explicit (unique_ptr member already caused these to be deleted)
     PlainSSHSession(const PlainSSHSession&) = delete;

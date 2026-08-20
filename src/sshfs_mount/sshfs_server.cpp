@@ -25,8 +25,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/ssh/plain_ssh_session.h>
-
-#include <ssh/ssh_client_key_provider.h>
+#include <multipass/ssh/ssh_factory.h>
 
 #include <QStringList>
 
@@ -91,13 +90,15 @@ int main(int argc, char* argv[])
     }
     const auto priv_key_blob = string(key);
     const auto host = string(argv[1]);
-    const int port = atoi(argv[2]);
+    const uint32_t port = std::stoul(argv[2]);
     const auto username = string(argv[3]);
     const auto source_path = string(argv[4]);
     const auto target_path = string(argv[5]);
     const mp::id_mappings uid_mappings = convert_id_mappings(argv[6]);
     const mp::id_mappings gid_mappings = convert_id_mappings(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
+
+    mp::SSHCoordinates coordinates{username, priv_key_blob, port, host};
 
     auto logger = mpp::make_logger(log_level);
     if (!logger)
@@ -114,15 +115,11 @@ int main(int argc, char* argv[])
         auto watchdog = mpp::make_quit_watchdog(
             std::chrono::milliseconds{500}); // called while there is only one thread
 
-        mp::SshfsMount sshfs_mount(
-            std::make_unique<mp::PlainSSHSession>(host,
-                                                  port,
-                                                  username,
-                                                  mp::SSHClientKeyProvider{priv_key_blob}),
-            source_path,
-            target_path,
-            gid_mappings,
-            uid_mappings);
+        mp::SshfsMount sshfs_mount(MP_SSH_FACTORY.make_session(coordinates),
+                                   source_path,
+                                   target_path,
+                                   gid_mappings,
+                                   uid_mappings);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
         auto sig = watchdog([&sshfs_mount] { return sshfs_mount.alive(); });

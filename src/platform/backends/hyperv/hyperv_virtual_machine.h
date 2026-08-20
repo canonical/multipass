@@ -57,9 +57,6 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
     State current_state() override;
-    int ssh_port() override;
-    std::string ssh_hostname() override;
-    std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
     void handle_state_update() override;
     void update_cpus(int num_cores) override;
@@ -78,6 +75,9 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
     void resize_disk_impl(const MemorySize& new_size) override;
+
+    uint32_t ssh_port() override;
+    std::string ssh_hostname() override;
 
 private:
     HyperVVirtualMachine(const VirtualMachineDescription& desc,

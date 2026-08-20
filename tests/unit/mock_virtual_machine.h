@@ -72,8 +72,15 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, management_ipv4).WillByDefault(Return(IPAddress{"0.0.0.0"}));
         ON_CALL(*this, get_all_ipv4).WillByDefault(Return(std::vector{IPAddress{"192.168.2.123"}}));
         ON_CALL(*this, instance_directory).WillByDefault(Return(this->tmp_dir->path()));
-        ON_CALL(*this, ssh_exec_process).WillByDefault(std::make_unique<NiceMock<MockSSHProcess>>);
-        ON_CALL(*this, new_ssh_session).WillByDefault(std::make_unique<NiceMock<MockSSHSession>>);
+        ON_CALL(*this, ssh_exec_process).WillByDefault([](auto...) {
+            return std::make_unique<NiceMock<MockSSHProcess>>();
+        });
+        ON_CALL(*this, new_ssh_session).WillByDefault([](auto...) {
+            return std::make_unique<NiceMock<MockSSHSession>>();
+        });
+        ON_CALL(*this, ssh_coordinates).WillByDefault([this] {
+            return SSHCoordinates{ssh_username(), {}, ssh_port(), ssh_hostname()};
+        });
     }
 
     MOCK_METHOD(void, start, (), (override));
@@ -81,11 +88,12 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, suspend, (), (override));
     MOCK_METHOD(void, set_available, (bool), (override));
     MOCK_METHOD(VirtualMachine::State, current_state, (), (override));
-    MOCK_METHOD(int, ssh_port, (), (override));
+    MOCK_METHOD(uint32_t, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
-    MOCK_METHOD(std::string, ssh_username, (), (override));
+    MOCK_METHOD(std::string, ssh_username, (), (const override));
     MOCK_METHOD(std::optional<IPAddress>, management_ipv4, (), (override));
     MOCK_METHOD(std::vector<IPAddress>, get_all_ipv4, (), (override));
+    MOCK_METHOD(SSHCoordinates, ssh_coordinates, (), (override));
     MOCK_METHOD(std::string, ssh_exec, (const std::string& cmd, bool whisper), (override));
     MOCK_METHOD(std::unique_ptr<SSHProcess>,
                 ssh_exec_process,

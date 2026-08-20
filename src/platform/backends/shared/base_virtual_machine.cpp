@@ -31,6 +31,7 @@
 #include <multipass/snapshot.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_factory.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
@@ -234,6 +235,16 @@ void mp::BaseVirtualMachine::set_available(bool available)
     handle_state_update();
 }
 
+std::string mp::BaseVirtualMachine::ssh_username() const
+{
+    return desc.ssh_username;
+}
+
+mp::SSHCoordinates mp::BaseVirtualMachine::ssh_coordinates()
+{
+    return {ssh_username(), key_provider.private_key_as_base64(), ssh_port(), ssh_hostname()};
+}
+
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
 {
     auto proc = ssh_exec_process(cmd, whisper);
@@ -304,10 +315,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
     }
 
     mpl::trace(vm_name, "New SSH session");
-    return std::make_unique<PlainSSHSession>(ssh_hostname(),
-                                             ssh_port(),
-                                             ssh_username(),
-                                             key_provider);
+    return MP_SSH_FACTORY.make_session(ssh_coordinates());
 }
 
 bool multipass::BaseVirtualMachine::unplugged()
@@ -527,12 +535,12 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
     auto rollback_on_failure = make_take_snapshot_rollback(it);
 
     // get instance id from cloud-init file and pass to make_specific_snapshot
-    auto ret = head_snapshot = it->second =
-        make_specific_snapshot(sname,
-                               comment,
-                               get_instance_id_from_the_cloud_init(),
-                               specs,
-                               head_snapshot);
+    auto ret = head_snapshot = it->second = make_specific_snapshot(
+        sname,
+        comment,
+        get_instance_id_from_the_cloud_init(),
+        specs,
+        head_snapshot);
     ret->capture();
 
     ++snapshot_count;
@@ -657,8 +665,8 @@ void mp::BaseVirtualMachine::rename_snapshot(const std::string& old_name,
         throw SnapshotNameTakenException{vm_name, new_name};
 
     auto snapshot_node = snapshots.extract(old_it);
-    const auto reinsert_guard =
-        make_reinsert_guard(snapshot_node); // we want this to execute both on failure & success
+    const auto reinsert_guard = make_reinsert_guard(
+        snapshot_node); // we want this to execute both on failure & success
 
     snapshot_node.key() = new_name;
     snapshot_node.mapped()->set_name(new_name);
@@ -787,10 +795,10 @@ void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
     auto count_path = instance_dir.filePath(count_filename);
 
     QFile head_file{head_path};
-    auto head_file_rollback =
-        make_common_file_rollback(head_path,
-                                  head_file,
-                                  std::to_string(head_snapshot->get_parents_index()) + "\n");
+    auto head_file_rollback = make_common_file_rollback(
+        head_path,
+        head_file,
+        std::to_string(head_snapshot->get_parents_index()) + "\n");
     persist_head_snapshot_index(head_path);
 
     QFile count_file{count_path};
@@ -935,8 +943,7 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    auto new_session =
-        std::make_unique<PlainSSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    auto new_session = MP_SSH_FACTORY.make_session(ssh_coordinates());
 
     std::lock_guard lock{state_mutex};
     ssh_session = std::move(new_session);

@@ -179,7 +179,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return state;
     }
 
-    int ssh_port() override
+    uint32_t ssh_port() override
     {
         return 42;
     }
@@ -189,7 +189,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "localhost";
     }
 
-    std::string ssh_username() override
+    std::string ssh_username() const override
     {
         return "ubuntu";
     }
@@ -884,9 +884,9 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
     const auto& snapshot = *snapshot_album[0];
 
     mp::VMSpecs new_specs = original_specs;
-    new_specs.extra_interfaces =
-        std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true},
-                                          {"id", "52:54:00:56:78:92", true}};
+    new_specs.extra_interfaces = std::vector<mp::NetworkInterface>{
+        {"id", "52:54:00:56:78:91", true},
+        {"id", "52:54:00:56:78:92", true}};
 
     // the ref return functions can not use the default mock behavior, so they need to be specified
     EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
@@ -1008,8 +1008,9 @@ TEST_F(BaseVM, loadsSnasphots)
     static const auto index_digits_regex = n_occurrences(digit_char_class, 4);
     static const auto file_regex = fmt::format(R"(.*{}\.snapshot\.json)", index_digits_regex);
 
-    auto& expectation =
-        EXPECT_CALL(vm, make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
+    auto& expectation = EXPECT_CALL(
+        vm,
+        make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
 
     using NiceMockSnapshot = NiceMock<mpt::MockSnapshot>;
     std::array<std::shared_ptr<NiceMockSnapshot>, num_snapshots> snapshot_bag{};

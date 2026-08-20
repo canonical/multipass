@@ -43,7 +43,7 @@ void Function(StreamNotification<RpcMessage>) logGrpc(RpcMessage request) {
       case NotificationKind.data:
         final reply = notification.requireDataValue.deepCopy();
         if (reply is SSHInfoReply) {
-          for (final info in reply.sshInfo.values) {
+          for (final info in reply.sshCoordinates.values) {
             info.privKeyBase64 = '*hidden*';
           }
         }
@@ -224,11 +224,11 @@ class GrpcClient {
     return doRpc(_client.set, SetRequest(key: key, val: value));
   }
 
-  Future<SSHInfo?> sshInfo(String name) {
+  Future<SSHCoordinatesInfo?> sshCoordinates(String name) {
     return doRpc(
       _client.ssh_info,
       SSHInfoRequest(instanceName: [name]),
-    ).then((r) => r!.sshInfo[name]);
+    ).then((r) => r!.sshCoordinates[name]);
   }
 
   Future<DaemonInfoReply> daemonInfo() {
