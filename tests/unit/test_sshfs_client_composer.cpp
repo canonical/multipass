@@ -21,6 +21,7 @@
 
 #include <src/sshfs_mount/sshfs_client_composer.h>
 
+#include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
 
 #include <map>
@@ -96,6 +97,14 @@ TEST_F(TestSshfsClientComposer, buildsCommandAroundSnapSshfs)
                                base_options,
                                source,
                                target)));
+}
+
+TEST_F(TestSshfsClientComposer, throwsWhenGuestHasNoSshfs)
+{
+    exec_results[snap_env_cmd] = {.exit_code = 1};
+    exec_results[which_cmd] = {.exit_code = 1};
+
+    EXPECT_THROW(composer.compose_client_command(session, source, target), mp::SSHFSMissingError);
 }
 
 TEST_F(TestSshfsClientComposer, fallsBackToAvailableSshfs)

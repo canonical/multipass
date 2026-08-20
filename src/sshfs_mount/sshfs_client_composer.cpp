@@ -17,6 +17,7 @@
 
 #include "sshfs_client_composer.h"
 
+#include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
@@ -58,7 +59,15 @@ std::string find_sshfs(mp::SSHSession& session)
     }
 
     // Fallback to default
-    return MP_UTILS.run_in_ssh_session(session, "sudo which sshfs");
+    try
+    {
+        return MP_UTILS.run_in_ssh_session(session, "sudo which sshfs");
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category, "Unable to determine if 'sshfs' is installed: {}", e.what());
+        throw mp::SSHFSMissingError{};
+    }
 }
 } // namespace
 
