@@ -248,9 +248,17 @@ void AppleVZVirtualMachine::suspend()
 
 VirtualMachine::State AppleVZVirtualMachine::current_state()
 {
-    // Get state from AppleVZ, translate it to our state enum, and notify the monitor
+    if (state == State::unavailable)
+    {
+        mpl::debug(log_category, "current_state() -> VM `{}` zone is unavailable", vm_name);
+        assert(!vm_handle);
+        return state;
+    }
+
     if (!vm_handle)
         return State::stopped;
+
+    // Get state from AppleVZ, translate it to our state enum, and notify the monitor
     set_state(MP_APPLEVZ.get_state(vm_handle));
     return state;
 }
