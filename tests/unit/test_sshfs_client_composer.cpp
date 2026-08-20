@@ -50,6 +50,7 @@ struct TestSshfsClientComposer : public Test
 
                 ON_CALL(*proc, exit_code).WillByDefault(Return(result.exit_code));
                 ON_CALL(*proc, read_std_output).WillByDefault(Return(result.std_out));
+                ON_CALL(*proc, get_cmd).WillByDefault(ReturnRefOfCopy(cmd));
 
                 return proc;
             });
@@ -72,10 +73,35 @@ struct TestSshfsClientComposer : public Test
         return it == exec_results.end() ? default_result : it->second;
     }
 
+    /**
+     * Have the guest report no snap, but an sshfs on PATH answering @p version_info to `-V`.
+     */
+    void mock_distro_sshfs(const std::string& version_info = {})
+    {
+        exec_results[snap_env_cmd] = {.exit_code = 1};
+        exec_results[which_cmd] = {.std_out = distro_sshfs};
+        exec_results[fmt::format("sudo {} -V", distro_sshfs)] = {.std_out = version_info};
+    }
+
+    /**
+     * The command expected to mount with the sshfs on PATH, given the @p extra_options that its
+     * fuse version calls for.
+     */
+    std::string expected_distro_command(const std::string& extra_options = {}) const
+    {
+        return fmt::format("sudo -n {} {}{} :\"{}\" \"{}\"",
+                           distro_sshfs,
+                           base_options,
+                           extra_options,
+                           source,
+                           target);
+    }
+
     constexpr static auto source = "/host/source";
     constexpr static auto target = "/guest/target";
     constexpr static auto snap_env_cmd = "snap run multipass-sshfs.env";
     constexpr static auto which_cmd = "sudo which sshfs";
+    constexpr static auto distro_sshfs = "/usr/bin/sshfs";
     constexpr static auto base_options =
         "-o slave -o transform_symlinks -o allow_other -o Compression=no";
 
@@ -109,11 +135,40 @@ TEST_F(TestSshfsClientComposer, throwsWhenGuestHasNoSshfs)
 
 TEST_F(TestSshfsClientComposer, fallsBackToAvailableSshfs)
 {
-    const std::string sshfs_path{"/some/usr/bin/sshfs"};
-    exec_results[which_cmd] = {.std_out = sshfs_path};
-    exec_results[snap_env_cmd] = {.exit_code = 1}; // no such snap
+    mock_distro_sshfs();
 
-    EXPECT_THAT(
-        composer.compose_client_command(session, source, target),
-        Eq(fmt::format("sudo -n {} {} :\"{}\" \"{}\"", sshfs_path, base_options, source, target)));
+    EXPECT_THAT(composer.compose_client_command(session, source, target),
+                Eq(expected_distro_command()));
+}
+
+TEST_F(TestSshfsClientComposer, asksLegacyFuseToMountOverNonEmptyDirsWithoutCaching)
+{
+    mock_distro_sshfs("FUSE library version: 2.9.9\n");
+
+    EXPECT_THAT(composer.compose_client_command(session, source, target),
+                Eq(expected_distro_command(" -o nonempty -o cache=no")));
+}
+
+TEST_F(TestSshfsClientComposer, asksCurrentFuseNotToCacheDirs)
+{
+    mock_distro_sshfs("FUSE library version 3.10.5\n");
+
+    EXPECT_THAT(composer.compose_client_command(session, source, target),
+                Eq(expected_distro_command(" -o dir_cache=no")));
+}
+
+TEST_F(TestSshfsClientComposer, leavesFuseOptionsOutWhenTheVersionIsUnparseable)
+{
+    mock_distro_sshfs("FUSE library version and then some gibberish\n");
+
+    EXPECT_THAT(composer.compose_client_command(session, source, target),
+                Eq(expected_distro_command()));
+}
+
+TEST_F(TestSshfsClientComposer, leavesFuseOptionsOutWhenTheVersionIsAbsent)
+{
+    mock_distro_sshfs("FUSE library version\n");
+
+    EXPECT_THAT(composer.compose_client_command(session, source, target),
+                Eq(expected_distro_command()));
 }
