@@ -22,8 +22,10 @@
 #include <multipass/logging/log.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
+#include <multipass/utils/semver_compare.h>
 
 #include <exception>
+#include <stdexcept>
 #include <string>
 
 namespace mp = multipass;
@@ -33,6 +35,7 @@ namespace
 {
 constexpr auto category = "sshfs composer";
 constexpr auto base_options = "-o slave -o transform_symlinks -o allow_other -o Compression=no";
+const std::string fuse_version_string{"FUSE library version"};
 const std::string ld_library_path_key{"LD_LIBRARY_PATH="};
 const std::string snap_path_key{"SNAP="};
 
@@ -69,13 +72,52 @@ std::string find_sshfs(mp::SSHSession& session)
         throw mp::SSHFSMissingError{};
     }
 }
+
+std::string fuse_options_for(mp::SSHSession& session, const std::string& sshfs)
+{
+    const auto version_info = MP_UTILS.run_in_ssh_session(session,
+                                                          fmt::format("sudo {} -V", sshfs));
+    const auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
+
+    if (fuse_version_line.empty())
+    {
+        mpl::warn(category, "Unable to retrieve \'{}\'", fuse_version_string);
+        return {};
+    }
+
+    // Split on the version string, along with 0 or 1 colon(s)
+    const auto tokens = mp::utils::split(fuse_version_line,
+                                         fmt::format("{}:? ", fuse_version_string));
+
+    try
+    {
+        if (tokens.size() != 2)
+            throw std::invalid_argument{fuse_version_line};
+
+        using namespace multipass::literals;
+
+        // libfuse 3.0 renamed {,dir_}cache and removed nonempty (which became the default behavior)
+        return mp::opaque_semver{tokens[1]} < "3.0.0"_semver ? " -o nonempty -o cache=no"
+                                                             : " -o dir_cache=no";
+    }
+    catch (const std::invalid_argument& e)
+    {
+        mpl::warn(category, "Unable to parse the {}", fuse_version_string);
+        mpl::debug(category, "Unable to parse the {}: {}", fuse_version_string, e.what());
+        return {};
+    }
+}
 } // namespace
 
 std::string mp::SshfsClientComposer::compose_client_command(SSHSession& session,
                                                             const std::string& source,
                                                             const std::string& target) const
 {
-    const auto sshfs_exec_line = fmt::format("{} {}", find_sshfs(session), base_options);
+    const auto sshfs = find_sshfs(session);
+    const auto sshfs_exec_line = fmt::format("{} {}{}",
+                                             sshfs,
+                                             base_options,
+                                             fuse_options_for(session, sshfs));
 
     return fmt::format("sudo -n {} :{:?} {:?}", sshfs_exec_line, source, target);
 }
