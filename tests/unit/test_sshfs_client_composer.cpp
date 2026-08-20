@@ -73,6 +73,7 @@ struct TestSshfsClientComposer : public Test
 
     constexpr static auto source = "/host/source";
     constexpr static auto target = "/guest/target";
+    constexpr static auto snap_env_cmd = "snap run multipass-sshfs.env";
     constexpr static auto which_cmd = "sudo which sshfs";
     constexpr static auto base_options =
         "-o slave -o transform_symlinks -o allow_other -o Compression=no";
@@ -84,10 +85,24 @@ struct TestSshfsClientComposer : public Test
 };
 } // namespace
 
-TEST_F(TestSshfsClientComposer, buildsCommandAroundAvailableSshfs)
+TEST_F(TestSshfsClientComposer, buildsCommandAroundSnapSshfs)
+{
+    exec_results[snap_env_cmd] = {.std_out = "LD_LIBRARY_PATH=/snap/multipass-sshfs/x1/lib\n"
+                                             "SNAP=/snap/multipass-sshfs/x1\n"};
+
+    EXPECT_THAT(composer.compose_client_command(session, source, target),
+                Eq(fmt::format("sudo -n env LD_LIBRARY_PATH=/snap/multipass-sshfs/x1/lib "
+                               "/snap/multipass-sshfs/x1/bin/sshfs {} :\"{}\" \"{}\"",
+                               base_options,
+                               source,
+                               target)));
+}
+
+TEST_F(TestSshfsClientComposer, fallsBackToAvailableSshfs)
 {
     const std::string sshfs_path{"/some/usr/bin/sshfs"};
     exec_results[which_cmd] = {.std_out = sshfs_path};
+    exec_results[snap_env_cmd] = {.exit_code = 1}; // no such snap
 
     EXPECT_THAT(
         composer.compose_client_command(session, source, target),

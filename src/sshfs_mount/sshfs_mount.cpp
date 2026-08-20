@@ -78,7 +78,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         }
     }
 
-    sshfs_exec = mp::utils::trim_end(sshfs_exec);
+    sshfs_exec = mp::utils::trim_end(sshfs_exec); // redundant
 
     auto version_info{MP_UTILS.run_in_ssh_session(session, fmt::format("sudo {} -V", sshfs_exec))};
 
