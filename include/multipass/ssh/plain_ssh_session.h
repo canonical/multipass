@@ -61,8 +61,9 @@ public:
                                                    bool whisper = false) override;
 
     /**
-     * TODO@sftp can we copydoc? partially
-     * Like exec, but statically typed to the concrete PlainSSHProcess this session produces.
+     * Like #exec, but statically typed to the concrete PlainSSHProcess this session produces.
+     *
+     * @see SSHSession::exec for the semantics of the remaining params.
      */
     [[nodiscard]] std::unique_ptr<PlainSSHProcess> exec_plain(const std::string& cmd,
                                                               bool whisper = false);
