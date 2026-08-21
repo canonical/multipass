@@ -15,7 +15,7 @@
  *
  */
 
-#include "sshfs_client_composer.h"
+#include "sshfs_client_steward.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
@@ -33,7 +33,7 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto category = "sshfs composer";
+constexpr auto category = "sshfs steward";
 constexpr auto base_options = "-o slave -o transform_symlinks -o allow_other -o Compression=no";
 const std::string fuse_version_string{"FUSE library version"};
 const std::string ld_library_path_key{"LD_LIBRARY_PATH="};
@@ -109,9 +109,9 @@ std::string fuse_options_for(mp::SSHSession& session, const std::string& sshfs)
 }
 } // namespace
 
-std::string mp::SshfsClientComposer::compose_client_command(SSHSession& session,
-                                                            const std::string& source,
-                                                            const std::string& target) const
+std::string mp::SshfsClientSteward::compose_client_command(SSHSession& session,
+                                                           const std::string& source,
+                                                           const std::string& target) const
 {
     const auto sshfs = find_sshfs(session);
     const auto sshfs_exec_line = fmt::format("{} {}{}",
@@ -122,8 +122,8 @@ std::string mp::SshfsClientComposer::compose_client_command(SSHSession& session,
     return fmt::format("sudo -n {} :{:?} {:?}", sshfs_exec_line, source, target);
 }
 
-void mp::SshfsClientComposer::clean_up_after_client(SSHSession& session,
-                                                    const std::string& source) const
+void mp::SshfsClientSteward::clean_up_after_client(SSHSession& session,
+                                                   const std::string& source) const
 {
     const auto mount_path = [&session, &source] {
         auto proc = session.exec(fmt::format("findmnt --source :{} -o TARGET -n", source));
