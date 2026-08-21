@@ -25,12 +25,12 @@ namespace multipass
 {
 struct HVSOCK
 {
-    std::string VM_Guid;
+    std::string vmid;
 };
 
 struct VSOCK
 {
-    uint32_t CID;
+    uint32_t cid;
 };
 
 struct USOCK

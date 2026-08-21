@@ -24,6 +24,7 @@
 #include <multipass/settings/settings.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/timer.h>
+#include <multipass/utils/grpc_utils.h>
 
 #include <cstdlib>
 
@@ -64,12 +65,8 @@ mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
 
         // TODO: this should setup a reader that continuously prints out
         // streaming replies from the server corresponding to stdout/stderr streams
-        const auto& ssh_coordinates_rpc = reply.ssh_coordinates().begin()->second;
-        mp::SSHCoordinates ssh_coordinates{ssh_coordinates_rpc.username(),
-                                           ssh_coordinates_rpc.priv_key_base64(),
-                                           ssh_coordinates_rpc.port(),
-                                           ssh_coordinates_rpc.tcp_host(),
-                                           {}};
+        mp::SSHCoordinates ssh_coordinates{
+            mp::utils::proto_to_coordinates(reply.ssh_coordinates().begin()->second)};
         try
         {
             auto console_creator = [this](auto channel) { return term->make_console(channel); };

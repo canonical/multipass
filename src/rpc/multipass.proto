@@ -366,12 +366,17 @@ message SSHInfoRequest {
     int32 verbosity_level = 2;
 }
 
-
 message SSHCoordinatesInfo {
     string username = 1;
     string priv_key_base64 = 2;
     uint32 port = 3;
     string tcp_host = 4;
+
+   oneof vsock_host{
+        string hvsock_vmid = 5;
+        uint32 vsock_cid = 6;
+        string usock_addr = 7;
+   }
 }
 
 message SSHInfoReply {
