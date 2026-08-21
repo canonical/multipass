@@ -40,8 +40,8 @@ constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
 constexpr auto default_timeout = std::chrono::seconds(300);
-constexpr auto image_resize_timeout =
-    std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
+constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min)
+                                          .count();
 
 constexpr auto home_automount_dir = "Home";
 
@@ -66,6 +66,8 @@ constexpr auto bridged_interface_key = "local.bridged-network";
 constexpr auto mounts_key = "local.privileged-mounts";
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
 constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
+constexpr auto auto_suspend_key = "local.auto-suspend-on-sleep";
+constexpr auto auto_resume_key = "local.auto-resume-on-wake";
 
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 

@@ -31,6 +31,10 @@
 #include <multipass/utils.h>
 #include <multipass/version.h>
 
+#ifdef __APPLE__
+#include "shared/macos/sleep_wake_handler.h"
+#endif
+
 #include <multipass/format.h>
 
 #include <QCoreApplication>
@@ -97,6 +101,13 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
                                                        // relevant settings handlers
 
     mp::Daemon daemon(std::move(config));
+
+#ifdef __APPLE__
+    // Initialize sleep/wake handler for macOS
+    auto sleep_wake_handler = std::make_unique<mp::platform::macos::SleepWakeHandler>();
+    sleep_wake_handler->set_suspend_callback([&daemon]() { daemon.suspend_all_instances(); });
+    sleep_wake_handler->set_resume_callback([&daemon]() { daemon.resume_suspended_instances(); });
+#endif
 
     QObject::connect(&app,
                      &QCoreApplication::aboutToQuit,
