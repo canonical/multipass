@@ -16,6 +16,7 @@ Multipass allows you to create virtual machine (VM) instances with a single comm
 - [Set up custom networking](how-to-guides-manage-instances-set-up-custom-networking)
 - [Add a network to an existing instance](how-to-guides-manage-instances-add-a-network-to-an-existing-instance)
 - [Configure static IPs](how-to-guides-manage-instances-configure-static-ips)
+- [Use availability zones](how-to-guides-manage-instances-use-availability-zones)
 
 ```{toctree}
 :hidden:
@@ -34,4 +35,5 @@ remove-an-instance
 set-up-custom-networking
 add-a-network-to-an-existing-instance
 configure-static-ips
+use-availability-zones
 ```

@@ -20,6 +20,7 @@ These topics cover the foundations of how Multipass operates on your machine, pr
 These guides explain the lifecycle, identity, and resources of the virtual machines you create.
 
 - [Instance](explanation-instance)
+- [Availability zone](explanation-availability-zone)
 - [Image](explanation-image)
 - [Settings keys and values](explanation-settings-keys-values)
 
@@ -72,6 +73,7 @@ platform
 service
 driver
 instance
+availability-zone
 image
 settings-keys-values
 multipass-exec-and-shells
