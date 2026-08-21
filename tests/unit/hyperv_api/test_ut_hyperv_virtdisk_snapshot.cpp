@@ -48,12 +48,12 @@ using hyperv::virtdisk::VirtdiskSnapshotError;
 
 OperationResult op_ok()
 {
-    return OperationResult{S_OK, L""};
+    return OperationResult::success();
 }
 
 OperationResult op_fail()
 {
-    return OperationResult{E_FAIL, L"forced failure"};
+    return OperationResult::failure(L"forced failure");
 }
 
 void touch(const fs::path& p)
