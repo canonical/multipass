@@ -31,7 +31,7 @@ using namespace testing;
 
 struct TestSSHFSServerProcessSpec : public Test
 {
-    mp::SSHFSServerConfig config{{"username", "private_key", 42, "host"},
+    mp::SSHFSServerConfig config{{"username", "private_key", 42, "host", {}},
                                  "instance",
                                  "source_path",
                                  "target_path",

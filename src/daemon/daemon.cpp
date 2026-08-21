@@ -3415,13 +3415,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
                         name),
             ""};
 
-    auto ssh_coordinates{vm.ssh_coordinates()};
-    mp::SSHCoordinatesInfo coordinates_info{};
-    coordinates_info.set_username(ssh_coordinates.username);
-    coordinates_info.set_priv_key_base64(ssh_coordinates.private_key_as_base64);
-    coordinates_info.set_port(ssh_coordinates.port);
-    coordinates_info.set_tcp_host(ssh_coordinates.tcp_host);
-    (*response.mutable_ssh_coordinates())[name] = coordinates_info;
+    (*response.mutable_ssh_coordinates())[name] = mpu::coordinates_to_proto(vm.ssh_coordinates());
 
     return grpc::Status::OK;
 }

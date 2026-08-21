@@ -41,7 +41,8 @@ struct SSHClient : public testing::Test
         mp::SSHCoordinates coord{"ubuntu",
                                  key_provider.private_key_as_base64(),
                                  42,
-                                 "theanswertoeverything"};
+                                 "theanswertoeverything",
+                                 {}};
         return {MP_SSH_FACTORY.make_session(coord), console_creator};
     }
 
@@ -58,7 +59,8 @@ TEST_F(SSHClient, standardCtorDoesNotThrow)
     mp::SSHCoordinates coord{"ubuntu",
                              key_provider.private_key_as_base64(),
                              42,
-                             "theanswertoeverything"};
+                             "theanswertoeverything",
+                             {}};
     EXPECT_NO_THROW(mp::SSHClient(coord, console_creator));
 }
 

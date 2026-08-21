@@ -240,9 +240,30 @@ std::string mp::BaseVirtualMachine::ssh_username() const
     return desc.ssh_username;
 }
 
+/**
+ * @brief Assemble the SSHCoordinates describing how to reach this VM over SSH.
+ *
+ * This is the main entry point for producing the coordinates used to create an SSH session.
+ * It gathers the connection parameters from the VM's configuration and key provider:
+ * - ssh_username()                        : remote user to authenticate as
+ * - key_provider.private_key_as_base64()  : base64 private key for public-key auth
+ * - ssh_port() / ssh_hostname()           : TCP transport endpoint
+ * - ssh_vsock_host()                      : optional alternative transport (HVSOCK/VSOCK/USOCK),
+ *                                           or std::monostate for plain TCP
+ *
+ * The returned value is passed to SSHFactory::make_session(), which builds an SSHSession
+ * (e.g. PlainSSHSession) that opens the actual connection. This decouples the platform/VM-
+ * specific assembly of coordinates from SSH session creation.
+ *
+ * @return A fully populated SSHCoordinates for this VM instance.
+ */
 mp::SSHCoordinates mp::BaseVirtualMachine::ssh_coordinates()
 {
-    return {ssh_username(), key_provider.private_key_as_base64(), ssh_port(), ssh_hostname()};
+    return {ssh_username(),
+            key_provider.private_key_as_base64(),
+            ssh_port(),
+            ssh_hostname(),
+            ssh_vsock_host()};
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)

@@ -85,7 +85,7 @@ struct StubVirtualMachine final : public VirtualMachine
 
     SSHCoordinates ssh_coordinates() override
     {
-        SSHCoordinates coord{ssh_username(), {}, ssh_port(), ssh_hostname()};
+        SSHCoordinates coord{ssh_username(), {}, ssh_port(), ssh_hostname(), {}};
 
         return coord;
     }

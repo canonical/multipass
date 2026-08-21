@@ -82,7 +82,8 @@ struct SftpServer : public mp::test::SftpServerTest
         mp::SSHCoordinates coord{"ubuntu",
                                  key_provider.private_key_as_base64(),
                                  42,
-                                 "theanswertoeverything"};
+                                 "theanswertoeverything",
+                                 {}};
         return {MP_SSH_FACTORY.make_session(coord),
                 path,
                 target.empty() ? path : target,
@@ -418,7 +419,8 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
         mp::SSHCoordinates coord{"ubuntu",
                                  key_provider.private_key_as_base64(),
                                  42,
-                                 "theanswertoeverything"};
+                                 "theanswertoeverything",
+                                 {}};
         return mp::SftpServer{MP_SSH_FACTORY.make_session(coord),
                               "",
                               "",
@@ -495,7 +497,8 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     mp::SSHCoordinates coord{"ubuntu",
                              key_provider.private_key_as_base64(),
                              42,
-                             "theanswertoeverything"};
+                             "theanswertoeverything",
+                             {}};
     auto sftp = mp::SftpServer{MP_SSH_FACTORY.make_session(coord),
                                "",
                                "",

@@ -108,6 +108,7 @@ protected:
                                                              std::shared_ptr<Snapshot> parent);
 
     std::string ssh_username() const override;
+    virtual VSOCKHost ssh_vsock_host() = 0;
     virtual void drop_ssh_session(); // virtual to allow mocking
 
     // TODO@rewiressh make SSHSession mockable instead and use it in tests

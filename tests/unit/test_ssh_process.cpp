@@ -44,7 +44,8 @@ private:
         mp::SSHCoordinates coord{"ubuntu",
                                  provider.private_key_as_base64(),
                                  42,
-                                 "theanswertoeverything"};
+                                 "theanswertoeverything",
+                                 {}};
         return mp::PlainSSHSession{coord};
     }
 };
