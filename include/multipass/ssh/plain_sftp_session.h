@@ -32,12 +32,12 @@ typedef ssh_channel_struct* ssh_channel;
 
 namespace multipass
 {
-class SftpClientComposer;
+class SftpClientSteward;
 
 /**
  * A concrete SftpSession backed by a remote SFTP client. It serves the SFTP protocol over an SSH
  * session to a client that is spawned on the guest, according to the specification provided by an
- * SftpClientComposer.
+ * SftpClientSteward.
  */
 class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
@@ -52,13 +52,12 @@ public:
      * Consume an SSH session to serve SFTP to a remote client over it.
      *
      * @param ssh_session_obj The SSH session to serve on, which this consumes.
-     * @param client_composer A reference to a composer and cleaner of the sftp client, which must
-     * outlive this PlainSftpSession.
+     * @param client_steward A reference to an SftpClientSteward, which must outlive this session.
      * @param source The local path to serve.
      * @param target The remote path to map the source to.
      */
     PlainSftpSession(PlainSSHSession&& ssh_session_obj,
-                     const SftpClientComposer& client_composer,
+                     const SftpClientSteward& client_steward,
                      const std::string& source,
                      const std::string& target);
     PlainSftpSession(const PlainSftpSession&) = delete;
@@ -112,7 +111,7 @@ private:
     void spawn_client();
 
     PlainSSHSession plain_ssh_session;
-    const SftpClientComposer& client_composer;
+    const SftpClientSteward& client_steward;
     const std::string source;
     const std::string client_cmd;
     std::unique_ptr<PlainSSHProcess> client_process;

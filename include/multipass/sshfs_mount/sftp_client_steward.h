@@ -26,17 +26,18 @@ namespace multipass
 class SSHSession;
 
 /**
- * Composer of an SFTP client command that can be run remotely to provide an SFTP-based mount, once
- * paired with an SFTP server.
+ * A steward for the remote SFTP. It composes the command that runs the client to provide an
+ * SFTP-based mount, once paired with an SFTP server, and it clears whatever such a client leaves
+ * behind when it dies.
  */
-class SftpClientComposer : private DisabledCopyMove
+class SftpClientSteward : private DisabledCopyMove
 {
 public:
-    virtual ~SftpClientComposer() = default;
+    virtual ~SftpClientSteward() = default;
 
     // No copies
-    SftpClientComposer(const SftpClientComposer&) = delete;
-    SftpClientComposer& operator=(const SftpClientComposer&) = delete;
+    SftpClientSteward(const SftpClientSteward&) = delete;
+    SftpClientSteward& operator=(const SftpClientSteward&) = delete;
 
     /**
      * Compose the command to mount the @p source directory onto the @p target directory on the
@@ -62,6 +63,6 @@ public:
     virtual void clean_up_after_client(SSHSession& session, const std::string& source) const = 0;
 
 protected:
-    SftpClientComposer() = default;
+    SftpClientSteward() = default;
 };
 } // namespace multipass

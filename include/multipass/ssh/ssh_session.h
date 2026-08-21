@@ -29,7 +29,7 @@ typedef struct ssh_session_struct* ssh_session;
 namespace multipass
 {
 class SftpSession;
-class SftpClientComposer;
+class SftpClientSteward;
 
 class SSHSession
 {
@@ -61,15 +61,14 @@ public:
     /**
      * Consume this SSH session to create an SFTP session, serving SFTP to a remote client.
      *
-     * @param client_composer Composer of the command that runs the remote SFTP client.
+     * @param client_steward A reference to an SftpClientSteward, which must outlive this session.
      * @param source The local path to serve.
      * @param target The remote path to map the source to.
      * @return The resulting SFTP session.
      */
-    virtual std::unique_ptr<SftpSession> make_sftp_session(
-        const SftpClientComposer& client_composer,
-        const std::string& source,
-        const std::string& target) && = 0;
+    virtual std::unique_ptr<SftpSession> make_sftp_session(const SftpClientSteward& client_steward,
+                                                           const std::string& source,
+                                                           const std::string& target) && = 0;
 
     /**
      * @return Whether this object represents a session that is currently connected

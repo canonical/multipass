@@ -17,7 +17,7 @@
 
 #include "common.h"
 #include "mock_libssh.h"
-#include "mock_sftp_client_composer.h"
+#include "mock_sftp_client_steward.h"
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/format.h>
@@ -56,13 +56,13 @@ static_assert(!std::is_move_assignable_v<mp::PlainSftpSession>);
 using MakeSftpSession = decltype(&mp::SSHSession::make_sftp_session);
 static_assert(!std::is_invocable_v<MakeSftpSession,
                                    mp::SSHSession&,
-                                   const mp::SftpClientComposer&,
+                                   const mp::SftpClientSteward&,
                                    std::string,
                                    std::string>,
               "make_sftp_session must consume the session (callable only on an rvalue)");
 static_assert(std::is_invocable_v<MakeSftpSession,
                                   mp::SSHSession&&,
-                                  const mp::SftpClientComposer&,
+                                  const mp::SftpClientSteward&,
                                   std::string,
                                   std::string>);
 
@@ -114,7 +114,7 @@ struct TestPlainSftpSession : public Test
                 return static_cast<int>(num_bytes); // a zero return signals successful completion
             });
 
-        ON_CALL(client_composer, compose_client_command).WillByDefault(Return(client_cmd));
+        ON_CALL(client_steward, compose_client_command).WillByDefault(Return(client_cmd));
 
         init_fakes();
     }
@@ -134,7 +134,7 @@ struct TestPlainSftpSession : public Test
 
     std::unique_ptr<mp::SftpSession> make_sftp_session(mp::PlainSSHSession&& ssh_session) const
     {
-        return std::move(ssh_session).make_sftp_session(client_composer, source, target);
+        return std::move(ssh_session).make_sftp_session(client_steward, source, target);
     }
 
     struct ExecResult
@@ -191,7 +191,7 @@ struct TestPlainSftpSession : public Test
     std::map<std::string, ExecResult> exec_results;                 ///< results, by command
     std::map<std::pair<std::string, bool>, std::size_t> bytes_read; ///< by command and stream
 
-    NiceMock<mpt::MockSftpClientComposer> client_composer;
+    NiceMock<mpt::MockSftpClientSteward> client_steward;
     mpt::StubSSHKeyProvider key_provider;
     mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
     mpt::MockLibssh& mock_libssh = *guarded_mock.first;
@@ -210,7 +210,7 @@ TEST_F(TestPlainSftpSession, makeSftpSessionRunsDerivedClientCommand)
     exec_results[client_cmd] = {.exit_code = 1};
 
     auto session = make_ssh_session();
-    EXPECT_CALL(client_composer, compose_client_command(_, StrEq(source), StrEq(target)))
+    EXPECT_CALL(client_steward, compose_client_command(_, StrEq(source), StrEq(target)))
         .WillOnce(Return(client_cmd));
     EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(client_cmd)));
 
@@ -257,7 +257,7 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
 TEST_F(TestPlainSftpSession, renewClientCleansUpAfterFormerClientAndRespawns)
 {
     expect_client_spawns<2>(); // one client to begin with, another one to replace it
-    EXPECT_CALL(client_composer, clean_up_after_client(_, StrEq(source)));
+    EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source)));
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
@@ -270,7 +270,7 @@ TEST_F(TestPlainSftpSession, renewClientCleansUpAfterFormerClientAndRespawns)
 TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
 {
     expect_client_spawns<1>(); // only the original client, no replacement
-    EXPECT_CALL(client_composer, clean_up_after_client).Times(0);
+    EXPECT_CALL(client_steward, clean_up_after_client).Times(0);
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
@@ -287,7 +287,7 @@ TEST_F(TestPlainSftpSession, renewClientPropagatesCleanUpFailure)
     const std::string error = "could not unmount";
 
     expect_client_spawns<1>(); // the replacement never gets to run
-    EXPECT_CALL(client_composer, clean_up_after_client).WillOnce(Throw(std::runtime_error{error}));
+    EXPECT_CALL(client_steward, clean_up_after_client).WillOnce(Throw(std::runtime_error{error}));
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());

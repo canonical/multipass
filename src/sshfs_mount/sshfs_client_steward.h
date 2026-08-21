@@ -17,15 +17,15 @@
 
 #pragma once
 
-#include <multipass/sshfs_mount/sftp_client_composer.h>
+#include <multipass/sshfs_mount/sftp_client_steward.h>
 
 namespace multipass
 {
 
 /**
- * An SftpClientComposer that discovers what sshfs is available and how it should be run
+ * An SftpClientSteward that discovers what sshfs is available and how it should be run
  */
-class SshfsClientComposer final : public SftpClientComposer
+class SshfsClientSteward final : public SftpClientSteward
 {
 public:
     std::string compose_client_command(SSHSession& session,
@@ -33,7 +33,7 @@ public:
                                        const std::string& target) const override;
 
     /**
-     * @copydoc SftpClientComposer::clean_up_after_client
+     * @copydoc SftpClientSteward::clean_up_after_client
      *
      * This implementation unmounts stale mounts that may have been left over by the sshfs client.
      */

@@ -19,11 +19,11 @@
 
 #include "common.h"
 
-#include <multipass/sshfs_mount/sftp_client_composer.h>
+#include <multipass/sshfs_mount/sftp_client_steward.h>
 
 namespace multipass::test
 {
-struct MockSftpClientComposer : public SftpClientComposer
+struct MockSftpClientSteward : public SftpClientSteward
 {
     MOCK_METHOD(std::string,
                 compose_client_command,

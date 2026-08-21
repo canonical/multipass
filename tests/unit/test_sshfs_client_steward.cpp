@@ -19,7 +19,7 @@
 #include "mock_ssh_process.h"
 #include "mock_ssh_session.h"
 
-#include <src/sshfs_mount/sshfs_client_composer.h>
+#include <src/sshfs_mount/sshfs_client_steward.h>
 
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
@@ -36,13 +36,13 @@ using namespace testing;
 
 namespace
 {
-static_assert(std::has_virtual_destructor_v<mp::SshfsClientComposer>);
-static_assert(!std::is_copy_constructible_v<mp::SshfsClientComposer>);
-static_assert(!std::is_copy_assignable_v<mp::SshfsClientComposer>);
+static_assert(std::has_virtual_destructor_v<mp::SshfsClientSteward>);
+static_assert(!std::is_copy_constructible_v<mp::SshfsClientSteward>);
+static_assert(!std::is_copy_assignable_v<mp::SshfsClientSteward>);
 
-struct TestSshfsClientComposer : public Test
+struct TestSshfsClientSteward : public Test
 {
-    TestSshfsClientComposer()
+    TestSshfsClientSteward()
     {
         ON_CALL(session, exec)
             .WillByDefault([this](const std::string& cmd, bool) -> std::unique_ptr<mp::SSHProcess> {
@@ -112,16 +112,16 @@ struct TestSshfsClientComposer : public Test
     std::map<std::string, ExecResult> exec_results;
 
     NiceMock<mpt::MockSSHSession> session;
-    mp::SshfsClientComposer composer;
+    mp::SshfsClientSteward steward;
 };
 } // namespace
 
-TEST_F(TestSshfsClientComposer, buildsCommandAroundSnapSshfs)
+TEST_F(TestSshfsClientSteward, buildsCommandAroundSnapSshfs)
 {
     exec_results[snap_env_cmd] = {.std_out = "LD_LIBRARY_PATH=/snap/multipass-sshfs/x1/lib\n"
                                              "SNAP=/snap/multipass-sshfs/x1\n"};
 
-    EXPECT_THAT(composer.compose_client_command(session, source, target),
+    EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(fmt::format("sudo -n env LD_LIBRARY_PATH=/snap/multipass-sshfs/x1/lib "
                                "/snap/multipass-sshfs/x1/bin/sshfs {} :\"{}\" \"{}\"",
                                base_options,
@@ -129,55 +129,55 @@ TEST_F(TestSshfsClientComposer, buildsCommandAroundSnapSshfs)
                                target)));
 }
 
-TEST_F(TestSshfsClientComposer, throwsWhenGuestHasNoSshfs)
+TEST_F(TestSshfsClientSteward, throwsWhenGuestHasNoSshfs)
 {
     exec_results[snap_env_cmd] = {.exit_code = 1};
     exec_results[which_cmd] = {.exit_code = 1};
 
-    EXPECT_THROW(composer.compose_client_command(session, source, target), mp::SSHFSMissingError);
+    EXPECT_THROW(steward.compose_client_command(session, source, target), mp::SSHFSMissingError);
 }
 
-TEST_F(TestSshfsClientComposer, fallsBackToAvailableSshfs)
+TEST_F(TestSshfsClientSteward, fallsBackToAvailableSshfs)
 {
     mock_distro_sshfs();
 
-    EXPECT_THAT(composer.compose_client_command(session, source, target),
+    EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command()));
 }
 
-TEST_F(TestSshfsClientComposer, asksLegacyFuseToMountOverNonEmptyDirsWithoutCaching)
+TEST_F(TestSshfsClientSteward, asksLegacyFuseToMountOverNonEmptyDirsWithoutCaching)
 {
     mock_distro_sshfs("FUSE library version: 2.9.9\n");
 
-    EXPECT_THAT(composer.compose_client_command(session, source, target),
+    EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command(" -o nonempty -o cache=no")));
 }
 
-TEST_F(TestSshfsClientComposer, asksCurrentFuseNotToCacheDirs)
+TEST_F(TestSshfsClientSteward, asksCurrentFuseNotToCacheDirs)
 {
     mock_distro_sshfs("FUSE library version 3.10.5\n");
 
-    EXPECT_THAT(composer.compose_client_command(session, source, target),
+    EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command(" -o dir_cache=no")));
 }
 
-TEST_F(TestSshfsClientComposer, leavesFuseOptionsOutWhenTheVersionIsUnparseable)
+TEST_F(TestSshfsClientSteward, leavesFuseOptionsOutWhenTheVersionIsUnparseable)
 {
     mock_distro_sshfs("FUSE library version and then some gibberish\n");
 
-    EXPECT_THAT(composer.compose_client_command(session, source, target),
+    EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command()));
 }
 
-TEST_F(TestSshfsClientComposer, leavesFuseOptionsOutWhenTheVersionIsAbsent)
+TEST_F(TestSshfsClientSteward, leavesFuseOptionsOutWhenTheVersionIsAbsent)
 {
     mock_distro_sshfs("FUSE library version\n");
 
-    EXPECT_THAT(composer.compose_client_command(session, source, target),
+    EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command()));
 }
 
-TEST_F(TestSshfsClientComposer, cleanUpUnmountsStaleMount)
+TEST_F(TestSshfsClientSteward, cleanUpUnmountsStaleMount)
 {
     const auto umount_cmd = fmt::format("sudo umount {}", target);
     exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", target)};
@@ -185,10 +185,10 @@ TEST_F(TestSshfsClientComposer, cleanUpUnmountsStaleMount)
     EXPECT_CALL(session, exec).Times(AnyNumber());
     EXPECT_CALL(session, exec(StrEq(umount_cmd), _));
 
-    composer.clean_up_after_client(session, source);
+    steward.clean_up_after_client(session, source);
 }
 
-TEST_F(TestSshfsClientComposer, cleanUpSkipsUnmountWhenNothingMounted)
+TEST_F(TestSshfsClientSteward, cleanUpSkipsUnmountWhenNothingMounted)
 {
     // No mount to be found: findmnt says so with an empty answer and a non-zero exit
     exec_results[findmnt_cmd] = {.exit_code = 1};
@@ -196,16 +196,16 @@ TEST_F(TestSshfsClientComposer, cleanUpSkipsUnmountWhenNothingMounted)
     EXPECT_CALL(session, exec).Times(AnyNumber());
     EXPECT_CALL(session, exec(HasSubstr("umount"), _)).Times(0);
 
-    composer.clean_up_after_client(session, source);
+    steward.clean_up_after_client(session, source);
 }
 
-TEST_F(TestSshfsClientComposer, cleanUpThrowsWhenUnmountFails)
+TEST_F(TestSshfsClientSteward, cleanUpThrowsWhenUnmountFails)
 {
     exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", target)};
     exec_results[fmt::format("sudo umount {}", target)] = {.exit_code = 1,
                                                            .std_err = "not mounted"};
 
-    MP_EXPECT_THROW_THAT(composer.clean_up_after_client(session, source),
+    MP_EXPECT_THROW_THAT(steward.clean_up_after_client(session, source),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("not mounted")));
 }

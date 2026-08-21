@@ -23,7 +23,7 @@
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
-#include <multipass/sshfs_mount/sftp_client_composer.h>
+#include <multipass/sshfs_mount/sftp_client_steward.h>
 
 #include <fmt/format.h>
 
@@ -137,13 +137,13 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
 }
 
 mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
-                                       const SftpClientComposer& client_composer,
+                                       const SftpClientSteward& client_steward,
                                        const std::string& source,
                                        const std::string& target)
     : plain_ssh_session{std::move(ssh_session_obj)},
-      client_composer{client_composer},
+      client_steward{client_steward},
       source{source},
-      client_cmd{client_composer.compose_client_command(plain_ssh_session, source, target)}
+      client_cmd{client_steward.compose_client_command(plain_ssh_session, source, target)}
 {
     spawn_client();
 }
@@ -166,7 +166,7 @@ void mp::PlainSftpSession::renew_client()
         raw_sftp_session.reset(); // mind the order: this borrows the process's channel
         client_process.reset();
 
-        client_composer.clean_up_after_client(plain_ssh_session, source);
+        client_steward.clean_up_after_client(plain_ssh_session, source);
         spawn_client();
     }
     else
