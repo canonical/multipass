@@ -72,6 +72,7 @@ private:
      */
     [[nodiscard]] std::vector<std::filesystem::path> get_children_of_disk(
         const std::filesystem::path& parent_disk) const;
+    void validate_disk_tree() const;
 
     /**
      * Path to the VM's live disk. This path remains stable while the file at it becomes

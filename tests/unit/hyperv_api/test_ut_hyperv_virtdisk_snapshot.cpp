@@ -336,6 +336,8 @@ TEST_F(VirtDiskSnapshotApply, apply_removes_replacement_when_live_disk_cannot_be
 // then erased. The VirtDisk wrapper is mocked so merges succeed/fail on demand.
 struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
 {
+    std::map<fs::path, fs::path> parent_of;
+
     void SetUp() override
     {
         VirtDiskSnapshotTest::SetUp();
@@ -348,7 +350,8 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
                                   std::optional<std::size_t>) {
                 chain.clear();
                 chain.push_back(p);
-                chain.push_back(snapshot_path(1)); // parent = self
+                if (const auto it = parent_of.find(p); it != parent_of.end())
+                    chain.push_back(it->second);
                 return op_ok();
             });
 
@@ -367,6 +370,7 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
         touch(live_disk());
         auto ss = make_snapshot();
         ss->capture();
+        parent_of[live_disk()] = snapshot_path(1);
         return ss;
     }
 
@@ -430,12 +434,31 @@ TEST_F(VirtDiskSnapshotErase, commits_and_cleans_up)
 {
     auto ss = take_captured();
 
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).WillOnce(Return(op_ok()));
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(live_disk())).WillOnce([this] {
+        parent_of.erase(live_disk());
+        return op_ok();
+    });
 
     EXPECT_NO_THROW(ss->erase());
 
     EXPECT_FALSE(fs::exists(snapshot_path(1))) << "the erased snapshot must be gone";
     EXPECT_TRUE(fs::exists(live_disk())) << "the rebuilt live disk must be present";
+    EXPECT_FALSE(fs::exists(self_tmp()));
+    EXPECT_FALSE(fs::exists(live_new()));
+    EXPECT_FALSE(fs::exists(live_old()));
+}
+
+TEST_F(VirtDiskSnapshotErase, rolls_back_when_disk_tree_does_not_match_model)
+{
+    auto ss = take_captured();
+
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(live_disk()))
+        .WillOnce(Return(op_ok()));
+
+    EXPECT_THROW(ss->erase(), VirtdiskSnapshotError);
+
+    EXPECT_TRUE(fs::exists(snapshot_path(1))) << "self must be restored";
+    EXPECT_TRUE(fs::exists(live_disk())) << "the live disk must be restored";
     EXPECT_FALSE(fs::exists(self_tmp()));
     EXPECT_FALSE(fs::exists(live_new()));
     EXPECT_FALSE(fs::exists(live_old()));
@@ -485,7 +508,6 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_commit_fails)
 struct VirtDiskSnapshotReparent : public VirtDiskSnapshotErase
 {
     std::vector<std::shared_ptr<VirtDiskSnapshot>> model;
-    std::map<fs::path, fs::path> parent_of; // immediate parent of each disk
 
     // Create a snapshot with a specific index (its file is `<index>.avhdx`) and add it
     // to the model returned by view_snapshots().
@@ -508,27 +530,14 @@ struct VirtDiskSnapshotReparent : public VirtDiskSnapshotErase
                     result.push_back(s);
             return result;
         });
-
-        // Resolve each disk's immediate parent from parent_of; anything not listed is
-        // reported as unrelated to the snapshot being erased.
-        ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
-            .WillByDefault([this](const fs::path& p,
-                                  std::vector<fs::path>& chain,
-                                  std::optional<std::size_t>) {
-                chain.clear();
-                chain.push_back(p);
-                const auto it = parent_of.find(p);
-                chain.push_back(it != parent_of.end() ? it->second : live_disk());
-                return op_ok();
-            });
     }
 
     void build_self_child_grandchildren()
     {
         touch(live_disk());
-        add(1, nullptr);                 // s1: self, to be erased
-        auto s2 = add(2, model.front()); // s2: direct child of self
-        add(3, s2);                      // s3: grandchild (child of s2)
+        add(1, nullptr);           // s1: self, to be erased
+        auto s2 = add(2, nullptr); // s2: direct child on disk, already reparented in Multipass
+        add(3, s2);                // s3: grandchild (child of s2)
         parent_of[snapshot_path(2)] = snapshot_path(1);
         parent_of[snapshot_path(3)] = snapshot_path(2);
         model.front()->capture();
@@ -557,8 +566,10 @@ TEST_F(VirtDiskSnapshotReparent, reparents_grandchild_onto_rebuilt_child)
     build_self_child_grandchildren();
 
     // The single direct child (s2) is merged into a rebuilt copy of self.
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(snapshot_path(2)))
-        .WillOnce(Return(op_ok()));
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(snapshot_path(2))).WillOnce([this] {
+        parent_of.erase(snapshot_path(2));
+        return op_ok();
+    });
 
     // Only the grandchild (s3) is reparented, and only onto the rebuilt child (s2).
     EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(_, _)).Times(0);
@@ -619,10 +630,10 @@ TEST_F(VirtDiskSnapshotReparent, rolls_back_when_reparent_fails)
 TEST_F(VirtDiskSnapshotReparent, rollback_relinks_already_reparented_grandchildren)
 {
     touch(live_disk());
-    add(1, nullptr);                 // s1: self
-    auto s2 = add(2, model.front()); // s2: direct child
-    add(3, s2);                      // s3: grandchild #1 (reparented first, succeeds)
-    add(4, s2);                      // s4: grandchild #2 (reparented second, fails)
+    add(1, nullptr);           // s1: self
+    auto s2 = add(2, nullptr); // s2: direct child on disk, already reparented in Multipass
+    add(3, s2);                // s3: grandchild #1 (reparented first, succeeds)
+    add(4, s2);                // s4: grandchild #2 (reparented second, fails)
     parent_of[snapshot_path(2)] = snapshot_path(1);
     parent_of[snapshot_path(3)] = snapshot_path(2);
     parent_of[snapshot_path(4)] = snapshot_path(2);

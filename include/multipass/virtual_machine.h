@@ -110,6 +110,7 @@ public:
     using SnapshotPredicate = std::function<bool(const Snapshot&)>;
     virtual SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const = 0;
     virtual int get_num_snapshots() const = 0;
+    virtual std::shared_ptr<const Snapshot> get_head_snapshot() const = 0;
 
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
     virtual std::shared_ptr<const Snapshot> get_snapshot(int index) const = 0;

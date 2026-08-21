@@ -76,6 +76,7 @@ public:
 
     SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const override;
     int get_num_snapshots() const override;
+    std::shared_ptr<const Snapshot> get_head_snapshot() const override;
 
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
     std::shared_ptr<const Snapshot> get_snapshot(int index) const override;
@@ -217,6 +218,13 @@ private:
 inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 {
     return static_cast<int>(snapshots.size());
+}
+
+inline std::shared_ptr<const multipass::Snapshot>
+multipass::BaseVirtualMachine::get_head_snapshot() const
+{
+    const std::unique_lock lock{snapshot_mutex};
+    return head_snapshot;
 }
 
 inline int multipass::BaseVirtualMachine::get_snapshot_count() const
