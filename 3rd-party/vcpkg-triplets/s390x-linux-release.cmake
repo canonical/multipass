@@ -10,5 +10,7 @@ set(VCPKG_CMAKE_CONFIGURE_OPTIONS "-DCMAKE_CROSSCOMPILING:BOOL=OFF")
 
 # Disable Valgrind which glib pulls in and compiles. Valgrind will not compile on s390x
 # with newer versions of clang.
-set(VCPKG_C_FLAGS "-DNVALGRIND")
-set(VCPKG_CXX_FLAGS "-DNVALGRIND")
+if(PORT STREQUAL "glib")
+    set(VCPKG_C_FLAGS "-DNVALGRIND")
+    set(VCPKG_CXX_FLAGS "-DNVALGRIND")
+endif()
