@@ -24,6 +24,8 @@
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
 
+#include <string_view>
+
 namespace
 {
 namespace mpl = multipass::logging;
@@ -33,6 +35,14 @@ std::filesystem::path with_suffix(std::filesystem::path p, const char* suffix)
 {
     p += suffix;
     return p;
+}
+
+void logged_remove(std::string_view log_category, const std::filesystem::path& path) noexcept
+{
+    std::error_code ec;
+    MP_FILEOPS.remove(path, ec);
+    if (ec)
+        mpl::error(log_category, "Failed to remove `{}`: {}", path, ec.message());
 }
 } // namespace
 
@@ -100,26 +110,31 @@ void ChildRebuild::reparent()
 
 void ChildRebuild::finalize() noexcept
 {
-    std::error_code ec{};
-    for (const auto& [child_path, staged_path] : staged)
-        MP_FILEOPS.remove(with_suffix(child_path, ".old"), ec);
-    MP_FILEOPS.remove(self_backup, ec);
+    for (const auto& paths : staged)
+        logged_remove(log_category, with_suffix(paths.first, ".old"));
+    logged_remove(log_category, self_backup);
 }
 
 void ChildRebuild::rollback() noexcept
 {
-    std::error_code ec{};
     for (const auto& [child_path, staged_path] : staged)
     {
         const auto backup_path = with_suffix(child_path, ".old");
+        std::error_code ec;
         if (MP_FILEOPS.exists(backup_path, ec))
         {
-            MP_FILEOPS.remove(child_path, ec);
+            logged_remove(log_category, child_path);
             try_rename(log_category, backup_path, child_path);
         }
-        MP_FILEOPS.remove(staged_path, ec);
+        else if (ec)
+            mpl::error(log_category,
+                       "Failed to inspect backup `{}`: {}",
+                       backup_path,
+                       ec.message());
+
+        logged_remove(log_category, staged_path);
     }
-    MP_FILEOPS.remove(self_path, ec);
+    logged_remove(log_category, self_path);
     try_rename(log_category, self_backup, self_path);
 
     // Restore already-updated parent links.
