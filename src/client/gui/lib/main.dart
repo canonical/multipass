@@ -76,6 +76,8 @@ class App extends ConsumerStatefulWidget {
 }
 
 class _AppState extends ConsumerState<App> with WindowListener {
+  var beforeQuitDialogShowing = false;
+
   @override
   Widget build(BuildContext context) {
     final currentKey = ref.watch(sidebarKeyProvider);
@@ -210,6 +212,9 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     if (closeJob == 'ask') {
+      if (beforeQuitDialogShowing) return;
+      beforeQuitDialogShowing = true;
+
       // Get running instances count
       final vmInfos = ref.read(vmInfosProvider);
       final runningCount = vmInfos
@@ -235,7 +240,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
             windowManager.destroy();
           },
         ),
-      );
+      ).whenComplete(() => beforeQuitDialogShowing = false);
     } else {
       stopAllInstances();
     }
