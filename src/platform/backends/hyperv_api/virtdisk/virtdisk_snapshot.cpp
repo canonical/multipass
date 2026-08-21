@@ -163,8 +163,8 @@ void VirtDiskSnapshot::validate_disk_tree() const
         const auto actual_parent = get_parent_disk(disk);
         std::optional<std::filesystem::path> expected_parent_path;
         if (expected_parent)
-            expected_parent_path =
-                MP_FILEOPS.weakly_canonical(make_snapshot_path(*expected_parent));
+            expected_parent_path = MP_FILEOPS.weakly_canonical(
+                make_snapshot_path(*expected_parent));
 
         if (actual_parent != expected_parent_path)
             throw VirtdiskSnapshotError{
