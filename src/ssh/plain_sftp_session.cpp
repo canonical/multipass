@@ -24,7 +24,6 @@
 #include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/sshfs_mount/sftp_client_composer.h>
-#include <multipass/utils.h>
 
 #include <fmt/format.h>
 
@@ -69,17 +68,6 @@ auto create_client_process(mp::PlainSSHSession& session, const std::string& clie
     check_client_status(*client_process);
 
     return client_process;
-}
-
-void unmount_stale(mp::PlainSSHSession& session, const std::string& source)
-{
-    const auto mount_path = [&session, &source] {
-        auto proc = session.exec_plain(fmt::format("findmnt --source :{} -o TARGET -n", source));
-        return mp::utils::trim(proc->read_std_output());
-    }();
-
-    if (!mount_path.empty())
-        MP_UTILS.run_in_ssh_session(session, fmt::format("sudo umount {}", mount_path));
 }
 
 int poll_stdout(ssh_channel channel, int timeout)
@@ -153,6 +141,7 @@ mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
                                        const std::string& source,
                                        const std::string& target)
     : plain_ssh_session{std::move(ssh_session_obj)},
+      client_composer{client_composer},
       source{source},
       client_cmd{client_composer.compose_client_command(plain_ssh_session, source, target)}
 {
@@ -177,7 +166,7 @@ void mp::PlainSftpSession::renew_client()
         raw_sftp_session.reset(); // mind the order: this borrows the process's channel
         client_process.reset();
 
-        unmount_stale(plain_ssh_session, source);
+        client_composer.clean_up_after_client(plain_ssh_session, source);
         spawn_client();
     }
     else
