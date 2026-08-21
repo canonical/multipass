@@ -39,50 +39,41 @@ void send_messages(grpc::ServerReaderWriterInterface<Reply, Request>* server,
     }
 }
 
-SSHCoordinates proto_to_coordinates(const SSHCoordinatesInfo& proto)
-{
-    VSOCKHost vsock_host;
-    switch (proto.vsock_host_case())
-    {
-    case SSHCoordinatesInfo::kHvsockVmid:
-        vsock_host = HVSOCK{proto.hvsock_vmid()};
-        break;
-    case SSHCoordinatesInfo::kVsockCid:
-        vsock_host = VSOCK{proto.vsock_cid()};
-        break;
-    case SSHCoordinatesInfo::kUsockAddr:
-        vsock_host = USOCK{proto.usock_addr()};
-        break;
-    case SSHCoordinatesInfo::VSOCK_HOST_NOT_SET:
-        vsock_host = std::monostate{};
-        break;
-    default:
-        assert(false && "we should not reach here");
-    }
-    return {proto.username(), proto.priv_key_base64(), proto.port(), proto.tcp_host(), vsock_host};
-}
+/**
+ * @brief Convert an SSHCoordinatesInfo protobuf into an SSHCoordinates struct.
+ *
+ * Maps the scalar fields (username, priv_key_base64, port, tcp_host) directly, and converts
+ * the protobuf `vsock_host` oneof into the SSHCoordinates::vsock_host variant:
+ * - kHvsockVmid        -> HVSOCK{vmid}
+ * - kVsockCid          -> VSOCK{cid}
+ * - kUsockAddr         -> USOCK{socket_address}
+ * - VSOCK_HOST_NOT_SET -> std::monostate (no vsock transport)
+ *
+ * The switch is expected to exhaustively cover every oneof case; the default branch asserts,
+ * guarding against states that should be unreachable (e.g. a protobuf schema mismatch).
+ *
+ * @param proto The SSHCoordinatesInfo message received over gRPC.
+ * @return The equivalent in-memory SSHCoordinates.
+ * @see coordinates_to_proto for the inverse conversion.
+ */
+SSHCoordinates proto_to_coordinates(const SSHCoordinatesInfo& proto);
 
-SSHCoordinatesInfo coordinates_to_proto(const SSHCoordinates& ssh_coordinates)
-{
-    SSHCoordinatesInfo coordinates_info{};
-    coordinates_info.set_username(ssh_coordinates.username);
-    coordinates_info.set_priv_key_base64(ssh_coordinates.private_key_as_base64);
-    coordinates_info.set_port(ssh_coordinates.port);
-    coordinates_info.set_tcp_host(ssh_coordinates.tcp_host);
-    std::visit(
-        [&coordinates_info](auto&& arg) {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, HVSOCK>)
-                coordinates_info.set_hvsock_vmid(std::forward<decltype(arg)>(arg));
-            else if constexpr (std::is_same_v<T, VSOCK>)
-                coordinates_info.set_vsock_cid(arg.cid);
-            else if constexpr (std::is_same_v<T, USOCK>)
-                coordinates_info.set_usock_addr(std::forward<decltype(arg)>(arg));
-            else if constexpr (std::is_same_v<T, std::monostate>)
-                coordinates_info.clear_vsock_host();
-        },
-        ssh_coordinates.vsock_host);
-    return coordinates_info;
-}
+/**
+ * @brief Convert an SSHCoordinates struct into an SSHCoordinatesInfo protobuf.
+ *
+ * Copies the scalar fields (username, priv_key_base64, port, tcp_host) directly, then uses
+ * std::visit over the vsock_host variant to populate the matching protobuf oneof field:
+ * - HVSOCK         -> set_hvsock_vmid()
+ * - VSOCK          -> set_vsock_cid()
+ * - USOCK          -> set_usock_addr()
+ * - std::monostate -> clear_vsock_host() (no alternative transport)
+ *
+ * This is the inverse of proto_to_coordinates(), enabling lossless round-tripping over gRPC.
+ *
+ * @param ssh_coordinates The in-memory coordinates to serialise.
+ * @return The equivalent SSHCoordinatesInfo message ready for gRPC transmission.
+ * @see proto_to_coordinates for the inverse conversion.
+ */
+SSHCoordinatesInfo coordinates_to_proto(const SSHCoordinates& ssh_coordinates);
 } // namespace utils
 } // namespace multipass
