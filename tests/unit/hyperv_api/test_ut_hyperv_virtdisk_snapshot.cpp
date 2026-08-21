@@ -61,6 +61,30 @@ void touch(const fs::path& p)
     std::ofstream ofs{p};
     ofs << "stub";
 }
+
+void delegate_to_real_filesystem(MockFileOps& fops)
+{
+    ON_CALL(fops, exists(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::exists(p);
+    });
+    ON_CALL(fops, exists(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
+        return std::filesystem::exists(p, ec);
+    });
+    ON_CALL(fops, remove(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
+        return std::filesystem::remove(p);
+    });
+    ON_CALL(fops, remove(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
+        return std::filesystem::remove(p, ec);
+    });
+    ON_CALL(fops, copy(_, _, _))
+        .WillByDefault(
+            [](const fs::path& source, const fs::path& destination, fs::copy_options options) {
+                std::filesystem::copy(source, destination, options);
+            });
+    ON_CALL(fops, weakly_canonical(_)).WillByDefault([](const fs::path& p) {
+        return std::filesystem::weakly_canonical(p);
+    });
+}
 } // namespace
 
 // These tests exercise the failure/rollback path of VirtDiskSnapshot::capture_impl()
@@ -259,15 +283,7 @@ TEST_F(VirtDiskSnapshotApply, apply_restores_live_disk_when_swap_fails)
     auto fops_injection = MockFileOps::inject<NiceMock>();
     auto& fops = *fops_injection.first;
 
-    ON_CALL(fops, exists(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
-        return std::filesystem::exists(p);
-    });
-    ON_CALL(fops, remove(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
-        return std::filesystem::remove(p);
-    });
-    ON_CALL(fops, remove(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
-        return std::filesystem::remove(p, ec);
-    });
+    delegate_to_real_filesystem(fops);
     EXPECT_CALL(fops, rename(A<const fs::path&>(), A<const fs::path&>()))
         .Times(AnyNumber())
         .WillRepeatedly(
@@ -299,15 +315,7 @@ TEST_F(VirtDiskSnapshotApply, apply_removes_replacement_when_live_disk_cannot_be
     auto fops_injection = MockFileOps::inject<NiceMock>();
     auto& fops = *fops_injection.first;
 
-    ON_CALL(fops, exists(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
-        return std::filesystem::exists(p);
-    });
-    ON_CALL(fops, remove(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
-        return std::filesystem::remove(p);
-    });
-    ON_CALL(fops, remove(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
-        return std::filesystem::remove(p, ec);
-    });
+    delegate_to_real_filesystem(fops);
     EXPECT_CALL(fops, rename(live_disk(), old_live_disk()))
         .WillOnce(Throw(
             std::filesystem::filesystem_error{"forced failure",
@@ -332,12 +340,8 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
     {
         VirtDiskSnapshotTest::SetUp();
 
-        // No snapshot children: get_disk_children() iterates the snapshots and finds
-        // nothing, so the live disk is the only child sitting on self.
         ON_CALL(vm, view_snapshots(_)).WillByDefault(Return(VirtualMachine::SnapshotVista{}));
 
-        // Report every disk as parented on self, so get_disk_children() sees the live disk
-        // attached to this snapshot.
         ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
             .WillByDefault([this](const fs::path& p,
                                   std::vector<fs::path>& chain,
@@ -450,25 +454,7 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_commit_fails)
     auto fops_injection = MockFileOps::inject<NiceMock>();
     auto& fops = *fops_injection.first;
 
-    ON_CALL(fops, exists(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
-        return std::filesystem::exists(p);
-    });
-    ON_CALL(fops, exists(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
-        return std::filesystem::exists(p, ec);
-    });
-    ON_CALL(fops, remove(A<const fs::path&>())).WillByDefault([](const fs::path& p) {
-        return std::filesystem::remove(p);
-    });
-    ON_CALL(fops, remove(_, _)).WillByDefault([](const fs::path& p, std::error_code& ec) {
-        return std::filesystem::remove(p, ec);
-    });
-    ON_CALL(fops, copy(_, _, _))
-        .WillByDefault([](const fs::path& s, const fs::path& d, fs::copy_options o) {
-            std::filesystem::copy(s, d, o);
-        });
-    ON_CALL(fops, weakly_canonical(_)).WillByDefault([](const fs::path& p) {
-        return std::filesystem::weakly_canonical(p);
-    });
+    delegate_to_real_filesystem(fops);
 
     // Delegate every rename to the real filesystem, except the swap-in of the new
     // live disk, which fails mid-commit (after the original was moved aside to .old).

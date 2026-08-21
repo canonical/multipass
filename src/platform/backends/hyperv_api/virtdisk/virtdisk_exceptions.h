@@ -19,6 +19,8 @@
 
 #include <multipass/exceptions/formatted_exception_base.h>
 
+#include <system_error>
+
 namespace multipass::hyperv::virtdisk
 {
 struct VirtdiskSnapshotError : FormattedExceptionBase<std::system_error>

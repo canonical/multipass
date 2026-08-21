@@ -32,7 +32,7 @@ void try_rename(std::string_view log_category,
                 const std::filesystem::path& from,
                 const std::filesystem::path& to) noexcept
 {
-    top_catch_all(log_category, [from, to] { MP_FILEOPS.rename(from, to); });
+    top_catch_all(log_category, [&from, &to] { MP_FILEOPS.rename(from, to); });
 }
 
 bool is_direct_child_of(const std::filesystem::path& disk, const std::filesystem::path& parent_disk)

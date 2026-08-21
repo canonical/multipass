@@ -52,13 +52,11 @@ ChildRebuild::ChildRebuild(std::filesystem::path self_path,
     staged.reserve(this->children.size());
 }
 
-// Move self aside before arming rollback.
 void ChildRebuild::begin()
 {
     MP_FILEOPS.rename(self_path, self_backup);
 }
 
-// Merge each child into a fresh copy of self, staged as "<child>.new".
 void ChildRebuild::stage()
 {
     for (const auto& child_path : children)
@@ -78,7 +76,6 @@ void ChildRebuild::stage()
     }
 }
 
-// Swap staged children into place, keeping originals for rollback.
 void ChildRebuild::commit()
 {
     for (const auto& [child_path, staged_path] : staged)
@@ -88,7 +85,6 @@ void ChildRebuild::commit()
     }
 }
 
-// Refresh grandchildren after their rebuilt parents get new VHDX identities.
 void ChildRebuild::reparent()
 {
     for (const auto& [grandchild, child_path] : grandchildren)
@@ -102,7 +98,6 @@ void ChildRebuild::reparent()
     }
 }
 
-// Drop unreferenced backups.
 void ChildRebuild::finalize() noexcept
 {
     std::error_code ec{};
@@ -111,7 +106,6 @@ void ChildRebuild::finalize() noexcept
     MP_FILEOPS.remove(self_backup, ec);
 }
 
-// Restore the pre-erase state without masking the original error.
 void ChildRebuild::rollback() noexcept
 {
     std::error_code ec{};
