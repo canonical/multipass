@@ -223,10 +223,10 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
 {
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
-    // If the channel is closed there's no output to read
-    if (!channel || MP_LIBSSH.ssh_channel_is_closed(channel.get())) // TODO@sftp
+    // If the channel is closed there can still be stored output
+    if (!channel) // TODO@sftp
     {
-        mpl::trace_location(category, "{}", !channel ? "null channel" : "channel closed");
+        mpl::trace_location(category, "null channel");
         return std::string();
     }
 
