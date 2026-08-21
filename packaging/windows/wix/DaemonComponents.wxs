@@ -22,6 +22,10 @@
                         Value="%SystemRoot%\\System32\EventCreate.exe" />
                     <RegistryValue Name="TypesSupported" Type="integer" Value="7" />
                 </RegistryKey>
+                <RegistryKey Root="HKLM"
+                    Key="SYSTEM\CurrentControlSet\Services\Tcpip\Parameters">
+                    <RegistryValue Name="IPEnableRouter" Type="integer" Value="1" />
+                </RegistryKey>
             </Component>
         </ComponentGroup>
     </Fragment>
