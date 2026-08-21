@@ -109,6 +109,8 @@ if(APPLE)
                  "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh" @ONLY)
+  configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipass-gui.sh.in"
+                 "${CMAKE_BINARY_DIR}/preinstall-multipass-gui.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass-gui.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh" @ONLY)
 
@@ -121,6 +123,7 @@ if(APPLE)
   set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_BINARY_DIR}/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
+  set(CPACK_PREFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/preinstall-multipass-gui.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
 
   # Cleans up the installed package
