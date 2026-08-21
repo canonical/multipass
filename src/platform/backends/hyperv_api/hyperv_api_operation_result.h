@@ -17,12 +17,16 @@
 
 #pragma once
 
+#include <hyperv_api/hyperv_api_string_conversion.h>
+
 #include <winerror.h>
 
 #include <string>
+#include <string_view>
+#include <utility>
 
-#include <fmt/format.h>
 #include <fmt/std.h>
+#include <fmt/xchar.h>
 
 namespace multipass::hyperv
 {
@@ -96,6 +100,36 @@ struct OperationResult
     [[nodiscard]] operator std::error_code() const noexcept
     {
         return static_cast<std::error_code>(code);
+    }
+
+    /**
+     * Make an OperationResult from a WIN32 system error code
+     *
+     * @param win32_result_code System error code
+     * @param status_msg Prefix message
+     */
+    static OperationResult from_win32(uint32_t win32_result_code, std::wstring_view status_msg)
+    {
+        const auto win32_as_hresult = HRESULT_FROM_WIN32(win32_result_code);
+        const std::error_code ec{static_cast<HRESULT>(win32_as_hresult), std::system_category()};
+        const std::wstring msg_as_wstring = to_wstring(ec.message());
+        // https://learn.microsoft.com/en-us/windows/win32/api/winerror/nf-winerror-hresult_from_win32
+        return OperationResult(
+            win32_as_hresult,
+            fmt::format(L"{} : {} ({:#x})",
+                        status_msg,
+                        msg_as_wstring,
+                        static_cast<std::make_unsigned_t<HRESULT>>(win32_as_hresult)));
+    }
+
+    static OperationResult success()
+    {
+        return OperationResult{.code = NOERROR, .status_msg = L""};
+    }
+
+    static OperationResult failure(std::wstring reason)
+    {
+        return OperationResult{.code = E_FAIL, .status_msg = std::move(reason)};
     }
 };
 } // namespace multipass::hyperv

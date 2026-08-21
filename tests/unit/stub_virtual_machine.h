@@ -153,6 +153,11 @@ struct StubVirtualMachine final : public VirtualMachine
         return 0;
     }
 
+    std::shared_ptr<const Snapshot> get_head_snapshot() const override
+    {
+        return {};
+    }
+
     std::shared_ptr<const Snapshot> get_snapshot(const std::string&) const override
     {
         return {};
