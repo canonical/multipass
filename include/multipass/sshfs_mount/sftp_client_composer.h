@@ -52,6 +52,15 @@ public:
                                                const std::string& source,
                                                const std::string& target) const = 0;
 
+    /**
+     * Clear up whatever the sftp client may have left behind. Call this before attempting to
+     * replace a dead client.
+     *
+     * @param session A session into the remote environment to clean up.
+     * @param source The source path that the client was asked to mount.
+     */
+    virtual void clean_up_after_client(SSHSession& session, const std::string& source) const = 0;
+
 protected:
     SftpClientComposer() = default;
 };

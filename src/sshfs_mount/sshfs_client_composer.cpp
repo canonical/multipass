@@ -121,3 +121,15 @@ std::string mp::SshfsClientComposer::compose_client_command(SSHSession& session,
 
     return fmt::format("sudo -n {} :{:?} {:?}", sshfs_exec_line, source, target);
 }
+
+void mp::SshfsClientComposer::clean_up_after_client(SSHSession& session,
+                                                    const std::string& source) const
+{
+    const auto mount_path = [&session, &source] {
+        auto proc = session.exec(fmt::format("findmnt --source :{} -o TARGET -n", source));
+        return mp::utils::trim(proc->read_std_output());
+    }();
+
+    if (!mount_path.empty())
+        MP_UTILS.run_in_ssh_session(session, fmt::format("sudo umount {}", mount_path));
+}
