@@ -22,6 +22,8 @@
 #include <winerror.h>
 
 #include <string>
+#include <string_view>
+#include <utility>
 
 #include <fmt/std.h>
 #include <fmt/xchar.h>
@@ -101,12 +103,12 @@ struct OperationResult
     }
 
     /**
-     * Make a OperationResult from WIN32 system error code
+     * Make an OperationResult from a WIN32 system error code
      *
-     * @param win32_system_errc System error code
+     * @param win32_result_code System error code
      * @param status_msg Prefix message
      */
-    static OperationResult from_win32(uint32_t win32_result_code, std::wstring status_msg)
+    static OperationResult from_win32(uint32_t win32_result_code, std::wstring_view status_msg)
     {
         const auto win32_as_hresult = HRESULT_FROM_WIN32(win32_result_code);
         const std::error_code ec{static_cast<HRESULT>(win32_as_hresult), std::system_category()};
@@ -127,7 +129,7 @@ struct OperationResult
 
     static OperationResult failure(std::wstring reason)
     {
-        return OperationResult{.code = E_FAIL, .status_msg = reason};
+        return OperationResult{.code = E_FAIL, .status_msg = std::move(reason)};
     }
 };
 } // namespace multipass::hyperv

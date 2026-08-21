@@ -22,10 +22,8 @@
 #include <hyperv_api/virtdisk/virtdisk_utils.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
-#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
-#include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -160,7 +158,7 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_children_of_disk(
 
 void VirtDiskSnapshot::erase_impl()
 {
-    const auto self_path = make_snapshot_path(*this);
+    auto self_path = make_snapshot_path(*this);
 
     auto children = get_children_of_disk(self_path);
 
@@ -169,7 +167,10 @@ void VirtDiskSnapshot::erase_impl()
         for (auto& grandchild : get_children_of_disk(child_path))
             grandchildren.emplace_back(std::move(grandchild), child_path);
 
-    ChildRebuild rebuild{self_path, std::move(children), std::move(grandchildren), vm.get_name()};
+    ChildRebuild rebuild{std::move(self_path),
+                         std::move(children),
+                         std::move(grandchildren),
+                         vm.get_name()};
     rebuild.begin();
 
     auto rollback = sg::make_scope_guard([&]() noexcept { rebuild.rollback(); });
@@ -230,7 +231,7 @@ void VirtDiskSnapshot::apply_impl()
 
 // Best-effort rename for noexcept rollback guards.
 void VirtDiskSnapshot::try_rename(const std::filesystem::path& from,
-                                  const std::filesystem::path& to) noexcept
+                                  const std::filesystem::path& to) const noexcept
 {
     virtdisk::try_rename(vm.get_name(), from, to);
 }

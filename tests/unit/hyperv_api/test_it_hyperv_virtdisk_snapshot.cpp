@@ -46,10 +46,10 @@ struct VirtDiskSnapshotErase : public ::testing::Test
 
     void SetUp() override
     {
-        auto bp = QDir(vm.tmp_dir->path()).filePath("base.vhdx");
+        auto live_path = QDir(vm.tmp_dir->path()).filePath("live.vhdx");
         ASSERT_TRUE(VirtDisk().create_virtual_disk(
-            {.size_in_bytes = vhdx_size, .path = bp.toStdString(), .predecessor = {}}));
-        desc.image.image_path = bp.toStdString();
+            {.size_in_bytes = vhdx_size, .path = live_path.toStdString(), .predecessor = {}}));
+        desc.image.image_path = live_path.toStdString();
 
         ON_CALL(vm, view_snapshots(_)).WillByDefault([this](auto pred) {
             VirtualMachine::SnapshotVista result;
@@ -98,13 +98,14 @@ struct VirtDiskSnapshotErase : public ::testing::Test
         std::erase(snapshots, ss);
     }
 
-    Path base() const
+    Path live_disk() const
     {
         return desc.image.image_path;
     }
+
     Path snapshot_path(const Snapshot& ss) const
     {
-        return base().parent_path() / fmt::format("{}.avhdx", ss.get_index());
+        return live_disk().parent_path() / fmt::format("{}.avhdx", ss.get_index());
     }
 
     void expect_chain(const Path& disk, const std::vector<Path>& expected)
@@ -133,13 +134,13 @@ struct VirtDiskSnapshotErase : public ::testing::Test
 
     void expect_standalone_live_disk()
     {
-        auto live_new = base();
+        auto live_new = live_disk();
         live_new += ".new";
         EXPECT_FALSE(std::filesystem::exists(live_new)) << "leftover live disk: " << live_new;
-        auto live_old = base();
+        auto live_old = live_disk();
         live_old += ".old";
         EXPECT_FALSE(std::filesystem::exists(live_old)) << "leftover live disk: " << live_old;
-        expect_chain(base(), {base()});
+        expect_chain(live_disk(), {live_disk()});
     }
 };
 
@@ -157,7 +158,7 @@ TEST_F(VirtDiskSnapshotErase, leaf_no_children)
     drop(s1);
 
     expect_gone(s1);
-    expect_chain(base(), {base(), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s0)});
 }
 
 // ---------------------------------------------------------------------------
@@ -176,11 +177,11 @@ TEST_F(VirtDiskSnapshotErase, single_child_forward_merge)
 
     expect_gone(s1);
     expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0)});
-    expect_chain(base(), {base(), snapshot_path(*s2), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s2), snapshot_path(*s0)});
 
     // erase_impl rebuilt s2 in place and reparented the live disk onto its new VHDX
     // identity. Merging the live disk validates that refreshed parent linkage.
-    EXPECT_TRUE(VirtDisk().merge_virtual_disk_into_parent(base()))
+    EXPECT_TRUE(VirtDisk().merge_virtual_disk_into_parent(live_disk()))
         << "the live disk must validate against its rebuilt parent after reparenting";
 }
 
@@ -213,7 +214,7 @@ TEST_F(VirtDiskSnapshotErase, root_deletion)
 
     expect_gone(s0);
     expect_chain(snapshot_path(*s1), {snapshot_path(*s1)});
-    expect_chain(base(), {base(), snapshot_path(*s1)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s1)});
 }
 
 // ---------------------------------------------------------------------------
@@ -238,7 +239,7 @@ TEST_F(VirtDiskSnapshotErase, two_children_and_live_disk)
     expect_gone(s1);
     expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s1b), {snapshot_path(*s1b), snapshot_path(*s0)});
-    expect_chain(base(), {base(), snapshot_path(*s1b), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s1b), snapshot_path(*s0)});
 }
 
 // ---------------------------------------------------------------------------
@@ -260,7 +261,7 @@ TEST_F(VirtDiskSnapshotErase, children_and_live_disk_both_attached)
 
     expect_gone(s1);
     expect_chain(snapshot_path(*s2), {snapshot_path(*s2), snapshot_path(*s0)});
-    expect_chain(base(), {base(), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s0)});
 }
 
 // ---------------------------------------------------------------------------
@@ -307,8 +308,8 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     expect_chain(
         snapshot_path(*s1b2),
         {snapshot_path(*s1b2), snapshot_path(*s1b), snapshot_path(*s1), snapshot_path(*s0)});
-    expect_chain(base(),
-                 {base(),
+    expect_chain(live_disk(),
+                 {live_disk(),
                   snapshot_path(*s1b2),
                   snapshot_path(*s1b),
                   snapshot_path(*s1),
@@ -323,8 +324,8 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     expect_chain(snapshot_path(*s3), {snapshot_path(*s3), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s2b),
                  {snapshot_path(*s2b), snapshot_path(*s1), snapshot_path(*s0)});
-    expect_chain(base(),
-                 {base(),
+    expect_chain(live_disk(),
+                 {live_disk(),
                   snapshot_path(*s1b2),
                   snapshot_path(*s1b),
                   snapshot_path(*s1),
@@ -340,7 +341,8 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
                  {snapshot_path(*s1b1), snapshot_path(*s1), snapshot_path(*s0)});
     expect_chain(snapshot_path(*s1b2),
                  {snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
-    expect_chain(base(), {base(), snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
+    expect_chain(live_disk(),
+                 {live_disk(), snapshot_path(*s1b2), snapshot_path(*s1), snapshot_path(*s0)});
 
     // Phase 3: erase s1 (4 snapshot children + live disk via s1b2)
     s3->set_parent(s0);
@@ -352,29 +354,29 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     expect_gone(s1);
     for (const auto& ss : {s3, s2b, s1b1, s1b2})
         expect_chain(snapshot_path(*ss), {snapshot_path(*ss), snapshot_path(*s0)});
-    expect_chain(base(), {base(), snapshot_path(*s1b2), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s1b2), snapshot_path(*s0)});
 
     // Phase 4: apply every survivor
     s3->apply();
-    expect_chain(base(), {base(), snapshot_path(*s3), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s3), snapshot_path(*s0)});
 
     s2b->apply();
-    expect_chain(base(), {base(), snapshot_path(*s2b), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s2b), snapshot_path(*s0)});
 
     s1b1->apply();
-    expect_chain(base(), {base(), snapshot_path(*s1b1), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s1b1), snapshot_path(*s0)});
 
     s1b2->apply();
-    expect_chain(base(), {base(), snapshot_path(*s1b2), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s1b2), snapshot_path(*s0)});
 
     s0->apply();
-    expect_chain(base(), {base(), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s0)});
 
     // Phase 5: delete all leaves, then root
     for (auto leaf : {s3, s2b, s1b1, s1b2})
         drop(leaf);
 
-    expect_chain(base(), {base(), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s0)});
 
     drop(s0);
     expect_standalone_live_disk();
@@ -390,7 +392,7 @@ TEST_F(VirtDiskSnapshotErase, snapshot_after_last_delete_rebuilds_chain)
     expect_standalone_live_disk();
 
     auto s1 = take("s1");
-    expect_chain(base(), {base(), snapshot_path(*s1)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s1)});
     expect_chain(snapshot_path(*s1), {snapshot_path(*s1)});
 }
 
@@ -403,7 +405,7 @@ TEST_F(VirtDiskSnapshotErase, live_disk_is_resizable_after_last_delete)
     drop(s0);
     expect_standalone_live_disk();
 
-    EXPECT_TRUE(VirtDisk().resize_virtual_disk(base(), vhdx_size * 2))
+    EXPECT_TRUE(VirtDisk().resize_virtual_disk(live_disk(), vhdx_size * 2))
         << "standalone live disk must be resizable";
 }
 
