@@ -128,8 +128,8 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     NiceMock<mpt::MockVirtualMachine> mock_vm2;
 
     // Both VMs should be notified when state changes
-    EXPECT_CALL(mock_vm1, set_available(false));
-    EXPECT_CALL(mock_vm2, set_available(false));
+    EXPECT_CALL(mock_vm1, set_available(false)).WillOnce(Return(true));
+    EXPECT_CALL(mock_vm2, set_available(false)).WillOnce(Return(false));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
@@ -137,8 +137,8 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     zone.add_vm(mock_vm2);
 
     // Setting to current state (true) shouldn't trigger VM updates
-    zone.set_available(true);
+    EXPECT_THAT(zone.set_available(true), IsEmpty());
 
-    // Setting to new state should notify all VMs
-    zone.set_available(false);
+    // Setting to new state should notify all VMs, reporting only those that transitioned
+    EXPECT_THAT(zone.set_available(false), ElementsAre(mock_vm1.get_name()));
 }

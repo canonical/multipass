@@ -62,13 +62,13 @@ bool BaseAvailabilityZone::is_available() const
     return m.available;
 }
 
-void BaseAvailabilityZone::set_available(const bool new_available)
+std::vector<std::string> BaseAvailabilityZone::set_available(const bool new_available)
 {
 
     mpl::debug(name, "making AZ {}available", new_available ? "" : "un");
     const std::unique_lock lock{mutex};
     if (m.available == new_available)
-        return;
+        return {};
 
     m.available = new_available;
     auto save_file_guard = sg::make_scope_guard([this]() noexcept {
@@ -84,8 +84,12 @@ void BaseAvailabilityZone::set_available(const bool new_available)
 
     try
     {
+        std::vector<std::string> transitioned;
         for (auto& vm : vms)
-            vm.get().set_available(new_available);
+            if (vm.get().set_available(new_available))
+                transitioned.push_back(vm.get().get_name());
+
+        return transitioned;
     }
     catch (...)
     {
