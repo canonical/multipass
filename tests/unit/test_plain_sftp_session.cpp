@@ -183,7 +183,7 @@ struct TestPlainSftpSession : public Test
                                                              target);
 
     // Fakes for the SFTP sessions that successive clients get served, and their init messages
-    constexpr static size_t max_fakes = 2;
+    constexpr static size_t max_fakes = 3;
     std::array<sftp_session_struct, max_fakes> fake_sftp_sessions{};
     std::array<sftp_client_message_struct, max_fakes> fake_client_msgs{};
 
@@ -265,7 +265,17 @@ TEST_F(TestPlainSftpSession, renewClientCleansUpAfterFormerClientAndRespawns)
     sftp_session->renew_client();
 }
 
-// TODO@ricab add test with multiple respawns
+TEST_F(TestPlainSftpSession, renewClientSupportsMultipleRespawns)
+{
+    expect_client_spawns<3>(); // one client to begin with, two more respawns
+    EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source))).Times(2);
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    sftp_session->renew_client();
+    sftp_session->renew_client();
+}
 
 TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
 {
