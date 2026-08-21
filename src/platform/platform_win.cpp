@@ -871,7 +871,11 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::Platform::default_driver() const
 {
+#if defined(HYPERV_HCS_ENABLED)
     return QStringLiteral("hyperv_api");
+#else
+    return QStringLiteral("hyperv");
+#endif
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
