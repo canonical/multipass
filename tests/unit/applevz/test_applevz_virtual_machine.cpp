@@ -299,4 +299,20 @@ TEST_F(AppleVZVirtualMachine_UnitTests, suspendThrowsNotImplemented)
 
     EXPECT_THROW(uut->suspend(), mp::NotImplementedOnThisBackendException);
 }
+
+TEST_F(AppleVZVirtualMachine_UnitTests, currentStateReportsUnavailableWhenZoneUnavailable)
+{
+    auto uut = construct_vm(applevz::AppleVMState::running);
+
+    EXPECT_CALL(mock_applevz, get_state(_))
+        .WillOnce(Return(applevz::AppleVMState::running))
+        .WillRepeatedly(Return(applevz::AppleVMState::stopped));
+
+    EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_applevz, stop_vm(_, true)).WillOnce(Return(applevz::CFError{}));
+
+    uut->set_available(false);
+
+    EXPECT_EQ(uut->current_state(), VirtualMachine::State::unavailable);
+}
 }; // namespace multipass::test
