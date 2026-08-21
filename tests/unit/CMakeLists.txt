@@ -110,7 +110,9 @@ add_executable(multipass_cpp_tests
   test_output_formatter.cpp
   test_permission_utils.cpp
   test_persistent_settings_handler.cpp
+  test_plain_sftp_session.cpp
   test_plain_ssh_session.cpp
+  test_plain_ssh_session_mocked_libssh.cpp
   test_private_pass_provider.cpp
   test_qemu_img_utils.cpp
   test_qemuimg_process_spec.cpp
@@ -153,9 +155,8 @@ target_include_directories(multipass_cpp_tests
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
 )
 
-add_definitions(-DWITH_SERVER)
-target_compile_definitions(libssh_wrapper_test PRIVATE
-  ${c_mock_defines})
+target_compile_definitions(multipass_cpp_tests PRIVATE WITH_SERVER)
+target_compile_definitions(libssh_wrapper_test PRIVATE ${c_mock_defines})
 
 target_compile_definitions(utils_test PRIVATE
   -DEVP_PBE_scrypt=ut_premock_EVP_PBE_scrypt)
