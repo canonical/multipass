@@ -19,6 +19,7 @@
 #include "hyperv_test_utils.h"
 #include "tests/unit/common.h"
 
+#include <hyperv_api/virtdisk/virtdisk_exceptions.h>
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 #include <multipass/virtual_machine_description.h>
@@ -42,6 +43,7 @@ struct VirtDiskSnapshotErase : public ::testing::Test
     NiceMock<MockVirtualMachine> vm;
     VirtualMachineDescription desc{};
     std::vector<Snap> snapshots;
+    std::shared_ptr<Snapshot> head;
     int counter = 0;
 
     void SetUp() override
@@ -60,6 +62,9 @@ struct VirtDiskSnapshotErase : public ::testing::Test
         });
         ON_CALL(vm, get_num_snapshots()).WillByDefault([this] {
             return static_cast<int>(snapshots.size());
+        });
+        ON_CALL(vm, get_head_snapshot()).WillByDefault([this] {
+            return std::shared_ptr<const Snapshot>{head};
         });
         ON_CALL(vm, get_snapshot_count()).WillByDefault([this] { return counter; });
     }
@@ -85,15 +90,24 @@ struct VirtDiskSnapshotErase : public ::testing::Test
                                                      vm,
                                                      desc);
         snapshots.push_back(ss);
+        head = ss;
         ss->capture();
         ++counter;
         return ss;
+    }
+
+    void restore(const Snap& ss)
+    {
+        head = ss;
+        ss->apply();
     }
 
     // Remove from model and erase on disk. Erase first, then drop from the model, to
     // match BaseVirtualMachine::delete_snapshot.
     void drop(Snap& ss)
     {
+        if (head == ss)
+            head = ss->get_parent();
         ss->erase();
         std::erase(snapshots, ss);
     }
@@ -154,7 +168,7 @@ TEST_F(VirtDiskSnapshotErase, leaf_no_children)
     auto s0 = take("s0");
     auto s1 = take("s1", s0);
 
-    s0->apply();
+    restore(s0);
     drop(s1);
 
     expect_gone(s1);
@@ -229,7 +243,7 @@ TEST_F(VirtDiskSnapshotErase, two_children_and_live_disk)
     auto s1 = take("s1", s0);
     auto s2 = take("s2", s1);
 
-    s1->apply();
+    restore(s1);
     auto s1b = take("s1b", s1);
 
     s2->set_parent(s0);
@@ -254,7 +268,7 @@ TEST_F(VirtDiskSnapshotErase, children_and_live_disk_both_attached)
     auto s1 = take("s1", s0);
     auto s2 = take("s2", s1);
 
-    s1->apply();
+    restore(s1);
 
     s2->set_parent(s0);
     drop(s1);
@@ -287,14 +301,14 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     auto s2 = take("s2", s1);
     auto s3 = take("s3", s2);
 
-    s2->apply();
+    restore(s2);
     auto s2b = take("s2b", s2);
 
-    s1->apply();
+    restore(s1);
     auto s1b = take("s1b", s1);
     auto s1b1 = take("s1b1", s1b);
 
-    s1b->apply();
+    restore(s1b);
     auto s1b2 = take("s1b2", s1b);
 
     // Verify initial structure
@@ -357,19 +371,19 @@ TEST_F(VirtDiskSnapshotErase, multi_level_full_lifecycle)
     expect_chain(live_disk(), {live_disk(), snapshot_path(*s1b2), snapshot_path(*s0)});
 
     // Phase 4: apply every survivor
-    s3->apply();
+    restore(s3);
     expect_chain(live_disk(), {live_disk(), snapshot_path(*s3), snapshot_path(*s0)});
 
-    s2b->apply();
+    restore(s2b);
     expect_chain(live_disk(), {live_disk(), snapshot_path(*s2b), snapshot_path(*s0)});
 
-    s1b1->apply();
+    restore(s1b1);
     expect_chain(live_disk(), {live_disk(), snapshot_path(*s1b1), snapshot_path(*s0)});
 
-    s1b2->apply();
+    restore(s1b2);
     expect_chain(live_disk(), {live_disk(), snapshot_path(*s1b2), snapshot_path(*s0)});
 
-    s0->apply();
+    restore(s0);
     expect_chain(live_disk(), {live_disk(), snapshot_path(*s0)});
 
     // Phase 5: delete all leaves, then root
@@ -407,6 +421,38 @@ TEST_F(VirtDiskSnapshotErase, live_disk_is_resizable_after_last_delete)
 
     EXPECT_TRUE(VirtDisk().resize_virtual_disk(live_disk(), vhdx_size * 2))
         << "standalone live disk must be resizable";
+}
+
+// ---------------------------------------------------------------------------
+// 10. A stale Multipass snapshot parent aborts deletion and restores the VHDX tree
+// ---------------------------------------------------------------------------
+TEST_F(VirtDiskSnapshotErase, validation_rejects_snapshot_parent_mismatch)
+{
+    auto s0 = take("s0");
+    auto s1 = take("s1", s0);
+
+    MP_EXPECT_THROW_THAT(s0->erase(),
+                         VirtdiskSnapshotError,
+                         match_what(HasSubstr("Virtual disk parent mismatch")));
+
+    EXPECT_TRUE(std::filesystem::exists(snapshot_path(*s0)));
+    expect_chain(snapshot_path(*s1), {snapshot_path(*s1), snapshot_path(*s0)});
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s1), snapshot_path(*s0)});
+}
+
+// ---------------------------------------------------------------------------
+// 11. A stale Multipass head aborts deletion and restores the VHDX tree
+// ---------------------------------------------------------------------------
+TEST_F(VirtDiskSnapshotErase, validation_rejects_live_head_mismatch)
+{
+    auto s0 = take("s0");
+
+    MP_EXPECT_THROW_THAT(s0->erase(),
+                         VirtdiskSnapshotError,
+                         match_what(HasSubstr("Virtual disk parent mismatch")));
+
+    EXPECT_TRUE(std::filesystem::exists(snapshot_path(*s0)));
+    expect_chain(live_disk(), {live_disk(), snapshot_path(*s0)});
 }
 
 } // namespace multipass::test

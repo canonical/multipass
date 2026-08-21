@@ -18,6 +18,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string_view>
 
 namespace multipass::hyperv::virtdisk
@@ -26,6 +27,9 @@ namespace multipass::hyperv::virtdisk
 void try_rename(std::string_view log_category,
                 const std::filesystem::path& from,
                 const std::filesystem::path& to) noexcept;
+
+[[nodiscard]] std::optional<std::filesystem::path> get_parent_disk(
+    const std::filesystem::path& disk);
 
 bool is_direct_child_of(const std::filesystem::path& disk,
                         const std::filesystem::path& parent_disk);

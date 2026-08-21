@@ -35,19 +35,30 @@ void try_rename(std::string_view log_category,
     top_catch_all(log_category, [&from, &to] { MP_FILEOPS.rename(from, to); });
 }
 
+std::optional<std::filesystem::path> get_parent_disk(const std::filesystem::path& disk)
+{
+    std::vector<std::filesystem::path> chain;
+    if (const auto result = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !result)
+        throw VirtdiskSnapshotError{result, "Could not inspect virtual disk chain for `{}`", disk};
+
+    if (chain.empty())
+        throw VirtdiskSnapshotError{std::make_error_code(std::errc::state_not_recoverable),
+                                    "Virtual disk chain for `{}` is empty",
+                                    disk};
+
+    if (chain.size() == 1)
+        return std::nullopt;
+
+    return MP_FILEOPS.weakly_canonical(chain[1]);
+}
+
 bool is_direct_child_of(const std::filesystem::path& disk, const std::filesystem::path& parent_disk)
 {
     if (!MP_FILEOPS.exists(disk) || !MP_FILEOPS.exists(parent_disk))
         return false;
 
-    std::vector<std::filesystem::path> chain;
-    if (const auto r = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !r)
-    {
-        throw VirtdiskSnapshotError{r, "Could not inspect virtual disk chain for `{}`", disk};
-    }
-
-    return chain.size() >= 2 &&
-           MP_FILEOPS.weakly_canonical(chain[1]) == MP_FILEOPS.weakly_canonical(parent_disk);
+    const auto parent = get_parent_disk(disk);
+    return parent && *parent == MP_FILEOPS.weakly_canonical(parent_disk);
 }
 
 } // namespace multipass::hyperv::virtdisk

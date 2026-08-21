@@ -156,6 +156,33 @@ std::vector<std::filesystem::path> VirtDiskSnapshot::get_children_of_disk(
     return result;
 }
 
+void VirtDiskSnapshot::validate_disk_tree() const
+{
+    const auto validate_parent = [this](const std::filesystem::path& disk,
+                                        const std::shared_ptr<const Snapshot>& expected_parent) {
+        const auto actual_parent = get_parent_disk(disk);
+        std::optional<std::filesystem::path> expected_parent_path;
+        if (expected_parent)
+            expected_parent_path =
+                MP_FILEOPS.weakly_canonical(make_snapshot_path(*expected_parent));
+
+        if (actual_parent != expected_parent_path)
+            throw VirtdiskSnapshotError{
+                std::make_error_code(std::errc::state_not_recoverable),
+                "Virtual disk parent mismatch for `{}`: Multipass expects `{}`, but VHDX reports "
+                "`{}`",
+                disk,
+                expected_parent_path ? expected_parent_path->string() : "<none>",
+                actual_parent ? actual_parent->string() : "<none>"};
+    };
+
+    for (const auto& snapshot : vm.view_snapshots())
+        if (snapshot.get() != this)
+            validate_parent(make_snapshot_path(*snapshot), snapshot->get_parent());
+
+    validate_parent(live_disk_path, vm.get_head_snapshot());
+}
+
 void VirtDiskSnapshot::erase_impl()
 {
     auto self_path = make_snapshot_path(*this);
@@ -177,6 +204,7 @@ void VirtDiskSnapshot::erase_impl()
     rebuild.stage();
     rebuild.commit();
     rebuild.reparent();
+    validate_disk_tree();
     rollback.dismiss();
     rebuild.finalize();
 }

@@ -112,6 +112,7 @@ struct MockVirtualMachineT : public T
                 (VirtualMachine::SnapshotPredicate),
                 (const, override));
     MOCK_METHOD(int, get_num_snapshots, (), (const, override));
+    MOCK_METHOD(std::shared_ptr<const Snapshot>, get_head_snapshot, (), (const, override));
     MOCK_METHOD(std::shared_ptr<const Snapshot>,
                 get_snapshot,
                 (const std::string&),
