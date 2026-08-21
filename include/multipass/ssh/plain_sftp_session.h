@@ -52,9 +52,7 @@ public:
      * Consume an SSH session to serve SFTP to a remote client over it.
      *
      * @param ssh_session_obj The SSH session to serve on, which this consumes.
-     * @param client_steward A reference to an SftpClientSteward, which must outlive this session.
-     * @param source The local path to serve.
-     * @param target The remote path to map the source to.
+     * @see SSHSession::make_sftp_session for the semantics of the remaining params.
      */
     PlainSftpSession(PlainSSHSession&& ssh_session_obj,
                      const SftpClientSteward& client_steward,
