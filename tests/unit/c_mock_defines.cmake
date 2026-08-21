@@ -51,29 +51,12 @@ add_c_mocks(
   ssh_event_add_session
   ssh_add_channel_callbacks
   ssh_remove_channel_callbacks
-  sftp_server_new
-  sftp_server_free
-  sftp_reply_status
-  sftp_reply_attr
-  sftp_reply_data
-  sftp_reply_name
-  sftp_reply_names
-  sftp_reply_names_add
-  sftp_reply_handle
-  sftp_reply_version
-  sftp_get_client_message
-  sftp_client_message_free
-  sftp_client_message_get_data
-  sftp_client_message_get_filename
-  sftp_handle
-  sftp_handle_alloc
-  sftp_handle_remove
   sftp_new
+  sftp_free
   sftp_init
   sftp_open
   sftp_write
   sftp_read
-  sftp_free
   sftp_get_error
   sftp_close
   sftp_stat

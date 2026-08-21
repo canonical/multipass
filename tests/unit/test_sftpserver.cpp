@@ -22,7 +22,7 @@
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_recursive_dir_iterator.h"
-#include "mock_ssh_process_exit_status.h"
+#include "mock_ssh_callback_engine.h"
 #include "path.h"
 #include "sftp_server_test_fixture.h"
 #include "stub_ssh_key_provider.h"
@@ -58,6 +58,33 @@ static const int default_gid = mcp::getgid();
 
 struct SftpServer : public mp::test::SftpServerTest
 {
+    SftpServer()
+    {
+        ON_CALL(mock_libssh, ssh_new).WillByDefault([](auto...) {
+            return reinterpret_cast<ssh_session>(0xdeadbeefdeadbeef);
+        });
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault([](auto...) { return 1; });
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault([](auto...) {
+            return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbee2);
+        });
+        ON_CALL(mock_libssh, ssh_channel_free).WillByDefault([](auto...) { return; });
+        ON_CALL(mock_libssh, ssh_event_new).WillByDefault([](auto...) {
+            return reinterpret_cast<ssh_event>(0xdeadbeefdeadbee3);
+        });
+        ON_CALL(mock_libssh, ssh_event_free).WillByDefault([](auto...) { return; });
+        ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault([](auto...) { return SSH_OK; });
+        ON_CALL(mock_libssh, sftp_handle_alloc).WillByDefault([](auto...) {
+            return reinterpret_cast<ssh_string>(0xdeadbeefdeadbee4);
+        });
+
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_type, mp::Libssh);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_data, mp::Libssh);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_filename, mp::Libssh);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_flags, mp::Libssh);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_submessage, mp::Libssh);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, ssh_string_len, mp::Libssh);
+        MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, ssh_string_get_char, mp::Libssh);
+    }
     mp::SftpServer make_sftpserver()
     {
         return make_sftpserver("");
@@ -69,15 +96,6 @@ struct SftpServer : public mp::test::SftpServerTest
         const mp::id_mappings& gid_mappings = {{default_gid, mp::default_id}},
         const std::string& target = {})
     {
-
-        REPLACE(ssh_channel_new,
-                [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-        REPLACE(ssh_channel_free, [](auto...) { return; });
-        REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
-        REPLACE(ssh_event_new,
-                [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
-        REPLACE(ssh_event_free, [](auto...) { return; });
-        REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
         return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
                 path,
                 target.empty() ? path : target,
@@ -131,7 +149,10 @@ struct SftpServer : public mp::test::SftpServerTest
     }
 
     const mpt::StubSSHKeyProvider key_provider;
-    mpt::ExitStatusMock exit_status_mock;
+    mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
+    mpt::MockLibssh& mock_libssh = *libssh_guard.first;
+    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh,
+                                                   mpt::CallbackChEngineMock::channel_exit_success};
     std::queue<sftp_client_message> messages;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
@@ -357,29 +378,30 @@ bool compare_permission(uint32_t ssh_permissions, const QFileInfo& file, Permiss
 
 TEST_F(SftpServer, throwsWhenMessageNull)
 {
+    callback_mock_engine.push_state({});
     EXPECT_THROW(make_sftpserver(), mp::SSHException);
 }
 
 TEST_F(SftpServer, throwsWhenMessageNotFXPInit)
 {
     auto init_msg = make_msg(SFTP_BAD_MESSAGE);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     EXPECT_THROW(make_sftpserver(), mp::SSHException);
 }
 
 TEST_F(SftpServer, throwsWhenFailedToInit)
 {
     auto init_msg = make_msg(SSH_FXP_INIT);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     auto bad_reply_version = [](auto...) { return SSH_ERROR; };
-    REPLACE(sftp_reply_version, bad_reply_version);
+    EXPECT_CALL(mock_libssh, sftp_reply_version).WillRepeatedly(bad_reply_version);
     EXPECT_THROW(make_sftpserver(), mp::SSHException);
 }
 
 TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
 {
     auto init_msg = make_msg(SSH_FXP_INIT);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     bool invoked{false};
     auto request_exec = [&invoked](ssh_channel, const char* raw_cmd) {
@@ -391,23 +413,12 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
         return SSH_OK;
     };
 
-    REPLACE(ssh_channel_request_exec, request_exec);
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_add_channel_callbacks, [this](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        cb->channel_exit_status_function(nullptr,
-                                         nullptr,
-                                         exit_status_mock.failure_status,
-                                         cb->userdata);
-        return SSH_OK;
-    });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_event_free, [](auto...) { return; });
-    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
+    mpt::CallbackChState cb{};
+    cb.exit_code = callback_mock_engine.failure_code;
+    callback_mock_engine.push_state(cb);
+    callback_mock_engine.pop_state(); // Remove default state
 
     auto make_sftpserver = [this]() {
         return mp::SftpServer{
@@ -432,14 +443,14 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
         if (cmd.find("sudo sshfs") != std::string::npos)
         {
             invoked = true;
-            exit_status_mock.set_ssh_rc(SSH_ERROR);
-            exit_status_mock.set_no_exit();
+            callback_mock_engine.push_state(callback_mock_engine.channel_noexit);
+            callback_mock_engine.pop_state();
         }
 
         return SSH_OK;
     };
 
-    REPLACE(ssh_channel_request_exec, request_exec);
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
     EXPECT_TRUE(invoked);
@@ -456,43 +467,27 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     int num_calls{0};
     auto message{make_msg(SSH_FXP_INIT)};
     auto request_exec = [](ssh_channel, const char*) { return SSH_OK; };
-    auto add_channel_callbacks = [this, &num_calls](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        if (num_calls >= total_calls / 2) // The status has to only be retrieved (as a successful
-                                          // exit) once the loop is in its second recovery stage
-            // Otherwise we time out. Because of how we cache, we need to set up the return code on
-            // process creation after the first timeout
-            cb->channel_exit_status_function(nullptr,
-                                             nullptr,
-                                             exit_status_mock.success_status,
-                                             cb->userdata);
-        return SSH_OK;
-    };
-    REPLACE(ssh_add_channel_callbacks, add_channel_callbacks);
-    REPLACE(ssh_channel_request_exec, request_exec);
+
+    callback_mock_engine.push_state(callback_mock_engine.channel_running);
+    callback_mock_engine.push_state(callback_mock_engine.channel_exit_success);
+    callback_mock_engine.pop_state();
+
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 
     auto get_client_msg = [&num_calls, &message](auto...) {
         return ++num_calls % 2 == 0 ? nullptr : message.get();
     };
-    REPLACE(sftp_get_client_message, get_client_msg);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(get_client_msg);
 
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_event_free, [](auto...) { return; });
-    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
-
-    auto sftp =
-        mp::SftpServer{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
-                       "",
-                       "",
-                       {{default_gid, mp::default_id}},
-                       {{default_uid, mp::default_id}},
-                       default_uid,
-                       default_gid,
-                       "sshfs"};
+    auto sftp = mp::SftpServer{
+        std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+        "",
+        "",
+        {{default_gid, mp::default_id}},
+        {{default_uid, mp::default_id}},
+        default_uid,
+        default_gid,
+        "sshfs"};
     // This is the end of the alternate test
     sftp.run();
 
@@ -502,7 +497,7 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
 TEST_F(SftpServer, stopsAfterANullMessage)
 {
     auto init_msg = make_msg(SSH_FXP_INIT);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver();
 
@@ -513,13 +508,13 @@ TEST_F(SftpServer, freesMessage)
 {
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_BAD_MESSAGE);
+    auto msg_ptr = msg.get();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
+    EXPECT_CALL(mock_libssh, sftp_client_message_free(msg_ptr)).Times(1);
     auto sftp = make_sftpserver();
     sftp.run();
-
-    msg_free.expectCalled(1).withValues(msg.get());
 }
 
 TEST_F(SftpServer, handlesRealpath)
@@ -538,8 +533,8 @@ TEST_F(SftpServer, handlesRealpath)
             invoked = true;
             return SSH_OK;
         };
-    REPLACE(sftp_reply_name, reply_name);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_name).WillRepeatedly(reply_name);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(file.name().toStdString());
     sftp.run();
@@ -556,10 +551,11 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
     msg->filename = file_name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(file.name().toStdString(), {}, {});
     sftp.run();
@@ -569,8 +565,8 @@ TEST_F(SftpServer, realpathFailsWhenIdsAreNotMapped)
 
 TEST_F(SftpServer, handlesOpendir)
 {
-    auto dir_name =
-        name_as_char_array(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto dir_name = name_as_char_array(
+        fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -584,8 +580,8 @@ TEST_F(SftpServer, handlesOpendir)
         return fs::is_symlink(path);
     });
 
-    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_handle).WillRepeatedly([](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     sftp.run();
@@ -593,8 +589,8 @@ TEST_F(SftpServer, handlesOpendir)
 
 TEST_F(SftpServer, opendirNotExistingFails)
 {
-    auto dir_name =
-        name_as_char_array(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto dir_name = name_as_char_array(
+        fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
     auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
@@ -611,10 +607,10 @@ TEST_F(SftpServer, opendirNotExistingFails)
         return fs::is_symlink(path);
     });
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int no_such_file_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, no_such_file_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, no_such_file_calls));
 
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     sftp.run();
@@ -624,12 +620,13 @@ TEST_F(SftpServer, opendirNotExistingFails)
 
 TEST_F(SftpServer, opendirNotReadableFails)
 {
-    auto dir_name =
-        name_as_char_array(fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
+    auto dir_name = name_as_char_array(
+        fs::weakly_canonical(mpt::test_data_path().toStdString()).string());
     auto init_msg = make_msg(SSH_FXP_INIT);
     const auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
 
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, dir_iterator).WillOnce([](auto, std::error_code& err) {
         err = std::make_error_code(std::errc::permission_denied);
@@ -642,11 +639,12 @@ TEST_F(SftpServer, opendirNotReadableFails)
         return fs::is_symlink(path);
     });
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
 
     int perm_denied_num_calls{0};
-    REPLACE(sftp_reply_status,
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(
             make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls));
 
     screen_logs_trace();
@@ -669,6 +667,7 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
     auto msg = make_msg(SFTP_OPENDIR);
     msg->filename = dir_name.data();
 
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, dir_iterator).WillOnce([&](const mp::fs::path&, std::error_code& err) {
         err.clear();
@@ -687,11 +686,12 @@ TEST_F(SftpServer, opendirNoHandleAllocatedFails)
         return fs::is_symlink(path);
     });
 
-    REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc).WillRepeatedly([](auto...) { return nullptr; });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     auto sftp = make_sftpserver(mpt::test_data_path().toStdString());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     screen_logs_trace();
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -714,11 +714,12 @@ TEST_F(SftpServer, opendirFailsWhenIdsAreNotMapped)
     open_dir_msg->filename = dir_name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(open_dir_msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(open_dir_msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -761,8 +762,9 @@ TEST_F(SftpServer, handlesMkdir)
     });
 
     int num_calls{0};
-    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_OK, num_calls));
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(msg.get(), SSH_FX_OK, num_calls));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -791,8 +793,9 @@ TEST_F(SftpServer, mkdirOnExistingDirFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -839,9 +842,10 @@ TEST_F(SftpServer, mkdirSetPermissionsFails)
     msg->filename = new_dir_name.data();
     msg->attr = &attr;
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -877,8 +881,8 @@ TEST_F(SftpServer, mkdirChownFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -907,9 +911,10 @@ TEST_F(SftpServer, mkdirFailsInDirThatsMissingMappedIds)
     msg->attr = &attr;
 
     int perm_denied_num_calls{0};
-    REPLACE(sftp_reply_status,
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(
             make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls));
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -934,8 +939,8 @@ TEST_F(SftpServer, handlesRmdir)
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -957,8 +962,9 @@ TEST_F(SftpServer, rmdirNonExistingFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -979,6 +985,7 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
     auto new_dir_name = name_as_char_array(new_dir);
 
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(false));
@@ -998,8 +1005,8 @@ TEST_F(SftpServer, rmdirUnableToRemoveFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -1029,10 +1036,11 @@ TEST_F(SftpServer, rmdirFailsToRemoveDirThatsMissingMappedIds)
     msg->filename = new_dir_name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -1069,9 +1077,9 @@ TEST_F(SftpServer, handlesReadlink)
         ++num_calls;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_names_add, names_add);
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_reply_names_add).WillRepeatedly(names_add);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_names).WillRepeatedly([](auto...) { return SSH_OK; });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1098,10 +1106,11 @@ TEST_F(SftpServer, readlinkFailsWhenIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -1127,13 +1136,13 @@ TEST_F(SftpServer, handlesSymlink)
     msg->attr->gid = 1000;
 
     auto link_char_array = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data,
-            [&link_char_array](auto...) { return link_char_array.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data)
+        .WillRepeatedly([&link_char_array](auto...) { return link_char_array.data(); });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1156,14 +1165,17 @@ TEST_F(SftpServer, symlinkInInvalidDirFails)
     msg->filename = target.data();
 
     auto invalid_link = name_as_char_array("/foo/baz");
-    REPLACE(sftp_client_message_get_data, [&invalid_link](auto...) { return invalid_link.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&invalid_link](auto...) {
+        return invalid_link.data();
+    });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1188,12 +1200,14 @@ TEST_F(SftpServer, brokenSymlinkDoesNotFail)
     msg->attr->gid = 1000;
 
     auto broken_link = name_as_char_array(broken_link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&broken_link](auto...) { return broken_link.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&broken_link](auto...) {
+        return broken_link.data();
+    });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1219,8 +1233,9 @@ TEST_F(SftpServer, symlinkFailureFails)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
-
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
     EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(false));
@@ -1228,8 +1243,8 @@ TEST_F(SftpServer, symlinkFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -1266,13 +1281,16 @@ TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
     msg->attr->gid = 1000;
 
     auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -1296,12 +1314,14 @@ TEST_F(SftpServer, handlesRename)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(new_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1325,8 +1345,11 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(new_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
+    const auto [mock_platform, pl_guard] = mpt::MockPlatform::inject();
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*mock_file_ops, remove(A<QFile&>())).WillOnce(Return(false));
@@ -1350,8 +1373,8 @@ TEST_F(SftpServer, renameCannotRemoveTargetFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -1380,8 +1403,11 @@ TEST_F(SftpServer, renameFailureFails)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(new_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*mock_file_ops, rename(An<QFile&>(), _)).WillOnce(Return(false));
@@ -1405,8 +1431,8 @@ TEST_F(SftpServer, renameFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -1435,15 +1461,16 @@ TEST_F(SftpServer, renameInvalidTargetFails)
     auto name = name_as_char_array(old_name.toStdString());
     msg->filename = name.data();
 
-    REPLACE(sftp_client_message_get_data,
-            [&invalid_target](auto...) { return invalid_target.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data)
+        .WillRepeatedly([&invalid_target](auto...) { return invalid_target.data(); });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1464,13 +1491,17 @@ TEST_F(SftpServer, renameFailsWhenSourceFileIdsAreNotMapped)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(new_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
 
@@ -1494,6 +1525,7 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     mpt::make_file_with_content(old_name);
     mpt::make_file_with_content(new_name);
 
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, ownerId(_))
         .WillOnce([](const QFileInfo& file) { return file.ownerId(); })
@@ -1518,13 +1550,16 @@ TEST_F(SftpServer, renameFailsWhenTargetFileIdsAreNotMapped)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(new_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -1555,8 +1590,8 @@ TEST_F(SftpServer, handlesRemove)
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1580,8 +1615,9 @@ TEST_F(SftpServer, removeNonExistingFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -1610,11 +1646,12 @@ TEST_F(SftpServer, removeFailsWhenIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -1647,8 +1684,8 @@ TEST_F(SftpServer, openInWriteModeCreatesFile)
         reply_handle_invoked = true;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_handle, reply_handle);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_handle).WillRepeatedly(reply_handle);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1676,8 +1713,8 @@ TEST_F(SftpServer, openInTruncateModeTruncatesFile)
         reply_handle_invoked = true;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_handle, reply_handle);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_handle).WillRepeatedly(reply_handle);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -1704,6 +1741,7 @@ TEST_F(SftpServer, openUnableToOpenFails)
     msg->attr = &attr;
     msg->filename = name.data();
 
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, symlink_status).WillOnce([](auto, std::error_code& err) {
         err.clear();
@@ -1729,9 +1767,10 @@ TEST_F(SftpServer, openUnableToOpenFails)
         return fs::exists(path);
     });
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -1762,6 +1801,7 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
     msg->attr = &attr;
     msg->filename = name.data();
 
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
 
     EXPECT_CALL(*file_ops, symlink_status).WillOnce([](auto, std::error_code& err) {
@@ -1778,10 +1818,10 @@ TEST_F(SftpServer, openUnableToGetStatusFails)
         return fs::exists(path);
     });
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, failure_num_calls));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -1816,8 +1856,8 @@ TEST_F(SftpServer, openChownFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -1853,9 +1893,9 @@ TEST_F(SftpServer, openNoHandleAllocatedFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_handle_alloc, [](auto...) { return nullptr; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc).WillRepeatedly([](auto...) { return nullptr; });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
@@ -1881,11 +1921,12 @@ TEST_F(SftpServer, openFailsWhenIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -1904,11 +1945,12 @@ TEST_F(SftpServer, openNonExistingFileFailsWhenDirIdsAreNotMapped)
     msg->filename = name.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -1959,19 +2001,21 @@ TEST_F(SftpServer, handlesReaddir)
     EXPECT_CALL(dir_iterator, next)
         .WillRepeatedly(DoAll([&] { entries_read++; }, ReturnRef(directory_entry)));
 
-    REPLACE(sftp_handle, [&dir_iterator](auto...) { return &dir_iterator; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&dir_iterator](auto...) {
+        return &dir_iterator;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int eof_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(readdir_msg_final.get(), SSH_FX_EOF, eof_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(readdir_msg_final.get(), SSH_FX_EOF, eof_num_calls));
 
     std::vector<mp::fs::path> given_entries;
     auto reply_names_add = [&given_entries](auto, const char* file, auto, auto) {
         given_entries.push_back(file);
         return SSH_OK;
     };
-    REPLACE(sftp_reply_names_add, reply_names_add);
-    REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_reply_names_add).WillRepeatedly(reply_names_add);
+    EXPECT_CALL(mock_libssh, sftp_reply_names).WillRepeatedly([](auto...) { return SSH_OK; });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2014,11 +2058,13 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
     EXPECT_CALL(dir_iterator, next)
         .WillRepeatedly(DoAll([&] { entries_read++; }, ReturnRef(directory_entry)));
 
-    REPLACE(sftp_handle, [&dir_iterator](auto...) { return &dir_iterator; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&dir_iterator](auto...) {
+        return &dir_iterator;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int eof_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(readdir_msg_final.get(), SSH_FX_EOF, eof_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(readdir_msg_final.get(), SSH_FX_EOF, eof_num_calls));
 
     sftp_attributes_struct test_file_attrs{};
     auto get_test_file_attributes = [&](auto, const char* file, auto, sftp_attributes attr) {
@@ -2028,8 +2074,8 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
         }
         return SSH_OK;
     };
-    REPLACE(sftp_reply_names_add, get_test_file_attributes);
-    REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_reply_names_add).WillRepeatedly(get_test_file_attributes);
+    EXPECT_CALL(mock_libssh, sftp_reply_names).WillRepeatedly([](auto...) { return SSH_OK; });
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2069,13 +2115,13 @@ TEST_F(SftpServer, handlesClose)
     int ok_num_calls{0};
     auto reply_status = make_reply_status(close_msg.get(), SSH_FX_OK, ok_num_calls);
 
-    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
-    REPLACE(sftp_handle_alloc, handle_alloc);
-    REPLACE(sftp_handle, [&id](auto...) { return id; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
-    REPLACE(sftp_handle_remove, [](auto...) {});
+    EXPECT_CALL(mock_libssh, sftp_reply_handle).WillRepeatedly([](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc).WillRepeatedly(handle_alloc);
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&id](auto...) { return id; });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_names).WillRepeatedly([](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_handle_remove).WillRepeatedly([](auto...) {});
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2114,11 +2160,11 @@ TEST_F(SftpServer, handlesFstat)
             return SSH_OK;
         };
 
-    REPLACE(sftp_reply_attr, reply_attr);
-    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
-    REPLACE(sftp_handle_alloc, handle_alloc);
-    REPLACE(sftp_handle, [&id](auto...) { return id; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_attr).WillRepeatedly(reply_attr);
+    EXPECT_CALL(mock_libssh, sftp_reply_handle).WillRepeatedly([](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc).WillRepeatedly(handle_alloc);
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&id](auto...) { return id; });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2159,11 +2205,11 @@ TEST_F(SftpServer, handlesFsetstat)
     int num_calls{0};
     auto reply_status = make_reply_status(fsetstat_msg.get(), SSH_FX_OK, num_calls);
 
-    REPLACE(sftp_reply_handle, [](auto...) { return SSH_OK; });
-    REPLACE(sftp_handle_alloc, handle_alloc);
-    REPLACE(sftp_handle, [&id](auto...) { return id; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_handle).WillRepeatedly([](auto...) { return SSH_OK; });
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc).WillRepeatedly(handle_alloc);
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&id](auto...) { return id; });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2199,8 +2245,8 @@ TEST_F(SftpServer, handlesSetstat)
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2232,8 +2278,8 @@ TEST_F(SftpServer, setstatCorrectlyModifiesFileTimestamp)
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2264,6 +2310,7 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     msg->attr = &attr;
     msg->flags = SSH_FXF_WRITE;
 
+    const auto [mock_platform, pl_guard] = mpt::MockPlatform::inject();
     const auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*mock_file_ops, resize(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, ownerId(_)).WillRepeatedly([](const QFileInfo& file) {
@@ -2286,8 +2333,8 @@ TEST_F(SftpServer, setstatResizeFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -2343,9 +2390,10 @@ TEST_F(SftpServer, setstatSetPermissionsFailureFails)
         return fs::is_symlink(path);
     });
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -2389,8 +2437,8 @@ TEST_F(SftpServer, setstatChownFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(),
                                 {{default_uid, -1}, {1001, 1001}},
@@ -2434,8 +2482,8 @@ TEST_F(SftpServer, setstatUtimeFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -2472,11 +2520,12 @@ TEST_F(SftpServer, setstatFailsWhenMissingMappedIds)
     msg->flags = SSH_FXF_WRITE;
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -2507,11 +2556,12 @@ TEST_F(SftpServer, setstatChownFailsWhenNewIdsAreNotMapped)
     EXPECT_CALL(*mock_platform, chown(_, _, _)).Times(0);
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2540,6 +2590,7 @@ TEST_F(SftpServer, handlesWrites)
 
     std::stringstream stream;
 
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, lseek).WillRepeatedly(Return(true));
     EXPECT_CALL(*file_ops, write(fd, _, _))
@@ -2548,8 +2599,10 @@ TEST_F(SftpServer, handlesWrites)
             return nbytes;
         });
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&named_fd](auto...) {
+        return (void*)&named_fd;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     auto reply_status = [&num_calls](auto, uint32_t status, auto) {
@@ -2557,7 +2610,7 @@ TEST_F(SftpServer, handlesWrites)
         ++num_calls;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2583,11 +2636,13 @@ TEST_F(SftpServer, writeCannotSeekFails)
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(-1));
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&named_fd](auto...) {
+        return (void*)&named_fd;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(write_msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(write_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2613,11 +2668,13 @@ TEST_F(SftpServer, writeFailureFails)
     EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*file_ops, write(fd, _, _)).WillRepeatedly(Return(-1));
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&named_fd](auto...) {
+        return (void*)&named_fd;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(write_msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(write_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2648,8 +2705,10 @@ TEST_F(SftpServer, handlesReads)
             return count;
         });
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&named_fd](auto...) {
+        return (void*)&named_fd;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     auto reply_data = [&](sftp_client_message msg, const void* data, int len) {
@@ -2662,7 +2721,7 @@ TEST_F(SftpServer, handlesReads)
         ++num_calls;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_data, reply_data);
+    EXPECT_CALL(mock_libssh, sftp_reply_data).WillRepeatedly(reply_data);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2685,14 +2744,17 @@ TEST_F(SftpServer, readCannotSeekFails)
     const auto fd = 123;
     const auto named_fd = std::make_pair(path, fd);
 
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(-1));
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&named_fd](auto...) {
+        return (void*)&named_fd;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -2722,15 +2784,18 @@ TEST_F(SftpServer, readReturnsFailureFails)
     const auto fd = 123;
     const auto named_fd = std::make_pair(path, fd);
 
+    const auto [platform, mock_platform_guard] = mpt::MockPlatform::inject();
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*file_ops, read(fd, _, _)).WillOnce(Return(-1));
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&named_fd](auto...) {
+        return (void*)&named_fd;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int failure_num_calls{0};
-    REPLACE(sftp_reply_status,
-            make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(read_msg.get(), SSH_FX_FAILURE, failure_num_calls));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -2762,10 +2827,13 @@ TEST_F(SftpServer, readReturnsZeroEndOfFile)
     EXPECT_CALL(*file_ops, lseek(fd, _, _)).WillRepeatedly(Return(true));
     EXPECT_CALL(*file_ops, read(fd, _, _)).WillOnce(Return(0));
 
-    REPLACE(sftp_handle, [&named_fd](auto...) { return (void*)&named_fd; });
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_handle).WillRepeatedly([&named_fd](auto...) {
+        return (void*)&named_fd;
+    });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
     int eof_num_calls{0};
-    REPLACE(sftp_reply_status, make_reply_status(read_msg.get(), SSH_FX_EOF, eof_num_calls));
+    EXPECT_CALL(mock_libssh, sftp_reply_status)
+        .WillRepeatedly(make_reply_status(read_msg.get(), SSH_FX_EOF, eof_num_calls));
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2788,13 +2856,17 @@ TEST_F(SftpServer, handleExtendedLink)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_platform, link, mp::platform::Platform);
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
@@ -2817,15 +2889,19 @@ TEST_F(SftpServer, extendedLinkInInvalidDirFails)
     msg->filename = invalid_path.data();
 
     auto invalid_link = name_as_char_array("/foo/baz");
-    REPLACE(sftp_client_message_get_data, [&invalid_link](auto...) { return invalid_link.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&invalid_link](auto...) {
+        return invalid_link.data();
+    });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
 
@@ -2847,7 +2923,9 @@ TEST_F(SftpServer, extendedLinkFailureFails)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
@@ -2856,8 +2934,8 @@ TEST_F(SftpServer, extendedLinkFailureFails)
     int failure_num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
 
@@ -2889,14 +2967,17 @@ TEST_F(SftpServer, extendedLinkFailureFailsWhenSourceFileIdsAreNotMapped)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(link_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -2922,12 +3003,14 @@ TEST_F(SftpServer, handleExtendedRename)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(new_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OK, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2952,13 +3035,16 @@ TEST_F(SftpServer, extendedRenameFailsWhenMissingMappedIds)
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(new_name.toStdString());
-    REPLACE(sftp_client_message_get_data, [&target_name](auto...) { return target_name.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&target_name](auto...) {
+        return target_name.data();
+    });
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
-    REPLACE(sftp_reply_status, reply_status);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
     sftp.run();
@@ -2980,11 +3066,12 @@ TEST_F(SftpServer, extendedRenameInInvalidDirFails)
     msg->filename = invalid_path.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -2999,12 +3086,12 @@ TEST_F(SftpServer, invalidExtendedFails)
     auto submessage = name_as_char_array("invalid submessage");
     msg->submessage = submessage.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_OP_UNSUPPORTED, num_calls);
 
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver();
     sftp.run();
@@ -3033,7 +3120,7 @@ TEST_P(Stat, handles)
     auto name = name_as_char_array(link_name.toStdString());
     msg->filename = name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     QFile file(file_name);
@@ -3045,7 +3132,7 @@ TEST_P(Stat, handles)
         ++num_calls;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_attr, reply_attr);
+    EXPECT_CALL(mock_libssh, sftp_reply_attr).WillRepeatedly(reply_attr);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3064,11 +3151,12 @@ TEST_P(WhenInInvalidDir, fails)
     msg->filename = invalid_path.data();
 
     int perm_denied_num_calls{0};
-    auto reply_status =
-        make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, perm_denied_num_calls);
+    auto reply_status = make_reply_status(msg.get(),
+                                          SSH_FX_PERMISSION_DENIED,
+                                          perm_denied_num_calls);
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3111,14 +3199,16 @@ TEST_P(WhenInvalidMessageReceived, repliesFailure)
     msg->filename = file_name.data();
 
     auto data = name_as_char_array("");
-    REPLACE(sftp_client_message_get_data, [&data](auto...) { return data.data(); });
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_data).WillRepeatedly([&data](auto...) {
+        return data.data();
+    });
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), params.reply_status_type, num_calls);
 
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3166,11 +3256,11 @@ TEST_P(PathValidation, validatesAccordingToRequest)
     auto name = name_as_char_array(params.input_path);
     msg->filename = name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls_status{0};
     auto reply_status = make_reply_status(msg.get(), params.expected_status, num_calls_status);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     int num_calls_attr{0};
     auto reply_attr =
@@ -3182,7 +3272,7 @@ TEST_P(PathValidation, validatesAccordingToRequest)
             ++num_calls_attr;
             return SSH_OK;
         };
-    REPLACE(sftp_reply_attr, reply_attr);
+    EXPECT_CALL(mock_libssh, sftp_reply_attr).WillRepeatedly(reply_attr);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3263,11 +3353,11 @@ TEST_P(AbsolutePath, normalizesToAbsolutePath)
     auto name = name_as_char_array(params.input_path);
     msg->filename = name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_status_calls{0};
     auto reply_status = make_reply_status(msg.get(), params.expected_status, num_status_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     int num_name_calls{0};
     auto reply_name = [&num_name_calls,
@@ -3283,7 +3373,7 @@ TEST_P(AbsolutePath, normalizesToAbsolutePath)
         ++num_name_calls;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_name, reply_name);
+    EXPECT_CALL(mock_libssh, sftp_reply_name).WillRepeatedly(reply_name);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3322,7 +3412,7 @@ TEST_P(HostToGuestTranslation, translatesCorrectly)
     auto name = name_as_char_array(params.input_path);
     msg->filename = name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_name_calls{0};
     int num_status_calls{0};
@@ -3346,11 +3436,11 @@ TEST_P(HostToGuestTranslation, translatesCorrectly)
         ++num_name_calls;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_name, reply_name);
+    EXPECT_CALL(mock_libssh, sftp_reply_name).WillRepeatedly(reply_name);
 
     // Otherwise, we expect an error
     auto reply_status = make_reply_status(msg.get(), params.expected_status, num_status_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(),
                                 {{default_uid, mp::default_id}},
@@ -3392,14 +3482,14 @@ TEST_F(SftpServer, allowsPathWithinMount)
     auto msg = make_msg(SSH_FXP_OPENDIR);
     msg->filename = file_name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     // Path is validated, but file does not exist.
     // TODO: SSH_FX_NO_SUCH_DIR should be returned if the path is a dir, but it is not
     // the case.
     auto reply_status = make_reply_status(msg.get(), SSH_FX_NO_SUCH_FILE, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3432,12 +3522,12 @@ TEST_F(SftpServer, symlinkInPathResolved)
         ++num_name_calls;
         return SSH_OK;
     };
-    REPLACE(sftp_reply_name, reply_name);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_reply_name).WillRepeatedly(reply_name);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_status_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_status_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3454,11 +3544,11 @@ TEST_F(SftpServer, emptyPathPermissionDenied)
     auto msg = make_msg(SSH_FXP_OPENDIR);
     msg->filename = nullptr;
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3477,11 +3567,11 @@ TEST_F(SftpServer, blocksSiblingDirectoryBypass)
     auto msg = make_msg(SSH_FXP_OPENDIR);
     msg->filename = file_name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3498,8 +3588,8 @@ TEST_F(SftpServer, brokenLinkInParentPathFailsValidation)
 
     mpt::TempDir temp_dir;
     auto link = fs::path(temp_dir.path().toStdString()) / "linked";
-    auto non_existent_location =
-        fs::path(temp_dir.path().toStdString()) / ".." / "does_not_exist" / "";
+    auto non_existent_location = fs::path(temp_dir.path().toStdString()) / ".." / "does_not_exist" /
+                                 "";
     auto broken_path = (link / "file.txt").generic_string();
 
     MP_PLATFORM.symlink(non_existent_location.string().c_str(), link.string().c_str(), true);
@@ -3509,11 +3599,11 @@ TEST_F(SftpServer, brokenLinkInParentPathFailsValidation)
     auto filename = name_as_char_array(broken_path);
     msg->filename = filename.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3532,7 +3622,7 @@ TEST_F(SftpServer, isSymlinkErrorFailsValidation)
     auto msg = make_msg(SSH_FXP_OPENDIR);
     msg->filename = file_name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, weakly_canonical).WillRepeatedly([](const fs::path& path) {
@@ -3545,7 +3635,7 @@ TEST_F(SftpServer, isSymlinkErrorFailsValidation)
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3564,7 +3654,7 @@ TEST_F(SftpServer, canonicalErrorPermissionDenied)
     auto msg = make_msg(SSH_FXP_OPENDIR);
     msg->filename = file_name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, is_symlink).WillRepeatedly([](const fs::path& path) {
@@ -3579,7 +3669,7 @@ TEST_F(SftpServer, canonicalErrorPermissionDenied)
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3598,7 +3688,7 @@ TEST_F(SftpServer, relativeErrorPermissionDenied)
     auto msg = make_msg(SSH_FXP_OPENDIR);
     msg->filename = file_name.data();
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     const auto [file_ops, mock_file_ops_guard] = mpt::MockFileOps::inject();
     EXPECT_CALL(*file_ops, relative)
@@ -3609,7 +3699,7 @@ TEST_F(SftpServer, relativeErrorPermissionDenied)
 
     int num_calls{0};
     auto reply_status = make_reply_status(msg.get(), SSH_FX_PERMISSION_DENIED, num_calls);
-    REPLACE(sftp_reply_status, reply_status);
+    EXPECT_CALL(mock_libssh, sftp_reply_status).WillRepeatedly(reply_status);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString());
     sftp.run();
@@ -3641,7 +3731,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
     msg->attr->uid = sftp_uid;
     msg->attr->gid = sftp_gid;
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
@@ -3667,7 +3757,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
     msg->attr->uid = 1003;
     msg->attr->gid = 1004;
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     QFileInfo parent_dir(temp_dir.path());
 
@@ -3703,7 +3793,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
     msg->attr->uid = sftp_uid;
     msg->attr->gid = sftp_gid;
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).WillOnce(Return(-1));
     EXPECT_CALL(*mock_platform, chown(_, sftp_uid, sftp_gid)).Times(0);
@@ -3740,7 +3830,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
     msg->attr->uid = sftp_uid;
     msg->attr->gid = sftp_gid;
 
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 

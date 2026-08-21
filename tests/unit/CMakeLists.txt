@@ -51,7 +51,6 @@ add_executable(multipass_cpp_tests
   mock_openssl_syscalls.cpp
   mock_process_factory.cpp
   mock_sftp.cpp
-  mock_sftpserver.cpp
   mock_ssh.cpp
   mock_ssh_client.cpp
   mock_standard_paths.cpp
