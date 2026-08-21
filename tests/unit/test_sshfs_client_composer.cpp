@@ -26,6 +26,7 @@
 
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -50,6 +51,7 @@ struct TestSshfsClientComposer : public Test
 
                 ON_CALL(*proc, exit_code).WillByDefault(Return(result.exit_code));
                 ON_CALL(*proc, read_std_output).WillByDefault(Return(result.std_out));
+                ON_CALL(*proc, read_std_error).WillByDefault(Return(result.std_err));
                 ON_CALL(*proc, get_cmd).WillByDefault(ReturnRefOfCopy(cmd));
 
                 return proc;
@@ -63,6 +65,7 @@ struct TestSshfsClientComposer : public Test
     {
         int exit_code = 0;
         std::string std_out = {};
+        std::string std_err = {};
     };
 
     const ExecResult& result_for(const std::string& cmd) const
@@ -99,6 +102,7 @@ struct TestSshfsClientComposer : public Test
 
     constexpr static auto source = "/host/source";
     constexpr static auto target = "/guest/target";
+    static inline const auto findmnt_cmd = fmt::format("findmnt --source :{} -o TARGET -n", source);
     constexpr static auto snap_env_cmd = "snap run multipass-sshfs.env";
     constexpr static auto which_cmd = "sudo which sshfs";
     constexpr static auto distro_sshfs = "/usr/bin/sshfs";
@@ -171,4 +175,37 @@ TEST_F(TestSshfsClientComposer, leavesFuseOptionsOutWhenTheVersionIsAbsent)
 
     EXPECT_THAT(composer.compose_client_command(session, source, target),
                 Eq(expected_distro_command()));
+}
+
+TEST_F(TestSshfsClientComposer, cleanUpUnmountsStaleMount)
+{
+    const auto umount_cmd = fmt::format("sudo umount {}", target);
+    exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", target)};
+
+    EXPECT_CALL(session, exec).Times(AnyNumber());
+    EXPECT_CALL(session, exec(StrEq(umount_cmd), _));
+
+    composer.clean_up_after_client(session, source);
+}
+
+TEST_F(TestSshfsClientComposer, cleanUpSkipsUnmountWhenNothingMounted)
+{
+    // No mount to be found: findmnt says so with an empty answer and a non-zero exit
+    exec_results[findmnt_cmd] = {.exit_code = 1};
+
+    EXPECT_CALL(session, exec).Times(AnyNumber());
+    EXPECT_CALL(session, exec(HasSubstr("umount"), _)).Times(0);
+
+    composer.clean_up_after_client(session, source);
+}
+
+TEST_F(TestSshfsClientComposer, cleanUpThrowsWhenUnmountFails)
+{
+    exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", target)};
+    exec_results[fmt::format("sudo umount {}", target)] = {.exit_code = 1,
+                                                           .std_err = "not mounted"};
+
+    MP_EXPECT_THROW_THAT(composer.clean_up_after_client(session, source),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("not mounted")));
 }

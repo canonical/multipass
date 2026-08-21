@@ -31,5 +31,12 @@ public:
     std::string compose_client_command(SSHSession& session,
                                        const std::string& source,
                                        const std::string& target) const override;
+
+    /**
+     * @copydoc SftpClientComposer::clean_up_after_client
+     *
+     * This implementation unmounts stale mounts that may have been left over by the sshfs client.
+     */
+    void clean_up_after_client(SSHSession& session, const std::string& source) const override;
 };
 } // namespace multipass
