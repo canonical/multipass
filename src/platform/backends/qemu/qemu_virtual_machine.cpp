@@ -495,6 +495,11 @@ std::string mp::QemuVirtualMachine::ssh_hostname()
     return require_management_ipv4().as_string();
 }
 
+mp::VSOCKHost mp::QemuVirtualMachine::ssh_vsock_host()
+{
+    return {};
+}
+
 std::optional<mp::IPAddress> mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)

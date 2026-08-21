@@ -108,6 +108,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                 make_ssh_process,
                 (const std::string& cmd, bool whisper),
                 (override));
+    MOCK_METHOD(mp::VSOCKHost, ssh_vsock_host, (), (override));
 
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
@@ -192,6 +193,11 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     std::string ssh_username() const override
     {
         return "ubuntu";
+    }
+
+    mp::VSOCKHost ssh_vsock_host() override
+    {
+        return {};
     }
 
     std::optional<mp::IPAddress> management_ipv4() override

@@ -242,7 +242,11 @@ std::string mp::BaseVirtualMachine::ssh_username() const
 
 mp::SSHCoordinates mp::BaseVirtualMachine::ssh_coordinates()
 {
-    return {ssh_username(), key_provider.private_key_as_base64(), ssh_port(), ssh_hostname()};
+    return {ssh_username(),
+            key_provider.private_key_as_base64(),
+            ssh_port(),
+            ssh_hostname(),
+            ssh_vsock_host()};
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)

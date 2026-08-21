@@ -19,14 +19,33 @@
 
 #include <cstdint>
 #include <string>
+#include <variant>
 
 namespace multipass
 {
+struct HVSOCK
+{
+    std::string VM_Guid;
+};
+
+struct VSOCK
+{
+    uint32_t CID;
+};
+
+struct USOCK
+{
+    std::string socket_address;
+};
+
+using VSOCKHost = std::variant<std::monostate, HVSOCK, VSOCK, USOCK>;
+
 struct SSHCoordinates
 {
     std::string username;
     std::string private_key_as_base64;
     uint32_t port;
     std::string tcp_host;
+    std::variant<std::monostate, HVSOCK, VSOCK, USOCK> vsock_host;
 };
 } // namespace multipass

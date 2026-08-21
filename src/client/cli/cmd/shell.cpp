@@ -68,7 +68,8 @@ mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
         mp::SSHCoordinates ssh_coordinates{ssh_coordinates_rpc.username(),
                                            ssh_coordinates_rpc.priv_key_base64(),
                                            ssh_coordinates_rpc.port(),
-                                           ssh_coordinates_rpc.tcp_host()};
+                                           ssh_coordinates_rpc.tcp_host(),
+                                           {}};
         try
         {
             auto console_creator = [this](auto channel) { return term->make_console(channel); };

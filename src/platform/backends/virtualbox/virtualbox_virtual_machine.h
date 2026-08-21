@@ -73,6 +73,7 @@ protected:
 
     uint32_t ssh_port() override;
     std::string ssh_hostname() override;
+    VSOCKHost ssh_vsock_host() override;
 
 private:
     VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,

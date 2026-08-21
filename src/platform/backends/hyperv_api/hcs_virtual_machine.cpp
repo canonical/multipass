@@ -603,6 +603,11 @@ std::string HCSVirtualMachine::ssh_hostname()
     return fmt::format("{}.mshome.net", get_name());
 }
 
+mp::VSOCKHost HCSVirtualMachine::ssh_vsock_host()
+{
+    return {};
+}
+
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
     const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname().c_str());

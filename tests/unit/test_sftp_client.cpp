@@ -53,8 +53,8 @@ sftp_attributes get_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR,
                                     const fs::path& name = "",
                                     mode_t perms = 0777)
 {
-    auto attr =
-        static_cast<sftp_attributes_struct*>(calloc(1, sizeof(struct sftp_attributes_struct)));
+    auto attr = static_cast<sftp_attributes_struct*>(
+        calloc(1, sizeof(struct sftp_attributes_struct)));
     attr->type = type;
     attr->name = strdup(name.string().c_str());
     attr->permissions = perms;
@@ -89,7 +89,7 @@ struct SFTPClient : public testing::Test
 
     mp::SFTPClient make_sftp_client()
     {
-        mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 43, "b"};
+        mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 43, "b", {}};
         return {MP_SSH_FACTORY.make_session(coord)};
     }
 

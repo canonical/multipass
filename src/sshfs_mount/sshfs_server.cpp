@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
     const mp::id_mappings gid_mappings = convert_id_mappings(argv[7]);
     const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
 
-    mp::SSHCoordinates coordinates{username, priv_key_blob, port, host};
+    mp::SSHCoordinates coordinates{username, priv_key_blob, port, host, {}};
 
     auto logger = mpp::make_logger(log_level);
     if (!logger)
