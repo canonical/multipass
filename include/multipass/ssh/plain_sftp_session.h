@@ -52,7 +52,8 @@ public:
      * Consume an SSH session to serve SFTP to a remote client over it.
      *
      * @param ssh_session_obj The SSH session to serve on, which this consumes.
-     * @param client_composer Composer of the command that runs the remote SFTP client.
+     * @param client_composer A reference to a composer and cleaner of the sftp client, which must
+     * outlive this PlainSftpSession.
      * @param source The local path to serve.
      * @param target The remote path to map the source to.
      */
@@ -111,6 +112,7 @@ private:
     void spawn_client();
 
     PlainSSHSession plain_ssh_session;
+    const SftpClientComposer& client_composer;
     const std::string source;
     const std::string client_cmd;
     std::unique_ptr<PlainSSHProcess> client_process;
