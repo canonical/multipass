@@ -29,5 +29,9 @@ struct MockSftpClientComposer : public SftpClientComposer
                 compose_client_command,
                 (SSHSession & session, const std::string& source, const std::string& target),
                 (const, override));
+    MOCK_METHOD(void,
+                clean_up_after_client,
+                (SSHSession & session, const std::string& source),
+                (const, override));
 };
 } // namespace multipass::test
