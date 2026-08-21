@@ -128,11 +128,12 @@ bool mp::PlainSSHProcess::exit_recognized(std::chrono::milliseconds timeout)
 
 int mp::PlainSSHProcess::exit_code(std::chrono::milliseconds timeout)
 {
+    // It has to be at the begginging to guarantee lock release
+    auto local_lock = std::move(session_lock); // unlock at the end
     rethrow_if_saved();
     if (auto exit_status = std::get_if<int>(&exit_result))
         return *exit_status;
 
-    auto local_lock = std::move(session_lock); // unlock at the end
     read_exit_code(timeout, /* save_exception = */ true);
 
     assert(std::holds_alternative<int>(exit_result));
