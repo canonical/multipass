@@ -32,6 +32,7 @@
 #include <cstring>
 #include <map>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -180,7 +181,6 @@ struct TestPlainSftpSession : public Test
     static inline const std::string client_cmd = fmt::format("sudo -n sshfs -o slave :{} {}",
                                                              source,
                                                              target);
-    static inline const auto findmnt_cmd = fmt::format("findmnt --source :{} -o TARGET -n", source);
 
     // Fakes for the SFTP sessions that successive clients get served, and their init messages
     constexpr static size_t max_fakes = 2;
@@ -254,9 +254,10 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
     EXPECT_THAT(make_sftp_session(std::move(session)), NotNull());
 }
 
-TEST_F(TestPlainSftpSession, renewClientRespawnsClient)
+TEST_F(TestPlainSftpSession, renewClientCleansUpAfterFormerClientAndRespawns)
 {
     expect_client_spawns<2>(); // one client to begin with, another one to replace it
+    EXPECT_CALL(client_composer, clean_up_after_client(_, StrEq(source)));
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
@@ -264,9 +265,12 @@ TEST_F(TestPlainSftpSession, renewClientRespawnsClient)
     sftp_session->renew_client();
 }
 
+// TODO@ricab add test with multiple respawns
+
 TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
 {
     expect_client_spawns<1>(); // only the original client, no replacement
+    EXPECT_CALL(client_composer, clean_up_after_client).Times(0);
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
@@ -278,49 +282,17 @@ TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
     EXPECT_THAT(sftp_session->next_message(), IsNull());
 }
 
-TEST_F(TestPlainSftpSession, renewClientUnmountsStaleMountBeforeRespawning)
+TEST_F(TestPlainSftpSession, renewClientPropagatesCleanUpFailure)
 {
-    constexpr auto mount_path = "/guest/target";
-    const auto umount_cmd = fmt::format("sudo umount {}", mount_path);
-    exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", mount_path)};
-    exec_results[umount_cmd] = {.exit_code = 0};
-
-    expect_client_spawns<2>();
-    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(umount_cmd)));
-
-    auto sftp_session = make_sftp_session(make_ssh_session());
-    ASSERT_THAT(sftp_session, NotNull());
-
-    sftp_session->renew_client();
-}
-
-TEST_F(TestPlainSftpSession, renewClientSkipsUnmountWhenNothingMounted)
-{
-    // No mount to be found: findmnt says so with an empty answer and a non-zero exit
-    exec_results[findmnt_cmd] = {.exit_code = 1};
-
-    expect_client_spawns<2>();
-    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(_, HasSubstr("umount"))).Times(0);
-
-    auto sftp_session = make_sftp_session(make_ssh_session());
-    ASSERT_THAT(sftp_session, NotNull());
-
-    sftp_session->renew_client();
-}
-
-TEST_F(TestPlainSftpSession, renewClientThrowsWhenUnmountFails)
-{
-    constexpr auto mount_path = "/guest/target";
-    exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", mount_path)};
-    exec_results[fmt::format("sudo umount {}", mount_path)] = {.exit_code = 1,
-                                                               .std_err = "not mounted"};
+    const std::string error = "could not unmount";
 
     expect_client_spawns<1>(); // the replacement never gets to run
+    EXPECT_CALL(client_composer, clean_up_after_client).WillOnce(Throw(std::runtime_error{error}));
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
 
     MP_EXPECT_THROW_THAT(sftp_session->renew_client(),
                          std::runtime_error,
-                         mpt::match_what(HasSubstr("not mounted")));
+                         mpt::match_what(StrEq(error)));
 }
