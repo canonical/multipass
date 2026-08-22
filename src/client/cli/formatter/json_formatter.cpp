@@ -241,7 +241,8 @@ std::string mp::JsonFormatter::format(const InfoReply& reply) const
         }
         else
         {
-            assert(false && "either one of instance or snapshot details should be populated");
+            // either one of instance or snapshot details should be populated
+            mp::utils::UNREACHABLE();
         }
     }
 

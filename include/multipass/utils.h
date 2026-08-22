@@ -17,21 +17,23 @@
 
 #pragma once
 
-#include <multipass/logging/level.h>
+#include <multipass/logging/log_location.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
 #include <multipass/virtual_machine.h>
 
 #include <fmt/base.h>
+#include <fmt/format.h>
 
 #include <yaml-cpp/yaml.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <functional>
 #include <future>
-#include <ranges>
+#include <source_location>
 #include <string>
 #include <vector>
 
@@ -52,6 +54,15 @@ class SSHSession;
 
 namespace utils
 {
+
+// Marks code that should never be reached: logs the location and aborts.
+[[noreturn]] inline void UNREACHABLE(std::source_location loc = std::source_location::current())
+{
+    logging::log_location(logging::Level::error,
+                          logging::detail::with_source_location<std::string_view>("FATAL", loc),
+                          "Reached code marked as unreachable");
+    std::abort();
+}
 
 // enum types
 enum class QuoteType
