@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 namespace multipass
 {
@@ -58,7 +59,7 @@ public:
      * Re-establish the remote SFTP client.
      *
      * Call this method after #next_message() returned `nullptr` without a stop request and
-     * #client_failed() confirmed the client at fault. The secure transport itself needs to be up:
+     * #client_exit_code() ruled out a graceful end. The secure transport itself needs to be up:
      * this cannot recover from a broken connection.
      *
      * If a stop was requested with #request_stop() in the meantime, this is a no-op: no new
@@ -67,15 +68,17 @@ public:
     virtual void renew_client() = 0;
 
     /**
-     * Tell whether the remote client failed.
+     * Obtain the exit status of the remote client, if it has exited.
      *
-     * Call this method after #next_message() returns `nullptr` without a stop request, to
-     * distinguish a client failure from a graceful end of the connection.
+     * Call this method after #next_message() returns `nullptr` without a stop request, to tell a
+     * graceful end of the connection (the client unmounted and exited successfully) from any
+     * other outcome.
      *
-     * @return True if the remote client terminated abnormally or its success could not be
-     * confirmed; false if it exited successfully.
+     * @return The client's exit code or `std::nullopt` if it could not be obtained
+     * @throws SSHProcessExitError if the client's exit status cannot be obtained at all, meaning
+     * the transport rather than the client is at fault (renewal will not help).
      */
-    virtual bool client_failed() = 0;
+    virtual std::optional<int> client_exit_code() = 0;
 
 protected:
     SftpSession() = default;

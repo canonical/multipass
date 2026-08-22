@@ -17,7 +17,6 @@
 
 #include <multipass/ssh/plain_sftp_session.h>
 
-#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/libssh_wrapper.h>
@@ -40,6 +39,7 @@ namespace
 using namespace std::literals::chrono_literals;
 
 constexpr auto category = "sftp session";
+constexpr auto client_exit_timeout = 250ms; // how long we wait on the client's exit status
 
 class SftpInitException : public mp::SSHException
 {
@@ -56,7 +56,7 @@ private:
 void check_client_status(mp::SSHProcess& client_process)
 {
     // should we have a way to wait for it to start running?
-    if (client_process.exit_recognized(250ms))
+    if (client_process.exit_recognized(client_exit_timeout))
         throw std::runtime_error(client_process.read_std_error());
 }
 
@@ -195,15 +195,9 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
     return raw_msg ? std::make_unique<PlainSftpMessage>(*raw_msg) : nullptr;
 }
 
-bool mp::PlainSftpSession::client_failed()
+std::optional<int> mp::PlainSftpSession::client_exit_code()
 {
-    try
-    {
-        // TODO@sftp distinguish 0 from no return, once that SSHProcess API has settled
-        return client_process->exit_code(250ms) != 0;
-    }
-    catch (const ExitlessSSHProcessException&)
-    {
-        return true;
-    }
+    return client_process->exit_recognized(client_exit_timeout)
+             ? std::optional{client_process->exit_code()}
+             : std::nullopt;
 }
