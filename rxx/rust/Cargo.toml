@@ -11,19 +11,22 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-add_library(logger STATIC
-  log.cpp
-  log_location.cpp
-  multiplexing_logger.cpp
-  standard_logger.cpp
-)
+[package]
+name = "rust"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
-target_link_libraries(logger
-  rust
-  fmt::fmt-header-only
-  Qt6::Core
-)
+[lib]
+crate-type = [ "staticlib", "rlib" ]
 
-add_dependencies(logger rpc)
+[features]
+default = []
+
+[dependencies]
+cxx.workspace = true
+
+[build-dependencies]
+cxx-build.workspace = true
+named-lock.workspace = true

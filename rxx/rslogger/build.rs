@@ -34,7 +34,6 @@ fn get_target_scoped_lock_name() -> String {
 fn main() {
     let lock_name = get_target_scoped_lock_name();
     let lock = NamedLock::create(&lock_name).expect("Failed to create scoped named lock");
-    // Hold exclusive write lock only while generating CXX bindings
     let _guard = lock.lock().expect("Failed to acquire lock");
     // Generate the .h and .cc files (_do not_ compile them)
     let _ = cxx_build::bridge("src/lib.rs"); // drops the builder, just codegen
