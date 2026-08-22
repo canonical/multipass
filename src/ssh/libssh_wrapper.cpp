@@ -143,6 +143,11 @@ int mp::Libssh::ssh_channel_read_nonblocking(ssh_channel channel,
     return ::ssh_channel_read_nonblocking(channel, dest, count, is_stderr);
 }
 
+int mp::Libssh::ssh_channel_poll_timeout(ssh_channel channel, int timeout, int is_stderr) const
+{
+    return ::ssh_channel_poll_timeout(channel, timeout, is_stderr);
+}
+
 int mp::Libssh::ssh_channel_request_pty_size(ssh_channel channel,
                                              const char* term,
                                              int cols,

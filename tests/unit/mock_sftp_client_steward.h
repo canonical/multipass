@@ -13,30 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #pragma once
 
-#include <multipass/disabled_copy_move.h>
+#include "common.h"
 
-#include <string>
+#include <multipass/sshfs_mount/sftp_client_steward.h>
 
-struct ssh_key_struct;
-typedef ssh_key_struct* ssh_key;
-
-namespace multipass
+namespace multipass::test
 {
-class SSHKeyProvider : private DisabledCopyMove
+struct MockSftpClientSteward : public SftpClientSteward
 {
-public:
-    virtual ~SSHKeyProvider() = default;
-    virtual std::string private_key_as_base64() const = 0;
-    virtual std::string public_key_as_base64() const = 0;
-    virtual ssh_key private_key() const = 0;
-
-protected:
-    SSHKeyProvider() = default;
+    MOCK_METHOD(std::string,
+                compose_client_command,
+                (SSHSession & session, const std::string& source, const std::string& target),
+                (const, override));
+    MOCK_METHOD(void,
+                clean_up_after_client,
+                (SSHSession & session, const std::string& source),
+                (const, override));
 };
-} // namespace multipass
+} // namespace multipass::test
