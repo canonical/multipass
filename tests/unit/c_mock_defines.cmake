@@ -79,6 +79,7 @@ add_c_mocks(
   sftp_stat
   sftp_lstat
   sftp_opendir
+  sftp_closedir
   sftp_readdir
   sftp_readlink
   sftp_mkdir
