@@ -1,0 +1,105 @@
+# Version upgrade tests
+
+The version upgrade suite checks that VMs and their state created on one Multipass version survive an upgrade to another. It lives at `tests/upgrade` (a sibling of `tests/cli`) and is its own entry point, run with `pytest tests/upgrade`. Because it is not under `tests/cli`, the standard `pytest tests/cli` run never collects it.
+
+It nonetheless reuses the *entire* cli framework. Its `conftest.py` sets `pytest_plugins = ["cli.conftest"]`, which pulls in the framework's daemon controllers, the `multipassd` governor fixture, the sudo/binary session setup, and the shared `--driver` / `--daemon-controller` / `--vm-*` options. The `cli` package itself is importable because pytest puts `tests/` on `sys.path` (both `tests/cli` and `tests/upgrade` are packages; `tests` is not). The suite's own `conftest.py` adds only the upgrade-specific options and the manifest fixture, and a small `tests/upgrade/pytest.ini` registers the suite markers (`seed`, `verify`, `scenario`, and `snapshot`).
+
+Because `pytest_plugins` must sit in a top-level conftest, invoke the suite via its own path (`pytest tests/upgrade`) rather than as part of a combined `pytest tests` run.
+
+## The two-phase model
+
+Upgrade testing is split into two phases, run as separate `pytest` invocations selected by marker, with a package upgrade in between:
+
+1. **`-m seed`** — provisions test VMs on the *currently installed* version (X), drives each into a known state, and records what should still hold afterwards into an on-disk **manifest**.
+2. **(upgrade)** — the installed Multipass is swapped from X to Y. This is orchestrated by the CI (or by you, manually); the test code never installs anything.
+3. **`-m verify`** — reads the manifest back and asserts every recorded expectation still holds on version Y.
+
+Two constraints follow from how Multipass stores state:
+
+- **Both phases must run on the same host.** Seeded VMs live in the daemon's storage directory (e.g. `/var/snap/multipass/common/data/multipassd`), which does not travel between machines. The two `pytest` runs are sequential steps in a single CI job, not two jobs.
+- **Never pass `--remove-all-instances`.** That flag wipes instance storage — including the very VMs the verify phase depends on.
+
+The `verify` phase derives nothing from the seed run's process state; VM names and all expectations flow through the manifest, which is the single source of truth.
+
+## Running locally
+
+Assuming a snap-installed Multipass and the test dependencies installed (see [Installing the tests](#installing-the-tests)):
+
+```bash
+# Phase 1 — seed on the currently installed version
+pytest tests/upgrade -m seed \
+    --upgrade-manifest=reports/upgrade-manifest.json
+
+# Upgrade the installed package, keeping storage in place
+sudo snap refresh multipass --channel=<target-channel>
+
+# Phase 2 — verify on the upgraded version
+pytest tests/upgrade -m verify \
+    --upgrade-manifest=reports/upgrade-manifest.json
+```
+
+Both runs must use the same `--upgrade-manifest` path and the same `--driver`. The phase is chosen with the `seed` / `verify` markers; the seed run writes the manifest, the verify run reads it. `--upgrade-manifest` lives in the suite's own conftest, so it is only available when you run `pytest tests/upgrade`, not on the `pytest tests/cli` run.
+
+### Options
+
+- `-m seed` / `-m verify`: select the phase. Run one, upgrade the package, then run the other.
+- `--upgrade-manifest=PATH`: location of the JSON manifest carrying expectations between phases. Defaults to `upgrade-manifest.json` in the working directory.
+
+## The manifest
+
+The manifest is a small, human-readable JSON document. It captures the seed environment and maps each VM name to the expectations the seed test recorded:
+
+```json
+{
+  "schema": 1,
+  "seed": { "version": "1.16.0", "driver": "qemu", "controller": "snap" },
+  "scenarios": {
+    "upg-lifecycle": { "sentinel_path": "...", "fingerprint": { "...": "..." } }
+  }
+}
+```
+
+It is attached as a CI artifact (`upgrade-manifest`) so a failed verify run can be diffed against what was seeded.
+
+## The tests
+
+Each concern is a pair of ordinary pytest tests in `tests/upgrade/<concern>_test.py`: a `seed` test (marked `@pytest.mark.seed`) and a `verify` test (marked `@pytest.mark.verify`). Both name their VM once with `@pytest.mark.scenario("<vm-name>")` and request the `scenario` fixture instead of indexing the manifest by hand: the seed test launches the VM, drives it into a state, and records what should survive into `scenario.record`; the verify test reads `scenario.record` and asserts. The `scenario` fixture dispatches on the phase marker — backed by `seed_scenario` (which opens a fresh manifest slice) in the seed phase and `verify_scenario` (which also purges the VM in teardown, even on failure) in the verify phase — so cleanup can't be forgotten.
+
+| Test | What it asserts survives |
+| ---- | ------------------------ |
+| `lifecycle` | A stopped default-image VM's on-disk data and host-reported identity (cpu count, memory total, image release); plus a focal VM (suspended) and a debian VM (stopped) keeping their data and release across the upgrade. Suspended case skipped on `lxd`/`applevz`. |
+| `suspend_resume` | A VM **suspended** during seeding comes back `Suspended` and resumes cleanly with its data. Skipped on `lxd`/`applevz`. |
+| `snapshot` | A branched snapshot tree (BASE with two children): metadata (names, parents, comments, count), captured data, and captured cpu/memory/disk. Restoring `base` reveals base-only data, hides child-only data, and rolls resources back. Skipped on `lxd`/`applevz`. |
+| `mount` | A classic (SSHFS) and a native (9p) mount each survive a stopped upgrade, plus a classic mount across a suspended upgrade: definition still listed, host data visible in guest, guest-written data on host and re-exposed on restart. Native/suspend skipped on `lxd`/`applevz`. |
+| `cloudinit` | State applied by a custom `--cloud-init` at first boot: the provisioned file persists byte-for-byte and the cloud-init instance id is unchanged (proving it did not re-run). |
+| `network` | An extra `--network` interface survives, parked both **stopped** and **suspended** (suspend variant skipped on `lxd`/`applevz`), plus a `--bridged` interface (pointing `local.bridged-network` at the same host network): the guest still presents it with the same persisted MAC. Each phase stands up its own isolated, runtime-only host network and tears it down afterwards (privilege escalated via `sudo`/`gsudo`): a **bridge** on Linux (`ip link`), a **private Hyper-V vSwitch** on Windows (`New-VMSwitch -SwitchType Private`). It is re-created with the same fixed name each phase, so the instance's persisted NIC (MAC + network reference) re-attaches by name on verify. **Skipped** where no isolated ephemeral network can be created: macOS (both backends only bridge onto physical NICs), and Windows on a non-Hyper-V backend or where `New-VMSwitch` is absent (e.g. **Windows Home**). |
+| `multi_mount` | A classic and a native mount on one VM both survive. Skipped on `lxd`/`applevz`. |
+| `mount_mappings` | A classic mount's `--uid-map`/`--gid-map` mappings are preserved in `info`. |
+| `clone` | A stopped VM clones cleanly post-upgrade; source and clone share the seeded data. |
+| `delete_restore` | A deleted-but-not-purged VM recovers with its data. |
+| `alias` | A seeded alias is still defined and runnable. |
+| `settings` | A custom client setting persists. |
+
+Tests deliberately park VMs in a `Stopped` (or `Suspended`) state at the end of seeding so the verify phase has a precise expectation rather than a version-dependent one (whether a *running* VM is re-attached or stopped by a refresh is daemon/version specific).
+
+### Adding a test
+
+Drop a `<concern>_test.py` in `tests/upgrade/` with a `seed`-marked test that records into `scenario.record` and a `verify`-marked test that reads it back from `scenario.record`; tag both with `@pytest.mark.scenario("<vm-name>")` and request the `scenario` fixture (in the verify phase it then purges the VM for you). Shared assertions live in `helpers.py` — including `park_seeded`/`resume_seeded` (the symmetric "park the VM at end of seed" / "bring it back in verify" pair) and `seed_sentinel`/`assert_sentinel_record` (write a labelled guest file and later compare it byte for byte). `seedutils.py` has `seeded_vm` (the idempotent, persistent-VM launch wrapper), `ensure_absent`, and `daemon_readable_dir` (a snap-readable, refresh-surviving host dir). Launch persistent seed VMs with `seeded_vm("<vm-name>", extra_args=[...])`, which wraps the cli `launch` helper with `autopurge=False`. Driver-gated concerns reuse the cli framework's markers (e.g. `@pytest.mark.snapshot` is auto-skipped on drivers without snapshot support).
+
+## Running in GitHub Actions
+
+The upgrade suite has its own workflow at `.github/workflows/version-upgrade-tests.yml`, triggerable via `workflow_call` or `workflow_dispatch`. It installs the `from` channel, seeds, `snap refresh`es to the `to` channel, then verifies — all in one job, reporting both phases to GitHub Checks.
+
+**Automatic CI.** The Linux build (`linux.yml`) dispatches this workflow on every PR / merge-group / release build, once it has published the branch's snap to its channel. That run upgrades the **latest released** Multipass (`stable`) to the **snap built by the branch** (`edge/pr<N>`, `edge/ci<N>`, or `beta`), so each change is checked for upgrade safety. It runs only when a branch channel exists (it `needs` the publish job), and is Linux-only for now — GitHub-hosted Windows runners lack full Hyper-V and macOS runners can't nest-virtualize.
+
+Like the cli-tests workflow, it is **non-blocking**: seed/verify failures are surfaced as GitHub Checks (via `dorny/test-reporter`, `fail-on-error: false`) but do not fail the job, so an upgrade regression never fails the overall build. Inspect the "Upgrade seed/verify results" checks for the actual outcome.
+
+To trigger a one-off run manually (e.g. validating an arbitrary upgrade path):
+
+```sh
+# from-snap-channel defaults to `stable` (the latest release).
+gh workflow run "Version Upgrade Tests" \
+    -f to-snap-channel=candidate
+```
+
+The `backend-driver` and `pytest-extra-args` inputs are forwarded to both phases.

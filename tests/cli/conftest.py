@@ -28,6 +28,7 @@ import re
 import operator
 import atexit
 import time
+import os
 from contextlib import contextmanager, ExitStack, suppress
 from functools import partial
 from packaging import version
@@ -410,6 +411,41 @@ def ensure_multipass_binaries_are_present():
         )
 
 
+def _inhibit_system_sleep():
+    """
+    Prevent macOS from idle-sleeping (and App-Napping) the test process.
+
+    During system sleep the sudo keep-alive thread is frozen, yet sudo measures
+    its credential timeout against Darwin's CLOCK_MONOTONIC, which keeps counting
+    while the system is asleep (see clock_gettime(3)). A sleep longer than
+    `timestamp_timeout` therefore silently expires the sudo ticket even though the
+    keep-alive "only missed" what it thinks is a short interval. Holding a power
+    assertion for the duration of the session keeps the machine awake so the
+    keep-alive can always run.
+
+    Returns a handle to terminate on teardown, or None when not applicable.
+    """
+    if sys.platform != "darwin":
+        return None
+
+    if not shutil.which("caffeinate"):
+        logging.warning(
+            "caffeinate not found; cannot inhibit system sleep. "
+            "The sudo ticket may expire if the machine idle-sleeps."
+        )
+        return None
+
+    # -d display, -i idle system, -m disk, -s system (on AC), -u user active.
+    # -w <pid>: caffeinate exits automatically when this process exits, so the
+    # power assertion can never outlive the test session.
+    return subprocess.Popen(
+        ["caffeinate", "-dimsu", "-w", str(os.getpid())],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
 @pytest.fixture(autouse=True, scope="session")
 def ensure_sudo_auth():
     """Ensure sudo is authenticated before running tests"""
@@ -444,6 +480,10 @@ def ensure_sudo_auth():
 
             subprocess.run([*get_sudo_tool(), "-v"], check=True)
 
+        # Keep the machine awake so the keep-alive thread below is never frozen
+        # by idle sleep (which would let the sudo ticket lapse on macOS).
+        sleep_inhibitor = _inhibit_system_sleep()
+
         stop_keepalive = threading.Event()
 
         # Renew the sudo credentials ticket by issuing sudo periodically.
@@ -457,11 +497,16 @@ def ensure_sudo_auth():
                     logging.debug(
                         f"sudo keepalive tick :: {elapsed:.1f}s since last tick")
                     last_tick = now
+                    # A bounded timeout is essential: sudo can block for minutes
+                    # inside its authorization machinery (OpenDirectory, DNS, the
+                    # timestamp-file lock). Without it, a single stalled refresh
+                    # freezes the whole loop and the ticket silently expires.
                     result = subprocess.run(
                         [*get_sudo_tool(), "-n", "-v"],
                         stdin=subprocess.DEVNULL,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
+                        timeout=30,
                         check=False,
                     )
                     logging.debug(
@@ -474,6 +519,11 @@ def ensure_sudo_auth():
         yield
         stop_keepalive.set()
         sudo_keepalive_thread.join()
+
+        if sleep_inhibitor is not None:
+            sleep_inhibitor.terminate()
+            with suppress(Exception):
+                sleep_inhibitor.wait(timeout=5)
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
 
@@ -586,6 +636,10 @@ def multipassd_class_scoped(request):
         request.cls.multipassd = daemon
         yield daemon
 
+@pytest.fixture(scope="session")
+def multipassd_session_scoped():
+    with multipassd_impl() as daemon:
+        yield daemon
 
 @pytest.fixture
 def windows_privileged_mounts(multipassd):
